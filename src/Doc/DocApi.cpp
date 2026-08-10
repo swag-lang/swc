@@ -113,7 +113,10 @@ namespace
     std::vector<DocSearchEntry> collectSearchEntries(const DocApiDocument& document)
     {
         std::vector<DocSearchEntry> entries;
-        entries.reserve(document.items.size() + document.namespaceNames.size() + document.guides.size());
+        size_t memberCount = 0;
+        for (const DocItem& item : document.items)
+            memberCount += item.members.size();
+        entries.reserve(document.items.size() + memberCount + document.namespaceNames.size() + document.guides.size());
 
         std::unordered_set<Utf8> namespaceNames;
         for (const Utf8& name : document.namespaceNames)
@@ -124,19 +127,33 @@ namespace
 
         for (const DocItem& item : document.items)
         {
-            if (item.overloads.empty() || namespaceNames.contains(item.fullName))
-                continue;
-
-            Utf8 detail;
-            for (const Utf8& line : item.overloads.front().commentLines)
+            if (!item.overloads.empty() && !namespaceNames.contains(item.fullName))
             {
-                if (!Utf8Helper::trim(line).empty())
+                Utf8 detail;
+                for (const Utf8& line : item.overloads.front().commentLines)
                 {
-                    detail = DocSearch::summarize(line);
-                    break;
+                    if (!Utf8Helper::trim(line).empty())
+                    {
+                        detail = DocSearch::summarize(line);
+                        break;
+                    }
                 }
+                entries.push_back({.name = item.fullName, .anchor = DocMarkdown::makeAnchor(item.fullName), .detail = std::move(detail), .kind = DocSearch::kindLetter(item.kind)});
             }
-            entries.push_back({.name = item.fullName, .anchor = DocMarkdown::makeAnchor(item.fullName), .detail = std::move(detail), .kind = DocSearch::kindLetter(item.kind)});
+
+            for (const DocMember& member : item.members)
+            {
+                Utf8 detail;
+                for (const Utf8& line : member.commentLines)
+                {
+                    if (!Utf8Helper::trim(line).empty())
+                    {
+                        detail = DocSearch::summarize(line);
+                        break;
+                    }
+                }
+                entries.push_back({.name = member.fullName, .anchor = DocMarkdown::makeAnchor(member.fullName), .detail = std::move(detail), .kind = item.kind == DocItemKind::Enum ? 'k' : 'v'});
+            }
         }
 
         for (const DocGuide& guide : document.guides)

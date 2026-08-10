@@ -64,6 +64,15 @@ struct DocOverload
     uint32_t          sourceLine = 0;
 };
 
+struct DocMember
+{
+    const Symbol*     symbol = nullptr;
+    Utf8              fullName;
+    Utf8              name;
+    Utf8              typeName;
+    std::vector<Utf8> commentLines;
+};
+
 struct DocItem
 {
     DocItemKind              kind = DocItemKind::Function;
@@ -73,6 +82,7 @@ struct DocItem
     Utf8                     namespaceName;
     Utf8                     category;
     std::vector<DocOverload> overloads;
+    std::vector<DocMember>   members;
 };
 
 struct DocGuide

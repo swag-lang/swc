@@ -194,7 +194,10 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocExamplesNestTableOfContentsLists)
 {
-    static constexpr std::string_view SOURCE = "/** Documentation chapter. */";
+    static constexpr std::string_view SOURCE = R"(/**
+## Shared heading
+*/
+)";
 
     ScopedDocTestDirectory directory("examples-toc");
     if (!directory.ready())
@@ -238,6 +241,10 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocExamplesNestTableOfContentsLists)
     FileSystem::IoErrorInfo ioError;
     SWC_RESULT(FileSystem::readTextFile(directory.root() / "examples-toc.html", content, ioError));
     if (!content.contains("<li><a href=\"#_001_000_chapter_swg\">Chapter</a>\n<ul>\n<li><a href=\"#_001_001_first_topic_swg\">First Topic</a></li>\n<li><a href=\"#_001_002_second_topic_swg\">Second Topic</a></li>\n</ul>\n</li>"))
+        return Result::Error;
+    if (!content.contains("id=\"_001_000_chapter_swg_Shared_heading\"") ||
+        !content.contains("id=\"_001_001_first_topic_swg_Shared_heading\"") ||
+        !content.contains("id=\"_001_002_second_topic_swg_Shared_heading\"") || content.contains("id=\"Shared_heading\""))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -336,6 +343,43 @@ struct RestrictedRecord
     private  ownedValue:  u64 // Restricted to the type.
 }
 
+// A generic record whose declaration is documented without a concrete instance.
+struct(T) GenericBox
+{
+    zeta: T // Last field alphabetically.
+
+    // Stored value.
+    //
+    // ## Semantics
+    //
+    // The detailed field description remains with its owner.
+    value: T
+
+    alpha: T // First field alphabetically.
+    readonly
+    {
+        inWeight: T
+        interpolation: T
+    }
+    #[Swag.NoDoc]
+    hiddenByAttribute: T
+    #[Swag.NoDoc]
+    const SECRET = 1
+    private hidden: T
+}
+
+impl GenericBox
+{
+    // Returns the stored value.
+    mtd get()->T
+    {
+        return .value
+    }
+
+    #[Swag.NoDoc]
+    mtd hiddenMethod() {}
+}
+
 // Keep this compiler-only helper out of the API page.
 #[Swag.NoDoc]
 func hidden(value: s32)->s32
@@ -420,6 +464,26 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!content.contains(">publicValue<") || !content.contains(">observedValue<"))
         return Result::Error;
+
+    // Generic roots publish their fields and methods even when no concrete instance exists.
+    const size_t genericItem       = content.find("id=\"Compiler_doc_test_DocApi_GenericBox\"");
+    const size_t genericFields     = content.find("<h3>Fields</h3>", genericItem);
+    const size_t genericAlpha      = content.find(">alpha<", genericFields);
+    const size_t genericInterp     = content.find(">interpolation<", genericFields);
+    const size_t genericInWeight   = content.find(">inWeight<", genericFields);
+    const size_t genericValue      = content.find(">value</a>", genericFields);
+    const size_t genericZeta       = content.find(">zeta<", genericFields);
+    const size_t genericTableEnd   = content.find("</table>", genericFields);
+    const size_t genericDetail     = content.find("The detailed field description remains with its owner.", genericTableEnd);
+    const size_t genericHeading    = content.find("id=\"Compiler_doc_test_DocApi_GenericBox_value_Semantics\"", genericTableEnd);
+    const size_t genericMethod     = content.find("id=\"Compiler_doc_test_DocApi_GenericBox_get\"");
+    if (genericItem == std::string::npos || genericFields == std::string::npos || genericAlpha == std::string::npos || genericInterp == std::string::npos || genericInWeight == std::string::npos || genericValue == std::string::npos || genericZeta == std::string::npos || genericTableEnd == std::string::npos || genericDetail == std::string::npos || genericHeading == std::string::npos || genericMethod == std::string::npos)
+        return Result::Error;
+    if (!(genericAlpha < genericInterp && genericInterp < genericInWeight && genericInWeight < genericValue && genericValue < genericZeta && genericZeta < genericTableEnd) || genericDetail < genericTableEnd)
+        return Result::Error;
+    if (content.contains(">hidden<") || content.contains("hiddenByAttribute") || content.contains("hiddenMethod") || content.contains("SECRET"))
+        return Result::Error;
+
     if (content.contains("id=\"Example\"") || !content.contains("Compiler_doc_test_DocApi_Counter_0_Example"))
         return Result::Error;
     if (content.contains("__anonymous_"))
@@ -445,6 +509,10 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!content.contains(R"("n|Compiler_doc_test.DocApi|namespace_Compiler_doc_test_DocApi|")"))
         return Result::Error;
+    if (!content.contains(R"("v|Compiler_doc_test.DocApi.GenericBox.value|Compiler_doc_test_DocApi_GenericBox_value|Stored value.")") ||
+        !content.contains(R"("k|Compiler_doc_test.DocApi.TestMode.Fast|Compiler_doc_test_DocApi_TestMode_Fast|Prefer lower latency.")") ||
+        !content.contains(R"("f|Compiler_doc_test.DocApi.GenericBox.get|Compiler_doc_test_DocApi_GenericBox_get|Returns the stored value.")"))
+        return Result::Error;
 
     // The kind of a symbol drives its accent, in the card and in the summary tables.
     if (!content.contains("<div class=\"api-item api-item-struct\">") || !content.contains("class=\"kind-chip kind-struct\""))
@@ -462,7 +530,9 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!content.contains(".right {\n    min-width: 0;\n    /* Resolve the character measure once with the prose font.") || !content.contains("width: min(100%, var(--swag-measure));"))
         return Result::Error;
-    if (!content.contains(".right p {\n    width: 100%;\n    max-width: 100%;\n    text-align: justify;") || !content.contains(".container table,\n.code-block,\n.blockquote {\n    width: 100%;\n    max-width: 100%;"))
+    if (!content.contains(".right p {\n    width: 100%;\n    max-width: 100%;\n    text-wrap: pretty;") || !content.contains(".container table,\n.code-block,\n.blockquote {\n    width: 100%;\n    max-width: 100%;"))
+        return Result::Error;
+    if (!content.contains("border-radius: 4px;") || !content.contains(".api-member-details") || !content.contains("clip-path: polygon(0 0, calc(100% - 18px)") || content.contains("scroll-behavior: smooth"))
         return Result::Error;
 }
 SWC_TEST_END()

@@ -36,6 +36,21 @@ Utf8 DocApi::displayNameFor(const std::string_view fullName, const DocItemKind k
 
 namespace
 {
+    bool alphabeticLess(const std::string_view lhs, const std::string_view rhs)
+    {
+        const size_t size = std::min(lhs.size(), rhs.size());
+        for (size_t i = 0; i < size; ++i)
+        {
+            const int left  = std::tolower(static_cast<unsigned char>(lhs[i]));
+            const int right = std::tolower(static_cast<unsigned char>(rhs[i]));
+            if (left != right)
+                return left < right;
+        }
+        if (lhs.size() != rhs.size())
+            return lhs.size() < rhs.size();
+        return lhs < rhs;
+    }
+
     int itemSortOrder(const DocItemKind kind)
     {
         return static_cast<int>(kind);
@@ -308,6 +323,8 @@ namespace
             return function->nodeBodyRef;
         if (const auto* structDecl = node.safeCast<AstStructDecl>())
             return structDecl->nodeBodyRef;
+        if (const auto* unionDecl = node.safeCast<AstUnionDecl>())
+            return unionDecl->nodeBodyRef;
         if (const auto* interfaceDecl = node.safeCast<AstInterfaceDecl>())
             return interfaceDecl->nodeBodyRef;
         if (const auto* enumDecl = node.safeCast<AstEnumDecl>())
@@ -367,6 +384,274 @@ namespace
         if (value.starts_with(".."))
             return {};
         return value;
+    }
+
+    bool isRestrictedField(const Symbol& symbol)
+    {
+        const auto* symVar = symbol.safeCast<SymbolVariable>();
+        if (!symVar)
+            return false;
+        const MemberAccess access = symVar->memberAccess();
+        return access == MemberAccess::Internal || access == MemberAccess::Private;
+    }
+
+    bool canDocumentMember(const CompilerInstance& compiler, const Symbol& symbol, const bool runtime)
+    {
+        if (symbol.isIgnored() || DocApi::hasNoDocAttribute(symbol) || !symbol.decl() || !symbol.tokRef().isValid())
+            return false;
+        if (isRestrictedField(symbol))
+            return false;
+        const SourceFile* file = compiler.sourceViewFile(symbol);
+        if (!file)
+            return false;
+        if (runtime)
+            return file->isRuntime();
+        return ModuleApi::isCurrentModuleSourceFile(*file) && (symbol.isPublic() || symbol.isEnumValue());
+    }
+
+    std::vector<Utf8> sameLineCommentLines(const SourceCodeRange& range)
+    {
+        std::vector<Utf8> result;
+        if (!range.srcView)
+            return result;
+
+        const std::string_view source = range.srcView->stringView();
+        const size_t           start  = std::min<size_t>(range.offset + range.len, source.size());
+        size_t                 end    = source.find_first_of("\r\n", start);
+        if (end == std::string_view::npos)
+            end = source.size();
+
+        const std::string_view suffix = source.substr(start, end - start);
+        const size_t           line   = suffix.find("//");
+        const size_t           block  = suffix.find("/*");
+        size_t                 commentPos;
+        if (line == std::string_view::npos)
+            commentPos = block;
+        else if (block == std::string_view::npos)
+            commentPos = line;
+        else
+            commentPos = std::min(line, block);
+        if (commentPos != std::string_view::npos)
+            DocApi::appendNormalizedComment(result, suffix.substr(commentPos));
+        return result;
+    }
+
+    std::vector<Utf8> memberCommentLines(TaskContext& ctx, const Symbol& symbol)
+    {
+        const SourceFile* file = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
+        if (!file)
+            file = ctx.compiler().sourceViewFile(symbol);
+        if (!file)
+            return {};
+
+        AstNodeRef declRef;
+        if (!ModuleApi::tryFindReachableNodeRef(file->ast(), symbol.decl(), declRef))
+        {
+            if (file->ast().hasSourceView() && symbol.srcViewRef() != file->ast().srcView().ref())
+                declRef = file->ast().tryFindNodeRef(symbol.decl());
+            if (declRef.isInvalid())
+                return {};
+        }
+
+        const AstNodeRef  rootRef = ModuleApi::findExportDeclRoot(*file, declRef);
+        std::vector<Utf8> result  = DocApi::symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
+        if (!result.empty())
+            return result;
+
+        // A `using name: union` member is represented by its anonymous aggregate declaration,
+        // whose AST end token is not the member name. The physical name line still carries an
+        // ordinary trailing field comment.
+        return sameLineCommentLines(symbol.codeRange(ctx));
+    }
+
+    Utf8 sourceTypeName(TaskContext& ctx, const SourceFile& file, const AstNodeRef typeRef)
+    {
+        if (typeRef.isInvalid() || !file.ast().hasNode(typeRef))
+            return {};
+
+        const AstNode& typeNode = file.ast().node(typeRef);
+        if (typeNode.is(AstNodeId::AnonymousStructDecl))
+            return "struct { ... }";
+        if (typeNode.is(AstNodeId::AnonymousUnionDecl))
+            return "union { ... }";
+
+        std::string_view source;
+        if (!ModuleApi::tryGetModuleApiSnippet(ctx, file, typeRef, source))
+            return {};
+        Utf8 result(source);
+        result.trim();
+        return result;
+    }
+
+    bool hasSourceNoDocAttribute(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid() || !file.ast().hasNode(nodeRef) || !file.ast().node(nodeRef).is(AstNodeId::AttributeList))
+            return false;
+
+        std::string_view source;
+        if (!ModuleApi::tryGetModuleApiSnippet(ctx, file, nodeRef, source))
+            return false;
+        const size_t attributesEnd = source.find(']');
+        return attributesEnd != std::string_view::npos && source.substr(0, attributesEnd).find("Swag.NoDoc") != std::string_view::npos;
+    }
+
+    bool hasSourceNoDocAttribute(TaskContext& ctx, const Symbol& symbol)
+    {
+        const SourceFile* file = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
+        if (!file)
+            file = ctx.compiler().sourceViewFile(symbol);
+        if (!file)
+            return false;
+
+        AstNodeRef declRef;
+        if (!ModuleApi::tryFindReachableNodeRef(file->ast(), symbol.decl(), declRef))
+        {
+            if (file->ast().hasSourceView() && symbol.srcViewRef() != file->ast().srcView().ref())
+                declRef = file->ast().tryFindNodeRef(symbol.decl());
+            if (declRef.isInvalid())
+                return false;
+        }
+        return hasSourceNoDocAttribute(ctx, *file, ModuleApi::findExportDeclRoot(*file, declRef));
+    }
+
+    void appendGenericMember(TaskContext& ctx, DocItem& item, const SourceFile& file, const AstNodeRef declRef, const AstVarDeclBase& declaration, const TokenRef nameRef, std::unordered_set<Utf8>& seenNames)
+    {
+        if (!nameRef.isValid())
+            return;
+
+        const Ast&        ast     = file.ast();
+        const SourceView& srcView = ModuleApi::moduleApiNodeSourceView(ctx, ast, declRef);
+        if (nameRef.get() >= srcView.numTokens())
+            return;
+
+        Utf8 name = srcView.token(nameRef).string(srcView);
+        if (name.empty() || !seenNames.insert(name).second)
+            return;
+
+        DocMember member;
+        member.name     = std::move(name);
+        member.fullName = item.fullName;
+        member.fullName += ".";
+        member.fullName += member.name;
+        member.typeName = sourceTypeName(ctx, file, declaration.nodeTypeRef);
+
+        member.commentLines = trailingCommentLines(ctx, file, declRef);
+        if (member.commentLines.empty())
+            member.commentLines = leadingCommentLines(ctx, file, declRef);
+        if (member.commentLines.empty())
+        {
+            const SourceCodeRange nameRange = srcView.token(nameRef).codeRange(ctx, srcView);
+            member.commentLines             = sameLineCommentLines(nameRange);
+        }
+        item.members.push_back(std::move(member));
+    }
+
+    void collectGenericMemberNode(TaskContext& ctx, DocItem& item, const SourceFile& file, const AstNodeRef nodeRef, const bool restricted, std::unordered_set<Utf8>& seenNames)
+    {
+        const Ast& ast = file.ast();
+        if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
+            return;
+
+        const AstNode& node = ast.node(nodeRef);
+        if (const auto* access = node.safeCast<AstAccessModifier>())
+        {
+            const SourceView& srcView = ModuleApi::moduleApiNodeSourceView(ctx, ast, nodeRef);
+            const TokenId     tokenId = srcView.token(node.tokRef()).id;
+            const bool        childRestricted = restricted || tokenId == TokenId::KwdInternal || tokenId == TokenId::KwdPrivate;
+            collectGenericMemberNode(ctx, item, file, access->nodeWhatRef, childRestricted, seenNames);
+            return;
+        }
+
+        if (const auto* attributes = node.safeCast<AstAttributeList>())
+        {
+            if (hasSourceNoDocAttribute(ctx, file, nodeRef))
+                return;
+            collectGenericMemberNode(ctx, item, file, attributes->nodeBodyRef, restricted, seenNames);
+            return;
+        }
+
+        if (node.is(AstNodeId::AggregateBody) || node.is(AstNodeId::VarDeclList))
+        {
+            SmallVector<AstNodeRef> children;
+            node.collectChildrenFromAst(children, ast);
+            for (const AstNodeRef childRef : children)
+                collectGenericMemberNode(ctx, item, file, childRef, restricted, seenNames);
+            return;
+        }
+
+        if (restricted)
+            return;
+        if (const auto* single = node.safeCast<AstSingleVarDecl>())
+        {
+            if (single->hasFlag(AstVarDeclFlagsE::Const))
+                return;
+            appendGenericMember(ctx, item, file, nodeRef, *single, single->tokNameRef, seenNames);
+            return;
+        }
+        if (const auto* multiple = node.safeCast<AstMultiVarDecl>())
+        {
+            if (multiple->hasFlag(AstVarDeclFlagsE::Const))
+                return;
+            SmallVector<TokenRef> names;
+            ast.appendTokens(names, multiple->spanNamesRef);
+            for (const TokenRef nameRef : names)
+                appendGenericMember(ctx, item, file, nodeRef, *multiple, nameRef, seenNames);
+        }
+    }
+
+    void collectItemMembers(TaskContext& ctx, DocItem& item, const bool runtime)
+    {
+        if (item.overloads.empty() || !item.overloads.front().symbol)
+            return;
+
+        const Symbol& owner = *item.overloads.front().symbol;
+        if (!owner.isSymMap() || (owner.isStruct() && ModuleApi::isModuleApiOpaqueType(owner)))
+            return;
+
+        std::unordered_set<Utf8> seenNames;
+        std::vector<const Symbol*> members;
+        owner.asSymMap()->getAllSymbols(members);
+        for (const Symbol* member : members)
+        {
+            if (!member || !canDocumentMember(ctx.compiler(), *member, runtime))
+                continue;
+            if (!((owner.isEnum() && member->isEnumValue()) ||
+                  ((owner.isStruct() || owner.isInterface()) && (member->isVariable() || member->isConstant()))))
+                continue;
+
+            DocMember row;
+            row.symbol       = member;
+            row.name         = Utf8(member->name(ctx));
+            row.fullName     = member->getFullScopedName(ctx);
+            row.commentLines = memberCommentLines(ctx, *member);
+            if (row.name.empty() || row.fullName.empty() || !seenNames.insert(row.name).second)
+                continue;
+            item.members.push_back(std::move(row));
+        }
+
+        const auto* ownerStruct = owner.safeCast<SymbolStruct>();
+        if (ownerStruct && ownerStruct->isGenericRoot() && !ownerStruct->isGenericInstance())
+        {
+            const SourceFile* file = item.overloads.front().file;
+            AstNodeRef        declRef;
+            if (file && ModuleApi::tryFindReachableNodeRef(file->ast(), owner.decl(), declRef))
+            {
+                const AstNodeRef bodyRef = declarationBodyRef(file->ast().node(declRef));
+                if (bodyRef.isValid() && file->ast().hasNode(bodyRef))
+                {
+                    SmallVector<AstNodeRef> children;
+                    file->ast().node(bodyRef).collectChildrenFromAst(children, file->ast());
+                    for (const AstNodeRef childRef : children)
+                        collectGenericMemberNode(ctx, item, *file, childRef, false, seenNames);
+                }
+            }
+        }
+
+        std::ranges::sort(item.members, [](const DocMember& lhs, const DocMember& rhs) {
+            if (lhs.name != rhs.name)
+                return alphabeticLess(lhs.name, rhs.name);
+            return alphabeticLess(lhs.fullName, rhs.fullName);
+        });
     }
 }
 
@@ -482,6 +767,20 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
                         if (!member || !isDocumentationSymbol(compiler, *member, false) || !seen.insert(member).second)
                             continue;
                         symbols.push_back(member);
+                    }
+                }
+
+                // A generic root does not run the semantic pass for its body, so methods
+                // declared by its impl blocks are attached to the root rather than published
+                // in its symbol map. They still describe the generic API itself.
+                const auto* genericStruct = entry.symbol->safeCast<SymbolStruct>();
+                if (genericStruct && genericStruct->isGenericRoot() && !genericStruct->isGenericInstance())
+                {
+                    for (const SymbolFunction* method : genericStruct->declaredMethods())
+                    {
+                        if (!method || !isDocumentationSymbol(compiler, *method, false) || hasSourceNoDocAttribute(ctx, *method) || !seen.insert(method).second)
+                            continue;
+                        symbols.push_back(method);
                     }
                 }
             }
@@ -647,8 +946,11 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         if (lhsOrder != rhsOrder)
             return lhsOrder < rhsOrder;
         if (lhs.category != rhs.category)
-            return lhs.category < rhs.category;
-        return lhs.fullName < rhs.fullName;
+            return alphabeticLess(lhs.category, rhs.category);
+        return alphabeticLess(lhs.fullName, rhs.fullName);
     });
+
+    for (DocItem& item : outItems)
+        collectItemMembers(ctx, item, runtime);
 }
 SWC_END_NAMESPACE();

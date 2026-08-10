@@ -19,6 +19,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool alphabeticLess(const std::string_view lhs, const std::string_view rhs)
+    {
+        const size_t size = std::min(lhs.size(), rhs.size());
+        for (size_t i = 0; i < size; ++i)
+        {
+            const int left  = std::tolower(static_cast<unsigned char>(lhs[i]));
+            const int right = std::tolower(static_cast<unsigned char>(rhs[i]));
+            if (left != right)
+                return left < right;
+        }
+        if (lhs.size() != rhs.size())
+            return lhs.size() < rhs.size();
+        return lhs < rhs;
+    }
+
     struct DocNamespace
     {
         Utf8                        fullName;
@@ -27,6 +42,7 @@ namespace
     };
 
     using DocItemsByOwner = std::unordered_map<Utf8, std::vector<const DocItem*>>;
+    using DocSummaryHtml  = std::unordered_map<const DocItem*, Utf8>;
     using SourcePaths     = std::unordered_map<const SourceFile*, Utf8>;
 
     Utf8 lastNamePart(const std::string_view value)
@@ -37,15 +53,29 @@ namespace
         return value.substr(pos + 1);
     }
 
-    std::vector<Utf8> summaryLines(std::span<const Utf8> lines)
+    std::span<const Utf8> summaryLines(const std::span<const Utf8> lines)
     {
+        for (size_t index = 0; index < lines.size(); ++index)
+        {
+            if (Utf8Helper::trim(lines[index]).empty())
+                continue;
+            return lines.subspan(index, 1);
+        }
+        return {};
+    }
+
+    bool hasDetailedDescription(const std::span<const Utf8> lines)
+    {
+        bool foundSummary = false;
         for (const Utf8& line : lines)
         {
             if (Utf8Helper::trim(line).empty())
                 continue;
-            return {line};
+            if (foundSummary)
+                return true;
+            foundSummary = true;
         }
-        return {};
+        return false;
     }
 
     Utf8 codeHtml(const TaskContext& ctx, const DocRenderContext& renderCtx, const std::string_view code)
@@ -267,53 +297,18 @@ namespace
         return result;
     }
 
-    // A field restricted to its type or its module is not part of the documented surface. This is
-    // checked on the member access rather than on the symbol's visibility flag, because the
-    // runtime page documents its files whatever their top-level access.
-    bool isRestrictedField(const Symbol& symbol)
-    {
-        const auto* symVar = symbol.safeCast<SymbolVariable>();
-        if (!symVar)
-            return false;
-        const MemberAccess access = symVar->memberAccess();
-        return access == MemberAccess::Internal || access == MemberAccess::Private;
-    }
-
-    bool canDocumentMember(const CompilerInstance& compiler, const Symbol& symbol, const bool runtime)
-    {
-        if (symbol.isIgnored() || DocApi::hasNoDocAttribute(symbol) || !symbol.decl() || !symbol.tokRef().isValid())
-            return false;
-        if (isRestrictedField(symbol))
-            return false;
-        const SourceFile* file = compiler.sourceViewFile(symbol);
-        if (!file)
-            return false;
-        if (runtime)
-            return file->isRuntime();
-        return ModuleApi::isCurrentModuleSourceFile(*file) && (symbol.isPublic() || symbol.isEnumValue());
-    }
-
-    void buildMemberReferences(TaskContext& ctx, const DocApiDocument& document, ReferenceTable& table, const bool runtime)
+    void buildMemberReferences(const DocApiDocument& document, ReferenceTable& table)
     {
         for (const DocItem& item : document.items)
         {
-            if (item.overloads.empty() || !item.overloads.front().symbol || !item.overloads.front().symbol->isSymMap())
-                continue;
-
-            std::vector<const Symbol*> members;
-            item.overloads.front().symbol->asSymMap()->getAllSymbols(members);
-            for (const Symbol* member : members)
+            for (const DocMember& member : item.members)
             {
-                if (!member || !canDocumentMember(ctx.compiler(), *member, runtime))
+                if (member.fullName.empty())
                     continue;
-
-                const Utf8 fullName = member->getFullScopedName(ctx);
-                if (fullName.empty())
-                    continue;
-                const Utf8 anchor = DocMarkdown::makeAnchor(fullName);
-                addReference(table, fullName, anchor, ReferenceRank::QualifiedName);
-                addReference(table, DocApi::displayNameFor(fullName, DocItemKind::Function), anchor, ReferenceRank::OwnerQualifiedName);
-                addReference(table, lastNamePart(fullName), anchor, ReferenceRank::MemberName);
+                const Utf8 anchor = DocMarkdown::makeAnchor(member.fullName);
+                addReference(table, member.fullName, anchor, ReferenceRank::QualifiedName);
+                addReference(table, DocApi::displayNameFor(member.fullName, DocItemKind::Function), anchor, ReferenceRank::OwnerQualifiedName);
+                addReference(table, member.name, anchor, ReferenceRank::MemberName);
             }
         }
     }
@@ -335,7 +330,7 @@ namespace
         }
 
         std::vector sortedNames(names.begin(), names.end());
-        std::ranges::sort(sortedNames);
+        std::ranges::sort(sortedNames, alphabeticLess);
         std::unordered_map<Utf8, size_t> indices;
         for (Utf8& name : sortedNames)
         {
@@ -370,55 +365,6 @@ namespace
             addReference(table, docNamespace.fullName, anchor, ReferenceRank::QualifiedName);
             addReference(table, lastNamePart(docNamespace.fullName), anchor, ReferenceRank::TopLevelName);
         }
-    }
-
-    std::vector<Utf8> memberCommentLines(TaskContext& ctx, const Symbol& symbol)
-    {
-        const SourceFile* file = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
-        if (!file)
-            file = ctx.compiler().sourceViewFile(symbol);
-        if (!file)
-            return {};
-        AstNodeRef declRef;
-        if (!ModuleApi::tryFindReachableNodeRef(file->ast(), symbol.decl(), declRef))
-        {
-            if (file->ast().hasSourceView() && symbol.srcViewRef() != file->ast().srcView().ref())
-                declRef = file->ast().tryFindNodeRef(symbol.decl());
-            if (declRef.isInvalid())
-                return {};
-        }
-        const AstNodeRef  rootRef = ModuleApi::findExportDeclRoot(*file, declRef);
-        std::vector<Utf8> result  = DocApi::symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
-        if (!result.empty())
-            return result;
-
-        // A `using name: union` member is represented by its anonymous aggregate
-        // declaration, whose AST end token is not the member name. Fall back to
-        // the symbol token's physical line so an ordinary trailing field comment
-        // remains sufficient for this source form.
-        const SourceCodeRange range = symbol.codeRange(ctx);
-        if (!range.srcView)
-            return result;
-
-        const std::string_view source = range.srcView->stringView();
-        const size_t           start  = std::min<size_t>(range.offset + range.len, source.size());
-        size_t                 end    = source.find_first_of("\r\n", start);
-        if (end == std::string_view::npos)
-            end = source.size();
-
-        const std::string_view suffix = source.substr(start, end - start);
-        const size_t           line   = suffix.find("//");
-        const size_t           block  = suffix.find("/*");
-        size_t                 commentPos;
-        if (line == std::string_view::npos)
-            commentPos = block;
-        else if (block == std::string_view::npos)
-            commentPos = line;
-        else
-            commentPos = std::min(line, block);
-        if (commentPos != std::string_view::npos)
-            DocApi::appendNormalizedComment(result, suffix.substr(commentPos));
-        return result;
     }
 
     void collectAnonymousTypeNames(TaskContext& ctx, std::vector<std::pair<Utf8, Utf8>>& outNames, std::unordered_set<uint32_t>& seen, const TypeRef typeRef)
@@ -544,67 +490,61 @@ namespace
         return result;
     }
 
-    void renderMemberTable(Utf8& content, const DocRenderContext& renderCtx, const Symbol& owner, const bool runtime)
+    void renderMemberTable(Utf8& content, const DocRenderContext& renderCtx, const DocItem& item)
     {
-        if (!owner.isSymMap())
+        if (item.members.empty())
             return;
 
-        std::vector<const Symbol*> members;
-        owner.asSymMap()->getAllSymbols(members);
-
-        struct MemberRow
-        {
-            Utf8              name;
-            Utf8              anchor;
-            Utf8              type;
-            std::vector<Utf8> commentLines;
-        };
-        std::vector<MemberRow> fields;
-        const bool             hideFields = owner.isStruct() && ModuleApi::isModuleApiOpaqueType(owner);
-
-        for (const Symbol* member : members)
-        {
-            if (!member || !canDocumentMember(renderCtx.ctx->compiler(), *member, runtime))
-                continue;
-
-            MemberRow row;
-            row.name         = Utf8(member->name(*renderCtx.ctx));
-            row.anchor       = DocMarkdown::makeAnchor(member->getFullScopedName(*renderCtx.ctx));
-            row.commentLines = memberCommentLines(*renderCtx.ctx, *member);
-            row.type         = documentationTypeName(renderCtx, *member);
-
-            if (!hideFields &&
-                ((owner.isEnum() && member->isEnumValue()) ||
-                 ((owner.isStruct() || owner.isInterface()) && (member->isVariable() || member->isConstant()))))
-            {
-                fields.push_back(std::move(row));
-            }
-        }
-
-        const auto rowLess = [](const MemberRow& lhs, const MemberRow& rhs) {
-            return lhs.name < rhs.name;
-        };
-        std::ranges::sort(fields, rowLess);
-
-        if (fields.empty())
-            return;
-        const bool isEnum = owner.isEnum();
+        const bool isEnum = item.kind == DocItemKind::Enum;
         content.append(std::format("<h3>{}</h3>\n<table class=\"table-enumeration api-summary\">\n<thead><tr><th>Name</th>", isEnum ? "Cases" : "Fields"));
         if (!isEnum)
             content += "<th>Type</th>";
         content += "<th>Description</th></tr></thead>\n<tbody>\n";
-        for (const MemberRow& row : fields)
+        bool hasDetails = false;
+        for (const DocMember& member : item.members)
         {
-            content.append(std::format(R"(<tr><td id="{}" class="code-type">{}</td>)", row.anchor, Utf8Helper::escapeHtml(row.name)));
+            const Utf8 anchor  = DocMarkdown::makeAnchor(member.fullName);
+            const bool details = hasDetailedDescription(member.commentLines);
+            hasDetails |= details;
+            if (details)
+                content.append(std::format(R"(<tr><td class="code-type"><a href="#{}">{}</a></td>)", anchor, Utf8Helper::escapeHtml(member.name)));
+            else
+                content.append(std::format(R"(<tr><td id="{}" class="code-type">{}</td>)", anchor, Utf8Helper::escapeHtml(member.name)));
             if (!isEnum)
-                content.append(std::format("<td class=\"code-type\">{}</td>", DocMarkdown::renderTypeName(renderCtx, row.type)));
-            const std::vector<Utf8> summary = summaryLines(row.commentLines);
+            {
+                Utf8 typeNameHtml;
+                if (member.typeName.empty() && member.symbol)
+                    typeNameHtml = DocMarkdown::renderTypeName(renderCtx, documentationTypeName(renderCtx, *member.symbol));
+                else
+                    typeNameHtml = Utf8Helper::escapeHtml(member.typeName);
+                content.append(std::format("<td class=\"code-type\">{}</td>", typeNameHtml));
+            }
+            const std::span<const Utf8> summary = summaryLines(member.commentLines);
             content.append(std::format("<td>{}</td></tr>\n", DocMarkdown::renderLines(renderCtx, summary)));
         }
         content += "</tbody>\n</table>\n";
+
+        if (!hasDetails)
+            return;
+
+        const Utf8 ownerAnchor = DocMarkdown::makeAnchor(item.fullName);
+        content.append(std::format("<h3 id=\"{}_member-details\">{} details</h3>\n<div class=\"api-member-details\">\n", ownerAnchor, isEnum ? "Case" : "Field"));
+        for (const DocMember& member : item.members)
+        {
+            if (!hasDetailedDescription(member.commentLines))
+                continue;
+            const Utf8 anchor = DocMarkdown::makeAnchor(member.fullName);
+            content.append(std::format(R"(<section class="api-member-detail"><h4 id="{}"><span class="api-member-name">{}</span><a class="api-member-permalink" href="#{}" aria-label="Permalink">#</a></h4>)", anchor, Utf8Helper::escapeHtml(member.name), anchor));
+            content += "\n";
+            DocRenderContext memberRenderCtx = renderCtx;
+            memberRenderCtx.headingAnchorPrefix = anchor;
+            content += DocMarkdown::renderLines(memberRenderCtx, member.commentLines);
+            content += "</section>\n";
+        }
+        content += "</div>\n";
     }
 
-    void renderSummaryTable(Utf8& content, const DocRenderContext& renderCtx, const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items, const bool showKind, const bool shortNames)
+    void renderSummaryTable(Utf8& content, const DocSummaryHtml& summaryHtml, const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items, const bool showKind, const bool shortNames)
     {
         if (items.empty())
             return;
@@ -621,8 +561,8 @@ namespace
             content.append(std::format(R"(<tr><td class="code-type"><a href="#{}">{}</a></td>)", DocMarkdown::makeAnchor(item->fullName), Utf8Helper::escapeHtml(name)));
             if (showKind)
                 content.append(std::format(R"(<td><span class="kind-chip kind-{}">{}</span></td>)", itemKindClass(item->kind), itemKindName(item->kind)));
-            const std::vector<Utf8> summary = summaryLines(item->overloads.front().commentLines);
-            content.append(std::format("<td>{}</td></tr>\n", DocMarkdown::renderLines(renderCtx, summary)));
+            const auto summaryIt = summaryHtml.find(item);
+            content.append(std::format("<td>{}</td></tr>\n", summaryIt == summaryHtml.end() ? std::string_view{} : summaryIt->second.view()));
         }
         content += "</tbody>\n</table>\n";
     }
@@ -645,6 +585,19 @@ namespace
         std::vector<const DocItem*> constants;
         std::vector<const DocItem*> functions;
     };
+
+    bool docItemNameLess(const DocItem* lhs, const DocItem* rhs)
+    {
+        SWC_ASSERT(lhs != nullptr && rhs != nullptr);
+        if (lhs->displayName != rhs->displayName)
+            return alphabeticLess(lhs->displayName, rhs->displayName);
+        return alphabeticLess(lhs->fullName, rhs->fullName);
+    }
+
+    void sortDocItems(std::vector<const DocItem*>& items)
+    {
+        std::ranges::sort(items, docItemNameLess);
+    }
 
     DocItemBuckets bucketDocItems(const std::vector<const DocItem*>& items)
     {
@@ -673,10 +626,15 @@ namespace
             }
         }
 
+        sortDocItems(buckets.types);
+        sortDocItems(buckets.enumerations);
+        sortDocItems(buckets.constants);
+        sortDocItems(buckets.functions);
+
         return buckets;
     }
 
-    void renderNamespaceItem(Utf8& content, const DocRenderContext& renderCtx, const DocNamespace& docNamespace)
+    void renderNamespaceItem(Utf8& content, const DocSummaryHtml& summaryHtml, const DocNamespace& docNamespace)
     {
         const Utf8 anchor = std::format("namespace_{}", DocMarkdown::makeAnchor(docNamespace.fullName));
         content += "<section class=\"api-symbol\">\n<div class=\"api-item api-item-namespace\">";
@@ -687,14 +645,14 @@ namespace
         const DocItemBuckets buckets = bucketDocItems(docNamespace.items);
 
         renderNamespaceTable(content, "Namespaces", std::format("{}_namespaces", anchor), docNamespace.children);
-        renderSummaryTable(content, renderCtx, "Types", std::format("{}_types", anchor), buckets.types, true, false);
-        renderSummaryTable(content, renderCtx, "Enumerations", std::format("{}_enumerations", anchor), buckets.enumerations, false, false);
-        renderSummaryTable(content, renderCtx, "Constants", std::format("{}_constants", anchor), buckets.constants, false, false);
-        renderSummaryTable(content, renderCtx, "Functions", std::format("{}_functions", anchor), buckets.functions, false, false);
+        renderSummaryTable(content, summaryHtml, "Types", std::format("{}_types", anchor), buckets.types, true, false);
+        renderSummaryTable(content, summaryHtml, "Enumerations", std::format("{}_enumerations", anchor), buckets.enumerations, false, false);
+        renderSummaryTable(content, summaryHtml, "Constants", std::format("{}_constants", anchor), buckets.constants, false, false);
+        renderSummaryTable(content, summaryHtml, "Functions", std::format("{}_functions", anchor), buckets.functions, false, false);
         content += "</section>\n";
     }
 
-    void renderOwnedSymbolTables(Utf8& content, const DocRenderContext& renderCtx, const Utf8& ownerName, const DocItemsByOwner& itemsByOwner)
+    void renderOwnedSymbolTables(Utf8& content, const DocSummaryHtml& summaryHtml, const Utf8& ownerName, const DocItemsByOwner& itemsByOwner)
     {
         const auto ownerIt = itemsByOwner.find(ownerName);
         if (ownerIt == itemsByOwner.end())
@@ -703,10 +661,10 @@ namespace
         const DocItemBuckets buckets = bucketDocItems(ownerIt->second);
 
         const Utf8 anchor = DocMarkdown::makeAnchor(ownerName);
-        renderSummaryTable(content, renderCtx, "Nested types", std::format("{}_types", anchor), buckets.types, true, true);
-        renderSummaryTable(content, renderCtx, "Enumerations", std::format("{}_enumerations", anchor), buckets.enumerations, false, true);
-        renderSummaryTable(content, renderCtx, "Constants", std::format("{}_constants", anchor), buckets.constants, false, true);
-        renderSummaryTable(content, renderCtx, "Methods", std::format("{}_methods", anchor), buckets.functions, false, true);
+        renderSummaryTable(content, summaryHtml, "Nested types", std::format("{}_types", anchor), buckets.types, true, true);
+        renderSummaryTable(content, summaryHtml, "Enumerations", std::format("{}_enumerations", anchor), buckets.enumerations, false, true);
+        renderSummaryTable(content, summaryHtml, "Constants", std::format("{}_constants", anchor), buckets.constants, false, true);
+        renderSummaryTable(content, summaryHtml, "Methods", std::format("{}_methods", anchor), buckets.functions, false, true);
     }
 
     void renderDocItem(Utf8& content, DocRenderContext& renderCtx, const SourcePaths& sourcePaths, const DocItem& item, const bool runtime)
@@ -740,9 +698,12 @@ namespace
 
 void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const DocPageOptions& options, const bool runtime)
 {
+    document.toc.reserve(document.items.size() * 96 + document.guides.size() * 96 + 512);
+    document.content.reserve(document.items.size() * 1024 + document.guides.size() * 4096 + 4096);
+
     ReferenceTable references;
     buildReferences(document, references);
-    buildMemberReferences(ctx, document, references, runtime);
+    buildMemberReferences(document, references);
     std::vector<DocNamespace> namespaces;
     buildDocNamespaces(document, namespaces, references);
     document.references = std::move(references.entries);
@@ -787,6 +748,16 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
     SourcePaths sourcePaths;
     buildSourcePaths(sourcePaths, ctx.compiler(), document, runtime);
 
+    DocSummaryHtml summaryHtml;
+    summaryHtml.reserve(document.items.size());
+    for (const DocItem& item : document.items)
+    {
+        if (item.overloads.empty())
+            continue;
+        const std::span<const Utf8> summary = summaryLines(item.overloads.front().commentLines);
+        summaryHtml.emplace(&item, DocMarkdown::renderLines(renderCtx, summary));
+    }
+
     document.toc += "<h3>Start here</h3>\n<ul>\n<li><a href=\"#overview\">Overview</a></li>\n";
     for (const DocGuide& guide : document.guides)
         document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
@@ -825,6 +796,12 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
                 break;
         }
     }
+
+    sortDocItems(types);
+    sortDocItems(enumerations);
+    sortDocItems(constants);
+    sortDocItems(functions);
+    sortDocItems(other);
 
     // A long list stays folded so the rail keeps showing every group at once; a short one
     // is more useful open, because it then works as the complete map of the module.
@@ -876,10 +853,10 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
     for (const DocNamespace& docNamespace : namespaces)
         document.namespaceNames.push_back(docNamespace.fullName);
     renderNamespaceTable(document.content, "Namespaces", "summary-namespaces", document.namespaceNames);
-    renderSummaryTable(document.content, renderCtx, "Types", "summary-types", types, true, false);
-    renderSummaryTable(document.content, renderCtx, "Enumerations", "summary-enumerations", enumerations, false, false);
-    renderSummaryTable(document.content, renderCtx, "Constants", "summary-constants", constants, false, false);
-    renderSummaryTable(document.content, renderCtx, "Functions", "summary-functions", functions, false, false);
+    renderSummaryTable(document.content, summaryHtml, "Types", "summary-types", types, true, false);
+    renderSummaryTable(document.content, summaryHtml, "Enumerations", "summary-enumerations", enumerations, false, false);
+    renderSummaryTable(document.content, summaryHtml, "Constants", "summary-constants", constants, false, false);
+    renderSummaryTable(document.content, summaryHtml, "Functions", "summary-functions", functions, false, false);
     document.content += "</section>\n<h2 id=\"detailed-reference\">Detailed reference</h2>\n";
 
     const auto renderGroup = [&](const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items) {
@@ -889,9 +866,8 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
         for (const DocItem* item : items)
         {
             renderDocItem(document.content, renderCtx, sourcePaths, *item, runtime);
-            const DocOverload& first = item->overloads.front();
-            renderMemberTable(document.content, renderCtx, *first.symbol, runtime);
-            renderOwnedSymbolTables(document.content, renderCtx, item->fullName, itemsByOwner);
+            renderMemberTable(document.content, renderCtx, *item);
+            renderOwnedSymbolTables(document.content, summaryHtml, item->fullName, itemsByOwner);
         }
     };
 
@@ -899,7 +875,7 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
     {
         document.content += "<h3 id=\"namespaces\">Namespaces</h3>\n";
         for (const DocNamespace& docNamespace : namespaces)
-            renderNamespaceItem(document.content, renderCtx, docNamespace);
+            renderNamespaceItem(document.content, summaryHtml, docNamespace);
     }
     renderGroup("Types", "types", types);
     renderGroup("Enumerations", "enumerations", enumerations);

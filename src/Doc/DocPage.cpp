@@ -129,7 +129,6 @@ Utf8 DocPage::styles()
 }
 
 html {
-    scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
 }
 
@@ -231,9 +230,10 @@ body {
     width: 100%;
     padding: 7px 30px 7px 12px;
     color: #fff;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid #2c2c33;
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    caret-color: var(--swag-accent);
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid #45454f;
+    border-radius: 4px;
     font-family: var(--swag-font);
     font-size: .9rem;
     appearance: none;
@@ -250,18 +250,29 @@ body {
 }
 
 .site-search-input:focus {
-    background: rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .09);
     border-color: var(--swag-accent);
     outline: none;
+}
+
+.site-search-input:hover:not(:focus) {
+    border-color: var(--swag-accent);
 }
 
 .site-search-shortcut {
     position: absolute;
     top: 50%;
-    right: 11px;
+    right: 9px;
+    min-width: 18px;
+    padding: 0 4px;
     color: #7a7a82;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid #45454f;
+    border-radius: 3px;
     font-family: var(--swag-font-mono);
     font-size: .76rem;
+    line-height: 1.45;
+    text-align: center;
     pointer-events: none;
     transform: translateY(-50%);
 }
@@ -281,6 +292,7 @@ body {
     color: var(--swag-ink);
     background: var(--swag-bg-raised);
     border: 1px solid var(--swag-line);
+    border-top: 2px solid var(--swag-active);
     box-shadow: 0 12px 32px rgba(5, 5, 5, .22);
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -578,7 +590,7 @@ body {
 .right p {
     width: 100%;
     max-width: 100%;
-    text-align: justify;
+    text-wrap: pretty;
 }
 
 .right li {
@@ -605,8 +617,27 @@ body {
 }
 
 .module-overview {
-    padding-bottom: 26px;
-    border-bottom: 1px solid var(--swag-line);
+    position: relative;
+    margin: 0 0 30px;
+    padding: 28px 34px 32px;
+    background: var(--swag-bg-sunken);
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+}
+
+.module-overview::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 54px;
+    background: var(--swag-active);
+    transform: skewY(-18deg);
+    transform-origin: top;
+}
+
+.module-overview h1 {
+    margin-top: 0;
 }
 
 .module-overview > p:first-of-type {
@@ -737,8 +768,11 @@ body {
 .kind-attr      { --swag-item-color: var(--swag-kind-attr); }
 .kind-func      { --swag-item-color: var(--swag-kind-func); }
 
-/* A heading is not a kind of symbol, so it takes no kind color. */
-.kind-section   { --swag-item-color: var(--swag-ink-faint); }
+/* Headings and aggregate members are not independent symbol kinds, so they take
+   the neutral chip instead of extending the closed kind-color set. */
+.kind-section,
+.kind-field,
+.kind-case      { --swag-item-color: var(--swag-ink-faint); }
 
 .api-item-title-strong {
     overflow-wrap: anywhere;
@@ -759,6 +793,10 @@ body {
     opacity: 1;
 }
 
+.api-item:has(.api-item-title:target) {
+    border-left-color: var(--swag-active);
+}
+
 .api-item-title-src-ref {
     flex: none;
     color: var(--swag-ink-faint);
@@ -775,6 +813,52 @@ body {
 
 .api-symbol > p:first-of-type {
     margin-top: 14px;
+}
+
+/* Long member comments belong to their owner instead of disappearing behind the
+   one-line table summary. A rule marks each destination without boxing the prose. */
+.api-member-details {
+    margin: 18px 0 4px;
+    border-top: 1px solid var(--swag-line-strong);
+}
+
+.api-member-detail {
+    padding: 17px 0 13px 14px;
+    border-bottom: 1px solid var(--swag-line);
+    border-left: 2px solid transparent;
+}
+
+.api-member-detail:has(h4:target) {
+    border-left-color: var(--swag-active);
+}
+
+.api-member-detail h4 {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin: 0 0 8px;
+}
+
+.api-member-name {
+    font-family: var(--swag-font-mono);
+    font-size: .95rem;
+}
+
+.api-member-permalink {
+    color: var(--swag-ink-faint);
+    font-family: var(--swag-font-mono);
+    opacity: 0;
+    text-decoration: none;
+}
+
+.api-member-detail:hover .api-member-permalink,
+.api-member-permalink:focus-visible,
+.api-member-detail:has(h4:target) .api-member-permalink {
+    opacity: 1;
+}
+
+.api-member-detail > :last-child {
+    margin-bottom: 0;
 }
 
 /* ---------------------------------------------------------------- tables -- */
@@ -813,6 +897,17 @@ body {
 
 .api-summary p {
     margin: 0;
+}
+
+.api-summary th:first-child,
+.api-summary td:first-child {
+    padding-left: 10px;
+    border-left: 2px solid transparent;
+}
+
+.api-summary tbody tr:hover td:first-child,
+.api-summary td:target {
+    border-left-color: var(--swag-active);
 }
 
 .api-summary td:first-child,
@@ -1205,6 +1300,10 @@ body {
         padding-left: 0;
     }
 
+    .module-overview {
+        padding: 22px 24px 26px;
+    }
+
     .container table {
         display: block;
         overflow-x: auto;
@@ -1226,6 +1325,7 @@ body {
     .site-search,
     .left,
     .api-item-permalink,
+    .api-member-permalink,
     .api-item-title-src-ref {
         display: none;
     }
@@ -1331,6 +1431,7 @@ namespace
 Utf8 DocPage::construct(const DocPageOptions& options, const DocPageContent& content)
 {
     Utf8 result = std::format("<!DOCTYPE html>\n<html lang=\"en\"{} style=\"{}\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n", themeAttribute(options.theme), rootStyle(options));
+    result.reserve(content.toc.size() + content.article.size() + content.searchEntries.size() * 128 + 4096);
     if (!options.titleContent.empty())
         result.append(std::format("<title>{}</title>\n", Utf8Helper::escapeHtml(options.titleContent)));
     if (!options.icon.empty())

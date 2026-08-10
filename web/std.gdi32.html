@@ -50,6 +50,11 @@
 <li><a href="#Gdi32_BITMAPINFOHEADER">Gdi32.BITMAPINFOHEADER</a></li>
 <li><a href="#Gdi32_ENUMLOGFONTEXA">Gdi32.ENUMLOGFONTEXA</a></li>
 <li><a href="#Gdi32_ENUMLOGFONTEXW">Gdi32.ENUMLOGFONTEXW</a></li>
+<li><a href="#Gdi32_FONTENUMPROCA">Gdi32.FONTENUMPROCA</a></li>
+<li><a href="#Gdi32_FONTENUMPROCW">Gdi32.FONTENUMPROCW</a></li>
+<li><a href="#Gdi32_HFONT">Gdi32.HFONT</a></li>
+<li><a href="#Gdi32_HGDIOBJ">Gdi32.HGDIOBJ</a></li>
+<li><a href="#Gdi32_HPEN">Gdi32.HPEN</a></li>
 <li><a href="#Gdi32_LOGFONTA">Gdi32.LOGFONTA</a></li>
 <li><a href="#Gdi32_LOGFONTW">Gdi32.LOGFONTW</a></li>
 <li><a href="#Gdi32_NEWTEXTMETRICA">Gdi32.NEWTEXTMETRICA</a></li>
@@ -58,11 +63,6 @@
 <li><a href="#Gdi32_RGBQUAD">Gdi32.RGBQUAD</a></li>
 <li><a href="#Gdi32_TEXTMETRICA">Gdi32.TEXTMETRICA</a></li>
 <li><a href="#Gdi32_TEXTMETRICW">Gdi32.TEXTMETRICW</a></li>
-<li><a href="#Gdi32_FONTENUMPROCA">Gdi32.FONTENUMPROCA</a></li>
-<li><a href="#Gdi32_FONTENUMPROCW">Gdi32.FONTENUMPROCW</a></li>
-<li><a href="#Gdi32_HFONT">Gdi32.HFONT</a></li>
-<li><a href="#Gdi32_HGDIOBJ">Gdi32.HGDIOBJ</a></li>
-<li><a href="#Gdi32_HPEN">Gdi32.HPEN</a></li>
 </ul>
 </details>
 <details class="toc-group">
@@ -77,17 +77,17 @@
 <li><a href="#Gdi32_ASPECTXY">Gdi32.ASPECTXY</a></li>
 <li><a href="#Gdi32_ASPECTY">Gdi32.ASPECTY</a></li>
 <li><a href="#Gdi32_BALTIC_CHARSET">Gdi32.BALTIC_CHARSET</a></li>
-<li><a href="#Gdi32_BITSPIXEL">Gdi32.BITSPIXEL</a></li>
 <li><a href="#Gdi32_BI_BITFIELDS">Gdi32.BI_BITFIELDS</a></li>
 <li><a href="#Gdi32_BI_JPEG">Gdi32.BI_JPEG</a></li>
 <li><a href="#Gdi32_BI_PNG">Gdi32.BI_PNG</a></li>
 <li><a href="#Gdi32_BI_RGB">Gdi32.BI_RGB</a></li>
 <li><a href="#Gdi32_BI_RLE4">Gdi32.BI_RLE4</a></li>
 <li><a href="#Gdi32_BI_RLE8">Gdi32.BI_RLE8</a></li>
+<li><a href="#Gdi32_BITSPIXEL">Gdi32.BITSPIXEL</a></li>
 <li><a href="#Gdi32_BKMODE_LAST">Gdi32.BKMODE_LAST</a></li>
-<li><a href="#Gdi32_BLACKNESS">Gdi32.BLACKNESS</a></li>
 <li><a href="#Gdi32_BLACK_BRUSH">Gdi32.BLACK_BRUSH</a></li>
 <li><a href="#Gdi32_BLACK_PEN">Gdi32.BLACK_PEN</a></li>
+<li><a href="#Gdi32_BLACKNESS">Gdi32.BLACKNESS</a></li>
 <li><a href="#Gdi32_BLTALIGNMENT">Gdi32.BLTALIGNMENT</a></li>
 <li><a href="#Gdi32_CAPTUREBLT">Gdi32.CAPTUREBLT</a></li>
 <li><a href="#Gdi32_CHINESEBIG5_CHARSET">Gdi32.CHINESEBIG5_CHARSET</a></li>
@@ -200,8 +200,8 @@
 <li><a href="#Gdi32_PS_SOLID">Gdi32.PS_SOLID</a></li>
 <li><a href="#Gdi32_PS_STYLE_MASK">Gdi32.PS_STYLE_MASK</a></li>
 <li><a href="#Gdi32_PS_USERSTYLE">Gdi32.PS_USERSTYLE</a></li>
-<li><a href="#Gdi32_RASTERCAPS">Gdi32.RASTERCAPS</a></li>
 <li><a href="#Gdi32_RASTER_FONTTYPE">Gdi32.RASTER_FONTTYPE</a></li>
+<li><a href="#Gdi32_RASTERCAPS">Gdi32.RASTERCAPS</a></li>
 <li><a href="#Gdi32_RUSSIAN_CHARSET">Gdi32.RUSSIAN_CHARSET</a></li>
 <li><a href="#Gdi32_SCALINGFACTORX">Gdi32.SCALINGFACTORX</a></li>
 <li><a href="#Gdi32_SCALINGFACTORY">Gdi32.SCALINGFACTORY</a></li>
@@ -226,9 +226,9 @@
 <li><a href="#Gdi32_VERTSIZE">Gdi32.VERTSIZE</a></li>
 <li><a href="#Gdi32_VIETNAMESE_CHARSET">Gdi32.VIETNAMESE_CHARSET</a></li>
 <li><a href="#Gdi32_VREFRESH">Gdi32.VREFRESH</a></li>
-<li><a href="#Gdi32_WHITENESS">Gdi32.WHITENESS</a></li>
 <li><a href="#Gdi32_WHITE_BRUSH">Gdi32.WHITE_BRUSH</a></li>
 <li><a href="#Gdi32_WHITE_PEN">Gdi32.WHITE_PEN</a></li>
+<li><a href="#Gdi32_WHITENESS">Gdi32.WHITENESS</a></li>
 </ul>
 </details>
 <details class="toc-group">
@@ -253,8 +253,8 @@
 <li><a href="#Gdi32_EnumFontFamiliesW">Gdi32.EnumFontFamiliesW</a></li>
 <li><a href="#Gdi32_GdiFlush">Gdi32.GdiFlush</a></li>
 <li><a href="#Gdi32_GetBitmapBits">Gdi32.GetBitmapBits</a></li>
-<li><a href="#Gdi32_GetDIBits">Gdi32.GetDIBits</a></li>
 <li><a href="#Gdi32_GetDeviceCaps">Gdi32.GetDeviceCaps</a></li>
+<li><a href="#Gdi32_GetDIBits">Gdi32.GetDIBits</a></li>
 <li><a href="#Gdi32_GetFontData">Gdi32.GetFontData</a></li>
 <li><a href="#Gdi32_GetObjectA">Gdi32.GetObjectA</a></li>
 <li><a href="#Gdi32_GetObjectW">Gdi32.GetObjectW</a></li>
@@ -262,8 +262,8 @@
 <li><a href="#Gdi32_GetStockObject">Gdi32.GetStockObject</a></li>
 <li><a href="#Gdi32_LineTo">Gdi32.LineTo</a></li>
 <li><a href="#Gdi32_MoveTo">Gdi32.MoveTo</a></li>
-<li><a href="#Gdi32_RGB">Gdi32.RGB</a></li>
 <li><a href="#Gdi32_Rectangle">Gdi32.Rectangle</a></li>
+<li><a href="#Gdi32_RGB">Gdi32.RGB</a></li>
 <li><a href="#Gdi32_SelectObject">Gdi32.SelectObject</a></li>
 <li><a href="#Gdi32_SetBitmapBits">Gdi32.SetBitmapBits</a></li>
 <li><a href="#Gdi32_SetBkColor">Gdi32.SetBkColor</a></li>
@@ -299,6 +299,11 @@
 <tr><td class="code-type"><a href="#Gdi32_BITMAPINFOHEADER">Gdi32.BITMAPINFOHEADER</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_ENUMLOGFONTEXA">Gdi32.ENUMLOGFONTEXA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_ENUMLOGFONTEXW">Gdi32.ENUMLOGFONTEXW</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCA">Gdi32.FONTENUMPROCA</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCW">Gdi32.FONTENUMPROCW</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_HFONT">Gdi32.HFONT</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_HGDIOBJ">Gdi32.HGDIOBJ</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_HPEN">Gdi32.HPEN</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_LOGFONTA">Gdi32.LOGFONTA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_LOGFONTW">Gdi32.LOGFONTW</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_NEWTEXTMETRICA">Gdi32.NEWTEXTMETRICA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
@@ -307,11 +312,6 @@
 <tr><td class="code-type"><a href="#Gdi32_RGBQUAD">Gdi32.RGBQUAD</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_TEXTMETRICA">Gdi32.TEXTMETRICA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_TEXTMETRICW">Gdi32.TEXTMETRICW</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCA">Gdi32.FONTENUMPROCA</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCW">Gdi32.FONTENUMPROCW</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_HFONT">Gdi32.HFONT</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_HGDIOBJ">Gdi32.HGDIOBJ</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_HPEN">Gdi32.HPEN</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 </tbody>
 </table>
 <h3 id="summary-constants">Constants</h3>
@@ -326,18 +326,18 @@
 <tr><td class="code-type"><a href="#Gdi32_ASPECTXY">Gdi32.ASPECTXY</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_ASPECTY">Gdi32.ASPECTY</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BALTIC_CHARSET">Gdi32.BALTIC_CHARSET</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_BITSPIXEL">Gdi32.BITSPIXEL</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_BITFIELDS">Gdi32.BI_BITFIELDS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_JPEG">Gdi32.BI_JPEG</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_PNG">Gdi32.BI_PNG</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_RGB">Gdi32.BI_RGB</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_RLE4">Gdi32.BI_RLE4</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_RLE8">Gdi32.BI_RLE8</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_BITSPIXEL">Gdi32.BITSPIXEL</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BKMODE_LAST">Gdi32.BKMODE_LAST</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_BLACKNESS">Gdi32.BLACKNESS</a></td><td><p>dest = BLACK</p>
-</td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BLACK_BRUSH">Gdi32.BLACK_BRUSH</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BLACK_PEN">Gdi32.BLACK_PEN</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_BLACKNESS">Gdi32.BLACKNESS</a></td><td><p>dest = BLACK</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BLTALIGNMENT">Gdi32.BLTALIGNMENT</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_CAPTUREBLT">Gdi32.CAPTUREBLT</a></td><td><p>Include layered windows</p>
 </td></tr>
@@ -464,8 +464,8 @@
 <tr><td class="code-type"><a href="#Gdi32_PS_SOLID">Gdi32.PS_SOLID</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_PS_STYLE_MASK">Gdi32.PS_STYLE_MASK</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_PS_USERSTYLE">Gdi32.PS_USERSTYLE</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_RASTERCAPS">Gdi32.RASTERCAPS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_RASTER_FONTTYPE">Gdi32.RASTER_FONTTYPE</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_RASTERCAPS">Gdi32.RASTERCAPS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_RUSSIAN_CHARSET">Gdi32.RUSSIAN_CHARSET</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SCALINGFACTORX">Gdi32.SCALINGFACTORX</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SCALINGFACTORY">Gdi32.SCALINGFACTORY</a></td><td></td></tr>
@@ -495,10 +495,10 @@
 <tr><td class="code-type"><a href="#Gdi32_VERTSIZE">Gdi32.VERTSIZE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_VIETNAMESE_CHARSET">Gdi32.VIETNAMESE_CHARSET</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_VREFRESH">Gdi32.VREFRESH</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_WHITENESS">Gdi32.WHITENESS</a></td><td><p>dest = WHITE</p>
-</td></tr>
 <tr><td class="code-type"><a href="#Gdi32_WHITE_BRUSH">Gdi32.WHITE_BRUSH</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_WHITE_PEN">Gdi32.WHITE_PEN</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_WHITENESS">Gdi32.WHITENESS</a></td><td><p>dest = WHITE</p>
+</td></tr>
 </tbody>
 </table>
 <h3 id="summary-functions">Functions</h3>
@@ -523,8 +523,8 @@
 <tr><td class="code-type"><a href="#Gdi32_EnumFontFamiliesW">Gdi32.EnumFontFamiliesW</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GdiFlush">Gdi32.GdiFlush</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetBitmapBits">Gdi32.GetBitmapBits</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_GetDIBits">Gdi32.GetDIBits</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetDeviceCaps">Gdi32.GetDeviceCaps</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_GetDIBits">Gdi32.GetDIBits</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetFontData">Gdi32.GetFontData</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetObjectA">Gdi32.GetObjectA</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetObjectW">Gdi32.GetObjectW</a></td><td></td></tr>
@@ -532,8 +532,8 @@
 <tr><td class="code-type"><a href="#Gdi32_GetStockObject">Gdi32.GetStockObject</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_LineTo">Gdi32.LineTo</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_MoveTo">Gdi32.MoveTo</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_RGB">Gdi32.RGB</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_Rectangle">Gdi32.Rectangle</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_RGB">Gdi32.RGB</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SelectObject">Gdi32.SelectObject</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SetBitmapBits">Gdi32.SetBitmapBits</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SetBkColor">Gdi32.SetBkColor</a></td><td></td></tr>
@@ -560,6 +560,11 @@
 <tr><td class="code-type"><a href="#Gdi32_BITMAPINFOHEADER">Gdi32.BITMAPINFOHEADER</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_ENUMLOGFONTEXA">Gdi32.ENUMLOGFONTEXA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_ENUMLOGFONTEXW">Gdi32.ENUMLOGFONTEXW</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCA">Gdi32.FONTENUMPROCA</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCW">Gdi32.FONTENUMPROCW</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_HFONT">Gdi32.HFONT</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_HGDIOBJ">Gdi32.HGDIOBJ</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_HPEN">Gdi32.HPEN</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_LOGFONTA">Gdi32.LOGFONTA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_LOGFONTW">Gdi32.LOGFONTW</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_NEWTEXTMETRICA">Gdi32.NEWTEXTMETRICA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
@@ -568,11 +573,6 @@
 <tr><td class="code-type"><a href="#Gdi32_RGBQUAD">Gdi32.RGBQUAD</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_TEXTMETRICA">Gdi32.TEXTMETRICA</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_TEXTMETRICW">Gdi32.TEXTMETRICW</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCA">Gdi32.FONTENUMPROCA</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_FONTENUMPROCW">Gdi32.FONTENUMPROCW</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_HFONT">Gdi32.HFONT</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_HGDIOBJ">Gdi32.HGDIOBJ</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_HPEN">Gdi32.HPEN</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 </tbody>
 </table>
 <h3 id="namespace_Gdi32_constants">Constants</h3>
@@ -587,18 +587,18 @@
 <tr><td class="code-type"><a href="#Gdi32_ASPECTXY">Gdi32.ASPECTXY</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_ASPECTY">Gdi32.ASPECTY</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BALTIC_CHARSET">Gdi32.BALTIC_CHARSET</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_BITSPIXEL">Gdi32.BITSPIXEL</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_BITFIELDS">Gdi32.BI_BITFIELDS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_JPEG">Gdi32.BI_JPEG</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_PNG">Gdi32.BI_PNG</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_RGB">Gdi32.BI_RGB</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_RLE4">Gdi32.BI_RLE4</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BI_RLE8">Gdi32.BI_RLE8</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_BITSPIXEL">Gdi32.BITSPIXEL</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BKMODE_LAST">Gdi32.BKMODE_LAST</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_BLACKNESS">Gdi32.BLACKNESS</a></td><td><p>dest = BLACK</p>
-</td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BLACK_BRUSH">Gdi32.BLACK_BRUSH</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BLACK_PEN">Gdi32.BLACK_PEN</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_BLACKNESS">Gdi32.BLACKNESS</a></td><td><p>dest = BLACK</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gdi32_BLTALIGNMENT">Gdi32.BLTALIGNMENT</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_CAPTUREBLT">Gdi32.CAPTUREBLT</a></td><td><p>Include layered windows</p>
 </td></tr>
@@ -725,8 +725,8 @@
 <tr><td class="code-type"><a href="#Gdi32_PS_SOLID">Gdi32.PS_SOLID</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_PS_STYLE_MASK">Gdi32.PS_STYLE_MASK</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_PS_USERSTYLE">Gdi32.PS_USERSTYLE</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_RASTERCAPS">Gdi32.RASTERCAPS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_RASTER_FONTTYPE">Gdi32.RASTER_FONTTYPE</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_RASTERCAPS">Gdi32.RASTERCAPS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_RUSSIAN_CHARSET">Gdi32.RUSSIAN_CHARSET</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SCALINGFACTORX">Gdi32.SCALINGFACTORX</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SCALINGFACTORY">Gdi32.SCALINGFACTORY</a></td><td></td></tr>
@@ -756,10 +756,10 @@
 <tr><td class="code-type"><a href="#Gdi32_VERTSIZE">Gdi32.VERTSIZE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_VIETNAMESE_CHARSET">Gdi32.VIETNAMESE_CHARSET</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_VREFRESH">Gdi32.VREFRESH</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_WHITENESS">Gdi32.WHITENESS</a></td><td><p>dest = WHITE</p>
-</td></tr>
 <tr><td class="code-type"><a href="#Gdi32_WHITE_BRUSH">Gdi32.WHITE_BRUSH</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_WHITE_PEN">Gdi32.WHITE_PEN</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_WHITENESS">Gdi32.WHITENESS</a></td><td><p>dest = WHITE</p>
+</td></tr>
 </tbody>
 </table>
 <h3 id="namespace_Gdi32_functions">Functions</h3>
@@ -784,8 +784,8 @@
 <tr><td class="code-type"><a href="#Gdi32_EnumFontFamiliesW">Gdi32.EnumFontFamiliesW</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GdiFlush">Gdi32.GdiFlush</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetBitmapBits">Gdi32.GetBitmapBits</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_GetDIBits">Gdi32.GetDIBits</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetDeviceCaps">Gdi32.GetDeviceCaps</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_GetDIBits">Gdi32.GetDIBits</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetFontData">Gdi32.GetFontData</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetObjectA">Gdi32.GetObjectA</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_GetObjectW">Gdi32.GetObjectW</a></td><td></td></tr>
@@ -793,8 +793,8 @@
 <tr><td class="code-type"><a href="#Gdi32_GetStockObject">Gdi32.GetStockObject</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_LineTo">Gdi32.LineTo</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_MoveTo">Gdi32.MoveTo</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Gdi32_RGB">Gdi32.RGB</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_Rectangle">Gdi32.Rectangle</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gdi32_RGB">Gdi32.RGB</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SelectObject">Gdi32.SelectObject</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SetBitmapBits">Gdi32.SetBitmapBits</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Gdi32_SetBkColor">Gdi32.SetBkColor</a></td><td></td></tr>
@@ -886,6 +886,26 @@
 <tr><td id="Gdi32_ENUMLOGFONTEXW_elfStyle" class="code-type">elfStyle</td><td class="code-type">[32] u16</td><td></td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Gdi32_FONTENUMPROCA" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.FONTENUMPROCA</span> <a class="api-item-permalink" href="#Gdi32_FONTENUMPROCA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L415">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_FONTENUMPROCA">FONTENUMPROCA</a></span> = <span class="SKwd">func</span>(<span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_LOGFONTA">LOGFONTA</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_TEXTMETRICA">TEXTMETRICA</a></span>, <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SCst"><a href="std.win32.html#Win32_LPARAM">LPARAM</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Gdi32_FONTENUMPROCW" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.FONTENUMPROCW</span> <a class="api-item-permalink" href="#Gdi32_FONTENUMPROCW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L416">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_FONTENUMPROCW">FONTENUMPROCW</a></span> = <span class="SKwd">func</span>(<span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_LOGFONTW">LOGFONTW</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_TEXTMETRICW">TEXTMETRICW</a></span>, <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SCst"><a href="std.win32.html#Win32_LPARAM">LPARAM</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Gdi32_HFONT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HFONT</span> <a class="api-item-permalink" href="#Gdi32_HFONT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L11">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HFONT">HFONT</a></span>   = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Gdi32_HGDIOBJ" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HGDIOBJ</span> <a class="api-item-permalink" href="#Gdi32_HGDIOBJ" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L10">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HGDIOBJ">HGDIOBJ</a></span> = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Gdi32_HPEN" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HPEN</span> <a class="api-item-permalink" href="#Gdi32_HPEN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L12">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HPEN">HPEN</a></span>    = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Gdi32_LOGFONTA" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gdi32.LOGFONTA</span> <a class="api-item-permalink" href="#Gdi32_LOGFONTA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L257">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gdi32_LOGFONTA">LOGFONTA</a></span></span></div>
@@ -1112,26 +1132,6 @@
 <tr><td id="Gdi32_TEXTMETRICW_tmWeight" class="code-type">tmWeight</td><td class="code-type">s32</td><td></td></tr>
 </tbody>
 </table>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Gdi32_FONTENUMPROCA" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.FONTENUMPROCA</span> <a class="api-item-permalink" href="#Gdi32_FONTENUMPROCA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L415">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_FONTENUMPROCA">FONTENUMPROCA</a></span> = <span class="SKwd">func</span>(<span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_LOGFONTA">LOGFONTA</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_TEXTMETRICA">TEXTMETRICA</a></span>, <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SCst"><a href="std.win32.html#Win32_LPARAM">LPARAM</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Gdi32_FONTENUMPROCW" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.FONTENUMPROCW</span> <a class="api-item-permalink" href="#Gdi32_FONTENUMPROCW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L416">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_FONTENUMPROCW">FONTENUMPROCW</a></span> = <span class="SKwd">func</span>(<span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_LOGFONTW">LOGFONTW</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_TEXTMETRICW">TEXTMETRICW</a></span>, <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SCst"><a href="std.win32.html#Win32_LPARAM">LPARAM</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Gdi32_HFONT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HFONT</span> <a class="api-item-permalink" href="#Gdi32_HFONT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L11">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HFONT">HFONT</a></span>   = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Gdi32_HGDIOBJ" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HGDIOBJ</span> <a class="api-item-permalink" href="#Gdi32_HGDIOBJ" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L10">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HGDIOBJ">HGDIOBJ</a></span> = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Gdi32_HPEN" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HPEN</span> <a class="api-item-permalink" href="#Gdi32_HPEN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L12">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HPEN">HPEN</a></span>    = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
-</section>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_ANSI_CHARSET" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.ANSI_CHARSET</span> <a class="api-item-permalink" href="#Gdi32_ANSI_CHARSET" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L180">src</a></div>
@@ -1166,10 +1166,6 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BALTIC_CHARSET">BALTIC_CHARSET</a></span>      = <span class="SNum">186</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gdi32_BITSPIXEL" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BITSPIXEL</span> <a class="api-item-permalink" href="#Gdi32_BITSPIXEL" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L222">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BITSPIXEL">BITSPIXEL</a></span>       = <span class="SNum">12</span></span></div>
-</section>
-<section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_BI_BITFIELDS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BI_BITFIELDS</span> <a class="api-item-permalink" href="#Gdi32_BI_BITFIELDS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L113">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BI_BITFIELDS">BI_BITFIELDS</a></span> = <span class="SNum">3</span></span></div>
 </section>
@@ -1194,13 +1190,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BI_RLE8">BI_RLE8</a></span>      = <span class="SNum">1</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gdi32_BKMODE_LAST" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BKMODE_LAST</span> <a class="api-item-permalink" href="#Gdi32_BKMODE_LAST" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L214">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BKMODE_LAST">BKMODE_LAST</a></span> = <span class="SNum">2</span></span></div>
+<div class="api-item api-item-const"><span id="Gdi32_BITSPIXEL" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BITSPIXEL</span> <a class="api-item-permalink" href="#Gdi32_BITSPIXEL" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L222">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BITSPIXEL">BITSPIXEL</a></span>       = <span class="SNum">12</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gdi32_BLACKNESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BLACKNESS</span> <a class="api-item-permalink" href="#Gdi32_BLACKNESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L86">src</a></div>
-<p>dest = BLACK</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BLACKNESS">BLACKNESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00000042</span></span></div>
+<div class="api-item api-item-const"><span id="Gdi32_BKMODE_LAST" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BKMODE_LAST</span> <a class="api-item-permalink" href="#Gdi32_BKMODE_LAST" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L214">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BKMODE_LAST">BKMODE_LAST</a></span> = <span class="SNum">2</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_BLACK_BRUSH" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BLACK_BRUSH</span> <a class="api-item-permalink" href="#Gdi32_BLACK_BRUSH" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L166">src</a></div>
@@ -1209,6 +1204,11 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_BLACK_PEN" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BLACK_PEN</span> <a class="api-item-permalink" href="#Gdi32_BLACK_PEN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L170">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BLACK_PEN">BLACK_PEN</a></span>           = <span class="SNum">7</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Gdi32_BLACKNESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BLACKNESS</span> <a class="api-item-permalink" href="#Gdi32_BLACKNESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L86">src</a></div>
+<p>dest = BLACK</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BLACKNESS">BLACKNESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00000042</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_BLTALIGNMENT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BLTALIGNMENT</span> <a class="api-item-permalink" href="#Gdi32_BLTALIGNMENT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L253">src</a></div>
@@ -1673,12 +1673,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_PS_USERSTYLE">PS_USERSTYLE</a></span>   = <span class="SNum">7</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gdi32_RASTERCAPS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.RASTERCAPS</span> <a class="api-item-permalink" href="#Gdi32_RASTERCAPS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L235">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_RASTERCAPS">RASTERCAPS</a></span>      = <span class="SNum">38</span></span></div>
-</section>
-<section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_RASTER_FONTTYPE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.RASTER_FONTTYPE</span> <a class="api-item-permalink" href="#Gdi32_RASTER_FONTTYPE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L142">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_RASTER_FONTTYPE">RASTER_FONTTYPE</a></span>   = <span class="SNum">0x0001</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Gdi32_RASTERCAPS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.RASTERCAPS</span> <a class="api-item-permalink" href="#Gdi32_RASTERCAPS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L235">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_RASTERCAPS">RASTERCAPS</a></span>      = <span class="SNum">38</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_RUSSIAN_CHARSET" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.RUSSIAN_CHARSET</span> <a class="api-item-permalink" href="#Gdi32_RUSSIAN_CHARSET" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L197">src</a></div>
@@ -1782,17 +1782,17 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_VREFRESH">VREFRESH</a></span>        = <span class="SNum">116</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gdi32_WHITENESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.WHITENESS</span> <a class="api-item-permalink" href="#Gdi32_WHITENESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L87">src</a></div>
-<p>dest = WHITE</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_WHITENESS">WHITENESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00FF0062</span></span></div>
-</section>
-<section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_WHITE_BRUSH" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.WHITE_BRUSH</span> <a class="api-item-permalink" href="#Gdi32_WHITE_BRUSH" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L162">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_WHITE_BRUSH">WHITE_BRUSH</a></span>         = <span class="SNum">0</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_WHITE_PEN" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.WHITE_PEN</span> <a class="api-item-permalink" href="#Gdi32_WHITE_PEN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L169">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_WHITE_PEN">WHITE_PEN</a></span>           = <span class="SNum">6</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Gdi32_WHITENESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.WHITENESS</span> <a class="api-item-permalink" href="#Gdi32_WHITENESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L87">src</a></div>
+<p>dest = WHITE</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_WHITENESS">WHITENESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00FF0062</span></span></div>
 </section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
@@ -1869,13 +1869,13 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetBitmapBits</span>(hbit: <span class="SCst"><a href="std.win32.html#Win32_HBITMAP">HBITMAP</a></span>, cb: <span class="SCst"><a href="std.win32.html#Win32_LONG">LONG</a></span>, lpvBits: <span class="SCst"><a href="std.win32.html#Win32_LPVOID">LPVOID</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gdi32_GetDeviceCaps" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.GetDeviceCaps</span> <a class="api-item-permalink" href="#Gdi32_GetDeviceCaps" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L433">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetDeviceCaps</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, index: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdi32_GetDIBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.GetDIBits</span> <a class="api-item-permalink" href="#Gdi32_GetDIBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L616">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">GetDIBits</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, hbm: <span class="SCst"><a href="std.win32.html#Win32_HBITMAP">HBITMAP</a></span>, start: <span class="SCst"><a href="std.win32.html#Win32_UINT">UINT</a></span>, cLines: <span class="SCst"><a href="std.win32.html#Win32_UINT">UINT</a></span>, lpvBits: <span class="SCst"><a href="std.win32.html#Win32_LPVOID">LPVOID</a></span>, lpbmi: *<span class="SCst"><a href="#Gdi32_BITMAPINFO">BITMAPINFO</a></span>, usage: <span class="SCst"><a href="std.win32.html#Win32_UINT">UINT</a></span>)-&gt;<span class="STpe">s32</span> <span class="SKwd">fail</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gdi32_GetDeviceCaps" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.GetDeviceCaps</span> <a class="api-item-permalink" href="#Gdi32_GetDeviceCaps" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L433">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetDeviceCaps</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, index: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdi32_GetFontData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.GetFontData</span> <a class="api-item-permalink" href="#Gdi32_GetFontData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L575">src</a></div>
@@ -1906,13 +1906,13 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">MoveTo</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, x: <span class="STpe">s32</span>, y: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gdi32_Rectangle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.Rectangle</span> <a class="api-item-permalink" href="#Gdi32_Rectangle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L449">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">Rectangle</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, left, top, right, bottom: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdi32_RGB" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.RGB</span> <a class="api-item-permalink" href="#Gdi32_RGB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L419">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
 <span class="SKwd">func</span> <span class="SFct">RGB</span>(r, g, b: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_COLORREF">COLORREF</a></span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gdi32_Rectangle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.Rectangle</span> <a class="api-item-permalink" href="#Gdi32_Rectangle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L449">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">Rectangle</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, left, top, right, bottom: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdi32_SelectObject" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.SelectObject</span> <a class="api-item-permalink" href="#Gdi32_SelectObject" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L432">src</a></div>
@@ -1966,7 +1966,8 @@
 
     var KINDS = {
         n: "namespace", s: "struct", i: "interface", e: "enum",
-        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+        c: "const", a: "alias", t: "attr", f: "func", h: "section",
+        v: "field", k: "case"
     };
     var LIMIT = 30;
 
@@ -2042,6 +2043,8 @@
         found.sort(function (left, right) {
             if (left.value !== right.value)
                 return right.value - left.value;
+            if (left.item.name === right.item.name)
+                return 0;
             return left.item.name < right.item.name ? -1 : 1;
         });
         return found;
@@ -2207,18 +2210,192 @@
 ([
 "n|Gdi32|namespace_Gdi32|",
 "s|Gdi32.BITMAP|Gdi32_BITMAP|",
+"v|Gdi32.BITMAP.bmBits|Gdi32_BITMAP_bmBits|",
+"v|Gdi32.BITMAP.bmBitsPixel|Gdi32_BITMAP_bmBitsPixel|",
+"v|Gdi32.BITMAP.bmHeight|Gdi32_BITMAP_bmHeight|",
+"v|Gdi32.BITMAP.bmPlanes|Gdi32_BITMAP_bmPlanes|",
+"v|Gdi32.BITMAP.bmType|Gdi32_BITMAP_bmType|",
+"v|Gdi32.BITMAP.bmWidth|Gdi32_BITMAP_bmWidth|",
+"v|Gdi32.BITMAP.bmWidthBytes|Gdi32_BITMAP_bmWidthBytes|",
 "s|Gdi32.BITMAPINFO|Gdi32_BITMAPINFO|",
+"v|Gdi32.BITMAPINFO.bmiColors|Gdi32_BITMAPINFO_bmiColors|",
+"v|Gdi32.BITMAPINFO.bmiHeader|Gdi32_BITMAPINFO_bmiHeader|",
 "s|Gdi32.BITMAPINFOHEADER|Gdi32_BITMAPINFOHEADER|",
+"v|Gdi32.BITMAPINFOHEADER.biBitCount|Gdi32_BITMAPINFOHEADER_biBitCount|",
+"v|Gdi32.BITMAPINFOHEADER.biClrImportant|Gdi32_BITMAPINFOHEADER_biClrImportant|",
+"v|Gdi32.BITMAPINFOHEADER.biClrUsed|Gdi32_BITMAPINFOHEADER_biClrUsed|",
+"v|Gdi32.BITMAPINFOHEADER.biCompression|Gdi32_BITMAPINFOHEADER_biCompression|",
+"v|Gdi32.BITMAPINFOHEADER.biHeight|Gdi32_BITMAPINFOHEADER_biHeight|",
+"v|Gdi32.BITMAPINFOHEADER.biPlanes|Gdi32_BITMAPINFOHEADER_biPlanes|",
+"v|Gdi32.BITMAPINFOHEADER.biSize|Gdi32_BITMAPINFOHEADER_biSize|",
+"v|Gdi32.BITMAPINFOHEADER.biSizeImage|Gdi32_BITMAPINFOHEADER_biSizeImage|",
+"v|Gdi32.BITMAPINFOHEADER.biWidth|Gdi32_BITMAPINFOHEADER_biWidth|",
+"v|Gdi32.BITMAPINFOHEADER.biXPelsPerMeter|Gdi32_BITMAPINFOHEADER_biXPelsPerMeter|",
+"v|Gdi32.BITMAPINFOHEADER.biYPelsPerMeter|Gdi32_BITMAPINFOHEADER_biYPelsPerMeter|",
 "s|Gdi32.ENUMLOGFONTEXA|Gdi32_ENUMLOGFONTEXA|",
+"v|Gdi32.ENUMLOGFONTEXA.elfFullName|Gdi32_ENUMLOGFONTEXA_elfFullName|",
+"v|Gdi32.ENUMLOGFONTEXA.elfLogFont|Gdi32_ENUMLOGFONTEXA_elfLogFont|",
+"v|Gdi32.ENUMLOGFONTEXA.elfScript|Gdi32_ENUMLOGFONTEXA_elfScript|",
+"v|Gdi32.ENUMLOGFONTEXA.elfStyle|Gdi32_ENUMLOGFONTEXA_elfStyle|",
 "s|Gdi32.ENUMLOGFONTEXW|Gdi32_ENUMLOGFONTEXW|",
+"v|Gdi32.ENUMLOGFONTEXW.elfFullName|Gdi32_ENUMLOGFONTEXW_elfFullName|",
+"v|Gdi32.ENUMLOGFONTEXW.elfLogFont|Gdi32_ENUMLOGFONTEXW_elfLogFont|",
+"v|Gdi32.ENUMLOGFONTEXW.elfScript|Gdi32_ENUMLOGFONTEXW_elfScript|",
+"v|Gdi32.ENUMLOGFONTEXW.elfStyle|Gdi32_ENUMLOGFONTEXW_elfStyle|",
 "s|Gdi32.LOGFONTA|Gdi32_LOGFONTA|",
+"v|Gdi32.LOGFONTA.lfCharSet|Gdi32_LOGFONTA_lfCharSet|",
+"v|Gdi32.LOGFONTA.lfClipPrecision|Gdi32_LOGFONTA_lfClipPrecision|",
+"v|Gdi32.LOGFONTA.lfEscapement|Gdi32_LOGFONTA_lfEscapement|",
+"v|Gdi32.LOGFONTA.lfFaceName|Gdi32_LOGFONTA_lfFaceName|",
+"v|Gdi32.LOGFONTA.lfHeight|Gdi32_LOGFONTA_lfHeight|",
+"v|Gdi32.LOGFONTA.lfItalic|Gdi32_LOGFONTA_lfItalic|",
+"v|Gdi32.LOGFONTA.lfOrientation|Gdi32_LOGFONTA_lfOrientation|",
+"v|Gdi32.LOGFONTA.lfOutPrecision|Gdi32_LOGFONTA_lfOutPrecision|",
+"v|Gdi32.LOGFONTA.lfPitchAndFamily|Gdi32_LOGFONTA_lfPitchAndFamily|",
+"v|Gdi32.LOGFONTA.lfQuality|Gdi32_LOGFONTA_lfQuality|",
+"v|Gdi32.LOGFONTA.lfStrikeOut|Gdi32_LOGFONTA_lfStrikeOut|",
+"v|Gdi32.LOGFONTA.lfUnderline|Gdi32_LOGFONTA_lfUnderline|",
+"v|Gdi32.LOGFONTA.lfWeight|Gdi32_LOGFONTA_lfWeight|",
+"v|Gdi32.LOGFONTA.lfWidth|Gdi32_LOGFONTA_lfWidth|",
 "s|Gdi32.LOGFONTW|Gdi32_LOGFONTW|",
+"v|Gdi32.LOGFONTW.lfCharSet|Gdi32_LOGFONTW_lfCharSet|",
+"v|Gdi32.LOGFONTW.lfClipPrecision|Gdi32_LOGFONTW_lfClipPrecision|",
+"v|Gdi32.LOGFONTW.lfEscapement|Gdi32_LOGFONTW_lfEscapement|",
+"v|Gdi32.LOGFONTW.lfFaceName|Gdi32_LOGFONTW_lfFaceName|",
+"v|Gdi32.LOGFONTW.lfHeight|Gdi32_LOGFONTW_lfHeight|",
+"v|Gdi32.LOGFONTW.lfItalic|Gdi32_LOGFONTW_lfItalic|",
+"v|Gdi32.LOGFONTW.lfOrientation|Gdi32_LOGFONTW_lfOrientation|",
+"v|Gdi32.LOGFONTW.lfOutPrecision|Gdi32_LOGFONTW_lfOutPrecision|",
+"v|Gdi32.LOGFONTW.lfPitchAndFamily|Gdi32_LOGFONTW_lfPitchAndFamily|",
+"v|Gdi32.LOGFONTW.lfQuality|Gdi32_LOGFONTW_lfQuality|",
+"v|Gdi32.LOGFONTW.lfStrikeOut|Gdi32_LOGFONTW_lfStrikeOut|",
+"v|Gdi32.LOGFONTW.lfUnderline|Gdi32_LOGFONTW_lfUnderline|",
+"v|Gdi32.LOGFONTW.lfWeight|Gdi32_LOGFONTW_lfWeight|",
+"v|Gdi32.LOGFONTW.lfWidth|Gdi32_LOGFONTW_lfWidth|",
 "s|Gdi32.NEWTEXTMETRICA|Gdi32_NEWTEXTMETRICA|",
+"v|Gdi32.NEWTEXTMETRICA.ntmAvgWidth|Gdi32_NEWTEXTMETRICA_ntmAvgWidth|",
+"v|Gdi32.NEWTEXTMETRICA.ntmCellHeight|Gdi32_NEWTEXTMETRICA_ntmCellHeight|",
+"v|Gdi32.NEWTEXTMETRICA.ntmFlags|Gdi32_NEWTEXTMETRICA_ntmFlags|",
+"v|Gdi32.NEWTEXTMETRICA.ntmSizeEM|Gdi32_NEWTEXTMETRICA_ntmSizeEM|",
+"v|Gdi32.NEWTEXTMETRICA.tmAscent|Gdi32_NEWTEXTMETRICA_tmAscent|",
+"v|Gdi32.NEWTEXTMETRICA.tmAveCharWidth|Gdi32_NEWTEXTMETRICA_tmAveCharWidth|",
+"v|Gdi32.NEWTEXTMETRICA.tmBreakChar|Gdi32_NEWTEXTMETRICA_tmBreakChar|",
+"v|Gdi32.NEWTEXTMETRICA.tmCharSet|Gdi32_NEWTEXTMETRICA_tmCharSet|",
+"v|Gdi32.NEWTEXTMETRICA.tmDefaultChar|Gdi32_NEWTEXTMETRICA_tmDefaultChar|",
+"v|Gdi32.NEWTEXTMETRICA.tmDescent|Gdi32_NEWTEXTMETRICA_tmDescent|",
+"v|Gdi32.NEWTEXTMETRICA.tmDigitizedAspectX|Gdi32_NEWTEXTMETRICA_tmDigitizedAspectX|",
+"v|Gdi32.NEWTEXTMETRICA.tmDigitizedAspectY|Gdi32_NEWTEXTMETRICA_tmDigitizedAspectY|",
+"v|Gdi32.NEWTEXTMETRICA.tmExternalLeading|Gdi32_NEWTEXTMETRICA_tmExternalLeading|",
+"v|Gdi32.NEWTEXTMETRICA.tmFirstChar|Gdi32_NEWTEXTMETRICA_tmFirstChar|",
+"v|Gdi32.NEWTEXTMETRICA.tmHeight|Gdi32_NEWTEXTMETRICA_tmHeight|",
+"v|Gdi32.NEWTEXTMETRICA.tmInternalLeading|Gdi32_NEWTEXTMETRICA_tmInternalLeading|",
+"v|Gdi32.NEWTEXTMETRICA.tmItalic|Gdi32_NEWTEXTMETRICA_tmItalic|",
+"v|Gdi32.NEWTEXTMETRICA.tmLastChar|Gdi32_NEWTEXTMETRICA_tmLastChar|",
+"v|Gdi32.NEWTEXTMETRICA.tmMaxCharWidth|Gdi32_NEWTEXTMETRICA_tmMaxCharWidth|",
+"v|Gdi32.NEWTEXTMETRICA.tmOverhang|Gdi32_NEWTEXTMETRICA_tmOverhang|",
+"v|Gdi32.NEWTEXTMETRICA.tmPitchAndFamily|Gdi32_NEWTEXTMETRICA_tmPitchAndFamily|",
+"v|Gdi32.NEWTEXTMETRICA.tmStruckOut|Gdi32_NEWTEXTMETRICA_tmStruckOut|",
+"v|Gdi32.NEWTEXTMETRICA.tmUnderlined|Gdi32_NEWTEXTMETRICA_tmUnderlined|",
+"v|Gdi32.NEWTEXTMETRICA.tmWeight|Gdi32_NEWTEXTMETRICA_tmWeight|",
 "s|Gdi32.NEWTEXTMETRICW|Gdi32_NEWTEXTMETRICW|",
+"v|Gdi32.NEWTEXTMETRICW.ntmAvgWidth|Gdi32_NEWTEXTMETRICW_ntmAvgWidth|",
+"v|Gdi32.NEWTEXTMETRICW.ntmCellHeight|Gdi32_NEWTEXTMETRICW_ntmCellHeight|",
+"v|Gdi32.NEWTEXTMETRICW.ntmFlags|Gdi32_NEWTEXTMETRICW_ntmFlags|",
+"v|Gdi32.NEWTEXTMETRICW.ntmSizeEM|Gdi32_NEWTEXTMETRICW_ntmSizeEM|",
+"v|Gdi32.NEWTEXTMETRICW.tmAscent|Gdi32_NEWTEXTMETRICW_tmAscent|",
+"v|Gdi32.NEWTEXTMETRICW.tmAveCharWidth|Gdi32_NEWTEXTMETRICW_tmAveCharWidth|",
+"v|Gdi32.NEWTEXTMETRICW.tmBreakChar|Gdi32_NEWTEXTMETRICW_tmBreakChar|",
+"v|Gdi32.NEWTEXTMETRICW.tmCharSet|Gdi32_NEWTEXTMETRICW_tmCharSet|",
+"v|Gdi32.NEWTEXTMETRICW.tmDefaultChar|Gdi32_NEWTEXTMETRICW_tmDefaultChar|",
+"v|Gdi32.NEWTEXTMETRICW.tmDescent|Gdi32_NEWTEXTMETRICW_tmDescent|",
+"v|Gdi32.NEWTEXTMETRICW.tmDigitizedAspectX|Gdi32_NEWTEXTMETRICW_tmDigitizedAspectX|",
+"v|Gdi32.NEWTEXTMETRICW.tmDigitizedAspectY|Gdi32_NEWTEXTMETRICW_tmDigitizedAspectY|",
+"v|Gdi32.NEWTEXTMETRICW.tmExternalLeading|Gdi32_NEWTEXTMETRICW_tmExternalLeading|",
+"v|Gdi32.NEWTEXTMETRICW.tmFirstChar|Gdi32_NEWTEXTMETRICW_tmFirstChar|",
+"v|Gdi32.NEWTEXTMETRICW.tmHeight|Gdi32_NEWTEXTMETRICW_tmHeight|",
+"v|Gdi32.NEWTEXTMETRICW.tmInternalLeading|Gdi32_NEWTEXTMETRICW_tmInternalLeading|",
+"v|Gdi32.NEWTEXTMETRICW.tmItalic|Gdi32_NEWTEXTMETRICW_tmItalic|",
+"v|Gdi32.NEWTEXTMETRICW.tmLastChar|Gdi32_NEWTEXTMETRICW_tmLastChar|",
+"v|Gdi32.NEWTEXTMETRICW.tmMaxCharWidth|Gdi32_NEWTEXTMETRICW_tmMaxCharWidth|",
+"v|Gdi32.NEWTEXTMETRICW.tmOverhang|Gdi32_NEWTEXTMETRICW_tmOverhang|",
+"v|Gdi32.NEWTEXTMETRICW.tmPitchAndFamily|Gdi32_NEWTEXTMETRICW_tmPitchAndFamily|",
+"v|Gdi32.NEWTEXTMETRICW.tmStruckOut|Gdi32_NEWTEXTMETRICW_tmStruckOut|",
+"v|Gdi32.NEWTEXTMETRICW.tmUnderlined|Gdi32_NEWTEXTMETRICW_tmUnderlined|",
+"v|Gdi32.NEWTEXTMETRICW.tmWeight|Gdi32_NEWTEXTMETRICW_tmWeight|",
 "s|Gdi32.PIXELFORMATDESCRIPTOR|Gdi32_PIXELFORMATDESCRIPTOR|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.bReserved|Gdi32_PIXELFORMATDESCRIPTOR_bReserved|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAccumAlphaBits|Gdi32_PIXELFORMATDESCRIPTOR_cAccumAlphaBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAccumBits|Gdi32_PIXELFORMATDESCRIPTOR_cAccumBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAccumBlueBits|Gdi32_PIXELFORMATDESCRIPTOR_cAccumBlueBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAccumGreenBits|Gdi32_PIXELFORMATDESCRIPTOR_cAccumGreenBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAccumRedBits|Gdi32_PIXELFORMATDESCRIPTOR_cAccumRedBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAlphaBits|Gdi32_PIXELFORMATDESCRIPTOR_cAlphaBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAlphaShift|Gdi32_PIXELFORMATDESCRIPTOR_cAlphaShift|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cAuxBuffers|Gdi32_PIXELFORMATDESCRIPTOR_cAuxBuffers|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cBlueBits|Gdi32_PIXELFORMATDESCRIPTOR_cBlueBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cBlueShift|Gdi32_PIXELFORMATDESCRIPTOR_cBlueShift|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cColorBits|Gdi32_PIXELFORMATDESCRIPTOR_cColorBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cDepthBits|Gdi32_PIXELFORMATDESCRIPTOR_cDepthBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cGreenBits|Gdi32_PIXELFORMATDESCRIPTOR_cGreenBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cGreenShift|Gdi32_PIXELFORMATDESCRIPTOR_cGreenShift|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cRedBits|Gdi32_PIXELFORMATDESCRIPTOR_cRedBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cRedShift|Gdi32_PIXELFORMATDESCRIPTOR_cRedShift|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.cStencilBits|Gdi32_PIXELFORMATDESCRIPTOR_cStencilBits|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.dwDamageMask|Gdi32_PIXELFORMATDESCRIPTOR_dwDamageMask|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.dwFlags|Gdi32_PIXELFORMATDESCRIPTOR_dwFlags|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.dwLayerMask|Gdi32_PIXELFORMATDESCRIPTOR_dwLayerMask|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.dwVisibleMask|Gdi32_PIXELFORMATDESCRIPTOR_dwVisibleMask|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.iLayerType|Gdi32_PIXELFORMATDESCRIPTOR_iLayerType|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.iPixelType|Gdi32_PIXELFORMATDESCRIPTOR_iPixelType|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.nSize|Gdi32_PIXELFORMATDESCRIPTOR_nSize|",
+"v|Gdi32.PIXELFORMATDESCRIPTOR.nVersion|Gdi32_PIXELFORMATDESCRIPTOR_nVersion|",
 "s|Gdi32.RGBQUAD|Gdi32_RGBQUAD|",
+"v|Gdi32.RGBQUAD.rgbBlue|Gdi32_RGBQUAD_rgbBlue|",
+"v|Gdi32.RGBQUAD.rgbGreen|Gdi32_RGBQUAD_rgbGreen|",
+"v|Gdi32.RGBQUAD.rgbRed|Gdi32_RGBQUAD_rgbRed|",
+"v|Gdi32.RGBQUAD.rgbReserved|Gdi32_RGBQUAD_rgbReserved|",
 "s|Gdi32.TEXTMETRICA|Gdi32_TEXTMETRICA|",
+"v|Gdi32.TEXTMETRICA.tmAscent|Gdi32_TEXTMETRICA_tmAscent|",
+"v|Gdi32.TEXTMETRICA.tmAveCharWidth|Gdi32_TEXTMETRICA_tmAveCharWidth|",
+"v|Gdi32.TEXTMETRICA.tmBreakChar|Gdi32_TEXTMETRICA_tmBreakChar|",
+"v|Gdi32.TEXTMETRICA.tmCharSet|Gdi32_TEXTMETRICA_tmCharSet|",
+"v|Gdi32.TEXTMETRICA.tmDefaultChar|Gdi32_TEXTMETRICA_tmDefaultChar|",
+"v|Gdi32.TEXTMETRICA.tmDescent|Gdi32_TEXTMETRICA_tmDescent|",
+"v|Gdi32.TEXTMETRICA.tmDigitizedAspectX|Gdi32_TEXTMETRICA_tmDigitizedAspectX|",
+"v|Gdi32.TEXTMETRICA.tmDigitizedAspectY|Gdi32_TEXTMETRICA_tmDigitizedAspectY|",
+"v|Gdi32.TEXTMETRICA.tmExternalLeading|Gdi32_TEXTMETRICA_tmExternalLeading|",
+"v|Gdi32.TEXTMETRICA.tmFirstChar|Gdi32_TEXTMETRICA_tmFirstChar|",
+"v|Gdi32.TEXTMETRICA.tmHeight|Gdi32_TEXTMETRICA_tmHeight|",
+"v|Gdi32.TEXTMETRICA.tmInternalLeading|Gdi32_TEXTMETRICA_tmInternalLeading|",
+"v|Gdi32.TEXTMETRICA.tmItalic|Gdi32_TEXTMETRICA_tmItalic|",
+"v|Gdi32.TEXTMETRICA.tmLastChar|Gdi32_TEXTMETRICA_tmLastChar|",
+"v|Gdi32.TEXTMETRICA.tmMaxCharWidth|Gdi32_TEXTMETRICA_tmMaxCharWidth|",
+"v|Gdi32.TEXTMETRICA.tmOverhang|Gdi32_TEXTMETRICA_tmOverhang|",
+"v|Gdi32.TEXTMETRICA.tmPitchAndFamily|Gdi32_TEXTMETRICA_tmPitchAndFamily|",
+"v|Gdi32.TEXTMETRICA.tmStruckOut|Gdi32_TEXTMETRICA_tmStruckOut|",
+"v|Gdi32.TEXTMETRICA.tmUnderlined|Gdi32_TEXTMETRICA_tmUnderlined|",
+"v|Gdi32.TEXTMETRICA.tmWeight|Gdi32_TEXTMETRICA_tmWeight|",
 "s|Gdi32.TEXTMETRICW|Gdi32_TEXTMETRICW|",
+"v|Gdi32.TEXTMETRICW.tmAscent|Gdi32_TEXTMETRICW_tmAscent|",
+"v|Gdi32.TEXTMETRICW.tmAveCharWidth|Gdi32_TEXTMETRICW_tmAveCharWidth|",
+"v|Gdi32.TEXTMETRICW.tmBreakChar|Gdi32_TEXTMETRICW_tmBreakChar|",
+"v|Gdi32.TEXTMETRICW.tmCharSet|Gdi32_TEXTMETRICW_tmCharSet|",
+"v|Gdi32.TEXTMETRICW.tmDefaultChar|Gdi32_TEXTMETRICW_tmDefaultChar|",
+"v|Gdi32.TEXTMETRICW.tmDescent|Gdi32_TEXTMETRICW_tmDescent|",
+"v|Gdi32.TEXTMETRICW.tmDigitizedAspectX|Gdi32_TEXTMETRICW_tmDigitizedAspectX|",
+"v|Gdi32.TEXTMETRICW.tmDigitizedAspectY|Gdi32_TEXTMETRICW_tmDigitizedAspectY|",
+"v|Gdi32.TEXTMETRICW.tmExternalLeading|Gdi32_TEXTMETRICW_tmExternalLeading|",
+"v|Gdi32.TEXTMETRICW.tmFirstChar|Gdi32_TEXTMETRICW_tmFirstChar|",
+"v|Gdi32.TEXTMETRICW.tmHeight|Gdi32_TEXTMETRICW_tmHeight|",
+"v|Gdi32.TEXTMETRICW.tmInternalLeading|Gdi32_TEXTMETRICW_tmInternalLeading|",
+"v|Gdi32.TEXTMETRICW.tmItalic|Gdi32_TEXTMETRICW_tmItalic|",
+"v|Gdi32.TEXTMETRICW.tmLastChar|Gdi32_TEXTMETRICW_tmLastChar|",
+"v|Gdi32.TEXTMETRICW.tmMaxCharWidth|Gdi32_TEXTMETRICW_tmMaxCharWidth|",
+"v|Gdi32.TEXTMETRICW.tmOverhang|Gdi32_TEXTMETRICW_tmOverhang|",
+"v|Gdi32.TEXTMETRICW.tmPitchAndFamily|Gdi32_TEXTMETRICW_tmPitchAndFamily|",
+"v|Gdi32.TEXTMETRICW.tmStruckOut|Gdi32_TEXTMETRICW_tmStruckOut|",
+"v|Gdi32.TEXTMETRICW.tmUnderlined|Gdi32_TEXTMETRICW_tmUnderlined|",
+"v|Gdi32.TEXTMETRICW.tmWeight|Gdi32_TEXTMETRICW_tmWeight|",
 "c|Gdi32.ANSI_CHARSET|Gdi32_ANSI_CHARSET|",
 "c|Gdi32.ANSI_FIXED_FONT|Gdi32_ANSI_FIXED_FONT|",
 "c|Gdi32.ANSI_VAR_FONT|Gdi32_ANSI_VAR_FONT|",
@@ -2227,17 +2404,17 @@
 "c|Gdi32.ASPECTXY|Gdi32_ASPECTXY|",
 "c|Gdi32.ASPECTY|Gdi32_ASPECTY|",
 "c|Gdi32.BALTIC_CHARSET|Gdi32_BALTIC_CHARSET|",
-"c|Gdi32.BITSPIXEL|Gdi32_BITSPIXEL|",
 "c|Gdi32.BI_BITFIELDS|Gdi32_BI_BITFIELDS|",
 "c|Gdi32.BI_JPEG|Gdi32_BI_JPEG|",
 "c|Gdi32.BI_PNG|Gdi32_BI_PNG|",
 "c|Gdi32.BI_RGB|Gdi32_BI_RGB|",
 "c|Gdi32.BI_RLE4|Gdi32_BI_RLE4|",
 "c|Gdi32.BI_RLE8|Gdi32_BI_RLE8|",
+"c|Gdi32.BITSPIXEL|Gdi32_BITSPIXEL|",
 "c|Gdi32.BKMODE_LAST|Gdi32_BKMODE_LAST|",
-"c|Gdi32.BLACKNESS|Gdi32_BLACKNESS|dest = BLACK",
 "c|Gdi32.BLACK_BRUSH|Gdi32_BLACK_BRUSH|",
 "c|Gdi32.BLACK_PEN|Gdi32_BLACK_PEN|",
+"c|Gdi32.BLACKNESS|Gdi32_BLACKNESS|dest = BLACK",
 "c|Gdi32.BLTALIGNMENT|Gdi32_BLTALIGNMENT|",
 "c|Gdi32.CAPTUREBLT|Gdi32_CAPTUREBLT|Include layered windows",
 "c|Gdi32.CHINESEBIG5_CHARSET|Gdi32_CHINESEBIG5_CHARSET|",
@@ -2350,8 +2527,8 @@
 "c|Gdi32.PS_SOLID|Gdi32_PS_SOLID|",
 "c|Gdi32.PS_STYLE_MASK|Gdi32_PS_STYLE_MASK|",
 "c|Gdi32.PS_USERSTYLE|Gdi32_PS_USERSTYLE|",
-"c|Gdi32.RASTERCAPS|Gdi32_RASTERCAPS|",
 "c|Gdi32.RASTER_FONTTYPE|Gdi32_RASTER_FONTTYPE|",
+"c|Gdi32.RASTERCAPS|Gdi32_RASTERCAPS|",
 "c|Gdi32.RUSSIAN_CHARSET|Gdi32_RUSSIAN_CHARSET|",
 "c|Gdi32.SCALINGFACTORX|Gdi32_SCALINGFACTORX|",
 "c|Gdi32.SCALINGFACTORY|Gdi32_SCALINGFACTORY|",
@@ -2376,9 +2553,9 @@
 "c|Gdi32.VERTSIZE|Gdi32_VERTSIZE|",
 "c|Gdi32.VIETNAMESE_CHARSET|Gdi32_VIETNAMESE_CHARSET|",
 "c|Gdi32.VREFRESH|Gdi32_VREFRESH|",
-"c|Gdi32.WHITENESS|Gdi32_WHITENESS|dest = WHITE",
 "c|Gdi32.WHITE_BRUSH|Gdi32_WHITE_BRUSH|",
 "c|Gdi32.WHITE_PEN|Gdi32_WHITE_PEN|",
+"c|Gdi32.WHITENESS|Gdi32_WHITENESS|dest = WHITE",
 "a|Gdi32.FONTENUMPROCA|Gdi32_FONTENUMPROCA|",
 "a|Gdi32.FONTENUMPROCW|Gdi32_FONTENUMPROCW|",
 "a|Gdi32.HFONT|Gdi32_HFONT|",
@@ -2402,8 +2579,8 @@
 "f|Gdi32.EnumFontFamiliesW|Gdi32_EnumFontFamiliesW|",
 "f|Gdi32.GdiFlush|Gdi32_GdiFlush|",
 "f|Gdi32.GetBitmapBits|Gdi32_GetBitmapBits|",
-"f|Gdi32.GetDIBits|Gdi32_GetDIBits|",
 "f|Gdi32.GetDeviceCaps|Gdi32_GetDeviceCaps|",
+"f|Gdi32.GetDIBits|Gdi32_GetDIBits|",
 "f|Gdi32.GetFontData|Gdi32_GetFontData|",
 "f|Gdi32.GetObjectA|Gdi32_GetObjectA|",
 "f|Gdi32.GetObjectW|Gdi32_GetObjectW|",
@@ -2411,8 +2588,8 @@
 "f|Gdi32.GetStockObject|Gdi32_GetStockObject|",
 "f|Gdi32.LineTo|Gdi32_LineTo|",
 "f|Gdi32.MoveTo|Gdi32_MoveTo|",
-"f|Gdi32.RGB|Gdi32_RGB|",
 "f|Gdi32.Rectangle|Gdi32_Rectangle|",
+"f|Gdi32.RGB|Gdi32_RGB|",
 "f|Gdi32.SelectObject|Gdi32_SelectObject|",
 "f|Gdi32.SetBitmapBits|Gdi32_SetBitmapBits|",
 "f|Gdi32.SetBkColor|Gdi32_SetBkColor|",

@@ -21,6 +21,7 @@ namespace
     std::mutex               g_RuntimeDocMutex;
     std::unordered_set<Utf8> g_GeneratedRuntimeDocs;
     std::mutex               g_StylesheetMutex;
+    std::unordered_set<Utf8> g_GeneratedStylesheets;
 
     DocPageOptions getPageOptions(const CompilerInstance& compiler)
     {
@@ -103,9 +104,17 @@ namespace
         if (relative.empty() || (relative.begin() != relative.end() && *relative.begin() == ".."))
             return DocFile::reportError(ctx, cssPath, "the stylesheet path must stay inside the documentation output directory");
 
+        const Utf8             stylesheetKey = FileSystem::normalizePath(path);
         const std::scoped_lock lock(g_StylesheetMutex);
-        SWC_RESULT(ensureOutputDirectory(ctx, path.parent_path()));
-        return DocFile::write(ctx, path, DocPage::styles());
+        if (!g_GeneratedStylesheets.insert(stylesheetKey).second)
+            return Result::Continue;
+
+        if (ensureOutputDirectory(ctx, path.parent_path()) != Result::Continue || DocFile::write(ctx, path, DocPage::styles()) != Result::Continue)
+        {
+            g_GeneratedStylesheets.erase(stylesheetKey);
+            return Result::Error;
+        }
+        return Result::Continue;
     }
 
     // The leading '#global' directives of a documented source file configure the module, not
@@ -224,10 +233,12 @@ namespace
             hasOpenItem = true;
             content.append(std::format("<h{} id=\"{}\">{}</h{}>\n", level + 1, anchor, Utf8Helper::escapeHtml(title), level + 1));
 
+            DocRenderContext fileRenderCtx          = renderCtx;
+            fileRenderCtx.headingAnchorPrefix       = anchor;
             if (file->path().extension() == ".md")
-                content += DocMarkdown::renderLines(renderCtx, Utf8Helper::splitLines(file->sourceView()), level + 1);
+                content += DocMarkdown::renderLines(fileRenderCtx, Utf8Helper::splitLines(file->sourceView()), level + 1);
             else
-                content += renderExampleSource(ctx, renderCtx, file->sourceView());
+                content += renderExampleSource(ctx, fileRenderCtx, file->sourceView());
         }
         if (hasOpenItem)
             toc += "</li>\n";

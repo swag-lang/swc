@@ -200,8 +200,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="XInput_XINPUT_STATE_Gamepad" class="code-type">Gamepad</td><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD">XInput.XINPUT_GAMEPAD</a></td><td></td></tr>
 <tr><td id="XInput_XINPUT_STATE_dwPacketNumber" class="code-type">dwPacketNumber</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="XInput_XINPUT_STATE_Gamepad" class="code-type">Gamepad</td><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD">XInput.XINPUT_GAMEPAD</a></td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -298,7 +298,8 @@
 
     var KINDS = {
         n: "namespace", s: "struct", i: "interface", e: "enum",
-        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+        c: "const", a: "alias", t: "attr", f: "func", h: "section",
+        v: "field", k: "case"
     };
     var LIMIT = 30;
 
@@ -374,6 +375,8 @@
         found.sort(function (left, right) {
             if (left.value !== right.value)
                 return right.value - left.value;
+            if (left.item.name === right.item.name)
+                return 0;
             return left.item.name < right.item.name ? -1 : 1;
         });
         return found;
@@ -539,8 +542,19 @@
 ([
 "n|XInput|namespace_XInput|",
 "s|XInput.XINPUT_GAMEPAD|XInput_XINPUT_GAMEPAD|",
+"v|XInput.XINPUT_GAMEPAD.bLeftTrigger|XInput_XINPUT_GAMEPAD_bLeftTrigger|",
+"v|XInput.XINPUT_GAMEPAD.bRightTrigger|XInput_XINPUT_GAMEPAD_bRightTrigger|",
+"v|XInput.XINPUT_GAMEPAD.sThumbLX|XInput_XINPUT_GAMEPAD_sThumbLX|",
+"v|XInput.XINPUT_GAMEPAD.sThumbLY|XInput_XINPUT_GAMEPAD_sThumbLY|",
+"v|XInput.XINPUT_GAMEPAD.sThumbRX|XInput_XINPUT_GAMEPAD_sThumbRX|",
+"v|XInput.XINPUT_GAMEPAD.sThumbRY|XInput_XINPUT_GAMEPAD_sThumbRY|",
+"v|XInput.XINPUT_GAMEPAD.wButtons|XInput_XINPUT_GAMEPAD_wButtons|",
 "s|XInput.XINPUT_STATE|XInput_XINPUT_STATE|",
+"v|XInput.XINPUT_STATE.dwPacketNumber|XInput_XINPUT_STATE_dwPacketNumber|",
+"v|XInput.XINPUT_STATE.Gamepad|XInput_XINPUT_STATE_Gamepad|",
 "s|XInput.XINPUT_VIBRATION|XInput_XINPUT_VIBRATION|",
+"v|XInput.XINPUT_VIBRATION.wLeftMotorSpeed|XInput_XINPUT_VIBRATION_wLeftMotorSpeed|",
+"v|XInput.XINPUT_VIBRATION.wRightMotorSpeed|XInput_XINPUT_VIBRATION_wRightMotorSpeed|",
 "c|XInput.XINPUT_GAMEPAD_A|XInput_XINPUT_GAMEPAD_A|",
 "c|XInput.XINPUT_GAMEPAD_B|XInput_XINPUT_GAMEPAD_B|",
 "c|XInput.XINPUT_GAMEPAD_BACK|XInput_XINPUT_GAMEPAD_BACK|",

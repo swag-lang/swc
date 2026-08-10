@@ -18,7 +18,8 @@ namespace
 
     var KINDS = {
         n: "namespace", s: "struct", i: "interface", e: "enum",
-        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+        c: "const", a: "alias", t: "attr", f: "func", h: "section",
+        v: "field", k: "case"
     };
     var LIMIT = 30;
 
@@ -94,6 +95,8 @@ namespace
         found.sort(function (left, right) {
             if (left.value !== right.value)
                 return right.value - left.value;
+            if (left.item.name === right.item.name)
+                return 0;
             return left.item.name < right.item.name ? -1 : 1;
         });
         return found;
@@ -431,6 +434,10 @@ Utf8 DocSearch::script(const DocPageOptions& options, const std::span<const DocS
         return {};
 
     Utf8 result = "<script>\n";
+    size_t capacity = SEARCH_SCRIPT.size() + 32;
+    for (const DocSearchEntry& entry : entries)
+        capacity += entry.name.size() + entry.anchor.size() + entry.detail.size() + 8;
+    result.reserve(capacity);
     result.append(SEARCH_SCRIPT);
     result += "([\n";
     for (const DocSearchEntry& entry : entries)

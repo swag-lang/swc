@@ -1048,36 +1048,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## What equality compares
 
-### F-106 — Equality accepts fewer slice operand pairs than assignment does
-
-- Area: language
-- Found while: F-087, probing which operand pairs `[..] T == [..] T` accepts now that it compares content
-- Observation: a comparison never writes through its operands, yet equality between two slices demands
-  that both types match exactly. `[..] u8 == const [..] u8` is rejected with "cannot compare", although
-  the very same value converts implicitly when it is passed to a `const [..] u8` parameter, and
-  `slice == [1, 2, 3]` is rejected although the literal converts implicitly on assignment. The
-  neighbouring rules already say otherwise: `checkEqualEqual` accepts any pointer pair whatever their
-  `const`, and `widenNullableCompareOperand` widens a bare operand to `#null` precisely because a
-  comparison cannot write. Slices are the odd one out, and arrays and structs share the gap.
-- Evidence: this predates the F-087 fix — a compiler built before it rejects the same three lines.
-  Isolated probe, `swc test -d <dir>` on one standalone file:
-
-  ```swag
-  var bytes: [4] u8       = [1, 2, 3, 4]
-  const cst: const [..] u8 = [1, 2, 3, 4]
-  @assert(bytes[to] == cst)                                 // cannot compare '[..] u8' with 'const [..] u8'
-  @assert(bytes[to] == [1'u8, 2'u8, 3'u8, 4'u8])            // cannot compare with 'array literal'
-
-  var maybe: #null const [..] u8
-  @assert(maybe == bytes[to])                               // cannot compare '#null const [..] u8' with '#null [..] u8'
-  ```
-
-- Next step: decide whether equality unifies its operands the way assignment does, for every aggregate
-  rather than for slices alone. `widenNullableCompareOperand` in
-  [Sema.Relational.cpp](../src/Compiler/Sema/Ast/Sema.Relational.cpp) is the shape to copy: widen the
-  narrower operand, then let the regular promotion unify the rest. Check what `[4] u8 == const [4] u8`
-  and `S == const S` already do first — a slices-only rule would trade one inconsistency for another.
-
 ### F-107 — A struct compares its bytes, so a string or slice member compares as a view
 
 - Area: language

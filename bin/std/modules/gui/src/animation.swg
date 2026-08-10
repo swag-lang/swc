@@ -729,8 +729,9 @@ impl Animator
 {
     // Transfers a configured group to the scheduler and returns its non-owning handle.
     //
-    // A group containing a detached, hidden, or pending-destruction target is cancelled without
-    // being registered and returns an invalid handle.
+    // A group containing a detached, pending-destruction, or ordinarily hidden target is cancelled
+    // without being registered and returns an invalid handle. A page retained only to paint the
+    // outgoing half of [[Gui.Animator.transitionPage]] remains a valid presentation target.
     mtd start(group: #move AnimationGroup)->AnimationHandle
     {
         if group.tracks.isEmpty() do
@@ -739,7 +740,7 @@ impl Animator
         for track in group.tracks
         {
             let target = track!.target
-            if target.isPendingDestroy or target.wndFlags.has(.Hidden) or !target.surface
+            if target.isPendingDestroy or (target.wndFlags.has(.Hidden) and !target.paintsWhenHidden) or !target.surface
             {
                 for cancelledTrack in group.tracks do
                     .completeTrack(cancelledTrack!, .Cancelled)
@@ -976,16 +977,28 @@ impl Animator
             .finishAt(.animations.count - 1, .Cancelled)
     }
 
-    // Replaces one visible page with another using a restrained fade and horizontal arrival.
+    // Replaces one visible page with another using a covered cross-fade and horizontal arrival.
     //
-    // Visibility changes immediately, so hit testing and keyboard focus follow the final page
-    // throughout the decorative transition. `direction` is normally `1` for forward navigation
-    // and `-1` for backward navigation.
+    // Logical visibility changes immediately, so hit testing, layout, and keyboard focus follow
+    // the final page throughout the decorative transition. The outgoing page fades out under
+    // the incoming page until the handoff completes, so the page area is never empty.
+    // `direction` is normally `1` for forward navigation and `-1` for backward navigation.
     mtd transitionPage(outgoing: #null *Wnd, incoming: *Wnd, direction = 1'f32)->AnimationHandle
     {
         Debug.assert(incoming != null)
-        if outgoing and outgoing != incoming do
+        if outgoing == incoming
+        {
+            incoming.show()
+            incoming.resetPresentation()
+            return {}
+        }
+
+        if outgoing and outgoing != incoming
+        {
             outgoing.hide()
+            outgoing.setPaintWhenHidden(true)
+        }
+
         incoming.show()
         if incoming.parent do
             incoming.parent.applyLayout()
@@ -1000,11 +1013,23 @@ impl Animator
         options.easing   = .EaseOut
 
         var group = AnimationGroup.parallel()
+        if outgoing do
+            group.addF32(outgoing, AnimationChannel.from("Gui.Page.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
         group.addF32(incoming, AnimationChannel.from("Gui.Page.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
         group.addPoint(incoming, AnimationChannel.from("Gui.Page.Offset"), offset, {}, func(wnd, value) { wnd.setPresentationOffset(value); }, options)
-        group.setCompletion(func|incoming|(result)
+        group.setCompletion(func|outgoing, incoming|(result)
         {
             discard result
+            if outgoing
+            {
+                let wnd = outgoing!
+                if !wnd.isPendingDestroy
+                {
+                    wnd.resetPresentation()
+                    wnd.setPaintWhenHidden(false)
+                }
+            }
+
             if !incoming.isPendingDestroy do
                 incoming.resetPresentation()
         })

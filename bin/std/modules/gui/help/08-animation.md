@@ -105,8 +105,10 @@ For a size that must participate in layout, use an `.Layout` track or
 [[Gui.Animator.animateLayoutHeight]]. Layout animation is intentionally separate because it can
 remeasure and arrange a larger tree on every frame.
 
-[[Gui.Animator.transitionPage]] implements the standard restrained page arrival. A
-[[Gui.Tab]] can opt into it with [[Gui.Tab.setPageTransitions]]. `gui11` is the executable example
+[[Gui.Animator.transitionPage]] implements the standard restrained page arrival. Logical
+visibility moves to the incoming page immediately, while the outgoing page fades out beneath it
+until the handoff completes; the page area therefore never passes through an empty frame.
+A [[Gui.Tab]] can opt into it with [[Gui.Tab.setPageTransitions]]. `gui11` is the executable example
 for the curve gallery, staggered groups, retargeting under interruption, endless loops, layout
 animation, and reduced motion.
 

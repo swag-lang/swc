@@ -59,7 +59,8 @@ var TabHeadlessSelChangedCount: u32
     @assert(!viewB.wndFlags.has(.Hidden))
 }
 
-// Opt-in page transitions preserve final visibility and logical geometry while presentation moves.
+// Opt-in page transitions keep the outgoing page painted under the incoming fade while preserving
+// final visibility and logical geometry.
 #test
 {
     var host: Testing.HeadlessHost
@@ -69,20 +70,40 @@ var TabHeadlessSelChangedCount: u32
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
     let viewA = Wnd.create'Wnd(tab)
     let viewB = Wnd.create'Wnd(tab)
+    tab.setForms(.Transparent, .Transparent, .None)
+    viewA.backgroundStyle = .View
+    viewB.backgroundStyle = .Window
     tab.setPageTransitions(true)
     tab.addItem("A", view: viewA)
     tab.addItem("B", view: viewB)
+
+    let before      = host.render()
+    let beforeColor = before.pixelColor(160, 120)
+    let emptyColor  = host.theme.colors.dlg_Bk
+    @assert(beforeColor.argb != emptyColor.argb)
+
     tab.setSelectedIndex(1)
     @assert(viewA.wndFlags.has(.Hidden) and !viewB.wndFlags.has(.Hidden))
+    @assert(viewA.paintsWhenHidden)
+    @assert(viewA.presentationOpacity == 1)
     @assert(viewB.presentationOpacity == 0)
     @assert(viewB.presentationOffset.x == tab.themeMetrics().motion_PageOffset)
+    let start = host.render()
+    @assert(start.pixelColor(160, 120).argb == beforeColor.argb)
     let logicalPosition = viewB.position
 
     host.advanceAnimations(tab.themeMetrics().motion_PageSeconds * 0.5)
+    @assert(viewA.presentationOpacity > 0 and viewA.presentationOpacity < 1)
     @assert(viewB.presentationOpacity > 0 and viewB.presentationOpacity < 1)
     @assert(viewB.position == logicalPosition)
+    let halfway = host.render()
+    @assert(halfway.pixelColor(160, 120).argb != emptyColor.argb)
     host.finishAnimations()
+    @assert(!viewA.paintsWhenHidden)
+    @assert(viewA.presentationOpacity == 1)
     @assert(viewB.presentationOpacity == 1 and viewB.presentationOffset == Math.Point{})
+    let finished = host.render()
+    @assert(finished.pixelColor(160, 120).argb != beforeColor.argb)
 }
 
 // Removing tabs destroys owned pages, preserves the selected item identity, and clears safely.

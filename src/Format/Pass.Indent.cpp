@@ -195,6 +195,7 @@ namespace
         {
             lastStmtOperandCol_   = UINT32_MAX;
             lastStmtOperandPiece_ = FormatPiece::INVALID_INDEX;
+            lastStmtIsCaseLabel_  = model_->piece(lineStart).hasRole(FormatRoleE::CaseLabel);
 
             std::vector<PieceColumn> columns;
             FormatPassUtil::computeLineColumns(*model_, lineStart, &columns);
@@ -207,6 +208,14 @@ namespace
                 lastStmtOperandCol_   = columns[index].column;
                 lastStmtOperandPiece_ = columns[index].piece;
             };
+
+            // A `case` line's first value is what the rest of the value list
+            // lines up under, exactly like the first argument of a call.
+            if (lastStmtIsCaseLabel_)
+            {
+                take(1);
+                return;
+            }
 
             for (size_t c = 0; c < columns.size(); ++c)
             {
@@ -300,12 +309,23 @@ namespace
             }
 
             // Inside brackets, force the canonical continuation indent instead
-            // of keeping the relative one.
+            // of keeping the relative one: one level per open bracket, so a row
+            // of a table nested two brackets deep lands two levels in rather
+            // than being flattened onto the statement's first continuation.
             if (options_->indentInsideParens.value_or(false) && !parenStack_.empty())
-                return {lastStmtNewCols_ + std::max(options_->continuationIndentWidth, 1u)};
+                return {lastStmtNewCols_ + static_cast<uint32_t>(parenStack_.size()) * std::max(options_->continuationIndentWidth, 1u)};
 
+            // A wrapped `case` value list has no bracket to hang from: its
+            // continuations take the column of the first value.
+            if (lastStmtIsCaseLabel_ && parenStack_.empty() && lastStmtOperandCol_ != UINT32_MAX)
+                return {lastStmtOperandCol_, lastStmtOperandPiece_, lastStmtOperandCol_};
+
+            // Outside every bracket there is no hand-packed table to protect, so
+            // the continuation takes the canonical indent and a mangled one gets
+            // repaired. Inside a bracket the source distance to the statement is
+            // kept: that is what holds a data table's columns together.
             const int32_t relative = static_cast<int32_t>(oldCols) - static_cast<int32_t>(lastStmtOldCols_);
-            if (relative > 0)
+            if (relative > 0 && !parenStack_.empty())
                 return {lastStmtNewCols_ + static_cast<uint32_t>(relative)};
 
             return {lastStmtNewCols_ + std::max(options_->continuationIndentWidth, 1u)};
@@ -388,6 +408,7 @@ namespace
         uint32_t                      lastStmtOperandCol_   = UINT32_MAX;
         uint32_t                      lastStmtOperandPiece_ = FormatPiece::INVALID_INDEX;
         bool                          prevLineEndsBinaryOp_ = false;
+        bool                          lastStmtIsCaseLabel_  = false;
     };
 }
 

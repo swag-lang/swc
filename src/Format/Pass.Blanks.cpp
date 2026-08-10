@@ -377,9 +377,17 @@ namespace FormatPass
         applyBlankLineAfterUsingBlock(model);
         applyBlankLinesBetweenDefinitions(model);
         applyBlankLinesBeforeComments(model);
-        applyBlankLinesBetweenCases(model);
         applyBlankLinesAtBlockEdges(model);
         applyBlankLinesAtInlineBodyStarts(model);
+    }
+
+    // `multi-line` airs the arms that span several lines, and how tall an arm is
+    // is only settled once the wrapping pass has laid out the lists inside it.
+    // Deciding earlier writes blank lines around arms that come out on one line,
+    // and the next run of the formatter takes them straight back out.
+    void caseBlanks(FormatModel& model)
+    {
+        applyBlankLinesBetweenCases(model);
     }
 }
 

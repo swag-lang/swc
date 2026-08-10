@@ -156,7 +156,7 @@ namespace
         JobManager&             jobMgr       = global.jobMgr();
         const JobClientId       clientId     = compiler.jobClientId();
         const uint64_t          errorsBefore = Stats::getNumErrors();
-        FormatOptionsLoader     optionsLoader(ctx);
+        FormatOptionsLoader     optionsLoader(ctx, ctx.cmdLine().formatStyle);
         std::vector<FormatJob*> jobs;
         jobs.reserve(compiler.files().size());
 

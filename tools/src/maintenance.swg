@@ -73,7 +73,7 @@ public func runWeb(context: *Context, options: *Options)->s32 fail
 
     let brandLine = joinArguments(brand.toSlice())
 
-    var info = Env.StartInfo{fileName: context.compiler.toString(), arguments: brandLine.toString(), workingDirectory: context.root.toString(), environment: &context.childEnv}
+    var info    = Env.StartInfo{fileName: context.compiler.toString(), arguments: brandLine.toString(), workingDirectory: context.root.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
     let branded = try process.waitForExit()
     if branded != 0 do
@@ -111,7 +111,7 @@ public func runVsix(context: *Context, _options: *Options)->s32 fail
         try File.duplicate(target.toString(), source.toString())
     }
 
-    var info = Env.StartInfo{fileName: "vsce.cmd", arguments: "package", workingDirectory: vscodeDir.toString(), environment: &context.childEnv}
+    var info    = Env.StartInfo{fileName: "vsce.cmd", arguments: "package", workingDirectory: vscodeDir.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
     return try process.waitForExit()
 }
@@ -189,7 +189,7 @@ public func runScrypt(context: *Context, options: *Options)->s32 fail
 
     let executable = Path.combine(appDir.toString(), "sCrypt.exe")
 
-    var info = Env.StartInfo{fileName: executable.toString(), workingDirectory: appDir.toString(), environment: &context.childEnv}
+    var info    = Env.StartInfo{fileName: executable.toString(), workingDirectory: appDir.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
     var result  = try process.waitForExit()
 

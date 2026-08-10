@@ -6,7 +6,7 @@ using Swag
 struct(K, V) HashTableEntry
 {
     internal
-    hash: u32
+    hash:  u32
     readonly
     key:   K     // The key.
     value: V     // The value associated with the key.

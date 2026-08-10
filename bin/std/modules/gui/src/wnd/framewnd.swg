@@ -36,11 +36,11 @@ struct FrameWnd
     using wnd: Wnd     // Embedded wnd state.
 
     #[Swag.Late]
-    view:           *Wnd                      // Hosted content view.
+    view:                *Wnd                 // Hosted content view.
     frameForm  = FrameWndForm.Transparent     // Background and border geometry.
     frameFlags = FrameWndFlags.Borders        // Active optional decoration.
     anchor     = FrameWndAnchor.None          // Edge carrying the callout anchor.
-    anchorPosition: f32                       // Anchor center along the selected edge.
+    anchorPosition:      f32                  // Anchor center along the selected edge.
     internal
     usedBackgroundColor: Color     // Background color selected during the latest paint.
 }

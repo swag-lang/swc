@@ -15,16 +15,16 @@ any tool.
 */
 public struct Options
 {
-    devMode:      bool                    // Whether 'dm' selected the DevMode compiler.
-    command:      String                  // The command, when the tool accepts more than one.
-    module:       String                  // The module, suite, or script that was named.
-    buildCfg:     String                  // The configuration to build and run in.
-    allConfigs:   bool                    // Whether to repeat an aggregate tool in all three.
-    wantHelp:     bool                    // Whether the tool was asked to print its usage.
-    targetArch:   String                  // The architecture every output path is keyed on.
-    workspace:    Arguments               // Flags only a run or a smoke understands.
-    extra:        Arguments               // Everything else, forwarded to the compiler.
-    runArguments: Array'String            // The '--run-arg' values, without the flag.
+    devMode:      bool             // Whether 'dm' selected the DevMode compiler.
+    command:      String           // The command, when the tool accepts more than one.
+    module:       String           // The module, suite, or script that was named.
+    buildCfg:     String           // The configuration to build and run in.
+    allConfigs:   bool             // Whether to repeat an aggregate tool in all three.
+    wantHelp:     bool             // Whether the tool was asked to print its usage.
+    targetArch:   String           // The architecture every output path is keyed on.
+    workspace:    Arguments        // Flags only a run or a smoke understands.
+    extra:        Arguments        // Everything else, forwarded to the compiler.
+    runArguments: Array'String     // The '--run-arg' values, without the flag.
 }
 
 public impl Options
@@ -93,20 +93,20 @@ public impl Options
 private struct Grammar
 {
     #[CommandLine.ArgParams("h")]
-    help: bool                    // Print the tool's usage instead of running it.
+    help: bool     // Print the tool's usage instead of running it.
 
     #[CommandLine.ArgParams("bc")]
-    buildCfg: String              // The configuration to build and run in.
+    buildCfg: String     // The configuration to build and run in.
 
-    allCfg: bool                  // Repeat an aggregate tool in all three configurations.
+    allCfg: bool     // Repeat an aggregate tool in all three configurations.
 
     #[CommandLine.ArgParams("m")]
-    workspaceModule: String       // The module, when named through an option rather than the positional.
+    workspaceModule: String     // The module, when named through an option rather than the positional.
 
-    targetArch: String            // The architecture every output path is keyed on, forwarded too.
-    frames:     String            // Bound a run or a smoke to that many frames.
-    runTimeout: String            // Fail a run or a smoke that outlives that many seconds.
-    runArg:     Array'String      // One argument for the launched program, repeatable.
+    targetArch: String           // The architecture every output path is keyed on, forwarded too.
+    frames:     String           // Bound a run or a smoke to that many frames.
+    runTimeout: String           // Fail a run or a smoke that outlives that many seconds.
+    runArg:     Array'String     // One argument for the launched program, repeatable.
 }
 
 // Parses the shared grammar, given the commands this tool accepts.
@@ -139,7 +139,7 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
     if index < parsed.positionals.count and parsed.positionals[index] == "dm"
     {
         result.devMode = true
-        index += 1
+        index          += 1
     }
 
     if index < parsed.positionals.count
@@ -149,7 +149,7 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
             if isCommand(parsed.positionals[index].toString(), accepted)
             {
                 result.command = parsed.positionals[index]
-                index += 1
+                index          += 1
                 break
             }
         }
@@ -158,7 +158,7 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
     if index < parsed.positionals.count
     {
         result.module = parsed.positionals[index]
-        index += 1
+        index         += 1
     }
 
     while index < parsed.positionals.count

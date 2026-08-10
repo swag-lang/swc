@@ -53,6 +53,49 @@ namespace
     }
 }
 
+Utf8 StructConfigEntry::valueText() const
+{
+    if (const auto* value = std::get_if<bool*>(&target))
+        return **value ? "true" : "false";
+
+    if (const auto* value = std::get_if<int*>(&target))
+        return std::to_string(**value);
+
+    if (const auto* value = std::get_if<uint32_t*>(&target))
+        return std::to_string(**value);
+
+    if (const auto* value = std::get_if<Utf8*>(&target))
+    {
+        // The reader strips one matching pair of quotes, and only quoting lets a
+        // value keep its blanks or an inline `#`.
+        if ((*value)->find_first_of(" #") != std::string::npos)
+            return "\"" + **value + "\"";
+        return **value;
+    }
+
+    if (const auto* value = std::get_if<fs::path*>(&target))
+        return Utf8((*value)->string());
+
+    if (const auto* value = std::get_if<std::optional<bool>*>(&target))
+    {
+        if (!(*value)->has_value())
+            return "preserve";
+        return (*value)->value() ? "true" : "false";
+    }
+
+    if (const auto* value = std::get_if<StructConfigEnumIntTarget>(&target))
+    {
+        const int current = value->getter(value->target);
+        for (size_t i = 0; i < choiceIntValues.size(); i++)
+        {
+            if (choiceIntValues[i] == current)
+                return choices[i];
+        }
+    }
+
+    SWC_UNREACHABLE();
+}
+
 StructConfigEntry& StructConfigSchema::addImpl(const std::string_view name, const std::string_view description, const StructConfigTarget& target, const StructConfigAssignHook hook)
 {
     StructConfigEntry entry;
@@ -101,8 +144,9 @@ std::optional<Utf8> StructConfigSchema::suggest(const std::string_view query) co
     return Utf8Helper::bestMatch(query, candidates);
 }
 
-StructConfigReader::StructConfigReader(const StructConfigSchema& schema) :
-    schema_(&schema)
+StructConfigReader::StructConfigReader(const StructConfigSchema& schema, const StructConfigUnknownKey unknownKey) :
+    schema_(&schema),
+    unknownKey_(unknownKey)
 {
 }
 
@@ -389,6 +433,8 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
         const StructConfigEntry* entry = schema_->find(key.view());
         if (!entry)
         {
+            if (unknownKey_ == StructConfigUnknownKey::Ignore)
+                continue;
             reportUnknownKey(ctx, normalizedPath, lineNo, key);
             return Result::Error;
         }

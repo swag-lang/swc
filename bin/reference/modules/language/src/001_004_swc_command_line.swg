@@ -106,6 +106,50 @@ swc format -mf <workspace>/modules/app --dry-run
 tools, tests, or emitted programs. '--show-config' prints the resolved command,
 environment, toolchain, and artifact configuration, then exits.
 
+# Formatting
+
+'swc format' rewrites sources in the canonical Swag style, which is built into
+the compiler. A Swag tree needs no configuration file to be formatted the way
+every other Swag tree is.
+
+| Option | Effect |
+|---|---|
+| '--style swag' | Use the canonical Swag style; this is the default |
+| '--style preserve' | Normalize nothing: every option keeps the source as written |
+| '--dump-config' | Print the resolved configuration as a complete '.swc-format' file, then exit |
+
+A '.swc-format' file layers over that style. The formatter looks for one in the
+file's own directory and in every parent, and the closest one wins, so a subtree
+can depart from the style of the tree it sits in. A 'style' key inside such a
+file rebases the whole option set before the rest of the file applies,
+wherever in the file it sits:
+
+```text
+style = preserve
+indent-style = spaces
+```
+
+That is also how a subtree is kept out of the formatter's way: a vendored or
+generated directory holding a '.swc-format' with 'style = preserve' alone is
+rendered back byte for byte, so nothing in it is ever rewritten.
+
+'--dump-config' writes the answer for the first named input, or for the current
+directory when there is none. Every option carries its value and its accepted
+values, so redirecting the output into a '.swc-format' file gives a complete,
+documented starting point:
+
+```text
+swc format --dump-config -d src > src/.swc-format
+```
+
+The canonical style deliberately leaves two dimensions alone. Line endings
+belong to the checkout rather than to the style, so they are preserved. And the
+style has no column budget: the formatter never adds and never removes a
+statement break, so where a line wraps is the author's decision and it survives
+formatting, which is what keeps a hand-laid data table intact. Setting
+'column-limit' turns wrapping on, and the formatter then breaks greedily, one
+break at a time, as high in the expression as it can.
+
 # Documentation Generation
 
 `swc doc` uses the module's 'BuildCfg.genDoc' configuration. The documentation

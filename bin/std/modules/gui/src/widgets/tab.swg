@@ -51,7 +51,7 @@ struct TabItem
 {
     using item: Item     // Embedded label, icon, identifier, and user data.
     readonly
-    view: #null *Wnd     // Page view owned by the tab control, if any.
+    view:       #null *Wnd     // Page view owned by the tab control, if any.
 
     // Placement computed by the bar layout, and the color animations of the painted parts.
     internal

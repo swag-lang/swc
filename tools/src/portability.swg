@@ -11,21 +11,18 @@ private const NativeInteropRoots = [
     "bin/std/modules/gdi32/",
     "bin/std/modules/gdiplus/",
     "bin/std/modules/xinput/",
-    "bin/std/modules/xaudio2/",
-]
+    "bin/std/modules/xaudio2/"]
 
 // OpenGL has its own portability contract and is deliberately outside the bin portability
 // campaign. This is a named module boundary, not a file-name convention.
 private const PortabilityExcludedRoots = [
     "bin/std/modules/ogl/",
-    "bin/std/modules/pixel/src/render/ogl/",
-]
+    "bin/std/modules/pixel/src/render/ogl/"]
 
 // Each entry owns an irreducible host mechanism, an optional native adapter, or a native
 // integration test. Adding a platform suffix does not add a file to this list.
 private const NativeSourceFiles = [
     "bin/runtime/os_windows.swg",
-
     "bin/std/modules/core/src/crypto/security.win32.swg",
     "bin/std/modules/core/src/diagnostics/console.win32.swg",
     "bin/std/modules/core/src/diagnostics/debugger.win32.swg",
@@ -54,37 +51,29 @@ private const NativeSourceFiles = [
     "bin/std/modules/core/src/time/timer.win32.swg",
     "bin/std/modules/core/src/unittests/thread/job.test.swg",
     "bin/std/modules/core/src/unittests/thread/thread.test.swg",
-
     "bin/std/modules/gui/src/application.win32.swg",
     "bin/std/modules/gui/src/clipboard.win32.swg",
     "bin/std/modules/gui/src/dragdrop.win32.swg",
     "bin/std/modules/gui/src/paint/cursor.win32.swg",
     "bin/std/modules/gui/src/surface.win32.swg",
     "bin/std/modules/gui/src/tests/unittests/dragdrop.win32.test.swg",
-
     "bin/std/modules/pixel/src/image/image.win32.swg",
     "bin/std/modules/pixel/src/tests/unittests/image.win32.test.swg",
     "bin/std/modules/pixel/src/text/fontfamily.win32.swg",
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
-
     "bin/std/modules/audio/src/driver/xaudio2.swg",
-
     "bin/apps/modules/sCapture/src/screenshot/screenshot.win32.swg",
-    "bin/apps/modules/sCrypt/src/tests/integration.win32.swg",
-]
+    "bin/apps/modules/sCrypt/src/tests/integration.win32.swg"]
 
 // A named backend directory owns every file below it; it is stronger evidence than a suffix and
 // lets one backend keep its ABI, callbacks, lifecycle, and integration test together.
-private const NativeSourceRoots = [
-    "bin/apps/modules/sCrypt/src/winfsp/",
-]
+private const NativeSourceRoots = ["bin/apps/modules/sCrypt/src/winfsp/"]
 
 // These module setup files are the only portable-module wiring points allowed to import a raw
 // native module. Each import is conditional on the target OS in the source itself.
 private const NativeImportFiles = [
     "bin/std/modules/core/module.swg",
-    "bin/std/modules/audio/module.swg",
-]
+    "bin/std/modules/audio/module.swg"]
 
 // These neutral files select a portable value, test, or backend at compile time. T-298 owns the
 // repeated Audio dispatch; new policy does not join this list.
@@ -93,8 +82,7 @@ private const OsDispatchFiles = [
     "bin/std/modules/core/src/config.swg",
     "bin/std/modules/core/src/unittests/config.test.swg",
     "bin/std/modules/audio/module.swg",
-    "bin/std/modules/audio/src/driver/backend.swg",
-]
+    "bin/std/modules/audio/src/driver/backend.swg"]
 
 private const NativeNamespaces = ["Win32", "Gdi32", "Gdi32Priv", "Gdiplus", "XInput", "XAudio2"]
 
@@ -111,12 +99,10 @@ private const NativeIdentifiers = [
     "LPWSTR", "LRESULT", "LOGFONTW", "MSG", "NOTIFYICONDATAA", "OVERLAPPED", "PAINTSTRUCT", "POINT",
     "POINTL", "PROCESS_INFORMATION", "RECT", "SECURITY_ATTRIBUTES", "SIZE", "STARTUPINFOA", "STGMEDIUM",
     "SYSTEM_INFO", "TEXTMETRICW", "UINT", "ULONG", "VirtualKey", "WCHAR", "WIN32_FIND_DATAA",
-    "WNDCLASSEXA", "WPARAM", "XINPUT_STATE", "XINPUT_VIBRATION",
-]
+    "WNDCLASSEXA", "WPARAM", "XINPUT_STATE", "XINPUT_VIBRATION"]
 
 private const NativeIdentifierPrefixes = [
-    "DPI_AWARENESS_CONTEXT_", "GWL_", "GWLP_", "SWP_", "VK_", "WM_", "WS_", "XINPUT_",
-]
+    "DPI_AWARENESS_CONTEXT_", "GWL_", "GWLP_", "SWP_", "VK_", "WM_", "WS_", "XINPUT_"]
 
 // Existing native API adapters are exact declarations, not blanket file approvals. T-109 owns
 // the installed-font descriptor; T-287 owns image, surface, and keyboard interoperability.
@@ -142,20 +128,19 @@ private const NativeDeclarationApprovals = [
     "bin/std/modules/pixel/src/text/fontfamily.win32.swg",
     "face: LOGFONTW",
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
-    "public func createFromHfont(fullname: string, hfont: HFONT)->*TypeFace fail",
-]
+    "public func createFromHfont(fullname: string, hfont: HFONT)->*TypeFace fail"]
 
 private struct PortabilityParseState
 {
-    blockComment:  bool
-    multilineText: bool
-    globalPublic:  bool
-    pendingOpaque: bool
+    blockComment:   bool
+    multilineText:  bool
+    globalPublic:   bool
+    pendingOpaque:  bool
     pendingPrivate: bool
-    privateDepth:  s32
-    publicDepth:   s32
-    publicStruct:  bool
-    publicOpaque:  bool
+    privateDepth:   s32
+    publicDepth:    s32
+    publicStruct:   bool
+    publicOpaque:   bool
 }
 
 // Runs the source-only portability boundary audit.
@@ -203,6 +188,7 @@ public func auditPortability(context: *Context)->s32 fail
         Console.println("error: portability validation found ", errors, errors == 1 ? " problem" : " problems")
         return 1
     }
+
     return 0
 }
 
@@ -216,7 +202,7 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
     let importPoint = interop or isApprovedPath(path, NativeImportFiles)
     let osDispatch  = native or isApprovedPath(path, OsDispatchFiles)
 
-    var state: PortabilityParseState
+    var state:  PortabilityParseState
     var errors: u32
     var lineNumber = 0'u64
 
@@ -341,6 +327,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
             state.publicStruct = false
             state.publicOpaque = false
         }
+
         return
     }
 
@@ -361,9 +348,9 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
         return
     }
 
-    let publicLine  = startsWithAccess(line, "public") or state.globalPublic and !privateLine
-    let isStruct    = declarationStartsWith(line, "struct")
-    let isImpl      = declarationStartsWith(line, "impl")
+    let publicLine = startsWithAccess(line, "public") or state.globalPublic and !privateLine
+    let isStruct   = declarationStartsWith(line, "struct")
+    let isImpl     = declarationStartsWith(line, "impl")
     if publicLine and (isStruct or isImpl) and opens > closes
     {
         state.publicDepth  = cast(s32) opens - cast(s32) closes
@@ -378,9 +365,9 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
 private func portabilityCode(line: string, state: *PortabilityParseState)->String
 {
     var result: retval
-    var quoted = false
+    var quoted  = false
     var escaped = false
-    var index = 0'u64
+    var index   = 0'u64
 
     while index < @countof(line)
     {
@@ -389,7 +376,7 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             if index + 2 < @countof(line) and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
             {
                 state.multilineText = false
-                index += 3
+                index               += 3
             }
             else do
                 index += 1
@@ -401,7 +388,7 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             if index + 1 < @countof(line) and line[index] == '*' and line[index + 1] == '/'
             {
                 state.blockComment = false
-                index += 2
+                index              += 2
             }
             else do
                 index += 1
@@ -413,14 +400,15 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
         if !quoted and index + 1 < @countof(line) and line[index] == '/' and line[index + 1] == '*'
         {
             state.blockComment = true
-            index += 2
+            index              += 2
             continue
         }
+
         if !quoted and index + 2 < @countof(line) and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
         {
             state.multilineText = true
-            result += ' '
-            index += 3
+            result              += ' '
+            index               += 3
             continue
         }
 
@@ -467,6 +455,7 @@ private func hasNativeImport(line: string)->bool
         if containsText(line, marker.toString()) do
             return true
     }
+
     return false
 }
 
@@ -479,6 +468,7 @@ private func nativeNamespaceOnLine(line: string)->string
         if containsText(line, qualified.toString()) or usingLine and containsIdentifier(line, name) do
             return name
     }
+
     return ""
 }
 
@@ -489,11 +479,13 @@ private func nativeIdentifierOnLine(line: string)->string
         if containsIdentifier(line, name) do
             return name
     }
+
     for prefix in NativeIdentifierPrefixes
     {
         if containsIdentifierPrefix(line, prefix) do
             return prefix
     }
+
     return ""
 }
 
@@ -506,14 +498,15 @@ private func containsIdentifier(text: string, identifier: string)->bool
         if found == Swag.U64.Max do
             return false
 
-        let start = offset + found
-        let end   = start + @countof(identifier)
+        let start  = offset + found
+        let end    = start + @countof(identifier)
         let before = start == 0 or !Latin1.isWord(text[start - 1])
         let after  = end == @countof(text) or !Latin1.isWord(text[end])
         if before and after do
             return true
         offset = start + 1
     }
+
     return false
 }
 
@@ -531,6 +524,7 @@ private func containsIdentifierPrefix(text: string, prefix: string)->bool
             return true
         offset = start + 1
     }
+
     return false
 }
 
@@ -541,6 +535,7 @@ private func isApprovedDeclaration(path: string, line: string)->bool
         if samePath(path, NativeDeclarationApprovals[index * 2]) and line == NativeDeclarationApprovals[index * 2 + 1] do
             return true
     }
+
     return false
 }
 
@@ -551,6 +546,7 @@ private func isApprovedPath(path: string, approvals: const [..] string)->bool
         if samePath(path, approved) do
             return true
     }
+
     return false
 }
 
@@ -561,6 +557,7 @@ private func isUnderAny(path: string, roots: const [..] string)->bool
         if Utf8.startsWith(cast(const [..] u8) path, root, .Latin1NoCase) do
             return true
     }
+
     return false
 }
 
@@ -615,6 +612,7 @@ private func countByte(text: string, value: u8)->u64
         if byte == value do
             result += 1
     }
+
     return result
 }
 

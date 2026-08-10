@@ -23,6 +23,13 @@ namespace FormatPassUtil
         return !piece.frozen && !piece.removed;
     }
 
+    // A visibility word standing in front of the declaration it grants access to.
+    inline bool isAccessModifier(const FormatPiece& piece)
+    {
+        return piece.is(TokenId::KwdPublic) || piece.is(TokenId::KwdPrivate) ||
+               piece.is(TokenId::KwdInternal) || piece.is(TokenId::KwdReadOnly);
+    }
+
     // One indentation level, following the configured indent style.
     inline Utf8 indentUnit(const FormatModel& model)
     {

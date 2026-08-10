@@ -91,7 +91,12 @@ namespace
         {
             if (block.kind == FormatBlockKind::Function)
                 return options.allowShortClosuresOnSingleLine;
-            if (block.kind == FormatBlockKind::Struct && options.allowShortStructsOnSingleLine == FormatShortBlockStyle::Source)
+            // An anonymous struct type written on one line is held there; one the
+            // author already spread over several is left as written. Normalizing
+            // it into a block instead would open a brace in the middle of a type
+            // and hand its members to two passes that indent them differently.
+            if (block.kind == FormatBlockKind::Struct && options.allowShortStructsOnSingleLine == FormatShortBlockStyle::Source &&
+                blockWasSingleLine(model, block))
                 return FormatShortBlockStyle::Source;
             return FormatShortBlockStyle::Preserve;
         }
@@ -231,6 +236,13 @@ namespace
                 }
 
                 if (blockIsSingleLine(*model_, block))
+                    continue;
+
+                // A brace that belongs to an expression or a type and that has no
+                // short-body option of its own keeps its shape: opening a block
+                // in the middle of a type expression leaves its members to the
+                // list layout and the brace layout at once, and they disagree.
+                if (block.exprLevel && configuredShortStyle(*model_, block) == FormatShortBlockStyle::Preserve)
                     continue;
 
                 applyBraceStyle(block);
@@ -503,7 +515,14 @@ namespace
             if (caseEnd == INVALID_PIECE)
                 return arm;
 
+            // A line break inside a call, an index, or a literal is the wrapping
+            // pass's decision, and that pass runs after this one: counting it
+            // here makes an arm look long that comes out on one line, and the
+            // next run of the formatter would then join the whole switch. Only
+            // the breaks this pass owns — the ones outside any list, including
+            // every line of a `{ ... }` body — say that the arm is long.
             uint32_t stmtCount = 0;
+            uint32_t listDepth = 0;
             bool     joinable  = true;
             for (uint32_t p = body; p <= caseEnd && joinable; p = model_->nextPiece(p))
             {
@@ -514,8 +533,14 @@ namespace
                     joinable = false;
                 if (cur.roles.hasAny({FormatRoleE::StmtStart}) && cur.depth == model_->piece(colonPiece).depth)
                     stmtCount++;
-                if (p != body && model_->gapHasNewline(p))
+                if (p != body && !listDepth && model_->gapHasNewline(p))
                     joinable = false;
+
+                if (cur.is(TokenId::SymLeftParen) || cur.is(TokenId::SymLeftBracket) || cur.hasRole(FormatRoleE::LiteralOpen))
+                    listDepth++;
+                else if (listDepth && (cur.is(TokenId::SymRightParen) || cur.is(TokenId::SymRightBracket) || cur.hasRole(FormatRoleE::LiteralClose)))
+                    listDepth--;
+
                 if (p == caseEnd)
                     break;
             }
@@ -653,9 +678,13 @@ namespace
 
         for (const FormatBlock& block : model.blocks())
         {
+            // An anonymous struct written inside an expression or a type — the
+            // `{first: u64, count: u64}` of a generic argument — is not a
+            // declaration body: exploding it over four lines and dropping its
+            // separator commas rewrites a type as if it were a definition.
             const bool isEnum   = block.kind == FormatBlockKind::Enum && model.options().oneEnumValuePerLine.value_or(false);
             const bool isStruct = block.kind == FormatBlockKind::Struct && model.options().oneStructFieldPerLine.value_or(false);
-            if ((!isEnum && !isStruct) || !rangeEditable(model, block.openPiece, block.closePiece) || blockKeepsMembersSingleLine(model, block))
+            if ((!isEnum && !isStruct) || block.exprLevel || !rangeEditable(model, block.openPiece, block.closePiece) || blockKeepsMembersSingleLine(model, block))
                 continue;
 
             const uint32_t        innerDepth = model.piece(block.openPiece).depth + 1;
@@ -866,8 +895,16 @@ namespace FormatPass
         splitSameLineStatements(model);
         normalizeUsingFields(model);
         normalizeAggregateMembers(model);
-        removeRedundantSemicolons(model);
         removeTrailingCommas(model);
+    }
+
+    // What makes a `;` redundant is the end of line right after it, and where
+    // the lines end is only settled once wrapping has run. Removing earlier
+    // leaves the semicolons that wrapping pushes to an end of line, and the
+    // next run of the formatter takes them out instead.
+    void redundantSemicolons(FormatModel& model)
+    {
+        removeRedundantSemicolons(model);
     }
 
     void shortBlocks(FormatModel& model)

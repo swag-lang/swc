@@ -780,6 +780,92 @@ SWC_TEST_BEGIN(FormatAlign_OutlierGapDropsBothEnds)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_AcrossBlanksReadsTheCappedBlankCount)
+{
+    // The blank-line cap is applied when the gap is rendered, so a run of three
+    // that comes out as one must not break the group on the way there.
+    static constexpr std::string_view SOURCE =
+        "alias Short = s32\n"
+        "\n"
+        "\n"
+        "\n"
+        "alias LongerName = s32\n";
+
+    static constexpr std::string_view EXPECTED =
+        "alias Short      = s32\n"
+        "\n"
+        "alias LongerName = s32\n";
+
+    FormatOptions options;
+    options.alignConsecutiveAliases  = FormatAlignMode::AcrossBlanks;
+    options.maxConsecutiveEmptyLines = 1;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_AccessModifierLineDoesNotBreakTheGroup)
+{
+    // `internal` alone on a line is the first half of the field below it, so the
+    // three fields are one column, not three groups of one.
+    static constexpr std::string_view SOURCE =
+        "struct Mixed\n"
+        "{\n"
+        "    internal\n"
+        "    hash: u32\n"
+        "    readonly\n"
+        "    key: u64\n"
+        "    other: f32\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Mixed\n"
+        "{\n"
+        "    internal\n"
+        "    hash:  u32\n"
+        "    readonly\n"
+        "    key:   u64\n"
+        "    other: f32\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignStructFields = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_WrappedArgumentsFollowTheAlignedHead)
+{
+    // Alignment pads `let col` after wrapping has already placed the arguments
+    // under the open parenthesis. The wrapped lines have to move with it, or the
+    // file only settles on the next run of the formatter.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    let alpha = 1\n"
+        "    let col = make(a,\n"
+        "b, c)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    let alpha = 1\n"
+        "    let col   = make(a,\n"
+        "                     b,\n"
+        "                     c)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                  = FormatIndentStyle::Spaces;
+    options.indentWidth                  = 4;
+    options.alignConsecutiveDeclarations  = FormatAlignMode::Consecutive;
+    options.alignDeclarationInitializers  = true;
+    options.binPackArguments              = FormatBinPackStyle::OnePerLine;
+    options.argumentListLayout            = FormatListLayout::HangingAlign;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

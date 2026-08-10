@@ -60,6 +60,7 @@ public func runSuite(context: *Context, options: *Options, suite: string, buildC
     switch suite
     {
     case "cpp":
+
         // The compiler's own C++ tests are linked into the DevMode build only.
         if !options.devMode do
             return 0
@@ -96,6 +97,7 @@ public func runSuite(context: *Context, options: *Options, suite: string, buildC
         return try runSourceSuite(context, options, "unittests/sanity", "Sanity", "no-output", "--no-output", buildCfg)
 
     case "native":
+
         // Native runs the whole pipeline, so it emits and executes a real artifact.
         return try runSourceSuite(context, options, "unittests/native", "Native", "executable", "", buildCfg)
 
@@ -168,6 +170,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Workspace test recompiled its unchanged test artifact.")
         return 1
     }
+
     if !reusedOutput.contains("SWAG_WORKSPACE_TEST_RAN")
     {
         Console.println("Workspace test did not execute its reused #test function.")

@@ -962,6 +962,139 @@ SWC_TEST_BEGIN(FormatBraces_ShortClosuresNeverSplits)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_UniformKeepsArmsWhoseCallIsWrapped)
+{
+    // Whether the call inside an arm is wrapped is the wrapping pass's decision,
+    // taken after this one: an arm holding a single statement counts as short
+    // whatever line the source broke it on. The blank between the arms then has
+    // to be decided on the layout wrapping actually produced.
+    static constexpr std::string_view SOURCE =
+        "func bar(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 1: doIt(a,\n"
+        "b)\n"
+        "    case 2: doOther(x)\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func bar(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 1: doIt(a,\n"
+        "                 b)\n"
+        "\n"
+        "    case 2: doOther(x)\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentWidth           = 4;
+    options.indentCaseLabels      = false;
+    options.caseBodyStyle         = FormatCaseBodyStyle::Uniform;
+    options.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
+    options.binPackArguments      = FormatBinPackStyle::OnePerLine;
+    options.argumentListLayout    = FormatListLayout::HangingAlign;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_UniformExpandsWhenAnArmCarriesABlock)
+{
+    // A `{ ... }` body is not a short arm, and no later pass can make it one.
+    static constexpr std::string_view SOURCE =
+        "func baz(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 1: if v > 0\n"
+        "        {\n"
+        "            doIt(a)\n"
+        "        }\n"
+        "    case 2: doOther(x)\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func baz(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 1:\n"
+        "        if v > 0\n"
+        "        {\n"
+        "            doIt(a)\n"
+        "        }\n"
+        "\n"
+        "    case 2:\n"
+        "        doOther(x)\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentWidth           = 4;
+    options.indentCaseLabels      = false;
+    options.indentCaseBlocks      = true;
+    options.caseBodyStyle         = FormatCaseBodyStyle::Uniform;
+    options.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_SemicolonPushedToEndOfLineByWrappingIsRemoved)
+{
+    static constexpr std::string_view SOURCE =
+        "func qux()\n"
+        "{\n"
+        "    call(one,\n"
+        "two);\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func qux()\n"
+        "{\n"
+        "    call(one,\n"
+        "         two)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle               = FormatIndentStyle::Spaces;
+    options.indentWidth               = 4;
+    options.removeRedundantSemicolons = true;
+    options.binPackArguments          = FormatBinPackStyle::OnePerLine;
+    options.argumentListLayout        = FormatListLayout::HangingAlign;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_AnonymousStructTypeKeepsItsShape)
+{
+    // The braces of a type are not a definition body: expanding them into a
+    // block and dropping the separator commas rewrites the type.
+    static constexpr std::string_view SOURCE =
+        "var id: HashTable'(string, Array'({ count: u32,\n"
+        "name: string }))\n";
+
+    static constexpr std::string_view EXPECTED =
+        "var id: HashTable'(string, Array'({ count: u32,\n"
+        "                                  name: string }))\n";
+
+    FormatOptions options;
+    options.indentStyle                   = FormatIndentStyle::Spaces;
+    options.indentWidth                   = 4;
+    options.braceStyle                    = FormatBraceStyle::Allman;
+    options.oneStructFieldPerLine         = true;
+    options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Source;
+    options.alignAfterOpenBracket         = true;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

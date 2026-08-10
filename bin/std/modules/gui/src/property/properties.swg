@@ -211,7 +211,7 @@ struct Properties
     internal
     externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
     internal
-    undoEnabled: bool = true     // Whether edits record undo commands.
+    undoEnabled:   bool = true     // Whether edits record undo commands.
 
     // Recording state of the undo timeline the grid owns.
     internal

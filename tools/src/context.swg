@@ -80,7 +80,7 @@ public impl Context
     {
         let commandLine = joinArguments(arguments.toSlice())
 
-        var info = Env.StartInfo{fileName: program, arguments: commandLine.toString(), environment: &.childEnv}
+        var info    = Env.StartInfo{fileName: program, arguments: commandLine.toString(), environment: &.childEnv}
         var process = try Env.startProcess(info)
         return try process.waitForExit()
     }
@@ -94,7 +94,7 @@ public impl Context
     {
         let commandLine = joinArguments(arguments.toSlice())
 
-        var info = Env.StartInfo{fileName: program, arguments: commandLine.toString(), environment: &.childEnv, standardOutput: .Pipe, standardError: .Discard}
+        var info    = Env.StartInfo{fileName: program, arguments: commandLine.toString(), environment: &.childEnv, standardOutput: .Pipe, standardError: .Discard}
         var process = try Env.runProcess(info)
         return String.from(process.standardOutput())
     }
@@ -162,4 +162,3 @@ public func joinArguments(arguments: const [..] String)->String
         plain.add(argument.toString())
     return Env.joinArguments(plain.toSlice())
 }
-

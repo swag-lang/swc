@@ -61,10 +61,10 @@ its element type, its options, its result shape — belong in the same file.
 
 ## Lay Out Statements Without a Column Budget
 
-The repository has no maximum line width: `bin/.swc-format` sets `column-limit = 0`. `swc format`
-normalizes the shape and indentation of the breaks you write, but it never adds a break to fit a
-width, and it can never remove one you added. Every line break inside a statement is permanent and
-is your decision, so a wrap made to satisfy an imagined column budget stays in the file forever.
+The canonical Swag style has no maximum line width: `column-limit` is 0. `swc format` normalizes
+the shape and indentation of the breaks you write, but it never adds a break to fit a width, and it
+can never remove one you added. Every line break inside a statement is permanent and is your
+decision, so a wrap made to satisfy an imagined column budget stays in the file forever.
 
 - Write one statement on one line. Do not split a call, a declaration, or an expression because
   the line looks long; long lines are normal here, and the standard library and applications

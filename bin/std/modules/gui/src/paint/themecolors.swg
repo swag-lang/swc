@@ -959,10 +959,10 @@ impl ThemeColors
         result.veil   = 0xFFFFFFFF
         result.shadow = 0x5A000000
 
-        // A flat caption still has to read as chrome. The previous band sat four levels above
-        // a content view and disappeared into it once the accent rule below it was removed.
-        result.caption         = 0xFF353535
-        result.captionInactive = 0xFF2C2C2C
+        // A flat caption still has to read as chrome. It sits between the application ground
+        // and the raised dialog panel instead of merging exactly into either one.
+        result.caption         = 0xFF2C2C2C
+        result.captionInactive = 0xFF262626
         result.windowBorder    = 0xFF505050
 
         // A neutral theme follows the desktop it sits on, and the desktop draws a flat bar.

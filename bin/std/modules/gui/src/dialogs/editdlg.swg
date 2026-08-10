@@ -58,7 +58,6 @@ public impl EditDlg
         let srf = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
         srf.setTitle(options.title)
         srf.minSize.x = 500
-        srf.minSize.y = 180 + options.editorHeight
 
         dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), {0, 0, 0, options.editorHeight})
         with dlg.richEdit
@@ -95,8 +94,35 @@ public impl EditDlg
                 .richEdit!.selectAll()
         }
 
+        .fitContent()
         let surface = .surface!
         surface.center(.parentSurface!)
+    }
+
+    // Fits the shared dialog layers around the editor and its optional explanation.
+    private mtd fitContent()
+    {
+        .applyLayout()
+
+        let edit = .edit
+        var contentHeight = edit ? edit.position.height : .richEdit!.position.height
+        if @isset(.label) do
+            contentHeight += .label.position.height + .label.margin.w
+
+        // The rich editor keeps its authored height while the surface is fitted around it.
+        let richEdit = .richEdit
+        if richEdit do
+            richEdit.anchorStyle = .None
+        .fitHeightToContent(contentHeight)
+        if richEdit do
+            richEdit.anchorStyle = .Height
+
+        // A resizable editor may grow, but it must not shrink below its fitted content.
+        if richEdit
+        {
+            let surface = .surface!
+            surface.minSize.y = surface.position.height / surface.dpiScale
+        }
     }
 
     // Replaces the editor contents.
@@ -135,26 +161,13 @@ public impl EditDlg
                 .margin.w  = .themeMetrics().dialog_BtnPadding * 2
                 .setTextAlignment(.Left, .Center)
             }
-
-            // The surface rectangle is physical; the added message height is logical.
-            let surface = .surface
-            var pos     = surface.position
-            pos.height        += height * surface.dpiScale
-            surface.minSize.y += height
-
-            // A single-line dialog has only '.edit' (no '.richEdit'). Temporarily
-            // drop the rich edit anchor (when present) so it does not fight the
-            // resize, then restore it.
-            let richEdit2 = .richEdit
-            if richEdit2 do
-                richEdit2.anchorStyle = .None
-            surface.setPosition(pos)
-            if richEdit2 do
-                richEdit2.anchorStyle = .Height
         }
         else
         {
             .label.setText(message)
         }
+
+        .fitContent()
+        .surface!.center(.parentSurface!)
     }
 }

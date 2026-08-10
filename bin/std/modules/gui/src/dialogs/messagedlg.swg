@@ -103,8 +103,7 @@ public impl MessageDlg
         for btn in .buttons do
             w += btn.position.width
         w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
-        w += 2 * metrics.dialog_Padding
-        w += metrics.btnPush_Width
+        w += 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
         let iconRoom = @isset(.labelIcon) ? .labelIcon.position.width : 0
         w = Math.max(w, .label.name.boundRect.width + iconRoom + chrome)
 
@@ -116,25 +115,19 @@ public impl MessageDlg
         Painter.computeLayout({0, 0, Math.max(w - chrome - iconRoom, 1), MaxTextLayoutExtent}, &.label.name, rsf, deviceScale)
         .label.name.invalidate()
 
-        var h = Math.min(512, .label.name.boundRect.height)
+        var contentHeight = Math.min(512, .label.name.boundRect.height)
         if @isset(.labelIcon) do
-            h = Math.max(h, .labelIcon.icon.sizeY)
-        h += 2 * metrics.dialog_Padding
-        h += .buttonBar.position.height
-        h += 2 * metrics.wnd_BorderSize
-        let srf = .surface!
-        if srf.flags & .SmallCaption do
-            h += metrics.wnd_SmallCaptionCY
-        elif srf.flags & .LargeCaption do
-            h += metrics.wnd_BigCaptionCY
+            contentHeight = Math.max(contentHeight, .labelIcon.icon.sizeY)
 
         let ext = .extension
         if ext do
-            h += ext.margin.y + ext.position.height + ext.margin.w
+            contentHeight += ext.margin.y + ext.position.height + ext.margin.w
 
-        let sdw = srf.app.theme.metrics.surfaceWnd_ShadowSize
+        let srf = .surface!
+        let sdw = srf.shadowMargin()
         w += sdw * 2
-        h += sdw * 2
+
+        .fitHeightToContent(contentHeight)
 
         // Everything measured above is in logical units; a surface rectangle is physical.
         // Handed over unscaled, the box opened at a fraction of the room its message needs
@@ -142,7 +135,6 @@ public impl MessageDlg
         // and the reader was left with an icon and an unreachable button.
         var pos = srf.position
         pos.width  = w * srf.dpiScale
-        pos.height = h * srf.dpiScale
         srf.setPosition(pos)
     }
 

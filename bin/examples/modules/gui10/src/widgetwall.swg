@@ -134,6 +134,7 @@ impl WidgetWall
         buildRanges(&.flow)
         buildContainers(&.flow)
         buildText(&.flow)
+        buildDialogs(&.flow)
         .setScrollSize(0, .flow.contentHeight())
     }
 }
@@ -385,4 +386,47 @@ private func buildText(flow: *Flow)
 
     let accent = flow.host(200, 30)
     Separator.create(accent, .Top, .Accent)
+}
+
+private func showMessageDialog(_button: *Button)
+{
+    var options: MessageDlgOptions
+    options.title = "Save changes"
+    discard MessageDlg.yesNoCancel(g_Surface!, "Save the current changes before continuing?", options: options)
+}
+
+private func showEditDialog(_button: *Button)
+{
+    var options: EditDlgOptions
+    options.title   = "Rename item"
+    options.message = "Enter a concise name."
+    options.text    = "Current name"
+    discard EditDlg.createSingleLine(g_Surface!, options).doModal()
+}
+
+private func showAboutDialog(_button: *Button)
+{
+    let params = AboutDlgParams{
+        surfaceTitle: "About GUI10",
+        contentTitle: "Theme inspector",
+        message:      "The reference surface for every palette and standard widget.",
+        surfaceIcon:  {},
+        contentIcon:  app.theme.icon(.About, 64),
+    }
+    discard AboutDlg.create(g_Surface!, params).doModal()
+}
+
+private func buildDialogs(flow: *Flow)
+{
+    flow.section("Dialogs")
+    flow.caption("launch")
+
+    let message = PushButton.create(flow.view, "Message", flow.next(128))
+    message.sigPressed += &showMessageDialog
+
+    let edit = PushButton.create(flow.view, "Edit", flow.next(128))
+    edit.sigPressed += &showEditDialog
+
+    let about = PushButton.create(flow.view, "About", flow.next(128))
+    about.sigPressed += &showAboutDialog
 }

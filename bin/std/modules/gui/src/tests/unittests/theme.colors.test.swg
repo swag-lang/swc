@@ -104,11 +104,13 @@ using Swag, Core
     }
 
     // Flat does not mean merged. Without the accent rule applications used to draw below the
-    // caption, the neutral dark band still needs its own step above the content view.
+    // caption, the neutral dark band still needs its own step between the application ground and
+    // the raised body of a dialog.
     var dark: ThemeColors
     dark.setDark()
-    @assert(dark.wnd_CaptionBk == 0xFF353535)
+    @assert(dark.wnd_CaptionBk == 0xFF2C2C2C)
     @assert(dark.wnd_CaptionBk != dark.view_Bk)
+    @assert(dark.wnd_CaptionBk != dark.dlg_Bk)
 }
 
 // A surface outline is one stroke crossing two grounds: the caption ground down to the caption

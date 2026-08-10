@@ -41,7 +41,7 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group">
-<summary>Namespaces<span class="toc-count">44</span></summary>
+<summary>Namespaces<span class="toc-count">43</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Core">Core</a></li>
@@ -64,7 +64,6 @@
 <li><a href="#namespace_Core_Jobs">Core.Jobs</a></li>
 <li><a href="#namespace_Core_Latin1">Core.Latin1</a></li>
 <li><a href="#namespace_Core_Math">Core.Math</a></li>
-<li><a href="#namespace_Core_Math_Curve">Core.Math.Curve</a></li>
 <li><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></li>
 <li><a href="#namespace_Core_Memory">Core.Memory</a></li>
 <li><a href="#namespace_Core_Noise">Core.Noise</a></li>
@@ -91,7 +90,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Types<span class="toc-count">148</span></summary>
+<summary>Types<span class="toc-count">150</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_Array">Core.Array</a></li>
@@ -140,6 +139,8 @@
 <li><a href="#Core_Input_MouseState">Input.MouseState</a></li>
 <li><a href="#Core_Math_Angle">Math.Angle</a></li>
 <li><a href="#Core_Math_Const">Math.Const</a></li>
+<li><a href="#Core_Math_Curve">Math.Curve</a></li>
+<li><a href="#Core_Math_CurveKey">Math.CurveKey</a></li>
 <li><a href="#Core_Math_Int128">Math.Int128</a></li>
 <li><a href="#Core_Math_Matrix3x3">Math.Matrix3x3</a></li>
 <li><a href="#Core_Math_Matrix4x4">Math.Matrix4x4</a></li>
@@ -245,7 +246,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Enumerations<span class="toc-count">34</span></summary>
+<summary>Enumerations<span class="toc-count">36</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Core_Compress_Deflate_CompressionFlags">Deflate.CompressionFlags</a></li>
@@ -264,6 +265,8 @@
 <li><a href="#Core_Input_Key">Input.Key</a></li>
 <li><a href="#Core_Input_KeyModifiers">Input.KeyModifiers</a></li>
 <li><a href="#Core_Input_MouseButton">Input.MouseButton</a></li>
+<li><a href="#Core_Math_CurveInterpolation">Math.CurveInterpolation</a></li>
+<li><a href="#Core_Math_CurvePreset">Math.CurvePreset</a></li>
 <li><a href="#Core_Noise_FastNoiseKind">Noise.FastNoiseKind</a></li>
 <li><a href="#Core_Serialization_DecoderFlags">Serialization.DecoderFlags</a></li>
 <li><a href="#Core_Serialization_SectionKind">Serialization.SectionKind</a></li>
@@ -285,7 +288,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Constants<span class="toc-count">87</span></summary>
+<summary>Constants<span class="toc-count">88</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#Core_ASSERT">Core.ASSERT</a></li>
@@ -310,6 +313,7 @@
 <li><a href="#Core_Path_AltDirectorySeparator">Path.AltDirectorySeparator</a></li>
 <li><a href="#Core_Path_DirectorySeparator">Path.DirectorySeparator</a></li>
 <li><a href="#Core_Path_VolumeSeparator">Path.VolumeSeparator</a></li>
+<li><a href="#Core_Math_Curve_NeutralWeight">Curve.NeutralWeight</a></li>
 <li><a href="#Core_Math_Point_One">Point.One</a></li>
 <li><a href="#Core_Math_Point_Zero">Point.Zero</a></li>
 <li><a href="#Core_Math_Rectangle_Zero">Rectangle.Zero</a></li>
@@ -378,7 +382,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">1293</span></summary>
+<summary>Functions<span class="toc-count">1309</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Serialization_Alias">Serialization.Alias</a></li>
@@ -670,9 +674,25 @@
 <li><a href="#Core_Math_Angle_opSet">Angle.opSet</a></li>
 <li><a href="#Core_Math_Angle_opSetLiteral">Angle.opSetLiteral</a></li>
 <li><a href="#Core_Math_Angle_toDegrees">Angle.toDegrees</a></li>
+<li><a href="#Core_Math_Curve_addKey">Curve.addKey</a></li>
 <li><a href="#Core_Math_Curve_bezierBounds">Curve.bezierBounds</a></li>
+<li><a href="#Core_Math_Curve_clear">Curve.clear</a></li>
+<li><a href="#Core_Math_Curve_create">Curve.create</a></li>
+<li><a href="#Core_Math_Curve_createBezier">Curve.createBezier</a></li>
+<li><a href="#Core_Math_Curve_evaluate">Curve.evaluate</a></li>
 <li><a href="#Core_Math_Curve_evaluateBezier">Curve.evaluateBezier</a></li>
+<li><a href="#Core_Math_Curve_evaluateNormalized">Curve.evaluateNormalized</a></li>
 <li><a href="#Core_Math_Curve_evaluatePolynomial">Curve.evaluatePolynomial</a></li>
+<li><a href="#Core_Math_Curve_isEmpty">Curve.isEmpty</a></li>
+<li><a href="#Core_Math_Curve_removeKeyAt">Curve.removeKeyAt</a></li>
+<li><a href="#Core_Math_Curve_setRange">Curve.setRange</a></li>
+<li><a href="#Core_Math_Curve_setTangent">Curve.setTangent</a></li>
+<li><a href="#Core_Math_Curve_setTangents">Curve.setTangents</a></li>
+<li><a href="#Core_Math_Curve_setWeights">Curve.setWeights</a></li>
+<li><a href="#Core_Math_Curve_shared">Curve.shared</a></li>
+<li><a href="#Core_Math_Curve_smoothTangents">Curve.smoothTangents</a></li>
+<li><a href="#Core_Math_Curve_sortKeys">Curve.sortKeys</a></li>
+<li><a href="#Core_Math_CurvePreset_evaluate">CurvePreset.evaluate</a></li>
 <li><a href="#Core_Math_Geometry_closestPointsBetweenSegments">Geometry.closestPointsBetweenSegments</a></li>
 <li><a href="#Core_Math_Geometry_distanceFromPointToLine">Geometry.distanceFromPointToLine</a></li>
 <li><a href="#Core_Math_Geometry_distanceFromPointToSegment">Geometry.distanceFromPointToSegment</a></li>
@@ -1846,7 +1866,6 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#namespace_Core_Jobs">Core.Jobs</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Latin1">Core.Latin1</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math">Core.Math</a></td></tr>
-<tr><td class="code-type"><a href="#namespace_Core_Math_Curve">Core.Math.Curve</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Memory">Core.Memory</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Noise">Core.Noise</a></td></tr>
@@ -1967,6 +1986,10 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Math_Angle">Math.Angle</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents an angle stored in radians.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Const">Math.Const</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Structure containing mathematical constants of type <span class="code-inline">T</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve">Math.Curve</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A curve of arbitrarily many keys, evaluated as one ordinate for one abscissa.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_CurveKey">Math.CurveKey</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One control point of a <a href="#Core_Math_Curve">Core.Math.Curve</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Int128">Math.Int128</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents int128.</p>
 </td></tr>
@@ -2210,6 +2233,10 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_MouseButton">Input.MouseButton</a></td><td><p>Selects mouse button.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Math_CurveInterpolation">Math.CurveInterpolation</a></td><td><p>Selects how the segment leaving one key reaches the next one.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_CurvePreset">Math.CurvePreset</a></td><td><p>Names one classic curve, the shape a caller asks for instead of authoring it.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Noise_FastNoiseKind">Noise.FastNoiseKind</a></td><td><p>Types of noise that can be generated by FastNoise.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_DecoderFlags">Serialization.DecoderFlags</a></td><td><p>Selects decoder flags.</p>
@@ -2295,6 +2322,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Path_DirectorySeparator">Path.DirectorySeparator</a></td><td><p>Preferred directory separator.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Path_VolumeSeparator">Path.VolumeSeparator</a></td><td><p>Volume separator, or zero when paths have no volume prefix.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_NeutralWeight">Curve.NeutralWeight</a></td><td><p>Handle length at which a <span class="code-inline">Bezier</span> segment draws exactly the <span class="code-inline">Hermite</span> segment of the same</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Point_One">Point.One</a></td><td><p>Point with both coordinates set to one (1, 1)</p>
 </td></tr>
@@ -2995,11 +3024,43 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Angle_toDegrees">Angle.toDegrees</a></td><td><p>Convert the angle from radians to degrees.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_addKey">Curve.addKey</a></td><td><p>Inserts <span class="code-inline">key</span> at its place in abscissa order and returns the index it landed on.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Curve_bezierBounds">Curve.bezierBounds</a></td><td><p>Calculate the axis-aligned bounding box of a cubic Bézier curve.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_clear">Curve.clear</a></td><td><p>Removes every key, leaving the user-space window untouched.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_create">Curve.create</a></td><td><p>Returns the classic curve named by <span class="code-inline">preset</span>, owned by the caller and free to edit.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_createBezier">Curve.createBezier</a></td><td><p>Returns the curve of the <span class="code-inline">cubic-bezier(x1, y1, x2, y2)</span> form used by style sheets.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_evaluate">Curve.evaluate</a></td><td><p>Returns the user-space ordinate at the user-space abscissa <span class="code-inline">x</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Curve_evaluateBezier">Curve.evaluateBezier</a></td><td><p>Evaluate a quadratic Bézier curve at parameter <span class="code-inline">t</span>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_evaluateNormalized">Curve.evaluateNormalized</a></td><td><p>Returns the ordinate at <span class="code-inline">x</span> in the authored unit square.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Curve_evaluatePolynomial">Curve.evaluatePolynomial</a></td><td><p>Evaluate a cubic polynomial at parameter <span class="code-inline">t</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_isEmpty">Curve.isEmpty</a></td><td><p>Reports whether the curve holds no key at all.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_removeKeyAt">Curve.removeKeyAt</a></td><td><p>Removes the key at <span class="code-inline">index</span>, keeping the remaining ones in order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setRange">Curve.setRange</a></td><td><p>Maps the normalized unit square onto a user-space window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setTangent">Curve.setTangent</a></td><td><p>Gives the key at <span class="code-inline">index</span> one slope on both sides, making the curve smooth across it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setTangents">Curve.setTangents</a></td><td><p>Gives the key at <span class="code-inline">index</span> two different slopes, breaking the curve into a corner.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setWeights">Curve.setWeights</a></td><td><p>Sets the Bézier handle lengths of the key at <span class="code-inline">index</span>, as fractions of their segment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_shared">Curve.shared</a></td><td><p>Returns the process-wide instance of a classic curve, borrowed rather than owned.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_smoothTangents">Curve.smoothTangents</a></td><td><p>Recomputes every tangent from the neighbours of its key, leaving no corner behind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_sortKeys">Curve.sortKeys</a></td><td><p>Restores the abscissa order after keys were edited in place.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_CurvePreset_evaluate">CurvePreset.evaluate</a></td><td><p>Returns the ordinate of this classic shape at <span class="code-inline">x</span>, clamped to the unit interval.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Geometry_closestPointsBetweenSegments">Geometry.closestPointsBetweenSegments</a></td><td><p>Find the closest points between two line segments and their distance.</p>
 </td></tr>
@@ -5974,7 +6035,6 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <table class="api-summary">
 <thead><tr><th>Namespace</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#namespace_Core_Math_Curve">Core.Math.Curve</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></td></tr>
 </tbody>
 </table>
@@ -5985,6 +6045,10 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Math_Angle">Math.Angle</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents an angle stored in radians.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Const">Math.Const</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Structure containing mathematical constants of type <span class="code-inline">T</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve">Math.Curve</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A curve of arbitrarily many keys, evaluated as one ordinate for one abscissa.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_CurveKey">Math.CurveKey</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One control point of a <a href="#Core_Math_Curve">Core.Math.Curve</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Int128">Math.Int128</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents int128.</p>
 </td></tr>
@@ -6009,6 +6073,16 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Math_ConstF32">Math.ConstF32</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Aliases for 32-bit and 64-bit floating-point constants</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_ConstF64">Math.ConstF64</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Names the const f64 type.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Core_Math_enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Math_CurveInterpolation">Math.CurveInterpolation</a></td><td><p>Selects how the segment leaving one key reaches the next one.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_CurvePreset">Math.CurvePreset</a></td><td><p>Names one classic curve, the shape a caller asks for instead of authoring it.</p>
 </td></tr>
 </tbody>
 </table>
@@ -6165,22 +6239,6 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Math_truncS32">Math.truncS32</a></td><td><p>Performs the trunc s32 operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_truncS64">Math.truncS64</a></td><td><p>Performs the trunc s64 operation.</p>
-</td></tr>
-</tbody>
-</table>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="namespace_Core_Math_Curve" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Core.Math.Curve</span> <a class="api-item-permalink" href="#namespace_Core_Math_Curve" aria-label="Permalink">#</a></span></div>
-<p>Public API declared directly in <span class="code-inline">Core.Math.Curve</span>.</p>
-<h3 id="namespace_Core_Math_Curve_functions">Functions</h3>
-<table class="api-summary">
-<thead><tr><th>Name</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td class="code-type"><a href="#Core_Math_Curve_bezierBounds">Curve.bezierBounds</a></td><td><p>Calculate the axis-aligned bounding box of a cubic Bézier curve.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Math_Curve_evaluateBezier">Curve.evaluateBezier</a></td><td><p>Evaluate a quadratic Bézier curve at parameter <span class="code-inline">t</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Math_Curve_evaluatePolynomial">Curve.evaluatePolynomial</a></td><td><p>Evaluate a cubic polynomial at parameter <span class="code-inline">t</span>.</p>
 </td></tr>
 </tbody>
 </table>
@@ -8268,6 +8326,102 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <p>Structure containing mathematical constants of type <span class="code-inline">T</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SCst"><a href="#Core_Math_Const">Const</a></span></span></div>
 </section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Math_Curve" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Math.Curve</span> <a class="api-item-permalink" href="#Core_Math_Curve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L80">src</a></div>
+<p>A curve of arbitrarily many keys, evaluated as one ordinate for one abscissa.</p>
+<p>A curve is authored inside the unit square, and <a href="#Core_Math_Curve_evaluateNormalized">Core.Math.Curve.evaluateNormalized</a> answers in that space. <span class="code-inline">startX</span>, <span class="code-inline">endX</span>, <span class="code-inline">startY</span> and <span class="code-inline">endY</span> map that square onto whatever range a caller works in, so one authored shape drives seconds, pixels or degrees through <a href="#Core_Math_Curve_evaluate">Core.Math.Curve.evaluate</a> without being re-authored.</p>
+<p>Every key owns its two tangents and the interpolation of the segment leaving it, so one curve expresses a smooth ease, a stepped hold and a corner at once — any shape, broken or not. The type is a plain aggregate over a <a href="#Core_Array">Core.Array</a>: it copies, serializes and drops like any other value.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Math_Curve">Curve</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Math_Curve_endX" class="code-type">endX</td><td class="code-type">f32</td><td></td></tr>
+<tr><td id="Core_Math_Curve_endY" class="code-type">endY</td><td class="code-type">f32</td><td></td></tr>
+<tr><td id="Core_Math_Curve_keys" class="code-type">keys</td><td class="code-type"><a href="#Core_Array">Core.Array</a>'(<a href="#Core_Math_CurveKey">Core.Math.CurveKey</a>)</td><td><p>Keys of the curve, kept sorted by ascending abscissa.</p>
+</td></tr>
+<tr><td id="Core_Math_Curve_startX" class="code-type">startX</td><td class="code-type">f32</td><td><p>User-space window the normalized unit square maps onto.</p>
+</td></tr>
+<tr><td id="Core_Math_Curve_startY" class="code-type">startY</td><td class="code-type">f32</td><td></td></tr>
+</tbody>
+</table>
+<h3 id="Core_Math_Curve_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Math_Curve_NeutralWeight">NeutralWeight</a></td><td><p>Handle length at which a <span class="code-inline">Bezier</span> segment draws exactly the <span class="code-inline">Hermite</span> segment of the same</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Core_Math_Curve_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Math_Curve_addKey">addKey</a></td><td><p>Inserts <span class="code-inline">key</span> at its place in abscissa order and returns the index it landed on.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_bezierBounds">bezierBounds</a></td><td><p>Calculate the axis-aligned bounding box of a cubic Bézier curve.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_clear">clear</a></td><td><p>Removes every key, leaving the user-space window untouched.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_create">create</a></td><td><p>Returns the classic curve named by <span class="code-inline">preset</span>, owned by the caller and free to edit.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_createBezier">createBezier</a></td><td><p>Returns the curve of the <span class="code-inline">cubic-bezier(x1, y1, x2, y2)</span> form used by style sheets.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_evaluate">evaluate</a></td><td><p>Returns the user-space ordinate at the user-space abscissa <span class="code-inline">x</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_evaluateBezier">evaluateBezier</a></td><td><p>Evaluate a quadratic Bézier curve at parameter <span class="code-inline">t</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_evaluateNormalized">evaluateNormalized</a></td><td><p>Returns the ordinate at <span class="code-inline">x</span> in the authored unit square.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_evaluatePolynomial">evaluatePolynomial</a></td><td><p>Evaluate a cubic polynomial at parameter <span class="code-inline">t</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_isEmpty">isEmpty</a></td><td><p>Reports whether the curve holds no key at all.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_removeKeyAt">removeKeyAt</a></td><td><p>Removes the key at <span class="code-inline">index</span>, keeping the remaining ones in order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setRange">setRange</a></td><td><p>Maps the normalized unit square onto a user-space window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setTangent">setTangent</a></td><td><p>Gives the key at <span class="code-inline">index</span> one slope on both sides, making the curve smooth across it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setTangents">setTangents</a></td><td><p>Gives the key at <span class="code-inline">index</span> two different slopes, breaking the curve into a corner.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_setWeights">setWeights</a></td><td><p>Sets the Bézier handle lengths of the key at <span class="code-inline">index</span>, as fractions of their segment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_shared">shared</a></td><td><p>Returns the process-wide instance of a classic curve, borrowed rather than owned.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_smoothTangents">smoothTangents</a></td><td><p>Recomputes every tangent from the neighbours of its key, leaving no corner behind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Curve_sortKeys">sortKeys</a></td><td><p>Restores the abscissa order after keys were edited in place.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Math_CurveKey" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Math.CurveKey</span> <a class="api-item-permalink" href="#Core_Math_CurveKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L24">src</a></div>
+<p>One control point of a <a href="#Core_Math_Curve">Core.Math.Curve</a>.</p>
+<p>A key carries an arriving and a leaving tangent. Giving them the same value makes the curve smooth across the key; giving them different values breaks it into a corner, which is how a bounce lands and rebounds. Both are slopes, in ordinate units per abscissa unit, so they keep their meaning when a neighbouring key moves.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Math_CurveKey">CurveKey</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Math_CurveKey_inTangent" class="code-type">inTangent</td><td class="code-type">f32</td><td><p>Slope of the segment arriving at the key.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveKey_inWeight" class="code-type">inWeight</td><td class="code-type">f32</td><td><p>Length of the arriving Bézier handle, as a fraction of the segment width.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveKey_interpolation" class="code-type">interpolation</td><td class="code-type"><a href="#Core_Math_CurveInterpolation">Core.Math.CurveInterpolation</a></td><td><p>Interpolation of the segment leaving this key.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveKey_outTangent" class="code-type">outTangent</td><td class="code-type">f32</td><td><p>Slope of the segment leaving the key.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveKey_outWeight" class="code-type">outWeight</td><td class="code-type">f32</td><td><p>Length of the leaving Bézier handle, as a fraction of the segment width.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveKey_x" class="code-type">x</td><td class="code-type">f32</td><td><p>Abscissa of the key, normally inside the unit interval.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveKey_y" class="code-type">y</td><td class="code-type">f32</td><td><p>Ordinate of the key, free to leave the unit interval.</p>
+</td></tr>
+</tbody>
+</table>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Math_Int128" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Math.Int128</span> <a class="api-item-permalink" href="#Core_Math_Int128" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/int128.swg#L36">src</a></div>
 <p>Represents int128.</p>
@@ -12083,6 +12237,66 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Core_Math_CurveInterpolation" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Math.CurveInterpolation</span> <a class="api-item-permalink" href="#Core_Math_CurveInterpolation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L9">src</a></div>
+<p>Selects how the segment leaving one key reaches the next one.</p>
+<p>The mode belongs to the key the segment starts at, so a single curve can hold a stepped hold, a straight ramp and a smooth ease at once.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Math_CurveInterpolation">CurveInterpolation</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Math_CurveInterpolation_Bezier" class="code-type">Bezier</td><td><p>Cubic Bézier along the tangents, over the handle lengths the weights ask for.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveInterpolation_Constant" class="code-type">Constant</td><td><p>Holds the ordinate of the starting key until the next key.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveInterpolation_Hermite" class="code-type">Hermite</td><td><p>Cubic leaving and entering along the tangents, with neutral handle lengths.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveInterpolation_Linear" class="code-type">Linear</td><td><p>Straight line between the two keys; ignores both tangents.</p>
+</td></tr>
+<tr><td id="Core_Math_CurveInterpolation_Smooth" class="code-type">Smooth</td><td><p>Smoothstep between the two keys; ignores both tangents.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Core_Math_CurvePreset" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Math.CurvePreset</span> <a class="api-item-permalink" href="#Core_Math_CurvePreset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L39">src</a></div>
+<p>Names one classic curve, the shape a caller asks for instead of authoring it.</p>
+<p>The last five leave the unit interval on purpose: an anticipating or overshooting shape passes beyond its endpoints before settling on them.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Math_CurvePreset">CurvePreset</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Math_CurvePreset_EaseIn" class="code-type">EaseIn</td><td><p>Accelerates from rest.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_EaseInBack" class="code-type">EaseInBack</td><td><p>Draws back below zero, then accelerates.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_EaseInOut" class="code-type">EaseInOut</td><td><p>Accelerates, then decelerates symmetrically.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_EaseInOutBack" class="code-type">EaseInOutBack</td><td><p>Draws back, accelerates, overshoots, then settles.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_EaseOut" class="code-type">EaseOut</td><td><p>Decelerates toward rest.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_EaseOutBack" class="code-type">EaseOutBack</td><td><p>Overshoots one, then settles onto it.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_EaseOutBounce" class="code-type">EaseOutBounce</td><td><p>Lands on one and rebounds with decreasing height.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_EaseOutElastic" class="code-type">EaseOutElastic</td><td><p>Springs past one and oscillates onto it.</p>
+</td></tr>
+<tr><td id="Core_Math_CurvePreset_Linear" class="code-type">Linear</td><td><p>Keeps the ordinate proportional to the abscissa.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Core_Math_CurvePreset_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Math_CurvePreset_evaluate">evaluate</a></td><td><p>Returns the ordinate of this classic shape at <span class="code-inline">x</span>, clamped to the unit interval.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Noise_FastNoiseKind" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Noise.FastNoiseKind</span> <a class="api-item-permalink" href="#Core_Noise_FastNoiseKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/fastnoise.swg#L12">src</a></div>
 <p>Types of noise that can be generated by FastNoise.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Noise_FastNoiseKind">FastNoiseKind</a></span></span></div>
@@ -12595,6 +12809,11 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="api-item api-item-const"><span id="Core_Path_VolumeSeparator" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Path.VolumeSeparator</span> <a class="api-item-permalink" href="#Core_Path_VolumeSeparator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L14">src</a></div>
 <p>Volume separator, or zero when paths have no volume prefix.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Path_VolumeSeparator">VolumeSeparator</a></span>       = <span class="SCst"><a href="#Core_WINDOWS">WINDOWS</a></span> ? ':'<span class="STpe">u8</span> : <span class="SNum">0</span>'<span class="STpe">u8</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Core_Math_Curve_NeutralWeight" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Curve.NeutralWeight</span> <a class="api-item-permalink" href="#Core_Math_Curve_NeutralWeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L325">src</a></div>
+<p>Handle length at which a <span class="code-inline">Bezier</span> segment draws exactly the <span class="code-inline">Hermite</span> segment of the same tangents. It is the default of both weights, so a weight is only felt once it is changed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Math_Curve_NeutralWeight">NeutralWeight</a></span> = <span class="SNum">1</span> / <span class="SNum">3.0</span>'<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Core_Math_Point_One" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Point.One</span> <a class="api-item-permalink" href="#Core_Math_Point_One" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/point.swg#L17">src</a></div>
@@ -14729,23 +14948,116 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toDegrees</span>()-&gt;<span class="STpe">f32</span> =&gt; <span class="SCst"><a href="#namespace_Core_Math">Math</a></span>.toDegrees</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_Curve_bezierBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.bezierBounds</span> <a class="api-item-permalink" href="#Core_Math_Curve_bezierBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L85">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_Curve_addKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.addKey</span> <a class="api-item-permalink" href="#Core_Math_Curve_addKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L391">src</a></div>
+<p>Inserts <span class="code-inline">key</span> at its place in abscissa order and returns the index it landed on.</p>
+<p>A key sharing the abscissa of an existing one is inserted after it. That is how a vertical jump is authored: the segment between the two is empty, so the later key takes over from that abscissa on.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addKey</span>(key: <span class="SCst"><a href="#Core_Math_CurveKey">CurveKey</a></span>)-&gt;<span class="STpe">u64</span></span></div>
+<p>Inserts a key with no tangent at <span class="code-inline">x</span>, <span class="code-inline">y</span> and returns the index it landed on.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addKey</span>(x, y: <span class="STpe">f32</span>, interpolation = <span class="SCst"><a href="#Core_Math_CurveInterpolation">CurveInterpolation</a></span>.<span class="SCst"><a href="#Core_Math_CurveInterpolation_Hermite">Hermite</a></span>)-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_bezierBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.bezierBounds</span> <a class="api-item-permalink" href="#Core_Math_Curve_bezierBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L600">src</a></div>
 <p>Calculate the axis-aligned bounding box of a cubic Bézier curve. Finds extrema by solving the derivative equation and evaluating the curve at critical points.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bezierBounds</span>(start, end, ctrl0, ctrl1: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Rectangle">Rectangle</a></span></span></div>
 <p>Calculate the axis-aligned bounding box of a quadratic Bézier curve. Finds extrema by solving the linear derivative equation for critical points.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bezierBounds</span>(start, end, ctrl: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Rectangle">Rectangle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_Curve_evaluateBezier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.evaluateBezier</span> <a class="api-item-permalink" href="#Core_Math_Curve_evaluateBezier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L16">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_Curve_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.clear</span> <a class="api-item-permalink" href="#Core_Math_Curve_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L378">src</a></div>
+<p>Removes every key, leaving the user-space window untouched.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.create</span> <a class="api-item-permalink" href="#Core_Math_Curve_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L330">src</a></div>
+<p>Returns the classic curve named by <span class="code-inline">preset</span>, owned by the caller and free to edit.</p>
+<p>Use <a href="#Core_Math_Curve_shared">Core.Math.Curve.shared</a> instead when the curve is only going to be read.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(preset: <span class="SCst"><a href="#Core_Math_CurvePreset">CurvePreset</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Curve">Curve</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_createBezier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.createBezier</span> <a class="api-item-permalink" href="#Core_Math_Curve_createBezier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L360">src</a></div>
+<p>Returns the curve of the <span class="code-inline">cubic-bezier(x1, y1, x2, y2)</span> form used by style sheets.</p>
+<p>The two handles are given as positions in the unit square, the way the CSS function spells them. Both abscissas are clamped to that interval, because a handle leaving it makes the curve stop being a function of its abscissa; the ordinates are free, which is what lets the form overshoot.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createBezier</span>(x1, y1, x2, y2: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Curve">Curve</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_evaluate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.evaluate</span> <a class="api-item-permalink" href="#Core_Math_Curve_evaluate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L514">src</a></div>
+<p>Returns the user-space ordinate at the user-space abscissa <span class="code-inline">x</span>.</p>
+<p>This is <a href="#Core_Math_Curve_evaluateNormalized">Core.Math.Curve.evaluateNormalized</a> read through the window <a href="#Core_Math_Curve_setRange">Core.Math.Curve.setRange</a> installed. A window with no width answers the first key, because every abscissa then names the same normalized position.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">evaluate</span>(x: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_evaluateBezier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.evaluateBezier</span> <a class="api-item-permalink" href="#Core_Math_Curve_evaluateBezier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L531">src</a></div>
 <p>Evaluate a quadratic Bézier curve at parameter <span class="code-inline">t</span>. Formula: (1-t)²start + 2t(1-t)ctrl + t²end where <span class="code-inline">t</span> ranges from 0.0 to 1.0.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">evaluateBezier</span>(start, end, ctrl: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>, t: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span></span></div>
 <p>Evaluate a cubic Bézier curve at parameter <span class="code-inline">t</span>. Formula: (1-t)³start + 3t(1-t)²ctrl1 + 3t²(1-t)ctrl2 + t³end where <span class="code-inline">t</span> ranges from 0.0 to 1.0.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">evaluateBezier</span>(start, end, ctrl1, ctrl2: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>, t: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_Curve_evaluatePolynomial" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.evaluatePolynomial</span> <a class="api-item-permalink" href="#Core_Math_Curve_evaluatePolynomial" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L8">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_Curve_evaluateNormalized" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.evaluateNormalized</span> <a class="api-item-permalink" href="#Core_Math_Curve_evaluateNormalized" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L477">src</a></div>
+<p>Returns the ordinate at <span class="code-inline">x</span> in the authored unit square.</p>
+<p>An abscissa outside the keys is clamped onto the nearest one, so a curve never extrapolates a shape it was not given. A curve with no key answers zero.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">evaluateNormalized</span>(x: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_evaluatePolynomial" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.evaluatePolynomial</span> <a class="api-item-permalink" href="#Core_Math_Curve_evaluatePolynomial" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L523">src</a></div>
 <p>Evaluate a cubic polynomial at parameter <span class="code-inline">t</span>. Uses Horner's method for efficient computation: P(t) = ((p0<i>t + p1)</i>t + p2)*t + p3.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">evaluatePolynomial</span>(p0, p1, p2, p3: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>, t: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.isEmpty</span> <a class="api-item-permalink" href="#Core_Math_Curve_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L384">src</a></div>
+<p>Reports whether the curve holds no key at all.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>() =&gt; .keys.isEmpty</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_removeKeyAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.removeKeyAt</span> <a class="api-item-permalink" href="#Core_Math_Curve_removeKeyAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L407">src</a></div>
+<p>Removes the key at <span class="code-inline">index</span>, keeping the remaining ones in order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeKeyAt</span>(index: <span class="STpe">u64</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_setRange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.setRange</span> <a class="api-item-permalink" href="#Core_Math_Curve_setRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L465">src</a></div>
+<p>Maps the normalized unit square onto a user-space window.</p>
+<p>An end below its start mirrors that axis, which is how a curve authored rising is reused to drive a value that falls.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRange</span>(startX, endX, startY, endY: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_setTangent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.setTangent</span> <a class="api-item-permalink" href="#Core_Math_Curve_setTangent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L419">src</a></div>
+<p>Gives the key at <span class="code-inline">index</span> one slope on both sides, making the curve smooth across it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTangent</span>(index: <span class="STpe">u64</span>, tangent: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_setTangents" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.setTangents</span> <a class="api-item-permalink" href="#Core_Math_Curve_setTangents" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L425">src</a></div>
+<p>Gives the key at <span class="code-inline">index</span> two different slopes, breaking the curve into a corner.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTangents</span>(index: <span class="STpe">u64</span>, inTangent, outTangent: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_setWeights" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.setWeights</span> <a class="api-item-permalink" href="#Core_Math_Curve_setWeights" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L435">src</a></div>
+<p>Sets the Bézier handle lengths of the key at <span class="code-inline">index</span>, as fractions of their segment.</p>
+<p>They are only read by a <span class="code-inline">Bezier</span> segment, and <a href="#Core_Math_Curve_NeutralWeight">Core.Math.Curve.NeutralWeight</a> is the length at which one draws its <span class="code-inline">Hermite</span> equivalent.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setWeights</span>(index: <span class="STpe">u64</span>, inWeight, outWeight: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_shared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.shared</span> <a class="api-item-permalink" href="#Core_Math_Curve_shared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L352">src</a></div>
+<p>Returns the process-wide instance of a classic curve, borrowed rather than owned.</p>
+<p>The table is built once, before any application code runs, and never changes afterwards, so an evaluator that only reads a preset neither owns a curve nor rebuilds one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">shared</span>(preset: <span class="SCst"><a href="#Core_Math_CurvePreset">CurvePreset</a></span>)-&gt;<span class="SKwd">const</span> &amp;<span class="SCst"><a href="#Core_Math_Curve">Curve</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_smoothTangents" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.smoothTangents</span> <a class="api-item-permalink" href="#Core_Math_Curve_smoothTangents" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L446">src</a></div>
+<p>Recomputes every tangent from the neighbours of its key, leaving no corner behind.</p>
+<p>Each interior key takes the slope of the chord between the keys on either side, and each end takes the slope of its own segment. That is the curve a caller expects after dropping a handful of points with no tangent in mind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">smoothTangents</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Curve_sortKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Curve.sortKeys</span> <a class="api-item-permalink" href="#Core_Math_Curve_sortKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L413">src</a></div>
+<p>Restores the abscissa order after keys were edited in place.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sortKeys</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_CurvePreset_evaluate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CurvePreset.evaluate</span> <a class="api-item-permalink" href="#Core_Math_CurvePreset_evaluate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/curve.swg#L63">src</a></div>
+<p>Returns the ordinate of this classic shape at <span class="code-inline">x</span>, clamped to the unit interval.</p>
+<p>This reads the shared curve of the preset and allocates nothing, so plotting a preview and running an animation go through one evaluator and cannot drift apart.</p>
+<p>The method reads the preset and changes nothing. It is not declared <span class="code-inline">const</span> because a <span class="code-inline">const</span> receiver over an enum currently compiles at neither end; see <span class="code-inline">F-090</span>. It names every symbol it uses in full because a method declared over an enum is published to other modules with its source rather than as an import; see <span class="code-inline">F-091</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">evaluate</span>(x: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Geometry_closestPointsBetweenSegments" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Geometry.closestPointsBetweenSegments</span> <a class="api-item-permalink" href="#Core_Math_Geometry_closestPointsBetweenSegments" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/geometry2.swg#L90">src</a></div>
@@ -20718,7 +21030,6 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 "n|Core.Jobs|namespace_Core_Jobs|",
 "n|Core.Latin1|namespace_Core_Latin1|",
 "n|Core.Math|namespace_Core_Math|",
-"n|Core.Math.Curve|namespace_Core_Math_Curve|",
 "n|Core.Math.Geometry|namespace_Core_Math_Geometry|",
 "n|Core.Memory|namespace_Core_Memory|",
 "n|Core.Noise|namespace_Core_Noise|",
@@ -20788,6 +21099,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 "s|Core.Input.MouseState|Core_Input_MouseState|Captures cursor position and button state at one update.",
 "s|Core.Math.Angle|Core_Math_Angle|Represents an angle stored in radians.",
 "s|Core.Math.Const|Core_Math_Const|Structure containing mathematical constants of type 'T'",
+"s|Core.Math.Curve|Core_Math_Curve|A curve of arbitrarily many keys, evaluated as one ordinate for one abscissa.",
+"s|Core.Math.CurveKey|Core_Math_CurveKey|One control point of a Core.Math.Curve.",
 "s|Core.Math.Int128|Core_Math_Int128|Represents int128.",
 "s|Core.Math.Matrix3x3|Core_Math_Matrix3x3|Stores a 3 by 3 floating-point matrix.",
 "s|Core.Math.Matrix4x4|Core_Math_Matrix4x4|Stores a 4 by 4 floating-point matrix.",
@@ -20891,6 +21204,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 "e|Core.Input.Key|Core_Input_Key|Defines the keys on a keyboard",
 "e|Core.Input.KeyModifiers|Core_Input_KeyModifiers|Combines keyboard modifiers used by shortcuts and input events.",
 "e|Core.Input.MouseButton|Core_Input_MouseButton|Selects mouse button.",
+"e|Core.Math.CurveInterpolation|Core_Math_CurveInterpolation|Selects how the segment leaving one key reaches the next one.",
+"e|Core.Math.CurvePreset|Core_Math_CurvePreset|Names one classic curve, the shape a caller asks for instead of authoring it.",
 "e|Core.Noise.FastNoiseKind|Core_Noise_FastNoiseKind|Types of noise that can be generated by FastNoise.",
 "e|Core.Serialization.DecoderFlags|Core_Serialization_DecoderFlags|Selects decoder flags.",
 "e|Core.Serialization.SectionKind|Core_Serialization_SectionKind|Selects section kind.",
@@ -20931,6 +21246,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 "c|Core.Path.AltDirectorySeparator|Core_Path_AltDirectorySeparator|Accepted alternate separator, or zero when none exists.",
 "c|Core.Path.DirectorySeparator|Core_Path_DirectorySeparator|Preferred directory separator.",
 "c|Core.Path.VolumeSeparator|Core_Path_VolumeSeparator|Volume separator, or zero when paths have no volume prefix.",
+"c|Core.Math.Curve.NeutralWeight|Core_Math_Curve_NeutralWeight|Handle length at which a Bezier segment draws exactly the Hermite segment of the same",
 "c|Core.Math.Point.One|Core_Math_Point_One|Point with both coordinates set to one (1, 1)",
 "c|Core.Math.Point.Zero|Core_Math_Point_Zero|Point at origin (0, 0)",
 "c|Core.Math.Rectangle.Zero|Core_Math_Rectangle_Zero|Rectangle with all coordinates set to zero",
@@ -21300,9 +21616,25 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 "f|Core.Math.Angle.opSet|Core_Math_Angle_opSet|Assign a radian value directly to the angle.",
 "f|Core.Math.Angle.opSetLiteral|Core_Math_Angle_opSetLiteral|Assign angle values with unit suffixes (rad or deg).",
 "f|Core.Math.Angle.toDegrees|Core_Math_Angle_toDegrees|Convert the angle from radians to degrees.",
+"f|Core.Math.Curve.addKey|Core_Math_Curve_addKey|Inserts key at its place in abscissa order and returns the index it landed on.",
 "f|Core.Math.Curve.bezierBounds|Core_Math_Curve_bezierBounds|Calculate the axis-aligned bounding box of a cubic Bézier curve.",
+"f|Core.Math.Curve.clear|Core_Math_Curve_clear|Removes every key, leaving the user-space window untouched.",
+"f|Core.Math.Curve.create|Core_Math_Curve_create|Returns the classic curve named by preset, owned by the caller and free to edit.",
+"f|Core.Math.Curve.createBezier|Core_Math_Curve_createBezier|Returns the curve of the cubic-bezier(x1, y1, x2, y2) form used by style sheets.",
+"f|Core.Math.Curve.evaluate|Core_Math_Curve_evaluate|Returns the user-space ordinate at the user-space abscissa x.",
 "f|Core.Math.Curve.evaluateBezier|Core_Math_Curve_evaluateBezier|Evaluate a quadratic Bézier curve at parameter 't'.",
+"f|Core.Math.Curve.evaluateNormalized|Core_Math_Curve_evaluateNormalized|Returns the ordinate at x in the authored unit square.",
 "f|Core.Math.Curve.evaluatePolynomial|Core_Math_Curve_evaluatePolynomial|Evaluate a cubic polynomial at parameter 't'.",
+"f|Core.Math.Curve.isEmpty|Core_Math_Curve_isEmpty|Reports whether the curve holds no key at all.",
+"f|Core.Math.Curve.removeKeyAt|Core_Math_Curve_removeKeyAt|Removes the key at index, keeping the remaining ones in order.",
+"f|Core.Math.Curve.setRange|Core_Math_Curve_setRange|Maps the normalized unit square onto a user-space window.",
+"f|Core.Math.Curve.setTangent|Core_Math_Curve_setTangent|Gives the key at index one slope on both sides, making the curve smooth across it.",
+"f|Core.Math.Curve.setTangents|Core_Math_Curve_setTangents|Gives the key at index two different slopes, breaking the curve into a corner.",
+"f|Core.Math.Curve.setWeights|Core_Math_Curve_setWeights|Sets the Bézier handle lengths of the key at index, as fractions of their segment.",
+"f|Core.Math.Curve.shared|Core_Math_Curve_shared|Returns the process-wide instance of a classic curve, borrowed rather than owned.",
+"f|Core.Math.Curve.smoothTangents|Core_Math_Curve_smoothTangents|Recomputes every tangent from the neighbours of its key, leaving no corner behind.",
+"f|Core.Math.Curve.sortKeys|Core_Math_Curve_sortKeys|Restores the abscissa order after keys were edited in place.",
+"f|Core.Math.CurvePreset.evaluate|Core_Math_CurvePreset_evaluate|Returns the ordinate of this classic shape at x, clamped to the unit interval.",
 "f|Core.Math.Geometry.closestPointsBetweenSegments|Core_Math_Geometry_closestPointsBetweenSegments|Find the closest points between two line segments and their distance.",
 "f|Core.Math.Geometry.distanceFromPointToLine|Core_Math_Geometry_distanceFromPointToLine|Calculate the perpendicular distance from a point to an infinite line.",
 "f|Core.Math.Geometry.distanceFromPointToSegment|Core_Math_Geometry_distanceFromPointToSegment|Calculate the shortest distance from a point to a line segment.",

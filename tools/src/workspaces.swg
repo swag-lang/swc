@@ -201,7 +201,7 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
 
     let applicationArguments = joinArguments(options.runArguments.toSlice())
 
-    var info = Env.StartInfo{fileName: executable.toString(), arguments: applicationArguments.toString(), workingDirectory: directory.toString(), environment: &context.childEnv}
+    var info    = Env.StartInfo{fileName: executable.toString(), arguments: applicationArguments.toString(), workingDirectory: directory.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
     return try process.waitForExit()
 }

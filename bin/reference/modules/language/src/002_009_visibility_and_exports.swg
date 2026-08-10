@@ -82,7 +82,7 @@ struct Counter
     readonly
     count: s32
     private
-    step: s32 = 2
+    step:  s32 = 2
 }
 
 impl Counter

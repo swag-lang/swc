@@ -307,7 +307,7 @@ struct Wnd
 
     backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
     internal
-    isAllocated: bool     // Whether destruction must release this allocation.
+    isAllocated:     bool     // Whether destruction must release this allocation.
 
     // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
     // writing it from outside would desynchronize the pass from the tree.

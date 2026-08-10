@@ -58,6 +58,11 @@ struct StructConfigEntry
         return std::holds_alternative<bool*>(target) ||
                std::holds_alternative<std::optional<bool>*>(target);
     }
+
+    // The entry's current value, spelled the way the reader accepts it back.
+    // A repeated key holds several values and has no single spelling, so asking
+    // a list target for one is a programming error.
+    Utf8 valueText() const;
 };
 
 class StructConfigSchema
@@ -92,8 +97,9 @@ public:
         return entry;
     }
 
-    const StructConfigEntry* find(std::string_view name) const;
-    std::optional<Utf8>      suggest(std::string_view query) const;
+    const StructConfigEntry*              find(std::string_view name) const;
+    std::optional<Utf8>                   suggest(std::string_view query) const;
+    const std::vector<StructConfigEntry>& entries() const { return entries_; }
 
 private:
     template<typename E>
@@ -113,14 +119,24 @@ private:
     std::vector<StructConfigEntry> entries_;
 };
 
+// A reader that ignores unknown keys can pre-scan a file for one entry without
+// having to know the rest of its schema, and without reporting the keys it is
+// not looking for.
+enum class StructConfigUnknownKey : uint8_t
+{
+    Report,
+    Ignore,
+};
+
 class StructConfigReader
 {
 public:
-    explicit StructConfigReader(const StructConfigSchema& schema);
+    explicit StructConfigReader(const StructConfigSchema& schema, StructConfigUnknownKey unknownKey = StructConfigUnknownKey::Report);
     Result readFile(TaskContext& ctx, const fs::path& path) const;
 
 private:
-    const StructConfigSchema* schema_ = nullptr;
+    const StructConfigSchema* schema_     = nullptr;
+    StructConfigUnknownKey    unknownKey_ = StructConfigUnknownKey::Report;
 
     static bool   parseBool(std::string_view value, bool& result);
     static Utf8   stripInlineComment(std::string_view line, bool& unterminatedQuote);

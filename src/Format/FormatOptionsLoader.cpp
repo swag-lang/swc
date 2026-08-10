@@ -2,12 +2,18 @@
 #include "Format/FormatOptionsLoader.h"
 #include "Main/FileSystem.h"
 #include "Main/StructConfig.h"
+#include "Support/Core/Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
     constexpr std::string_view FORMAT_CONFIG_FILE = ".swc-format";
+
+    void bindNamedStyleSchema(StructConfigSchema& schema, FormatNamedStyle* style, bool* seen)
+    {
+        schema.addEnum("style", style, {{"preserve", FormatNamedStyle::Preserve}, {"swag", FormatNamedStyle::Swag}}, "Rebase every option on a named style, then apply the rest of the file on top of it", {&StructConfigAssignHook::setBoolTrue, seen});
+    }
 
     void addBlankLineStyle(StructConfigSchema& schema, const std::string_view name, FormatBlankLineStyle* target, const std::string_view description)
     {
@@ -276,14 +282,31 @@ namespace
     }
 }
 
-FormatOptionsLoader::FormatOptionsLoader(TaskContext& ctx) :
-    ctx_(&ctx)
+FormatOptionsLoader::FormatOptionsLoader(TaskContext& ctx, const FormatNamedStyle baseStyle) :
+    ctx_(&ctx),
+    baseStyle_(baseStyle)
 {
 }
 
 Result FormatOptionsLoader::applyConfigFile(FormatOptions& options, const fs::path& configPath) const
 {
+    // `style` rebases the whole option set, so it is resolved before any other
+    // key is applied and its position in the file does not matter. This scan
+    // ignores every other key; anything wrong with one of them is reported by
+    // the full read below, and so is never diagnosed twice.
+    auto               fileStyle = FormatNamedStyle::Swag;
+    bool               hasStyle  = false;
+    StructConfigSchema styleSchema;
+    bindNamedStyleSchema(styleSchema, &fileStyle, &hasStyle);
+    const StructConfigReader styleReader(styleSchema, StructConfigUnknownKey::Ignore);
+    SWC_RESULT(styleReader.readFile(*ctx_, configPath));
+    if (hasStyle)
+        applyFormatStyle(options, fileStyle);
+
+    // `style` is bound again only so the full read does not meet an unknown key;
+    // the scan above already consumed it.
     StructConfigSchema schema;
+    bindNamedStyleSchema(schema, &fileStyle, &hasStyle);
     bindFormatOptionsSchema(schema, options);
 
     const StructConfigReader reader(schema);
@@ -300,7 +323,10 @@ Result FormatOptionsLoader::resolveDirectory(const fs::path& directory, FormatOp
         return Result::Continue;
     }
 
+    // The named style is the root of the cascade: the topmost directory starts
+    // from it, and every `.swc-format` on the way down layers over that result.
     FormatOptions options;
+    applyFormatStyle(options, baseStyle_);
 
     fs::path parent = normalizedDirectory.parent_path();
     if (!parent.empty())
@@ -321,12 +347,43 @@ Result FormatOptionsLoader::resolveDirectory(const fs::path& directory, FormatOp
     return Result::Continue;
 }
 
+Utf8 FormatOptionsLoader::describe(const FormatOptions& options)
+{
+    FormatOptions      values = options;
+    StructConfigSchema schema;
+    bindFormatOptionsSchema(schema, values);
+
+    Utf8 result = "# Configuration used by `swc format`, written as a complete `.swc-format` file.\n";
+    result += "# Every option carries its resolved value, so nothing here depends on the\n";
+    result += "# compiler's built-in style and no `style` key is needed.\n";
+
+    for (const StructConfigEntry& entry : schema.entries())
+    {
+        result += "\n# ";
+        result += entry.description;
+        result += ".\n";
+        if (entry.isEnum())
+        {
+            result += "# Possible values: ";
+            result += Utf8Helper::join(entry.choices, ", ");
+            result += "\n";
+        }
+
+        result += entry.name;
+        result += " = ";
+        result += entry.valueText();
+        result += "\n";
+    }
+
+    return result;
+}
+
 Result FormatOptionsLoader::resolve(const fs::path& sourcePath, FormatOptions& outOptions)
 {
     const fs::path directory = sourcePath.parent_path();
     if (directory.empty())
     {
-        outOptions = {};
+        applyFormatStyle(outOptions, baseStyle_);
         return Result::Continue;
     }
 

@@ -185,6 +185,7 @@
         <ClCompile Include="src\Unittest\Format\Test.Format.Literal.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Off.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Spacing.cpp"/>
+        <ClCompile Include="src\Unittest\Format\Test.Format.Style.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Using.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Wrap.cpp"/>
         <ClCompile Include="src\Unittest\JIT\Test.JIT.Execution.cpp"/>
@@ -392,6 +393,7 @@
         <ClCompile Include="src\Format\Pass.Wrap.cpp"/>
         <ClCompile Include="src\Format\FormatJob.cpp"/>
         <ClCompile Include="src\Format\FormatOptionsLoader.cpp"/>
+        <ClCompile Include="src\Format\FormatStyle.cpp"/>
         <ClCompile Include="src\Format\Formatter.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\Command\Command.New.cpp"/>

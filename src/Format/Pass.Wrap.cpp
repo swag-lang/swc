@@ -1,4 +1,28 @@
+// The wrapping contract.
+//
+// This pass decides locally, one construct and one break at a time. There is no
+// penalty function over the whole unwrapped line the way clang-format has, and
+// no Wadler document searched for the best fit the way prettier has. That is a
+// deliberate choice, not a missing feature, and it rests on what the canonical
+// Swag style is: `column-limit` is 0, so the formatter adds and removes no
+// statement break at all. The author owns the line breaks; the formatter owns
+// the columns. Everything a solver would decide — which of six equally legal
+// shapes a dense expression takes — is therefore already decided by the source,
+// and a solver would have nothing left to search.
+//
+// The exception is the interior of a bracket, where continuation lines keep
+// their distance to the statement instead of taking the canonical indent. That
+// is what carries a hand-packed data table: its rows are aligned in columns the
+// formatter cannot see, and forcing the canonical indent on them was measured to
+// destroy that alignment (`bin/examples/modules/opengl3`, where rows starting
+// with `1,` carry a leading blank so the numbers line up under `-1,`).
+//
+// A `column-limit` above 0 turns the greedy breaker below on. It stays greedy:
+// it picks the break highest in the expression tree that still fits, one break
+// at a time. Revisit this choice — and only then reach for a solver — when a
+// wrapping shape has to be added that cannot be stated as one such local rule.
 #include "pch.h"
+#include "Compiler/Lexer/Token.h"
 #include "Format/FormatPassUtil.h"
 #include "Format/FormatPasses.h"
 #include "Support/Report/Assert.h"
@@ -122,6 +146,10 @@ namespace
             wrapLongLines();
             finishLists();
             finishLogicalExpressions();
+
+            // The repair replays the records in source order, so the ones this
+            // pass appended have to be merged back into the indent pass's.
+            std::ranges::stable_sort(model_->hangingLines(), {}, &FormatHangingLine::lineStart);
         }
 
     private:
@@ -702,10 +730,30 @@ namespace
             return state.literal && !state.items.empty() && textHasNewline(model_->gapBefore(state.items.front()).origText);
         }
 
+        // Where the first item actually starts on the bracket's line. That is
+        // one past the bracket in every list the spacing pass tightens, but a
+        // type-level brace keeps its inner blank, and hanging alignment has to
+        // line up with the item rather than with the bracket.
+        uint32_t firstItemColumn(const ListState& state) const
+        {
+            std::vector<PieceColumn> columns;
+            FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(state.openPiece), &columns);
+            for (size_t c = 0; c + 1 < columns.size(); ++c)
+            {
+                if (columns[c].piece == state.openPiece)
+                    return columns[c + 1].column;
+            }
+            return UINT32_MAX;
+        }
+
         Utf8 listItemIndent(const ListState& state) const
         {
             if (state.layout == FormatListLayout::HangingAlign && !literalStartsOnNextSourceLine(state))
             {
+                const uint32_t item = firstItemColumn(state);
+                if (item != UINT32_MAX)
+                    return FormatPassUtil::indentForColumns(*model_, item);
+
                 const uint32_t column = openColumn(state);
                 if (column != UINT32_MAX)
                     return FormatPassUtil::indentForColumns(*model_, column + 1);
@@ -1049,6 +1097,16 @@ namespace
             return nullptr;
         }
 
+        // One statement, one continuation indent. A line that a break produced is
+        // queued with the indent that break used, because measuring again from
+        // the new line would step one level further right at every break.
+        struct PendingWrap
+        {
+            uint32_t lineStart = INVALID_PIECE;
+            Utf8     indent;
+            bool     continuation = false;
+        };
+
         void wrapLongLines()
         {
             if (options_->columnLimit == 0)
@@ -1057,102 +1115,142 @@ namespace
             std::vector<uint32_t> lineStarts;
             model_->collectLineStarts(lineStarts);
 
-            std::deque queue(lineStarts.begin(), lineStarts.end());
-            uint32_t   guard = 0;
+            std::deque<PendingWrap> queue;
+            for (const uint32_t lineStart : lineStarts)
+                queue.push_back({lineStart, {}, false});
+
+            uint32_t guard = 0;
             while (!queue.empty() && guard < 100000)
             {
                 guard++;
-                const uint32_t lineStart = queue.front();
+                const PendingWrap pending = queue.front();
                 queue.pop_front();
 
-                const uint32_t next = wrapLine(lineStart);
-                if (next != INVALID_PIECE)
-                    queue.push_front(next);
+                PendingWrap produced;
+                produced.lineStart = wrapLine(pending, produced.indent);
+                if (produced.lineStart != INVALID_PIECE)
+                {
+                    produced.continuation = true;
+                    queue.push_front(produced);
+                }
             }
         }
 
-        uint32_t wrapLine(const uint32_t lineStart) const
+        uint32_t wrapLine(const PendingWrap& pending, Utf8& outIndent) const
         {
             std::vector<PieceColumn> columns;
-            const uint32_t           width = FormatPassUtil::computeLineColumns(*model_, lineStart, &columns);
-            if (width <= options_->columnLimit || columns.size() < 2 || !lineEditable(lineStart))
+            const uint32_t           width = FormatPassUtil::computeLineColumns(*model_, pending.lineStart, &columns);
+            if (width <= options_->columnLimit || columns.size() < 2 || !lineEditable(pending.lineStart))
                 return INVALID_PIECE;
 
             const uint32_t breakPiece = chooseBreak(columns);
             if (breakPiece == INVALID_PIECE)
                 return INVALID_PIECE;
 
-            const Utf8 indent = continuationIndent(lineStart, columns, breakPiece);
-            model_->setGapBreak(breakPiece, 1, indent.view());
+            outIndent = pending.continuation ? pending.indent : continuationIndent(pending.lineStart, columns, breakPiece);
+            model_->setGapBreak(breakPiece, 1, outIndent.view());
             return breakPiece;
         }
 
+        // The piece a break before `columns[c]` would put on the next line, or
+        // INVALID_PIECE when that position is not a break the options allow.
+        uint32_t breakCandidateAt(const std::vector<PieceColumn>& columns, const size_t c) const
+        {
+            const uint32_t     pieceIndex = columns[c].piece;
+            const FormatPiece& piece      = model_->piece(pieceIndex);
+            const uint32_t     next       = c + 1 < columns.size() ? columns[c + 1].piece : INVALID_PIECE;
+
+            uint32_t candidate = INVALID_PIECE;
+            if (isWrappableComma(pieceIndex))
+                candidate = next;
+            else if (piece.hasRole(FormatRoleE::BinaryOp))
+            {
+                const FormatOperatorWrapStyle opStyle = operatorWrapStyle(pieceIndex);
+                if (opStyle == FormatOperatorWrapStyle::Before)
+                    candidate = pieceIndex;
+                else if (opStyle == FormatOperatorWrapStyle::After)
+                    candidate = next;
+            }
+            else if (piece.hasRole(FormatRoleE::TernaryOp) && options_->breakBeforeTernaryOperators.value_or(false))
+                candidate = pieceIndex;
+            else if (piece.hasRole(FormatRoleE::Arrow) && options_->breakAfterReturnType.value_or(false))
+                candidate = pieceIndex;
+            else if (piece.hasRole(FormatRoleE::TrailingDo) && options_->breakBeforeDo.value_or(false))
+                candidate = pieceIndex;
+
+            if (candidate == INVALID_PIECE || candidate == columns.front().piece || model_->piece(candidate).isComment)
+                return INVALID_PIECE;
+            return candidate;
+        }
+
+        // How much of the expression a break at this token preserves: a list
+        // separator cuts between whole items, and below it the operators rank by
+        // precedence, so `and` is cut before `<` and `<` before `*`.
+        static uint32_t breakRank(const FormatPiece& piece)
+        {
+            if (piece.is(TokenId::SymComma))
+                return 0;
+            if (Token::isOpLogical(piece.id))
+                return 1;
+            if (Token::isOpRelational(piece.id))
+                return 2;
+            if (Token::isOpArithmeticOrBitwise(piece.id))
+                return 3;
+            return 4;
+        }
+
+        // One break at a time, chosen locally — see the pass header. The break
+        // that keeps the most structure is the one highest in the expression
+        // tree: first the shallowest bracket depth, so a top-level `+` beats a
+        // comma nested inside one of its operands however much earlier that
+        // comma sits, then the loosest-binding token at that depth. Among the
+        // remaining candidates the last one that still fits wins, which fills
+        // the line.
         uint32_t chooseBreak(const std::vector<PieceColumn>& columns) const
         {
             const uint32_t limit = options_->columnLimit;
 
-            uint32_t bestComma      = INVALID_PIECE;
-            uint32_t bestCommaDepth = UINT32_MAX;
-            uint32_t bestOp         = INVALID_PIECE;
-            uint32_t bestOther      = INVALID_PIECE;
-
-            for (const auto& [pieceIndex, column] : columns)
-            {
-                const FormatPiece& piece = model_->piece(pieceIndex);
-                if (isWrappableComma(pieceIndex))
-                    bestCommaDepth = std::min(bestCommaDepth, piece.depth);
-            }
-
-            uint32_t firstAny = INVALID_PIECE;
+            uint32_t bestDepth = UINT32_MAX;
+            uint32_t bestRank  = UINT32_MAX;
             for (size_t c = 0; c < columns.size(); ++c)
             {
-                const auto& [pieceIndex, column] = columns[c];
-                const FormatPiece& piece         = model_->piece(pieceIndex);
-
-                uint32_t candidate = INVALID_PIECE;
-                if (isWrappableComma(pieceIndex) && piece.depth == bestCommaDepth && c + 1 < columns.size())
-                    candidate = columns[c + 1].piece;
-                else if (piece.hasRole(FormatRoleE::BinaryOp))
+                if (breakCandidateAt(columns, c) == INVALID_PIECE)
+                    continue;
+                const FormatPiece& piece = model_->piece(columns[c].piece);
+                if (piece.depth < bestDepth)
                 {
-                    const FormatOperatorWrapStyle opStyle = operatorWrapStyle(pieceIndex);
-                    if (opStyle == FormatOperatorWrapStyle::Before)
-                        candidate = pieceIndex;
-                    else if (c + 1 < columns.size())
-                    {
-                        if (opStyle == FormatOperatorWrapStyle::After)
-                            candidate = columns[c + 1].piece;
-                    }
+                    bestDepth = piece.depth;
+                    bestRank  = UINT32_MAX;
                 }
-                else if (piece.hasRole(FormatRoleE::TernaryOp) && options_->breakBeforeTernaryOperators.value_or(false))
-                    candidate = pieceIndex;
-                else if (piece.hasRole(FormatRoleE::Arrow) && options_->breakAfterReturnType.value_or(false))
-                    candidate = pieceIndex;
-                else if (piece.hasRole(FormatRoleE::TrailingDo) && options_->breakBeforeDo.value_or(false))
-                    candidate = pieceIndex;
+                if (piece.depth == bestDepth)
+                    bestRank = std::min(bestRank, breakRank(piece));
+            }
+            if (bestDepth == UINT32_MAX)
+                return INVALID_PIECE;
 
-                if (candidate == INVALID_PIECE || candidate == columns.front().piece || model_->piece(candidate).isComment)
+            const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
+            uint32_t       best     = INVALID_PIECE;
+            uint32_t       firstAny = INVALID_PIECE;
+            for (size_t c = 0; c < columns.size(); ++c)
+            {
+                const uint32_t     candidate = breakCandidateAt(columns, c);
+                const FormatPiece& piece     = model_->piece(columns[c].piece);
+                if (candidate == INVALID_PIECE || piece.depth != bestDepth || breakRank(piece) != bestRank)
                     continue;
                 if (firstAny == INVALID_PIECE)
                     firstAny = candidate;
 
-                if (column < limit)
-                {
-                    if (isWrappableComma(pieceIndex) && piece.depth == bestCommaDepth)
-                        bestComma = candidate;
-                    else if (piece.hasRole(FormatRoleE::BinaryOp))
-                        bestOp = candidate;
-                    else
-                        bestOther = candidate;
-                }
+                // What has to fit is the line the break leaves behind. Breaking
+                // *after* a token puts that token on it, so its end column is
+                // what the limit applies to, not where it starts.
+                const uint32_t end = candidate == columns[c].piece
+                                               ? columns[c].column
+                                               : columns[c].column + FormatModel::textColumns(piece.text, tabWidth, columns[c].column);
+                if (end <= limit)
+                    best = candidate;
             }
 
-            if (bestComma != INVALID_PIECE)
-                return bestComma;
-            if (bestOp != INVALID_PIECE)
-                return bestOp;
-            if (bestOther != INVALID_PIECE)
-                return bestOther;
-            return firstAny;
+            return best != INVALID_PIECE ? best : firstAny;
         }
 
         Utf8 continuationIndent(const uint32_t lineStart, const std::vector<PieceColumn>& columns, const uint32_t breakPiece) const
@@ -1335,6 +1433,30 @@ namespace
                 placeClose(state);
                 for (size_t i = 0; i < state.items.size(); ++i)
                     alignMultilineItemContents(state, i);
+                recordHangingItems(state);
+            }
+        }
+
+        // A continuation line placed under its bracket has to move with that
+        // bracket when the alignment pass later shifts the line the bracket sits
+        // on. The indent pass records the lines it placed so alignment can
+        // replay them; a line this pass creates needs the same record, or it
+        // only reaches its column on the next run of the formatter.
+        void recordHangingItems(const ListState& state) const
+        {
+            if (state.hug || state.layout != FormatListLayout::HangingAlign || literalStartsOnNextSourceLine(state))
+                return;
+
+            const uint32_t open = openColumn(state);
+            if (open == UINT32_MAX)
+                return;
+            const uint32_t item   = firstItemColumn(state);
+            const uint32_t offset = item != UINT32_MAX && item > open ? item - open : 1;
+
+            for (const uint32_t piece : state.items)
+            {
+                if (model_->gapHasNewline(piece) && FormatPassUtil::canEditGap(*model_, piece))
+                    model_->hangingLines().push_back({piece, state.openPiece, offset});
             }
         }
 
@@ -1369,6 +1491,25 @@ namespace
                 const Utf8 indent = logicalIndent(state);
                 addRequiredLogicalBreaks(state, indent);
                 normalizeLogicalBoundaries(state, indent);
+                recordHangingOperands(state);
+            }
+        }
+
+        // Same rule as `recordHangingItems`: an operand line placed under the
+        // expression's first operand has to follow that operand when alignment
+        // shifts the line it sits on.
+        void recordHangingOperands(const LogicalState& state) const
+        {
+            if (state.layout != FormatLogicalLayout::HangingAlign || logicalFirstOperandColumn(state) == UINT32_MAX)
+                return;
+
+            for (size_t i = 0; i < state.operators.size(); ++i)
+            {
+                for (const uint32_t boundary : {state.operators[i], state.operands[i + 1]})
+                {
+                    if (model_->gapHasNewline(boundary) && FormatPassUtil::canEditGap(*model_, boundary))
+                        model_->hangingLines().push_back({boundary, state.firstPiece, 0});
+                }
             }
         }
 

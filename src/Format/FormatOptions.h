@@ -3,6 +3,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// A named style is the baseline every other option is layered on. It answers
+// "what does the formatter do when nothing is configured", which is what makes
+// a formatter a community norm rather than a toolbox.
+enum class FormatNamedStyle : uint8_t
+{
+    Preserve, // Normalize nothing: every option keeps the source as written
+    Swag,     // The canonical Swag style, and the default
+};
+
 enum class FormatIndentStyle : uint8_t
 {
     Preserve,
@@ -341,5 +350,9 @@ struct FormatOptions
     Utf8 formatOffComment = "swc-format off"; // Comment marker that disables formatting until the matching on-comment
     Utf8 formatOnComment  = "swc-format on";  // Comment marker that re-enables formatting after a format-off marker
 };
+
+// Reset every option to the named style. The struct's own defaults are the
+// `Preserve` style, so a default-constructed `FormatOptions` normalizes nothing.
+void applyFormatStyle(FormatOptions& options, FormatNamedStyle style);
 
 SWC_END_NAMESPACE();

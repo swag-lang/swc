@@ -2,19 +2,52 @@
 #include "Main/Command/Command.h"
 #include "Format/FormatJob.h"
 #include "Format/FormatOptionsLoader.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    // `--dump-config` answers "what would you do here", so it resolves the
+    // cascade for the first named input, exactly like a real run would. Without
+    // an input there is still an answer: the configuration of the current
+    // directory.
+    fs::path dumpConfigDirectory(const CommandLine& cmdLine)
+    {
+        if (!cmdLine.files.empty())
+            return cmdLine.files.begin()->parent_path();
+        if (!cmdLine.directories.empty())
+            return *cmdLine.directories.begin();
+        if (!cmdLine.modulePath.empty())
+            return cmdLine.modulePath;
+        return FileSystem::currentPathNoThrow();
+    }
+
+    void dumpFormatConfig(TaskContext& ctx)
+    {
+        FormatOptionsLoader loader(ctx, ctx.cmdLine().formatStyle);
+        FormatOptions       options;
+        if (loader.resolveDirectory(dumpConfigDirectory(ctx.cmdLine()), options) != Result::Continue)
+            return;
+        Logger::print(ctx, FormatOptionsLoader::describe(options));
+    }
+}
+
 namespace Command
 {
     void format(CompilerInstance& compiler)
     {
-        TaskContext                   ctx(compiler);
+        TaskContext ctx(compiler);
+        if (ctx.cmdLine().dumpFormatConfig)
+            return dumpFormatConfig(ctx);
+
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Format))
             stage.emplace(ctx, ScopedTimedLog::Stage::Format);
@@ -35,7 +68,7 @@ namespace Command
             .allowReservedIdentifiers   = true,
         };
 
-        FormatOptionsLoader     optionsLoader(ctx);
+        FormatOptionsLoader     optionsLoader(ctx, ctx.cmdLine().formatStyle);
         std::vector<FormatJob*> jobs;
         jobs.reserve(compiler.files().size());
 

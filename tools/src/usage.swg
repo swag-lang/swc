@@ -8,8 +8,7 @@ public func printUsage(name: string)->s32
     switch name
     {
     case "tests":
-        Console.print(
-"""
+        Console.print("""
 Runs the repository test set, whole or scoped to what changed.
 
   swc tools/tests.swgs [dm] [changed|plan] [<path>] [options...]
@@ -35,8 +34,7 @@ of coverage.
 """)
 
     case "unittests":
-        Console.print(
-"""
+        Console.print("""
 Runs the compiler test suites.
 
   swc tools/unittests.swgs [dm] [<suite>] [options...]
@@ -50,8 +48,7 @@ forwarded to the compiler, for instance --seed, --num-cores, or --randomize.
 """)
 
     case "portability":
-        Console.print(
-"""
+        Console.print("""
 Checks the dependency boundary between portable bin code and native host code.
 
   swc tools/portability.swgs
@@ -62,8 +59,7 @@ host, interoperability, dispatch, and adapter paths recorded by the policy.
 """)
 
     case "std":
-        Console.print(
-"""
+        Console.print("""
 Builds or tests the standard library.
 
   swc tools/std.swgs [dm] [build|test] [<module>] [options...]
@@ -77,8 +73,7 @@ Testing always builds the workspace first. Modules without a unit test are skipp
 """)
 
     case "examples":
-        Console.print(
-"""
+        Console.print("""
 Builds, runs, tests, or smokes the examples workspace.
 
   swc tools/examples.swgs [dm] [build|run|test|smoke] [<module>] [options...]
@@ -97,8 +92,7 @@ going for a bounded number of frames, isolated from the machine.
 """)
 
     case "apps":
-        Console.print(
-"""
+        Console.print("""
 Builds, runs, tests, or smokes the applications workspace.
 
   swc tools/apps.swgs [dm] [build|run|test|smoke] [<module>] [options...]
@@ -118,8 +112,7 @@ and launches the packaged executable from its own directory.
 """)
 
     case "reference":
-        Console.print(
-"""
+        Console.print("""
 Builds or tests the executable language reference.
 
   swc tools/reference.swgs [dm] [build|test] [options...]
@@ -131,8 +124,7 @@ Builds or tests the executable language reference.
 """)
 
     case "scripts":
-        Console.print(
-"""
+        Console.print("""
 Runs one standalone example script, or smokes every one of them.
 
   swc tools/scripts.swgs [dm] [run|smoke] [<script>] [options...]
@@ -150,8 +142,7 @@ Naming a script runs it; naming none smokes them all, isolated from the machine.
 """)
 
     case "build":
-        Console.print(
-"""
+        Console.print("""
 Builds every repository workspace.
 
   swc tools/build.swgs [dm] [options...]
@@ -165,8 +156,7 @@ reference, and the multi-module workspace suite.
 """)
 
     case "format":
-        Console.print(
-"""
+        Console.print("""
 Formats every Swag source workspace in the repository, in place.
 
   swc tools/format.swgs [dm] [options...]
@@ -175,8 +165,7 @@ This rewrites tracked sources. It is a maintenance step, never a test.
 """)
 
     case "goldens":
-        Console.print(
-"""
+        Console.print("""
 Promotes the snapshots a failing test left behind into their goldens.
 
   swc tools/goldens.swgs
@@ -186,8 +175,7 @@ reference and fails. Once reviewed, this moves every actual over its golden.
 """)
 
     case "web":
-        Console.print(
-"""
+        Console.print("""
 Regenerates the brand assets and the complete website under web/.
 
   swc tools/web.swgs [dm] [options...]
@@ -197,8 +185,7 @@ bin/reference workspaces.
 """)
 
     case "scrypt":
-        Console.print(
-"""
+        Console.print("""
 Runs the privileged sCrypt/WinFsp end-to-end sandbox.
 
   swc tools/scrypt.swgs [dm]
@@ -208,8 +195,7 @@ rebuilds a normal sCrypt. It mounts a real volume, so it stays out of tests.swgs
 """)
 
     case "vsix":
-        Console.print(
-"""
+        Console.print("""
 Packages the VSCode extension after refreshing its generated images.
 
   swc tools/vsix.swgs
@@ -218,8 +204,7 @@ Install Node.js, then 'npm install -g vsce', before using this.
 """)
 
     case "setup":
-        Console.print(
-"""
+        Console.print("""
 Registers bin/ in the current user's environment, and claims the .swgs extension.
 
   swc tools/setup.swgs
@@ -229,8 +214,7 @@ current user, so a double-click runs a script.
 """)
 
     case "bench":
-        Console.print(
-"""
+        Console.print("""
 Runs or regenerates the cross-language performance campaign.
 
   swc tools/bench.swgs                             a full campaign

@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Runtime.h"
+#include "Format/FormatOptions.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Report/Assert.h"
@@ -140,6 +141,7 @@ struct CommandLine
     Runtime::TargetArch                  targetArch   = Runtime::TargetArch::X86_64;
     Runtime::BuildCfgBackendKind         backendKind  = Runtime::BuildCfgBackendKind::Executable;
     Runtime::BuildCfgBackendCpuVectorize cpuVectorize = Runtime::BuildCfgBackendCpuVectorize::None;
+    FormatNamedStyle                     formatStyle  = FormatNamedStyle::Swag;
 
 #if defined(_M_X64) || defined(__x86_64__)
     Utf8 targetCpu = "x86_64";
@@ -171,6 +173,7 @@ struct CommandLine
     bool rebuild                 = false;
     bool dryRun                  = false;
     bool showConfig              = false;
+    bool dumpFormatConfig        = false;
     bool helpPrinted             = false;
     bool verboseVerify           = false;
     bool scriptMode              = false;

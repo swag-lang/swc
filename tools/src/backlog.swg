@@ -20,8 +20,9 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
     while pos < @countof(text) and Latin1.isDigit(text[pos])
     {
         value = value * 10 + cast(u32) (text[pos] - '0')
-        pos += 1
+        pos   += 1
     }
+
     return {value, pos}
 }
 
@@ -33,36 +34,41 @@ private func reportFindingFields(fileName: string, entry: *BacklogEntry)->u32
         Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Area:' field")
         errors += 1
     }
+
     if !entry.foundWhile
     {
         Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Found while:' field")
         errors += 1
     }
+
     if !entry.observation
     {
         Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Observation:' field")
         errors += 1
     }
+
     if !entry.evidence
     {
         Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Evidence:' field")
         errors += 1
     }
+
     if !entry.nextStep
     {
         Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Next step:' field")
         errors += 1
     }
+
     return errors
 }
 
 private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'String, maxFinding: *u32, maxTodo: *u32)->u32 fail
 {
-    let content = try File.readAllText(fileName)
-    var errors: u32
+    let content    = try File.readAllText(fileName)
+    var errors:   u32
     var previous: u32
-    var entry: BacklogEntry
-    var haveEntry = false
+    var entry:    BacklogEntry
+    var haveEntry  = false
     var lineNumber = 0'u64
 
     for line in Tokenize.splitLines(content.toString())
@@ -72,12 +78,13 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
         {
             if findings and haveEntry
             {
-                entry.area = entry.area or Utf8.startsWith(cast(const [..] u8) line, "- Area:")
-                entry.foundWhile = entry.foundWhile or Utf8.startsWith(cast(const [..] u8) line, "- Found while:")
+                entry.area        = entry.area or Utf8.startsWith(cast(const [..] u8) line, "- Area:")
+                entry.foundWhile  = entry.foundWhile or Utf8.startsWith(cast(const [..] u8) line, "- Found while:")
                 entry.observation = entry.observation or Utf8.startsWith(cast(const [..] u8) line, "- Observation:")
-                entry.evidence = entry.evidence or Utf8.startsWith(cast(const [..] u8) line, "- Evidence:")
-                entry.nextStep = entry.nextStep or Utf8.startsWith(cast(const [..] u8) line, "- Next step:")
+                entry.evidence    = entry.evidence or Utf8.startsWith(cast(const [..] u8) line, "- Evidence:")
+                entry.nextStep    = entry.nextStep or Utf8.startsWith(cast(const [..] u8) line, "- Next step:")
             }
+
             continue
         }
 
@@ -88,7 +95,7 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
         if !Utf8.startsWith(cast(const [..] u8) line, expected)
         {
             Console.println("error: ", fileName, ":", lineNumber, ": backlog entry heading has no permanent identifier")
-            errors += 1
+            errors    += 1
             haveEntry = false
             continue
         }
@@ -97,7 +104,7 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
         if parsed.end == 6 or !Utf8.startsWith(cast(const [..] u8) line[parsed.end until @countof(line)], " — ")
         {
             Console.println("error: ", fileName, ":", lineNumber, ": malformed backlog identifier heading")
-            errors += 1
+            errors    += 1
             haveEntry = false
             continue
         }
@@ -118,13 +125,14 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
                 Console.println("error: ", fileName, ":", lineNumber, ": finding identifiers are not in ascending order")
                 errors += 1
             }
-            previous = parsed.value
+
+            previous        = parsed.value
             dref maxFinding = Math.max(dref maxFinding, parsed.value)
         }
         else do
             dref maxTodo = Math.max(dref maxTodo, parsed.value)
 
-        entry = BacklogEntry{heading: key, line: lineNumber}
+        entry     = BacklogEntry{heading: key, line: lineNumber}
         haveEntry = true
     }
 
@@ -148,19 +156,19 @@ public func auditBacklog(context: *Context)->s32 fail
 {
     let backlogDir = Path.combine(context.root.toString(), "backlog")
     let readmeFile = Path.combine(backlogDir.toString(), "README.md")
-    let readme = try File.readAllText(readmeFile.toString())
+    let readme     = try File.readAllText(readmeFile.toString())
 
-    var seen: HashSet'String
+    var seen:       HashSet'String
     var maxFinding: u32
-    var maxTodo: u32
-    var errors: u32
+    var maxTodo:    u32
+    var errors:     u32
 
     let files = try Directory.enumerateFiles(backlogDir.toString(), ".md")
     for file in files
     {
-        let name = Path.fileName(file.fullname.toString()) orelse ""
+        let name     = Path.fileName(file.fullname.toString()) orelse ""
         let findings = Utf8.startsWith(cast(const [..] u8) name, "findings.")
-        let todos = Utf8.startsWith(cast(const [..] u8) name, "todo.")
+        let todos    = Utf8.startsWith(cast(const [..] u8) name, "todo.")
         if !findings and !todos do
             continue
 
@@ -174,12 +182,13 @@ public func auditBacklog(context: *Context)->s32 fail
     }
 
     let nextFinding = readCounter(readme.toString(), 'F')
-    let nextTodo = readCounter(readme.toString(), 'T')
+    let nextTodo    = readCounter(readme.toString(), 'T')
     if nextFinding <= maxFinding
     {
         Console.println("error: the next finding identifier must be greater than F-", maxFinding)
         errors += 1
     }
+
     if nextTodo <= maxTodo
     {
         Console.println("error: the next todo identifier must be greater than T-", maxTodo)
@@ -191,5 +200,6 @@ public func auditBacklog(context: *Context)->s32 fail
         Console.println("error: backlog validation found ", errors, errors == 1 ? " problem" : " problems")
         return 1
     }
+
     return 0
 }

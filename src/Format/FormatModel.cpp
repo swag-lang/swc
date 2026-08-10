@@ -372,10 +372,15 @@ bool FormatModel::gapHasNewline(const uint32_t pieceIndex) const
 
 uint32_t FormatModel::gapNewlineCount(const uint32_t pieceIndex) const
 {
-    const FormatGap& gap = gaps_[pieceIndex];
-    if (gap.modified)
-        return gap.newlines;
-    return countGapNewlines(gap.origText);
+    const FormatGap& gap      = gaps_[pieceIndex];
+    const uint32_t   newlines = gap.modified ? gap.newlines : countGapNewlines(gap.origText);
+
+    // The blank-line caps are applied when the gap is rendered, so a pass that
+    // reads the raw count reasons about a layout the reader will never see: a
+    // run of three blank lines that renders as one would still break an
+    // `across-blanks` alignment group, and the next run of the formatter —
+    // seeing the collapsed file — would align it after all.
+    return std::min(newlines, maxAllowedNewlines(pieceIndex));
 }
 
 uint32_t FormatModel::gapColumns(const uint32_t pieceIndex) const

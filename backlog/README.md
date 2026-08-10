@@ -72,8 +72,8 @@ The identifier is how an entry is named everywhere else — in conversation, in 
 another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
 changes file; the identifier does not.
 
-Next identifier: F-109
-Next identifier: T-383
+Next identifier: F-111
+Next identifier: T-385
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

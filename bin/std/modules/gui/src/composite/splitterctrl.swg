@@ -22,7 +22,7 @@ struct SplitterItem
     label:        #null *Label     // Optional pane title managed by the splitter.
     preserveSize: bool             // Whether other panes absorb resize changes first.
     internal
-    visible = true     // Whether the pane participates in layout.
+    visible           = true     // Whether the pane participates in layout.
 
     // Color animation of the bar that follows this pane.
     internal

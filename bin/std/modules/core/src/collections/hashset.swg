@@ -8,7 +8,7 @@ struct(K) HashSetEntry
     internal
     hash: u32
     readonly
-    key: K     // The key itself.
+    key:  K     // The key itself.
 }
 
 // A hash set implemented with an open-addressing hash table.

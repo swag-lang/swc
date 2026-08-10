@@ -522,14 +522,14 @@ impl ThemeColors
         // end comes from `accentGround` and not from `accent`: this is a wash, and the accent
         // that points is ink on paper — a caption washed in it would be a grey band exactly
         // where the chart asks for the one block of Voltage a light surface is carried by.
-        .wnd_CaptionBkLead  = Color.lerpRgb(p.caption, p.accentGround, p.captionGlow)
-        .wnd_CaptionBkTrail = Color.lerpRgb(p.caption, p.ground, p.captionGlow * CaptionFadeRatio)
-        .wnd_Border                  = p.windowBorder
-        .wnd_BtnCloseBk              = CloseRed
-        .wnd_BtnCloseHotBk           = CloseHotRed
-        .wnd_BtnCloseHotIcon         = OnCloseRed
-        .wnd_BtnClosePressedIcon     = OnCloseRed
-        .wnd_Shadow                  = p.shadow
+        .wnd_CaptionBkLead       = Color.lerpRgb(p.caption, p.accentGround, p.captionGlow)
+        .wnd_CaptionBkTrail      = Color.lerpRgb(p.caption, p.ground, p.captionGlow * CaptionFadeRatio)
+        .wnd_Border              = p.windowBorder
+        .wnd_BtnCloseBk          = CloseRed
+        .wnd_BtnCloseHotBk       = CloseHotRed
+        .wnd_BtnCloseHotIcon     = OnCloseRed
+        .wnd_BtnClosePressedIcon = OnCloseRed
+        .wnd_Shadow              = p.shadow
 
         .view_Bk = p.view
 

@@ -12,6 +12,7 @@ struct(T) IntUnaryBox
 impl IntUnaryBox
 {
     func(op: Swag.Operator) opUnary(const me)->IntUnaryBox'T
+        where op == .Pos or op == .Neg or op == .BitNot
     {
         #static switch op
         {
@@ -24,8 +25,6 @@ impl IntUnaryBox
         case .BitNot:
             return {value: ~.value}
 
-        default:
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }

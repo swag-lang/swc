@@ -9,6 +9,7 @@ struct IndexAssignBox
 impl IndexAssignBox
 {
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
+        where op == .AddAssign or op == .MulAssign
     {
         #static switch op
         {
@@ -24,20 +25,16 @@ impl IndexAssignBox
             else do
                 .second *= value
 
-        default:
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
         }
     }
 
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: u32)
+        where op == .ShlAssign
     {
-        #static if op == .ShlAssign do
-            if index == 0 do
-                .first <<= value
-            else do
-                .second <<= value
+        if index == 0 do
+            .first <<= value
         else do
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+            .second <<= value
     }
 }
 
@@ -50,14 +47,12 @@ struct WriteOnlyIndexAssignBox
 impl WriteOnlyIndexAssignBox
 {
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            if index == 0 do
-                .first += value
-            else do
-                .second += value
+        if index == 0 do
+            .first += value
         else do
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+            .second += value
     }
 }
 

@@ -1,5 +1,19 @@
 #global private
 
+struct WhereRestrictedOperator
+{
+    value: s32
+}
+
+impl WhereRestrictedOperator
+{
+    mtd(op: Swag.Operator) const opBinary(other: WhereRestrictedOperator)->WhereRestrictedOperator
+        where op == .Add
+    {
+        return {.value + other.value}
+    }
+}
+
 #test
 {
     var a: s32
@@ -23,4 +37,11 @@
     let wordPtr = cast([*] u32) &bytes[4]
 
     let b = bytePtr - wordPtr     // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
+    let left   = WhereRestrictedOperator{1}
+    let right  = WhereRestrictedOperator{2}
+    let result = left - right     // swc-expected-error {{sema_err_binary_operand_type}}
 }

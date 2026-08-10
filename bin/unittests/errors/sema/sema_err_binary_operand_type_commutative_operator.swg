@@ -9,6 +9,7 @@ impl RestrictedCommutativeBox
 {
     #[Swag.Commutative(.Mul)]
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->RestrictedCommutativeBox
+        where op == .Mul or op == .Sub
     {
         #static switch op
         {
@@ -18,8 +19,6 @@ impl RestrictedCommutativeBox
         case .Sub:
             return {value: .value - scalar}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }

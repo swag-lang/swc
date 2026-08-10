@@ -14,6 +14,7 @@ struct(T) IntUnaryVec3
 impl IntUnaryVec3
 {
     func(op: Swag.Operator) opUnary(const me)->IntUnaryVec3'T
+        where op == .Pos or op == .Neg or op == .BitNot
     {
         #static switch op
         {
@@ -26,8 +27,6 @@ impl IntUnaryVec3
         case .BitNot:
             return {x: ~me.x, y: ~me.y, z: ~me.z}
 
-        default:
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }

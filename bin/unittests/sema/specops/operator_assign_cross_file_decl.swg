@@ -6,10 +6,8 @@ struct CrossFileAssignBox
 impl CrossFileAssignBox
 {
     mtd(op: Swag.Operator) opAssign(rhs: s32)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            .value += rhs
-        else do
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        .value += rhs
     }
 }

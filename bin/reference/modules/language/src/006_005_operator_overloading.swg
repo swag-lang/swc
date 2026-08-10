@@ -11,10 +11,9 @@ member is reported instead of being a comparison that silently never matches. Ea
 has its own member: unary '-' arrives as 'Neg', binary '-' as 'Sub'. 'op.symbol()' returns
 the source spelling when generated code or a diagnostic needs it.
 
-An operator body is compiled for the requested operator with diagnostics on, with a single
-exception: '#error' is the sanctioned way to say "this overload does not handle that
-operator", so it is silenced and the overload is simply skipped. Every other failure in the
-body is reported where it occurs.
+Use a 'where' clause on 'op' to state which operators a hook handles. A failing constraint
+removes that specialization from overload resolution; a '#error' reached in the body remains
+a compile-time error and is reported where it occurs.
 
 A literal suffix stays a string ('opSetLiteral'), because the set of suffixes is open-ended
 and chosen by the user rather than by the language.
@@ -161,12 +160,12 @@ impl Struct
     // Binary operation. 'op' is the 'Swag.Operator' member the compiler asks for:
     // Add, Sub, Mul, Div, Mod, BitOr, BitAnd, BitXor, Shl, Shr
     func(op: Swag.Operator) opBinary(me, other: OneType)->Struct
+        where op == .Add or op == .Sub
     {
         #static switch op
         {
         case .Add: return {1, 2}
         case .Sub: return {2, 1}
-        default:   #error("unsupported binary operation")
         }
     }
 

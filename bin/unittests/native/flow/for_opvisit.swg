@@ -13,10 +13,8 @@ impl FieldVisits
 {
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index))
+        where !ptr
     {
-        #static if ptr do
-            #error("FieldVisits does not expose pointer iteration.")
-
         #static if back
         {
             for [idx] in 3
@@ -106,13 +104,8 @@ impl ReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("ReverseVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("reverse iteration must use opVisitReverse")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
@@ -121,10 +114,8 @@ impl ReverseVisits
 
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index))
+        where !ptr
     {
-        #static if ptr do
-            #error("ReverseVisits does not expose pointer iteration.")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[2 - idx], index = @index)
@@ -163,13 +154,8 @@ impl HiddenAliasVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("HiddenAliasVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("HiddenAliasVisits does not expose reverse iteration.")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
@@ -181,10 +167,8 @@ impl FieldPointerVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index))
+        where !back
     {
-        #static if back do
-            #error("FieldPointerVisits does not expose reverse iteration.")
-
         #static if ptr
         {
             #inject(stmt, item = cast(&s32) &(me.first), index = 0'u64)
@@ -213,10 +197,8 @@ impl PairVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
+        where !ptr
     {
-        #static if ptr do
-            #error("PairVisits does not expose pointer iteration.")
-
         #static if back
         {
             for [idx] in 3
@@ -238,10 +220,8 @@ impl ConstPointerVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
+        where !back
     {
-        #static if back do
-            #error("ConstPointerVisits does not expose reverse iteration.")
-
         #static if ptr
         {
             for [idx] in 3
@@ -263,10 +243,8 @@ impl ReturnVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
+        where !ptr
     {
-        #static if ptr do
-            #error("ReturnVisits does not expose pointer iteration.")
-
         if !@countof(.values) do
             return
 
@@ -311,10 +289,8 @@ impl CallSourceVisits
 {
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
+        where !back
     {
-        #static if back do
-            #error("CallSourceVisits does not expose reverse iteration.")
-
         for [idx] in .count
         {
             #static if ptr do
@@ -344,13 +320,8 @@ impl GenericScopedVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("GenericScopedVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("GenericScopedVisits does not expose reverse iteration.")
-
         #scope(Outer)
             for 3
         {

@@ -12,11 +12,9 @@ struct(T) BoolUnaryBox
 impl BoolUnaryBox
 {
     func(op: Swag.Operator) opUnary(const me)->BoolUnaryBox'T
+        where op == .Not
     {
-        #static if op == .Not do
-            return {value: !me.value}
-        else do
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        return {value: !me.value}
     }
 }
 

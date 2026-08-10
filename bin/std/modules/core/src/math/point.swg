@@ -26,6 +26,7 @@ impl Point
     // Compound assignment operators for point-point operations (+=, -=, *=, /=).
     // Performs component-wise operations with another point.
     mtd(op: Swag.Operator) opAssign(other: Point)
+        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
         #static switch op
         {
@@ -44,15 +45,13 @@ impl Point
         case .DivAssign:
             .x /= other.x
             .y /= other.y
-
-        default:
-            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Compound assignment operators for point-scalar operations (+=, -=, *=, /=).
     // Applies the scalar 'value' to both coordinates of the point.
     mtd(op: Swag.Operator) opAssign(value: f32)
+        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
         #static switch op
         {
@@ -71,15 +70,13 @@ impl Point
         case .DivAssign:
             .x /= value
             .y /= value
-
-        default:
-            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Binary operators for point-point operations (+, -, *, /).
     // Performs component-wise operations between two points and returns the result.
     mtd(op: Swag.Operator) const opBinary(other: Point)->Point
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -87,13 +84,13 @@ impl Point
         case .Sub: return Point{.x - other.x, .y - other.y}
         case .Mul: return Point{.x * other.x, .y * other.y}
         case .Div: return Point{.x / other.x, .y / other.y}
-        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Binary operators for point-scalar operations (+, -, *, /).
     // Applies the scalar 'value' to both coordinates and returns the result.
     mtd(op: Swag.Operator) const opBinary(value: f32)->Point
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -101,25 +98,18 @@ impl Point
         case .Sub: return Point{.x - value, .y - value}
         case .Mul: return Point{.x * value, .y * value}
         case .Div: return Point{.x / value, .y / value}
-        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Apply unary operations to the point.
     // Currently supports negation (-) to return a point with both coordinates negated.
     mtd(op: Swag.Operator) const opUnary()->Point
+        where op == .Neg
     {
         var result: retval
-        #static if op == .Neg
-        {
-            result.x = -.x
-            result.y = -.y
-            return result
-        }
-        else
-        {
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
-        }
+        result.x = -.x
+        result.y = -.y
+        return result
     }
 
     // Set both coordinates to zero.

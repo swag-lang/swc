@@ -13,6 +13,7 @@ impl Vector3
 {
     // Unary operators: +, -, ~
     func(op: Swag.Operator) opUnary(const me)->Vector3'T
+        where op == .Pos or op == .Neg or op == .BitNot
     {
         #static switch op
         {
@@ -25,13 +26,12 @@ impl Vector3
         case .BitNot:
             return {x: ~me.x, y: ~me.y, z: ~me.z}
 
-        default:
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Binary operators: vector op vector
     func(op: Swag.Operator) opBinary(const me, other: const &Vector3'T)->Vector3'T
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -47,14 +47,13 @@ impl Vector3
         case .Div:
             return {x: me.x / other.x, y: me.y / other.y, z: me.z / other.z}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Binary operators: vector op scalar
     #[Swag.Commutative(.Add, .Mul)]
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Vector3'T
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -70,13 +69,12 @@ impl Vector3
         case .Div:
             return {x: me.x / scalar, y: me.y / scalar, z: me.z / scalar}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Binary operators that need a distinct scalar op vector order
     func(op: Swag.Operator) opBinaryRight(const me, scalar: T)->Vector3'T
+        where op == .Sub or op == .Div
     {
         #static switch op
         {
@@ -86,8 +84,6 @@ impl Vector3
         case .Div:
             return {x: scalar / me.x, y: scalar / me.y, z: scalar / me.z}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

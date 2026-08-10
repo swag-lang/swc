@@ -17,14 +17,13 @@ struct(T) Vec2
 impl Vec2
 {
     func(op: Swag.Operator) opUnary(const me)->Vec2
+        where op == .Neg
     {
-        #static if op == .Neg do
-            return {x: -me.x, y: -me.y}
-        else do
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        return {x: -me.x, y: -me.y}
     }
 
     func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
+        where op == .Add or op == .Sub or op == .Mul
     {
         #static switch op
         {
@@ -37,12 +36,11 @@ impl Vec2
         case .Mul:
             return {x: me.x * other.x, y: me.y * other.y}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2
+        where op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -52,8 +50,6 @@ impl Vec2
         case .Div:
             return {x: me.x / scalar, y: me.y / scalar}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -142,6 +138,7 @@ impl AABB
     }
 
     func(op: Swag.Operator) opBinary(const me, offset: const &Vec2)->AABB
+        where op == .Add or op == .Sub
     {
         #static switch op
         {
@@ -151,17 +148,13 @@ impl AABB
         case .Sub:
             return {lo: me.lo - offset, hi: me.hi - offset}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->AABB
+        where op == .Mul
     {
-        #static if op == .Mul do
-            return {lo: me.lo * scalar, hi: me.hi * scalar}
-        else do
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        return {lo: me.lo * scalar, hi: me.hi * scalar}
     }
 }
 

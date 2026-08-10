@@ -83,7 +83,7 @@ namespace SemaGeneric
     Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, SmallVector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
     Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef, bool requireCompleteGenericArgs = false);
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure = nullptr);
-    Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance);
+    Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance, CastFailure* outWhereFailure = nullptr);
     Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, SymbolFunction*& outInstance, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
     Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance);
     Result instantiateStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance);

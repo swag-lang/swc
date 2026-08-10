@@ -27,11 +27,9 @@ impl BinaryRightIntBox
 {
     #[Swag.Commutative]
     mtd(op: Swag.Operator) const opBinary(other: u32)->BinaryRightIntBox
+        where op == .Mul
     {
-        #static if op == .Mul do
-            return {value: .value * other}
-        else do
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        return {value: .value * other}
     }
 }
 

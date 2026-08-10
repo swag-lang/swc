@@ -14,6 +14,7 @@ impl RuntimeArithAssignBox
 {
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(rhs: s32)
+        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign or op == .ModAssign
     {
         .calls += 1
         #static switch op
@@ -33,8 +34,6 @@ impl RuntimeArithAssignBox
         case .ModAssign:
             .value %= rhs
 
-        default:
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
         }
     }
 }
@@ -105,6 +104,7 @@ impl RuntimeBitAssignBox
 {
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(rhs: u32)
+        where op == .BitAndAssign or op == .BitOrAssign or op == .BitXorAssign or op == .ShlAssign or op == .ShrAssign
     {
         .calls += 1
         #static switch op
@@ -124,8 +124,6 @@ impl RuntimeBitAssignBox
         case .ShrAssign:
             .value >>= rhs
 
-        default:
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
         }
     }
 }

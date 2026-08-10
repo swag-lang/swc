@@ -302,6 +302,38 @@ func linearSecond()->AnimationOptions
     }
 }
 
+// An authored curve drives a track in place of a named one, which is how a shape the toolkit does
+// not name reaches an animation.
+#test
+{
+    // Half the travel is held, then covered in a straight line. No preset draws that, and the
+    // named easing left in the options is there to be ignored.
+    var curve: Math.Curve
+    discard curve.addKey(0, 0, .Constant)
+    discard curve.addKey(0.5, 0, .Linear)
+    discard curve.addKey(1, 1, .Linear)
+
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let target = Wnd.create'Wnd(&host.root)
+    var options: AnimationOptions
+    options.duration = 1000'ms
+    options.easing   = .EaseOutBounce
+    options.curve    = &curve
+
+    discard host.app.animator.animateF32(target, AnimationChannel.from("test.curve"), 0, 100, &animationSetF32, options)
+    @assert(AnimationTestF32 == 0)
+    host.advanceAnimations(0.25)
+    @assert(AnimationTestF32 == 0)
+    host.advanceAnimations(0.5)
+    @assert(Math.isEqualEpsilon(AnimationTestF32, 50, 0.001))
+    host.finishAnimations()
+    @assert(AnimationTestF32 == 100)
+}
+
 // A repeating track replays its curve and holds the endpoint of its last play.
 #test
 {

@@ -9,15 +9,21 @@ using Swag
 // grow or move the backing storage (here a fixed buffer stands in for a heap block).
 struct CollMutVec
 {
-    buffer: [16] s32
-    count:  u64
+    public
+    {
+        buffer: [16] s32
+        count:  u64
+    }
 }
 
 // Two independent collections behind a shared owner, to check field-granular tracking.
 struct CollMutHolder
 {
-    items: CollMutVec
-    other: CollMutVec
+    public
+    {
+        items: CollMutVec
+        other: CollMutVec
+    }
 }
 
 impl CollMutVec

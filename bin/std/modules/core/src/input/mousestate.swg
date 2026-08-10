@@ -6,7 +6,7 @@ using Math
 // Captures cursor position and button state at one update.
 struct MouseState
 {
-    readonly
+    public readonly
     {
         pressed:     [MouseButton] bool      // Whether each button is pressed.
         pressedTime: [MouseButton] u64       // Monotonic millisecond timestamp of the latest press.

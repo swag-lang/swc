@@ -16,10 +16,22 @@ impl AccessSafe
 
 struct AccessCounter
 {
-    readonly count: s32
+    public readonly count: s32
 }
 
 impl AccessCounter
+{
+    mtd bump() { .count += 1 }
+}
+
+// 'readonly' written alone rides on the default level, so this one reads inside the module and
+// is still written by its own type only.
+struct AccessInternalCounter
+{
+    readonly count: s32
+}
+
+impl AccessInternalCounter
 {
     mtd bump() { .count += 1 }
 }

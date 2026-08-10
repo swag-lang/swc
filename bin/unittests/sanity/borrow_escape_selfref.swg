@@ -7,14 +7,20 @@ using Swag
 
 struct SelfRefPool
 {
-    items: [*] SelfRefNode
-    count: u64
+    public
+    {
+        items: [*] SelfRefNode
+        count: u64
+    }
 }
 
 struct SelfRefNode
 {
-    parent: *SelfRefNode
-    pool:   SelfRefPool
+    public
+    {
+        parent: *SelfRefNode
+        pool:   SelfRefPool
+    }
 }
 
 impl SelfRefPool

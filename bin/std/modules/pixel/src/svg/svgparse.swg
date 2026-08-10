@@ -50,11 +50,14 @@ struct Shape
 // is rasterized at parse time, the same drawing renders pixel perfect at every size.
 struct Drawing
 {
-    width:  f32     // View-box width, in user units.
-    height: f32     // View-box height, in user units.
+    public
+    {
+        width:  f32     // View-box width, in user units.
+        height: f32     // View-box height, in user units.
 
-    internal
-    shapes: Array'Shape     // Shapes in paint order.
+        internal
+        shapes: Array'Shape     // Shapes in paint order.
+    }
 }
 
 // Attribute state inherited through `svg` and `g` elements.

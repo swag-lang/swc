@@ -75,46 +75,58 @@ enum LayoutAlign
 // Describes the minimum, preferred, and maximum size produced by measurement.
 struct SizeHint
 {
-    min:       Math.Point                                    // Smallest valid width and height.
-    preferred: Math.Point                                    // Natural width and height before surplus distribution.
-    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
+    public
+    {
+        min:       Math.Point                                    // Smallest valid width and height.
+        preferred: Math.Point                                    // Natural width and height before surplus distribution.
+        max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
+    }
 }
 
 // Configures container-driven sizing and alignment for one child window.
 struct LayoutSpec
 {
-    policyX: SizePolicy  = SizePolicy.Content      // Horizontal size policy.
-    policyY: SizePolicy  = SizePolicy.Content      // Vertical size policy.
-    weightX: f32         = 1                       // Relative horizontal share of surplus space.
-    weightY: f32         = 1                       // Relative vertical share of surplus space.
-    alignX:  LayoutAlign = LayoutAlign.Stretch     // Horizontal alignment inside assigned space.
-    alignY:  LayoutAlign = LayoutAlign.Stretch     // Vertical alignment inside assigned space.
-    margin:  Math.Vector4                          // Additional left, top, right, and bottom layout margins.
+    public
+    {
+        policyX: SizePolicy  = SizePolicy.Content      // Horizontal size policy.
+        policyY: SizePolicy  = SizePolicy.Content      // Vertical size policy.
+        weightX: f32         = 1                       // Relative horizontal share of surplus space.
+        weightY: f32         = 1                       // Relative vertical share of surplus space.
+        alignX:  LayoutAlign = LayoutAlign.Stretch     // Horizontal alignment inside assigned space.
+        alignY:  LayoutAlign = LayoutAlign.Stretch     // Vertical alignment inside assigned space.
+        margin:  Math.Vector4                          // Additional left, top, right, and bottom layout margins.
+    }
 }
 
 // Records the most recent measure and arrange decisions for diagnostics.
 struct LayoutDebugInfo
 {
-    measuredMin:       Math.Point         // Minimum size reported by measurement.
-    measuredPreferred: Math.Point         // Preferred size reported by measurement.
-    measuredMax:       Math.Point         // Maximum size reported by measurement.
-    contentSize:       Math.Point         // Size the window's own content reported, or zero when it reported none.
-    arrangedRect:      Math.Rectangle     // Rectangle requested by the container after clamping.
-    clippedX:          bool               // Whether assigned width was below the measured minimum.
-    clippedY:          bool               // Whether assigned height was below the measured minimum.
-    clampedByMinX:     bool               // Whether minimum width enlarged the requested rectangle.
-    clampedByMinY:     bool               // Whether minimum height enlarged the requested rectangle.
-    clampedByMaxX:     bool               // Whether maximum width reduced the requested rectangle.
-    clampedByMaxY:     bool               // Whether maximum height reduced the requested rectangle.
+    public
+    {
+        measuredMin:       Math.Point         // Minimum size reported by measurement.
+        measuredPreferred: Math.Point         // Preferred size reported by measurement.
+        measuredMax:       Math.Point         // Maximum size reported by measurement.
+        contentSize:       Math.Point         // Size the window's own content reported, or zero when it reported none.
+        arrangedRect:      Math.Rectangle     // Rectangle requested by the container after clamping.
+        clippedX:          bool               // Whether assigned width was below the measured minimum.
+        clippedY:          bool               // Whether assigned height was below the measured minimum.
+        clampedByMinX:     bool               // Whether minimum width enlarged the requested rectangle.
+        clampedByMinY:     bool               // Whether minimum height enlarged the requested rectangle.
+        clampedByMaxX:     bool               // Whether maximum width reduced the requested rectangle.
+        clampedByMaxY:     bool               // Whether maximum height reduced the requested rectangle.
+    }
 }
 
 // Routes a key combination to a command identifier and optional target window.
 struct KeyShortcut
 {
-    modifiers: Input.KeyModifiers = None          // Required modifier-key combination.
-    key:       Input.Key          = None          // Required non-modifier key.
-    id:        WndId              = undefined     // Command identifier sent on a match.
-    target:    #null *Wnd                         // Explicit command target, or `null` to use normal routing.
+    public
+    {
+        modifiers: Input.KeyModifiers = None          // Required modifier-key combination.
+        key:       Input.Key          = None          // Required non-modifier key.
+        id:        WndId              = undefined     // Command identifier sent on a match.
+        target:    #null *Wnd                         // Explicit command target, or `null` to use normal routing.
+    }
 }
 
 // Receives lifecycle, input, paint, command, and notification events for a [Wnd].
@@ -231,102 +243,105 @@ enum WndFlags
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
 struct Wnd
 {
-    #[Swag.Late]
-    itf: IWnd     // Dynamic event receiver implemented by the concrete window type.
-    #[Swag.Late]
-    type:     typeinfo                   // Runtime type of the concrete window allocation.
-    surface:  #null *Surface             // Surface containing this window, or `null` while detached.
-    style:    ThemeStyle                 // Local style and inherited theme reference.
-    wndFlags = WndFlags.ClipChildren     // Active state, clipping, and paint-order flags.
-    userData: #null *void                // Opaque application-owned payload; never dereferenced by GUI.
-
-    position:      Math.Rectangle     // Logical rectangle relative to the parent client origin.
-    preferredSize: Math.Point         // Natural layout size; non-positive components fall back to `position`.
-    minSize:       Math.Point         // Inclusive minimum layout size.
-    maxSize:       Math.Point         // Inclusive maximum layout size; zero components mean unbounded.
-    scrollPos:     Math.Point         // Logical content offset applied to descendants.
-
-    invalidatePadding: Math.Vector4     // Extra repaint extent around the logical rectangle.
-
-    // Presentation-only state changes painting without moving layout, hit testing, or focus.
-    readonly
+    public
     {
-        presentationOpacity: f32        = 1              // Opacity of this window and its descendants, from zero through one.
-        presentationOffset:  Math.Point                  // Paint-only displacement in logical pixels.
-        presentationScale:   Math.Point = {1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
-        presentationPivot:   Math.Point = {0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
-        presentationClip:    Math.Rectangle              // Local reveal rectangle when presentation clipping is enabled.
-        hasPresentationClip: bool                        // Whether `presentationClip` limits painting.
+        #[Swag.Late]
+        itf: IWnd     // Dynamic event receiver implemented by the concrete window type.
+        #[Swag.Late]
+        type:     typeinfo                   // Runtime type of the concrete window allocation.
+        surface:  #null *Surface             // Surface containing this window, or `null` while detached.
+        style:    ThemeStyle                 // Local style and inherited theme reference.
+        wndFlags = WndFlags.ClipChildren     // Active state, clipping, and paint-order flags.
+        userData: #null *void                // Opaque application-owned payload; never dereferenced by GUI.
+
+        position:      Math.Rectangle     // Logical rectangle relative to the parent client origin.
+        preferredSize: Math.Point         // Natural layout size; non-positive components fall back to `position`.
+        minSize:       Math.Point         // Inclusive minimum layout size.
+        maxSize:       Math.Point         // Inclusive maximum layout size; zero components mean unbounded.
+        scrollPos:     Math.Point         // Logical content offset applied to descendants.
+
+        invalidatePadding: Math.Vector4     // Extra repaint extent around the logical rectangle.
+
+        // Presentation-only state changes painting without moving layout, hit testing, or focus.
+        public readonly
+        {
+            presentationOpacity: f32        = 1              // Opacity of this window and its descendants, from zero through one.
+            presentationOffset:  Math.Point                  // Paint-only displacement in logical pixels.
+            presentationScale:   Math.Point = {1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
+            presentationPivot:   Math.Point = {0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
+            presentationClip:    Math.Rectangle              // Local reveal rectangle when presentation clipping is enabled.
+            hasPresentationClip: bool                        // Whether `presentationClip` limits painting.
+        }
+
+        parent: #null *Wnd     // Structural parent responsible for position, layout, and lifetime.
+        owner:  #null *Wnd     // Logical owner used by popup and command routing when distinct from `parent`.
+
+        // The child list is maintained by the window itself: attach through [setParent] and
+        // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
+        public readonly
+        children: Array'(*Wnd)
+
+        name:    RichString      // Display text with optional rich spans.
+        id:      #null WndId     // Optional stable command, lookup, and persistence identifier.
+        cursor:  Cursor          // Cursor requested while the pointer is over this window.
+        toolTip: String          // Plain tooltip text; empty disables the tooltip.
+
+        keyShortcuts: Array'KeyShortcut     // Key combinations routed from this subtree.
+        actions:      Array'IActionUI       // Command actions exposed or consumed by this window.
+
+        margin:      Math.Vector4           // Left, top, right, and bottom spacing outside the window.
+        padding:     Math.Vector4           // Left, top, right, and bottom inset of the client area.
+        dockStyle:   DockStyle   = None     // Legacy parent-relative docking behavior.
+        anchorStyle: AnchorStyle = None     // Legacy response to parent-size deltas.
+        layoutSpec:  LayoutSpec             // Container-driven measurement and arrangement policy.
+
+        focusPolicy: FocusPolicy = None     // Pointer and traversal focus policy.
+
+        // Corner of the shape this window paints, which the keyboard-focus ring follows so the two
+        // never cross. A widget that draws a themed tile publishes it from that tile while painting —
+        // see [[Gui.ThemeImageRect.radius]] — because the tile a palette points a control at is the
+        // only thing that knows whether the control is a pill or a square this frame.
+        //
+        // Left at zero the ring keeps the soft corner of [[Gui.ThemeMetrics.focusRing_Radius]], which
+        // is what a control with no shape of its own — a check box and its label, a slider, a tab —
+        // should be marked with.
+        focusRingRadius: f32
+
+        // Fill the keyboard-focus ring will be drawn over, published the same way and for the same
+        // reason: the ring points in the accent, and a control filled with that accent would swallow
+        // it. A fully transparent value means the ring is not drawn over any known fill.
+        focusRingGround: Color
+
+        // Window the focus lands on when this one is given the focus, or `null` to take it.
+        //
+        // A composite declares the policy on itself and delegates the focus to the inner window
+        // that actually handles the keys, so a caller holding the composite never has to know
+        // which part of it edits, scrolls, or draws a caret.
+        focusDelegate: #null *Wnd
+
+        backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
+        internal
+        isAllocated: bool     // Whether destruction must release this allocation.
+
+        // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
+        // writing it from outside would desynchronize the pass from the tree.
+        public readonly
+        {
+            isPendingDestroy: bool                // Whether the window is scheduled for destruction.
+            managedByLayout:  bool                // Whether a layout container places this window.
+            layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
+        }
+
+        private
+        {
+            cachedSizeHint:  SizeHint        // Memoized measure result, refreshed by the layout pass.
+            createEventDone: bool            // Whether the create event was already delivered.
+            layoutDirty:     bool = true     // Whether the next frame must re-run layout.
+        }
+
+        hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
+        hookOnChildEvent: #null HookEvent     // Will be called before processing whatever event of a child window
     }
-
-    parent: #null *Wnd     // Structural parent responsible for position, layout, and lifetime.
-    owner:  #null *Wnd     // Logical owner used by popup and command routing when distinct from `parent`.
-
-    // The child list is maintained by the window itself: attach through [setParent] and
-    // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
-    readonly
-    children: Array'(*Wnd)
-
-    name:    RichString      // Display text with optional rich spans.
-    id:      #null WndId     // Optional stable command, lookup, and persistence identifier.
-    cursor:  Cursor          // Cursor requested while the pointer is over this window.
-    toolTip: String          // Plain tooltip text; empty disables the tooltip.
-
-    keyShortcuts: Array'KeyShortcut     // Key combinations routed from this subtree.
-    actions:      Array'IActionUI       // Command actions exposed or consumed by this window.
-
-    margin:      Math.Vector4           // Left, top, right, and bottom spacing outside the window.
-    padding:     Math.Vector4           // Left, top, right, and bottom inset of the client area.
-    dockStyle:   DockStyle   = None     // Legacy parent-relative docking behavior.
-    anchorStyle: AnchorStyle = None     // Legacy response to parent-size deltas.
-    layoutSpec:  LayoutSpec             // Container-driven measurement and arrangement policy.
-
-    focusPolicy: FocusPolicy = None     // Pointer and traversal focus policy.
-
-    // Corner of the shape this window paints, which the keyboard-focus ring follows so the two
-    // never cross. A widget that draws a themed tile publishes it from that tile while painting —
-    // see [[Gui.ThemeImageRect.radius]] — because the tile a palette points a control at is the
-    // only thing that knows whether the control is a pill or a square this frame.
-    //
-    // Left at zero the ring keeps the soft corner of [[Gui.ThemeMetrics.focusRing_Radius]], which
-    // is what a control with no shape of its own — a check box and its label, a slider, a tab —
-    // should be marked with.
-    focusRingRadius: f32
-
-    // Fill the keyboard-focus ring will be drawn over, published the same way and for the same
-    // reason: the ring points in the accent, and a control filled with that accent would swallow
-    // it. A fully transparent value means the ring is not drawn over any known fill.
-    focusRingGround: Color
-
-    // Window the focus lands on when this one is given the focus, or `null` to take it.
-    //
-    // A composite declares the policy on itself and delegates the focus to the inner window
-    // that actually handles the keys, so a caller holding the composite never has to know
-    // which part of it edits, scrolls, or draws a caret.
-    focusDelegate: #null *Wnd
-
-    backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
-    internal
-    isAllocated: bool     // Whether destruction must release this allocation.
-
-    // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
-    // writing it from outside would desynchronize the pass from the tree.
-    readonly
-    {
-        isPendingDestroy: bool                // Whether the window is scheduled for destruction.
-        managedByLayout:  bool                // Whether a layout container places this window.
-        layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
-    }
-
-    private
-    {
-        cachedSizeHint:  SizeHint        // Memoized measure result, refreshed by the layout pass.
-        createEventDone: bool            // Whether the create event was already delivered.
-        layoutDirty:     bool = true     // Whether the next frame must re-run layout.
-    }
-
-    hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
-    hookOnChildEvent: #null HookEvent     // Will be called before processing whatever event of a child window
 }
 
 impl IWnd for Wnd

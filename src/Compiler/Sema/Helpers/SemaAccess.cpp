@@ -88,7 +88,7 @@ namespace
 
 bool SemaAccess::canAccessMember(Sema& sema, const SymbolVariable& field, const SourceViewRef siteViewRef)
 {
-    if (field.memberAccess() == MemberAccess::Public || field.memberAccess() == MemberAccess::ReadOnly)
+    if (field.memberAccess() == MemberAccess::Public)
         return true;
 
     const SymbolStruct* ownerStruct = ownerStructOf(field);
@@ -104,7 +104,7 @@ bool SemaAccess::canAccessMember(Sema& sema, const SymbolVariable& field, const 
 Result SemaAccess::checkMemberAccess(Sema& sema, const Symbol& sym, const SourceCodeRef& codeRef)
 {
     const auto* field = sym.safeCast<SymbolVariable>();
-    if (!field || field->memberAccess() == MemberAccess::Public || field->memberAccess() == MemberAccess::ReadOnly)
+    if (!field || field->memberAccess() == MemberAccess::Public)
         return Result::Continue;
 
     const SymbolStruct* ownerStruct = ownerStructOf(sym);
@@ -121,7 +121,7 @@ Result SemaAccess::checkMemberAccess(Sema& sema, const Symbol& sym, const Source
 
 bool SemaAccess::canWriteMember(Sema& sema, const SymbolVariable& field, const SourceViewRef siteViewRef)
 {
-    if (field.memberAccess() != MemberAccess::ReadOnly)
+    if (!field.isMemberReadOnly())
         return true;
 
     const SymbolStruct* ownerStruct = ownerStructOf(field);

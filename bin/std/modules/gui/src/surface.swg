@@ -8,87 +8,93 @@ using Core, Pixel, Serialization
 // here keeps an alias for every name it has been written under; see [[Pixel.Image]].
 struct SurfaceState
 {
-    position: Math.Rectangle     // Current surface bounds in physical screen pixels.
+    public
+    {
+        position: Math.Rectangle     // Current surface bounds in physical screen pixels.
 
-    #[Serialization.Alias("positionNotMaximized")]
-    restoredPosition: Math.Rectangle     // Bounds restored after leaving a maximized state.
+        #[Serialization.Alias("positionNotMaximized")]
+        restoredPosition: Math.Rectangle     // Bounds restored after leaving a maximized state.
 
-    isMaximized: bool     // Whether the surface is maximized.
+        isMaximized: bool     // Whether the surface is maximized.
 
-    // Monitor scale the bounds were saved under, or zero for state written before
-    // scales were recorded. Restoring on a monitor with another scale rescales the
-    // sizes so the surface keeps its logical dimensions.
-    savedDpiScale: f32
+        // Monitor scale the bounds were saved under, or zero for state written before
+        // scales were recorded. Restoring on a monitor with another scale rescales the
+        // sizes so the surface keeps its logical dimensions.
+        savedDpiScale: f32
+    }
 }
 
 // Top-level drawable window managed by an [[Application]].
 struct Surface
 {
-    using native: NativeSurface                // Platform-specific window state.
-    app:          *Application = undefined     // Application that owns the surface.
-    wnd:          *SurfaceWnd  = undefined     // Root window containing the surface view.
-    userData:     #null *void                  // Optional caller-owned data.
-    surfaceId:    String                       // Identifier used by cross-process custom messages.
-
-    minSize: Math.Point     // Minimum allowed width and height in logical units; zero disables a dimension limit.
-    maxSize: Math.Point     // Maximum allowed width and height in logical units; zero disables a dimension limit.
-
-    // Window Enter stands for while no focused control claims it, or `null` for none.
-    //
-    // This and [[Gui.Surface.cancelButton]] are what make a form answerable without the pointer:
-    // Enter runs the dominant action of the surface, Escape backs out of it. A focused button
-    // always answers Enter itself, so these two only speak for a keyboard that is somewhere else —
-    // in a field, in a list. Both are borrowed and never owned.
-    defaultButton: #null *Wnd
-
-    cancelButton: #null *Wnd     // Window Escape stands for, or `null` when the surface cannot be dismissed.
-
-    flags:         SurfaceFlags = None     // Current presentation and window-manager flags.
-    colorDisabled: Color                   // Animated tint used while the surface is disabled.
-
-    // What the surface is made of and where it stands. The application creates surfaces and
-    // the event loop moves them between these states; reading them tells what is on screen.
-    readonly
+    public
     {
-        painter: Painter          // Painter recording the surface's frame.
-        rt:      RenderTarget     // Render target the frame is drawn into.
+        using native: NativeSurface                // Platform-specific window state.
+        app:          *Application = undefined     // Application that owns the surface.
+        wnd:          *SurfaceWnd  = undefined     // Root window containing the surface view.
+        userData:     #null *void                  // Optional caller-owned data.
+        surfaceId:    String                       // Identifier used by cross-process custom messages.
 
-        // Physical device pixels per logical unit on the monitor showing this surface.
-        // `position` is in physical screen pixels; the window tree, painting, and mouse
-        // surface coordinates are logical and map through this factor.
-        dpiScale: f32 = 1
+        minSize: Math.Point     // Minimum allowed width and height in logical units; zero disables a dimension limit.
+        maxSize: Math.Point     // Maximum allowed width and height in logical units; zero disables a dimension limit.
 
-        isHidden:      bool = true     // Whether the surface is not visible.
-        isInitialized: bool            // Whether the surface has received its one-time initialization event.
-        isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
-        isMinimized:   bool            // Whether the surface is minimized.
+        // Window Enter stands for while no focused control claims it, or `null` for none.
+        //
+        // This and [[Gui.Surface.cancelButton]] are what make a form answerable without the pointer:
+        // Enter runs the dominant action of the surface, Escape backs out of it. A focused button
+        // always answers Enter itself, so these two only speak for a keyboard that is somewhere else —
+        // in a field, in a list. Both are borrowed and never owned.
+        defaultButton: #null *Wnd
+
+        cancelButton: #null *Wnd     // Window Escape stands for, or `null` when the surface cannot be dismissed.
+
+        flags:         SurfaceFlags = None     // Current presentation and window-manager flags.
+        colorDisabled: Color                   // Animated tint used while the surface is disabled.
+
+        // What the surface is made of and where it stands. The application creates surfaces and
+        // the event loop moves them between these states; reading them tells what is on screen.
+        public readonly
+        {
+            painter: Painter          // Painter recording the surface's frame.
+            rt:      RenderTarget     // Render target the frame is drawn into.
+
+            // Physical device pixels per logical unit on the monitor showing this surface.
+            // `position` is in physical screen pixels; the window tree, painting, and mouse
+            // surface coordinates are logical and map through this factor.
+            dpiScale: f32 = 1
+
+            isHidden:      bool = true     // Whether the surface is not visible.
+            isInitialized: bool            // Whether the surface has received its one-time initialization event.
+            isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
+            isMinimized:   bool            // Whether the surface is minimized.
+        }
+
+        // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
+        // the paint loop own them; callers reach the drawable with 'renderingContext'.
+        internal
+        {
+            rc:        RenderContext                                           // Drawable and viewport the frame targets.
+            dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
+            isDirty:   bool                                                    // Whether a repaint is pending.
+        }
+
+        // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
+        // the control the reader left rather than at the top of its traversal.
+        //
+        // The application holds one focus at a time but shows several surfaces, so this is what tells
+        // them apart. Three things are recorded together: the tree that was being walked, the window
+        // the keyboard goes back to when it is still in that tree, and the rank that answers when it
+        // is gone — a row removed, a field hidden. The window is only ever compared against the stops
+        // that exist now, never followed, so a stale one cannot be read.
+        internal
+        {
+            focusRoot:  #null *Wnd     // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
+            focusWnd:   #null *Wnd     // Last window that held the keyboard on this surface.
+            focusIndex: s64 = -1       // Its rank in that tree's ring, for when it is gone.
+        }
+
+        using state: SurfaceState     // Serializable placement and maximized state.
     }
-
-    // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
-    // the paint loop own them; callers reach the drawable with 'renderingContext'.
-    internal
-    {
-        rc:        RenderContext                                           // Drawable and viewport the frame targets.
-        dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
-        isDirty:   bool                                                    // Whether a repaint is pending.
-    }
-
-    // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
-    // the control the reader left rather than at the top of its traversal.
-    //
-    // The application holds one focus at a time but shows several surfaces, so this is what tells
-    // them apart. Three things are recorded together: the tree that was being walked, the window
-    // the keyboard goes back to when it is still in that tree, and the rank that answers when it
-    // is gone — a row removed, a field hidden. The window is only ever compared against the stops
-    // that exist now, never followed, so a stale one cannot be read.
-    internal
-    {
-        focusRoot:  #null *Wnd     // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
-        focusWnd:   #null *Wnd     // Last window that held the keyboard on this surface.
-        focusIndex: s64 = -1       // Its rank in that tree's ring, for when it is gone.
-    }
-
-    using state: SurfaceState     // Serializable placement and maximized state.
 }
 
 // Configures a surface's native chrome, resize behavior, and Z-order class.

@@ -4,7 +4,7 @@
 // Captures the pressed keys at one update.
 struct KeyboardState
 {
-    readonly
+    public readonly
     {
         pressed: [Key] bool     // Whether each key is pressed.
     }

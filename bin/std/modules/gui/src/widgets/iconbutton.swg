@@ -59,30 +59,33 @@ enum IconButtonCheckIndicator
 // Displays an icon action with optional label, checked state, arrow, and owned popup.
 struct IconButton
 {
-    using button: Button     // Embedded button behavior and presentation.
-
-    sigPopupClosed:    SigArray'func||(*IconButton)                                                 // Emitted before the owned popup is destroyed.
-    sigPopupRequested: SigArray'func||(*IconButton)                                                 // Emitted when activation requests popup creation.
-    sigCheckedChanged: SigArray'func||(*IconButton)                                                 // Emitted after user activation changes checked state.
-    iconPainter:       #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)     // Custom icon painter, or null for `icon`.
-
-    readonly
+    public
     {
-        iconColor: Color                                   // Explicit icon color, or transparent for theme color.
-        textColor: Color                                   // Explicit label color, or transparent for theme color.
-        form           = IconButtonForm.Rectangle          // Background geometry.
-        checkIndicator = IconButtonCheckIndicator.Full     // Checked-state indicator placement.
-        arrowPosition  = IconButtonArrowPosition.None      // Optional arrow placement and direction.
-        textPosition   = IconButtonTextPosition.Bottom     // Label placement relative to the icon.
-        flags          = IconButtonFlags.None              // Active interaction and content options.
-        isChecked: bool                                    // Whether the button is checked.
-    }
+        using button: Button     // Embedded button behavior and presentation.
 
-    // The popup this button owns while it is open, and the background animation.
-    internal
-    {
-        aniBk: BlendColor     // Color animation of the background.
-        popup: #null *Wnd     // Popup currently shown by this button.
+        sigPopupClosed:    SigArray'func||(*IconButton)                                                 // Emitted before the owned popup is destroyed.
+        sigPopupRequested: SigArray'func||(*IconButton)                                                 // Emitted when activation requests popup creation.
+        sigCheckedChanged: SigArray'func||(*IconButton)                                                 // Emitted after user activation changes checked state.
+        iconPainter:       #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)     // Custom icon painter, or null for `icon`.
+
+        public readonly
+        {
+            iconColor: Color                                   // Explicit icon color, or transparent for theme color.
+            textColor: Color                                   // Explicit label color, or transparent for theme color.
+            form           = IconButtonForm.Rectangle          // Background geometry.
+            checkIndicator = IconButtonCheckIndicator.Full     // Checked-state indicator placement.
+            arrowPosition  = IconButtonArrowPosition.None      // Optional arrow placement and direction.
+            textPosition   = IconButtonTextPosition.Bottom     // Label placement relative to the icon.
+            flags          = IconButtonFlags.None              // Active interaction and content options.
+            isChecked: bool                                    // Whether the button is checked.
+        }
+
+        // The popup this button owns while it is open, and the background animation.
+        internal
+        {
+            aniBk: BlendColor     // Color animation of the background.
+            popup: #null *Wnd     // Popup currently shown by this button.
+        }
     }
 }
 

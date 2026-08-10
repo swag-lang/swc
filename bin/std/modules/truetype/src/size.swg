@@ -6,7 +6,7 @@ using Swag, Core
 // measurements use 26.6 fixed-point pixels.
 public struct SizeMetrics
 {
-    readonly
+    public readonly
     {
         xPpem:      u16     // Horizontal pixels per em.
         yPpem:      u16     // Vertical pixels per em.
@@ -41,7 +41,7 @@ impl SizeMetrics
 // Associates the active metrics with their owning [[TrueType.Face]].
 public struct Size
 {
-    readonly
+    public readonly
     {
         #[Swag.Late]
         face:    *Face           // Borrowed pointer to the owning face.

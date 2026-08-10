@@ -6,7 +6,7 @@ using Win32
 #[Swag.Opaque, Swag.NoDoc]
 public struct NativeCursor
 {
-    cursor: HCURSOR     // Cursor associated with this value.
+    public cursor: HCURSOR     // Cursor associated with this value.
 }
 
 impl NativeCursor

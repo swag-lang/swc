@@ -671,10 +671,11 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
             return Result::Error;
         }
 
-        // A 'readonly' field is readable everywhere, so name that contract instead of falling
-        // through to the generic read-only-storage message the const path would produce.
+        // A 'readonly' field is readable at the site that reached it, so name that contract
+        // instead of falling through to the generic read-only-storage message the const path
+        // would produce.
         const auto* field = leftView.sym()->safeCast<SymbolVariable>();
-        if (field && field->memberAccess() == MemberAccess::ReadOnly && !SemaAccess::canWriteMember(sema, *field, sema.node(leftExprRef).srcViewRef()))
+        if (field && field->isMemberReadOnly() && !SemaAccess::canWriteMember(sema, *field, sema.node(leftExprRef).srcViewRef()))
             return SemaAccess::reportMemberWrite(sema, *field, leftExprRef);
     }
 

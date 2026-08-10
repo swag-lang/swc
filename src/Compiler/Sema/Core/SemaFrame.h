@@ -128,10 +128,12 @@ public:
     SymbolAccess currentAccess() const { return access_; }
     void         setCurrentAccess(SymbolAccess access) { access_ = access; }
     // An access modifier written in an aggregate body applies to the members of THAT aggregate.
-    // Recording the symbol map it was written in keeps it from reaching a nested or anonymous
-    // aggregate declared inside the same block, whose members are its own.
-    MemberAccess memberAccessFor(const SymbolMap* symMap) const { return symMap && symMap == memberAccessMap_ ? memberAccess_ : MemberAccess::Public; }
-    void         setCurrentMemberAccess(MemberAccess access, const SymbolMap* symMap)
+    // Recording the symbol map it was written in keeps it from reaching a nested aggregate
+    // declared inside the same block, whose members belong to a type of its own. Outside that map
+    // the answer is the language default, which is the same 'internal' a top-level declaration
+    // gets — except inside an anonymous aggregate, which cannot be annotated at all.
+    MemberAccessSpec memberAccessFor(const SymbolMap* symMap) const;
+    void             setCurrentMemberAccess(MemberAccessSpec access, const SymbolMap* symMap)
     {
         memberAccess_    = access;
         memberAccessMap_ = symMap;
@@ -227,7 +229,7 @@ public:
 
 private:
     SymbolAccess                        access_                  = SymbolAccess::Internal;
-    MemberAccess                        memberAccess_            = MemberAccess::Public;
+    MemberAccessSpec                    memberAccess_;
     const SymbolMap*                    memberAccessMap_         = nullptr;
     bool                                globalCompilerIfEnabled_ = true;
     AttributeList                       attributes_;

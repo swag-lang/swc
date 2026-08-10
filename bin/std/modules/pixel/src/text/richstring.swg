@@ -8,21 +8,24 @@ using Core
 // Its string view remains valid only while the owning rich string is unchanged.
 struct RichChunk
 {
-    slice:        string          = ""          // Borrowed UTF-8 slice represented by this run.
-    fontStyle:    FontFamilyStyle = Regular     // Requested family style.
-    hasFontStyle: bool                          // Whether markup explicitly selected `fontStyle`.
-    isSpace:      bool                          // Whether the chunk is whitespace.
-    isEol:        bool                          // Whether the chunk terminates a line.
-    isUrl:        bool                          // Whether the chunk belongs to `<url>` markup.
-    isHotUrl:     bool                          // Whether pointer interaction currently highlights the URL.
-    visible:      bool                          // Whether layout retained the chunk for painting.
-    colorIdx:     s32                           // Palette color index selected by `<pN>` markup.
+    public
+    {
+        slice:        string          = ""          // Borrowed UTF-8 slice represented by this run.
+        fontStyle:    FontFamilyStyle = Regular     // Requested family style.
+        hasFontStyle: bool                          // Whether markup explicitly selected `fontStyle`.
+        isSpace:      bool                          // Whether the chunk is whitespace.
+        isEol:        bool                          // Whether the chunk terminates a line.
+        isUrl:        bool                          // Whether the chunk belongs to `<url>` markup.
+        isHotUrl:     bool                          // Whether pointer interaction currently highlights the URL.
+        visible:      bool                          // Whether layout retained the chunk for painting.
+        colorIdx:     s32                           // Palette color index selected by `<pN>` markup.
 
-    boundRect: Math.Rectangle                 // Bounds local to `pos`, in pixels.
-    pos:       Math.Point                     // Chunk origin in the containing layout.
-    font:      *Font          = undefined     // Borrowed font selected for this chunk.
-    shaped:    ShapedRun                      // Positioned glyphs for the chunk.
-    under:     UnderlineStyle = None          // Underline or strikeout decoration.
+        boundRect: Math.Rectangle                 // Bounds local to `pos`, in pixels.
+        pos:       Math.Point                     // Chunk origin in the containing layout.
+        font:      *Font          = undefined     // Borrowed font selected for this chunk.
+        shaped:    ShapedRun                      // Positioned glyphs for the chunk.
+        under:     UnderlineStyle = None          // Underline or strikeout decoration.
+    }
 }
 
 // Text with lightweight inline formatting for Pixel painting and layout.
@@ -42,20 +45,23 @@ struct RichChunk
 // See [[Pixel.RichString.set]] for the complete marker set.
 struct RichString
 {
-    raw: String     // Original text, including formatting markers.
+    public
+    {
+        raw: String     // Original text, including formatting markers.
 
-    // Everything below comes out of [[Pixel.RichString.compute]] and the layout pass that
-    // follows it. Set 'raw' through the methods and compute again; these describe the last
-    // result. They stay writable because the layout engine lives in [[Pixel.Painter]].
-    chunks:      Array'RichChunk     // Styled runs produced by 'compute'.
-    layoutRect:  Math.Rectangle      // Rectangle used by the most recent layout.
-    boundRect:   Math.Rectangle      // Bounds of visible content from the most recent layout.
-    hasUrl:      bool                // Whether at least one chunk is a URL.
-    layoutScale: f32                 // Device scale used by the most recent layout, or zero before one.
+        // Everything below comes out of [[Pixel.RichString.compute]] and the layout pass that
+        // follows it. Set 'raw' through the methods and compute again; these describe the last
+        // result. They stay writable because the layout engine lives in [[Pixel.Painter]].
+        chunks:      Array'RichChunk     // Styled runs produced by 'compute'.
+        layoutRect:  Math.Rectangle      // Rectangle used by the most recent layout.
+        boundRect:   Math.Rectangle      // Bounds of visible content from the most recent layout.
+        hasUrl:      bool                // Whether at least one chunk is a URL.
+        layoutScale: f32                 // Device scale used by the most recent layout, or zero before one.
 
-    // Whether the chunks must be rebuilt before the next layout or paint.
-    internal
-    dirty: bool
+        // Whether the chunks must be rebuilt before the next layout or paint.
+        internal
+        dirty: bool
+    }
 }
 
 impl RichString

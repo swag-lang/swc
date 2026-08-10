@@ -26,11 +26,11 @@ public struct Face
 {
     // The reusable slot remains mutable so its documented outline operations can
     // transform the current glyph in place.
-    glyph: GlyphSlot     // Reusable slot for the current glyph.
+    public glyph: GlyphSlot     // Reusable slot for the current glyph.
 
     // Loading and glyph operations establish all face state. Callers may inspect
     // it but cannot break the relationships between its metrics and borrowed data.
-    readonly
+    public readonly
     {
         style:              StyleFlag     // Declared bold and italic traits.
         glyphCount:         u32           // Number of glyphs in the face.

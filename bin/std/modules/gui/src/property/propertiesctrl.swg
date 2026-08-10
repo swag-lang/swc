@@ -15,22 +15,25 @@ enum PropertiesCtrlFlags
 // Combines a property editor with optional section navigation, tabs, and search.
 struct PropertiesCtrl
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-
-    readonly
+    public
     {
-        #[Swag.Late]
-        splitter: *SplitterCtrl     // Splitter associated with this value.
-        #[Swag.Late]
-        list: *ListCtrl     // List associated with this value.
-        #[Swag.Late]
-        tab: *Tab     // Tab associated with this value.
-        #[Swag.Late]
-        properties: *Properties     // Property editor owned by this control.
-    }
+        using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-    readonly
-    flags: PropertiesCtrlFlags     // Active optional UI features.
+        public readonly
+        {
+            #[Swag.Late]
+            splitter: *SplitterCtrl     // Splitter associated with this value.
+            #[Swag.Late]
+            list: *ListCtrl     // List associated with this value.
+            #[Swag.Late]
+            tab: *Tab     // Tab associated with this value.
+            #[Swag.Late]
+            properties: *Properties     // Property editor owned by this control.
+        }
+
+        public readonly
+        flags: PropertiesCtrlFlags     // Active optional UI features.
+    }
 }
 
 impl PropertiesCtrl

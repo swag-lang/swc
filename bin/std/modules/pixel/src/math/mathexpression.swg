@@ -19,9 +19,12 @@ enum MathStyle
 // Result of mathematical layout. The baseline is `ascent` pixels below the top.
 struct MathMetrics
 {
-    width:   f32     // Horizontal extent in pixels.
-    ascent:  f32     // Distance from the baseline to the top edge, in pixels.
-    descent: f32     // Distance from the baseline to the bottom edge, in pixels.
+    public
+    {
+        width:   f32     // Horizontal extent in pixels.
+        ascent:  f32     // Distance from the baseline to the top edge, in pixels.
+        descent: f32     // Distance from the baseline to the bottom edge, in pixels.
+    }
 }
 
 impl MathMetrics
@@ -37,13 +40,16 @@ impl MathMetrics
 // ordinary text font that has no OpenType MATH table.
 struct MathLayoutOptions
 {
-    style:             MathStyle = Display     // Root style used to begin layout.
-    scriptScale:       f32       = 0.72        // Font-size multiplier for first-level scripts.
-    scriptScriptScale: f32       = 0.55        // Font-size multiplier for nested scripts.
-    ruleThicknessEm:   f32       = 0.055       // Fraction and radical rule thickness in em.
-    minRuleThickness:  f32       = 1.0         // Minimum visible rule thickness in pixels.
-    rowGapEm:          f32       = 0.32        // Vertical gap between matrix rows in em.
-    columnGapEm:       f32       = 0.65        // Horizontal gap between matrix columns in em.
+    public
+    {
+        style:             MathStyle = Display     // Root style used to begin layout.
+        scriptScale:       f32       = 0.72        // Font-size multiplier for first-level scripts.
+        scriptScriptScale: f32       = 0.55        // Font-size multiplier for nested scripts.
+        ruleThicknessEm:   f32       = 0.055       // Fraction and radical rule thickness in em.
+        minRuleThickness:  f32       = 1.0         // Minimum visible rule thickness in pixels.
+        rowGapEm:          f32       = 0.32        // Vertical gap between matrix rows in em.
+        columnGapEm:       f32       = 0.65        // Horizontal gap between matrix columns in em.
+    }
 }
 
 internal enum MathNodeKind

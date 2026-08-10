@@ -297,7 +297,11 @@ namespace
             return;
 
         const AstNode& node = ast.node(nodeRef);
-        if (const auto* accessNode = node.safeCast<AstAccessModifier>())
+
+        // Only a top-level 'public' is redundant in the generated file, which opens with
+        // '#global public'. A member keeps its modifier: nothing sets a file-wide member default,
+        // so dropping it would republish the field as 'internal' and close the surface.
+        if (const auto* accessNode = node.safeCast<AstAccessModifier>(); accessNode && !accessNode->hasFlag(AstAccessModifierFlagsE::Member))
         {
             const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
             if (node.tokRef().isValid() && srcView.token(node.tokRef()).id == TokenId::KwdPublic && accessNode->nodeWhatRef.isValid() && ast.hasNode(accessNode->nodeWhatRef))

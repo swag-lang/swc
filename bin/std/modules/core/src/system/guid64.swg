@@ -34,7 +34,7 @@ private func initRng()
 #[Swag.Operators(opEquals)]
 struct Guid64
 {
-    readonly value: u64     // Raw 64-bit representation.
+    public readonly value: u64     // Raw 64-bit representation.
 }
 
 impl Guid64

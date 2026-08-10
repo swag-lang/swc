@@ -12,7 +12,7 @@ public enum GlyphFormat
 // Values use 26.6 fixed-point pixels.
 public struct GlyphMetrics
 {
-    readonly
+    public readonly
     {
         width:              s32     // Width of the outline control box.
         height:             s32     // Height of the outline control box.
@@ -54,11 +54,11 @@ impl GlyphMetrics
 public struct GlyphSlot
 {
     // Outline transformations intentionally mutate the current glyph in place.
-    outline: Outline     // Borrowed scalable outline for the glyph.
+    public outline: Outline     // Borrowed scalable outline for the glyph.
 
     // Loading and rendering replace the slot atomically. Use the public methods to
     // mutate its outline instead of assigning derived state directly.
-    readonly
+    public readonly
     {
         #[Swag.Late]
         face:       *Face                              // Borrowed pointer to the owning face.

@@ -75,8 +75,11 @@ enum Direction
 // Stores one integer clipping coordinate.
 public struct IntPoint
 {
-    x: CInt     // Horizontal coordinate.
-    y: CInt     // Vertical coordinate.
+    public
+    {
+        x: CInt     // Horizontal coordinate.
+        y: CInt     // Vertical coordinate.
+    }
 }
 
 struct IntRect
@@ -199,32 +202,35 @@ struct Join
 #[Swag.Opaque]
 public struct Transform
 {
-    // Options of the operation, set before it runs.
-    strictSimple:  bool     // Whether self-intersections are resolved strictly.
-    reverseOutput: bool     // Whether output orientation is flipped.
-
-    // Sweep-line state of one clipping operation: the edge pool, the scanbeam schedule, and
-    // the output records being stitched. Set the operation up through the methods and read
-    // the outcome from the produced paths.
-    private
+    public
     {
-        useFullRange:      bool                                    // Whether coordinates need the full integer range.
-        preserveCollinear: bool                                    // Whether collinear vertices survive the output.
-        usingPolyTree:     bool                                    // Whether the result is built as a hierarchy.
-        edgeList:          Array'{ edge: [*] Edge, rank: u64 }     // Edge pool of the input paths.
-        minimaList:        Array'LocalMinimum                      // Local minima, in scanbeam order.
-        polyOuts:          Array'#null *OutRec                     // Output records being stitched.
-        joinList:          Array'#null *Join                       // Pending joins between output points.
-        ghostJoinList:     Array'#null *Join                       // Joins deferred to a later scanbeam.
-        intersectList:     Array'#null *IntersectNode              // Intersections of the current scanbeam.
-        scanBeamList:      Array'CInt                              // Scanbeam boundaries still to process.
-        maximaList:        Array'CInt                              // Local maxima of the current scanbeam.
-        clipFillType:      PolyFillType = undefined                // Fill rule of the clip paths.
-        subjFillType:      PolyFillType = undefined                // Fill rule of the subject paths.
-        clipType:          ClipType     = undefined                // Boolean operation being performed.
-        currentLM:         u64                                     // Index of the next local minimum to enter.
-        activeEdges:       #null *Edge                             // Active edge list of the current scanbeam.
-        sortedEdges:       #null *Edge                             // Sorted edge list used while resolving intersections.
+        // Options of the operation, set before it runs.
+        strictSimple:  bool     // Whether self-intersections are resolved strictly.
+        reverseOutput: bool     // Whether output orientation is flipped.
+
+        // Sweep-line state of one clipping operation: the edge pool, the scanbeam schedule, and
+        // the output records being stitched. Set the operation up through the methods and read
+        // the outcome from the produced paths.
+        private
+        {
+            useFullRange:      bool                                    // Whether coordinates need the full integer range.
+            preserveCollinear: bool                                    // Whether collinear vertices survive the output.
+            usingPolyTree:     bool                                    // Whether the result is built as a hierarchy.
+            edgeList:          Array'{ edge: [*] Edge, rank: u64 }     // Edge pool of the input paths.
+            minimaList:        Array'LocalMinimum                      // Local minima, in scanbeam order.
+            polyOuts:          Array'#null *OutRec                     // Output records being stitched.
+            joinList:          Array'#null *Join                       // Pending joins between output points.
+            ghostJoinList:     Array'#null *Join                       // Joins deferred to a later scanbeam.
+            intersectList:     Array'#null *IntersectNode              // Intersections of the current scanbeam.
+            scanBeamList:      Array'CInt                              // Scanbeam boundaries still to process.
+            maximaList:        Array'CInt                              // Local maxima of the current scanbeam.
+            clipFillType:      PolyFillType = undefined                // Fill rule of the clip paths.
+            subjFillType:      PolyFillType = undefined                // Fill rule of the subject paths.
+            clipType:          ClipType     = undefined                // Boolean operation being performed.
+            currentLM:         u64                                     // Index of the next local minimum to enter.
+            activeEdges:       #null *Edge                             // Active edge list of the current scanbeam.
+            sortedEdges:       #null *Edge                             // Sorted edge list used while resolving intersections.
+        }
     }
 }
 

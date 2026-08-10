@@ -12,18 +12,21 @@ enum IconBarOrientation
 // Arranges icon buttons and forwards their action and checked-state signals.
 struct IconBar
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    readonly
+    public
     {
-        orientation      = IconBarOrientation.Horizontal     // Current button layout axis.
-        iconSize:    f32                                     // Square icon size in logical units.
-        itemPadding: f32 = 4                                 // Padding around every icon in logical units.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    sigComputeState:   SigArray'func||(*CommandStateEvent)     // Invoked when child command state must be computed.
-    sigCheckedChanged: SigArray'func||(*IconButton)            // Emitted after a child changes checked state.
-    sigPressed:        SigArray'func||(*IconButton)            // Emitted after a plain child button is activated.
+        public readonly
+        {
+            orientation      = IconBarOrientation.Horizontal     // Current button layout axis.
+            iconSize:    f32                                     // Square icon size in logical units.
+            itemPadding: f32 = 4                                 // Padding around every icon in logical units.
+        }
+
+        sigComputeState:   SigArray'func||(*CommandStateEvent)     // Invoked when child command state must be computed.
+        sigCheckedChanged: SigArray'func||(*IconButton)            // Emitted after a child changes checked state.
+        sigPressed:        SigArray'func||(*IconButton)            // Emitted after a plain child button is activated.
+    }
 }
 
 impl IWnd for IconBar

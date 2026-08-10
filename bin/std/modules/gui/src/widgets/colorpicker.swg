@@ -30,24 +30,27 @@ enum ColorPickerMode
 // Selects a color component or component pair from a rendered gradient.
 struct ColorPicker
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    sigColorChanged: SigArray'func||(*ColorPicker)     // Emitted after the selected color changes.
-
-    readonly
+    public
     {
-        hue, saturation, lightness: f32                // Current HSL components in the closed interval [0, 1].
-        alpha, red, green, blue:    f32                // Current ARGB components in the closed interval [0, 1].
-        mode = ColorPickerMode.SaturationLightness     // Current component mapping.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    internal
-    {
-        dirty:            bool = true
-        isDragging:       bool
-        image:            Image
-        texture:          Texture
-        cursorX, cursorY: s32
+        sigColorChanged: SigArray'func||(*ColorPicker)     // Emitted after the selected color changes.
+
+        public readonly
+        {
+            hue, saturation, lightness: f32                // Current HSL components in the closed interval [0, 1].
+            alpha, red, green, blue:    f32                // Current ARGB components in the closed interval [0, 1].
+            mode = ColorPickerMode.SaturationLightness     // Current component mapping.
+        }
+
+        internal
+        {
+            dirty:            bool = true
+            isDragging:       bool
+            image:            Image
+            texture:          Texture
+            cursorX, cursorY: s32
+        }
     }
 }
 

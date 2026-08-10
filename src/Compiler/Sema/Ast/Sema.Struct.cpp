@@ -209,7 +209,8 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
 
 Result AstAnonymousStructDecl::semaPreDecl(Sema& sema) const
 {
-    SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_struct");
+    auto& sym = SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_struct");
+    sym.addExtraFlag(SymbolStructFlagsE::Anonymous);
     return Result::SkipChildren;
 }
 
@@ -248,6 +249,7 @@ Result AstAnonymousUnionDecl::semaPreDecl(Sema& sema) const
 {
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_union");
     sym.addExtraFlag(SymbolStructFlagsE::Union);
+    sym.addExtraFlag(SymbolStructFlagsE::Anonymous);
     return Result::SkipChildren;
 }
 

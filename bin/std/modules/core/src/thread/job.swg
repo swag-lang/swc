@@ -17,14 +17,17 @@ enum JobState
 // completed. The scheduler borrows both the job and `data`; it owns neither.
 public struct Job
 {
-    lambda: #null func(#null *void)     // Callback invoked once, or `null` for a no-op job.
-    data:   #null *void                 // Opaque caller-owned context passed to `lambda`.
-
-    // Scheduling state, owned by the job manager that runs the job.
-    internal
+    public
     {
-        state:        u32 = 0                // Encoded scheduler state.
-        pendingIndex: u32 = Swag.U32.Max     // Slot of the job in the pending list.
+        lambda: #null func(#null *void)     // Callback invoked once, or `null` for a no-op job.
+        data:   #null *void                 // Opaque caller-owned context passed to `lambda`.
+
+        // Scheduling state, owned by the job manager that runs the job.
+        internal
+        {
+            state:        u32 = 0                // Encoded scheduler state.
+            pendingIndex: u32 = Swag.U32.Max     // Slot of the job in the pending list.
+        }
     }
 }
 
@@ -32,20 +35,26 @@ public struct Job
 #[Swag.NoDoc]
 public struct(T) SliceJob
 {
-    using base:  Job                    // Embedded base state.
-    buffer:      #null const [..] T     // Buffer associated with this value.
-    offset:      u32                    // Offset associated with this value.
-    contextData: #null *void            // Context data associated with this value.
+    public
+    {
+        using base:  Job                    // Embedded base state.
+        buffer:      #null const [..] T     // Buffer associated with this value.
+        offset:      u32                    // Offset associated with this value.
+        contextData: #null *void            // Context data associated with this value.
+    }
 }
 
 // Expansion-only storage used by [[Core.Jobs.parallelFor]].
 #[Swag.NoDoc]
 public struct ForJob
 {
-    using base:  Job             // Embedded base state.
-    startIndex:  u32             // Index of start.
-    endIndex:    u32             // Index of end.
-    contextData: #null *void     // Context data associated with this value.
+    public
+    {
+        using base:  Job             // Embedded base state.
+        startIndex:  u32             // Index of start.
+        endIndex:    u32             // Index of end.
+        contextData: #null *void     // Context data associated with this value.
+    }
 }
 
 var g_Allocator:        #null Swag.IAllocator

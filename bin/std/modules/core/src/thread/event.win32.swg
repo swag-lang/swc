@@ -8,7 +8,7 @@ using Win32
 #[Swag.NoCopy]
 struct Event
 {
-    handle: #null HANDLE     // Handle associated with this value.
+    public handle: #null HANDLE     // Handle associated with this value.
 }
 
 impl Event

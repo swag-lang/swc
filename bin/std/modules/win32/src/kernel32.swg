@@ -182,82 +182,109 @@ const GMEM_INVALID_HANDLE = 0x8000
 
 struct COORD
 {
-    x: WORD
-    y: WORD
+    public
+    {
+        x: WORD
+        y: WORD
+    }
 }
 
 struct POINT
 {
-    x: LONG
-    y: LONG
+    public
+    {
+        x: LONG
+        y: LONG
+    }
 }
 
 struct SMALL_RECT
 {
-    left:   WORD
-    top:    WORD
-    right:  WORD
-    bottom: WORD
+    public
+    {
+        left:   WORD
+        top:    WORD
+        right:  WORD
+        bottom: WORD
+    }
 }
 
 struct CONSOLE_SCREEN_BUFFER_INFO
 {
-    dwSize:              COORD
-    dwCursorPosition:    COORD
-    wAttributes:         WORD
-    srWindow:            SMALL_RECT
-    dwMaximumWindowSize: COORD
+    public
+    {
+        dwSize:              COORD
+        dwCursorPosition:    COORD
+        wAttributes:         WORD
+        srWindow:            SMALL_RECT
+        dwMaximumWindowSize: COORD
+    }
 }
 
 struct SYSTEM_INFO
 {
-    dwOemId:                     DWORD     // Must be updated to an union
-    dwPageSize:                  DWORD
-    lpMinimumApplicationAddress: LPVOID
-    lpMaximumApplicationAddress: LPVOID
-    dwActiveProcessorMask:       DWORD_PTR
-    dwNumberOfProcessors:        DWORD
-    dwProcessorType:             DWORD
-    dwAllocationGranularity:     DWORD
-    wProcessorLevel:             WORD
-    wProcessorRevision:          WORD
+    public
+    {
+        dwOemId:                     DWORD     // Must be updated to an union
+        dwPageSize:                  DWORD
+        lpMinimumApplicationAddress: LPVOID
+        lpMaximumApplicationAddress: LPVOID
+        dwActiveProcessorMask:       DWORD_PTR
+        dwNumberOfProcessors:        DWORD
+        dwProcessorType:             DWORD
+        dwAllocationGranularity:     DWORD
+        wProcessorLevel:             WORD
+        wProcessorRevision:          WORD
+    }
 }
 
 struct SYSTEMTIME
 {
-    wYear:         WORD
-    wMonth:        WORD
-    wDayOfWeek:    WORD
-    wDay:          WORD
-    wHour:         WORD
-    wMinute:       WORD
-    wSecond:       WORD
-    wMilliseconds: WORD
+    public
+    {
+        wYear:         WORD
+        wMonth:        WORD
+        wDayOfWeek:    WORD
+        wDay:          WORD
+        wHour:         WORD
+        wMinute:       WORD
+        wSecond:       WORD
+        wMilliseconds: WORD
+    }
 }
 
 struct SECURITY_ATTRIBUTES
 {
-    nLength:              DWORD
-    lpSecurityDescriptor: LPVOID
-    bInheritHandle:       BOOL
+    public
+    {
+        nLength:              DWORD
+        lpSecurityDescriptor: LPVOID
+        bInheritHandle:       BOOL
+    }
 }
 
 struct OVERLAPPED_OFFSET
 {
-    Offset:     DWORD
-    OffsetHigh: DWORD
+    public
+    {
+        Offset:     DWORD
+        OffsetHigh: DWORD
+    }
 }
 
 struct OVERLAPPED
 {
-    Internal:     ULONG_PTR
-    InternalHigh: ULONG_PTR
-    using data:   union
+    public
     {
-        fileOffset: OVERLAPPED_OFFSET
-        Pointer:    #null *void
+        Internal:     ULONG_PTR
+        InternalHigh: ULONG_PTR
+        using data:   union
+        {
+            fileOffset: OVERLAPPED_OFFSET
+            Pointer:    #null *void
+        }
+        hEvent: HANDLE
     }
-    hEvent: HANDLE
 }
 
 alias LPOVERLAPPED = #null *OVERLAPPED
@@ -268,52 +295,64 @@ alias LPOVERLAPPED = #null *OVERLAPPED
 
 struct FILETIME
 {
-    dwLowDateTime:  DWORD
-    dwHighDateTime: DWORD
+    public
+    {
+        dwLowDateTime:  DWORD
+        dwHighDateTime: DWORD
+    }
 }
 
 struct WIN32_FILE_ATTRIBUTE_DATA
 {
-    dwFileAttributes: DWORD
-    ftCreationTime:   FILETIME
-    ftLastAccessTime: FILETIME
-    ftLastWriteTime:  FILETIME
-    nFileSizeHigh:    DWORD
-    nFileSizeLow:     DWORD
+    public
+    {
+        dwFileAttributes: DWORD
+        ftCreationTime:   FILETIME
+        ftLastAccessTime: FILETIME
+        ftLastWriteTime:  FILETIME
+        nFileSizeHigh:    DWORD
+        nFileSizeLow:     DWORD
+    }
 }
 
 struct WIN32_FIND_DATAA
 {
-    dwFileAttributes:   DWORD
-    ftCreationTime:     FILETIME
-    ftLastAccessTime:   FILETIME
-    ftLastWriteTime:    FILETIME
-    nFileSizeHigh:      DWORD
-    nFileSizeLow:       DWORD
-    dwReserved0:        DWORD
-    dwReserved1:        DWORD
-    cFileName:          [MAX_PATH] CHAR
-    cAlternateFileName: [14] CHAR
-    dwFileType:         DWORD
-    dwCreatorType:      DWORD
-    wFinderFlags:       WORD
+    public
+    {
+        dwFileAttributes:   DWORD
+        ftCreationTime:     FILETIME
+        ftLastAccessTime:   FILETIME
+        ftLastWriteTime:    FILETIME
+        nFileSizeHigh:      DWORD
+        nFileSizeLow:       DWORD
+        dwReserved0:        DWORD
+        dwReserved1:        DWORD
+        cFileName:          [MAX_PATH] CHAR
+        cAlternateFileName: [14] CHAR
+        dwFileType:         DWORD
+        dwCreatorType:      DWORD
+        wFinderFlags:       WORD
+    }
 }
 
 struct WIN32_FIND_DATAW
 {
-    dwFileAttributes:   DWORD
-    ftCreationTime:     FILETIME
-    ftLastAccessTime:   FILETIME
-    ftLastWriteTime:    FILETIME
-    nFileSizeHigh:      DWORD
-    nFileSizeLow:       DWORD
-    dwReserved0:        DWORD
-    dwReserved1:        DWORD
-    cFileName:          [MAX_PATH] WCHAR
-    cAlternateFileName: [14] WCHAR
-    dwFileType:         DWORD
-    dwCreatorType:      DWORD
-    wFinderFlags:       WORD
+    public
+    {
+        dwFileAttributes:   DWORD
+        ftCreationTime:     FILETIME
+        ftLastAccessTime:   FILETIME
+        ftLastWriteTime:    FILETIME
+        nFileSizeHigh:      DWORD
+        nFileSizeLow:       DWORD
+        dwReserved0:        DWORD
+        dwReserved1:        DWORD
+        cFileName:          [MAX_PATH] WCHAR
+        cAlternateFileName: [14] WCHAR
+        dwFileType:         DWORD
+        dwCreatorType:      DWORD
+        wFinderFlags:       WORD
+    }
 }
 
 enum GET_FILEEX_INFO_LEVELS
@@ -324,54 +363,63 @@ enum GET_FILEEX_INFO_LEVELS
 
 struct STARTUPINFOA
 {
-    cb:              DWORD
-    lpReserved:      LPSTR
-    lpDesktop:       LPSTR
-    lpTitle:         LPSTR
-    dwX:             DWORD
-    dwY:             DWORD
-    dwXSize:         DWORD
-    dwYSize:         DWORD
-    dwXCountChars:   DWORD
-    dwYCountChars:   DWORD
-    dwFillAttribute: DWORD
-    dwFlags:         DWORD
-    wShowWindow:     WORD
-    cbReserved2:     WORD
-    lpReserved2:     LPBYTE
-    hStdInput:       HANDLE
-    hStdOutput:      HANDLE
-    hStdError:       HANDLE
+    public
+    {
+        cb:              DWORD
+        lpReserved:      LPSTR
+        lpDesktop:       LPSTR
+        lpTitle:         LPSTR
+        dwX:             DWORD
+        dwY:             DWORD
+        dwXSize:         DWORD
+        dwYSize:         DWORD
+        dwXCountChars:   DWORD
+        dwYCountChars:   DWORD
+        dwFillAttribute: DWORD
+        dwFlags:         DWORD
+        wShowWindow:     WORD
+        cbReserved2:     WORD
+        lpReserved2:     LPBYTE
+        hStdInput:       HANDLE
+        hStdOutput:      HANDLE
+        hStdError:       HANDLE
+    }
 }
 
 struct STARTUPINFOW
 {
-    cb:              DWORD
-    lpReserved:      LPWSTR
-    lpDesktop:       LPWSTR
-    lpTitle:         LPWSTR
-    dwX:             DWORD
-    dwY:             DWORD
-    dwXSize:         DWORD
-    dwYSize:         DWORD
-    dwXCountChars:   DWORD
-    dwYCountChars:   DWORD
-    dwFillAttribute: DWORD
-    dwFlags:         DWORD
-    wShowWindow:     WORD
-    cbReserved2:     WORD
-    lpReserved2:     LPBYTE
-    hStdInput:       HANDLE
-    hStdOutput:      HANDLE
-    hStdError:       HANDLE
+    public
+    {
+        cb:              DWORD
+        lpReserved:      LPWSTR
+        lpDesktop:       LPWSTR
+        lpTitle:         LPWSTR
+        dwX:             DWORD
+        dwY:             DWORD
+        dwXSize:         DWORD
+        dwYSize:         DWORD
+        dwXCountChars:   DWORD
+        dwYCountChars:   DWORD
+        dwFillAttribute: DWORD
+        dwFlags:         DWORD
+        wShowWindow:     WORD
+        cbReserved2:     WORD
+        lpReserved2:     LPBYTE
+        hStdInput:       HANDLE
+        hStdOutput:      HANDLE
+        hStdError:       HANDLE
+    }
 }
 
 struct PROCESS_INFORMATION
 {
-    hProcess:    HANDLE
-    hThread:     HANDLE
-    dwProcessId: DWORD
-    dwThreadId:  DWORD
+    public
+    {
+        hProcess:    HANDLE
+        hThread:     HANDLE
+        dwProcessId: DWORD
+        dwThreadId:  DWORD
+    }
 }
 
 const JobObjectBasicAccountingInformation = 1'u32
@@ -379,47 +427,59 @@ const JobObjectExtendedLimitInformation   = 9'u32
 
 struct IO_COUNTERS
 {
-    ReadOperationCount:  u64
-    WriteOperationCount: u64
-    OtherOperationCount: u64
-    ReadTransferCount:   u64
-    WriteTransferCount:  u64
-    OtherTransferCount:  u64
+    public
+    {
+        ReadOperationCount:  u64
+        WriteOperationCount: u64
+        OtherOperationCount: u64
+        ReadTransferCount:   u64
+        WriteTransferCount:  u64
+        OtherTransferCount:  u64
+    }
 }
 
 struct JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
 {
-    TotalUserTime:             LARGE_INTEGER
-    TotalKernelTime:           LARGE_INTEGER
-    ThisPeriodTotalUserTime:   LARGE_INTEGER
-    ThisPeriodTotalKernelTime: LARGE_INTEGER
-    TotalPageFaultCount:       DWORD
-    TotalProcesses:            DWORD
-    ActiveProcesses:           DWORD
-    TotalTerminatedProcesses:  DWORD
+    public
+    {
+        TotalUserTime:             LARGE_INTEGER
+        TotalKernelTime:           LARGE_INTEGER
+        ThisPeriodTotalUserTime:   LARGE_INTEGER
+        ThisPeriodTotalKernelTime: LARGE_INTEGER
+        TotalPageFaultCount:       DWORD
+        TotalProcesses:            DWORD
+        ActiveProcesses:           DWORD
+        TotalTerminatedProcesses:  DWORD
+    }
 }
 
 struct JOBOBJECT_BASIC_LIMIT_INFORMATION
 {
-    PerProcessUserTimeLimit: LARGE_INTEGER
-    PerJobUserTimeLimit:     LARGE_INTEGER
-    LimitFlags:              DWORD
-    MinimumWorkingSetSize:   SIZE_T
-    MaximumWorkingSetSize:   SIZE_T
-    ActiveProcessLimit:      DWORD
-    Affinity:                ULONG_PTR
-    PriorityClass:           DWORD
-    SchedulingClass:         DWORD
+    public
+    {
+        PerProcessUserTimeLimit: LARGE_INTEGER
+        PerJobUserTimeLimit:     LARGE_INTEGER
+        LimitFlags:              DWORD
+        MinimumWorkingSetSize:   SIZE_T
+        MaximumWorkingSetSize:   SIZE_T
+        ActiveProcessLimit:      DWORD
+        Affinity:                ULONG_PTR
+        PriorityClass:           DWORD
+        SchedulingClass:         DWORD
+    }
 }
 
 struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
 {
-    BasicLimitInformation: JOBOBJECT_BASIC_LIMIT_INFORMATION
-    IoInfo:                IO_COUNTERS
-    ProcessMemoryLimit:    SIZE_T
-    JobMemoryLimit:        SIZE_T
-    PeakProcessMemoryUsed: SIZE_T
-    PeakJobMemoryUsed:     SIZE_T
+    public
+    {
+        BasicLimitInformation: JOBOBJECT_BASIC_LIMIT_INFORMATION
+        IoInfo:                IO_COUNTERS
+        ProcessMemoryLimit:    SIZE_T
+        JobMemoryLimit:        SIZE_T
+        PeakProcessMemoryUsed: SIZE_T
+        PeakJobMemoryUsed:     SIZE_T
+    }
 }
 
 enum FINDEX_INFO_LEVELS

@@ -5,23 +5,26 @@ using Core, Pixel
 // Displays a wrapping palette and lets the user select one color.
 struct PalettePicker
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    sigSelectionChanged: SigArray'func||(*PalettePicker)     // Emitted after the selected color changes.
-
-    readonly
+    public
     {
-        colors:        Array'Color            // Colors displayed in insertion order.
-        selectedColor: Color                  // Selected color, or transparent black when no item is selected.
-        selectedIndex: s32 = Swag.S32.Max     // Selected color index, or `Swag.S32.Max` when absent.
-        itemSize:      s32 = 24               // Width and height of each color item, in logical units.
-        spacing:       s32 = 3                // Gap between adjacent color items, in logical units.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    internal
-    {
-        itemRects: Array'Math.Rectangle     // Current hit-test rectangle for every color.
-        hotIndex:  s32 = Swag.S32.Max       // Item under the pointer, or `Swag.S32.Max`.
+        sigSelectionChanged: SigArray'func||(*PalettePicker)     // Emitted after the selected color changes.
+
+        public readonly
+        {
+            colors:        Array'Color            // Colors displayed in insertion order.
+            selectedColor: Color                  // Selected color, or transparent black when no item is selected.
+            selectedIndex: s32 = Swag.S32.Max     // Selected color index, or `Swag.S32.Max` when absent.
+            itemSize:      s32 = 24               // Width and height of each color item, in logical units.
+            spacing:       s32 = 3                // Gap between adjacent color items, in logical units.
+        }
+
+        internal
+        {
+            itemRects: Array'Math.Rectangle     // Current hit-test rectangle for every color.
+            hotIndex:  s32 = Swag.S32.Max       // Item under the pointer, or `Swag.S32.Max`.
+        }
     }
 }
 

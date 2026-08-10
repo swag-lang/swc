@@ -15,7 +15,7 @@ using Swag, Core, Core.Math
 struct RenderCpu
 {
     // Glyph storage and font views owned by this renderer.
-    fonts: FontCache
+    public fonts: FontCache
 
     private
     {
@@ -67,9 +67,12 @@ struct RenderCpu
 #[Swag.Opaque, Swag.NoDoc]
 struct CpuTexture
 {
-    handle:  TextureHandle
-    image:   Image
-    stencil: Array'u8
+    public
+    {
+        handle:  TextureHandle
+        image:   Image
+        stencil: Array'u8
+    }
 }
 
 // Inclusive device-pixel rectangle a draw batch can touch inside its target.

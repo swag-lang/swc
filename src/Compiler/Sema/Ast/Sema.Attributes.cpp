@@ -704,36 +704,51 @@ namespace
 
 Result AstAccessModifier::semaPreDecl(Sema& sema) const
 {
-    const Token& tok = sema.token(codeRef());
+    const Token& tok      = sema.token(codeRef());
+    const bool   isMember = hasFlag(AstAccessModifierFlagsE::Member);
+    SymbolMap*   symMap   = isMember ? SemaFrame::currentSymMap(sema) : nullptr;
 
-    SymbolAccess access;
-    MemberAccess memberAccess;
+    // A bare 'readonly' names no level, so it rides on the one already in effect: the enclosing
+    // access block, or the language default when there is none.
+    MemberAccessSpec spec   = isMember ? sema.frame().memberAccessFor(symMap) : MemberAccessSpec{};
+    SymbolAccess     access = sema.frame().currentAccess();
+
     switch (tok.id)
     {
         case TokenId::KwdInternal:
-            access       = SymbolAccess::Internal;
-            memberAccess = MemberAccess::Internal;
+            access      = SymbolAccess::Internal;
+            spec.access = MemberAccess::Internal;
             break;
         case TokenId::KwdPrivate:
-            access       = SymbolAccess::Private;
-            memberAccess = MemberAccess::Private;
+            access      = SymbolAccess::Private;
+            spec.access = MemberAccess::Private;
             break;
         case TokenId::KwdPublic:
-            access       = SymbolAccess::Public;
-            memberAccess = MemberAccess::Public;
+            access      = SymbolAccess::Public;
+            spec.access = MemberAccess::Public;
             break;
         case TokenId::KwdReadOnly:
-            // A read-only field stays part of the published surface: only writing is restricted.
-            access       = SymbolAccess::Public;
-            memberAccess = MemberAccess::ReadOnly;
             break;
         default:
             SWC_UNREACHABLE();
     }
 
+    if (hasFlag(AstAccessModifierFlagsE::ReadOnly))
+    {
+        // 'private' already withholds every write from outside the declaring type, so 'readonly'
+        // on top of it restricts nothing; a spelling that changes nothing hides a misreading.
+        if (spec.access == MemberAccess::Private)
+        {
+            SemaError::report(sema, DiagnosticId::sema_err_readonly_on_private, codeRef()).report(sema.ctx());
+            return Result::Error;
+        }
+
+        spec.readOnly = true;
+    }
+
     SemaFrame newFrame = sema.frame();
-    if (hasFlag(AstAccessModifierFlagsE::Member))
-        newFrame.setCurrentMemberAccess(memberAccess, SemaFrame::currentSymMap(sema));
+    if (isMember)
+        newFrame.setCurrentMemberAccess(spec, symMap);
     newFrame.setCurrentAccess(access);
     sema.pushFramePopOnPostNode(newFrame);
 

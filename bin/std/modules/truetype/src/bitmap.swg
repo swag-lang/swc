@@ -53,7 +53,7 @@ public struct Bitmap
 {
     // Rendering establishes the bitmap as one result. Callers can read the view
     // but cannot replace its storage or make its geometry disagree with it.
-    readonly
+    public readonly
     {
         rows:      u32              // Number of pixel rows.
         width:     u32              // Number of pixels in each row.

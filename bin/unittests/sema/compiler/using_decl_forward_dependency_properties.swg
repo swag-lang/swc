@@ -7,5 +7,5 @@ interface IUsingDeclForwardProperties
 
 struct UsingDeclForwardProperties
 {
-    app: *UsingDeclForwardApplication
+    public app: *UsingDeclForwardApplication
 }

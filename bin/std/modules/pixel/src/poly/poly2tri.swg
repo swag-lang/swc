@@ -68,7 +68,7 @@ public struct Tessellate
 // Owns the triangle vertices produced by one tessellation.
 public struct Result
 {
-    vertices: Array'Math.Vector2     // Triangle vertices stored as consecutive triples.
+    public vertices: Array'Math.Vector2     // Triangle vertices stored as consecutive triples.
 }
 
 // Stores one tessellation point and its incident constrained edges.

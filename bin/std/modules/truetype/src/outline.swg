@@ -15,10 +15,13 @@ public enum OutlineCommandKind
 // on `kind`; unused points remain zero.
 public struct OutlineCommand
 {
-    kind: OutlineCommandKind     // Operation represented by this value.
-    p0:   Vector                 // Destination or first control point.
-    p1:   Vector                 // Destination or second control point when required.
-    p2:   Vector                 // Cubic destination when required.
+    public
+    {
+        kind: OutlineCommandKind     // Operation represented by this value.
+        p0:   Vector                 // Destination or first control point.
+        p1:   Vector                 // Destination or second control point when required.
+        p2:   Vector                 // Cubic destination when required.
+    }
 }
 
 // Exposes the borrowed contours of the current scalable glyph.
@@ -31,7 +34,7 @@ public struct Outline
 {
     // The face owns the arrays and their shape. Public outline methods may mutate
     // the pointed-to coordinates without allowing callers to replace the view.
-    readonly
+    public readonly
     {
         contourCount: s16                  // Number of closed contours.
         pointCount:   s16                  // Total number of outline points.

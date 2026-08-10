@@ -794,9 +794,6 @@ namespace
                 // property grid) can leave implementation state alone.
                 switch (symField->memberAccess())
                 {
-                    case MemberAccess::ReadOnly:
-                        tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::ReadOnly);
-                        break;
                     case MemberAccess::Internal:
                         tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::Internal);
                         break;
@@ -806,6 +803,9 @@ namespace
                     case MemberAccess::Public:
                         break;
                 }
+
+                if (symField->isMemberReadOnly())
+                    tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::ReadOnly);
 
                 entry.structFieldTypes.push_back(symField->typeRef());
 

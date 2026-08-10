@@ -24,9 +24,12 @@ private const Argon2TypeId = 2
 // was already derived.
 public struct Argon2Parameters
 {
-    memoryKib:   u32 = 65536     // Memory cost in kibibytes, at least eight times `parallelism`.
-    iterations:  u32 = 3         // Number of passes over memory, at least one.
-    parallelism: u32 = 4         // Number of independent lanes, at least one.
+    public
+    {
+        memoryKib:   u32 = 65536     // Memory cost in kibibytes, at least eight times `parallelism`.
+        iterations:  u32 = 3         // Number of passes over memory, at least one.
+        parallelism: u32 = 4         // Number of independent lanes, at least one.
+    }
 }
 
 #[Swag.Inline]

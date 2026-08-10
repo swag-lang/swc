@@ -30,8 +30,11 @@ interface IUndoCommand
 #[Swag.Opaque, Swag.NoDoc]
 struct UndoStep
 {
-    serial: u64              // Group identifier shared by commands undone together.
-    cmd:    IUndoCommand     // Owned reversible command.
+    public
+    {
+        serial: u64              // Group identifier shared by commands undone together.
+        cmd:    IUndoCommand     // Owned reversible command.
+    }
 }
 
 // Owns a linear undo/redo timeline with optional command grouping.

@@ -10,13 +10,16 @@ struct NativeRenderOgl {}
 #[Swag.Opaque, Swag.NoDoc]
 struct OglContext
 {
-    hDC:    #null const *void     // Platform device context.
-    hRC:    #null const *void     // OpenGL rendering context.
-    hWnd:   #null const *void     // Associated drawable, or `null` for an externally supplied context.
-    width:  s32                   // Drawable width, in pixels.
-    height: s32                   // Drawable height, in pixels.
-    ownsDC: bool                  // Whether dropping the context must release `hDC`.
-    ownsRC: bool                  // Whether dropping the context must delete `hRC`.
+    public
+    {
+        hDC:    #null const *void     // Platform device context.
+        hRC:    #null const *void     // OpenGL rendering context.
+        hWnd:   #null const *void     // Associated drawable, or `null` for an externally supplied context.
+        width:  s32                   // Drawable width, in pixels.
+        height: s32                   // Drawable height, in pixels.
+        ownsDC: bool                  // Whether dropping the context must release `hDC`.
+        ownsRC: bool                  // Whether dropping the context must delete `hRC`.
+    }
 }
 
 impl IRenderer for RenderOgl

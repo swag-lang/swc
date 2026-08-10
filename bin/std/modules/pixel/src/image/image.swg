@@ -15,44 +15,47 @@ using Swag, Core, Core.Serialization
 // ```
 struct Image
 {
-    pixels: Array'u8     // Owned, row-major pixel bytes.
-
-    #[Core.Serialization.Alias("metaDatas")]
-    metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
-
-    // Geometry and encoding of the pixel buffer. They are established together by 'create' and
-    // the decoders, and every one of them is derived from the others: writing one on its own
-    // would describe a buffer that does not exist.
-    //
-    // The aliases are the names these fields carried before they were spelled out. A serialized
-    // field is keyed by the CRC of its name, so a rename without an alias silently drops the
-    // value: an image written by an older build would read back with no stride and no format,
-    // and decode to noise.
-    readonly
+    public
     {
-        #[Core.Serialization.Alias("size")]
-        byteCount: u64     // Total pixel-buffer size, in bytes.
+        pixels: Array'u8     // Owned, row-major pixel bytes.
 
-        width:  s32     // Image width, in pixels.
-        height: s32     // Image height, in pixels.
+        #[Core.Serialization.Alias("metaDatas")]
+        metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
 
-        #[Core.Serialization.Alias("width8")]
-        rowStride: s32     // Byte stride of one tightly packed row.
+        // Geometry and encoding of the pixel buffer. They are established together by 'create' and
+        // the decoders, and every one of them is derived from the others: writing one on its own
+        // would describe a buffer that does not exist.
+        //
+        // The aliases are the names these fields carried before they were spelled out. A serialized
+        // field is keyed by the CRC of its name, so a rename without an alias silently drops the
+        // value: an image written by an older build would read back with no stride and no format,
+        // and decode to noise.
+        public readonly
+        {
+            #[Core.Serialization.Alias("size")]
+            byteCount: u64     // Total pixel-buffer size, in bytes.
 
-        #[Core.Serialization.Alias("pf")]
-        pixelFormat: PixelFormat     // Encoding of each pixel.
+            width:  s32     // Image width, in pixels.
+            height: s32     // Image height, in pixels.
 
-        #[Core.Serialization.Alias("bpp")]
-        bitsPerPixel: u8     // Number of bits per pixel.
+            #[Core.Serialization.Alias("width8")]
+            rowStride: s32     // Byte stride of one tightly packed row.
 
-        #[Core.Serialization.Alias("bpp8")]
-        bytesPerPixel: u8     // Number of bytes per pixel.
+            #[Core.Serialization.Alias("pf")]
+            pixelFormat: PixelFormat     // Encoding of each pixel.
+
+            #[Core.Serialization.Alias("bpp")]
+            bitsPerPixel: u8     // Number of bits per pixel.
+
+            #[Core.Serialization.Alias("bpp8")]
+            bytesPerPixel: u8     // Number of bytes per pixel.
+        }
+
+        // Reusable scratch image owned by this image, allocated on demand by the transforms.
+        #[Core.Serialization.NoSerialize]
+        internal
+        workingBuffer: #null *Image
     }
-
-    // Reusable scratch image owned by this image, allocated on demand by the transforms.
-    #[Core.Serialization.NoSerialize]
-    internal
-    workingBuffer: #null *Image
 }
 
 impl Image

@@ -6,15 +6,18 @@ using Swag
 // for storing a large number of boolean flags.
 public struct BitArray
 {
-    allocator: #null IAllocator     // The allocator used for memory operations.
-
-    readonly
-    count: u64     // The number of bits in the array.
-
-    private
+    public
     {
-        buffer:        #null [*] u32
-        capacityBytes: u64
+        allocator: #null IAllocator     // The allocator used for memory operations.
+
+        public readonly
+        count: u64     // The number of bits in the array.
+
+        private
+        {
+            buffer:        #null [*] u32
+            capacityBytes: u64
+        }
     }
 }
 

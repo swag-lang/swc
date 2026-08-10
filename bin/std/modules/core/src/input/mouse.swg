@@ -6,13 +6,13 @@ using Math
 // Tracks mouse position, buttons, transitions, and double-clicks across updates.
 struct Mouse
 {
-    readonly
+    public readonly
     {
         previousState: MouseState     // State captured before the latest update.
         currentState:  MouseState     // State captured by the latest update.
     }
 
-    doubleClickTimeMs: u32 = 300     // Maximum interval recognized as a double-click.
+    public doubleClickTimeMs: u32 = 300     // Maximum interval recognized as a double-click.
 
     internal
     {

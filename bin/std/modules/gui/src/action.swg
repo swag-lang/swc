@@ -1,8 +1,11 @@
 // Identifies the window and command currently evaluated by an action.
 public struct ActionContext
 {
-    wnd: #null *Wnd     // Window receiving the command, when available.
-    id:  WndId          // Command identifier.
+    public
+    {
+        wnd: #null *Wnd     // Window receiving the command, when available.
+        id:  WndId          // Command identifier.
+    }
 }
 
 // Handles command discovery, presentation-state updates, and execution.

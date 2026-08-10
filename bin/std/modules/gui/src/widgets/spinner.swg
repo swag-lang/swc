@@ -18,10 +18,13 @@ using Core, Pixel
 // ```
 struct Spinner
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
+    public
+    {
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    internal
-    animationPhase: f32     // Position in the cycle, from zero to one.
+        internal
+        animationPhase: f32     // Position in the cycle, from zero to one.
+    }
 }
 
 impl IWnd for Spinner

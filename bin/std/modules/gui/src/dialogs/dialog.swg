@@ -3,16 +3,19 @@
 // Owns a modal surface, a content view, and an optional validated action bar.
 struct Dialog
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    // Called before a button result closes the dialog; return false to keep it open.
-    validateResult: #null func||(*Dialog, WndId)->bool
-
-    readonly
+    public
     {
-        buttonBar:     *StackLayoutCtrl = undefined     // Bottom action bar owned by the dialog.
-        buttons:       Array'(*PushButton)              // Buttons in insertion order.
-        parentSurface: #null *Surface                   // Surface that owns the modal dialog.
+        using wnd: Wnd     // Embedded window behavior and presentation.
+
+        // Called before a button result closes the dialog; return false to keep it open.
+        validateResult: #null func||(*Dialog, WndId)->bool
+
+        public readonly
+        {
+            buttonBar:     *StackLayoutCtrl = undefined     // Bottom action bar owned by the dialog.
+            buttons:       Array'(*PushButton)              // Buttons in insertion order.
+            parentSurface: #null *Surface                   // Surface that owns the modal dialog.
+        }
     }
 }
 

@@ -5,7 +5,7 @@ using Pixel
 public struct PaintImage
 {
     // Called to paint one image. This is the only thing a caller sets.
-    paint: #null func||(app: *Application, painter: *Painter)
+    public paint: #null func||(app: *Application, painter: *Painter)
 
     // The offscreen application, its painter and the surface backing the render target.
     private

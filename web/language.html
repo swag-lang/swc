@@ -1017,7 +1017,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <tr><td><span class="code-inline">public</span></td><td>yes</td><td>yes</td><td>yes</td></tr>
 </tbody>
 </table>
-<p><span class="code-inline">internal</span> is the default. Use <span class="code-inline">public</span> deliberately for the supported module API and <span class="code-inline">private</span> for file-local implementation details.</p>
+<p><span class="code-inline">internal</span> is the default, for a top-level declaration and for an aggregate member alike. Use <span class="code-inline">public</span> deliberately for the supported module API and <span class="code-inline">private</span> for file-local implementation details.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">private</span> <span class="SKwd">const</span> <span class="SCst">VisibilityFileLocal</span> = <span class="SNum">10</span>
 <span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst">VisibilityModuleLocal</span> = <span class="SNum">20</span>
@@ -1034,7 +1034,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 {
     <span class="SKwd">struct</span> <span class="SCst">Request</span>
     {
-        id: <span class="STpe">u64</span>
+        <span class="SKwd">public</span> id: <span class="STpe">u64</span>
     }
 
     <span class="SKwd">func</span> <span class="SFct">submit</span>(request: <span class="SCst">Request</span>)
@@ -1043,27 +1043,29 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p><span class="code-inline">#global</span> changes the default for the rest of one source file. This reference starts files with '#global private' so examples cannot leak into a generated module API:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
 </span></div>
+<p>Both forms set the default for the declarations they cover, and neither reaches inside an aggregate: a member belongs to its type rather than to a file or a block, so it states its own access in the aggregate body. That is why <span class="code-inline">Request</span> above says <span class="code-inline">public</span> twice.</p>
 <p>Visibility is independent of namespaces. A symbol can be public and qualified, or private and placed in a namespace for organization.</p>
 <h3 id="_002_009_visibility_and_exports_swg_Member_Access">Member Access</h3>
-<p>A declaration belongs to its file, so <span class="code-inline">private</span> at the top level means "this file". A <b>member belongs to its type</b>, so on a field the same word grants the type: the file that declares the aggregate, and every file that declares an <span class="code-inline">impl</span> of it, inside the module that declares the type. One rule, one reading: <span class="code-inline">private</span> grants the owner, <span class="code-inline">internal</span> grants the module, <span class="code-inline">public</span> grants everyone.</p>
+<p>The three levels and their default are the same on a member. What changes is who the owner is. A declaration belongs to its file, so <span class="code-inline">private</span> at the top level means "this file". A <b>member belongs to its type</b>, so on a field the same word grants the type: the file that declares the aggregate, and every file that declares an <span class="code-inline">impl</span> of it, inside the module that declares the type. One rule, one reading: <span class="code-inline">private</span> grants the owner, <span class="code-inline">internal</span> grants the module, <span class="code-inline">public</span> grants everyone, and <span class="code-inline">internal</span> is what a member gets when it says nothing — a type publishes its state as deliberately as it publishes its functions.</p>
 <p>Granting those files, rather than the enclosing <span class="code-inline">impl</span> alone, is what makes the rule hold in practice. A type spreads its <span class="code-inline">impl</span> over platform or concern files, and reaches its own state from a mixin or an inlined body without the access depending on where that body expands.</p>
-<p>A field takes a fourth level that a top-level declaration has no use for. <span class="code-inline">readonly</span> splits reading from writing:</p>
+<p><span class="code-inline">readonly</span> is the one modifier a top-level declaration has no use for. It is not a fourth level: it rides on the level in effect, keeps the reads that level grants, and restricts the writes to the declaring type.</p>
 <table class="table-markdown">
 <thead>
 <tr><th>Modifier</th><th>Read from</th><th>Written from</th></tr>
 </thead>
 <tbody>
 <tr><td><span class="code-inline">public</span></td><td>anywhere</td><td>anywhere</td></tr>
-<tr><td><span class="code-inline">readonly</span></td><td>anywhere</td><td>declaring type</td></tr>
+<tr><td>'public readonly'</td><td>anywhere</td><td>declaring type</td></tr>
 <tr><td><span class="code-inline">internal</span></td><td>declaring module</td><td>declaring module</td></tr>
+<tr><td><span class="code-inline">readonly</span></td><td>declaring module</td><td>declaring type</td></tr>
 <tr><td><span class="code-inline">private</span></td><td>declaring type</td><td>declaring type</td></tr>
 </tbody>
 </table>
-<p><span class="code-inline">public</span> is the default: a field is part of the surface unless it says otherwise.</p>
+<p>Written alone, <span class="code-inline">readonly</span> rides on the level already in effect, which is <span class="code-inline">internal</span> unless an enclosing access block says otherwise. It always comes last, and 'private readonly' is rejected: <span class="code-inline">private</span> already withholds every write from outside the type.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">struct</span> <span class="SCst">Counter</span>
 {
-    <span class="SKwd">readonly</span>
+    <span class="SKwd">public</span> <span class="SKwd">readonly</span>
     count: <span class="STpe">s32</span>
     <span class="SKwd">private</span>
     step: <span class="STpe">s32</span> = <span class="SNum">2</span>
@@ -1084,13 +1086,14 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     c.<span class="SFct">bump</span>()
     c.<span class="SFct">bump</span>()
 
-    <span class="SCmt">// 'readonly' reads from anywhere; only its own type writes it.</span>
+    <span class="SCmt">// 'public readonly' reads from anywhere; only its own type writes it.</span>
     <span class="SItr">@assert</span>(c.count == <span class="SNum">4</span>)
 }
 
 </span></div>
 <p><span class="code-inline">readonly</span> restricts writing through the field's name; it does not freeze the whole value. Assigning the aggregate, copying it, and dropping it stay ordinary operations.</p>
 <p>Naming a field in a struct literal writes it, so the write rule applies there too: a literal can only initialize the fields the site could assign.</p>
+<p>An anonymous aggregate — a returned tuple, an inline union — carries no declaration a modifier could be written on, so its members are public. What holds the anonymous value is what decides who reaches them.</p>
 <p>Reflection reports the declared access through <span class="code-inline">Swag.TypeValueFlags</span>, so a generic walker such as a serializer or a property editor can leave implementation state alone instead of persisting it.</p>
 <h3 id="_002_009_visibility_and_exports_swg_Exporting_a_File_s_API">Exporting a File's API</h3>
 <p>'#global export' is a fourth form. It sets the same access as '#global public', and additionally marks the file as one whose declarations belong to the generated module API. Only the file's first <span class="code-inline">#global</span> directive is read for that marking, so it belongs on the very first line. The standard modules open their public source files with it:</p>
@@ -2625,6 +2628,29 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SItr">@assert</span>(slice[<span class="SNum">0</span>] == <span class="SNum">30</span>)
     <span class="SItr">@assert</span>(slice[<span class="SNum">1</span>] == <span class="SNum">40</span>)
     <span class="SItr">@assert</span>(<span class="SItr">@countof</span>(slice) == <span class="SNum">2</span>)
+}
+
+</span></div>
+<h3 id="_004_002_slice_swg_Comparing_Slices">Comparing Slices</h3>
+<p><span class="code-inline">==</span> asks what a slice holds, not where it points. Two slices are equal when they have the same count and the same elements, so a copy into other storage compares equal to its source, and a shorter view over the same storage does not.</p>
+<p>Comparing against <span class="code-inline">null</span> is the one exception: it asks whether the slice has any storage at all, which is what a <span class="code-inline">#null</span> slice records.</p>
+<div class="code-block"><span class="SCde">
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> source: [<span class="SNum">4</span>] <span class="STpe">u8</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
+    <span class="SKwd">var</span> copy:   [<span class="SNum">4</span>] <span class="STpe">u8</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
+
+    <span class="SKwd">let</span> whole = source[<span class="SLgc">to</span>]
+    <span class="SKwd">let</span> other = copy[<span class="SLgc">to</span>]
+    <span class="SItr">@assert</span>(<span class="SItr">@dataof</span>(whole) != <span class="SItr">@dataof</span>(other))
+    <span class="SItr">@assert</span>(whole == other)
+
+    <span class="SKwd">let</span> head = source[<span class="SLgc">to</span> <span class="SNum">2</span>]
+    <span class="SItr">@assert</span>(<span class="SItr">@dataof</span>(whole) == <span class="SItr">@dataof</span>(head))
+    <span class="SItr">@assert</span>(whole != head)
+
+    <span class="SKwd">let</span> missing: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span> = <span class="SKwd">null</span>
+    <span class="SItr">@assert</span>(missing == <span class="SKwd">null</span>)
 }
 
 </span></div>
@@ -10581,6 +10607,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Slicing Arrays|_004_002_slice_swg_Slicing_Arrays|",
 "h|Slicing a Slice|_004_002_slice_swg_Slicing_a_Slice|",
 "h|Transforming a Pointer into a Slice|_004_002_slice_swg_Transforming_a_Pointer_into_a_Slice|",
+"h|Comparing Slices|_004_002_slice_swg_Comparing_Slices|",
 "h|Tuple|_004_003_tuple_swg|",
 "h|Tuples in Swag|_004_003_tuple_swg_Tuples_in_Swag|",
 "h|Accessing Tuple Values|_004_003_tuple_swg_Accessing_Tuple_Values|",

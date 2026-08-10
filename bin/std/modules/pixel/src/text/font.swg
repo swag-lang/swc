@@ -28,15 +28,18 @@ public struct GlyphAtlas
 // [[Pixel.Font.scale]] to obtain values for a particular font view.
 public struct GlyphDesc
 {
-    uv:         Math.Rectangle     // Normalized texture coordinates in the atlas.
-    atlasIndex: s32 = -1           // Atlas page containing the glyph, or `-1` when it has no bitmap.
-    glyphIndex: u32                // Typeface glyph index, used for kerning lookups.
-    advanceX:   f32                // Horizontal pen advance in reference-size pixels.
-    advanceY:   f32                // Vertical pen advance in reference-size pixels.
-    shiftX:     f32                // Horizontal offset from the pen to the bitmap.
-    shiftY:     f32                // Vertical offset from the baseline to the bitmap.
-    width:      f32                // Bitmap width in reference-size pixels.
-    height:     f32                // Bitmap height in reference-size pixels.
+    public
+    {
+        uv:         Math.Rectangle     // Normalized texture coordinates in the atlas.
+        atlasIndex: s32 = -1           // Atlas page containing the glyph, or `-1` when it has no bitmap.
+        glyphIndex: u32                // Typeface glyph index, used for kerning lookups.
+        advanceX:   f32                // Horizontal pen advance in reference-size pixels.
+        advanceY:   f32                // Vertical pen advance in reference-size pixels.
+        shiftX:     f32                // Horizontal offset from the pen to the bitmap.
+        shiftY:     f32                // Vertical offset from the baseline to the bitmap.
+        width:      f32                // Bitmap width in reference-size pixels.
+        height:     f32                // Bitmap height in reference-size pixels.
+    }
 }
 
 // Selects the glyph rendering technique used by a [[Pixel.Font]].
@@ -136,7 +139,7 @@ public struct Font
 {
     // A font view is what the cache hands out: everything it carries is a result to read.
     // Ask the cache for another view instead of rewriting this one.
-    readonly
+    public readonly
     {
         mode:        FontRenderMode     // Creation intent; the underlying cache is always concrete.
         size:        u32                // Requested drawing size in pixels.

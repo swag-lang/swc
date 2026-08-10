@@ -6,8 +6,11 @@ using Swag, Core
 // Configures tolerated differences for image-to-image and PNG-golden comparisons.
 struct ImageGoldenOptions
 {
-    maxChannelDelta:    u8      // Maximum absolute difference accepted for each ARGB channel.
-    maxDifferentPixels: u64     // Maximum number of pixels allowed outside the channel tolerance.
+    public
+    {
+        maxChannelDelta:    u8      // Maximum absolute difference accepted for each ARGB channel.
+        maxDifferentPixels: u64     // Maximum number of pixels allowed outside the channel tolerance.
+    }
 }
 
 // Compares the display list recorded by 'painter' against the golden named 'name'.

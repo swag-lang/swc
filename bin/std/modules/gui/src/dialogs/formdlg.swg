@@ -3,14 +3,17 @@
 // Configures the surface and buttons of a [[Gui.FormDlg]].
 struct FormDlgOptions
 {
-    title:             string = ""           // Surface title.
-    confirmButtonText: string = ""           // Confirmation-button text, or empty for the localized OK.
-    showCancelButton:  bool   = true         // Whether the dialog offers a cancel button.
-    cancelButtonText:  string = ""           // Cancel-button text, or empty for the localized Cancel.
-    width                     = 520's32      // Surface width.
-    height                    = 360's32      // Surface height before the form is measured; see [[Gui.FormDlg.doModal]].
-    resizable:         bool                  // Whether the user can resize the surface.
-    formOptions:       FormLayoutOptions     // Field-layout geometry.
+    public
+    {
+        title:             string = ""           // Surface title.
+        confirmButtonText: string = ""           // Confirmation-button text, or empty for the localized OK.
+        showCancelButton:  bool   = true         // Whether the dialog offers a cancel button.
+        cancelButtonText:  string = ""           // Cancel-button text, or empty for the localized Cancel.
+        width                     = 520's32      // Surface width.
+        height                    = 360's32      // Surface height before the form is measured; see [[Gui.FormDlg.doModal]].
+        resizable:         bool                  // Whether the user can resize the surface.
+        formOptions:       FormLayoutOptions     // Field-layout geometry.
+    }
 }
 
 // Modal dialog whose client area is a form the caller fills with typed fields.
@@ -29,11 +32,14 @@ struct FormDlgOptions
 // ```
 struct FormDlg
 {
-    using dialog: Dialog     // Embedded modal-dialog behavior.
+    public
+    {
+        using dialog: Dialog     // Embedded modal-dialog behavior.
 
-    readonly
-    #[Swag.Late]
-    form: *FormLayoutCtrl     // Form owned by the dialog, empty until the caller adds fields.
+        public readonly
+        #[Swag.Late]
+        form: *FormLayoutCtrl     // Form owned by the dialog, empty until the caller adds fields.
+    }
 }
 
 impl FormDlg

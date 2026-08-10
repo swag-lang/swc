@@ -6,8 +6,11 @@ using Swag
 // It provides a similar interface to the dynamic 'Array' but does not allocate memory on the heap.
 struct(T, N: u64) StaticArray
 {
-    buffer: [N] T     // The fixed-size me.buffer that holds the elements.
-    count:  u64       // The number of valid elements currently in the array.
+    public
+    {
+        buffer: [N] T     // The fixed-size me.buffer that holds the elements.
+        count:  u64       // The number of valid elements currently in the array.
+    }
 }
 
 impl StaticArray

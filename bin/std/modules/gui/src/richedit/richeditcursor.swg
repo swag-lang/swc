@@ -5,8 +5,11 @@ using Core, Pixel
 // Identifies one rune position and preferred horizontal coordinate in a rich document.
 struct RichEditCursor
 {
-    lineIndex:     u64     // Index of line.
-    charPosInLine: u64     // Char pos in line associated with this value.
+    public
+    {
+        lineIndex:     u64     // Index of line.
+        charPosInLine: u64     // Char pos in line associated with this value.
+    }
 }
 
 impl RichEditCtrl

@@ -19,33 +19,39 @@ enum FileDlgMode
 // give the dialog a memory across runs.
 struct FileDlgState
 {
-    surfacePosition:     Math.Rectangle     // Last dialog surface rectangle.
-    currentFolder:       String             // Last browsed folder.
-    recentFolders:       Array'String       // Recently accepted folders, most recent first.
-    nameColumnWidth:     s32 = 220          // Last width of the name column.
-    modifiedColumnWidth: s32 = 130          // Last width of the modified-time column.
-    sizeColumnWidth:     s32 = 90           // Last width of the size column.
+    public
+    {
+        surfacePosition:     Math.Rectangle     // Last dialog surface rectangle.
+        currentFolder:       String             // Last browsed folder.
+        recentFolders:       Array'String       // Recently accepted folders, most recent first.
+        nameColumnWidth:     s32 = 220          // Last width of the name column.
+        modifiedColumnWidth: s32 = 130          // Last width of the modified-time column.
+        sizeColumnWidth:     s32 = 90           // Last width of the size column.
+    }
 }
 
 // Configures a [[Gui.FileDlg]] or embedded [[Gui.FileBrowserCtrl]].
 struct FileDlgOptions
 {
-    title:             string      = ""                                            // Surface title, or empty for a mode-specific title.
-    confirmButtonText: string      = ""                                            // Confirmation button label, or empty for the localized OK.
-    initialFolder:     string      = ""                                            // Initially browsed folder, when non-empty.
-    initialName:       string      = ""                                            // Initial file-name editor contents.
-    showLocationsPane              = true                                          // Whether to show shortcuts and drives.
-    mode:              FileDlgMode = SelectFile                                    // Accepted selection kind.
-    filters:           Array'{ name: string, extensions: string }                  // Named extension filters; empty means all files.
-    shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane; empty uses common user folders.
-    state:             #null *FileDlgState                                         // Optional borrowed state updated on destruction.
+    public
+    {
+        title:             string      = ""                                            // Surface title, or empty for a mode-specific title.
+        confirmButtonText: string      = ""                                            // Confirmation button label, or empty for the localized OK.
+        initialFolder:     string      = ""                                            // Initially browsed folder, when non-empty.
+        initialName:       string      = ""                                            // Initial file-name editor contents.
+        showLocationsPane              = true                                          // Whether to show shortcuts and drives.
+        mode:              FileDlgMode = SelectFile                                    // Accepted selection kind.
+        filters:           Array'{ name: string, extensions: string }                  // Named extension filters; empty means all files.
+        shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane; empty uses common user folders.
+        state:             #null *FileDlgState                                         // Optional borrowed state updated on destruction.
+    }
 }
 
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
 struct FileDlg
 {
-    using dialog: Dialog     // Embedded dialog state.
-    readonly
+    public using dialog: Dialog     // Embedded dialog state.
+    public readonly
     {
         #[Swag.Late]
         browser: *FileBrowserCtrl     // Embedded browser control.

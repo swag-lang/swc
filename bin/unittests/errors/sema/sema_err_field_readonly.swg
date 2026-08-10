@@ -1,11 +1,24 @@
 #global private
 
-// A 'readonly' field reads from anywhere and writes only from its own type.
+// A 'readonly' field reads wherever its level allows and writes only from its own type.
 #test
 {
     var c: AccessCounter
     c.bump()
     @assert(c.count == 1)
+}
+
+#test
+{
+    var c: AccessInternalCounter
+    c.bump()
+    @assert(c.count == 1)
+}
+
+#test
+{
+    var c: AccessInternalCounter
+    c.count = 5     // swc-expected-error {{sema_err_field_readonly}}
 }
 
 #test

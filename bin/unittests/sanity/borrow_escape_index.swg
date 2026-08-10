@@ -7,8 +7,11 @@ using Swag
 
 struct BorrowIndexVec
 {
-    buffer: [8] *s32
-    count:  u64
+    public
+    {
+        buffer: [8] *s32
+        count:  u64
+    }
 }
 
 impl BorrowIndexVec
@@ -28,7 +31,7 @@ impl BorrowIndexVec
 
 struct BorrowIndexHolder
 {
-    picked: *s32
+    public picked: *s32
 }
 
 // Copying a pointer element out of a local container into caller-owned storage is fine:

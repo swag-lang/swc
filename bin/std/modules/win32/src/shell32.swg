@@ -207,47 +207,62 @@ enum SHSTOCKICONID
 
 struct SHFILEINFOA
 {
-    hIcon:         HICON
-    iIcon:         s32
-    dwAttributes:  DWORD
-    szDisplayName: [MAX_PATH] CHAR
-    szTypeName:    [80] CHAR
+    public
+    {
+        hIcon:         HICON
+        iIcon:         s32
+        dwAttributes:  DWORD
+        szDisplayName: [MAX_PATH] CHAR
+        szTypeName:    [80] CHAR
+    }
 }
 
 struct SHFILEINFOW
 {
-    hIcon:         HICON
-    iIcon:         s32
-    dwAttributes:  DWORD
-    szDisplayName: [MAX_PATH] WCHAR
-    szTypeName:    [80] WCHAR
+    public
+    {
+        hIcon:         HICON
+        iIcon:         s32
+        dwAttributes:  DWORD
+        szDisplayName: [MAX_PATH] WCHAR
+        szTypeName:    [80] WCHAR
+    }
 }
 
 struct SHSTOCKICONINFO
 {
-    cbSize:         DWORD
-    hIcon:          HICON
-    iSysImageIndex: s32
-    iIcon:          s32
-    szPath:         [MAX_PATH] WCHAR
+    public
+    {
+        cbSize:         DWORD
+        hIcon:          HICON
+        iSysImageIndex: s32
+        iIcon:          s32
+        szPath:         [MAX_PATH] WCHAR
+    }
 }
 
 struct DROPFILES
 {
-    pFiles: DWORD
-    pt:     POINT
-    fNC:    BOOL
-    fWide:  BOOL
+    public
+    {
+        pFiles: DWORD
+        pt:     POINT
+        fNC:    BOOL
+        fWide:  BOOL
+    }
 }
 
 #assert(#sizeof(DROPFILES) == 20)
 
 struct GUID
 {
-    Data1: u32
-    Data2: u16
-    Data3: u16
-    Data4: [8] u8
+    public
+    {
+        Data1: u32
+        Data2: u16
+        Data3: u16
+        Data4: [8] u8
+    }
 }
 
 // Names of the two registered formats that carry a file the source holds in memory rather than
@@ -270,31 +285,40 @@ const FD_UNICODE    = 0x80000000'u32
 
 struct SIZEL
 {
-    cx: LONG
-    cy: LONG
+    public
+    {
+        cx: LONG
+        cy: LONG
+    }
 }
 
 struct FILEDESCRIPTORW
 {
-    dwFlags:          DWORD
-    clsid:            GUID
-    sizel:            SIZEL
-    pointl:           POINTL
-    dwFileAttributes: DWORD
-    ftCreationTime:   FILETIME
-    ftLastAccessTime: FILETIME
-    ftLastWriteTime:  FILETIME
-    nFileSizeHigh:    DWORD
-    nFileSizeLow:     DWORD
-    cFileName:        [MAX_PATH] WCHAR
+    public
+    {
+        dwFlags:          DWORD
+        clsid:            GUID
+        sizel:            SIZEL
+        pointl:           POINTL
+        dwFileAttributes: DWORD
+        ftCreationTime:   FILETIME
+        ftLastAccessTime: FILETIME
+        ftLastWriteTime:  FILETIME
+        nFileSizeHigh:    DWORD
+        nFileSizeLow:     DWORD
+        cFileName:        [MAX_PATH] WCHAR
+    }
 }
 
 // The descriptor block is this header followed by `cItems` descriptors, so the declared array
 // is the first of them rather than the whole list.
 struct FILEGROUPDESCRIPTORW
 {
-    cItems: UINT
-    fgd:    [1] FILEDESCRIPTORW
+    public
+    {
+        cItems: UINT
+        fgd:    [1] FILEDESCRIPTORW
+    }
 }
 
 #assert(#sizeof(FILEDESCRIPTORW) == 592)
@@ -315,42 +339,51 @@ const CLR_NONE = 0xFFFFFFFF'u32
 // deletes it nor uses it again.
 struct SHDRAGIMAGE
 {
-    sizeDragImage: SIZEL
-    ptOffset:      POINT
-    hbmpDragImage: HBITMAP
-    crColorKey:    COLORREF
+    public
+    {
+        sizeDragImage: SIZEL
+        ptOffset:      POINT
+        hbmpDragImage: HBITMAP
+        crColorKey:    COLORREF
+    }
 }
 
 #assert(#sizeof(SHDRAGIMAGE) == 32)
 
 struct IDropTargetHelper
 {
-    lpVtbl: *IDropTargetHelperVtbl
+    public lpVtbl: *IDropTargetHelperVtbl
 }
 
 struct IDropTargetHelperVtbl
 {
-    QueryInterface: func(*IDropTargetHelper, const *GUID, *LPVOID)->HRESULT
-    AddRef:         func(*IDropTargetHelper)->ULONG
-    Release:        func(*IDropTargetHelper)->ULONG
-    DragEnter:      func(*IDropTargetHelper, HWND, #null *IDataObject, *POINT, DWORD)->HRESULT
-    DragLeave:      func(*IDropTargetHelper)->HRESULT
-    DragOver:       func(*IDropTargetHelper, *POINT, DWORD)->HRESULT
-    Drop:           func(*IDropTargetHelper, #null *IDataObject, *POINT, DWORD)->HRESULT
+    public
+    {
+        QueryInterface: func(*IDropTargetHelper, const *GUID, *LPVOID)->HRESULT
+        AddRef:         func(*IDropTargetHelper)->ULONG
+        Release:        func(*IDropTargetHelper)->ULONG
+        DragEnter:      func(*IDropTargetHelper, HWND, #null *IDataObject, *POINT, DWORD)->HRESULT
+        DragLeave:      func(*IDropTargetHelper)->HRESULT
+        DragOver:       func(*IDropTargetHelper, *POINT, DWORD)->HRESULT
+        Drop:           func(*IDropTargetHelper, #null *IDataObject, *POINT, DWORD)->HRESULT
+    }
 }
 
 struct IDragSourceHelper
 {
-    lpVtbl: *IDragSourceHelperVtbl
+    public lpVtbl: *IDragSourceHelperVtbl
 }
 
 struct IDragSourceHelperVtbl
 {
-    QueryInterface:       func(*IDragSourceHelper, const *GUID, *LPVOID)->HRESULT
-    AddRef:               func(*IDragSourceHelper)->ULONG
-    Release:              func(*IDragSourceHelper)->ULONG
-    InitializeFromBitmap: func(*IDragSourceHelper, *SHDRAGIMAGE, *IDataObject)->HRESULT
-    InitializeFromWindow: func(*IDragSourceHelper, HWND, *POINT, *IDataObject)->HRESULT
+    public
+    {
+        QueryInterface:       func(*IDragSourceHelper, const *GUID, *LPVOID)->HRESULT
+        AddRef:               func(*IDragSourceHelper)->ULONG
+        Release:              func(*IDragSourceHelper)->ULONG
+        InitializeFromBitmap: func(*IDragSourceHelper, *SHDRAGIMAGE, *IDataObject)->HRESULT
+        InitializeFromWindow: func(*IDragSourceHelper, HWND, *POINT, *IDataObject)->HRESULT
+    }
 }
 
 const NIM_ADD        = 0x00000000
@@ -370,48 +403,54 @@ const NIF_SHOWTIP  = 0x00000080
 
 struct NOTIFYICONDATAA
 {
-    cbSize:               DWORD
-    hWnd:                 HWND
-    uID:                  UINT
-    uFlags:               UINT
-    uCallbackMessage:     UINT
-    hIcon:                HICON
-    szTip:                [128] CHAR
-    dwState:              DWORD
-    dwStateMask:          DWORD
-    szInfo:               [256] CHAR
-    using DUMMYUNIONNAME: union
+    public
     {
-        uTimeout: UINT
-        uVersion: UINT
+        cbSize:               DWORD
+        hWnd:                 HWND
+        uID:                  UINT
+        uFlags:               UINT
+        uCallbackMessage:     UINT
+        hIcon:                HICON
+        szTip:                [128] CHAR
+        dwState:              DWORD
+        dwStateMask:          DWORD
+        szInfo:               [256] CHAR
+        using DUMMYUNIONNAME: union
+        {
+            uTimeout: UINT
+            uVersion: UINT
+        }
+        szInfoTitle:  [64] CHAR
+        dwInfoFlags:  DWORD
+        guidItem:     GUID
+        hBalloonIcon: HICON
     }
-    szInfoTitle:  [64] CHAR
-    dwInfoFlags:  DWORD
-    guidItem:     GUID
-    hBalloonIcon: HICON
 }
 
 struct NOTIFYICONDATAW
 {
-    cbSize:               DWORD
-    hWnd:                 HWND
-    uID:                  UINT
-    uFlags:               UINT
-    uCallbackMessage:     UINT
-    hIcon:                HICON
-    szTip:                [128] WCHAR
-    dwState:              DWORD
-    dwStateMask:          DWORD
-    szInfo:               [256] WCHAR
-    using DUMMYUNIONNAME: union
+    public
     {
-        uTimeout: UINT
-        uVersion: UINT
+        cbSize:               DWORD
+        hWnd:                 HWND
+        uID:                  UINT
+        uFlags:               UINT
+        uCallbackMessage:     UINT
+        hIcon:                HICON
+        szTip:                [128] WCHAR
+        dwState:              DWORD
+        dwStateMask:          DWORD
+        szInfo:               [256] WCHAR
+        using DUMMYUNIONNAME: union
+        {
+            uTimeout: UINT
+            uVersion: UINT
+        }
+        szInfoTitle:  [64] WCHAR
+        dwInfoFlags:  DWORD
+        guidItem:     GUID
+        hBalloonIcon: HICON
     }
-    szInfoTitle:  [64] WCHAR
-    dwInfoFlags:  DWORD
-    guidItem:     GUID
-    hBalloonIcon: HICON
 }
 
 internal namespace Shell32Priv

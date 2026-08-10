@@ -31,9 +31,21 @@ AstNodeRef Parser::parseImpl()
 
 AstNodeRef Parser::parseAggregateAccessModifier()
 {
+    const TokenId  modifierId  = id();
     const TokenRef tokModifier = consume();
     auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
     nodePtr->addFlag(AstAccessModifierFlagsE::Member);
+
+    // 'readonly' is not a level: it rides on the one written before it, and on the default when
+    // written alone. It is therefore the one modifier that may follow another, and it comes last
+    // so the pair reads the way the access table does.
+    if (modifierId == TokenId::KwdReadOnly)
+        nodePtr->addFlag(AstAccessModifierFlagsE::ReadOnly);
+    else if (is(TokenId::KwdReadOnly))
+    {
+        nodePtr->addFlag(AstAccessModifierFlagsE::ReadOnly);
+        consume();
+    }
 
     switch (id())
     {
@@ -42,9 +54,17 @@ AstNodeRef Parser::parseAggregateAccessModifier()
         case TokenId::KwdPrivate:
         case TokenId::KwdReadOnly:
         {
-            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
-            diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
-            diag.report(*ctx_);
+            // A level after 'readonly' is the pair written the wrong way round, not two levels,
+            // so name the order instead of reporting a conflict the author did not make.
+            if (modifierId == TokenId::KwdReadOnly && !is(TokenId::KwdReadOnly))
+                raiseError(DiagnosticId::parser_err_readonly_before_access, ref());
+            else
+            {
+                const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
+                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+                diag.report(*ctx_);
+            }
+
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
         }

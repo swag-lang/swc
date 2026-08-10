@@ -608,7 +608,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_Matrix" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Matrix</span> <a class="api-item-permalink" href="#TrueType_Matrix" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L27">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_Matrix" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Matrix</span> <a class="api-item-permalink" href="#TrueType_Matrix" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L33">src</a></div>
 <p>Stores a 2x2 affine linear transform in 16.16 fixed-point form.</p>
 <p>The identity matrix is <span class="code-inline">{xx: 65536, yy: 65536}</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Matrix">Matrix</a></span></span></div>
@@ -636,7 +636,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_Outline" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Outline</span> <a class="api-item-permalink" href="#TrueType_Outline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L31">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_Outline" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Outline</span> <a class="api-item-permalink" href="#TrueType_Outline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L34">src</a></div>
 <p>Exposes the borrowed contours of the current scalable glyph.</p>
 <p>Points use 26.6 fixed-point pixels with y growing upward. <span class="code-inline">contours</span> stores the inclusive last point index of each contour; <span class="code-inline">tags</span> identifies on-curve points. All pointed-to storage belongs to the parent <a href="#TrueType_Face">TrueType.Face</a> and is replaced by the next glyph load.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Outline">Outline</a></span></span></div>
@@ -741,7 +741,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_Vector" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Vector</span> <a class="api-item-permalink" href="#TrueType_Vector" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L18">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_Vector" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Vector</span> <a class="api-item-permalink" href="#TrueType_Vector" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L21">src</a></div>
 <p>Stores a two-dimensional point or displacement.</p>
 <p>Vectors returned from glyph operations use 26.6 fixed-point pixels unless a declaration says otherwise.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Vector">Vector</a></span></span></div>
@@ -850,7 +850,7 @@
 </table>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="TrueType_Matrix_Identity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Matrix.Identity</span> <a class="api-item-permalink" href="#TrueType_Matrix_Identity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L35">src</a></div>
+<div class="api-item api-item-const"><span id="TrueType_Matrix_Identity" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Matrix.Identity</span> <a class="api-item-permalink" href="#TrueType_Matrix_Identity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L44">src</a></div>
 <p>Identity transform in 16.16 fixed-point form.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#TrueType_Matrix_Identity">Identity</a></span> = <span class="SCst"><a href="#TrueType_Matrix">Matrix</a></span>{xx: <span class="SNum">65536</span>, yy: <span class="SNum">65536</span>}</span></div>
 </section>
@@ -1001,25 +1001,25 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">oblique</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_decompose" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.decompose</span> <a class="api-item-permalink" href="#TrueType_Outline_decompose" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L149">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_decompose" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.decompose</span> <a class="api-item-permalink" href="#TrueType_Outline_decompose" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L152">src</a></div>
 <p>Converts the contours into an owned sequence of path commands.</p>
 <p>Quadratic TrueType segments become <span class="code-inline">ConicTo</span> commands. The returned array remains valid independently of the face's reusable glyph slot.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decompose</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#TrueType_OutlineCommand">OutlineCommand</a></span> =&gt; buildOutlineCommands</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_embolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.embolden</span> <a class="api-item-permalink" href="#TrueType_Outline_embolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_embolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.embolden</span> <a class="api-item-permalink" href="#TrueType_Outline_embolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L118">src</a></div>
 <p>Thickens the current outline by the requested 26.6 fixed-point strength.</p>
 <p>The outline is mutated in place. Positive strengths add ink while preserving counters; load the glyph again to recover its original shape.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">embolden</span>(strength: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.transform</span> <a class="api-item-permalink" href="#TrueType_Outline_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L97">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.transform</span> <a class="api-item-permalink" href="#TrueType_Outline_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L100">src</a></div>
 <p>Applies a 16.16 fixed-point linear transform to every point.</p>
 <p>Translation is intentionally not part of <a href="#TrueType_Matrix">TrueType.Matrix</a>; call <a href="#TrueType_Outline_translate">TrueType.Outline.translate</a> separately when required.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transform</span>(matrix: <span class="SCst"><a href="#TrueType_Matrix">Matrix</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_translate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.translate</span> <a class="api-item-permalink" href="#TrueType_Outline_translate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L80">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_translate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.translate</span> <a class="api-item-permalink" href="#TrueType_Outline_translate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L83">src</a></div>
 <p>Translates every point by a 26.6 fixed-point offset.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translate</span>(xOffset, yOffset: <span class="STpe">s32</span>)</span></div>
 </section>

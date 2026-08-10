@@ -264,82 +264,100 @@ const IDTIMEOUT  = 32000
 
 struct WNDCLASSA
 {
-    style:         UINT
-    lpfnWndProc:   #null const *void
-    cbClsExtra:    s32
-    cbWndExtra:    s32
-    hInstance:     HINSTANCE
-    hIcon:         HICON
-    hCursor:       HCURSOR
-    hbrBackground: HBRUSH
-    lpszMenuName:  LPCSTR
-    lpszClassName: LPCSTR
+    public
+    {
+        style:         UINT
+        lpfnWndProc:   #null const *void
+        cbClsExtra:    s32
+        cbWndExtra:    s32
+        hInstance:     HINSTANCE
+        hIcon:         HICON
+        hCursor:       HCURSOR
+        hbrBackground: HBRUSH
+        lpszMenuName:  LPCSTR
+        lpszClassName: LPCSTR
+    }
 }
 
 struct WNDCLASSW
 {
-    style:         UINT
-    lpfnWndProc:   #null const *void
-    cbClsExtra:    s32
-    cbWndExtra:    s32
-    hInstance:     HINSTANCE
-    hIcon:         HICON
-    hCursor:       HCURSOR
-    hbrBackground: HBRUSH
-    lpszMenuName:  LPCWSTR
-    lpszClassName: LPCWSTR
+    public
+    {
+        style:         UINT
+        lpfnWndProc:   #null const *void
+        cbClsExtra:    s32
+        cbWndExtra:    s32
+        hInstance:     HINSTANCE
+        hIcon:         HICON
+        hCursor:       HCURSOR
+        hbrBackground: HBRUSH
+        lpszMenuName:  LPCWSTR
+        lpszClassName: LPCWSTR
+    }
 }
 
 struct CREATESTRUCTA
 {
-    lpCreateParams: LPVOID
-    hInstance:      HINSTANCE
-    hMenu:          HMENU
-    hwndParent:     HWND
-    cy:             s32
-    cx:             s32
-    y:              s32
-    x:              s32
-    style:          LONG
-    lpszName:       LPCSTR
-    lpszClass:      LPCSTR
-    dwExStyle:      DWORD
+    public
+    {
+        lpCreateParams: LPVOID
+        hInstance:      HINSTANCE
+        hMenu:          HMENU
+        hwndParent:     HWND
+        cy:             s32
+        cx:             s32
+        y:              s32
+        x:              s32
+        style:          LONG
+        lpszName:       LPCSTR
+        lpszClass:      LPCSTR
+        dwExStyle:      DWORD
+    }
 }
 
 struct CREATESTRUCTW
 {
-    lpCreateParams: LPVOID
-    hInstance:      HINSTANCE
-    hMenu:          HMENU
-    hwndParent:     HWND
-    cy:             s32
-    cx:             s32
-    y:              s32
-    x:              s32
-    style:          LONG
-    lpszName:       LPCWSTR
-    lpszClass:      LPCWSTR
-    dwExStyle:      DWORD
+    public
+    {
+        lpCreateParams: LPVOID
+        hInstance:      HINSTANCE
+        hMenu:          HMENU
+        hwndParent:     HWND
+        cy:             s32
+        cx:             s32
+        y:              s32
+        x:              s32
+        style:          LONG
+        lpszName:       LPCWSTR
+        lpszClass:      LPCWSTR
+        dwExStyle:      DWORD
+    }
 }
 
 struct WINDOWPOS
 {
-    hwnd:            HWND
-    hwndInsertAfter: HWND
-    x:               s32
-    y:               s32
-    cx:              s32
-    cy:              s32
-    flags:           UINT
+    public
+    {
+        hwnd:            HWND
+        hwndInsertAfter: HWND
+        x:               s32
+        y:               s32
+        cx:              s32
+        cy:              s32
+        flags:           UINT
+    }
 }
 
 struct MINMAXINFO
 {
-    ptReserved:     POINT
-    ptMaxSize:      POINT
-    ptMaxPosition:  POINT
-    ptMinTrackSize: POINT
-    ptMaxTrackSize: POINT
+    public
+    {
+        ptReserved:     POINT
+        ptMaxSize:      POINT
+        ptMaxPosition:  POINT
+        ptMinTrackSize: POINT
+        ptMaxTrackSize: POINT
+    }
 }
 
 const WS_OVERLAPPED   = 0x00000000
@@ -446,13 +464,16 @@ const IDC_PERSON      = 32672
 
 struct MSG
 {
-    hwnd:     HWND
-    message:  UINT
-    wParam:   WPARAM
-    lParam:   LPARAM
-    time:     DWORD
-    pt:       POINT
-    lPrivate: DWORD
+    public
+    {
+        hwnd:     HWND
+        message:  UINT
+        wParam:   WPARAM
+        lParam:   LPARAM
+        time:     DWORD
+        pt:       POINT
+        lPrivate: DWORD
+    }
 }
 
 const WA_INACTIVE    = 0
@@ -808,20 +829,26 @@ const CF_DIBV5        = 17'u32
 
 struct RECT
 {
-    left:   LONG
-    top:    LONG
-    right:  LONG
-    bottom: LONG
+    public
+    {
+        left:   LONG
+        top:    LONG
+        right:  LONG
+        bottom: LONG
+    }
 }
 
 struct PAINTSTRUCT
 {
-    hdc:         HDC
-    fErase:      BOOL
-    rcPaint:     RECT
-    fRestore:    BOOL
-    fIncUpdate:  BOOL
-    rgbReserved: [32] BYTE
+    public
+    {
+        hdc:         HDC
+        fErase:      BOOL
+        rcPaint:     RECT
+        fRestore:    BOOL
+        fIncUpdate:  BOOL
+        rgbReserved: [32] BYTE
+    }
 }
 
 const MONITOR_DEFAULTTONULL    = 0x00000000
@@ -830,10 +857,13 @@ const MONITOR_DEFAULTTONEAREST = 0x00000002
 
 struct MONITORINFO
 {
-    cbSize:    DWORD
-    rcMonitor: RECT
-    rcWork:    RECT
-    dwFlags:   DWORD
+    public
+    {
+        cbSize:    DWORD
+        rcMonitor: RECT
+        rcWork:    RECT
+        dwFlags:   DWORD
+    }
 }
 
 alias MONITORENUMPROC = func(HMONITOR, HDC, *RECT, LPARAM)->BOOL
@@ -960,19 +990,25 @@ const CWP_SKIPTRANSPARENT = 0x0004
 
 struct ICONINFO
 {
-    fIcon:    BOOL
-    xHotspot: DWORD
-    yHotspot: DWORD
-    hbmMask:  HBITMAP
-    hbmColor: HBITMAP
+    public
+    {
+        fIcon:    BOOL
+        xHotspot: DWORD
+        yHotspot: DWORD
+        hbmMask:  HBITMAP
+        hbmColor: HBITMAP
+    }
 }
 
 struct CURSORINFO
 {
-    cbSize:      DWORD
-    flags:       DWORD
-    hCursor:     HCURSOR
-    ptScreenPos: POINT
+    public
+    {
+        cbSize:      DWORD
+        flags:       DWORD
+        hCursor:     HCURSOR
+        ptScreenPos: POINT
+    }
 }
 
 const CURSOR_SHOWING    = 0x00000001

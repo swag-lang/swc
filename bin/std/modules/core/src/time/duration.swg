@@ -6,7 +6,7 @@ using Swag
 // Represents a non-negative duration in seconds.
 struct Duration
 {
-    readonly seconds: f64     // Duration in seconds.
+    public readonly seconds: f64     // Duration in seconds.
 }
 
 impl Duration

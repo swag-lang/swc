@@ -3,8 +3,8 @@ using Core, Pixel
 // Displays application identity, title, descriptive rich text, and optional icons.
 public struct AboutDlg
 {
-    using dialog: Dialog     // Embedded dialog state.
-    readonly
+    public using dialog: Dialog     // Embedded dialog state.
+    public readonly
     {
         #[Swag.Late]
         {
@@ -18,11 +18,14 @@ public struct AboutDlg
 // Configures the content and icons of an [[Gui.AboutDlg]].
 public struct AboutDlgParams
 {
-    surfaceTitle: string     // Native surface title.
-    contentTitle: string     // Prominent application or product title.
-    message:      string     // Rich descriptive text.
-    surfaceIcon:  Icon       // Optional title-bar icon.
-    contentIcon:  Icon       // Optional large content icon.
+    public
+    {
+        surfaceTitle: string     // Native surface title.
+        contentTitle: string     // Prominent application or product title.
+        message:      string     // Rich descriptive text.
+        surfaceIcon:  Icon       // Optional title-bar icon.
+        contentIcon:  Icon       // Optional large content icon.
+    }
 }
 
 public impl AboutDlg

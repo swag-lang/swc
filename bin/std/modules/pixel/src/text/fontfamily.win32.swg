@@ -5,15 +5,21 @@ using Core, Win32, Gdi32
 // Describes one Windows face discovered for a font-family style.
 public struct SystemFontFaceInfo
 {
-    name: String       // Windows face name.
-    face: LOGFONTW     // Native descriptor returned by GDI.
+    public
+    {
+        name: String       // Windows face name.
+        face: LOGFONTW     // Native descriptor returned by GDI.
+    }
 }
 
 // Describes a Windows font family and the native faces available for its style slots.
 public struct SystemFontFamilyInfo
 {
-    name:  String                                             // Family name.
-    faces: [@countof(FontFamilyStyle)] SystemFontFaceInfo     // Face descriptor indexed by [[Pixel.FontFamilyStyle]].
+    public
+    {
+        name:  String                                             // Family name.
+        faces: [@countof(FontFamilyStyle)] SystemFontFaceInfo     // Face descriptor indexed by [[Pixel.FontFamilyStyle]].
+    }
 }
 
 impl FontFamily

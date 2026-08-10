@@ -22,13 +22,16 @@ enum CurveInterpolation
 // their meaning when a neighbouring key moves.
 struct CurveKey
 {
-    x:             f32                               // Abscissa of the key, normally inside the unit interval.
-    y:             f32                               // Ordinate of the key, free to leave the unit interval.
-    inTangent:     f32                               // Slope of the segment arriving at the key.
-    outTangent:    f32                               // Slope of the segment leaving the key.
-    inWeight:      f32                = 1 / 3.0      // Length of the arriving Bézier handle, as a fraction of the segment width.
-    outWeight:     f32                = 1 / 3.0      // Length of the leaving Bézier handle, as a fraction of the segment width.
-    interpolation: CurveInterpolation = .Hermite     // Interpolation of the segment leaving this key.
+    public
+    {
+        x:             f32                               // Abscissa of the key, normally inside the unit interval.
+        y:             f32                               // Ordinate of the key, free to leave the unit interval.
+        inTangent:     f32                               // Slope of the segment arriving at the key.
+        outTangent:    f32                               // Slope of the segment leaving the key.
+        inWeight:      f32                = 1 / 3.0      // Length of the arriving Bézier handle, as a fraction of the segment width.
+        outWeight:     f32                = 1 / 3.0      // Length of the leaving Bézier handle, as a fraction of the segment width.
+        interpolation: CurveInterpolation = .Hermite     // Interpolation of the segment leaving this key.
+    }
 }
 
 // Names one classic curve, the shape a caller asks for instead of authoring it.
@@ -78,22 +81,25 @@ impl CurvePreset
 // value.
 struct Curve
 {
-    // Keys of the curve, kept sorted by ascending abscissa.
-    //
-    // [[Core.Math.Curve.addKey]] maintains that order. Editing a key in place is allowed, and is how a
-    // curve editor retimes one; call [[Core.Math.Curve.sortKeys]] afterwards when the edit moved a key
-    // past a neighbour.
-    keys: Array'CurveKey
+    public
+    {
+        // Keys of the curve, kept sorted by ascending abscissa.
+        //
+        // [[Core.Math.Curve.addKey]] maintains that order. Editing a key in place is allowed, and is how a
+        // curve editor retimes one; call [[Core.Math.Curve.sortKeys]] afterwards when the edit moved a key
+        // past a neighbour.
+        keys: Array'CurveKey
 
-    // User-space window the normalized unit square maps onto.
-    //
-    // [[Core.Math.Curve.evaluate]] reads an abscissa between `startX` and `endX` and answers an
-    // ordinate between `startY` and `endY`. The defaults leave both axes normalized, and an end
-    // below its start mirrors that axis.
-    startX: f32
-    endX:   f32 = 1
-    startY: f32
-    endY:   f32 = 1
+        // User-space window the normalized unit square maps onto.
+        //
+        // [[Core.Math.Curve.evaluate]] reads an abscissa between `startX` and `endX` and answers an
+        // ordinate between `startY` and `endY`. The defaults leave both axes normalized, and an end
+        // below its start mirrors that axis.
+        startX: f32
+        endX:   f32 = 1
+        startY: f32
+        endY:   f32 = 1
+    }
 }
 
 private impl Curve

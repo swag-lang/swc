@@ -5,22 +5,25 @@ using Core, Pixel
 // Combines a label, slider, and validated numeric editor into one control.
 struct SliderCtrl
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-
-    sigChanged: SigArray'func||(*SliderCtrl)     // Emitted after the slider value changes.
-
-    readonly
+    public
     {
-        labelWidth:     f32  = 60       // Width reserved for the label.
-        valueWidth:     f32  = 60       // Minimum or fixed width of the numeric editor.
-        spacing:        f32  = 8        // Gap on each side of the slider track.
-        autoValueWidth: bool = true     // Whether the numeric editor grows to fit the configured range.
+        using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-        #[Swag.Late]
+        sigChanged: SigArray'func||(*SliderCtrl)     // Emitted after the slider value changes.
+
+        public readonly
         {
-            label:  *Label       // Descriptive label.
-            slider: *Slider      // Interactive value slider.
-            edit:   *EditBox     // Validated numeric editor.
+            labelWidth:     f32  = 60       // Width reserved for the label.
+            valueWidth:     f32  = 60       // Minimum or fixed width of the numeric editor.
+            spacing:        f32  = 8        // Gap on each side of the slider track.
+            autoValueWidth: bool = true     // Whether the numeric editor grows to fit the configured range.
+
+            #[Swag.Late]
+            {
+                label:  *Label       // Descriptive label.
+                slider: *Slider      // Interactive value slider.
+                edit:   *EditBox     // Validated numeric editor.
+            }
         }
     }
 }

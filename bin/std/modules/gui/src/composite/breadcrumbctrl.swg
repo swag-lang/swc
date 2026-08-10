@@ -5,39 +5,45 @@ using Core, Pixel
 // Describes one level in a [[BreadcrumbCtrl]].
 struct BreadcrumbItem
 {
-    name:     String     // Display name.
-    icon:     Icon       // Optional leading icon.
-    userData: u64        // Application-defined numeric payload.
-    tag:      String     // Application-defined string payload, such as a folder path.
-    hasArrow = true      // Whether the level exposes a child menu.
+    public
+    {
+        name:     String     // Display name.
+        icon:     Icon       // Optional leading icon.
+        userData: u64        // Application-defined numeric payload.
+        tag:      String     // Application-defined string payload, such as a folder path.
+        hasArrow = true      // Whether the level exposes a child menu.
 
-    bodyRect:  Math.Rectangle     // Body bounds in control-local coordinates.
-    arrowRect: Math.Rectangle     // Child-menu arrow bounds in control-local coordinates.
+        bodyRect:  Math.Rectangle     // Body bounds in control-local coordinates.
+        arrowRect: Math.Rectangle     // Child-menu arrow bounds in control-local coordinates.
+    }
 }
 
 // Displays a horizontal path whose levels can be activated or expanded into child menus.
 struct BreadcrumbCtrl
 {
-    using wnd: Wnd     // Embedded wnd state.
-
-    readonly
+    public
     {
-        items: Array'BreadcrumbItem     // Ordered path levels.
-        padX     = 7.0'f32              // Horizontal padding inside each level body.
-        iconGap  = 5.0'f32              // Gap between an icon and its label.
-        arrowPad = 6.0'f32              // Padding on each side of a child-menu arrow.
-    }
+        using wnd: Wnd     // Embedded wnd state.
 
-    sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                // Emitted after a level body is activated.
-    sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)     // Emitted when a level's child menu needs content.
-    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)        // Emitted after a command is selected from a child menu.
+        public readonly
+        {
+            items: Array'BreadcrumbItem     // Ordered path levels.
+            padX     = 7.0'f32              // Horizontal padding inside each level body.
+            iconGap  = 5.0'f32              // Gap between an icon and its label.
+            arrowPad = 6.0'f32              // Padding on each side of a child-menu arrow.
+        }
 
-    internal
-    {
-        hotItem   = Swag.U64.Max     // Level currently under the pointer.
-        hotArrow:   bool             // Whether the pointer is over that level's arrow.
-        pressItem = Swag.U64.Max     // Level on which the current press began.
-        pressArrow: bool             // Whether the current press began on its arrow.
+        sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                // Emitted after a level body is activated.
+        sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)     // Emitted when a level's child menu needs content.
+        sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)        // Emitted after a command is selected from a child menu.
+
+        internal
+        {
+            hotItem   = Swag.U64.Max     // Level currently under the pointer.
+            hotArrow:   bool             // Whether the pointer is over that level's arrow.
+            pressItem = Swag.U64.Max     // Level on which the current press began.
+            pressArrow: bool             // Whether the current press began on its arrow.
+        }
     }
 }
 

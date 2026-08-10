@@ -11,18 +11,21 @@ using Core, Pixel
 // type.
 struct IconSet
 {
-    // The vector document; borrowed, never owned. It must outlive the set.
-    drawing: #null const *Svg.Drawing
-
-    // The renderer frame textures are created through; borrowed, never owned.
-    #[Swag.Late]
-    internal
-    renderer: Pixel.IRenderer
-
-    internal
+    public
     {
-        lists: HashTable'(s32, *ImageList)     // Frame lists by logical size.
-        scale: f32                             // Device scale the lists were built at.
+        // The vector document; borrowed, never owned. It must outlive the set.
+        drawing: #null const *Svg.Drawing
+
+        // The renderer frame textures are created through; borrowed, never owned.
+        #[Swag.Late]
+        internal
+        renderer: Pixel.IRenderer
+
+        internal
+        {
+            lists: HashTable'(s32, *ImageList)     // Frame lists by logical size.
+            scale: f32                             // Device scale the lists were built at.
+        }
     }
 }
 

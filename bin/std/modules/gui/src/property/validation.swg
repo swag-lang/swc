@@ -17,8 +17,11 @@ enum PropValidation
 // Returns one validation severity and its optional user-facing explanation.
 struct PropValidationResult
 {
-    state:   PropValidation = .None     // Validation severity.
-    message: #null string               // Explanation shown with the row, or null for none.
+    public
+    {
+        state:   PropValidation = .None     // Validation severity.
+        message: #null string               // Explanation shown with the row, or null for none.
+    }
 }
 
 internal impl Properties

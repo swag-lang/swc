@@ -36,8 +36,11 @@ public interface IPropertyEditor
 #[Swag.NoDoc]
 public struct PropertyEditorReg
 {
-    type: const *Swag.TypeInfoStruct     // Type associated with this value.
-    itf:  IPropertyEditor                // Itf associated with this value.
+    public
+    {
+        type: const *Swag.TypeInfoStruct     // Type associated with this value.
+        itf:  IPropertyEditor                // Itf associated with this value.
+    }
 }
 
 impl Properties

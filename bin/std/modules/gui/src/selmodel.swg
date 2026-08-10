@@ -5,8 +5,11 @@ using Core
 // Inclusive range of selected indices.
 struct SelRange
 {
-    start: u32     // First selected index.
-    end:   u32     // Last selected index.
+    public
+    {
+        start: u32     // First selected index.
+        end:   u32     // Last selected index.
+    }
 }
 
 // Maintains a set of selected indices as sorted, disjoint ranges.

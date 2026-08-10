@@ -31,8 +31,11 @@ public interface ICodec
 // Reports the byte-level progress of one incremental codec operation.
 public struct CodecProgress
 {
-    bytesWritten: u64     // Bytes produced in the destination buffer.
-    bytesRead:    u64     // Bytes consumed from the source buffer.
+    public
+    {
+        bytesWritten: u64     // Bytes produced in the destination buffer.
+        bytesRead:    u64     // Bytes consumed from the source buffer.
+    }
 }
 
 struct CodecDesc
@@ -82,7 +85,7 @@ func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->#null *C
 // Stores the source, destination, and concrete type of a codec instance.
 public struct Codec
 {
-    readonly
+    public readonly
     {
         sourceEncoding:      SoundFileEncoding     // Encoding read from the sound file.
         destinationEncoding: SoundFileEncoding     // Encoding requested by the active backend.

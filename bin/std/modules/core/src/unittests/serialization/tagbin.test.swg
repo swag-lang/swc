@@ -172,8 +172,11 @@ public interface ITagBinScore
 
 public struct TagBinInterfaceProbe
 {
-    value: s32
-    label: String
+    public
+    {
+        value: s32
+        label: String
+    }
 }
 
 public impl ITagBinScore for TagBinInterfaceProbe
@@ -190,12 +193,15 @@ struct TagBinInterfacePayload
 
 public struct TagBinHookPayload
 {
-    direct:   s32
-    remapped: s32
-    bytes:    Array'u8
+    public
+    {
+        direct:   s32
+        remapped: s32
+        bytes:    Array'u8
 
-    #[Serialization.NoSerialize]
-    postReadSeen: bool
+        #[Serialization.NoSerialize]
+        postReadSeen: bool
+    }
 }
 
 public impl Serialization.ISerialize for TagBinHookPayload
@@ -272,10 +278,13 @@ public impl Serialization.ISerialize for TagBinHookPayload
 #[Serialization.Version(5)]
 public struct TagBinVersionProbe
 {
-    value: s32
+    public
+    {
+        value: s32
 
-    #[Serialization.NoSerialize]
-    seenVersion: u32
+        #[Serialization.NoSerialize]
+        seenVersion: u32
+    }
 }
 
 public impl Serialization.ISerialize for TagBinVersionProbe

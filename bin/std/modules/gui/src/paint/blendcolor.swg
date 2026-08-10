@@ -5,7 +5,7 @@ using Pixel
 // Used to animate the blending of a color.
 struct BlendColor
 {
-    speed: f32 = 8     // Positive interpolation speed in units per second; non-positive values complete immediately.
+    public speed: f32 = 8     // Positive interpolation speed in units per second; non-positive values complete immediately.
 
     // Interpolation state owned by the application animator. Set a target with `apply` and read
     // the current value with `cur`.

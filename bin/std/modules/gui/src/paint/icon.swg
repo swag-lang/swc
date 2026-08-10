@@ -7,11 +7,14 @@ using Core, Pixel
 // The image list remains owned by the caller and must outlive this borrowed descriptor.
 struct Icon
 {
-    imageList: #null *ImageList     // Image list associated with this value.
-    index:     s32                  // Index associated with this value.
-    sizeX:     f32 = 24             // Size x associated with this value.
-    sizeY:     f32 = 24             // Size y associated with this value.
-    color:     Color                // Color associated with this value.
+    public
+    {
+        imageList: #null *ImageList     // Image list associated with this value.
+        index:     s32                  // Index associated with this value.
+        sizeX:     f32 = 24             // Size x associated with this value.
+        sizeY:     f32 = 24             // Size y associated with this value.
+        color:     Color                // Color associated with this value.
+    }
 }
 
 impl Icon

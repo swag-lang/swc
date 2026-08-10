@@ -14,59 +14,62 @@ public enum ScrollWndFlags
 // Hosts one view in a scrollable viewport with optional smooth panning and scrollbars.
 public struct ScrollWnd
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-
-    verticalScrollStep:   f32 = 50     // Vertical distance applied per mouse-wheel notch.
-    horizontalScrollStep: f32 = 50     // Horizontal distance applied per shifted wheel notch.
-
-    readonly
+    public
     {
-        scrollSize: Math.Point          // Virtual content size.
-        flags = ScrollWndFlags.None     // Active scrollbar options.
-    }
+        using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-    sigScrollPositionChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
-    sigScrollSizeChanged:     SigArray'func||(*ScrollWnd, Math.Point, Math.Point)     // Emitted with old and new virtual sizes.
+        verticalScrollStep:   f32 = 50     // Vertical distance applied per mouse-wheel notch.
+        horizontalScrollStep: f32 = 50     // Horizontal distance applied per shifted wheel notch.
 
-    // Scrollbar geometry, hover and drag state, and the color animations that follow them.
-    // The layout pass and the mouse events maintain all of it; scroll with 'setScrollPos'
-    // and connect to the signals to react.
-    internal
-    {
-        oldMouseCapture: #null *Wnd     // Old mouse capture associated with this value.
+        public readonly
+        {
+            scrollSize: Math.Point          // Virtual content size.
+            flags = ScrollWndFlags.None     // Active scrollbar options.
+        }
 
-        scrollRequestPos: Math.Point     // Scroll request pos associated with this value.
+        sigScrollPositionChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
+        sigScrollSizeChanged:     SigArray'func||(*ScrollWnd, Math.Point, Math.Point)     // Emitted with old and new virtual sizes.
 
-        showBarV:   bool     // Show bar v associated with this value.
-        needV:      bool     // Need v associated with this value.
-        posBoxV:    f32      // Pos box v associated with this value.
-        sizeBoxV:   f32      // Size box v associated with this value.
-        isHotV:     bool     // Whether this value is hot v.
-        isHotBarV:  bool     // Whether this value is hot bar v.
-        isPressedV: bool     // Whether this value is pressed v.
+        // Scrollbar geometry, hover and drag state, and the color animations that follow them.
+        // The layout pass and the mouse events maintain all of it; scroll with 'setScrollPos'
+        // and connect to the signals to react.
+        internal
+        {
+            oldMouseCapture: #null *Wnd     // Old mouse capture associated with this value.
 
-        showBarH:   bool     // Show bar h associated with this value.
-        needH:      bool     // Need h associated with this value.
-        posBoxH:    f32      // Pos box h associated with this value.
-        sizeBoxH:   f32      // Size box h associated with this value.
-        isHotH:     bool     // Whether this value is hot h.
-        isHotBarH:  bool     // Whether this value is hot bar h.
-        isPressedH: bool     // Whether this value is pressed h.
+            scrollRequestPos: Math.Point     // Scroll request pos associated with this value.
 
-        isMoving:      bool     // Whether this value is moving.
-        isGrabbing:    bool     // Whether this value is grabbing.
-        correcMoving:  f32      // Correc moving associated with this value.
-        offsetClientV: f32      // Offset client v associated with this value.
-        offsetClientH: f32      // Offset client h associated with this value.
-        paddingZ:      f32      // Padding z associated with this value.
-        paddingW:      f32      // Padding w associated with this value.
+            showBarV:   bool     // Show bar v associated with this value.
+            needV:      bool     // Need v associated with this value.
+            posBoxV:    f32      // Pos box v associated with this value.
+            sizeBoxV:   f32      // Size box v associated with this value.
+            isHotV:     bool     // Whether this value is hot v.
+            isHotBarV:  bool     // Whether this value is hot bar v.
+            isPressedV: bool     // Whether this value is pressed v.
 
-        aniBkBarV: BlendColor     // Ani bk bar v associated with this value.
-        aniBkBarH: BlendColor     // Ani bk bar h associated with this value.
-        aniBoxV:   BlendColor     // Ani box v associated with this value.
-        aniBoxH:   BlendColor     // Ani box h associated with this value.
+            showBarH:   bool     // Show bar h associated with this value.
+            needH:      bool     // Need h associated with this value.
+            posBoxH:    f32      // Pos box h associated with this value.
+            sizeBoxH:   f32      // Size box h associated with this value.
+            isHotH:     bool     // Whether this value is hot h.
+            isHotBarH:  bool     // Whether this value is hot bar h.
+            isPressedH: bool     // Whether this value is pressed h.
 
-        grabbingPos: Math.Point     // Grabbing pos associated with this value.
+            isMoving:      bool     // Whether this value is moving.
+            isGrabbing:    bool     // Whether this value is grabbing.
+            correcMoving:  f32      // Correc moving associated with this value.
+            offsetClientV: f32      // Offset client v associated with this value.
+            offsetClientH: f32      // Offset client h associated with this value.
+            paddingZ:      f32      // Padding z associated with this value.
+            paddingW:      f32      // Padding w associated with this value.
+
+            aniBkBarV: BlendColor     // Ani bk bar v associated with this value.
+            aniBkBarH: BlendColor     // Ani bk bar h associated with this value.
+            aniBoxV:   BlendColor     // Ani box v associated with this value.
+            aniBoxH:   BlendColor     // Ani box h associated with this value.
+
+            grabbingPos: Math.Point     // Grabbing pos associated with this value.
+        }
     }
 }
 

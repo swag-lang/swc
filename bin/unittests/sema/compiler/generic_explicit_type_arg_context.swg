@@ -8,7 +8,7 @@ func(T) nullPtr()->#null *T
 
 struct(T) ListEntry
 {
-    value: T
+    public value: T
 }
 
 struct(T) List {}

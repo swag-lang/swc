@@ -7,7 +7,7 @@ using Core, Core.Errors
 // may target a parent bus to form a mixing graph.
 public struct Bus
 {
-    readonly
+    public readonly
     {
         channelCount: u32            // Number of channels mixed by this bus.
         parent:       #null *Bus     // Parent bus, or `null` for the mastering output.

@@ -182,9 +182,11 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if verifyCode != 0 do
         return verifyCode
 
+    // Only the module carrying the directives must recompile; a dependency of its own is free to
+    // be reused, and naming the module keeps that from reading as the failure.
     let verifiedAgain = try context.captureProgram(context.compiler.toString(), verified)
     Console.print(verifiedAgain.toString())
-    if verifiedAgain.contains("up-to-date")
+    if verifiedAgain.contains("verify_expectations • up-to-date")
     {
         Console.println("Workspace test reused a module with source-driven Verify directives.")
         return 1

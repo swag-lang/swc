@@ -5,11 +5,14 @@ using Core, Pixel
 // Common label, icon, command, and caller-data payload used by item controls.
 struct Item
 {
-    name:      RichString      // Display label, optionally containing styled spans.
-    icon:      Icon            // Optional display icon.
-    id:        #null WndId     // Optional command identifier.
-    userData0: #null *void     // First caller-owned payload pointer.
-    userData1: #null *void     // Second caller-owned payload pointer.
+    public
+    {
+        name:      RichString      // Display label, optionally containing styled spans.
+        icon:      Icon            // Optional display icon.
+        id:        #null WndId     // Optional command identifier.
+        userData0: #null *void     // First caller-owned payload pointer.
+        userData1: #null *void     // Second caller-owned payload pointer.
+    }
 }
 
 // Describes the interaction state in which an item is painted.

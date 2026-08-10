@@ -49,55 +49,61 @@ enum TabLayout
 // Describes one tab label and its optional owned page view.
 struct TabItem
 {
-    using item: Item     // Embedded label, icon, identifier, and user data.
-    readonly
-    view: #null *Wnd     // Page view owned by the tab control, if any.
-
-    // Placement computed by the bar layout, and the color animations of the painted parts.
-    internal
+    public
     {
-        pos:       f32            // Left edge of the tab in the bar.
-        width:     f32            // Width of the tab in the bar.
-        aniImg:    BlendColor     // Color animation of the icon.
-        aniBorder: BlendColor     // Color animation of the border.
-        aniText:   BlendColor     // Color animation of the label.
+        using item: Item     // Embedded label, icon, identifier, and user data.
+        public readonly
+        view: #null *Wnd     // Page view owned by the tab control, if any.
+
+        // Placement computed by the bar layout, and the color animations of the painted parts.
+        internal
+        {
+            pos:       f32            // Left edge of the tab in the bar.
+            width:     f32            // Width of the tab in the bar.
+            aniImg:    BlendColor     // Color animation of the icon.
+            aniBorder: BlendColor     // Color animation of the border.
+            aniText:   BlendColor     // Color animation of the label.
+        }
     }
 }
 
 // Displays a selectable tab bar and one owned page view at a time.
 struct Tab
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    sigSelectionChanged: SigArray'func||(*Tab)     // Emitted after the selected tab changes.
-
-    // The tabs the bar shows, in display order. Add and remove them through the methods, which
-    // keep the views, the layout and the selection consistent.
-    readonly
+    public
     {
-        barForm:          TabBarForm  = .Flat            // Tab bar background presentation.
-        itemForm:         TabItemForm = .Flat            // Individual tab presentation.
-        viewForm:         TabViewForm = .Flat            // Selected page frame presentation.
-        layout:           TabLayout   = .Equal           // Tab width measurement policy.
-        fixedItemWidth:   f32         = 100              // Item width used by the fixed policy.
-        itemPadding:      f32         = 25               // Extra width added by the content policy.
-        minimumItemWidth: f32         = 25               // Minimum effective width for every tab.
-        items:            ArrayPtr'TabItem               // Tabs in display order.
-        selectedIndex                 = Swag.U32.Max     // Selected tab index, or U32.Max when empty.
-        pageTransitions:  bool                           // Whether owned page changes use the standard transition.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    // Bar layout and overflow state, recomputed by the layout pass.
-    internal
-    {
-        buttonPopup:       #null *IconButton        // Button that opens the overflow list.
-        popup:             #null *PopupListCtrl     // Overflow list while it is open.
-        firstVisibleIndex: u32                      // First tab the bar can show.
-        hotIndex:          u32 = Swag.U32.Max       // Tab under the mouse.
-        barHeight:         f32                      // Height the bar measured for itself.
-        mostRightPos:      f32                      // Right edge of the last laid out tab.
-        selectionRail:     Math.Rectangle           // Animated active-rail position.
-        hasSelectionRail:  bool                     // Whether the rail has been laid out once.
+        sigSelectionChanged: SigArray'func||(*Tab)     // Emitted after the selected tab changes.
+
+        // The tabs the bar shows, in display order. Add and remove them through the methods, which
+        // keep the views, the layout and the selection consistent.
+        public readonly
+        {
+            barForm:          TabBarForm  = .Flat            // Tab bar background presentation.
+            itemForm:         TabItemForm = .Flat            // Individual tab presentation.
+            viewForm:         TabViewForm = .Flat            // Selected page frame presentation.
+            layout:           TabLayout   = .Equal           // Tab width measurement policy.
+            fixedItemWidth:   f32         = 100              // Item width used by the fixed policy.
+            itemPadding:      f32         = 25               // Extra width added by the content policy.
+            minimumItemWidth: f32         = 25               // Minimum effective width for every tab.
+            items:            ArrayPtr'TabItem               // Tabs in display order.
+            selectedIndex                 = Swag.U32.Max     // Selected tab index, or U32.Max when empty.
+            pageTransitions:  bool                           // Whether owned page changes use the standard transition.
+        }
+
+        // Bar layout and overflow state, recomputed by the layout pass.
+        internal
+        {
+            buttonPopup:       #null *IconButton        // Button that opens the overflow list.
+            popup:             #null *PopupListCtrl     // Overflow list while it is open.
+            firstVisibleIndex: u32                      // First tab the bar can show.
+            hotIndex:          u32 = Swag.U32.Max       // Tab under the mouse.
+            barHeight:         f32                      // Height the bar measured for itself.
+            mostRightPos:      f32                      // Right edge of the last laid out tab.
+            selectionRail:     Math.Rectangle           // Animated active-rail position.
+            hasSelectionRail:  bool                     // Whether the rail has been laid out once.
+        }
     }
 }
 

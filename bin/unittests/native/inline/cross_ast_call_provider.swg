@@ -16,7 +16,7 @@ func isEqualEpsilonF64Only(value: f64, expected: f64, eps: f64)->bool => abs(val
 
 struct Angle
 {
-    rad: f32
+    public rad: f32
 }
 
 impl Angle
@@ -33,7 +33,7 @@ impl Angle
 
 struct InlineSelection
 {
-    selected: u32
+    public selected: u32
 }
 
 impl InlineSelection
@@ -202,7 +202,7 @@ func inlineForwardedGenericMacroReturn(seed: s32)->s32
 
 struct InlineBoundProbe
 {
-    count: u64
+    public count: u64
 }
 
 impl InlineBoundProbe
@@ -281,14 +281,17 @@ func inlinePointerOffset(buffer: [*] u8, x: s32, y: s32, bpp8: u8, width8: s32)-
 
 struct InlinePixelProbe
 {
-    buffer: [*] u8
-    bpp8:   u8
-    width:  s32
+    public
+    {
+        buffer: [*] u8
+        bpp8:   u8
+        width:  s32
+    }
 }
 
 struct InlineJobProbe
 {
-    contextData: #null *void
+    public contextData: #null *void
 }
 
 #[Swag.Macro]

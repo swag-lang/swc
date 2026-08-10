@@ -6,8 +6,11 @@ using Core.Errors
 // One embedded resource: a name and its compile-time bytes.
 struct EmbeddedResource
 {
-    name:  String                  // Resource name, with `/` separators.
-    bytes: #null const [..] u8     // Compile-time bytes, owned by the program image.
+    public
+    {
+        name:  String                  // Resource name, with `/` separators.
+        bytes: #null const [..] u8     // Compile-time bytes, owned by the program image.
+    }
 }
 
 // Resolves a resource name through an ordered chain of providers.
@@ -26,8 +29,11 @@ struct EmbeddedResource
 // ```
 struct Bundle
 {
-    folders:  Array'String               // Disk roots, searched in registration order.
-    embedded: Array'EmbeddedResource     // Compile-time fallback bytes, searched last.
+    public
+    {
+        folders:  Array'String               // Disk roots, searched in registration order.
+        embedded: Array'EmbeddedResource     // Compile-time fallback bytes, searched last.
+    }
 }
 
 impl Bundle

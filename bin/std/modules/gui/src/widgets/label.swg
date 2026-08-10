@@ -16,27 +16,30 @@ enum LabelFlags
 // Displays rich text and an optional icon, and reports activated links.
 struct Label
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    sigLinkActivated: SigArray'func||(*Label, string)     // Emitted when the user activates a rich-text link.
-
-    readonly
+    public
     {
-        icon:        Icon                                        // Optional displayed icon.
-        iconColor:   Color                                       // Explicit icon color, or transparent for the icon or theme color.
-        textColor:   Color                                       // Explicit text color, or transparent for theme colors.
-        flags                   = LabelFlags.None                // Active text layout and presentation options.
-        iconHorizontalAlignment = StringHorzAlignment.Center     // Horizontal icon alignment.
-        iconVerticalAlignment   = StringVertAlignment.Center     // Vertical icon alignment.
-        textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal text alignment.
-        textVerticalAlignment   = StringVertAlignment.Center     // Vertical text alignment.
-        textPadding: Math.Vector4                                // Insets applied to the text layout rectangle.
-        iconPadding: Math.Vector4                                // Insets applied to the icon layout rectangle.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
-    internal
-    hotChunk: #null *RichChunk
+        sigLinkActivated: SigArray'func||(*Label, string)     // Emitted when the user activates a rich-text link.
+
+        public readonly
+        {
+            icon:        Icon                                        // Optional displayed icon.
+            iconColor:   Color                                       // Explicit icon color, or transparent for the icon or theme color.
+            textColor:   Color                                       // Explicit text color, or transparent for theme colors.
+            flags                   = LabelFlags.None                // Active text layout and presentation options.
+            iconHorizontalAlignment = StringHorzAlignment.Center     // Horizontal icon alignment.
+            iconVerticalAlignment   = StringVertAlignment.Center     // Vertical icon alignment.
+            textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal text alignment.
+            textVerticalAlignment   = StringVertAlignment.Center     // Vertical text alignment.
+            textPadding: Math.Vector4                                // Insets applied to the text layout rectangle.
+            iconPadding: Math.Vector4                                // Insets applied to the icon layout rectangle.
+        }
+
+        // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
+        internal
+        hotChunk: #null *RichChunk
+    }
 }
 
 impl IWnd for Label

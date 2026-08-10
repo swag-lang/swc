@@ -212,6 +212,22 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     return followNamespace(sema, root, sema.frame().nsPath());
 }
 
+MemberAccessSpec SemaFrame::memberAccessFor(const SymbolMap* symMap) const
+{
+    if (symMap && symMap == memberAccessMap_)
+        return memberAccess_;
+
+    // An anonymous aggregate has no name to be reached by, and no declaration a modifier could be
+    // written on: a returned tuple and an inline union are reached only through whatever holds
+    // them, so that is what decides who reaches their members. Closing them again would leave them
+    // unreachable with no syntax to open them.
+    const auto* symStruct = symMap ? symMap->safeCast<SymbolStruct>() : nullptr;
+    if (symStruct && symStruct->hasExtraFlag(SymbolStructFlagsE::Anonymous))
+        return {MemberAccess::Public, false};
+
+    return {};
+}
+
 SymbolFlags SemaFrame::flagsForCurrentAccess() const
 {
     SymbolFlags flags = SymbolFlagsE::Zero;

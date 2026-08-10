@@ -27,68 +27,74 @@ enum RichEditForm
 #[Swag.Opaque, Swag.NoDoc]
 struct RichEditMapping
 {
-    key:       Input.Key          = undefined
-    modifiers: Input.KeyModifiers = undefined
-    command:   RichEditCommand    = undefined
+    public
+    {
+        key:       Input.Key          = undefined
+        modifiers: Input.KeyModifiers = undefined
+        command:   RichEditCommand    = undefined
+    }
 }
 
 // Provides a multiline rich-text editor with styling, selection, undo, and pluggable lexing.
 struct RichEditCtrl
 {
-    using frameWnd:       FrameWnd                           // Embedded frame wnd state.
-    flags = RichEditFlags.None                               // Active editor behavior flags.
-    lineSpacing:          f32                                // Extra vertical spacing, in logical pixels, between display lines.
-    overwriteMode:        bool                               // Whether typed text replaces the rune under the caret.
-    tabSize:              s32 = 4                            // Width of a tab stop in space advances.
-    marginLeft:           f32                                // Blank space between the view and the left text edge.
-    marginRight:          f32                                // Blank space between the right text edge and the view.
-    lexer:                #null IRichEditLexer               // Optional lexer responsible for assigning style indices.
-    form  = RichEditForm.RichEditCtrl                        // Current theme treatment.
-    sigIsReadOnly:        SigArray'func||(*bool)             // Lets owners impose read-only state in addition to `flags`.
-    sigChanged:           SigArray'func||(*RichEditCtrl)     // Emitted after document content changes.
-    sigModified:          SigArray'func||(*RichEditCtrl)     // Emitted when the modified state toggles.
-    backgroundColorModel: String                             // Optional theme color expression used for the editor background.
-
-    // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill
-    // these in to give the control its syntax colors.
-    styles:       [256] RichEditRuneStyle     // Style of each index a lexer assigns.
-    stylesSelect: [2] RichEditRuneStyle       // Style of selected text, unfocused then focused.
-
-    // The document and everything the control derives from it: the line pool, the cursor and
-    // selection, the visible window, and the undo timeline. Edit through the methods and
-    // connect to the signals; this state only makes sense together.
-    internal
+    public
     {
-        cursorPos: RichEditCursor            // Cursor pos associated with this value.
-        selBeg:    RichEditCursor            // Sel beg associated with this value.
-        lines:     ArrayPtr'RichEditLine     // Lines associated with this value.
-        freeLines: ArrayPtr'RichEditLine     // Free lines associated with this value.
-        #[Swag.Late]
-        scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
-        #[Swag.Late]
-        edView:       *RichEditView      // Ed view associated with this value.
-        selRectangle: Math.Rectangle     // Sel rectangle associated with this value.
+        using frameWnd:       FrameWnd                           // Embedded frame wnd state.
+        flags = RichEditFlags.None                               // Active editor behavior flags.
+        lineSpacing:          f32                                // Extra vertical spacing, in logical pixels, between display lines.
+        overwriteMode:        bool                               // Whether typed text replaces the rune under the caret.
+        tabSize:              s32 = 4                            // Width of a tab stop in space advances.
+        marginLeft:           f32                                // Blank space between the view and the left text edge.
+        marginRight:          f32                                // Blank space between the right text edge and the view.
+        lexer:                #null IRichEditLexer               // Optional lexer responsible for assigning style indices.
+        form  = RichEditForm.RichEditCtrl                        // Current theme treatment.
+        sigIsReadOnly:        SigArray'func||(*bool)             // Lets owners impose read-only state in addition to `flags`.
+        sigChanged:           SigArray'func||(*RichEditCtrl)     // Emitted after document content changes.
+        sigModified:          SigArray'func||(*RichEditCtrl)     // Emitted when the modified state toggles.
+        backgroundColorModel: String                             // Optional theme color expression used for the editor background.
 
-        hasSelRect:              bool     // Whether this value has sel rect.
-        modified:                bool     // Modified associated with this value.
-        recomputeScroll:         bool     // Recompute scroll associated with this value.
-        dirtyFirstLineView:      bool     // Dirty first line view associated with this value.
-        forceCaretVisible:       bool     // Force caret visible associated with this value.
-        forceCaretVisibleCenter: bool     // Force caret visible center associated with this value.
+        // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill
+        // these in to give the control its syntax colors.
+        styles:       [256] RichEditRuneStyle     // Style of each index a lexer assigns.
+        stylesSelect: [2] RichEditRuneStyle       // Style of selected text, unfocused then focused.
 
-        undoMgr:              ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
-        toUndo:               ArrayPtr'RichEditUndo     // To undo associated with this value.
-        mapping:              Array'RichEditMapping     // Mapping associated with this value.
-        currentUndo:          u64                       // Current undo associated with this value.
-        undoCounter:          u64                       // Undo counter associated with this value.
-        modifiedUndoMarker:   u64                       // Modified undo marker associated with this value.
-        serialUndo:           u64                       // Serial undo associated with this value.
-        countVisibleLines:    u64                       // Count visible lines associated with this value.
-        firstVisibleLineView: u64                       // First visible line view associated with this value.
-        lastVisibleLineView:  u64                       // Last visible line view associated with this value.
-        clipFormat:           Clipboard.ValueFormat     // Clip format associated with this value.
-        cursorPosUndo:        RichEditCursor            // Cursor pos undo associated with this value.
-        selBegUndo:           RichEditCursor            // Sel beg undo associated with this value.
+        // The document and everything the control derives from it: the line pool, the cursor and
+        // selection, the visible window, and the undo timeline. Edit through the methods and
+        // connect to the signals; this state only makes sense together.
+        internal
+        {
+            cursorPos: RichEditCursor            // Cursor pos associated with this value.
+            selBeg:    RichEditCursor            // Sel beg associated with this value.
+            lines:     ArrayPtr'RichEditLine     // Lines associated with this value.
+            freeLines: ArrayPtr'RichEditLine     // Free lines associated with this value.
+            #[Swag.Late]
+            scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
+            #[Swag.Late]
+            edView:       *RichEditView      // Ed view associated with this value.
+            selRectangle: Math.Rectangle     // Sel rectangle associated with this value.
+
+            hasSelRect:              bool     // Whether this value has sel rect.
+            modified:                bool     // Modified associated with this value.
+            recomputeScroll:         bool     // Recompute scroll associated with this value.
+            dirtyFirstLineView:      bool     // Dirty first line view associated with this value.
+            forceCaretVisible:       bool     // Force caret visible associated with this value.
+            forceCaretVisibleCenter: bool     // Force caret visible center associated with this value.
+
+            undoMgr:              ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
+            toUndo:               ArrayPtr'RichEditUndo     // To undo associated with this value.
+            mapping:              Array'RichEditMapping     // Mapping associated with this value.
+            currentUndo:          u64                       // Current undo associated with this value.
+            undoCounter:          u64                       // Undo counter associated with this value.
+            modifiedUndoMarker:   u64                       // Modified undo marker associated with this value.
+            serialUndo:           u64                       // Serial undo associated with this value.
+            countVisibleLines:    u64                       // Count visible lines associated with this value.
+            firstVisibleLineView: u64                       // First visible line view associated with this value.
+            lastVisibleLineView:  u64                       // Last visible line view associated with this value.
+            clipFormat:           Clipboard.ValueFormat     // Clip format associated with this value.
+            cursorPosUndo:        RichEditCursor            // Cursor pos undo associated with this value.
+            selBegUndo:           RichEditCursor            // Sel beg undo associated with this value.
+        }
     }
 }
 

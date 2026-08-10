@@ -5,35 +5,41 @@ using Core, Pixel
 // Stores one selectable item or separator in a popup list.
 struct PopupListCtrlItem
 {
-    using base:  Item     // Embedded label, icon, identifier, and user data.
-    isSeparator: bool     // Whether this entry separates groups and cannot be selected.
+    public
+    {
+        using base:  Item     // Embedded label, icon, identifier, and user data.
+        isSeparator: bool     // Whether this entry separates groups and cannot be selected.
+    }
 }
 
 // Displays a temporary list that commits one highlighted item or reports cancellation.
 struct PopupListCtrl
 {
-    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
-
-    itemHeight:      f32 = 30      // Height of selectable rows in logical units.
-    separatorHeight: f32 = 15      // Height of separator rows in logical units.
-    minimumWidth:    f32 = 100     // Minimum popup width in logical units.
-    maximumHeight:   f32 = 300     // Maximum popup height in logical units.
-    fitHorizontally: bool          // Whether fitting may mirror horizontal placement around the owner.
-    fitVertically:   bool          // Whether fitting may mirror vertical placement around the owner.
-
-    // Emitted when the popup closes; the index is U32.Max when the action was canceled.
-    sigClosed: #null func||(*PopupListCtrl, u32)
-
-    readonly
+    public
     {
-        items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
-        selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
-        #[Swag.Late]
-        scrollWnd: *ScrollWnd     // Scrollable viewport owned by the popup.
-    }
+        using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-    internal
-    maxIconSize: s32     // Widest item icon, used to align labels.
+        itemHeight:      f32 = 30      // Height of selectable rows in logical units.
+        separatorHeight: f32 = 15      // Height of separator rows in logical units.
+        minimumWidth:    f32 = 100     // Minimum popup width in logical units.
+        maximumHeight:   f32 = 300     // Maximum popup height in logical units.
+        fitHorizontally: bool          // Whether fitting may mirror horizontal placement around the owner.
+        fitVertically:   bool          // Whether fitting may mirror vertical placement around the owner.
+
+        // Emitted when the popup closes; the index is U32.Max when the action was canceled.
+        sigClosed: #null func||(*PopupListCtrl, u32)
+
+        public readonly
+        {
+            items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
+            selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
+            #[Swag.Late]
+            scrollWnd: *ScrollWnd     // Scrollable viewport owned by the popup.
+        }
+
+        internal
+        maxIconSize: s32     // Widest item icon, used to align labels.
+    }
 }
 
 // Implements painting and input inside a popup list.

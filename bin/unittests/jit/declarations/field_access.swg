@@ -1,12 +1,14 @@
 #global private
 
-// The four member access levels, and what each one still allows.
+// The three member access levels, the default they share with a top-level declaration, and the
+// write restriction that rides on top of any of them.
 struct Account
 {
     public id: s32 = 1
-    readonly balance: s32 = 100
+    public readonly balance: s32 = 100
     internal ledger: s32 = 7
     private secret: s32 = 42
+    opened: bool = true
 }
 
 impl Account
@@ -31,21 +33,25 @@ impl Account
 
 #test
 {
-    // 'public' and 'readonly' read from anywhere; 'internal' reads inside the module.
+    // 'public' and 'public readonly' read from anywhere; 'internal' and the default read inside
+    // the module.
     var a: Account
     @assert(a.id == 1)
     @assert(a.balance == 100)
     @assert(a.ledger == 7)
+    @assert(a.opened)
 }
 
 #test
 {
-    // Writing 'public' and 'internal' from outside the type stays legal.
+    // Writing 'public', 'internal' and the default from outside the type stays legal.
     var a: Account
     a.id     = 3
     a.ledger = 9
+    a.opened = false
     @assert(a.id == 3)
     @assert(a.ledger == 9)
+    @assert(!a.opened)
 }
 
 #test
@@ -57,7 +63,8 @@ impl Account
     @assert(a.balance == 100)
 }
 
-// An access modifier also applies as a block, and to a multi-name declaration.
+// An access modifier also applies as a block, and to a multi-name declaration. Written alone,
+// 'readonly' rides on the level already in effect.
 struct Grouped
 {
     private
@@ -67,22 +74,30 @@ struct Grouped
     }
 
     readonly d: s32 = 5
+
+    public
+    {
+        readonly e: s32 = 6
+    }
 }
 
 impl Grouped
 {
-    mtd sum()->s32 => .a + .b + .c + .d
+    mtd sum()->s32 => .a + .b + .c + .d + .e
 }
 
 #test
 {
     var g: Grouped
-    @assert(g.sum() == 15)
+    @assert(g.sum() == 21)
     @assert(g.d == 5)
+    @assert(g.e == 6)
 }
 
-// A nested or anonymous aggregate declares its own members: it starts from the default
-// instead of inheriting the access of the field it sits in.
+// A nested NAMED aggregate declares its own members: it starts from the default instead of
+// inheriting the access of the field it sits in. An anonymous one has no declaration a modifier
+// could be written on, so its members are public and the field that carries it decides who
+// reaches them.
 struct Nested
 {
     private
@@ -121,7 +136,18 @@ impl Nested
     @assert(p.slot == 7)
 }
 
-// Reflection reports the declared access, so generic walkers can skip implementation state.
+// A returned tuple is an anonymous aggregate too, so a caller reads what it names.
+func split(value: s32)->{ half: s32, rest: s32 } => {value / 2, value % 2}
+
+#test
+{
+    let r = split(7)
+    @assert(r.half == 3)
+    @assert(r.rest == 1)
+}
+
+// Reflection reports the level and the write restriction separately, so generic walkers can skip
+// implementation state.
 #test
 {
     let fields = #typeof(Account).fields
@@ -138,6 +164,7 @@ impl Nested
             seen += 1
         case "balance":
             @assert(flags & Swag.TypeValueFlags.ReadOnly)
+            @assert(!(flags & Swag.TypeValueFlags.Internal))
             seen += 1
         case "ledger":
             @assert(flags & Swag.TypeValueFlags.Internal)
@@ -145,8 +172,35 @@ impl Nested
         case "secret":
             @assert(flags & Swag.TypeValueFlags.Private)
             seen += 1
+        case "opened":
+            @assert(flags & Swag.TypeValueFlags.Internal)
+            @assert(!(flags & Swag.TypeValueFlags.ReadOnly))
+            seen += 1
         }
     }
 
-    @assert(seen == 4)
+    @assert(seen == 5)
+}
+
+#test
+{
+    // 'readonly' written alone rides on the default, so it reports both flags.
+    let fields = #typeof(Grouped).fields
+    var seen   = 0
+    for f in fields
+    {
+        switch f.name
+        {
+        case "d":
+            @assert(f.flags & Swag.TypeValueFlags.ReadOnly)
+            @assert(f.flags & Swag.TypeValueFlags.Internal)
+            seen += 1
+        case "e":
+            @assert(f.flags & Swag.TypeValueFlags.ReadOnly)
+            @assert(!(f.flags & Swag.TypeValueFlags.Internal))
+            seen += 1
+        }
+    }
+
+    @assert(seen == 2)
 }

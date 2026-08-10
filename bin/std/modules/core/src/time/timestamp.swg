@@ -5,7 +5,7 @@
 #[Swag.Operators(opCompare)]
 struct Timestamp
 {
-    readonly ticks: Ticks     // Number of ticks since the documented epoch.
+    public readonly ticks: Ticks     // Number of ticks since the documented epoch.
 }
 
 impl Timestamp

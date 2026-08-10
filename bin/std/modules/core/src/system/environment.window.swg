@@ -10,8 +10,11 @@ alias WindowResizeCallback = func||(*Window, s32, s32)
 // Groups the optional callbacks dispatched by a [[Core.Env.Window]].
 struct WindowCallbacks
 {
-    onPaint:  #null WindowPaintCallback      // Invoked for a paint request.
-    onResize: #null WindowResizeCallback     // Invoked after the logical client size changes.
+    public
+    {
+        onPaint:  #null WindowPaintCallback      // Invoked for a paint request.
+        onResize: #null WindowResizeCallback     // Invoked after the logical client size changes.
+    }
 }
 
 // Configures the capabilities exposed by a top-level window.
@@ -32,11 +35,14 @@ enum WindowFlags
 // [[Core.Env.WindowResizeCallback]] is physical.
 struct WindowOptions
 {
-    identifier: string                      // Unique backend-independent window identifier.
-    title:      string                      // Initial window title.
-    width:      s32                         // Width in logical units.
-    height:     s32                         // Height in logical units.
-    flags:      WindowFlags = .Standard     // Window-manager capabilities.
+    public
+    {
+        identifier: string                      // Unique backend-independent window identifier.
+        title:      string                      // Initial window title.
+        width:      s32                         // Width in logical units.
+        height:     s32                         // Height in logical units.
+        flags:      WindowFlags = .Standard     // Window-manager capabilities.
+    }
 }
 
 // Owns one top-level application window.
@@ -51,7 +57,7 @@ struct Window
         nativeHandle: #null const *void     // Opaque platform window storage.
     }
 
-    callbacks: WindowCallbacks     // Callbacks dispatched by the platform event adapter.
+    public callbacks: WindowCallbacks     // Callbacks dispatched by the platform event adapter.
 }
 
 // Provides iterable window-event processing.
@@ -63,7 +69,7 @@ struct WindowLoop
     // A program that cycles through pages knows how many frames it takes to show them all,
     // and that count is a property of its content rather than of whoever launched it. It has
     // no effect on a normal run, which ends only when the window closes.
-    smokeFrames: u32
+    public smokeFrames: u32
 
     internal
     {

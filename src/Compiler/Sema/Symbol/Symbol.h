@@ -51,16 +51,26 @@ enum class SymbolAccess : uint8_t
     Private,  // Visible only in the file it is declared
 };
 
-// Access declared on an aggregate member. A top-level declaration belongs to its file, so
-// 'private' there means "this file"; a member belongs to its type, so 'private' here means
-// "the type's own bodies": the aggregate declaration and every 'impl' of it, in the module
-// that declares the type.
+// Access declared on an aggregate member. The three levels are the ones a top-level declaration
+// uses, with the same default, so the words never change meaning: a member is 'internal' unless
+// it says otherwise. What changes is who "the owner" is. A top-level declaration belongs to its
+// file, so 'private' there means "this file"; a member belongs to its type, so 'private' here
+// means "the type's own bodies": the aggregate declaration and every 'impl' of it, in the module
+// that declares the type. 'readonly' is not a level: it rides on top of one, restricting writes
+// to the declaring type while leaving reads at the declared level.
 enum class MemberAccess : uint8_t
 {
-    Public,   // Read and written from anywhere
-    ReadOnly, // Read from anywhere, written only by the declaring type
-    Internal, // Read and written only inside the declaring module
-    Private,  // Read and written only by the declaring type
+    Public,   // Reached from anywhere
+    Internal, // Reached only inside the declaring module
+    Private,  // Reached only by the declaring type
+};
+
+// What an access modifier written in an aggregate body says, carried as one value because
+// 'readonly' and the level it rides on are written together and apply together.
+struct MemberAccessSpec
+{
+    MemberAccess access   = MemberAccess::Internal;
+    bool         readOnly = false;
 };
 
 enum class SymbolKind : uint8_t

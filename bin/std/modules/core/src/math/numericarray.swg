@@ -6,7 +6,7 @@ using Swag
 // Represents numeric array.
 struct(T, N: u32) NumericArray
 {
-    buf: [N] T     // Buf associated with this value.
+    public buf: [N] T     // Buf associated with this value.
 }
 
 impl NumericArray

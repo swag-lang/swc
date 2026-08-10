@@ -18,21 +18,24 @@ enum ThreadPriority
 #[Swag.NoCopy]
 struct Thread
 {
-    userLambda: #null func||(Thread)     // User lambda associated with this value.
+    public
+    {
+        userLambda: #null func||(Thread)     // User lambda associated with this value.
 
-    context:   Swag.Context     // Context associated with this value.
-    userParam: #null *void      // User param associated with this value.
+        context:   Swag.Context     // Context associated with this value.
+        userParam: #null *void      // User param associated with this value.
 
-    priority   = ThreadPriority.Normal     // Priority associated with this value.
-    requestEnd = false                     // Cooperative stop flag the thread body polls.
+        priority   = ThreadPriority.Normal     // Priority associated with this value.
+        requestEnd = false                     // Cooperative stop flag the thread body polls.
 
-    // Identity of the running thread, established when it starts.
-    readonly
-    id: u64
+        // Identity of the running thread, established when it starts.
+        public readonly
+        id: u64
 
-    // Platform handle of the thread, owned by this value.
-    internal
-    handle: ThreadHandle
+        // Platform handle of the thread, owned by this value.
+        internal
+        handle: ThreadHandle
+    }
 }
 
 impl Thread

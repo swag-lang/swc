@@ -9,8 +9,11 @@ attr ArgParams(nameAlias: #null string = null)
 // Represents parse options.
 struct ParseOptions
 {
-    capturePositionals: bool     // Collect the leading non-option tokens instead of failing on them.
-    captureUnknown:     bool     // Collect the tokens that name no field, verbatim, instead of failing on them.
+    public
+    {
+        capturePositionals: bool     // Collect the leading non-option tokens instead of failing on them.
+        captureUnknown:     bool     // Collect the tokens that name no field, verbatim, instead of failing on them.
+    }
 }
 
 // The 'IsSet' generic struct is a mirror of the user input struct.
@@ -21,23 +24,29 @@ struct ParseOptions
 // specified or not by the user.
 struct(T) IsSet
 {
-    #ast
+    public
     {
-        var str    = StrConv.StringBuilder{}
-        let typeof = #typeof(T)
-        for f in typeof.fields do
-            str.appendFormat("%: bool\n", f.name)
-        let generated = str.moveToString()
-        return generated.toString()
+        #ast
+        {
+            var str    = StrConv.StringBuilder{}
+            let typeof = #typeof(T)
+            for f in typeof.fields do
+                str.appendFormat("%: bool\n", f.name)
+            let generated = str.moveToString()
+            return generated.toString()
+        }
     }
 }
 
 // Result of the [parse] function
 struct(T) Result
 {
-    isSet:       IsSet'T          // Whether this value is set.
-    positionals: Array'String     // The leading non-option tokens, in order, when 'capturePositionals' is set.
-    unknown:     Array'String     // The tokens that named no field, verbatim and in order, when 'captureUnknown' is set.
+    public
+    {
+        isSet:       IsSet'T          // Whether this value is set.
+        positionals: Array'String     // The leading non-option tokens, in order, when 'capturePositionals' is set.
+        unknown:     Array'String     // The tokens that named no field, verbatim and in order, when 'captureUnknown' is set.
+    }
 }
 
 // Returns true if 'oneArg' is a valid option (starting with a delimiter)
@@ -132,8 +141,11 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'(stri
 // Represents field result.
 struct FieldResult
 {
-    field: #null const *Swag.TypeValue     // Field associated with this value.
-    index: u64 = Swag.U64.Max              // Index associated with this value.
+    public
+    {
+        field: #null const *Swag.TypeValue     // Field associated with this value.
+        index: u64 = Swag.U64.Max              // Index associated with this value.
+    }
 }
 
 // Returns whether the option name `name` designates the declared name `candidate`.

@@ -6,10 +6,13 @@
 #[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct Rectangle
 {
-    x:      f32     // Left position
-    y:      f32     // Top position
-    width:  f32     // Rectangle width
-    height: f32     // Rectangle height
+    public
+    {
+        x:      f32     // Left position
+        y:      f32     // Top position
+        width:  f32     // Rectangle width
+        height: f32     // Rectangle height
+    }
 }
 
 impl Rectangle

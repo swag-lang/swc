@@ -5,7 +5,7 @@
 #[Serialization.Final]
 struct Matrix4x4
 {
-    m: [4, 4] f32     // Matrix elements addressed by two indices.
+    public m: [4, 4] f32     // Matrix elements addressed by two indices.
 }
 
 impl Matrix4x4

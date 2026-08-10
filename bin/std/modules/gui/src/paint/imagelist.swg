@@ -7,7 +7,7 @@ struct ImageList
 {
     // The atlas and how it is cut into frames. `set` establishes all four together, so a frame
     // index always addresses a region the texture really has.
-    readonly
+    public readonly
     {
         texture:     Texture     // Atlas holding every frame.
         frameCount:  s32         // Number of addressable frames in the atlas.

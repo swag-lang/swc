@@ -55,11 +55,14 @@ enum SpecialDirectory
 #[Swag.Operators(opEquals, opCompare)]
 struct Monitor
 {
-    bounds:           Math.Rectangle     // Logical bounds in desktop coordinates.
-    workArea:         Math.Rectangle     // Logical bounds available to applications.
-    scaleFactor:      f32                // Ratio from logical coordinates to physical pixels.
-    physicalBounds:   Math.Rectangle     // Physical-pixel bounds in desktop coordinates.
-    physicalWorkArea: Math.Rectangle     // Physical-pixel bounds available to applications.
+    public
+    {
+        bounds:           Math.Rectangle     // Logical bounds in desktop coordinates.
+        workArea:         Math.Rectangle     // Logical bounds available to applications.
+        scaleFactor:      f32                // Ratio from logical coordinates to physical pixels.
+        physicalBounds:   Math.Rectangle     // Physical-pixel bounds in desktop coordinates.
+        physicalWorkArea: Math.Rectangle     // Physical-pixel bounds available to applications.
+    }
 }
 
 // Returns the monitor containing `point`, or the nearest monitor otherwise.

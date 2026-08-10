@@ -38,7 +38,7 @@ internal struct RawGamepadState
 // Captures the digital and analog state of a gamepad at one update.
 struct GamepadState
 {
-    readonly
+    public readonly
     {
         pressed:  [GamepadButton] bool      // Whether each button or thresholded control is active.
         position: [GamepadButton] Point     // Normalized analog positions in the range -1 through 1.

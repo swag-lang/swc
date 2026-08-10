@@ -8,18 +8,21 @@ using Core, Pixel
 // fixed-capacity storage, clipboard shortcuts are disabled, and destruction clears the storage.
 struct PasswordEdit
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
+    public
+    {
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    sigChanged:   SigArray'func||(*PasswordEdit)     // Emitted after the password changes.
-    sigSubmitted: SigArray'func||(*PasswordEdit)     // Emitted when Enter is pressed.
-    sigCancelled: SigArray'func||(*PasswordEdit)     // Emitted when Escape is pressed.
+        sigChanged:   SigArray'func||(*PasswordEdit)     // Emitted after the password changes.
+        sigSubmitted: SigArray'func||(*PasswordEdit)     // Emitted when Enter is pressed.
+        sigCancelled: SigArray'func||(*PasswordEdit)     // Emitted when Escape is pressed.
 
-    internal
-    #[Swag.Late]
-    edit:      *EditBox      // Mask-only child owned by this control.
-    storage:   [1024] u8     // Fixed storage avoids reallocating plaintext through a general allocator.
-    byteCount: u64           // Number of occupied plaintext bytes.
-    runeCount: u64           // Number of entered Unicode code points.
+        internal
+        #[Swag.Late]
+        edit:      *EditBox      // Mask-only child owned by this control.
+        storage:   [1024] u8     // Fixed storage avoids reallocating plaintext through a general allocator.
+        byteCount: u64           // Number of occupied plaintext bytes.
+        runeCount: u64           // Number of entered Unicode code points.
+    }
 }
 
 private impl PasswordEdit

@@ -276,10 +276,10 @@ func ordered(value: f32) {}
 // ```
 struct Counter
 {
-    value: s32           // Current counter value.
-    next:  #null *Counter // Optional next counter in a caller-owned chain.
+    public value: s32           // Current counter value.
+    public next:  #null *Counter // Optional next counter in a caller-owned chain.
 
-    using storage: union // Active numeric storage.
+    public using storage: union // Active numeric storage.
     {
         integer: s32
         decimal: f32
@@ -314,7 +314,7 @@ impl Resettable for Counter
 #[Swag.Pack(1)]
 struct PackedCoordinate
 {
-    x: u8
+    public x: u8
 }
 
 // Selects a test mode.
@@ -334,29 +334,30 @@ struct OpaqueRecord
 // A record whose implementation state is restricted.
 struct RestrictedRecord
 {
-    publicValue: u64 // Part of the API.
+    public publicValue: u64 // Part of the API.
 
     // Read from anywhere, written only by the type: still part of the API.
-    readonly observedValue: u64
+    public readonly observedValue: u64
 
     internal moduleValue: u64 // Restricted to the module.
     private  ownedValue:  u64 // Restricted to the type.
+    defaultValue: u64 // Restricted to the module by the default.
 }
 
 // A generic record whose declaration is documented without a concrete instance.
 struct(T) GenericBox
 {
-    zeta: T // Last field alphabetically.
+    public zeta: T // Last field alphabetically.
 
     // Stored value.
     //
     // ## Semantics
     //
     // The detailed field description remains with its owner.
-    value: T
+    public value: T
 
-    alpha: T // First field alphabetically.
-    readonly
+    public alpha: T // First field alphabetically.
+    public readonly
     {
         inWeight: T
         interpolation: T
@@ -458,9 +459,10 @@ func hidden(value: s32)->s32
     if (content.contains(">implementationValue<"))
         return Result::Error;
 
-    // A field restricted to its module or its type is not API, so it stays off the page; a
-    // read-only field is API for reading, so it stays on it.
-    if (content.contains(">moduleValue<") || content.contains(">ownedValue<"))
+    // A field restricted to its module or its type is not API, so it stays off the page, and a
+    // field that says nothing is restricted by the default; a read-only field is API for reading,
+    // so it stays on it.
+    if (content.contains(">moduleValue<") || content.contains(">ownedValue<") || content.contains(">defaultValue<"))
         return Result::Error;
     if (!content.contains(">publicValue<") || !content.contains(">observedValue<"))
         return Result::Error;

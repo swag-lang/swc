@@ -7,11 +7,14 @@ using Swag, Core.Errors
 // policy and the accepted legacy names.
 public struct PlanField
 {
-    value:      Swag.TypeValue     // The reflected field this entry describes.
-    crcName:    u32                // Crc of the field name; this is the wire key of the field.
-    wireCrc:    u32                // Wire identity of the field type (see [[Core.Serialization.wireTypeCrc]]).
-    compressed: bool               // Whether the field payload is deflate compressed.
-    aliases:    Array'u32          // Crcs of the accepted legacy names of the field.
+    public
+    {
+        value:      Swag.TypeValue     // The reflected field this entry describes.
+        crcName:    u32                // Crc of the field name; this is the wire key of the field.
+        wireCrc:    u32                // Wire identity of the field type (see [[Core.Serialization.wireTypeCrc]]).
+        compressed: bool               // Whether the field payload is deflate compressed.
+        aliases:    Array'u32          // Crcs of the accepted legacy names of the field.
+    }
 }
 
 // Precomputed serialization plan of one struct type.
@@ -23,13 +26,16 @@ public struct PlanField
 // format stores it once per stream and references it from every instance.
 public struct Plan
 {
-    structType: #null const *Swag.TypeInfoStruct     // The type this plan describes.
-    version:    u32                                  // Value of the 'Serialization.Version' attribute, 0 when absent.
-    hasVersion: bool                                 // Whether the type carries a 'Serialization.Version' attribute.
-    podFinal:   bool                                 // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
-    hasCustom:  bool                                 // Whether the type implements 'ISerialize' and drives its own fields.
-    fields:     Array'PlanField                      // The serializable fields, in declaration order.
-    crcToIndex: HashTable'(u32, u64)                 // Maps a field name crc to its index in 'fields'.
+    public
+    {
+        structType: #null const *Swag.TypeInfoStruct     // The type this plan describes.
+        version:    u32                                  // Value of the 'Serialization.Version' attribute, 0 when absent.
+        hasVersion: bool                                 // Whether the type carries a 'Serialization.Version' attribute.
+        podFinal:   bool                                 // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
+        hasCustom:  bool                                 // Whether the type implements 'ISerialize' and drives its own fields.
+        fields:     Array'PlanField                      // The serializable fields, in declaration order.
+        crcToIndex: HashTable'(u32, u64)                 // Maps a field name crc to its index in 'fields'.
+    }
 }
 
 public impl Plan

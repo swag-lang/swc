@@ -84,15 +84,18 @@ impl ProcessEnvironment
 // pass a full path to remove the ambiguity.
 struct StartInfo
 {
-    fileName:         string                              // Executable to start, as a full path or a name to look up.
-    arguments:        #null string                        // Command-line arguments, already quoted, or null for none.
-    workingDirectory: #null string                        // Directory the child starts in, or null to inherit the current one.
-    environment:      #null const *ProcessEnvironment     // Environment the child starts with, or null to inherit the current one. Borrowed for the call only.
-    standardInput:    StreamRedirection = .Inherit        // How the child reads standard input.
-    standardOutput:   StreamRedirection = .Inherit        // How the child writes standard output.
-    standardError:    StreamRedirection = .Inherit        // How the child writes standard error.
-    affinityMask:     u64                                 // Logical processors the child may run on, one bit each. Zero inherits the current set.
-    measureResources: bool                                // Whether to account the child and everything it starts, which [[Core.Env.Process.resources]] answers.
+    public
+    {
+        fileName:         string                              // Executable to start, as a full path or a name to look up.
+        arguments:        #null string                        // Command-line arguments, already quoted, or null for none.
+        workingDirectory: #null string                        // Directory the child starts in, or null to inherit the current one.
+        environment:      #null const *ProcessEnvironment     // Environment the child starts with, or null to inherit the current one. Borrowed for the call only.
+        standardInput:    StreamRedirection = .Inherit        // How the child reads standard input.
+        standardOutput:   StreamRedirection = .Inherit        // How the child writes standard output.
+        standardError:    StreamRedirection = .Inherit        // How the child writes standard error.
+        affinityMask:     u64                                 // Logical processors the child may run on, one bit each. Zero inherits the current set.
+        measureResources: bool                                // Whether to account the child and everything it starts, which [[Core.Env.Process.resources]] answers.
+    }
 }
 
 /*
@@ -107,11 +110,14 @@ that produced them are gone. Times are totals across the tree.
 */
 struct ProcessResources
 {
-    peakMemory:        u64               // Highest committed memory the whole tree reached at once.
-    peakProcessMemory: u64               // Highest committed memory any single process in it reached.
-    userTime:          Time.Duration     // Total time the tree spent running its own code.
-    kernelTime:        Time.Duration     // Total time the system spent working on its behalf.
-    processCount:      u64               // How many processes the tree contained, first and last included.
+    public
+    {
+        peakMemory:        u64               // Highest committed memory the whole tree reached at once.
+        peakProcessMemory: u64               // Highest committed memory any single process in it reached.
+        userTime:          Time.Duration     // Total time the tree spent running its own code.
+        kernelTime:        Time.Duration     // Total time the system spent working on its behalf.
+        processCount:      u64               // How many processes the tree contained, first and last included.
+    }
 }
 
 /*
@@ -133,7 +139,7 @@ Text captured from a redirected stream accumulates inside the value and outlives
 #[Swag.NoCopy]
 struct Process
 {
-    readonly
+    public readonly
     {
         processId: u64     // Operating-system identifier of the started process.
     }

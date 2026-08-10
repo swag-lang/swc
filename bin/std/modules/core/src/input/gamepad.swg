@@ -6,14 +6,14 @@ using Math
 // Tracks one gamepad and its transitions across updates.
 struct Gamepad
 {
-    readonly
+    public readonly
     {
         previousState: GamepadState     // State captured before the latest update.
         currentState:  GamepadState     // State captured by the latest update.
         connected:     bool             // Whether the indexed gamepad is currently connected.
     }
 
-    index: u32     // Zero-based platform gamepad index.
+    public index: u32     // Zero-based platform gamepad index.
 }
 
 impl Gamepad

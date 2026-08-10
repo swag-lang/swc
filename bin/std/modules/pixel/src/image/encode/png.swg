@@ -245,9 +245,12 @@ impl Encoder
 // Configures PNG filtering, Deflate behavior, and Adam7 interlacing.
 public struct EncodeOptions
 {
-    compressionLevel = Compress.Deflate.CompressionLevel.Default     // Deflate compression level.
-    filtering        = true                                          // Select adaptive PNG scanline filters.
-    interlace        = false                                         // Encode seven-pass Adam7 interlacing.
+    public
+    {
+        compressionLevel = Compress.Deflate.CompressionLevel.Default     // Deflate compression level.
+        filtering        = true                                          // Select adaptive PNG scanline filters.
+        interlace        = false                                         // Encode seven-pass Adam7 interlacing.
+    }
 }
 
 internal impl IImageEncoder for Encoder

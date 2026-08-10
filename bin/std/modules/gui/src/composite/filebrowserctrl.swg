@@ -7,7 +7,7 @@ using Core, File, Directory
 // Pushing a location after moving backward discards the abandoned forward branch.
 struct NavigationHistory
 {
-    readonly
+    public readonly
     {
         entries: Array'String     // Locations in visit order.
         index = Swag.U64.Max      // Current entry index, or [[Swag.U64.Max]] when empty.
@@ -64,42 +64,45 @@ impl NavigationHistory
 // Embeds location navigation, a sortable file list, a status line, and name and type editors.
 struct FileBrowserCtrl
 {
-    using wnd: Wnd     // Embedded wnd state.
-
-    readonly
+    public
     {
-        treeCtrl:      #null *ListCtrl     // Optional recent, shortcut and drive locations list.
-        options:       FileDlgOptions      // Effective browsing and selection options.
-        currentFolder: String              // Normalized folder currently displayed.
+        using wnd: Wnd     // Embedded wnd state.
 
-        #[Swag.Late]
+        public readonly
         {
-            listCtrl:        *ListCtrl       // Sortable file and folder list.
-            comboPath:       *ComboBox       // Current-folder and ancestor selector.
-            editFile:        *EditBox        // File or folder name editor.
-            comboType:       *ComboBox       // Active file-type filter selector.
-            backButton:      *IconButton     // Navigates to the previous folder.
-            forwardButton:   *IconButton     // Navigates to the next folder.
-            historyButton:   *IconButton     // Opens the recent-folders drop-down menu.
-            upButton:        *IconButton     // Navigates to the parent folder.
-            refreshButton:   *IconButton     // Reloads the current folder.
-            newFolderButton: *PushButton     // Creates a folder in the current location.
-            statusLabel:     *Label          // Item count, selection summary and empty-folder hint.
+            treeCtrl:      #null *ListCtrl     // Optional recent, shortcut and drive locations list.
+            options:       FileDlgOptions      // Effective browsing and selection options.
+            currentFolder: String              // Normalized folder currently displayed.
+
+            #[Swag.Late]
+            {
+                listCtrl:        *ListCtrl       // Sortable file and folder list.
+                comboPath:       *ComboBox       // Current-folder and ancestor selector.
+                editFile:        *EditBox        // File or folder name editor.
+                comboType:       *ComboBox       // Active file-type filter selector.
+                backButton:      *IconButton     // Navigates to the previous folder.
+                forwardButton:   *IconButton     // Navigates to the next folder.
+                historyButton:   *IconButton     // Opens the recent-folders drop-down menu.
+                upButton:        *IconButton     // Navigates to the parent folder.
+                refreshButton:   *IconButton     // Reloads the current folder.
+                newFolderButton: *PushButton     // Creates a folder in the current location.
+                statusLabel:     *Label          // Item count, selection summary and empty-folder hint.
+            }
         }
-    }
 
-    sigAccepted:           SigArray'func||(*FileBrowserCtrl)     // Emitted when the current selection is activated.
-    sigFolderChanged:      SigArray'func||(*FileBrowserCtrl)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
-    sigNewFolderRequested: SigArray'func||(*FileBrowserCtrl)     // Emitted when the user requests a new folder.
+        sigAccepted:           SigArray'func||(*FileBrowserCtrl)     // Emitted when the current selection is activated.
+        sigFolderChanged:      SigArray'func||(*FileBrowserCtrl)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
+        sigNewFolderRequested: SigArray'func||(*FileBrowserCtrl)     // Emitted when the user requests a new folder.
 
-    internal
-    {
-        treePathStr:    Array'String          // Folder paths backing `treeCtrl` rows.
-        comboPathStr:   Array'String          // Folder paths backing `comboPath` entries.
-        currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
-        history:        NavigationHistory     // Folder-navigation history.
-        shownFolders:   u32                   // Folders displayed by the last fill.
-        shownFiles:     u32                   // Files displayed by the last fill.
+        internal
+        {
+            treePathStr:    Array'String          // Folder paths backing `treeCtrl` rows.
+            comboPathStr:   Array'String          // Folder paths backing `comboPath` entries.
+            currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
+            history:        NavigationHistory     // Folder-navigation history.
+            shownFolders:   u32                   // Folders displayed by the last fill.
+            shownFiles:     u32                   // Files displayed by the last fill.
+        }
     }
 }
 

@@ -88,19 +88,22 @@ private const HTBOTTOMRIGHT = 17
 #[Swag.NoCopy]
 struct NativeSurface
 {
-    hWnd:         HWND       // H wnd associated with this value.
-    lastDeadChar: WPARAM     // Last dead char associated with this value.
-    topMost:      bool       // Top most associated with this value.
-    trayIcon:     HICON      // Tray icon associated with this value.
+    public
+    {
+        hWnd:         HWND       // H wnd associated with this value.
+        lastDeadChar: WPARAM     // Last dead char associated with this value.
+        topMost:      bool       // Top most associated with this value.
+        trayIcon:     HICON      // Tray icon associated with this value.
 
-    // Whether an application-initiated SetWindowPos is in flight. A programmatic
-    // placement is already expressed in the target monitor's physical pixels, so the
-    // WM_DPICHANGED it triggers when crossing a DPI boundary must update the scale
-    // without adopting the OS-suggested rectangle (which assumes an old-DPI size).
-    inAppPlacement: bool
+        // Whether an application-initiated SetWindowPos is in flight. A programmatic
+        // placement is already expressed in the target monitor's physical pixels, so the
+        // WM_DPICHANGED it triggers when crossing a DPI boundary must update the scale
+        // without adopting the OS-suggested rectangle (which assumes an old-DPI size).
+        inAppPlacement: bool
 
-    dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
-    dropTargetActive: bool                  // Whether that target is registered with OLE.
+        dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
+        dropTargetActive: bool                  // Whether that target is registered with OLE.
+    }
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.

@@ -93,8 +93,11 @@ let myStruct = catch decoder.readAll'MyStruct(res.toSlice())
 */
 struct(T) Decoder
 {
-    serializer: T                       // Serializer associated with this value.
-    flags:      DecoderFlags = None     // Optional decoding behavior.
+    public
+    {
+        serializer: T                       // Serializer associated with this value.
+        flags:      DecoderFlags = None     // Optional decoding behavior.
+    }
 }
 
 impl Decoder

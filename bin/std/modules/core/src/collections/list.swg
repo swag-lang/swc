@@ -5,20 +5,20 @@ using Swag
 // Represents a single node in a doubly-linked 'List'.
 struct(T) ListEntry
 {
-    readonly
+    public readonly
     {
         prev: #null *ListEntry     // Pointer to the previous node in the list.
         next: #null *ListEntry     // Pointer to the next node in the list.
     }
 
-    value: T     // The value stored in the node.
+    public value: T     // The value stored in the node.
 }
 
 // A generic, doubly-linked list.
 // Provides efficient insertion and deletion of elements.
 struct(T) List
 {
-    readonly
+    public readonly
     {
         head:  #null *ListEntry     // Pointer to the first node in the list.
         tail:  #null *ListEntry     // Pointer to the last node in the list.

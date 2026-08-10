@@ -16,23 +16,26 @@ enum FormLabelPlacement
 // its own emphasis instead of restyling them one by one after the fact.
 struct FormLayoutOptions
 {
-    labelPlacement: FormLabelPlacement = Above         // Label placement used by every row.
-    labelWidth                         = 112.0'f32     // Minimum width of the label column in `Left` mode.
-    labelHeight                        = 22.0'f32      // Height reserved for each label.
-    fieldHeight                        = 34.0'f32      // Minimum height reserved for each field.
-    helpHeight                         = 20.0'f32      // Minimum height reserved for optional help text.
-    labelSpacing                       = 4.0'f32       // Gap between a label and its field.
-    controlSpacing                     = 8.0'f32       // Gap between a field and its optional action.
-    helpSpacing                        = 4.0'f32       // Gap before optional help text.
-    rowSpacing                         = 12.0'f32      // Gap between consecutive rows.
-    labelFont:      #null *Font        = null          // Font applied to every created label, or the theme font.
-    labelFlags:     LabelFlags         = None          // Presentation options applied to every created label.
+    public
+    {
+        labelPlacement: FormLabelPlacement = Above         // Label placement used by every row.
+        labelWidth                         = 112.0'f32     // Minimum width of the label column in `Left` mode.
+        labelHeight                        = 22.0'f32      // Height reserved for each label.
+        fieldHeight                        = 34.0'f32      // Minimum height reserved for each field.
+        helpHeight                         = 20.0'f32      // Minimum height reserved for optional help text.
+        labelSpacing                       = 4.0'f32       // Gap between a label and its field.
+        controlSpacing                     = 8.0'f32       // Gap between a field and its optional action.
+        helpSpacing                        = 4.0'f32       // Gap before optional help text.
+        rowSpacing                         = 12.0'f32      // Gap between consecutive rows.
+        labelFont:      #null *Font        = null          // Font applied to every created label, or the theme font.
+        labelFlags:     LabelFlags         = None          // Presentation options applied to every created label.
+    }
 }
 
 // Describes one field row owned and arranged by a [[Gui.FormLayoutCtrl]].
 struct FormLayoutRow
 {
-    readonly
+    public readonly
     {
         label:  *Label           // Label created and owned by the form.
         field:  *Wnd             // Caller-created field owned by the form.
@@ -61,14 +64,17 @@ struct FormLayoutRow
 // ```
 struct FormLayoutCtrl
 {
-    using wnd: Wnd     // Embedded wnd state.
-
-    options: FormLayoutOptions     // Geometry applied to all rows.
-
-    readonly
+    public
     {
-        rows:          Array'FormLayoutRow     // Rows in display order.
-        contentHeight: f32                     // Height required by the latest layout pass.
+        using wnd: Wnd     // Embedded wnd state.
+
+        options: FormLayoutOptions     // Geometry applied to all rows.
+
+        public readonly
+        {
+            rows:          Array'FormLayoutRow     // Rows in display order.
+            contentHeight: f32                     // Height required by the latest layout pass.
+        }
     }
 }
 

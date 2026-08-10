@@ -11,7 +11,7 @@ struct Texture
     // What the renderer created. The four of them describe one resource, so they are established
     // together when the texture is created and never on their own: a width that disagrees with
     // the storage would silently corrupt every texture coordinate computed from it.
-    readonly
+    public readonly
     {
         handle:      TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
         pixelFormat: PixelFormat   = undefined                // Pixel encoding of the texture storage.

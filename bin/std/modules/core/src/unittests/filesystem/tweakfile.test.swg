@@ -53,13 +53,16 @@ namespace TweakDeep
 {
     public struct Sheet
     {
-        width:  f32 = 1
-        height: f32 = 2
+        public
+        {
+            width:  f32 = 1
+            height: f32 = 2
+        }
     }
 
     public struct Palette
     {
-        main: s32
+        public main: s32
     }
 }
 

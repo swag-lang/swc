@@ -8,23 +8,29 @@ interface IDepEvt {}
 
 struct DepEvtBase
 {
-    type: #null typeinfo
-    tag:  s32
+    public
+    {
+        type: #null typeinfo
+        tag:  s32
+    }
 }
 
 impl IDepEvt for DepEvtBase {}
 
 struct DepDestroyEvt
 {
-    using base: DepEvtBase
+    public using base: DepEvtBase
 }
 
 impl IDepEvt for DepDestroyEvt {}
 
 struct DepResizeEvt
 {
-    using base: DepEvtBase
-    extra:      s32
+    public
+    {
+        using base: DepEvtBase
+        extra:      s32
+    }
 }
 
 impl IDepEvt for DepResizeEvt {}

@@ -14,19 +14,22 @@ using Core
 // its file filters from them.
 struct ImageFormat
 {
-    // Display name of the format, such as `PNG - Portable Network Graphics`.
-    //
-    // It is a literal with static storage, so a user interface can hold it without
-    // copying it. It is deliberately not translated: these are format names.
-    name: string
+    public
+    {
+        // Display name of the format, such as `PNG - Portable Network Graphics`.
+        //
+        // It is a literal with static storage, so a user interface can hold it without
+        // copying it. It is deliberately not translated: these are format names.
+        name: string
 
-    // Accepted extensions, lowercase, dot-prefixed, separated by `;`.
-    //
-    // The first one is canonical: it is the extension a file dialog appends when the
-    // user types a bare name. `.jpg;.jpeg` is a format with two spellings, not two
-    // formats. The separator matches the filter convention of the `gui` file dialog,
-    // so the field can be handed to it unchanged.
-    extensions: string
+        // Accepted extensions, lowercase, dot-prefixed, separated by `;`.
+        //
+        // The first one is canonical: it is the extension a file dialog appends when the
+        // user types a bare name. `.jpg;.jpeg` is a format with two spellings, not two
+        // formats. The separator matches the filter convention of the `gui` file dialog,
+        // so the field can be handed to it unchanged.
+        extensions: string
+    }
 }
 
 impl ImageFormat

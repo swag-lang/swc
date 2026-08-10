@@ -22,13 +22,16 @@ using Core, Pixel
 #[Swag.NoDoc]
 public struct PropFieldValue
 {
-    valid:    bool                  // Valid associated with this value.
-    isString: bool                  // Whether this value is string.
-    n:        u64                   // number of instances captured
-    sz:       u64                   // per-instance byte size (raw-bytes case only)
-    addrs:    Array'(#null *u8)     // field address in each captured instance
-    bytes:    Array'u8              // n * sz contiguous raw bytes (raw-bytes case)
-    strings:  Array'String          // n strings (String case)
+    public
+    {
+        valid:    bool                  // Valid associated with this value.
+        isString: bool                  // Whether this value is string.
+        n:        u64                   // number of instances captured
+        sz:       u64                   // per-instance byte size (raw-bytes case only)
+        addrs:    Array'(#null *u8)     // field address in each captured instance
+        bytes:    Array'u8              // n * sz contiguous raw bytes (raw-bytes case)
+        strings:  Array'String          // n strings (String case)
+    }
 }
 
 internal impl PropFieldValue
@@ -152,11 +155,14 @@ internal impl PropFieldValue
 #[Swag.NoDoc]
 public struct PropUndoCommand
 {
-    #[Swag.Late]
-    prop:       *Properties        // Prop associated with this value.
-    generation: u64                // Generation associated with this value.
-    oldVal:     PropFieldValue     // Old val associated with this value.
-    newVal:     PropFieldValue     // New val associated with this value.
+    public
+    {
+        #[Swag.Late]
+        prop:       *Properties        // Prop associated with this value.
+        generation: u64                // Generation associated with this value.
+        oldVal:     PropFieldValue     // Old val associated with this value.
+        newVal:     PropFieldValue     // New val associated with this value.
+    }
 }
 
 internal impl IUndoCommand for PropUndoCommand

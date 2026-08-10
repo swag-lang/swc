@@ -23,10 +23,13 @@ enum SeparatorForm
 // ```
 struct Separator
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
+    public
+    {
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    readonly
-    form = SeparatorForm.Hairline     // Weight and color of the rule.
+        public readonly
+        form = SeparatorForm.Hairline     // Weight and color of the rule.
+    }
 }
 
 impl IWnd for Separator

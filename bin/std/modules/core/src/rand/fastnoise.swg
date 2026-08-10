@@ -23,12 +23,15 @@ public enum FastNoiseKind
 // FastNoise structure for generating different types of noise based on user-defined parameters.
 public struct FastNoise
 {
-    kind:       FastNoiseKind = .Perlin     // Type of noise to generate.
-    seed:       s32           = 1337        // Seed value for noise generation.
-    octaves:    u32           = 3           // The number of sampled layers; must be at least one.
-    frequency:  f32           = 0.01        // Coordinate scale applied before sampling.
-    lacunarity: f32           = 2.0         // Frequency multiplier between successive layers.
-    gain:       f32           = 0.5         // Amplitude multiplier between successive layers.
+    public
+    {
+        kind:       FastNoiseKind = .Perlin     // Type of noise to generate.
+        seed:       s32           = 1337        // Seed value for noise generation.
+        octaves:    u32           = 3           // The number of sampled layers; must be at least one.
+        frequency:  f32           = 0.01        // Coordinate scale applied before sampling.
+        lacunarity: f32           = 2.0         // Frequency multiplier between successive layers.
+        gain:       f32           = 0.5         // Amplitude multiplier between successive layers.
+    }
 }
 
 impl FastNoise

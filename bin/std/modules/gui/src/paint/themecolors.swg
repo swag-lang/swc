@@ -10,401 +10,404 @@ using Pixel
 // different overrides it afterwards through a theme sheet.
 struct ThemeColors
 {
-    // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`.
-    richColor1: Color     // First rich-text palette slot.
-    richColor2: Color     // Second rich-text palette slot.
-    richColor3: Color     // Third rich-text palette slot.
+    public
+    {
+        // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`.
+        richColor1: Color     // First rich-text palette slot.
+        richColor2: Color     // Second rich-text palette slot.
+        richColor3: Color     // Third rich-text palette slot.
 
-    // Tint a surface fades to while a modal box holds it. It multiplies the whole surface,
-    // so it is a dimming factor rather than a color.
-    surfaceDisabled: Color
+        // Tint a surface fades to while a modal box holds it. It multiplies the whole surface,
+        // so it is a dimming factor rather than a color.
+        surfaceDisabled: Color
 
-    bk:     Color     // The application background.
-    border: Color     // The rule dividing two blocks of one surface.
-    text:   Color     // Primary text.
+        bk:     Color     // The application background.
+        border: Color     // The rule dividing two blocks of one surface.
+        text:   Color     // Primary text.
 
-    hilight:              Color     // The accent, for anything that wants it directly.
-    hilightLightContrast: Color     // Ink legible on a fill of the accent.
-    activeRail:           Color     // Narrow rule marking active and selected controls, or transparent when unused.
-    focusRing:            Color     // Ring drawn around the control the keyboard focus is on.
+        hilight:              Color     // The accent, for anything that wants it directly.
+        hilightLightContrast: Color     // Ink legible on a fill of the accent.
+        activeRail:           Color     // Narrow rule marking active and selected controls, or transparent when unused.
+        focusRing:            Color     // Ring drawn around the control the keyboard focus is on.
 
-    // The same ring, on a control whose own fill is the accent.
-    //
-    // The ring points in the accent, so drawn over a block of it there is nothing left to see —
-    // and the default action of a dialog, which is exactly the control the keyboard opens on, is
-    // such a block.
-    focusRingOnAccent: Color
+        // The same ring, on a control whose own fill is the accent.
+        //
+        // The ring points in the accent, so drawn over a block of it there is nothing left to see —
+        // and the default action of a dialog, which is exactly the control the keyboard opens on, is
+        // such a block.
+        focusRingOnAccent: Color
 
-    error:       Color     // Text and glyphs reporting an operation that stopped.
-    disabled:    Color     // Ink and rules of anything the reader cannot act on.
-    transparent: Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
+        error:       Color     // Text and glyphs reporting an operation that stopped.
+        disabled:    Color     // Ink and rules of anything the reader cannot act on.
+        transparent: Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
 
-    // The three strengths of the theme's translucent veil, drawn over whatever is behind
-    // them. White over a dark ground, black over a light one.
-    veilSoft:   Color     // Lightest translucent veil.
-    veilMedium: Color     // Middle-strength translucent veil.
-    veilStrong: Color     // Strongest translucent veil.
+        // The three strengths of the theme's translucent veil, drawn over whatever is behind
+        // them. White over a dark ground, black over a light one.
+        veilSoft:   Color     // Lightest translucent veil.
+        veilMedium: Color     // Middle-strength translucent veil.
+        veilStrong: Color     // Strongest translucent veil.
 
-    wnd_Bk:                      Color     // Ground of a window body.
-    wnd_CaptionBk:               Color     // Caption band of the active window.
-    wnd_CaptionBkNotActived:     Color     // Caption band of a window without the focus.
-    wnd_CaptionText:             Color     // Title of the active window.
-    wnd_CaptionNotActivatedText: Color     // Title of a window without the focus.
+        wnd_Bk:                      Color     // Ground of a window body.
+        wnd_CaptionBk:               Color     // Caption band of the active window.
+        wnd_CaptionBkNotActived:     Color     // Caption band of a window without the focus.
+        wnd_CaptionText:             Color     // Title of the active window.
+        wnd_CaptionNotActivatedText: Color     // Title of a window without the focus.
 
-    // The two ends of the caption band of an active window, on the diagonal running from the
-    // mark to the caption buttons. Both collapse onto `wnd_CaptionBk` in a theme that asks for
-    // no glow, so a flat band stays one color rather than becoming a ramp of nothing.
-    wnd_CaptionBkLead:  Color     // Caption band at the leading edge, which carries the mark.
-    wnd_CaptionBkTrail: Color     // Caption band at the trailing edge, which carries the buttons.
+        // The two ends of the caption band of an active window, on the diagonal running from the
+        // mark to the caption buttons. Both collapse onto `wnd_CaptionBk` in a theme that asks for
+        // no glow, so a flat band stays one color rather than becoming a ramp of nothing.
+        wnd_CaptionBkLead:  Color     // Caption band at the leading edge, which carries the mark.
+        wnd_CaptionBkTrail: Color     // Caption band at the trailing edge, which carries the buttons.
 
-    // Outline of a whole surface. It must be opaque: the same stroke runs past the caption
-    // ground and the body ground, so a translucent value takes both of them on and the outline
-    // visibly changes tone at the caption seam instead of reading as one line.
-    wnd_Border: Color
+        // Outline of a whole surface. It must be opaque: the same stroke runs past the caption
+        // ground and the body ground, so a translucent value takes both of them on and the outline
+        // visibly changes tone at the caption seam instead of reading as one line.
+        wnd_Border: Color
 
-    wnd_BtnCloseBk:          Color     // Ground of a hovered close button.
-    wnd_BtnCloseHotBk:       Color     // Ground of a close button under the pointer.
-    wnd_BtnCloseHotIcon:     Color     // Glyph of a close button under the pointer.
-    wnd_BtnClosePressedIcon: Color     // Glyph of a close button under the press.
+        wnd_BtnCloseBk:          Color     // Ground of a hovered close button.
+        wnd_BtnCloseHotBk:       Color     // Ground of a close button under the pointer.
+        wnd_BtnCloseHotIcon:     Color     // Glyph of a close button under the pointer.
+        wnd_BtnClosePressedIcon: Color     // Glyph of a close button under the press.
 
-    // Ink of the drop shadow. Its alpha is the darkening the shadow reaches where it meets the
-    // body, not the alpha of any one ring: the shadow fades from nothing at the outer edge of the
-    // margin up to this value against the window.
-    wnd_Shadow: Color
+        // Ink of the drop shadow. Its alpha is the darkening the shadow reaches where it meets the
+        // body, not the alpha of any one ring: the shadow fades from nothing at the outer edge of the
+        // margin up to this value against the window.
+        wnd_Shadow: Color
 
-    view_Bk: Color     // Ground content is read on.
+        view_Bk: Color     // Ground content is read on.
 
-    dlg_Bk:       Color     // Ground of a dialog.
-    dlg_BtnBarBk: Color     // Ground of the button bar of a dialog.
+        dlg_Bk:       Color     // Ground of a dialog.
+        dlg_BtnBarBk: Color     // Ground of the button bar of a dialog.
 
-    btnPush_StrongText:   Color     // Label of a filled action.
-    btnPush_StrongBorder: Color     // Border of a filled action.
-    btnPush_StrongBk:     Color     // Fill of a filled action.
+        btnPush_StrongText:   Color     // Label of a filled action.
+        btnPush_StrongBorder: Color     // Border of a filled action.
+        btnPush_StrongBk:     Color     // Fill of a filled action.
 
-    // A filled action answers the pointer in its own color. Falling back to the neutral
-    // hover of a plain button, it lost the accent that made it the primary action of the
-    // surface exactly when the reader was about to press it.
-    btnPush_StrongHotText:       Color     // Label of a hovered strong button.
-    btnPush_StrongHotBorder:     Color     // Border of a hovered strong button.
-    btnPush_StrongHotBk:         Color     // Fill of a hovered strong button.
-    btnPush_StrongPressedText:   Color     // Label of a pressed strong button.
-    btnPush_StrongPressedBorder: Color     // Border of a pressed strong button.
-    btnPush_StrongPressedBk:     Color     // Fill of a pressed strong button.
+        // A filled action answers the pointer in its own color. Falling back to the neutral
+        // hover of a plain button, it lost the accent that made it the primary action of the
+        // surface exactly when the reader was about to press it.
+        btnPush_StrongHotText:       Color     // Label of a hovered strong button.
+        btnPush_StrongHotBorder:     Color     // Border of a hovered strong button.
+        btnPush_StrongHotBk:         Color     // Fill of a hovered strong button.
+        btnPush_StrongPressedText:   Color     // Label of a pressed strong button.
+        btnPush_StrongPressedBorder: Color     // Border of a pressed strong button.
+        btnPush_StrongPressedBk:     Color     // Fill of a pressed strong button.
 
-    btnPush_Text:           Color     // Label of a push button.
-    btnPush_Border:         Color     // Border of a push button.
-    btnPush_Bk:             Color     // Fill of a push button.
-    btnPush_PressedText:    Color     // Label of a pressed push button.
-    btnPush_PressedBorder:  Color     // Border of a pressed push button.
-    btnPush_PressedBk:      Color     // Fill of a pressed push button.
-    btnPush_HotText:        Color     // Label of a hovered push button.
-    btnPush_HotBorder:      Color     // Border of a hovered push button.
-    btnPush_HotBk:          Color     // Fill of a hovered push button.
-    btnPush_DisabledText:   Color     // Label of a disabled push button.
-    btnPush_DisabledBorder: Color     // Border of a disabled push button.
-    btnPush_DisabledBk:     Color     // Fill of a disabled push button.
+        btnPush_Text:           Color     // Label of a push button.
+        btnPush_Border:         Color     // Border of a push button.
+        btnPush_Bk:             Color     // Fill of a push button.
+        btnPush_PressedText:    Color     // Label of a pressed push button.
+        btnPush_PressedBorder:  Color     // Border of a pressed push button.
+        btnPush_PressedBk:      Color     // Fill of a pressed push button.
+        btnPush_HotText:        Color     // Label of a hovered push button.
+        btnPush_HotBorder:      Color     // Border of a hovered push button.
+        btnPush_HotBk:          Color     // Fill of a hovered push button.
+        btnPush_DisabledText:   Color     // Label of a disabled push button.
+        btnPush_DisabledBorder: Color     // Border of a disabled push button.
+        btnPush_DisabledBk:     Color     // Fill of a disabled push button.
 
-    btnPushFlat_DisabledText:   Color     // Label of a disabled flat button.
-    btnPushFlat_DisabledBorder: Color     // Border of a disabled flat button.
-    btnPushFlat_DisabledBk:     Color     // Fill of a disabled flat button.
-    btnPushFlat_Text:           Color     // Label of a flat button.
-    btnPushFlat_Border:         Color     // Border of a flat button.
-    btnPushFlat_Bk:             Color     // Fill of a flat button.
-    btnPushFlat_PressedText:    Color     // Label of a pressed flat button.
-    btnPushFlat_PressedBorder:  Color     // Border of a pressed flat button.
-    btnPushFlat_PressedBk:      Color     // Fill of a pressed flat button.
-    btnPushFlat_HotText:        Color     // Label of a hovered flat button.
-    btnPushFlat_HotBorder:      Color     // Border of a hovered flat button.
-    btnPushFlat_HotBk:          Color     // Fill of a hovered flat button.
+        btnPushFlat_DisabledText:   Color     // Label of a disabled flat button.
+        btnPushFlat_DisabledBorder: Color     // Border of a disabled flat button.
+        btnPushFlat_DisabledBk:     Color     // Fill of a disabled flat button.
+        btnPushFlat_Text:           Color     // Label of a flat button.
+        btnPushFlat_Border:         Color     // Border of a flat button.
+        btnPushFlat_Bk:             Color     // Fill of a flat button.
+        btnPushFlat_PressedText:    Color     // Label of a pressed flat button.
+        btnPushFlat_PressedBorder:  Color     // Border of a pressed flat button.
+        btnPushFlat_PressedBk:      Color     // Fill of a pressed flat button.
+        btnPushFlat_HotText:        Color     // Label of a hovered flat button.
+        btnPushFlat_HotBorder:      Color     // Border of a hovered flat button.
+        btnPushFlat_HotBk:          Color     // Fill of a hovered flat button.
 
-    btnPushDefault_DisabledText:   Color     // Label of a disabled default button.
-    btnPushDefault_DisabledBorder: Color     // Border of a disabled default button.
-    btnPushDefault_DisabledBk:     Color     // Fill of a disabled default button.
-    btnPushDefault_Text:           Color     // Label of the default button.
-    btnPushDefault_Border:         Color     // Border of the default button.
-    btnPushDefault_Bk:             Color     // Fill of the default button.
-    btnPushDefault_PressedText:    Color     // Label of the pressed default button.
-    btnPushDefault_PressedBorder:  Color     // Border of the pressed default button.
-    btnPushDefault_PressedBk:      Color     // Fill of the pressed default button.
-    btnPushDefault_HotText:        Color     // Label of the hovered default button.
-    btnPushDefault_HotBorder:      Color     // Border of the hovered default button.
-    btnPushDefault_HotBk:          Color     // Fill of the hovered default button.
+        btnPushDefault_DisabledText:   Color     // Label of a disabled default button.
+        btnPushDefault_DisabledBorder: Color     // Border of a disabled default button.
+        btnPushDefault_DisabledBk:     Color     // Fill of a disabled default button.
+        btnPushDefault_Text:           Color     // Label of the default button.
+        btnPushDefault_Border:         Color     // Border of the default button.
+        btnPushDefault_Bk:             Color     // Fill of the default button.
+        btnPushDefault_PressedText:    Color     // Label of the pressed default button.
+        btnPushDefault_PressedBorder:  Color     // Border of the pressed default button.
+        btnPushDefault_PressedBk:      Color     // Fill of the pressed default button.
+        btnPushDefault_HotText:        Color     // Label of the hovered default button.
+        btnPushDefault_HotBorder:      Color     // Border of the hovered default button.
+        btnPushDefault_HotBk:          Color     // Fill of the hovered default button.
 
-    btnIcon_Icon:         Color     // Glyph of an icon button.
-    btnIcon_Text:         Color     // Label of an icon button.
-    btnIcon_Bk:           Color     // Fill of an icon button.
-    btnIcon_DisabledIcon: Color     // Glyph of a disabled icon button.
-    btnIcon_DisabledText: Color     // Label of a disabled icon button.
-    btnIcon_DisabledBk:   Color     // Fill of a disabled icon button.
-    btnIcon_PressedIcon:  Color     // Glyph of a pressed icon button.
-    btnIcon_PressedText:  Color     // Label of a pressed icon button.
-    btnIcon_PressedBk:    Color     // Fill of a pressed icon button.
-    btnIcon_HotIcon:      Color     // Glyph of a hovered icon button.
-    btnIcon_HotText:      Color     // Label of a hovered icon button.
-    btnIcon_HotBk:        Color     // Fill of a hovered icon button.
+        btnIcon_Icon:         Color     // Glyph of an icon button.
+        btnIcon_Text:         Color     // Label of an icon button.
+        btnIcon_Bk:           Color     // Fill of an icon button.
+        btnIcon_DisabledIcon: Color     // Glyph of a disabled icon button.
+        btnIcon_DisabledText: Color     // Label of a disabled icon button.
+        btnIcon_DisabledBk:   Color     // Fill of a disabled icon button.
+        btnIcon_PressedIcon:  Color     // Glyph of a pressed icon button.
+        btnIcon_PressedText:  Color     // Label of a pressed icon button.
+        btnIcon_PressedBk:    Color     // Fill of a pressed icon button.
+        btnIcon_HotIcon:      Color     // Glyph of a hovered icon button.
+        btnIcon_HotText:      Color     // Label of a hovered icon button.
+        btnIcon_HotBk:        Color     // Fill of a hovered icon button.
 
-    btnIcon_CheckedDisabledIcon: Color     // Glyph of a checked, disabled icon button.
-    btnIcon_CheckedDisabledText: Color     // Label of a checked, disabled icon button.
-    btnIcon_CheckedPressedIcon:  Color     // Glyph of a checked, pressed icon button.
-    btnIcon_CheckedPressedText:  Color     // Label of a checked, pressed icon button.
-    btnIcon_CheckedHotIcon:      Color     // Glyph of a checked, hovered icon button.
-    btnIcon_CheckedHotText:      Color     // Label of a checked, hovered icon button.
-    btnIcon_CheckedIcon:         Color     // Glyph of a checked icon button.
-    btnIcon_CheckedText:         Color     // Label of a checked icon button.
-    btnIcon_CheckedDisabledBk:   Color     // Fill of a checked, disabled icon button.
-    btnIcon_CheckedPressedBk:    Color     // Fill of a checked, pressed icon button.
-    btnIcon_CheckedHotBk:        Color     // Fill of a checked, hovered icon button.
-    btnIcon_CheckedBk:           Color     // Fill of a checked icon button.
-    btnIcon_CheckedMark:         Color     // Mark saying an icon button is checked.
-    btnIcon_CheckedPressedMark:  Color     // Checked mark under the press.
-    btnIcon_CheckedHotMark:      Color     // Checked mark under the pointer.
-    btnIcon_CheckedDisabledMark: Color     // Checked mark of a disabled button.
+        btnIcon_CheckedDisabledIcon: Color     // Glyph of a checked, disabled icon button.
+        btnIcon_CheckedDisabledText: Color     // Label of a checked, disabled icon button.
+        btnIcon_CheckedPressedIcon:  Color     // Glyph of a checked, pressed icon button.
+        btnIcon_CheckedPressedText:  Color     // Label of a checked, pressed icon button.
+        btnIcon_CheckedHotIcon:      Color     // Glyph of a checked, hovered icon button.
+        btnIcon_CheckedHotText:      Color     // Label of a checked, hovered icon button.
+        btnIcon_CheckedIcon:         Color     // Glyph of a checked icon button.
+        btnIcon_CheckedText:         Color     // Label of a checked icon button.
+        btnIcon_CheckedDisabledBk:   Color     // Fill of a checked, disabled icon button.
+        btnIcon_CheckedPressedBk:    Color     // Fill of a checked, pressed icon button.
+        btnIcon_CheckedHotBk:        Color     // Fill of a checked, hovered icon button.
+        btnIcon_CheckedBk:           Color     // Fill of a checked icon button.
+        btnIcon_CheckedMark:         Color     // Mark saying an icon button is checked.
+        btnIcon_CheckedPressedMark:  Color     // Checked mark under the press.
+        btnIcon_CheckedHotMark:      Color     // Checked mark under the pointer.
+        btnIcon_CheckedDisabledMark: Color     // Checked mark of a disabled button.
 
-    label_Text:         Color     // Primary label text.
-    label_TextLight:    Color     // Secondary label text.
-    label_TextFaint:    Color     // Counts, status readouts, and other text a reader only glances at.
-    label_DisabledText: Color     // Text of a disabled label.
-    label_Icon:         Color     // Glyph beside a label.
-    label_DisabledIcon: Color     // Glyph beside a disabled label.
+        label_Text:         Color     // Primary label text.
+        label_TextLight:    Color     // Secondary label text.
+        label_TextFaint:    Color     // Counts, status readouts, and other text a reader only glances at.
+        label_DisabledText: Color     // Text of a disabled label.
+        label_Icon:         Color     // Glyph beside a label.
+        label_DisabledIcon: Color     // Glyph beside a disabled label.
 
-    btnCheck_Text:           Color     // Label of a check box.
-    btnCheck_Border:         Color     // Border of a check box.
-    btnCheck_Mark:           Color     // Mark inside a check box.
-    btnCheck_Bk:             Color     // Fill of a check box.
-    btnCheck_PressedText:    Color     // Label of a pressed check box.
-    btnCheck_PressedBorder:  Color     // Border of a pressed check box.
-    btnCheck_PressedMark:    Color     // Mark of a pressed check box.
-    btnCheck_PressedBk:      Color     // Fill of a pressed check box.
-    btnCheck_HotText:        Color     // Label of a hovered check box.
-    btnCheck_HotBorder:      Color     // Border of a hovered check box.
-    btnCheck_HotMark:        Color     // Mark of a hovered check box.
-    btnCheck_HotBk:          Color     // Fill of a hovered check box.
-    btnCheck_DisabledText:   Color     // Label of a disabled check box.
-    btnCheck_DisabledBorder: Color     // Border of a disabled check box.
-    btnCheck_DisabledMark:   Color     // Mark of a disabled check box.
-    btnCheck_DisabledBk:     Color     // Fill of a disabled check box.
-    btnCheck_CheckedText:    Color     // Label of a checked box.
-    btnCheck_CheckedBk:      Color     // Fill of a checked box.
-    btnCheck_CheckedBorder:  Color     // Border of a checked box.
-    btnCheck_CheckedMark:    Color     // Mark of a checked box.
+        btnCheck_Text:           Color     // Label of a check box.
+        btnCheck_Border:         Color     // Border of a check box.
+        btnCheck_Mark:           Color     // Mark inside a check box.
+        btnCheck_Bk:             Color     // Fill of a check box.
+        btnCheck_PressedText:    Color     // Label of a pressed check box.
+        btnCheck_PressedBorder:  Color     // Border of a pressed check box.
+        btnCheck_PressedMark:    Color     // Mark of a pressed check box.
+        btnCheck_PressedBk:      Color     // Fill of a pressed check box.
+        btnCheck_HotText:        Color     // Label of a hovered check box.
+        btnCheck_HotBorder:      Color     // Border of a hovered check box.
+        btnCheck_HotMark:        Color     // Mark of a hovered check box.
+        btnCheck_HotBk:          Color     // Fill of a hovered check box.
+        btnCheck_DisabledText:   Color     // Label of a disabled check box.
+        btnCheck_DisabledBorder: Color     // Border of a disabled check box.
+        btnCheck_DisabledMark:   Color     // Mark of a disabled check box.
+        btnCheck_DisabledBk:     Color     // Fill of a disabled check box.
+        btnCheck_CheckedText:    Color     // Label of a checked box.
+        btnCheck_CheckedBk:      Color     // Fill of a checked box.
+        btnCheck_CheckedBorder:  Color     // Border of a checked box.
+        btnCheck_CheckedMark:    Color     // Mark of a checked box.
 
-    // A tool tip is the inverse of the surface it annotates. It is a transient note rather
-    // than a part of the interface, and inverting it is what makes it unmistakable — and
-    // legible whatever ground it happens to open over.
-    toolTip_Bk:     Color     // Ground of a tool tip.
-    toolTip_Border: Color     // Border of a tool tip.
-    toolTip_Text:   Color     // Text of a tool tip.
+        // A tool tip is the inverse of the surface it annotates. It is a transient note rather
+        // than a part of the interface, and inverting it is what makes it unmistakable — and
+        // legible whatever ground it happens to open over.
+        toolTip_Bk:     Color     // Ground of a tool tip.
+        toolTip_Border: Color     // Border of a tool tip.
+        toolTip_Text:   Color     // Text of a tool tip.
 
-    url_Text:    Color     // A link at rest.
-    url_HotText: Color     // A link under the pointer.
+        url_Text:    Color     // A link at rest.
+        url_HotText: Color     // A link under the pointer.
 
-    edit_Border:         Color     // Border of a field.
-    edit_FocusBorder:    Color     // Border of the focused field.
-    edit_HotBorder:      Color     // Border of a hovered field.
-    edit_DisabledBorder: Color     // Border of a disabled field.
-    edit_Bk:             Color     // Fill of a field.
-    edit_DisabledBk:     Color     // Fill of a disabled field.
-    edit_ErrorBk:        Color     // Fill of a field holding a rejected value.
-    edit_HotBk:          Color     // Fill of a hovered field.
-    edit_FocusBk:        Color     // Fill of the focused field.
-    edit_Note:           Color     // Placeholder note shown while a field is empty.
-    edit_Text:           Color     // Text of a field.
-    edit_TextUnit:       Color     // Unit written after the value of a field.
-    edit_DisabledText:   Color     // Text of a disabled field.
-    edit_SelectedBk:     Color     // Ground of selected text.
-    edit_ErrorBorder:    Color     // Border of a field holding a rejected value.
+        edit_Border:         Color     // Border of a field.
+        edit_FocusBorder:    Color     // Border of the focused field.
+        edit_HotBorder:      Color     // Border of a hovered field.
+        edit_DisabledBorder: Color     // Border of a disabled field.
+        edit_Bk:             Color     // Fill of a field.
+        edit_DisabledBk:     Color     // Fill of a disabled field.
+        edit_ErrorBk:        Color     // Fill of a field holding a rejected value.
+        edit_HotBk:          Color     // Fill of a hovered field.
+        edit_FocusBk:        Color     // Fill of the focused field.
+        edit_Note:           Color     // Placeholder note shown while a field is empty.
+        edit_Text:           Color     // Text of a field.
+        edit_TextUnit:       Color     // Unit written after the value of a field.
+        edit_DisabledText:   Color     // Text of a disabled field.
+        edit_SelectedBk:     Color     // Ground of selected text.
+        edit_ErrorBorder:    Color     // Border of a field holding a rejected value.
 
-    richEdit_Bk:             Color     // Ground of the rich editor.
-    richEdit_TextSpecial:    Color     // Marks the editor draws for itself: tabs, ends of line.
-    richEdit_Text:           Color     // Text with no style of its own.
-    richEdit_SelText:        Color     // Ink of selected text, or transparent to keep each run's own.
-    richEdit_SelTextNoFocus: Color     // Ink of selected text while the editor is not focused.
-    richEdit_SelBk:          Color     // Ground of selected text.
-    richEdit_SelBkNoFocus:   Color     // Ground of selected text while the editor is not focused.
-    richEdit_Caret:          Color     // The caret.
-    richEdit_CurLineBorder:  Color     // Rule around the line the caret is on.
+        richEdit_Bk:             Color     // Ground of the rich editor.
+        richEdit_TextSpecial:    Color     // Marks the editor draws for itself: tabs, ends of line.
+        richEdit_Text:           Color     // Text with no style of its own.
+        richEdit_SelText:        Color     // Ink of selected text, or transparent to keep each run's own.
+        richEdit_SelTextNoFocus: Color     // Ink of selected text while the editor is not focused.
+        richEdit_SelBk:          Color     // Ground of selected text.
+        richEdit_SelBkNoFocus:   Color     // Ground of selected text while the editor is not focused.
+        richEdit_Caret:          Color     // The caret.
+        richEdit_CurLineBorder:  Color     // Rule around the line the caret is on.
 
-    btnToggle_DisabledBorder:   Color     // Border of a disabled switch.
-    btnToggle_DisabledMark:     Color     // Knob of a disabled switch.
-    btnToggle_DisabledBk:       Color     // Track of a disabled switch.
-    btnToggle_OffBorder:        Color     // Border of a switch that is off.
-    btnToggle_OffMark:          Color     // Knob of a switch that is off.
-    btnToggle_OffBk:            Color     // Track of a switch that is off.
-    btnToggle_OffHotBorder:     Color     // Border of a hovered switch that is off.
-    btnToggle_OffHotMark:       Color     // Knob of a hovered switch that is off.
-    btnToggle_OffHotBk:         Color     // Track of a hovered switch that is off.
-    btnToggle_OffPressedBorder: Color     // Border of a pressed switch that is off.
-    btnToggle_OffPressedMark:   Color     // Knob of a pressed switch that is off.
-    btnToggle_OffPressedBk:     Color     // Track of a pressed switch that is off.
-    btnToggle_OnBorder:         Color     // Border of a switch that is on.
-    btnToggle_OnMark:           Color     // Knob of a switch that is on.
-    btnToggle_OnBk:             Color     // Track of a switch that is on.
-    btnToggle_OnHotBorder:      Color     // Border of a hovered switch that is on.
-    btnToggle_OnHotMark:        Color     // Knob of a hovered switch that is on.
-    btnToggle_OnHotBk:          Color     // Track of a hovered switch that is on.
-    btnToggle_OnPressedBorder:  Color     // Border of a pressed switch that is on.
-    btnToggle_OnPressedMark:    Color     // Knob of a pressed switch that is on.
-    btnToggle_OnPressedBk:      Color     // Track of a pressed switch that is on.
+        btnToggle_DisabledBorder:   Color     // Border of a disabled switch.
+        btnToggle_DisabledMark:     Color     // Knob of a disabled switch.
+        btnToggle_DisabledBk:       Color     // Track of a disabled switch.
+        btnToggle_OffBorder:        Color     // Border of a switch that is off.
+        btnToggle_OffMark:          Color     // Knob of a switch that is off.
+        btnToggle_OffBk:            Color     // Track of a switch that is off.
+        btnToggle_OffHotBorder:     Color     // Border of a hovered switch that is off.
+        btnToggle_OffHotMark:       Color     // Knob of a hovered switch that is off.
+        btnToggle_OffHotBk:         Color     // Track of a hovered switch that is off.
+        btnToggle_OffPressedBorder: Color     // Border of a pressed switch that is off.
+        btnToggle_OffPressedMark:   Color     // Knob of a pressed switch that is off.
+        btnToggle_OffPressedBk:     Color     // Track of a pressed switch that is off.
+        btnToggle_OnBorder:         Color     // Border of a switch that is on.
+        btnToggle_OnMark:           Color     // Knob of a switch that is on.
+        btnToggle_OnBk:             Color     // Track of a switch that is on.
+        btnToggle_OnHotBorder:      Color     // Border of a hovered switch that is on.
+        btnToggle_OnHotMark:        Color     // Knob of a hovered switch that is on.
+        btnToggle_OnHotBk:          Color     // Track of a hovered switch that is on.
+        btnToggle_OnPressedBorder:  Color     // Border of a pressed switch that is on.
+        btnToggle_OnPressedMark:    Color     // Knob of a pressed switch that is on.
+        btnToggle_OnPressedBk:      Color     // Track of a pressed switch that is on.
 
-    slider_BkLeft:            Color     // Track of a slider, before the thumb.
-    slider_BkMiddle:          Color     // Track of a slider, between two thumbs.
-    slider_BkRight:           Color     // Track of a slider, after the thumb.
-    slider_HilightBk:         Color     // The selected part of the track.
-    slider_Mark:              Color     // The thumb.
-    slider_HotMark:           Color     // The thumb under the pointer.
-    slider_PressedMark:       Color     // The thumb under the press.
-    slider_DisabledMark:      Color     // The thumb of a disabled slider.
-    slider_DisabledBk:        Color     // Track of a disabled slider.
-    slider_DisabledHilightBk: Color     // Selected part of the track of a disabled slider.
-    slider_StepBk:            Color     // A step marker on the empty part of the track.
-    slider_HilightStepBk:     Color     // A step marker on the selected part of the track.
-    slider_HotStepBk:         Color     // A step marker while the slider is hovered.
+        slider_BkLeft:            Color     // Track of a slider, before the thumb.
+        slider_BkMiddle:          Color     // Track of a slider, between two thumbs.
+        slider_BkRight:           Color     // Track of a slider, after the thumb.
+        slider_HilightBk:         Color     // The selected part of the track.
+        slider_Mark:              Color     // The thumb.
+        slider_HotMark:           Color     // The thumb under the pointer.
+        slider_PressedMark:       Color     // The thumb under the press.
+        slider_DisabledMark:      Color     // The thumb of a disabled slider.
+        slider_DisabledBk:        Color     // Track of a disabled slider.
+        slider_DisabledHilightBk: Color     // Selected part of the track of a disabled slider.
+        slider_StepBk:            Color     // A step marker on the empty part of the track.
+        slider_HilightStepBk:     Color     // A step marker on the selected part of the track.
+        slider_HotStepBk:         Color     // A step marker while the slider is hovered.
 
-    circular_Bk:             Color     // Fill inside the dial.
-    circular_DisabledBk:     Color     // Fill inside a disabled dial.
-    circular_Circle:         Color     // The ring of the dial.
-    circular_DisabledCircle: Color     // The ring of a disabled dial.
-    circular_Mark:           Color     // The marker on the ring.
-    circular_HotMark:        Color     // The marker under the pointer.
-    circular_PressedMark:    Color     // The marker under the press.
-    circular_DisabledMark:   Color     // The marker of a disabled dial.
-    circular_Step:           Color     // A step marker on the ring.
-    circular_DisabledStep:   Color     // A step marker on a disabled ring.
-    circular_RangeArc:       Color     // The arc between two markers.
+        circular_Bk:             Color     // Fill inside the dial.
+        circular_DisabledBk:     Color     // Fill inside a disabled dial.
+        circular_Circle:         Color     // The ring of the dial.
+        circular_DisabledCircle: Color     // The ring of a disabled dial.
+        circular_Mark:           Color     // The marker on the ring.
+        circular_HotMark:        Color     // The marker under the pointer.
+        circular_PressedMark:    Color     // The marker under the press.
+        circular_DisabledMark:   Color     // The marker of a disabled dial.
+        circular_Step:           Color     // A step marker on the ring.
+        circular_DisabledStep:   Color     // A step marker on a disabled ring.
+        circular_RangeArc:       Color     // The arc between two markers.
 
-    tabItem_SelectedText:             Color     // Label of the selected tab.
-    tabItem_HotText:                  Color     // Label of a hovered tab.
-    tabItem_Text:                     Color     // Label of a tab at rest.
-    tabItem_FlatSelected:             Color     // Ground of the selected flat tab.
-    tabItem_FlatHot:                  Color     // Ground of a hovered flat tab.
-    tabItem_RoundSelected:            Color     // Ground of the selected round tab.
-    tabItem_RoundHot:                 Color     // Ground of a hovered round tab.
-    tabItem_ButtonSelected:           Color     // Ground of the selected button tab.
-    tabItem_ButtonHot:                Color     // Ground of a hovered button tab.
-    tabItem_PushButtonSelected:       Color     // Ground of the selected push-button tab.
-    tabItem_PushButtonSelectedText:   Color     // Label of the selected push-button tab.
-    tabItem_PushButtonSelectedBorder: Color     // Border of the selected push-button tab.
-    tabItem_PushButtonHot:            Color     // Ground of a hovered push-button tab.
-    tabItem_PushButtonHotText:        Color     // Label of a hovered push-button tab.
-    tabItem_PushButtonHotBorder:      Color     // Border of a hovered push-button tab.
-    tabItem_PushButtonText:           Color     // Label of a push-button tab at rest.
-    tabItem_PushButtonBk:             Color     // Ground of a push-button tab at rest.
-    tabItem_PushButtonBorder:         Color     // Border of a push-button tab at rest.
-    tabBar_FlatBk:                    Color     // Ground of a flat tab bar.
-    tabBar_RoundBk:                   Color     // Ground of a round tab bar.
-    tabView_FlatBk:                   Color     // Ground of the page under a flat tab bar.
-    tabView_RoundBk:                  Color     // Ground of the page under a round tab bar.
+        tabItem_SelectedText:             Color     // Label of the selected tab.
+        tabItem_HotText:                  Color     // Label of a hovered tab.
+        tabItem_Text:                     Color     // Label of a tab at rest.
+        tabItem_FlatSelected:             Color     // Ground of the selected flat tab.
+        tabItem_FlatHot:                  Color     // Ground of a hovered flat tab.
+        tabItem_RoundSelected:            Color     // Ground of the selected round tab.
+        tabItem_RoundHot:                 Color     // Ground of a hovered round tab.
+        tabItem_ButtonSelected:           Color     // Ground of the selected button tab.
+        tabItem_ButtonHot:                Color     // Ground of a hovered button tab.
+        tabItem_PushButtonSelected:       Color     // Ground of the selected push-button tab.
+        tabItem_PushButtonSelectedText:   Color     // Label of the selected push-button tab.
+        tabItem_PushButtonSelectedBorder: Color     // Border of the selected push-button tab.
+        tabItem_PushButtonHot:            Color     // Ground of a hovered push-button tab.
+        tabItem_PushButtonHotText:        Color     // Label of a hovered push-button tab.
+        tabItem_PushButtonHotBorder:      Color     // Border of a hovered push-button tab.
+        tabItem_PushButtonText:           Color     // Label of a push-button tab at rest.
+        tabItem_PushButtonBk:             Color     // Ground of a push-button tab at rest.
+        tabItem_PushButtonBorder:         Color     // Border of a push-button tab at rest.
+        tabBar_FlatBk:                    Color     // Ground of a flat tab bar.
+        tabBar_RoundBk:                   Color     // Ground of a round tab bar.
+        tabView_FlatBk:                   Color     // Ground of the page under a flat tab bar.
+        tabView_RoundBk:                  Color     // Ground of the page under a round tab bar.
 
-    menuPopup_Bk:         Color     // Ground of an open menu.
-    menuPopup_Border:     Color     // Outline of an open menu.
-    menuPopup_Shadow:     Color     // Shadow an open menu casts.
-    menuPopup_Separator:  Color     // Rule between two groups of entries.
-    menuBar_Bk:           Color     // Ground of a menu bar.
-    menuBar_Border:       Color     // Rule under a menu bar.
-    menuBar_SelectedBk:   Color     // Ground of the open menu title.
-    menuBar_SelectedText: Color     // The open menu title.
+        menuPopup_Bk:         Color     // Ground of an open menu.
+        menuPopup_Border:     Color     // Outline of an open menu.
+        menuPopup_Shadow:     Color     // Shadow an open menu casts.
+        menuPopup_Separator:  Color     // Rule between two groups of entries.
+        menuBar_Bk:           Color     // Ground of a menu bar.
+        menuBar_Border:       Color     // Rule under a menu bar.
+        menuBar_SelectedBk:   Color     // Ground of the open menu title.
+        menuBar_SelectedText: Color     // The open menu title.
 
-    popupItem_Text:         Color     // An entry of a menu.
-    popupItem_RightText:    Color     // The shortcut written after an entry.
-    popupItem_DisabledText: Color     // An entry the reader cannot choose.
-    popupItem_HotText:      Color     // An entry under the pointer.
-    popupItem_HotRightText: Color     // The shortcut of an entry under the pointer.
-    popupItem_HotBk:        Color     // Ground of an entry under the pointer.
+        popupItem_Text:         Color     // An entry of a menu.
+        popupItem_RightText:    Color     // The shortcut written after an entry.
+        popupItem_DisabledText: Color     // An entry the reader cannot choose.
+        popupItem_HotText:      Color     // An entry under the pointer.
+        popupItem_HotRightText: Color     // The shortcut of an entry under the pointer.
+        popupItem_HotBk:        Color     // Ground of an entry under the pointer.
 
-    scrollBar_Bk:         Color     // Track of a scroll bar.
-    scrollBar_HotBk:      Color     // Track of a scroll bar under the pointer.
-    scrollBar_DisabledBk: Color     // Track of a scroll bar with nothing to scroll.
-    scrollBar_Box:        Color     // The thumb.
-    scrollBar_HotBox:     Color     // The thumb under the pointer.
-    scrollBar_PressedBox: Color     // The thumb under the press.
+        scrollBar_Bk:         Color     // Track of a scroll bar.
+        scrollBar_HotBk:      Color     // Track of a scroll bar under the pointer.
+        scrollBar_DisabledBk: Color     // Track of a scroll bar with nothing to scroll.
+        scrollBar_Box:        Color     // The thumb.
+        scrollBar_HotBox:     Color     // The thumb under the pointer.
+        scrollBar_PressedBox: Color     // The thumb under the press.
 
-    comboBox_Border:         Color     // Border of a combo box.
-    comboBox_HotBorder:      Color     // Border of a hovered combo box.
-    comboBox_DisabledBorder: Color     // Border of a disabled combo box.
-    comboBox_SelectedBorder: Color     // Border of a combo box whose list is open.
-    comboBox_Bk:             Color     // Fill of a combo box.
-    comboBox_HotBk:          Color     // Fill of a hovered combo box.
-    comboBox_DisabledBk:     Color     // Fill of a disabled combo box.
-    comboBox_SelectedBk:     Color     // Fill of a combo box whose list is open.
-    comboBox_Text:           Color     // Text of a combo box.
-    comboBox_HotText:        Color     // Text of a hovered combo box.
-    comboBox_DisabledText:   Color     // Text of a disabled combo box.
-    comboBox_SelectedText:   Color     // Text of a combo box whose list is open.
+        comboBox_Border:         Color     // Border of a combo box.
+        comboBox_HotBorder:      Color     // Border of a hovered combo box.
+        comboBox_DisabledBorder: Color     // Border of a disabled combo box.
+        comboBox_SelectedBorder: Color     // Border of a combo box whose list is open.
+        comboBox_Bk:             Color     // Fill of a combo box.
+        comboBox_HotBk:          Color     // Fill of a hovered combo box.
+        comboBox_DisabledBk:     Color     // Fill of a disabled combo box.
+        comboBox_SelectedBk:     Color     // Fill of a combo box whose list is open.
+        comboBox_Text:           Color     // Text of a combo box.
+        comboBox_HotText:        Color     // Text of a hovered combo box.
+        comboBox_DisabledText:   Color     // Text of a disabled combo box.
+        comboBox_SelectedText:   Color     // Text of a combo box whose list is open.
 
-    popupList_Separator:    Color     // Rule between two groups of a popup list.
-    popupList_HotBk:        Color     // Ground of the entry under the pointer.
-    popupList_Text:         Color     // An entry of a popup list.
-    popupList_HotText:      Color     // The entry under the pointer.
-    popupList_CheckMark:    Color     // Mark of a chosen entry.
-    popupList_HotCheckMark: Color     // Mark of a chosen entry under the pointer.
+        popupList_Separator:    Color     // Rule between two groups of a popup list.
+        popupList_HotBk:        Color     // Ground of the entry under the pointer.
+        popupList_Text:         Color     // An entry of a popup list.
+        popupList_HotText:      Color     // The entry under the pointer.
+        popupList_CheckMark:    Color     // Mark of a chosen entry.
+        popupList_HotCheckMark: Color     // Mark of a chosen entry under the pointer.
 
-    frameWnd_SmallShadow:    Color     // Shadow a framed panel casts.
-    frameWnd_Border:         Color     // Outline of a framed panel.
-    frameWnd_PopupBorder:    Color     // Outline of a framed panel opened as a popup.
-    frameWnd_FocusBorder:    Color     // Outline of a framed panel holding the focus.
-    frameWnd_DisabledBorder: Color     // Outline of a disabled framed panel.
-    frameWnd_Bk:             Color     // Ground of a framed panel.
-    frameWnd_DisabledBk:     Color     // Ground of a disabled framed panel.
-    frameWnd_FocusBk:        Color     // Ground of a framed panel holding the focus.
+        frameWnd_SmallShadow:    Color     // Shadow a framed panel casts.
+        frameWnd_Border:         Color     // Outline of a framed panel.
+        frameWnd_PopupBorder:    Color     // Outline of a framed panel opened as a popup.
+        frameWnd_FocusBorder:    Color     // Outline of a framed panel holding the focus.
+        frameWnd_DisabledBorder: Color     // Outline of a disabled framed panel.
+        frameWnd_Bk:             Color     // Ground of a framed panel.
+        frameWnd_DisabledBk:     Color     // Ground of a disabled framed panel.
+        frameWnd_FocusBk:        Color     // Ground of a framed panel holding the focus.
 
-    listItem_FocusSelectedBk:   Color     // Ground of a selected row in the focused list.
-    listItem_FocusSelectedText: Color     // Text of a selected row in the focused list.
-    listItem_SelectedBk:        Color     // Ground of a selected row.
-    listItem_SelectedText:      Color     // Text of a selected row.
-    listItem_HotBk:             Color     // Ground of the row under the pointer.
-    listItem_DisabledText:      Color     // Text of a row the reader cannot choose.
-    listItem_Text:              Color     // Text of a row.
-    listItem_Separator:         Color     // Label of a separator row, which carries a group name.
-    listItem_AlternateBk:       Color     // Ground of every other row.
-    listItem_Line:              Color     // Rule between two rows.
+        listItem_FocusSelectedBk:   Color     // Ground of a selected row in the focused list.
+        listItem_FocusSelectedText: Color     // Text of a selected row in the focused list.
+        listItem_SelectedBk:        Color     // Ground of a selected row.
+        listItem_SelectedText:      Color     // Text of a selected row.
+        listItem_HotBk:             Color     // Ground of the row under the pointer.
+        listItem_DisabledText:      Color     // Text of a row the reader cannot choose.
+        listItem_Text:              Color     // Text of a row.
+        listItem_Separator:         Color     // Label of a separator row, which carries a group name.
+        listItem_AlternateBk:       Color     // Ground of every other row.
+        listItem_Line:              Color     // Rule between two rows.
 
-    headerItem_DisabledText: Color     // Label of a disabled column head.
-    headerItem_HotText:      Color     // Label of a column head under the pointer.
-    headerItem_HotBk:        Color     // Ground of a column head under the pointer.
-    headerItem_ClickedBk:    Color     // Ground of a column head under the press.
-    headerItem_Text:         Color     // Label of a column head.
-    headerItem_Separator:    Color     // Rule between two column heads.
-    header_Bk:               Color     // Ground of a header band.
+        headerItem_DisabledText: Color     // Label of a disabled column head.
+        headerItem_HotText:      Color     // Label of a column head under the pointer.
+        headerItem_HotBk:        Color     // Ground of a column head under the pointer.
+        headerItem_ClickedBk:    Color     // Ground of a column head under the press.
+        headerItem_Text:         Color     // Label of a column head.
+        headerItem_Separator:    Color     // Rule between two column heads.
+        header_Bk:               Color     // Ground of a header band.
 
-    splitView_TitleBk: Color     // Ground of the title of a split pane.
-    splitView_Bar:     Color     // The bar between two panes.
-    splitView_BarHot:  Color     // The bar under the pointer.
+        splitView_TitleBk: Color     // Ground of the title of a split pane.
+        splitView_Bar:     Color     // The bar between two panes.
+        splitView_BarHot:  Color     // The bar under the pointer.
 
-    progressBar_DisabledBorder: Color     // Border of a disabled progress bar.
-    progressBar_DisabledBk:     Color     // Ground of a disabled progress bar.
-    progressBar_DisabledMark:   Color     // Filled part of a disabled progress bar.
-    progressBar_Border:         Color     // Border of a progress bar.
-    progressBar_Bk:             Color     // Ground of a progress bar.
-    progressBar_Mark:           Color     // Filled part of a progress bar.
+        progressBar_DisabledBorder: Color     // Border of a disabled progress bar.
+        progressBar_DisabledBk:     Color     // Ground of a disabled progress bar.
+        progressBar_DisabledMark:   Color     // Filled part of a disabled progress bar.
+        progressBar_Border:         Color     // Border of a progress bar.
+        progressBar_Bk:             Color     // Ground of a progress bar.
+        progressBar_Mark:           Color     // Filled part of a progress bar.
 
-    palPicker_Border:    Color     // Outline of a swatch.
-    palPicker_HotBorder: Color     // Outline of a swatch under the pointer.
+        palPicker_Border:    Color     // Outline of a swatch.
+        palPicker_HotBorder: Color     // Outline of a swatch under the pointer.
 
-    colorPicker_Border:    Color     // Outline of the picker surfaces.
-    colorPicker_BackAlpha: Color     // Ground shown through a translucent color.
-    colorPicker_Mark:      Color     // The marker on a picker surface.
+        colorPicker_Border:    Color     // Outline of the picker surfaces.
+        colorPicker_BackAlpha: Color     // Ground shown through a translucent color.
+        colorPicker_Mark:      Color     // The marker on a picker surface.
 
-    // Tint a drawn image is multiplied by. White leaves the image alone, which is what an
-    // image wants: it carries its own colors and owes the theme nothing.
-    imageRect_Fg: Color
+        // Tint a drawn image is multiplied by. White leaves the image alone, which is what an
+        // image wants: it carries its own colors and owes the theme nothing.
+        imageRect_Fg: Color
 
-    spinner_Dot: Color     // A dot of the waiting ring.
+        spinner_Dot: Color     // A dot of the waiting ring.
 
-    embInfo_CriticalBk:      Color     // Ground of a notice reporting a failure.
-    embInfo_CriticalText:    Color     // Text of a notice reporting a failure.
-    embInfo_InformationBk:   Color     // Ground of a notice offering guidance.
-    embInfo_InformationText: Color     // Text of a notice offering guidance.
-    embInfo_MessageBk:       Color     // Ground of a neutral status notice.
-    embInfo_MessageText:     Color     // Text of a neutral status notice.
+        embInfo_CriticalBk:      Color     // Ground of a notice reporting a failure.
+        embInfo_CriticalText:    Color     // Text of a notice reporting a failure.
+        embInfo_InformationBk:   Color     // Ground of a notice offering guidance.
+        embInfo_InformationText: Color     // Text of a notice offering guidance.
+        embInfo_MessageBk:       Color     // Ground of a neutral status notice.
+        embInfo_MessageText:     Color     // Text of a neutral status notice.
 
-    prop_FocusBk:     Color     // Ground of the focused row of a property grid.
-    prop_FocusBorder: Color     // Outline of the focused row of a property grid.
-    prop_HotBk:       Color     // Ground of the row under the pointer.
-    prop_HotBorder:   Color     // Outline of the row under the pointer.
-    prop_GridBorder:  Color     // Outline of a property grid.
-    prop_GridColumn:  Color     // Rule between the name column and the value column.
-    prop_SectionBk:   Color     // Ground of a section head.
-    prop_CategBk:     Color     // Ground of a category head.
+        prop_FocusBk:     Color     // Ground of the focused row of a property grid.
+        prop_FocusBorder: Color     // Outline of the focused row of a property grid.
+        prop_HotBk:       Color     // Ground of the row under the pointer.
+        prop_HotBorder:   Color     // Outline of the row under the pointer.
+        prop_GridBorder:  Color     // Outline of a property grid.
+        prop_GridColumn:  Color     // Rule between the name column and the value column.
+        prop_SectionBk:   Color     // Ground of a section head.
+        prop_CategBk:     Color     // Ground of a category head.
+    }
 }
 
 impl ThemeColors
@@ -521,14 +524,14 @@ impl ThemeColors
         // end comes from `accentGround` and not from `accent`: this is a wash, and the accent
         // that points is ink on paper — a caption washed in it would be a grey band exactly
         // where the chart asks for the one block of Voltage a light surface is carried by.
-        .wnd_CaptionBkLead  = Color.lerpRgb(p.caption, p.accentGround, p.captionGlow)
-        .wnd_CaptionBkTrail = Color.lerpRgb(p.caption, p.ground, p.captionGlow * CaptionFadeRatio)
-        .wnd_Border                  = p.windowBorder
-        .wnd_BtnCloseBk              = CloseRed
-        .wnd_BtnCloseHotBk           = CloseHotRed
-        .wnd_BtnCloseHotIcon         = OnCloseRed
-        .wnd_BtnClosePressedIcon     = OnCloseRed
-        .wnd_Shadow                  = p.shadow
+        .wnd_CaptionBkLead       = Color.lerpRgb(p.caption, p.accentGround, p.captionGlow)
+        .wnd_CaptionBkTrail      = Color.lerpRgb(p.caption, p.ground, p.captionGlow * CaptionFadeRatio)
+        .wnd_Border              = p.windowBorder
+        .wnd_BtnCloseBk          = CloseRed
+        .wnd_BtnCloseHotBk       = CloseHotRed
+        .wnd_BtnCloseHotIcon     = OnCloseRed
+        .wnd_BtnClosePressedIcon = OnCloseRed
+        .wnd_Shadow              = p.shadow
 
         .view_Bk = p.view
 

@@ -24,8 +24,11 @@ enum GradientSpread
 // Associates a normalized gradient position with a straight-alpha color.
 struct GradientStop
 {
-    offset: f32       // Position in `[0, 1]`.
-    color:  Color     // Color sampled at `offset`.
+    public
+    {
+        offset: f32       // Position in `[0, 1]`.
+        color:  Color     // Color sampled at `offset`.
+    }
 }
 
 // Describes a reusable fill source for painter shapes.
@@ -44,21 +47,24 @@ struct GradientStop
 // ```
 struct Brush
 {
-    color:   Color      = Color.fromArgb(Argb.White)     // Color or multiplicative tint.
-    type:    BrushType  = SolidColor                     // Active paint-source variant.
-    hatch:   HatchStyle = Dot                            // Built-in hatch used by `.Hatch`.
-    texture: Texture                                     // Texture used by `.Texture`.
-    uvMode:  UVMode     = Fill                           // Texture coverage mode.
-    uvRect:  Math.Rectangle                              // Source texel rectangle used by `.FillSubRect`.
+    public
+    {
+        color:   Color      = Color.fromArgb(Argb.White)     // Color or multiplicative tint.
+        type:    BrushType  = SolidColor                     // Active paint-source variant.
+        hatch:   HatchStyle = Dot                            // Built-in hatch used by `.Hatch`.
+        texture: Texture                                     // Texture used by `.Texture`.
+        uvMode:  UVMode     = Fill                           // Texture coverage mode.
+        uvRect:  Math.Rectangle                              // Source texel rectangle used by `.FillSubRect`.
 
-    gradientStart:   Math.Vector2               // Linear start point or radial/sweep center.
-    gradientEnd:     Math.Vector2               // Linear end point or secondary radial center.
-    gradientRadius0: f32                        // Inner radial radius, in pixels.
-    gradientRadius1: f32                        // Outer radial radius, in pixels.
-    gradientAngle0:  f32                        // Sweep start angle, in radians.
-    gradientAngle1:  f32                        // Sweep end angle, in radians.
-    gradientSpread:  GradientSpread = Clamp     // Sampling outside the endpoint interval.
-    gradientStops:   Array'GradientStop         // Stops sorted by increasing offset, without a format-specific fixed limit.
+        gradientStart:   Math.Vector2               // Linear start point or radial/sweep center.
+        gradientEnd:     Math.Vector2               // Linear end point or secondary radial center.
+        gradientRadius0: f32                        // Inner radial radius, in pixels.
+        gradientRadius1: f32                        // Outer radial radius, in pixels.
+        gradientAngle0:  f32                        // Sweep start angle, in radians.
+        gradientAngle1:  f32                        // Sweep end angle, in radians.
+        gradientSpread:  GradientSpread = Clamp     // Sampling outside the endpoint interval.
+        gradientStops:   Array'GradientStop         // Stops sorted by increasing offset, without a format-specific fixed limit.
+    }
 }
 
 impl Brush

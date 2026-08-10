@@ -88,6 +88,11 @@ public:
     MemberAccess memberAccess() const noexcept { return memberAccess_; }
     void         setMemberAccess(MemberAccess access) noexcept { memberAccess_ = access; }
 
+    // 'readonly' rides on top of the access level instead of replacing it, so a field keeps the
+    // reads its level grants and gives up the writes its level would have granted outside the type.
+    bool isMemberReadOnly() const noexcept { return memberReadOnly_; }
+    void setMemberReadOnly(bool value) noexcept { memberReadOnly_ = value; }
+
 private:
     uint32_t        offset_                = 0;
     uint32_t        parameterIndex_        = K_INVALID_PARAMETER_INDEX;
@@ -102,7 +107,8 @@ private:
     uint32_t        closureCaptureOffset_  = 0;
     uint32_t        threadLocalIdOffset_   = 0;
     uint32_t        threadLocalSize_       = 0;
-    MemberAccess    memberAccess_          = MemberAccess::Public;
+    MemberAccess    memberAccess_          = MemberAccess::Internal;
+    bool            memberReadOnly_        = false;
 };
 
 SWC_END_NAMESPACE();

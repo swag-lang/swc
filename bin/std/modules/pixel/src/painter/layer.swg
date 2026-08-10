@@ -5,36 +5,45 @@ using Core
 // Configures an off-screen layer recording scope.
 struct LayerBeginInfo
 {
-    width:        s32                                          // Logical layer width, in pixels.
-    height:       s32                                          // Logical layer height, in pixels.
-    renderScale:  s32          = 1                             // Supersampling factor, clamped to the range `1` through `8`.
-    paintAlpha:   bool         = true                          // Preserve alpha through a separate resolve when needed.
-    clearColor:   Color        = Color.fromArgb(Argb.Zero)     // Initial straight-alpha color.
-    antialiased:  bool         = true                          // Enable antialiasing while recording.
-    blendingMode: BlendingMode = .Alpha                        // Initial blend mode.
+    public
+    {
+        width:        s32                                          // Logical layer width, in pixels.
+        height:       s32                                          // Logical layer height, in pixels.
+        renderScale:  s32          = 1                             // Supersampling factor, clamped to the range `1` through `8`.
+        paintAlpha:   bool         = true                          // Preserve alpha through a separate resolve when needed.
+        clearColor:   Color        = Color.fromArgb(Argb.Zero)     // Initial straight-alpha color.
+        antialiased:  bool         = true                          // Enable antialiasing while recording.
+        blendingMode: BlendingMode = .Alpha                        // Initial blend mode.
+    }
 }
 
 // Configures the blurred shadow generated for an off-screen layer.
 struct LayerShadowInfo
 {
-    enabled: bool                                        // Generate and draw a shadow when true.
-    margin:  s32   = 8                                   // Extra pixels reserved around the layer for blur.
-    radius:  f32   = 8                                   // Separable blur radius, in pixels.
-    offsetX: f32                                         // Horizontal shadow offset, in pixels.
-    offsetY: f32                                         // Vertical shadow offset, in pixels.
-    color:   Color = Color.fromArgb(150, Argb.Black)     // Shadow tint and opacity.
+    public
+    {
+        enabled: bool                                        // Generate and draw a shadow when true.
+        margin:  s32   = 8                                   // Extra pixels reserved around the layer for blur.
+        radius:  f32   = 8                                   // Separable blur radius, in pixels.
+        offsetX: f32                                         // Horizontal shadow offset, in pixels.
+        offsetY: f32                                         // Vertical shadow offset, in pixels.
+        color:   Color = Color.fromArgb(150, Argb.Black)     // Shadow tint and opacity.
+    }
 }
 
 // Configures compositing an off-screen layer into the current painter target.
 struct LayerDrawInfo
 {
-    dstRect:           Math.Rectangle                                     // Destination rectangle in painter path space.
-    color:             Color             = Color.fromArgb(Argb.White)     // Multiplicative tint.
-    interpolationMode: InterpolationMode = .Linear                        // Sampling used while scaling.
-    writeAlpha:        bool              = true                           // Composite the layer alpha channel separately.
-    alphaBlendingMode: BlendingMode      = .Max                           // Blend operation for the alpha-only pass.
-    releaseAfterDraw:  bool              = true                           // Queue layer targets for release after drawing.
-    shadow:            LayerShadowInfo                                    // Optional blurred shadow.
+    public
+    {
+        dstRect:           Math.Rectangle                                     // Destination rectangle in painter path space.
+        color:             Color             = Color.fromArgb(Argb.White)     // Multiplicative tint.
+        interpolationMode: InterpolationMode = .Linear                        // Sampling used while scaling.
+        writeAlpha:        bool              = true                           // Composite the layer alpha channel separately.
+        alphaBlendingMode: BlendingMode      = .Max                           // Blend operation for the alpha-only pass.
+        releaseAfterDraw:  bool              = true                           // Queue layer targets for release after drawing.
+        shadow:            LayerShadowInfo                                    // Optional blurred shadow.
+    }
 }
 
 // Records painter commands into an off-screen render target and composites the result.
@@ -44,17 +53,20 @@ struct LayerDrawInfo
 // `resolve`/`buildShadow`/`draw`.
 struct Layer
 {
-    renderer:      #null IRenderer         // Borrowed renderer used to allocate targets.
-    painter:       #null *Painter          // Borrowed painter receiving layer commands.
-    paintTarget:   #null *RenderTarget     // Supersampled recording target, if allocated.
-    contentTarget: #null *RenderTarget     // Resolved content target, if allocated.
-    shadowTarget:  #null *RenderTarget     // Shadow-composited target, if allocated.
-    width:         s32                     // Logical content width, in pixels.
-    height:        s32                     // Logical content height, in pixels.
-    renderScale:   s32 = 1                 // Active supersampling factor.
-    deviceScale:   f32 = 1                 // Painter content scale captured at `begin`.
-    active:        bool                    // Whether recording is between `begin` and `end`.
-    resolved:      bool                    // Whether content is at logical resolution.
+    public
+    {
+        renderer:      #null IRenderer         // Borrowed renderer used to allocate targets.
+        painter:       #null *Painter          // Borrowed painter receiving layer commands.
+        paintTarget:   #null *RenderTarget     // Supersampled recording target, if allocated.
+        contentTarget: #null *RenderTarget     // Resolved content target, if allocated.
+        shadowTarget:  #null *RenderTarget     // Shadow-composited target, if allocated.
+        width:         s32                     // Logical content width, in pixels.
+        height:        s32                     // Logical content height, in pixels.
+        renderScale:   s32 = 1                 // Active supersampling factor.
+        deviceScale:   f32 = 1                 // Painter content scale captured at `begin`.
+        active:        bool                    // Whether recording is between `begin` and `end`.
+        resolved:      bool                    // Whether content is at logical resolution.
+    }
 }
 
 impl Layer

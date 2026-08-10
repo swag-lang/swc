@@ -16,7 +16,7 @@ public enum Compression
 // Configures TIFF strip compression.
 public struct EncodeOptions
 {
-    compression: Compression     // Compression applied to image strips; defaults to `.None`.
+    public compression: Compression     // Compression applied to image strips; defaults to `.None`.
 }
 
 // Append one 12-byte IFD entry (little-endian).

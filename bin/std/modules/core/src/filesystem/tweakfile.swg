@@ -6,14 +6,17 @@ using Swag, Core.Errors
 // Represents a folder mapping to a specific structure type with its data
 struct Folder
 {
-    type: typeinfo     // Type information of the structure
-    data: [*] void     // Pointer to the actual structure instance
+    public
+    {
+        type: typeinfo     // Type information of the structure
+        data: [*] void     // Pointer to the actual structure instance
+    }
 }
 
 // Represents a tweak file parser that can load configuration into registered folders
 struct TweakFile
 {
-    folders: Array'Folder     // List of registered folders (structure instances) to fill
+    public folders: Array'Folder     // List of registered folders (structure instances) to fill
 }
 
 impl TweakFile
@@ -48,9 +51,12 @@ impl TweakFile
 
         struct Ref
         {
-            folder: *Folder              // Folder where the reference is defined
-            src:    const *TypeValue     // Source field that is being referenced
-            dst:    const *TypeValue     // Destination field to copy to
+            public
+            {
+                folder: *Folder              // Folder where the reference is defined
+                src:    const *TypeValue     // Source field that is being referenced
+                dst:    const *TypeValue     // Destination field to copy to
+            }
         }
 
         var refs:          Array'Ref         // Pending references to resolve

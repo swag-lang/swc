@@ -74,13 +74,16 @@ enum TagBinShapeFlags: u8
 // Internal state for a binary serialization section
 struct TagBinSection
 {
-    startSeek:    ConcatBufferPosition                      // Position of the patched section header words.
-    mapSeek:      HashTable'(u32, ConcatBufferPosition)     // Ad-hoc sections: maps field crcs to their position.
-    offsets:      Array'u32                                 // Shaped sections: per-field offsets, relative to the section payload.
-    plan:         #null const *Plan                         // Shaped sections: the plan driving the field order.
-    payloadStart: u64                                       // Offset of the first payload byte of the section.
-    fieldIndex:   u64                                       // Shaped sections: index of the next field to write.
-    kind:         SectionKind                               // Type of section (e.g., Raw or Unordered)
+    public
+    {
+        startSeek:    ConcatBufferPosition                      // Position of the patched section header words.
+        mapSeek:      HashTable'(u32, ConcatBufferPosition)     // Ad-hoc sections: maps field crcs to their position.
+        offsets:      Array'u32                                 // Shaped sections: per-field offsets, relative to the section payload.
+        plan:         #null const *Plan                         // Shaped sections: the plan driving the field order.
+        payloadStart: u64                                       // Offset of the first payload byte of the section.
+        fieldIndex:   u64                                       // Shaped sections: index of the next field to write.
+        kind:         SectionKind                               // Type of section (e.g., Raw or Unordered)
+    }
 }
 
 // Binary writer for serialized data with support for structured and raw output.
@@ -90,30 +93,33 @@ struct TagBinSection
 #[Swag.Opaque]
 struct TagBin
 {
-    compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero          // Compression flags associated with this value.
-    compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed     // Compression level associated with this value.
-    compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default       // Compression strategy associated with this value.
-
-    // When true, the whole stream body is compressed as a single deflate payload at the
-    // end of the write. This replaces the per-field 'Serialization.Compress' attribute
-    // when most of the stream benefits from compression.
-    compressStream: bool
-
-    // Writing state: the compressor, the section stack and the buffer pools it recycles.
-    private
+    public
     {
-        compressor:   Core.Compress.Deflate                                       // Compressor used for compressed sections.
-        finalOutput:  #null *ConcatBuffer                                         // Caller buffer receiving the header, then the body.
-        output:       #null *ConcatBuffer                                         // Current sink: the body, or a compressed element scratch.
-        body:         ConcatBuffer                                                // Accumulates every section before the final assembly.
-        shapeIds:     HashTable'(u32, u32)                                        // Maps a struct type crc to its shape id.
-        shapePlans:   Array'(const *Plan)                                         // The plan of each registered shape, by shape id.
-        headerPatch:  ConcatBufferPosition                                        // Position of the shape directory offset in the header.
-        freeSections: ArrayPtr'TagBinSection                                      // Pool of reusable section structures.
-        sections:     ArrayPtr'TagBinSection                                      // Stack of currently active sections.
-        outStack:     Array'(#null *ConcatBuffer)                                 // Output buffers of the enclosing sections.
-        elemStack:    Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }     // Element stack.
-        freeTmpBuf:   ArrayPtr'ConcatBuffer                                       // Pool of reusable scratch buffers.
+        compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero          // Compression flags associated with this value.
+        compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed     // Compression level associated with this value.
+        compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default       // Compression strategy associated with this value.
+
+        // When true, the whole stream body is compressed as a single deflate payload at the
+        // end of the write. This replaces the per-field 'Serialization.Compress' attribute
+        // when most of the stream benefits from compression.
+        compressStream: bool
+
+        // Writing state: the compressor, the section stack and the buffer pools it recycles.
+        private
+        {
+            compressor:   Core.Compress.Deflate                                       // Compressor used for compressed sections.
+            finalOutput:  #null *ConcatBuffer                                         // Caller buffer receiving the header, then the body.
+            output:       #null *ConcatBuffer                                         // Current sink: the body, or a compressed element scratch.
+            body:         ConcatBuffer                                                // Accumulates every section before the final assembly.
+            shapeIds:     HashTable'(u32, u32)                                        // Maps a struct type crc to its shape id.
+            shapePlans:   Array'(const *Plan)                                         // The plan of each registered shape, by shape id.
+            headerPatch:  ConcatBufferPosition                                        // Position of the shape directory offset in the header.
+            freeSections: ArrayPtr'TagBinSection                                      // Pool of reusable section structures.
+            sections:     ArrayPtr'TagBinSection                                      // Stack of currently active sections.
+            outStack:     Array'(#null *ConcatBuffer)                                 // Output buffers of the enclosing sections.
+            elemStack:    Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }     // Element stack.
+            freeTmpBuf:   ArrayPtr'ConcatBuffer                                       // Pool of reusable scratch buffers.
+        }
     }
 }
 

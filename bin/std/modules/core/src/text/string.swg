@@ -21,11 +21,14 @@ enum CharacterSet
 // across its fields.
 struct String
 {
-    buffer:    #null [*] u8             // Storage of the string, inline for a small one.
-    length:    u64                      // Number of valid bytes in 'buffer'.
-    capacity:  u64                      // Number of bytes 'buffer' can hold.
-    allocator: #null IAllocator         // Allocator used to grow the storage.
-    padding:   [StringSmallSize] u8     // Inline storage of a small string.
+    public
+    {
+        buffer:    #null [*] u8             // Storage of the string, inline for a small one.
+        length:    u64                      // Number of valid bytes in 'buffer'.
+        capacity:  u64                      // Number of bytes 'buffer' can hold.
+        allocator: #null IAllocator         // Allocator used to grow the storage.
+        padding:   [StringSmallSize] u8     // Inline storage of a small string.
+    }
 }
 
 impl String

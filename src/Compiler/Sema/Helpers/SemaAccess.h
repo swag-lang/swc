@@ -11,8 +11,8 @@ struct SourceCodeRef;
 
 // Access control for aggregate members. A member belongs to its type, so 'private' grants the
 // file that declares the aggregate plus every 'impl' of that type in the declaring module;
-// 'internal' grants the whole declaring module; 'readonly' grants reads to everyone and writes
-// to the declaring type only.
+// 'internal' grants the whole declaring module, and is the default. 'readonly' is not a level of
+// its own: it keeps the reads the level grants and restricts the writes to the declaring type.
 namespace SemaAccess
 {
     // Rejects a member the current site cannot name at all ('private', 'internal').
@@ -21,8 +21,8 @@ namespace SemaAccess
     // The silent form of 'checkMemberAccess', for paths that report through their own machinery.
     bool canAccessMember(Sema& sema, const SymbolVariable& field, SourceViewRef siteViewRef);
 
-    // True when the site can write 'field'. A 'readonly' field reads everywhere but writes only
-    // from its own type.
+    // True when the site can write 'field'. A 'readonly' field reads wherever its level allows
+    // but writes only from its own type.
     bool canWriteMember(Sema& sema, const SymbolVariable& field, SourceViewRef siteViewRef);
 
     // Reports the write rejected by 'canWriteMember'.

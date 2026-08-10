@@ -38,8 +38,11 @@ func depBorrowRead(p: *s32)->s32
 // Every parameter carried by an aggregate contributes to the exported return summary.
 struct DepBorrowPair
 {
-    first:  *s32
-    second: *s32
+    public
+    {
+        first:  *s32
+        second: *s32
+    }
 }
 
 func depBorrowMakePair(first, second: *s32)->DepBorrowPair
@@ -50,7 +53,7 @@ func depBorrowMakePair(first, second: *s32)->DepBorrowPair
 // Pair summary: the item is stored into storage reachable from 'me'.
 struct DepBorrowContainer
 {
-    slot: #null *s32
+    public slot: #null *s32
 }
 
 impl DepBorrowContainer

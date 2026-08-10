@@ -9,10 +9,13 @@ using Core, Core.Math
 // render handle.
 struct RenderContext
 {
-    renderHandle: #null const *void     // Platform drawable handle, or `null` for an off-screen context.
-    data:         #null *void           // Opaque renderer-owned state.
-    width:        s32                   // Drawable width, in pixels.
-    height:       s32                   // Drawable height, in pixels.
+    public
+    {
+        renderHandle: #null const *void     // Platform drawable handle, or `null` for an off-screen context.
+        data:         #null *void           // Opaque renderer-owned state.
+        width:        s32                   // Drawable width, in pixels.
+        height:       s32                   // Drawable height, in pixels.
+    }
 }
 
 // Executes painter command streams and owns every resource created through it.

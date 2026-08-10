@@ -46,7 +46,7 @@ interface ISerialize
 struct Serializer
 {
     // Which direction the serializer runs in. Established by 'startWrite' or 'startRead'.
-    readonly isWrite: bool
+    public readonly isWrite: bool
 
     // The backend the serializer drives. It is chosen by 'startWrite' and 'startRead', which
     // also pair it with the matching 'end'.

@@ -13,11 +13,14 @@ using Core
 #[Core.Serialization.Alias("ImageMetaData")]
 struct ImageMetadata
 {
-    #[Core.Serialization.Alias("sig")]
-    signature: u32     // Codec-defined signature or namespace identifier.
+    public
+    {
+        #[Core.Serialization.Alias("sig")]
+        signature: u32     // Codec-defined signature or namespace identifier.
 
-    tag:   Array'u8     // Owned byte tag that identifies the record within `signature`.
-    value: Array'u8     // Owned, codec-defined payload bytes.
+        tag:   Array'u8     // Owned byte tag that identifies the record within `signature`.
+        value: Array'u8     // Owned, codec-defined payload bytes.
+    }
 }
 
 impl ImageMetadata

@@ -28,8 +28,11 @@ public enum PropDefaultState
 #[Swag.NoDoc]
 public struct PropDefaultRoot
 {
-    base: #null *u8          // Base associated with this value.
-    type: #null typeinfo     // Type associated with this value.
+    public
+    {
+        base: #null *u8          // Base associated with this value.
+        type: #null typeinfo     // Type associated with this value.
+    }
 }
 
 // Size of the revert arrow icon inside its (square, editBox-height) button, and the gap kept on

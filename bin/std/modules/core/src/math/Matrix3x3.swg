@@ -5,7 +5,7 @@
 #[Serialization.Final]
 struct Matrix3x3
 {
-    m: [3, 3] f32     // Matrix elements addressed by two indices.
+    public m: [3, 3] f32     // Matrix elements addressed by two indices.
 }
 
 impl Matrix3x3

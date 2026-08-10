@@ -6,13 +6,16 @@ using Core, Core.Math
 // Configures [[Svg.trace]].
 struct TraceOptions
 {
-    // Contour simplification tolerance, in source pixels. Larger values produce
-    // lighter documents; smaller values follow the pixel edges more closely.
-    tolerance: f32 = 0.6
+    public
+    {
+        // Contour simplification tolerance, in source pixels. Larger values produce
+        // lighter documents; smaller values follow the pixel edges more closely.
+        tolerance: f32 = 0.6
 
-    // Alpha level treated as the shape boundary. The traced contour passes through
-    // the sub-pixel position where the antialiased alpha crosses this value.
-    threshold: u8 = 127
+        // Alpha level treated as the shape boundary. The traced contour passes through
+        // the sub-pixel position where the antialiased alpha crosses this value.
+        threshold: u8 = 127
+    }
 }
 
 // Traces a flat-color raster image into a vector document.

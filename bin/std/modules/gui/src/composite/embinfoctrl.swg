@@ -25,24 +25,27 @@ enum InfoBarFlags
 // Displays a themed inline message with a dismiss action.
 struct InfoBar
 {
-    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
-
-    sigDismissed: SigArray'func||(*InfoBar)     // Emitted when user action or timeout dismisses the bar.
-
-    readonly
+    public
     {
-        kind:             InfoBarKind             // Current semantic presentation.
-        flags:            InfoBarFlags            // Current placement and lifetime options.
-        autoDismissDelay: Time.Duration = 4's     // Delay used by [[InfoBarFlags.AutoDismiss]].
+        using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-        #[Swag.Late]
-        label: *Label     // Message label owned by this bar.
-        #[Swag.Late]
-        closeButton: *IconButton     // Dismiss button owned by this bar.
+        sigDismissed: SigArray'func||(*InfoBar)     // Emitted when user action or timeout dismisses the bar.
+
+        public readonly
+        {
+            kind:             InfoBarKind             // Current semantic presentation.
+            flags:            InfoBarFlags            // Current placement and lifetime options.
+            autoDismissDelay: Time.Duration = 4's     // Delay used by [[InfoBarFlags.AutoDismiss]].
+
+            #[Swag.Late]
+            label: *Label     // Message label owned by this bar.
+            #[Swag.Late]
+            closeButton: *IconButton     // Dismiss button owned by this bar.
+        }
+
+        internal
+        timer: #null *Timer     // Active auto-dismiss timer.
     }
-
-    internal
-    timer: #null *Timer     // Active auto-dismiss timer.
 }
 
 impl IWnd for InfoBar

@@ -34,6 +34,7 @@ enum class SymbolStructFlagsE : uint16_t
     DefaultAllUndefined = 1 << 6,
     DefaultHasUndefined = 1 << 7,
     DefaultRequiresInit = 1 << 8,
+    Anonymous           = 1 << 9, // declared without a name, so its members are reached through the enclosing type
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 

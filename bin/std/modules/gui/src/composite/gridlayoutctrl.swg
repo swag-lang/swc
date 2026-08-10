@@ -23,28 +23,34 @@ enum GridTrackKind
 // Defines one row or column of a [[GridLayoutCtrl]].
 struct GridTrack
 {
-    kind         = GridTrackKind.Fixed     // Sizing policy.
-    value:   f32 = 100                     // Pixel size for `Fixed`, or weight for `Fraction`.
-    minimum: f32                           // Minimum track size in logical pixels.
-    maximum: f32                           // Maximum track size, or zero for no upper bound.
+    public
+    {
+        kind         = GridTrackKind.Fixed     // Sizing policy.
+        value:   f32 = 100                     // Pixel size for `Fixed`, or weight for `Fraction`.
+        minimum: f32                           // Minimum track size in logical pixels.
+        maximum: f32                           // Maximum track size, or zero for no upper bound.
+    }
 }
 
 // Arranges child windows in configurable rows, columns, and spanning cells.
 struct GridLayoutCtrl
 {
-    using wnd: Wnd     // Embedded wnd state.
-
-    flags = GridLayoutFlags.None     // Active grid sizing options.
-    numColumns:        s32           // Number of columns.
-    numRows:           s32           // Number of rows.
-    horizontalSpacing: f32 = 5       // Gap between adjacent columns.
-    verticalSpacing:   f32 = 5       // Gap between adjacent rows.
-
-    internal
+    public
     {
-        layout:       Array'(#null *Wnd)     // Window assigned to each cell.
-        columnTracks: Array'GridTrack        // Column definitions.
-        rowTracks:    Array'GridTrack        // Row definitions.
+        using wnd: Wnd     // Embedded wnd state.
+
+        flags = GridLayoutFlags.None     // Active grid sizing options.
+        numColumns:        s32           // Number of columns.
+        numRows:           s32           // Number of rows.
+        horizontalSpacing: f32 = 5       // Gap between adjacent columns.
+        verticalSpacing:   f32 = 5       // Gap between adjacent rows.
+
+        internal
+        {
+            layout:       Array'(#null *Wnd)     // Window assigned to each cell.
+            columnTracks: Array'GridTrack        // Column definitions.
+            rowTracks:    Array'GridTrack        // Row definitions.
+        }
     }
 }
 

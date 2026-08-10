@@ -10,8 +10,11 @@ enum DepMode: s16
 
 struct DepPair
 {
-    left:  DepCount
-    right: s32
+    public
+    {
+        left:  DepCount
+        right: s32
+    }
 }
 
 struct DepShortCallTarget {}
@@ -23,21 +26,27 @@ impl DepShortCallTarget
 
 struct DepShortCallOwner
 {
-    target: DepShortCallTarget
+    public target: DepShortCallTarget
 }
 
 struct DepImportedDefaultInner
 {
-    minStep: f32 = 1 / 100000.0
-    maxStep: f32 = 1
-    seed:    s32 = 17
+    public
+    {
+        minStep: f32 = 1 / 100000.0
+        maxStep: f32 = 1
+        seed:    s32 = 17
+    }
 }
 
 struct DepImportedDefaultOuter
 {
-    required: s32 = undefined
-    timing:   DepImportedDefaultInner
-    marker:   s32 = 42
+    public
+    {
+        required: s32 = undefined
+        timing:   DepImportedDefaultInner
+        marker:   s32 = 42
+    }
 }
 
 impl DepShortCallOwner
@@ -47,7 +56,7 @@ impl DepShortCallOwner
 
 struct DepPublicWithPrivateField
 {
-    publicValue: s32
+    public publicValue: s32
 
     internal
     {
@@ -55,9 +64,17 @@ struct DepPublicWithPrivateField
     }
 }
 
+// A member that says nothing is internal, exactly like a top-level declaration that says
+// nothing, so only 'shownValue' crosses the module boundary.
+struct DepDefaultAccessField
+{
+    public shownValue: s32
+    defaultValue: s32
+}
+
 struct DepPublicWithPrivateInlineUnion
 {
-    publicValue: s32
+    public publicValue: s32
 
     internal
     {
@@ -74,22 +91,33 @@ func makeDepPublicWithPrivateField(value: s32)->DepPublicWithPrivateField
     return {publicValue: value, hiddenValue: value + 1}
 }
 
+func makeDepDefaultAccessField(value: s32)->DepDefaultAccessField
+{
+    return {shownValue: value, defaultValue: value + 1}
+}
+
 struct(T) DepGenericLayout
 {
-    value: T
+    public value: T
 }
 
 union DepValue
 {
-    asInt:   s32
-    asFloat: f32
+    public
+    {
+        asInt:   s32
+        asFloat: f32
+    }
 }
 
 #[Swag.Opaque]
 struct DepOpaque
 {
-    opaqueHead: u64
-    opaqueTail: u32
+    public
+    {
+        opaqueHead: u64
+        opaqueTail: u32
+    }
 }
 
 #[Swag.Opaque]
@@ -120,7 +148,7 @@ namespace DepTools
 {
     struct DepNamespaced
     {
-        value: s16
+        public value: s16
     }
 
     interface IHash32
@@ -163,7 +191,7 @@ namespace DepSharedRng
 {
     struct MWC
     {
-        value: u32 = 0x12345678
+        public value: u32 = 0x12345678
     }
 
     impl MWC
@@ -174,7 +202,7 @@ namespace DepSharedRng
     #[Swag.Opaque]
     struct(T = MWC) Rng
     {
-        rng: T
+        public rng: T
     }
 
     impl Rng

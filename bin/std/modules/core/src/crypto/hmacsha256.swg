@@ -9,10 +9,13 @@ alias HmacSha256Digest = [32] u8
 #[Swag.Opaque]
 struct HmacSha256
 {
-    internal
-    inner:       Hash.Sha256
-    outer:       Hash.Sha256
-    initialized: bool
+    public
+    {
+        internal
+        inner:       Hash.Sha256
+        outer:       Hash.Sha256
+        initialized: bool
+    }
 }
 
 private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest

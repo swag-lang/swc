@@ -29,7 +29,7 @@ private func initRng()
 // Stores a 128-bit identifier and creates RFC 4122 version-4 UUID values.
 struct Guid128
 {
-    readonly
+    public readonly
     using value: union
     {
         bytes: [16] u8     // Byte representation.

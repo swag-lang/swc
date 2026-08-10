@@ -4,20 +4,23 @@
 // Tracks keyboard state, transitions, and configurable key repetition.
 struct Keyboard
 {
-    readonly
+    public
     {
-        previousState: KeyboardState     // State captured before the latest update.
-        currentState:  KeyboardState     // State captured by the latest update.
-    }
+        public readonly
+        {
+            previousState: KeyboardState     // State captured before the latest update.
+            currentState:  KeyboardState     // State captured by the latest update.
+        }
 
-    initialRepeatDelayMs: u32  = 400      // Delay before the first repeated key press.
-    repeatIntervalMs:     u32  = 50       // Delay between subsequent repeated key presses.
-    repeatEnabled:        bool = true     // Whether held keys generate repeated press transitions.
+        initialRepeatDelayMs: u32  = 400      // Delay before the first repeated key press.
+        repeatIntervalMs:     u32  = 50       // Delay between subsequent repeated key presses.
+        repeatEnabled:        bool = true     // Whether held keys generate repeated press transitions.
 
-    internal
-    {
-        isRepeating: [Key] bool
-        pressedAtMs: [Key] u64
+        internal
+        {
+            isRepeating: [Key] bool
+            pressedAtMs: [Key] u64
+        }
     }
 }
 

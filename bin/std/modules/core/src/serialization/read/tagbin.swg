@@ -44,25 +44,28 @@ The reader accepts the three stream generations described in
 */
 struct TagBin
 {
-    ignoreElements: Array'String          // Element names skipped while decoding.
-    options:        TagBinOptions         // Compatibility behavior.
-    diag:           TagBinDiagnostics     // What the decode had to tolerate. Inspect after reading.
-
-    internal
+    public
     {
-        wire:              u32                                  // Stream generation: 0, 1 or 2.
-        hasValueFlags:     bool                                 // Whether each element carries a value-flags byte (version 1).
-        stream:            ByteStream                           // Input cursor, over the body for a version 2 stream.
-        bodyBuffer:        Buffer                               // Owns the decompressed body of a compressed stream.
-        shapes:            Array'TagBinShape                    // Shape directory of a version 2 stream.
-        freeSections:      ArrayPtr'TagBinSection               // Reusable section objects.
-        sections:          ArrayPtr'TagBinSection               // Active section stack.
-        convertNextNative: #null const *Swag.TypeInfoNative     // Pending native conversion.
-        convertValToArray: bool                                 // Whether the next scalar becomes an array.
-        convertArrayToVal: bool                                 // Whether the next array becomes a scalar.
-        outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
-        elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
-        tmpPool:           ArrayPtr'Buffer
+        ignoreElements: Array'String          // Element names skipped while decoding.
+        options:        TagBinOptions         // Compatibility behavior.
+        diag:           TagBinDiagnostics     // What the decode had to tolerate. Inspect after reading.
+
+        internal
+        {
+            wire:              u32                                  // Stream generation: 0, 1 or 2.
+            hasValueFlags:     bool                                 // Whether each element carries a value-flags byte (version 1).
+            stream:            ByteStream                           // Input cursor, over the body for a version 2 stream.
+            bodyBuffer:        Buffer                               // Owns the decompressed body of a compressed stream.
+            shapes:            Array'TagBinShape                    // Shape directory of a version 2 stream.
+            freeSections:      ArrayPtr'TagBinSection               // Reusable section objects.
+            sections:          ArrayPtr'TagBinSection               // Active section stack.
+            convertNextNative: #null const *Swag.TypeInfoNative     // Pending native conversion.
+            convertValToArray: bool                                 // Whether the next scalar becomes an array.
+            convertArrayToVal: bool                                 // Whether the next array becomes a scalar.
+            outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
+            elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
+            tmpPool:           ArrayPtr'Buffer
+        }
     }
 }
 
@@ -73,59 +76,71 @@ struct TagBin
 // reading: a load that silently dropped half its fields is what they exist to reveal.
 struct TagBinDiagnostics
 {
-    fieldErrors:         u32     // Fields whose payload failed to decode and were reset or skipped.
-    droppedStreamFields: u32     // Stream fields the current types no longer request.
-    unknownTypes:        u32     // Element type crcs that resolved to no registered type.
-    recoveredFields:     u32     // Fields recovered through the fat after a positional mismatch.
-    corruptPayloads:     u32     // Raw payloads whose decoded length did not match the written one.
+    public
+    {
+        fieldErrors:         u32     // Fields whose payload failed to decode and were reset or skipped.
+        droppedStreamFields: u32     // Stream fields the current types no longer request.
+        unknownTypes:        u32     // Element type crcs that resolved to no registered type.
+        recoveredFields:     u32     // Fields recovered through the fat after a positional mismatch.
+        corruptPayloads:     u32     // Raw payloads whose decoded length did not match the written one.
+    }
 }
 
 // One field entry of a section index: where the payload sits, and which shape entry
 // describes it.
 struct TagBinFieldRef
 {
-    seek:       u64      // Stream position of the field.
-    shapeIndex: u32      // Index in the section shape, or 'NoShapeIndex'.
-    consumed:   bool     // Whether the field was requested by the decode.
+    public
+    {
+        seek:       u64      // Stream position of the field.
+        shapeIndex: u32      // Index in the section shape, or 'NoShapeIndex'.
+        consumed:   bool     // Whether the field was requested by the decode.
+    }
 }
 
 // One field of a shape directory entry.
 struct TagBinShapeField
 {
-    crcName: u32                        // Crc of the field name.
-    crcType: u32                        // Wire identity of the field type.
-    flags:   Write.TagBinShapeFlags     // Per-field flags.
+    public
+    {
+        crcName: u32                        // Crc of the field name.
+        crcType: u32                        // Wire identity of the field type.
+        flags:   Write.TagBinShapeFlags     // Per-field flags.
+    }
 }
 
 // The field list of one struct type, stored once per version 2 stream.
 struct TagBinShape
 {
-    fields: Array'TagBinShapeField     // The fields, in written order.
+    public fields: Array'TagBinShapeField     // The fields, in written order.
 }
 
 // Section information for tracking deserialization state within structured data.
 struct TagBinSection
 {
-    mapSeek:       HashTable'(u32, TagBinFieldRef)     // Field index of the section, keyed by name crc.
-    afterFatSeek:  u64                                 // Stream position right after the section and its fat.
-    fatSeek:       u64                                 // Stream position of the fat table.
-    fatCount:      u64                                 // Number of fat entries.
-    payloadStart:  u64                                 // Stream position of the first payload byte (version 2).
-    consumedCount: u64                                 // How many indexed fields the decode requested.
-    posIndex:      u64                                 // Next field index in positional mode (version 2).
-    version:       u32                                 // Version number of this section
-    kind:          SectionKind                         // Type of section (ordered, unordered, or raw)
-    skipFat:       bool                                // Version 1: positional read, the fat was not loaded.
-    positional:    bool                                // Version 2: shape matches the plan, fields read in order.
-    mapLoaded:     bool                                // Whether 'mapSeek' is populated.
-    shape:         #null const *TagBinShape            // Version 2: the shape describing the stream fields.
-    plan:          #null const *Plan                   // The reader plan of the struct, when known.
+    public
+    {
+        mapSeek:       HashTable'(u32, TagBinFieldRef)     // Field index of the section, keyed by name crc.
+        afterFatSeek:  u64                                 // Stream position right after the section and its fat.
+        fatSeek:       u64                                 // Stream position of the fat table.
+        fatCount:      u64                                 // Number of fat entries.
+        payloadStart:  u64                                 // Stream position of the first payload byte (version 2).
+        consumedCount: u64                                 // How many indexed fields the decode requested.
+        posIndex:      u64                                 // Next field index in positional mode (version 2).
+        version:       u32                                 // Version number of this section
+        kind:          SectionKind                         // Type of section (ordered, unordered, or raw)
+        skipFat:       bool                                // Version 1: positional read, the fat was not loaded.
+        positional:    bool                                // Version 2: shape matches the plan, fields read in order.
+        mapLoaded:     bool                                // Whether 'mapSeek' is populated.
+        shape:         #null const *TagBinShape            // Version 2: the shape describing the stream fields.
+        plan:          #null const *Plan                   // The reader plan of the struct, when known.
+    }
 }
 
 // Configuration options for controlling deserialization behavior.
 struct TagBinOptions
 {
-    tryForward: bool     // Accept to try to read a newest version, otherwise error
+    public tryForward: bool     // Accept to try to read a newest version, otherwise error
 }
 
 private impl TagBin

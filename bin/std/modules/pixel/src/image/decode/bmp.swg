@@ -21,17 +21,20 @@ const BMP_SIGNATURE = 0x4D42'u16
 #[Swag.Pack(1)]
 public struct Header
 {
-    biSize:          u32     // Size of this header in bytes.
-    biWidth:         s32     // Bitmap width in pixels.
-    biHeight:        s32     // Signed height; a negative value denotes top-down rows.
-    biPlanes:        u16     // Number of color planes; valid BMP data uses `1`.
-    biBitCount:      u16     // Bits stored for one pixel.
-    biCompression:   u32     // Compression mode, such as `BI_RGB` or `BI_BITFIELDS`.
-    biSizeImage:     u32     // Encoded pixel-data size in bytes, or zero when permitted by the format.
-    biXPelsPerMeter: u32     // Preferred horizontal resolution in pixels per meter.
-    biYPelsPerMeter: u32     // Preferred vertical resolution in pixels per meter.
-    biClrUsed:       u32     // Number of palette entries used, or zero for the format default.
-    biClrImportant:  u32     // Number of important palette entries, or zero when all are important.
+    public
+    {
+        biSize:          u32     // Size of this header in bytes.
+        biWidth:         s32     // Bitmap width in pixels.
+        biHeight:        s32     // Signed height; a negative value denotes top-down rows.
+        biPlanes:        u16     // Number of color planes; valid BMP data uses `1`.
+        biBitCount:      u16     // Bits stored for one pixel.
+        biCompression:   u32     // Compression mode, such as `BI_RGB` or `BI_BITFIELDS`.
+        biSizeImage:     u32     // Encoded pixel-data size in bytes, or zero when permitted by the format.
+        biXPelsPerMeter: u32     // Preferred horizontal resolution in pixels per meter.
+        biYPelsPerMeter: u32     // Preferred vertical resolution in pixels per meter.
+        biClrUsed:       u32     // Number of palette entries used, or zero for the format default.
+        biClrImportant:  u32     // Number of important palette entries, or zero when all are important.
+    }
 }
 
 #[Swag.Pack(1)]

@@ -1286,8 +1286,9 @@ struct AstInterfaceBody : AstCompoundT<AstNodeId::InterfaceBody>
 // -----------------------------------------------------------------------------
 enum class AstAccessModifierFlagsE : AstNode::ParserFlags
 {
-    Zero   = 0,
-    Member = 1 << 0, // written inside an aggregate body, so it sets member access instead of symbol visibility
+    Zero     = 0,
+    Member   = 1 << 0, // written inside an aggregate body, so it sets member access instead of symbol visibility
+    ReadOnly = 1 << 1, // 'readonly' was written, alone or after a level: writes are restricted to the declaring type
 };
 
 struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier, AstAccessModifierFlagsE>

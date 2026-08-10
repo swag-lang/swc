@@ -2,15 +2,21 @@
 
 struct DepByteSet
 {
-    values: [4] u8
-    count:  u32
+    public
+    {
+        values: [4] u8
+        count:  u32
+    }
 }
 
 struct DepSelfBufferSet
 {
-    buffer:  #null [*] u8
-    count:   u32
-    storage: [4] u8
+    public
+    {
+        buffer:  #null [*] u8
+        count:   u32
+        storage: [4] u8
+    }
 }
 
 impl DepByteSet

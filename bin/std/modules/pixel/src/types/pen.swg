@@ -57,28 +57,31 @@ enum BorderPos
 // functions for common solid, dashed, and hatched pens.
 struct Pen
 {
-    size:  f32 = 1     // Stroke width, in pixels.
-    brush: Brush       // Paint source applied to the stroke.
+    public
+    {
+        size:  f32 = 1     // Stroke width, in pixels.
+        brush: Brush       // Paint source applied to the stroke.
 
-    pattern:         Array'f32               // Alternating on/off lengths, as stroke-width multiples, for `.Pattern`.
-    dashOffset:      f32                     // Distance advanced into the repeated dash sequence, in path-space pixels.
-    dashBegCapStyle: DashCapStyle = None     // Cap at the beginning of each visible dash.
-    dashEndCapStyle: DashCapStyle = None     // Cap at the end of each visible dash.
-    borderPos:       BorderPos    = None     // Stroke placement for closed paths.
+        pattern:         Array'f32               // Alternating on/off lengths, as stroke-width multiples, for `.Pattern`.
+        dashOffset:      f32                     // Distance advanced into the repeated dash sequence, in path-space pixels.
+        dashBegCapStyle: DashCapStyle = None     // Cap at the beginning of each visible dash.
+        dashEndCapStyle: DashCapStyle = None     // Cap at the end of each visible dash.
+        borderPos:       BorderPos    = None     // Stroke placement for closed paths.
 
-    capBegScaleX: f32 = 2     // Horizontal scale of the path-begin cap.
-    capBegScaleY: f32 = 2     // Vertical scale of the path-begin cap.
-    capEndScaleX: f32 = 2     // Horizontal scale of the path-end cap.
-    capEndScaleY: f32 = 2     // Vertical scale of the path-end cap.
+        capBegScaleX: f32 = 2     // Horizontal scale of the path-begin cap.
+        capBegScaleY: f32 = 2     // Vertical scale of the path-begin cap.
+        capEndScaleX: f32 = 2     // Horizontal scale of the path-end cap.
+        capEndScaleY: f32 = 2     // Vertical scale of the path-end cap.
 
-    joinMiterLimit: f32 = 3     // Maximum miter length relative to stroke width.
-    plotOffset:     f32         // Signed perpendicular displacement from the source path, in pixels.
+        joinMiterLimit: f32 = 3     // Maximum miter length relative to stroke width.
+        plotOffset:     f32         // Signed perpendicular displacement from the source path, in pixels.
 
-    dashStyle:      DashStyle    = None      // Active dash sequence.
-    dashBlankScale: f32          = 1.0       // Multiplier applied to blank dash lengths.
-    begCapStyle:    LineCapStyle = Round     // Cap at the beginning of the path.
-    endCapStyle:    LineCapStyle = Round     // Cap at the end of the path.
-    joinStyle:      JoinStyle    = Miter     // Join between consecutive segments.
+        dashStyle:      DashStyle    = None      // Active dash sequence.
+        dashBlankScale: f32          = 1.0       // Multiplier applied to blank dash lengths.
+        begCapStyle:    LineCapStyle = Round     // Cap at the beginning of the path.
+        endCapStyle:    LineCapStyle = Round     // Cap at the end of the path.
+        joinStyle:      JoinStyle    = Miter     // Join between consecutive segments.
+    }
 }
 
 impl Pen

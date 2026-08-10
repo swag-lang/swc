@@ -76,55 +76,70 @@ const IID_IEnumFORMATETC = GUID{0x00000103, 0x0000, 0x0000, [0xC0, 0x00, 0x00, 0
 
 struct POINTL
 {
-    x: LONG
-    y: LONG
+    public
+    {
+        x: LONG
+        y: LONG
+    }
 }
 
 struct DVTARGETDEVICE
 {
-    tdSize:             DWORD
-    tdDriverNameOffset: WORD
-    tdDeviceNameOffset: WORD
-    tdPortNameOffset:   WORD
-    tdExtDevmodeOffset: WORD
-    tdData:             [1] BYTE
+    public
+    {
+        tdSize:             DWORD
+        tdDriverNameOffset: WORD
+        tdDeviceNameOffset: WORD
+        tdPortNameOffset:   WORD
+        tdExtDevmodeOffset: WORD
+        tdData:             [1] BYTE
+    }
 }
 
 struct FORMATETC
 {
-    cfFormat: CLIPFORMAT
-    ptd:      #null *DVTARGETDEVICE
-    dwAspect: DWORD
-    lindex:   LONG
-    tymed:    DWORD
+    public
+    {
+        cfFormat: CLIPFORMAT
+        ptd:      #null *DVTARGETDEVICE
+        dwAspect: DWORD
+        lindex:   LONG
+        tymed:    DWORD
+    }
 }
 
 // Every case of the medium union is one pointer wide; the two the drag and clipboard paths use
 // are named, and any other case reads through `hGlobal`.
 struct STGMEDIUM
 {
-    tymed:                DWORD
-    using DUMMYUNIONNAME: union
+    public
     {
-        hGlobal: HANDLE             // Memory block, for `TYMED_HGLOBAL`.
-        pstm:    #null *IStream     // Stream, for `TYMED_ISTREAM`.
+        tymed:                DWORD
+        using DUMMYUNIONNAME: union
+        {
+            hGlobal: HANDLE             // Memory block, for `TYMED_HGLOBAL`.
+            pstm:    #null *IStream     // Stream, for `TYMED_ISTREAM`.
+        }
+        pUnkForRelease: #null *void
     }
-    pUnkForRelease: #null *void
 }
 
 struct STATSTG
 {
-    pwcsName:          #null LPWSTR
-    type:              DWORD
-    cbSize:            ULARGE_INTEGER
-    mtime:             FILETIME
-    ctime:             FILETIME
-    atime:             FILETIME
-    grfMode:           DWORD
-    grfLocksSupported: DWORD
-    clsid:             GUID
-    grfStateBits:      DWORD
-    reserved:          DWORD
+    public
+    {
+        pwcsName:          #null LPWSTR
+        type:              DWORD
+        cbSize:            ULARGE_INTEGER
+        mtime:             FILETIME
+        ctime:             FILETIME
+        atime:             FILETIME
+        grfMode:           DWORD
+        grfLocksSupported: DWORD
+        clsid:             GUID
+        grfStateBits:      DWORD
+        reserved:          DWORD
+    }
 }
 
 #assert(#sizeof(FORMATETC) == 32)
@@ -134,106 +149,124 @@ struct STATSTG
 
 struct IUnknown
 {
-    lpVtbl: *IUnknownVtbl
+    public lpVtbl: *IUnknownVtbl
 }
 
 struct IUnknownVtbl
 {
-    QueryInterface: func(*IUnknown, const *GUID, *LPVOID)->HRESULT
-    AddRef:         func(*IUnknown)->ULONG
-    Release:        func(*IUnknown)->ULONG
+    public
+    {
+        QueryInterface: func(*IUnknown, const *GUID, *LPVOID)->HRESULT
+        AddRef:         func(*IUnknown)->ULONG
+        Release:        func(*IUnknown)->ULONG
+    }
 }
 
 struct IDataObject
 {
-    lpVtbl: *IDataObjectVtbl
+    public lpVtbl: *IDataObjectVtbl
 }
 
 struct IDataObjectVtbl
 {
-    QueryInterface:        func(*IDataObject, const *GUID, *LPVOID)->HRESULT
-    AddRef:                func(*IDataObject)->ULONG
-    Release:               func(*IDataObject)->ULONG
-    GetData:               func(*IDataObject, const *FORMATETC, *STGMEDIUM)->HRESULT
-    GetDataHere:           func(*IDataObject, const *FORMATETC, *STGMEDIUM)->HRESULT
-    QueryGetData:          func(*IDataObject, const *FORMATETC)->HRESULT
-    GetCanonicalFormatEtc: func(*IDataObject, const *FORMATETC, *FORMATETC)->HRESULT
-    SetData:               func(*IDataObject, const *FORMATETC, *STGMEDIUM, BOOL)->HRESULT
-    EnumFormatEtc:         func(*IDataObject, DWORD, *LPVOID)->HRESULT
-    DAdvise:               func(*IDataObject, const *FORMATETC, DWORD, #null *void, *DWORD)->HRESULT
-    DUnadvise:             func(*IDataObject, DWORD)->HRESULT
-    EnumDAdvise:           func(*IDataObject, *LPVOID)->HRESULT
+    public
+    {
+        QueryInterface:        func(*IDataObject, const *GUID, *LPVOID)->HRESULT
+        AddRef:                func(*IDataObject)->ULONG
+        Release:               func(*IDataObject)->ULONG
+        GetData:               func(*IDataObject, const *FORMATETC, *STGMEDIUM)->HRESULT
+        GetDataHere:           func(*IDataObject, const *FORMATETC, *STGMEDIUM)->HRESULT
+        QueryGetData:          func(*IDataObject, const *FORMATETC)->HRESULT
+        GetCanonicalFormatEtc: func(*IDataObject, const *FORMATETC, *FORMATETC)->HRESULT
+        SetData:               func(*IDataObject, const *FORMATETC, *STGMEDIUM, BOOL)->HRESULT
+        EnumFormatEtc:         func(*IDataObject, DWORD, *LPVOID)->HRESULT
+        DAdvise:               func(*IDataObject, const *FORMATETC, DWORD, #null *void, *DWORD)->HRESULT
+        DUnadvise:             func(*IDataObject, DWORD)->HRESULT
+        EnumDAdvise:           func(*IDataObject, *LPVOID)->HRESULT
+    }
 }
 
 struct IStream
 {
-    lpVtbl: *IStreamVtbl
+    public lpVtbl: *IStreamVtbl
 }
 
 // The two `ISequentialStream` methods are spelled inline, because the vtable of a derived
 // interface is the base one followed by its own entries and nothing here needs the base name.
 struct IStreamVtbl
 {
-    QueryInterface: func(*IStream, const *GUID, *LPVOID)->HRESULT
-    AddRef:         func(*IStream)->ULONG
-    Release:        func(*IStream)->ULONG
-    Read:           func(*IStream, LPVOID, ULONG, #null *ULONG)->HRESULT
-    Write:          func(*IStream, LPCVOID, ULONG, #null *ULONG)->HRESULT
-    Seek:           func(*IStream, LARGE_INTEGER, DWORD, #null *ULARGE_INTEGER)->HRESULT
-    SetSize:        func(*IStream, ULARGE_INTEGER)->HRESULT
-    CopyTo:         func(*IStream, *IStream, ULARGE_INTEGER, #null *ULARGE_INTEGER, #null *ULARGE_INTEGER)->HRESULT
-    Commit:         func(*IStream, DWORD)->HRESULT
-    Revert:         func(*IStream)->HRESULT
-    LockRegion:     func(*IStream, ULARGE_INTEGER, ULARGE_INTEGER, DWORD)->HRESULT
-    UnlockRegion:   func(*IStream, ULARGE_INTEGER, ULARGE_INTEGER, DWORD)->HRESULT
-    Stat:           func(*IStream, *STATSTG, DWORD)->HRESULT
-    Clone:          func(*IStream, *LPVOID)->HRESULT
+    public
+    {
+        QueryInterface: func(*IStream, const *GUID, *LPVOID)->HRESULT
+        AddRef:         func(*IStream)->ULONG
+        Release:        func(*IStream)->ULONG
+        Read:           func(*IStream, LPVOID, ULONG, #null *ULONG)->HRESULT
+        Write:          func(*IStream, LPCVOID, ULONG, #null *ULONG)->HRESULT
+        Seek:           func(*IStream, LARGE_INTEGER, DWORD, #null *ULARGE_INTEGER)->HRESULT
+        SetSize:        func(*IStream, ULARGE_INTEGER)->HRESULT
+        CopyTo:         func(*IStream, *IStream, ULARGE_INTEGER, #null *ULARGE_INTEGER, #null *ULARGE_INTEGER)->HRESULT
+        Commit:         func(*IStream, DWORD)->HRESULT
+        Revert:         func(*IStream)->HRESULT
+        LockRegion:     func(*IStream, ULARGE_INTEGER, ULARGE_INTEGER, DWORD)->HRESULT
+        UnlockRegion:   func(*IStream, ULARGE_INTEGER, ULARGE_INTEGER, DWORD)->HRESULT
+        Stat:           func(*IStream, *STATSTG, DWORD)->HRESULT
+        Clone:          func(*IStream, *LPVOID)->HRESULT
+    }
 }
 
 struct IDropTarget
 {
-    lpVtbl: *IDropTargetVtbl
+    public lpVtbl: *IDropTargetVtbl
 }
 
 struct IDropTargetVtbl
 {
-    QueryInterface: func(*IDropTarget, const *GUID, *LPVOID)->HRESULT
-    AddRef:         func(*IDropTarget)->ULONG
-    Release:        func(*IDropTarget)->ULONG
-    DragEnter:      func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
-    DragOver:       func(*IDropTarget, DWORD, POINTL, *DWORD)->HRESULT
-    DragLeave:      func(*IDropTarget)->HRESULT
-    Drop:           func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
+    public
+    {
+        QueryInterface: func(*IDropTarget, const *GUID, *LPVOID)->HRESULT
+        AddRef:         func(*IDropTarget)->ULONG
+        Release:        func(*IDropTarget)->ULONG
+        DragEnter:      func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
+        DragOver:       func(*IDropTarget, DWORD, POINTL, *DWORD)->HRESULT
+        DragLeave:      func(*IDropTarget)->HRESULT
+        Drop:           func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
+    }
 }
 
 struct IDropSource
 {
-    lpVtbl: *IDropSourceVtbl
+    public lpVtbl: *IDropSourceVtbl
 }
 
 struct IDropSourceVtbl
 {
-    QueryInterface:    func(*IDropSource, const *GUID, *LPVOID)->HRESULT
-    AddRef:            func(*IDropSource)->ULONG
-    Release:           func(*IDropSource)->ULONG
-    QueryContinueDrag: func(*IDropSource, BOOL, DWORD)->HRESULT
-    GiveFeedback:      func(*IDropSource, DWORD)->HRESULT
+    public
+    {
+        QueryInterface:    func(*IDropSource, const *GUID, *LPVOID)->HRESULT
+        AddRef:            func(*IDropSource)->ULONG
+        Release:           func(*IDropSource)->ULONG
+        QueryContinueDrag: func(*IDropSource, BOOL, DWORD)->HRESULT
+        GiveFeedback:      func(*IDropSource, DWORD)->HRESULT
+    }
 }
 
 struct IEnumFORMATETC
 {
-    lpVtbl: *IEnumFORMATETCVtbl
+    public lpVtbl: *IEnumFORMATETCVtbl
 }
 
 struct IEnumFORMATETCVtbl
 {
-    QueryInterface: func(*IEnumFORMATETC, const *GUID, *LPVOID)->HRESULT
-    AddRef:         func(*IEnumFORMATETC)->ULONG
-    Release:        func(*IEnumFORMATETC)->ULONG
-    Next:           func(*IEnumFORMATETC, ULONG, *FORMATETC, #null *ULONG)->HRESULT
-    Skip:           func(*IEnumFORMATETC, ULONG)->HRESULT
-    Reset:          func(*IEnumFORMATETC)->HRESULT
-    Clone:          func(*IEnumFORMATETC, *LPVOID)->HRESULT
+    public
+    {
+        QueryInterface: func(*IEnumFORMATETC, const *GUID, *LPVOID)->HRESULT
+        AddRef:         func(*IEnumFORMATETC)->ULONG
+        Release:        func(*IEnumFORMATETC)->ULONG
+        Next:           func(*IEnumFORMATETC, ULONG, *FORMATETC, #null *ULONG)->HRESULT
+        Skip:           func(*IEnumFORMATETC, ULONG)->HRESULT
+        Reset:          func(*IEnumFORMATETC)->HRESULT
+        Clone:          func(*IEnumFORMATETC, *LPVOID)->HRESULT
+    }
 }
 
 #[Foreign("ole32")]

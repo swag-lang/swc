@@ -30,10 +30,10 @@ using Core, Core.Errors, Core.Math
 // ```
 struct ImageCanvas
 {
-    painter: Painter     // Records the drawing; every painter operation is available.
+    public painter: Painter     // Records the drawing; every painter operation is available.
 
     // The size of the surface being drawn, established by 'create'.
-    readonly
+    public readonly
     {
         width:  s32     // Canvas width, in pixels.
         height: s32     // Canvas height, in pixels.

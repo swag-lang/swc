@@ -514,7 +514,9 @@ namespace
         return hasSourceNoDocAttribute(ctx, *file, ModuleApi::findExportDeclRoot(*file, declRef));
     }
 
-    void appendGenericMember(TaskContext& ctx, DocItem& item, const SourceFile& file, const AstNodeRef declRef, const AstVarDeclBase& declaration, const TokenRef nameRef, std::unordered_set<Utf8>& seenNames)
+    // 'rootRef' is the outermost wrapper the declaration sits in — its access modifier, its
+    // attribute list — which is where a leading documentation comment is written.
+    void appendGenericMember(TaskContext& ctx, DocItem& item, const SourceFile& file, const AstNodeRef declRef, const AstNodeRef rootRef, const AstVarDeclBase& declaration, const TokenRef nameRef, std::unordered_set<Utf8>& seenNames)
     {
         if (!nameRef.isValid())
             return;
@@ -537,6 +539,8 @@ namespace
 
         member.commentLines = trailingCommentLines(ctx, file, declRef);
         if (member.commentLines.empty())
+            member.commentLines = leadingCommentLines(ctx, file, rootRef);
+        if (member.commentLines.empty() && rootRef != declRef)
             member.commentLines = leadingCommentLines(ctx, file, declRef);
         if (member.commentLines.empty())
         {
@@ -546,19 +550,30 @@ namespace
         item.members.push_back(std::move(member));
     }
 
-    void collectGenericMemberNode(TaskContext& ctx, DocItem& item, const SourceFile& file, const AstNodeRef nodeRef, const bool restricted, std::unordered_set<Utf8>& seenNames)
+    void collectGenericMemberNode(TaskContext& ctx, DocItem& item, const SourceFile& file, const AstNodeRef nodeRef, const bool restricted, const AstNodeRef rootRef, std::unordered_set<Utf8>& seenNames)
     {
         const Ast& ast = file.ast();
         if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
             return;
+
+        // The outermost wrapper is what a leading comment is written above, so it is kept as the
+        // members' comment root once the walk enters one.
+        const AstNodeRef childRootRef = rootRef.isValid() ? rootRef : nodeRef;
 
         const AstNode& node = ast.node(nodeRef);
         if (const auto* access = node.safeCast<AstAccessModifier>())
         {
             const SourceView& srcView = ModuleApi::moduleApiNodeSourceView(ctx, ast, nodeRef);
             const TokenId     tokenId = srcView.token(node.tokRef()).id;
-            const bool        childRestricted = restricted || tokenId == TokenId::KwdInternal || tokenId == TokenId::KwdPrivate;
-            collectGenericMemberNode(ctx, item, file, access->nodeWhatRef, childRestricted, seenNames);
+
+            // 'readonly' alone names no level, so it leaves in place the one already in effect.
+            bool childRestricted = restricted;
+            if (tokenId == TokenId::KwdPublic)
+                childRestricted = false;
+            else if (tokenId == TokenId::KwdInternal || tokenId == TokenId::KwdPrivate)
+                childRestricted = true;
+
+            collectGenericMemberNode(ctx, item, file, access->nodeWhatRef, childRestricted, childRootRef, seenNames);
             return;
         }
 
@@ -566,16 +581,25 @@ namespace
         {
             if (hasSourceNoDocAttribute(ctx, file, nodeRef))
                 return;
-            collectGenericMemberNode(ctx, item, file, attributes->nodeBodyRef, restricted, seenNames);
+            collectGenericMemberNode(ctx, item, file, attributes->nodeBodyRef, restricted, childRootRef, seenNames);
             return;
         }
 
-        if (node.is(AstNodeId::AggregateBody) || node.is(AstNodeId::VarDeclList))
+        if (node.is(AstNodeId::VarDeclList))
         {
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, ast);
             for (const AstNodeRef childRef : children)
-                collectGenericMemberNode(ctx, item, file, childRef, restricted, seenNames);
+                collectGenericMemberNode(ctx, item, file, childRef, restricted, childRootRef, seenNames);
+            return;
+        }
+
+        if (node.is(AstNodeId::AggregateBody))
+        {
+            SmallVector<AstNodeRef> children;
+            node.collectChildrenFromAst(children, ast);
+            for (const AstNodeRef childRef : children)
+                collectGenericMemberNode(ctx, item, file, childRef, restricted, AstNodeRef::invalid(), seenNames);
             return;
         }
 
@@ -585,7 +609,7 @@ namespace
         {
             if (single->hasFlag(AstVarDeclFlagsE::Const))
                 return;
-            appendGenericMember(ctx, item, file, nodeRef, *single, single->tokNameRef, seenNames);
+            appendGenericMember(ctx, item, file, nodeRef, childRootRef, *single, single->tokNameRef, seenNames);
             return;
         }
         if (const auto* multiple = node.safeCast<AstMultiVarDecl>())
@@ -595,7 +619,7 @@ namespace
             SmallVector<TokenRef> names;
             ast.appendTokens(names, multiple->spanNamesRef);
             for (const TokenRef nameRef : names)
-                appendGenericMember(ctx, item, file, nodeRef, *multiple, nameRef, seenNames);
+                appendGenericMember(ctx, item, file, nodeRef, childRootRef, *multiple, nameRef, seenNames);
         }
     }
 
@@ -641,8 +665,9 @@ namespace
                 {
                     SmallVector<AstNodeRef> children;
                     file->ast().node(bodyRef).collectChildrenFromAst(children, file->ast());
+                    // A member is 'internal' unless it says otherwise, so the walk starts closed.
                     for (const AstNodeRef childRef : children)
-                        collectGenericMemberNode(ctx, item, *file, childRef, false, seenNames);
+                        collectGenericMemberNode(ctx, item, *file, childRef, true, AstNodeRef::invalid(), seenNames);
                 }
             }
         }

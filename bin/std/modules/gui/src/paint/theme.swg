@@ -152,49 +152,55 @@ private func defaultWidgetsImage(renderer: IRenderer, scale: f32)->*Image
 // Owns decoded theme textures, icon atlases, typefaces, and derived font families.
 struct ThemeResources
 {
-    imgWidgets: Texture     // Widgets atlas texture, rasterized from the vector theme document.
-    atlasScale: f32         // Device pixels per authored atlas texel; zero until the atlas is built.
-    icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
-    #[Swag.Late]
+    public
     {
-        defaultTypeFaceR:    *TypeFace     // Default type face r associated with this value.
-        defaultTypeFaceB:    *TypeFace     // Default type face b associated with this value.
-        defaultTypeFaceI:    *TypeFace     // Default type face i associated with this value.
-        defaultTypeFaceBI:   *TypeFace     // Default type face bi associated with this value.
-        defaultFsTypeFaceR:  *TypeFace     // Default fs type face r associated with this value.
-        defaultFsTypeFaceB:  *TypeFace     // Default fs type face b associated with this value.
-        defaultFsTypeFaceI:  *TypeFace     // Default fs type face i associated with this value.
-        defaultFsTypeFaceBI: *TypeFace     // Default fs type face bi associated with this value.
-    }
+        imgWidgets: Texture     // Widgets atlas texture, rasterized from the vector theme document.
+        atlasScale: f32         // Device pixels per authored atlas texel; zero until the atlas is built.
+        icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
+        #[Swag.Late]
+        {
+            defaultTypeFaceR:    *TypeFace     // Default type face r associated with this value.
+            defaultTypeFaceB:    *TypeFace     // Default type face b associated with this value.
+            defaultTypeFaceI:    *TypeFace     // Default type face i associated with this value.
+            defaultTypeFaceBI:   *TypeFace     // Default type face bi associated with this value.
+            defaultFsTypeFaceR:  *TypeFace     // Default fs type face r associated with this value.
+            defaultFsTypeFaceB:  *TypeFace     // Default fs type face b associated with this value.
+            defaultFsTypeFaceI:  *TypeFace     // Default fs type face i associated with this value.
+            defaultFsTypeFaceBI: *TypeFace     // Default fs type face bi associated with this value.
+        }
 
-    fontDefault:   FontFamily     // Font default associated with this value.
-    fontDefaultFs: FontFamily     // Font default fs associated with this value.
+        fontDefault:   FontFamily     // Font default associated with this value.
+        fontDefaultFs: FontFamily     // Font default fs associated with this value.
+    }
 }
 
 // Groups all render resources, colors, metrics, and atlas rectangles for one GUI theme.
 struct Theme
 {
-    res:     ThemeResources      // Decoded art, fonts, and font families of the theme.
-    rects:   ThemeImageRects     // Regions of the theme atlas each part is drawn from.
-    metrics: ThemeMetrics        // Logical dimensions, spacing, and timings.
-    colors:  ThemeColors         // One color per painted part, derived from `palette`.
+    public
+    {
+        res:     ThemeResources      // Decoded art, fonts, and font families of the theme.
+        rects:   ThemeImageRects     // Regions of the theme atlas each part is drawn from.
+        metrics: ThemeMetrics        // Logical dimensions, spacing, and timings.
+        colors:  ThemeColors         // One color per painted part, derived from `palette`.
 
-    // The tokens the colors were derived from. A theme sheet that names one of them
-    // re-derives the whole palette, which is what makes a theme file thirty lines rather
-    // than three hundred; a sheet that names a color instead overrides that one part.
-    readonly
-    palette: ThemePalette
+        // The tokens the colors were derived from. A theme sheet that names one of them
+        // re-derives the whole palette, which is what makes a theme file thirty lines rather
+        // than three hundred; a sheet that names a color instead overrides that one part.
+        public readonly
+        palette: ThemePalette
 
-    // Whether the theme was set up. A theme is established once against a renderer, so the
-    // flag is a result to read, never a switch to flip.
-    readonly
-    initialized: bool
+        // Whether the theme was set up. A theme is established once against a renderer, so the
+        // flag is a result to read, never a switch to flip.
+        public readonly
+        initialized: bool
 
-    // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
-    // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
-    #[Swag.Late]
-    internal
-    fonts: *Pixel.FontCache
+        // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
+        // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
+        #[Swag.Late]
+        internal
+        fonts: *Pixel.FontCache
+    }
 }
 
 impl Theme

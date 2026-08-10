@@ -15,32 +15,35 @@ const GDI_ERROR = 0xFFFFFFFF
 
 struct PIXELFORMATDESCRIPTOR
 {
-    nSize:           WORD
-    nVersion:        WORD
-    dwFlags:         DWORD
-    iPixelType:      BYTE
-    cColorBits:      BYTE
-    cRedBits:        BYTE
-    cRedShift:       BYTE
-    cGreenBits:      BYTE
-    cGreenShift:     BYTE
-    cBlueBits:       BYTE
-    cBlueShift:      BYTE
-    cAlphaBits:      BYTE
-    cAlphaShift:     BYTE
-    cAccumBits:      BYTE
-    cAccumRedBits:   BYTE
-    cAccumGreenBits: BYTE
-    cAccumBlueBits:  BYTE
-    cAccumAlphaBits: BYTE
-    cDepthBits:      BYTE
-    cStencilBits:    BYTE
-    cAuxBuffers:     BYTE
-    iLayerType:      BYTE
-    bReserved:       BYTE
-    dwLayerMask:     DWORD
-    dwVisibleMask:   DWORD
-    dwDamageMask:    DWORD
+    public
+    {
+        nSize:           WORD
+        nVersion:        WORD
+        dwFlags:         DWORD
+        iPixelType:      BYTE
+        cColorBits:      BYTE
+        cRedBits:        BYTE
+        cRedShift:       BYTE
+        cGreenBits:      BYTE
+        cGreenShift:     BYTE
+        cBlueBits:       BYTE
+        cBlueShift:      BYTE
+        cAlphaBits:      BYTE
+        cAlphaShift:     BYTE
+        cAccumBits:      BYTE
+        cAccumRedBits:   BYTE
+        cAccumGreenBits: BYTE
+        cAccumBlueBits:  BYTE
+        cAccumAlphaBits: BYTE
+        cDepthBits:      BYTE
+        cStencilBits:    BYTE
+        cAuxBuffers:     BYTE
+        iLayerType:      BYTE
+        bReserved:       BYTE
+        dwLayerMask:     DWORD
+        dwVisibleMask:   DWORD
+        dwDamageMask:    DWORD
+    }
 }
 
 const PFD_TYPE_RGBA       = 0
@@ -89,21 +92,27 @@ const CAPTUREBLT     = cast(DWORD) 0x40000000     /* Include layered windows */
 
 struct BITMAP
 {
-    bmType:       LONG
-    bmWidth:      LONG
-    bmHeight:     LONG
-    bmWidthBytes: LONG
-    bmPlanes:     WORD
-    bmBitsPixel:  WORD
-    bmBits:       LPVOID
+    public
+    {
+        bmType:       LONG
+        bmWidth:      LONG
+        bmHeight:     LONG
+        bmWidthBytes: LONG
+        bmPlanes:     WORD
+        bmBitsPixel:  WORD
+        bmBits:       LPVOID
+    }
 }
 
 struct RGBQUAD
 {
-    rgbBlue:     BYTE
-    rgbGreen:    BYTE
-    rgbRed:      BYTE
-    rgbReserved: BYTE
+    public
+    {
+        rgbBlue:     BYTE
+        rgbGreen:    BYTE
+        rgbRed:      BYTE
+        rgbReserved: BYTE
+    }
 }
 
 const BI_RGB       = 0
@@ -118,23 +127,29 @@ const DIB_PAL_COLORS = 1
 
 struct BITMAPINFOHEADER
 {
-    biSize:          DWORD
-    biWidth:         LONG
-    biHeight:        LONG
-    biPlanes:        WORD
-    biBitCount:      WORD
-    biCompression:   DWORD
-    biSizeImage:     DWORD
-    biXPelsPerMeter: LONG
-    biYPelsPerMeter: LONG
-    biClrUsed:       DWORD
-    biClrImportant:  DWORD
+    public
+    {
+        biSize:          DWORD
+        biWidth:         LONG
+        biHeight:        LONG
+        biPlanes:        WORD
+        biBitCount:      WORD
+        biCompression:   DWORD
+        biSizeImage:     DWORD
+        biXPelsPerMeter: LONG
+        biYPelsPerMeter: LONG
+        biClrUsed:       DWORD
+        biClrImportant:  DWORD
+    }
 }
 
 struct BITMAPINFO
 {
-    bmiHeader: BITMAPINFOHEADER
-    bmiColors: [1] RGBQUAD
+    public
+    {
+        bmiHeader: BITMAPINFOHEADER
+        bmiColors: [1] RGBQUAD
+    }
 }
 
 const LF_FACESIZE       = 32
@@ -255,160 +270,184 @@ const COLORMGMTCAPS   = 121
 
 struct LOGFONTA
 {
-    lfHeight:         LONG
-    lfWidth:          LONG
-    lfEscapement:     LONG
-    lfOrientation:    LONG
-    lfWeight:         LONG
-    lfItalic:         BYTE
-    lfUnderline:      BYTE
-    lfStrikeOut:      BYTE
-    lfCharSet:        BYTE
-    lfOutPrecision:   BYTE
-    lfClipPrecision:  BYTE
-    lfQuality:        BYTE
-    lfPitchAndFamily: BYTE
-    lfFaceName:       [LF_FACESIZE] CHAR
+    public
+    {
+        lfHeight:         LONG
+        lfWidth:          LONG
+        lfEscapement:     LONG
+        lfOrientation:    LONG
+        lfWeight:         LONG
+        lfItalic:         BYTE
+        lfUnderline:      BYTE
+        lfStrikeOut:      BYTE
+        lfCharSet:        BYTE
+        lfOutPrecision:   BYTE
+        lfClipPrecision:  BYTE
+        lfQuality:        BYTE
+        lfPitchAndFamily: BYTE
+        lfFaceName:       [LF_FACESIZE] CHAR
+    }
 }
 
 struct LOGFONTW
 {
-    lfHeight:         LONG
-    lfWidth:          LONG
-    lfEscapement:     LONG
-    lfOrientation:    LONG
-    lfWeight:         LONG
-    lfItalic:         BYTE
-    lfUnderline:      BYTE
-    lfStrikeOut:      BYTE
-    lfCharSet:        BYTE
-    lfOutPrecision:   BYTE
-    lfClipPrecision:  BYTE
-    lfQuality:        BYTE
-    lfPitchAndFamily: BYTE
-    lfFaceName:       [LF_FACESIZE] WCHAR
+    public
+    {
+        lfHeight:         LONG
+        lfWidth:          LONG
+        lfEscapement:     LONG
+        lfOrientation:    LONG
+        lfWeight:         LONG
+        lfItalic:         BYTE
+        lfUnderline:      BYTE
+        lfStrikeOut:      BYTE
+        lfCharSet:        BYTE
+        lfOutPrecision:   BYTE
+        lfClipPrecision:  BYTE
+        lfQuality:        BYTE
+        lfPitchAndFamily: BYTE
+        lfFaceName:       [LF_FACESIZE] WCHAR
+    }
 }
 
 const LF_FULLFACESIZE = 64
 
 struct ENUMLOGFONTEXA
 {
-    elfLogFont:  LOGFONTA
-    elfFullName: [LF_FULLFACESIZE] BYTE
-    elfStyle:    [LF_FACESIZE] BYTE
-    elfScript:   [LF_FACESIZE] BYTE
+    public
+    {
+        elfLogFont:  LOGFONTA
+        elfFullName: [LF_FULLFACESIZE] BYTE
+        elfStyle:    [LF_FACESIZE] BYTE
+        elfScript:   [LF_FACESIZE] BYTE
+    }
 }
 
 struct ENUMLOGFONTEXW
 {
-    elfLogFont:  LOGFONTW
-    elfFullName: [LF_FULLFACESIZE] WCHAR
-    elfStyle:    [LF_FACESIZE] WCHAR
-    elfScript:   [LF_FACESIZE] WCHAR
+    public
+    {
+        elfLogFont:  LOGFONTW
+        elfFullName: [LF_FULLFACESIZE] WCHAR
+        elfStyle:    [LF_FACESIZE] WCHAR
+        elfScript:   [LF_FACESIZE] WCHAR
+    }
 }
 
 struct TEXTMETRICA
 {
-    tmHeight:           LONG
-    tmAscent:           LONG
-    tmDescent:          LONG
-    tmInternalLeading:  LONG
-    tmExternalLeading:  LONG
-    tmAveCharWidth:     LONG
-    tmMaxCharWidth:     LONG
-    tmWeight:           LONG
-    tmOverhang:         LONG
-    tmDigitizedAspectX: LONG
-    tmDigitizedAspectY: LONG
-    tmFirstChar:        BYTE
-    tmLastChar:         BYTE
-    tmDefaultChar:      BYTE
-    tmBreakChar:        BYTE
-    tmItalic:           BYTE
-    tmUnderlined:       BYTE
-    tmStruckOut:        BYTE
-    tmPitchAndFamily:   BYTE
-    tmCharSet:          BYTE
+    public
+    {
+        tmHeight:           LONG
+        tmAscent:           LONG
+        tmDescent:          LONG
+        tmInternalLeading:  LONG
+        tmExternalLeading:  LONG
+        tmAveCharWidth:     LONG
+        tmMaxCharWidth:     LONG
+        tmWeight:           LONG
+        tmOverhang:         LONG
+        tmDigitizedAspectX: LONG
+        tmDigitizedAspectY: LONG
+        tmFirstChar:        BYTE
+        tmLastChar:         BYTE
+        tmDefaultChar:      BYTE
+        tmBreakChar:        BYTE
+        tmItalic:           BYTE
+        tmUnderlined:       BYTE
+        tmStruckOut:        BYTE
+        tmPitchAndFamily:   BYTE
+        tmCharSet:          BYTE
+    }
 }
 
 struct TEXTMETRICW
 {
-    tmHeight:           LONG
-    tmAscent:           LONG
-    tmDescent:          LONG
-    tmInternalLeading:  LONG
-    tmExternalLeading:  LONG
-    tmAveCharWidth:     LONG
-    tmMaxCharWidth:     LONG
-    tmWeight:           LONG
-    tmOverhang:         LONG
-    tmDigitizedAspectX: LONG
-    tmDigitizedAspectY: LONG
-    tmFirstChar:        WCHAR
-    tmLastChar:         WCHAR
-    tmDefaultChar:      WCHAR
-    tmBreakChar:        WCHAR
-    tmItalic:           BYTE
-    tmUnderlined:       BYTE
-    tmStruckOut:        BYTE
-    tmPitchAndFamily:   BYTE
-    tmCharSet:          BYTE
+    public
+    {
+        tmHeight:           LONG
+        tmAscent:           LONG
+        tmDescent:          LONG
+        tmInternalLeading:  LONG
+        tmExternalLeading:  LONG
+        tmAveCharWidth:     LONG
+        tmMaxCharWidth:     LONG
+        tmWeight:           LONG
+        tmOverhang:         LONG
+        tmDigitizedAspectX: LONG
+        tmDigitizedAspectY: LONG
+        tmFirstChar:        WCHAR
+        tmLastChar:         WCHAR
+        tmDefaultChar:      WCHAR
+        tmBreakChar:        WCHAR
+        tmItalic:           BYTE
+        tmUnderlined:       BYTE
+        tmStruckOut:        BYTE
+        tmPitchAndFamily:   BYTE
+        tmCharSet:          BYTE
+    }
 }
 
 struct NEWTEXTMETRICA
 {
-    tmHeight:           LONG
-    tmAscent:           LONG
-    tmDescent:          LONG
-    tmInternalLeading:  LONG
-    tmExternalLeading:  LONG
-    tmAveCharWidth:     LONG
-    tmMaxCharWidth:     LONG
-    tmWeight:           LONG
-    tmOverhang:         LONG
-    tmDigitizedAspectX: LONG
-    tmDigitizedAspectY: LONG
-    tmFirstChar:        BYTE
-    tmLastChar:         BYTE
-    tmDefaultChar:      BYTE
-    tmBreakChar:        BYTE
-    tmItalic:           BYTE
-    tmUnderlined:       BYTE
-    tmStruckOut:        BYTE
-    tmPitchAndFamily:   BYTE
-    tmCharSet:          BYTE
-    ntmFlags:           DWORD
-    ntmSizeEM:          UINT
-    ntmCellHeight:      UINT
-    ntmAvgWidth:        UINT
+    public
+    {
+        tmHeight:           LONG
+        tmAscent:           LONG
+        tmDescent:          LONG
+        tmInternalLeading:  LONG
+        tmExternalLeading:  LONG
+        tmAveCharWidth:     LONG
+        tmMaxCharWidth:     LONG
+        tmWeight:           LONG
+        tmOverhang:         LONG
+        tmDigitizedAspectX: LONG
+        tmDigitizedAspectY: LONG
+        tmFirstChar:        BYTE
+        tmLastChar:         BYTE
+        tmDefaultChar:      BYTE
+        tmBreakChar:        BYTE
+        tmItalic:           BYTE
+        tmUnderlined:       BYTE
+        tmStruckOut:        BYTE
+        tmPitchAndFamily:   BYTE
+        tmCharSet:          BYTE
+        ntmFlags:           DWORD
+        ntmSizeEM:          UINT
+        ntmCellHeight:      UINT
+        ntmAvgWidth:        UINT
+    }
 }
 
 struct NEWTEXTMETRICW
 {
-    tmHeight:           LONG
-    tmAscent:           LONG
-    tmDescent:          LONG
-    tmInternalLeading:  LONG
-    tmExternalLeading:  LONG
-    tmAveCharWidth:     LONG
-    tmMaxCharWidth:     LONG
-    tmWeight:           LONG
-    tmOverhang:         LONG
-    tmDigitizedAspectX: LONG
-    tmDigitizedAspectY: LONG
-    tmFirstChar:        WCHAR
-    tmLastChar:         WCHAR
-    tmDefaultChar:      WCHAR
-    tmBreakChar:        WCHAR
-    tmItalic:           BYTE
-    tmUnderlined:       BYTE
-    tmStruckOut:        BYTE
-    tmPitchAndFamily:   BYTE
-    tmCharSet:          BYTE
-    ntmFlags:           DWORD
-    ntmSizeEM:          UINT
-    ntmCellHeight:      UINT
-    ntmAvgWidth:        UINT
+    public
+    {
+        tmHeight:           LONG
+        tmAscent:           LONG
+        tmDescent:          LONG
+        tmInternalLeading:  LONG
+        tmExternalLeading:  LONG
+        tmAveCharWidth:     LONG
+        tmMaxCharWidth:     LONG
+        tmWeight:           LONG
+        tmOverhang:         LONG
+        tmDigitizedAspectX: LONG
+        tmDigitizedAspectY: LONG
+        tmFirstChar:        WCHAR
+        tmLastChar:         WCHAR
+        tmDefaultChar:      WCHAR
+        tmBreakChar:        WCHAR
+        tmItalic:           BYTE
+        tmUnderlined:       BYTE
+        tmStruckOut:        BYTE
+        tmPitchAndFamily:   BYTE
+        tmCharSet:          BYTE
+        ntmFlags:           DWORD
+        ntmSizeEM:          UINT
+        ntmCellHeight:      UINT
+        ntmAvgWidth:        UINT
+    }
 }
 
 alias FONTENUMPROCA = func(const *LOGFONTA, const *TEXTMETRICA, DWORD, LPARAM)->BOOL

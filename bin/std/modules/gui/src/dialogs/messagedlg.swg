@@ -3,8 +3,8 @@ using Core, Pixel
 // Displays a rich message, optional icon and extension, and caller-defined action buttons.
 public struct MessageDlg
 {
-    using dialog: Dialog     // Embedded dialog state.
-    readonly
+    public using dialog: Dialog     // Embedded dialog state.
+    public readonly
     {
         #[Swag.Late]
         labelIcon: *Label     // Optional large icon label.
@@ -17,12 +17,15 @@ public struct MessageDlg
 // Configures message content alignment, icon presentation, and post-creation customization.
 public struct MessageDlgOptions
 {
-    title:     string       = ""                             // Surface title; empty keeps the helper's default.
-    icon:      Icon                                          // Optional large message icon.
-    iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
-    textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
-    textVerticalAlignment   = StringVertAlignment.Center     // Vertical message alignment.
-    onCreated: #null func||(*MessageDlg)                     // Optional callback invoked before icon setup and layout.
+    public
+    {
+        title:     string       = ""                             // Surface title; empty keeps the helper's default.
+        icon:      Icon                                          // Optional large message icon.
+        iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
+        textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
+        textVerticalAlignment   = StringVertAlignment.Center     // Vertical message alignment.
+        onCreated: #null func||(*MessageDlg)                     // Optional callback invoked before icon setup and layout.
+    }
 }
 
 public impl MessageDlg

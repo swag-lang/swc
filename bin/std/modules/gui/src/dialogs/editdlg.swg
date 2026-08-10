@@ -3,8 +3,8 @@ using Core, Pixel
 // Prompts for either a single line or a block of rich text.
 public struct EditDlg
 {
-    using dialog: Dialog     // Embedded dialog state.
-    readonly
+    public using dialog: Dialog     // Embedded dialog state.
+    public readonly
     {
         #[Swag.Late]
         label:    *Label                  // Optional explanatory message.
@@ -16,11 +16,14 @@ public struct EditDlg
 // Configures the title, message and initial contents of an [[Gui.EditDlg]].
 public struct EditDlgOptions
 {
-    title:        string = ""       // Surface title.
-    message:      string = ""       // Optional explanatory text shown above the editor.
-    text:         string = ""       // Initial editor contents.
-    selectAll            = true     // Whether the initial contents start selected.
-    editorHeight: s32    = 150      // Editor height, used by the multi-line form.
+    public
+    {
+        title:        string = ""       // Surface title.
+        message:      string = ""       // Optional explanatory text shown above the editor.
+        text:         string = ""       // Initial editor contents.
+        selectAll            = true     // Whether the initial contents start selected.
+        editorHeight: s32    = 150      // Editor height, used by the multi-line form.
+    }
 }
 
 public impl EditDlg

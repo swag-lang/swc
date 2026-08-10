@@ -7,7 +7,7 @@
 // release of the underlying graphics resources.
 struct RenderTarget
 {
-    readonly
+    public readonly
     {
         handle:       RenderTargetHandle            // Renderer-owned target handle.
         colorBuffer:  Texture                       // Texture receiving color output.

@@ -30,58 +30,61 @@ enum CircularMarkerForm
 // Provides a circular single-value or range slider.
 struct Circular
 {
-    using wnd: Wnd     // Embedded wnd state.
-
-    // Configuration flags and visual settings
-    flags:      CircularFlags                    // Active value-behavior flags.
-    stepForm:   CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
-    markerForm: CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
-
-    // Angular configuration (in radians)
-    startAngle: f32 = 0                       // Starting angle of the circular range (0 = top)
-    endAngle:   f32 = Math.ConstF32.TwoPi     // Ending angle of the circular range (2π = full circle)
-
-    // Step visualization settings
-    tickCount:             u32 = 20     // Number of step indicators to draw
-    tickInnerRadiusFactor: f32 = 2      // Distance from main circle to inner edge of ticks
-    tickOuterRadiusFactor: f32 = 6      // Distance from main circle to outer edge of ticks
-    circleGap:             f32 = 0      // Gap between inner and outer circles (0 = single circle)
-
-    // Colors
-    rangeColor: Color     // Color for the range arc (when in range mode)
-
-    // Event signals
-    sigStartChange: SigArray'func||(*Circular)     // Fired when user starts changing value
-    sigChanged:     SigArray'func||(*Circular)     // Fired when value changes
-    sigEndChange:   SigArray'func||(*Circular)     // Fired when user finishes changing value
-
-    internal
+    public
     {
-        lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
-        upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
-        min:        f32         // Inclusive value-space minimum.
-        max:        f32 = 1     // Inclusive value-space maximum.
-        steps:      f32         // Configured step normalized to the value range.
+        using wnd: Wnd     // Embedded wnd state.
 
-        // Internal state tracking
-        isMoving:       bool     // True when user is dragging a marker
-        isLowerPressed: bool     // True when primary marker is being pressed
-        isUpperPressed: bool     // True when secondary marker is being pressed
-        isLowerHot:     bool     // True when mouse is hovering over primary marker
-        isUpperHot:     bool     // True when mouse is hovering over secondary marker
-        hasLowerValue:  bool     // True if primary value has been set
-        hasUpperValue:  bool     // True if secondary value has been set
+        // Configuration flags and visual settings
+        flags:      CircularFlags                    // Active value-behavior flags.
+        stepForm:   CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
+        markerForm: CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
 
-        // Calculated geometry (updated in updateGeometry())
-        radius:       f32     // Radius of the main circular track
-        centerX:      f32     // X coordinate of circle center
-        centerY:      f32     // Y coordinate of circle center
-        correcMoving: f32     // Movement correction factor
+        // Angular configuration (in radians)
+        startAngle: f32 = 0                       // Starting angle of the circular range (0 = top)
+        endAngle:   f32 = Math.ConstF32.TwoPi     // Ending angle of the circular range (2π = full circle)
 
-        // Animation blending for smooth color transitions
-        lowerMarkerAnimation: BlendColor     // Color animation for primary marker
-        upperMarkerAnimation: BlendColor     // Color animation for secondary marker
-        aniStep:              BlendColor     // Color animation for step indicators
+        // Step visualization settings
+        tickCount:             u32 = 20     // Number of step indicators to draw
+        tickInnerRadiusFactor: f32 = 2      // Distance from main circle to inner edge of ticks
+        tickOuterRadiusFactor: f32 = 6      // Distance from main circle to outer edge of ticks
+        circleGap:             f32 = 0      // Gap between inner and outer circles (0 = single circle)
+
+        // Colors
+        rangeColor: Color     // Color for the range arc (when in range mode)
+
+        // Event signals
+        sigStartChange: SigArray'func||(*Circular)     // Fired when user starts changing value
+        sigChanged:     SigArray'func||(*Circular)     // Fired when value changes
+        sigEndChange:   SigArray'func||(*Circular)     // Fired when user finishes changing value
+
+        internal
+        {
+            lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
+            upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
+            min:        f32         // Inclusive value-space minimum.
+            max:        f32 = 1     // Inclusive value-space maximum.
+            steps:      f32         // Configured step normalized to the value range.
+
+            // Internal state tracking
+            isMoving:       bool     // True when user is dragging a marker
+            isLowerPressed: bool     // True when primary marker is being pressed
+            isUpperPressed: bool     // True when secondary marker is being pressed
+            isLowerHot:     bool     // True when mouse is hovering over primary marker
+            isUpperHot:     bool     // True when mouse is hovering over secondary marker
+            hasLowerValue:  bool     // True if primary value has been set
+            hasUpperValue:  bool     // True if secondary value has been set
+
+            // Calculated geometry (updated in updateGeometry())
+            radius:       f32     // Radius of the main circular track
+            centerX:      f32     // X coordinate of circle center
+            centerY:      f32     // Y coordinate of circle center
+            correcMoving: f32     // Movement correction factor
+
+            // Animation blending for smooth color transitions
+            lowerMarkerAnimation: BlendColor     // Color animation for primary marker
+            upperMarkerAnimation: BlendColor     // Color animation for secondary marker
+            aniStep:              BlendColor     // Color animation for step indicators
+        }
     }
 }
 

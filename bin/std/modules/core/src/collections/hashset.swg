@@ -5,10 +5,13 @@ using Swag
 // Represents a single entry within a HashSet.
 struct(K) HashSetEntry
 {
-    internal
-    hash: u32
-    readonly
-    key: K     // The key itself.
+    public
+    {
+        internal
+        hash: u32
+        public readonly
+        key: K     // The key itself.
+    }
 }
 
 // A hash set implemented with an open-addressing hash table.
@@ -27,7 +30,7 @@ struct(K) HashSet
     allocator: #null IAllocator
 
     // Sizes are reported, never set: the set grows itself when it needs to.
-    readonly
+    public readonly
     {
         count:    u64     // The number of valid elements currently in the set.
         capacity: u64     // The total number of slots in the hash table.

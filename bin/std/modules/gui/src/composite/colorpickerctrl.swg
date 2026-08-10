@@ -25,40 +25,43 @@ enum ColorPickerFlags
 // Combines color planes, channel editors, an eyedropper, and an optional palette into one picker.
 struct ColorPickerCtrl
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-
-    sigColorChanged: SigArray'func||(*ColorPickerCtrl)     // Emitted once after the selected color changes.
-
-    readonly
+    public
     {
-        originalColor: Color                                // Color captured by the first `setColor` call.
-        selectedColor: Color                                // Current selected color.
-        flags = ColorPickerFlags.All                        // Available optional channels.
-        mode  = ColorPickerViewMode.SaturationLightness     // Active plane and slider arrangement.
+        using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-        #[Swag.Late]
+        sigColorChanged: SigArray'func||(*ColorPickerCtrl)     // Emitted once after the selected color changes.
+
+        public readonly
         {
-            preview:   *Wnd             // Side-by-side original and selected color preview.
-            pickBox:   *ColorPicker     // Two-dimensional channel picker.
-            pickBar:   *ColorPicker     // Companion one-dimensional channel picker.
-            pickAlpha: *ColorPicker     // Alpha channel picker.
-            editA:     *EditBox         // Alpha numeric editor.
-            editR:     *EditBox         // Red numeric editor.
-            editG:     *EditBox         // Green numeric editor.
-            editB:     *EditBox         // Blue numeric editor.
-            editHex:   *EditBox         // RGB or ARGB hexadecimal editor.
-            radioH:    *RadioButton     // Hue mode selector.
-            radioL:    *RadioButton     // Lightness mode selector.
-            radioS:    *RadioButton     // Saturation mode selector.
-            radioR:    *RadioButton     // Red mode selector.
-            radioG:    *RadioButton     // Green mode selector.
-            radioB:    *RadioButton     // Blue mode selector.
-        }
-    }
+            originalColor: Color                                // Color captured by the first `setColor` call.
+            selectedColor: Color                                // Current selected color.
+            flags = ColorPickerFlags.All                        // Available optional channels.
+            mode  = ColorPickerViewMode.SaturationLightness     // Active plane and slider arrangement.
 
-    internal
-    {
-        hasOriginalColor: bool     // Whether the first assigned color has been captured.
+            #[Swag.Late]
+            {
+                preview:   *Wnd             // Side-by-side original and selected color preview.
+                pickBox:   *ColorPicker     // Two-dimensional channel picker.
+                pickBar:   *ColorPicker     // Companion one-dimensional channel picker.
+                pickAlpha: *ColorPicker     // Alpha channel picker.
+                editA:     *EditBox         // Alpha numeric editor.
+                editR:     *EditBox         // Red numeric editor.
+                editG:     *EditBox         // Green numeric editor.
+                editB:     *EditBox         // Blue numeric editor.
+                editHex:   *EditBox         // RGB or ARGB hexadecimal editor.
+                radioH:    *RadioButton     // Hue mode selector.
+                radioL:    *RadioButton     // Lightness mode selector.
+                radioS:    *RadioButton     // Saturation mode selector.
+                radioR:    *RadioButton     // Red mode selector.
+                radioG:    *RadioButton     // Green mode selector.
+                radioB:    *RadioButton     // Blue mode selector.
+            }
+        }
+
+        internal
+        {
+            hasOriginalColor: bool     // Whether the first assigned color has been captured.
+        }
     }
 }
 

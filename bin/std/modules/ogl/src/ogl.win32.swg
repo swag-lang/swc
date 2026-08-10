@@ -66,9 +66,12 @@ namespace Platform.Win32
     #[Swag.Opaque]
     public struct Context
     {
-        hDC:    HDC
-        hRC:    HGLRC
-        window: #null *Env.Window
+        public
+        {
+            hDC:    HDC
+            hRC:    HGLRC
+            window: #null *Env.Window
+        }
     }
 
     // Creates an OpenGL context for `window`.

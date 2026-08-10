@@ -4,7 +4,7 @@ using Core, Pixel
 #[Swag.Opaque]
 public struct RichEditView
 {
-    using wnd: Wnd     // Embedded wnd state.
+    public using wnd: Wnd     // Embedded wnd state.
 
     // The control this view paints for, and the transient state of one editing gesture.
     internal

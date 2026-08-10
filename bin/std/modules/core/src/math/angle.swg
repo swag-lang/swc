@@ -6,7 +6,7 @@ using Swag
 // Represents an angle stored in radians.
 struct Angle
 {
-    readonly radians: f32     // The angle value in radians.
+    public readonly radians: f32     // The angle value in radians.
 }
 
 impl Angle

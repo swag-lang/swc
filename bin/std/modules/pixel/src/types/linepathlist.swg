@@ -10,7 +10,7 @@ struct LinePathList
     internal paths: Array'(*LinePath)     // Owned path pointers.
 
     // Combined bounds of the paths, derived when the list is flattened.
-    readonly
+    public readonly
     {
         minBounds: Vector2     // Minimum combined bound after flattening.
         maxBounds: Vector2     // Maximum combined bound after flattening.

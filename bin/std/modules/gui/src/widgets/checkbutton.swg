@@ -22,15 +22,18 @@ enum CheckButtonFlags
 // Lets the user enable an option or choose among three check states.
 struct CheckButton
 {
-    using button: Button     // Embedded button behavior and presentation.
-
-    readonly
+    public
     {
-        state = CheckState.Unchecked      // Current displayed state.
-        flags = CheckButtonFlags.None     // Active interaction and placement options.
-    }
+        using button: Button     // Embedded button behavior and presentation.
 
-    sigChanged: SigArray'func||(*CheckButton)     // Emitted after a user action changes the state.
+        public readonly
+        {
+            state = CheckState.Unchecked      // Current displayed state.
+            flags = CheckButtonFlags.None     // Active interaction and placement options.
+        }
+
+        sigChanged: SigArray'func||(*CheckButton)     // Emitted after a user action changes the state.
+    }
 }
 
 impl IWnd for CheckButton

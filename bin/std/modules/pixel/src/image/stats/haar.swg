@@ -102,9 +102,12 @@ func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [
 // Structure to store Haar coefficients
 public struct HaarFeatures
 {
-    coefficients: Array'f32     // Multi-scale Haar coefficients
-    size:         s32           // Representation size (power of 2)
-    levels:       s32           // Number of decomposition levels
+    public
+    {
+        coefficients: Array'f32     // Multi-scale Haar coefficients
+        size:         s32           // Representation size (power of 2)
+        levels:       s32           // Number of decomposition levels
+    }
 }
 
 // Extract Haar coefficients from the image

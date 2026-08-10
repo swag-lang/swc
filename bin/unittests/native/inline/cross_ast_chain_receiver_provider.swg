@@ -10,8 +10,11 @@
 
 public struct Cell
 {
-    flag: bool
-    n:    s32
+    public
+    {
+        flag: bool
+        n:    s32
+    }
 }
 
 impl Cell
@@ -32,7 +35,7 @@ impl Cell
 
 public struct(T) Slab
 {
-    cells: [4] T
+    public cells: [4] T
 }
 
 impl Slab

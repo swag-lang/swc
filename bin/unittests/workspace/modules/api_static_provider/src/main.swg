@@ -23,12 +23,12 @@ func depStringLength(text: string)->u64
 
 struct DepCalculator
 {
-    base: s32
+    public base: s32
 }
 
 struct StaticInferredDepOwner
 {
-    namespaced: DepTools.DepNamespaced
+    public namespaced: DepTools.DepNamespaced
 }
 
 impl DepCalculator

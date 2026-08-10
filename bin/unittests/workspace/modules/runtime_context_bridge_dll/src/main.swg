@@ -44,63 +44,87 @@ public enum CtxAbiEnum: u16
 
 public struct CtxAbiPair
 {
-    a: s32
-    b: s32
+    public
+    {
+        a: s32
+        b: s32
+    }
 }
 
 public struct CtxAbiPayload
 {
-    a0: u64
-    a1: u64
-    a2: u64
-    a3: u64
+    public
+    {
+        a0: u64
+        a1: u64
+        a2: u64
+        a3: u64
+    }
 }
 
 public struct CtxAbiOffsets
 {
-    a: u8
-    b: u16
-    c: u32
-    d: u64
+    public
+    {
+        a: u8
+        b: u16
+        c: u32
+        d: u64
+    }
 }
 
 public struct CtxAbiNested
 {
-    p: CtxAbiPair
-    q: CtxAbiPayload
+    public
+    {
+        p: CtxAbiPair
+        q: CtxAbiPayload
+    }
 }
 
 public struct CtxAbiFloatPack
 {
-    r: f64
-    g: f64
-    b: f64
+    public
+    {
+        r: f64
+        g: f64
+        b: f64
+    }
 }
 
 // Two floats in eight bytes: the size of a pair of integers, but the ABI hands it back in a
 // float register rather than an integer one. Nothing else here covers that class.
 public struct CtxAbiFloatPair
 {
-    x: f32
-    y: f32
+    public
+    {
+        x: f32
+        y: f32
+    }
 }
 
 public struct CtxAbiCalculator
 {
-    base: s32
+    public base: s32
 }
 
 public struct CtxClosureByteSet
 {
-    values: [4] u8
-    count:  u32
+    public
+    {
+        values: [4] u8
+        count:  u32
+    }
 }
 
 public struct CtxSelfBufferSet
 {
-    buffer:  #null [*] u8
-    count:   u32
-    storage: [4] u8
+    public
+    {
+        buffer:  #null [*] u8
+        count:   u32
+        storage: [4] u8
+    }
 }
 
 public impl CtxClosureByteSet
@@ -363,7 +387,7 @@ public func ctxSharedMakeFloatPair(x: f32, y: f32)->CtxAbiFloatPair
 // symbol. The two then share a linker name and every call to one lands in the other.
 public struct CtxAbiCursor
 {
-    pos: CtxAbiFloatPair
+    public pos: CtxAbiFloatPair
 }
 
 public impl CtxAbiCursor

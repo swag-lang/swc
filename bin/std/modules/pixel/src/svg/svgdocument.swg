@@ -33,17 +33,20 @@ public enum FillRule
 // ```
 struct Document
 {
-    width:  f32     // Width of the view box, in user units.
-    height: f32     // Height of the view box, in user units.
-
-    // What the document is made of. A shape is complete once it is added, so the elements
-    // are assembled as they arrive; use 'addPath', 'setBackground', and 'setTitle'.
-    internal
+    public
     {
-        body:          String     // Shape elements, in paint order.
-        background:    Color      // Ground painted before the shapes.
-        hasBackground: bool       // Whether a ground was requested.
-        title:         String     // Accessible name of the document.
+        width:  f32     // Width of the view box, in user units.
+        height: f32     // Height of the view box, in user units.
+
+        // What the document is made of. A shape is complete once it is added, so the elements
+        // are assembled as they arrive; use 'addPath', 'setBackground', and 'setTitle'.
+        internal
+        {
+            body:          String     // Shape elements, in paint order.
+            background:    Color      // Ground painted before the shapes.
+            hasBackground: bool       // Whether a ground was requested.
+            title:         String     // Accessible name of the document.
+        }
     }
 }
 

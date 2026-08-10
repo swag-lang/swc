@@ -13,18 +13,21 @@ enum HeaderForm
 // Describes one column displayed by a header.
 struct HeaderItem
 {
-    name:              RichString     // Displayed column label.
-    icon:              Icon           // Optional icon drawn before the label.
-    isResizable = true                // Whether the trailing separator can resize the column.
-    isClickable = true                // Whether the column can emit click actions.
-    reservesIconSpace: bool           // Whether list rows reserve the header icon column.
-
-    internal
+    public
     {
-        width:        f32     // Effective width in logical units.
-        minimumWidth: f32     // Inclusive minimum width.
-        maximumWidth: f32     // Inclusive maximum width, or zero when unbounded.
-        column:       u32     // Stable logical column identifier.
+        name:              RichString     // Displayed column label.
+        icon:              Icon           // Optional icon drawn before the label.
+        isResizable = true                // Whether the trailing separator can resize the column.
+        isClickable = true                // Whether the column can emit click actions.
+        reservesIconSpace: bool           // Whether list rows reserve the header icon column.
+
+        internal
+        {
+            width:        f32     // Effective width in logical units.
+            minimumWidth: f32     // Inclusive minimum width.
+            maximumWidth: f32     // Inclusive maximum width, or zero when unbounded.
+            column:       u32     // Stable logical column identifier.
+        }
     }
 }
 
@@ -47,31 +50,34 @@ enum HeaderSortDirection
 // Displays named, optionally sortable and resizable columns.
 struct Header
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    form = HeaderForm.Flat                              // Background and border presentation.
-    itemPadding:      f32 = 5                           // Horizontal inset applied to each item label.
-    sigLayoutChanged: SigArray'func||(*Header)          // Emitted after an effective column width changes.
-    sigColumnClicked: SigArray'func||(*Header, u32)     // Emitted after the user clicks a column.
-
-    // The columns the header shows, and which one it sorts on. Add columns through the methods
-    // so the layout and the owning list stay in step.
-    readonly
+    public
     {
-        flags         = HeaderFlags.Clickable        // Active interaction options.
-        items: ArrayPtr'HeaderItem                   // Columns in display order.
-        sortColumn    = Swag.U32.Max                 // Logical column carrying the sort marker.
-        sortDirection = HeaderSortDirection.None     // Direction of the sort marker.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    // Hover and drag state of one gesture over the header.
-    internal
-    {
-        hotIdx = Swag.U32.Max     // Column under the mouse.
-        hotSeparator:  bool       // Whether the mouse is over a separator.
-        moving:        bool       // Whether a separator drag is in progress.
-        clicked:       bool       // Whether a click gesture started on a column.
-        correctMoving: f32        // Grab offset inside the separator, kept for the drag.
+        form = HeaderForm.Flat                              // Background and border presentation.
+        itemPadding:      f32 = 5                           // Horizontal inset applied to each item label.
+        sigLayoutChanged: SigArray'func||(*Header)          // Emitted after an effective column width changes.
+        sigColumnClicked: SigArray'func||(*Header, u32)     // Emitted after the user clicks a column.
+
+        // The columns the header shows, and which one it sorts on. Add columns through the methods
+        // so the layout and the owning list stay in step.
+        public readonly
+        {
+            flags         = HeaderFlags.Clickable        // Active interaction options.
+            items: ArrayPtr'HeaderItem                   // Columns in display order.
+            sortColumn    = Swag.U32.Max                 // Logical column carrying the sort marker.
+            sortDirection = HeaderSortDirection.None     // Direction of the sort marker.
+        }
+
+        // Hover and drag state of one gesture over the header.
+        internal
+        {
+            hotIdx = Swag.U32.Max     // Column under the mouse.
+            hotSeparator:  bool       // Whether the mouse is over a separator.
+            moving:        bool       // Whether a separator drag is in progress.
+            clicked:       bool       // Whether a click gesture started on a column.
+            correctMoving: f32        // Grab offset inside the separator, kept for the drag.
+        }
     }
 }
 

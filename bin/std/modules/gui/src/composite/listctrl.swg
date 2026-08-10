@@ -46,113 +46,125 @@ private const DropMarkCapReach = 3.0'f32
 // Stores one cell in a [[Gui.ListLine]].
 struct ListItem
 {
-    using item: Item                         // Embedded item state.
-    sortKey:    String                       // Optional key used instead of the displayed label when sorting.
-    colorBk:    Color                        // Cell background override, or transparent for the list color.
-    colorFg:    Color                        // Cell foreground override, or transparent for the list color.
-    column:     u32                          // Zero-based column index.
-    horzAlign = StringHorzAlignment.Left     // Cell content alignment.
+    public
+    {
+        using item: Item                         // Embedded item state.
+        sortKey:    String                       // Optional key used instead of the displayed label when sorting.
+        colorBk:    Color                        // Cell background override, or transparent for the list color.
+        colorFg:    Color                        // Cell foreground override, or transparent for the list color.
+        column:     u32                          // Zero-based column index.
+        horzAlign = StringHorzAlignment.Left     // Cell content alignment.
+    }
 }
 
 // Stores one row and its optional child rows in a [[Gui.ListCtrl]].
 struct ListLine
 {
-    colorBk:         Color           // Row background override, or transparent for the list color.
-    colorFg:         Color           // Row foreground override, or transparent for the list color.
-    userData0:       #null *void     // First application-defined pointer payload.
-    userData1:       #null *void     // Second application-defined pointer payload.
-    userData2:       #null *void     // Third application-defined pointer payload.
-    userData3:       #null *void     // Fourth application-defined pointer payload.
-    leftTextMargin:  f32             // Additional leading margin for this row.
-    forceExpandMark: bool            // Whether to show an expansion mark without child rows.
-    canCheck:        bool            // Whether the row exposes a check box.
-    separator:       bool            // Whether the row is a non-selectable separator.
-    iconMargin:      bool            // Whether to reserve icon space when the first cell has no icon.
+    public
+    {
+        colorBk:         Color           // Row background override, or transparent for the list color.
+        colorFg:         Color           // Row foreground override, or transparent for the list color.
+        userData0:       #null *void     // First application-defined pointer payload.
+        userData1:       #null *void     // Second application-defined pointer payload.
+        userData2:       #null *void     // Third application-defined pointer payload.
+        userData3:       #null *void     // Fourth application-defined pointer payload.
+        leftTextMargin:  f32             // Additional leading margin for this row.
+        forceExpandMark: bool            // Whether to show an expansion mark without child rows.
+        canCheck:        bool            // Whether the row exposes a check box.
+        separator:       bool            // Whether the row is a non-selectable separator.
+        iconMargin:      bool            // Whether to reserve icon space when the first cell has no icon.
 
-    lines:    ArrayPtr'ListLine     // Direct child rows.
-    items:    ArrayPtr'ListItem     // Cells indexed by their `column` field.
-    parent:   #null *ListLine       // Parent row, or null for a root row.
-    index:    u32                   // Stable row identity assigned by the owning list.
-    level:    u32                   // Zero-based hierarchy depth.
-    expanded: bool                  // Whether direct child rows are visible.
+        lines:    ArrayPtr'ListLine     // Direct child rows.
+        items:    ArrayPtr'ListItem     // Cells indexed by their `column` field.
+        parent:   #null *ListLine       // Parent row, or null for a root row.
+        index:    u32                   // Stable row identity assigned by the owning list.
+        level:    u32                   // Zero-based hierarchy depth.
+        expanded: bool                  // Whether direct child rows are visible.
+    }
 }
 
 // Displays selectable flat, multi-column, hierarchical, or virtual rows.
 struct ListCtrl
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-
-    readonly
+    public
     {
-        horizontalExtent: f32                                // Explicit content width, or zero to derive it from the view or header.
-        fixedLineHeight:  f32                                // Fixed row height, or zero to derive it from the font.
-        indentWidth:      f32 = 22                           // Width added for each hierarchy level.
-        iconSize:         f32                                // Square icon size, or zero to use each icon descriptor.
-        iconMarginFirstCol    = true                         // Whether the first column reserves icon space.
-        listFlags             = ListFlags.None               // Active presentation and pointer options.
-        selectionMode         = ListSelectionMode.Single     // Active row-selection policy.
-        leftTextMargin:   f32                                // Leading text margin shared by all rows.
-        virtualCount:     u32                                // Number of rows supplied by `onFillVirtualLine`.
-        isVirtual:        bool                               // Whether row data is supplied on demand.
+        using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-        #[Swag.Late]
+        public readonly
         {
-            scrollWnd: *ScrollWnd     // Scrolling container.
-            listView:  *ListView      // Row-rendering and input view.
-            header:    *Header        // Column header, available for multi-column lists.
+            horizontalExtent: f32                                // Explicit content width, or zero to derive it from the view or header.
+            fixedLineHeight:  f32                                // Fixed row height, or zero to derive it from the font.
+            indentWidth:      f32 = 22                           // Width added for each hierarchy level.
+            iconSize:         f32                                // Square icon size, or zero to use each icon descriptor.
+            iconMarginFirstCol    = true                         // Whether the first column reserves icon space.
+            listFlags             = ListFlags.None               // Active presentation and pointer options.
+            selectionMode         = ListSelectionMode.Single     // Active row-selection policy.
+            leftTextMargin:   f32                                // Leading text margin shared by all rows.
+            virtualCount:     u32                                // Number of rows supplied by `onFillVirtualLine`.
+            isVirtual:        bool                               // Whether row data is supplied on demand.
+
+            #[Swag.Late]
+            {
+                scrollWnd: *ScrollWnd     // Scrolling container.
+                listView:  *ListView      // Row-rendering and input view.
+                header:    *Header        // Column header, available for multi-column lists.
+            }
         }
-    }
 
-    sigSelectionChanged:  SigArray'func||(*ListCtrl)                                       // Emitted after the selected row set changes.
-    sigCheckedChanged:    SigArray'func||(*ListCtrl)                                       // Emitted after the checked row set changes.
-    sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a right click, with the local position.
-    sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a left double click, with the local position.
-    sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row expands.
-    sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row collapses.
-    sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted for a key press before the list reads it; accept the event to claim the key.
-    onFillVirtualLine:    #null func(*ListCtrl, #null *ListLine, u32)                      // Fills a transient row before a virtual row is painted.
-    compareLines:         #null func(#null *ListLine, #null *ListLine, u32, bool)->s32     // Compares two rows for custom sorting.
+        sigSelectionChanged:  SigArray'func||(*ListCtrl)                                       // Emitted after the selected row set changes.
+        sigCheckedChanged:    SigArray'func||(*ListCtrl)                                       // Emitted after the checked row set changes.
+        sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a right click, with the local position.
+        sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a left double click, with the local position.
+        sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row expands.
+        sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row collapses.
+        sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted for a key press before the list reads it; accept the event to claim the key.
+        onFillVirtualLine:    #null func(*ListCtrl, #null *ListLine, u32)                      // Fills a transient row before a virtual row is painted.
+        compareLines:         #null func(#null *ListLine, #null *ListLine, u32, bool)->s32     // Compares two rows for custom sorting.
 
-    internal
-    {
-        toFreeLines:      ArrayPtr'ListLine           // Owns every allocated root row.
-        lines:            Array'(#null *ListLine)     // Visible rows in display order.
-        idxLineToIdxList: HashTable'(u32, u32)        // Maps stable row identities to visible indexes.
-        selModel:         SelModel                    // Selected stable row identities.
-        checkModel:       SelModel                    // Checked stable row identities.
-        nextLineIndex:    u32                         // Identity assigned to the next created row.
-    }
+        internal
+        {
+            toFreeLines:      ArrayPtr'ListLine           // Owns every allocated root row.
+            lines:            Array'(#null *ListLine)     // Visible rows in display order.
+            idxLineToIdxList: HashTable'(u32, u32)        // Maps stable row identities to visible indexes.
+            selModel:         SelModel                    // Selected stable row identities.
+            checkModel:       SelModel                    // Checked stable row identities.
+            nextLineIndex:    u32                         // Identity assigned to the next created row.
+        }
 
-    // Where the keyboard and the mouse currently are in the list. The list moves them as it
-    // handles events; move the focus with 'setFocusIndex'.
-    readonly
-    {
-        focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
-        hotIndex   = Swag.U32.Max     // Row under the mouse.
-    }
+        // Where the keyboard and the mouse currently are in the list. The list moves them as it
+        // handles events; move the focus with 'setFocusIndex'.
+        public readonly
+        {
+            focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
+            hotIndex   = Swag.U32.Max     // Row under the mouse.
+        }
 
-    // Where a drop hovering the list would land. The list never sets these itself: a window
-    // showing a drag decides what it accepts, and says so with 'setDropMark'.
-    readonly
-    {
-        dropMarkIndex = Swag.U32.Max          // Row the mark is drawn against.
-        dropMark      = ListDropMark.None     // What the mark says about that row.
+        // Where a drop hovering the list would land. The list never sets these itself: a window
+        // showing a drag decides what it accepts, and says so with 'setDropMark'.
+        public readonly
+        {
+            dropMarkIndex = Swag.U32.Max          // Row the mark is drawn against.
+            dropMark      = ListDropMark.None     // What the mark says about that row.
+        }
     }
 }
 
 // Hosts the scrollable, painted row viewport of a [[Gui.ListCtrl]].
 struct ListView
 {
-    using wnd: Wnd     // Embedded wnd state.
-    #[Swag.Late]
-    list: *ListCtrl     // List associated with this value.
-
-    // Set when a press was consumed by something else, so the matching release is ignored.
-    internal
+    public
     {
-        discardMouseRelease: bool
-        selectionRailY:      f32      // Animated top edge of the single-selection rail.
-        hasSelectionRail:    bool     // Whether a selected row has initialized the rail.
+        using wnd: Wnd     // Embedded wnd state.
+        #[Swag.Late]
+        list: *ListCtrl     // List associated with this value.
+
+        // Set when a press was consumed by something else, so the matching release is ignored.
+        internal
+        {
+            discardMouseRelease: bool
+            selectionRailY:      f32      // Animated top edge of the single-selection rail.
+            hasSelectionRail:    bool     // Whether a selected row has initialized the rail.
+        }
     }
 }
 

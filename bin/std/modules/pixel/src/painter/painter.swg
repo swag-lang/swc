@@ -21,10 +21,13 @@ const AAHalf = 0.5'f32
 #[Swag.Pack(1)]
 struct VertexLayout
 {
-    pos:   Vector2     // Position in painter path-space pixels.
-    uv:    Vector2     // Normalized or tiled texture coordinates.
-    color: u32         // Vertex color packed for the renderer.
-    cov:   f32         // Antialiasing coverage: `1` is solid and `0` is the outer fringe edge.
+    public
+    {
+        pos:   Vector2     // Position in painter path-space pixels.
+        uv:    Vector2     // Normalized or tiled texture coordinates.
+        color: u32         // Vertex color packed for the renderer.
+        cov:   f32         // Antialiasing coverage: `1` is solid and `0` is the outer fringe edge.
+    }
 }
 
 // Identifies one command in the painter's deferred command stream.
@@ -136,24 +139,30 @@ impl BlendingMode
 // Captures the complete mutable drawing state of a [[Pixel.Painter]].
 struct PaintState
 {
-    paintParams:       PaintParams       = Default     // Enabled painter behaviors.
-    paintQuality:      PaintQuality      = Normal      // Curve tessellation quality.
-    transform:         Transform2                      // Current path-to-surface transform.
-    blendingMode:      BlendingMode      = Alpha       // Current color blend operation.
-    interpolationMode: InterpolationMode = .Pixel      // Current texture sampler mode.
-    clippingRect:      Math.Rectangle                  // Active surface-space clipping rectangle.
-    stackClipRect:     Array'Math.Rectangle            // Saved nested clipping rectangles.
-    clippingRectOn:    bool                            // Whether `clippingRect` is active.
-    colorMask:         ColorMask                       // Channels currently writable by the renderer.
+    public
+    {
+        paintParams:       PaintParams       = Default     // Enabled painter behaviors.
+        paintQuality:      PaintQuality      = Normal      // Curve tessellation quality.
+        transform:         Transform2                      // Current path-to-surface transform.
+        blendingMode:      BlendingMode      = Alpha       // Current color blend operation.
+        interpolationMode: InterpolationMode = .Pixel      // Current texture sampler mode.
+        clippingRect:      Math.Rectangle                  // Active surface-space clipping rectangle.
+        stackClipRect:     Array'Math.Rectangle            // Saved nested clipping rectangles.
+        clippingRectOn:    bool                            // Whether `clippingRect` is active.
+        colorMask:         ColorMask                       // Channels currently writable by the renderer.
+    }
 }
 
 // Selects which framebuffer color channels may be written.
 struct ColorMask
 {
-    r: bool     // Allow writes to the red channel.
-    g: bool     // Allow writes to the green channel.
-    b: bool     // Allow writes to the blue channel.
-    a: bool     // Allow writes to the alpha channel.
+    public
+    {
+        r: bool     // Allow writes to the red channel.
+        g: bool     // Allow writes to the green channel.
+        b: bool     // Allow writes to the blue channel.
+        a: bool     // Allow writes to the alpha channel.
+    }
 }
 
 // Contains resolved MSDF font-effect values sent to the text shader.
@@ -162,17 +171,20 @@ struct ColorMask
 // low-level representation for the renderer.
 struct FontEffectParams
 {
-    enabled:      f32       // Nonzero when at least one effect is active.
-    faceDilate:   f32       // Signed expansion of the glyph face in distance-field units.
-    faceSoftness: f32       // Width of the softened face edge.
-    outlineWidth: f32       // Outline thickness in distance-field units.
-    outlineColor: Color     // Straight-alpha outline color.
-    glowColor:    Color     // Straight-alpha glow color.
-    glowOffset:   f32       // Signed glow displacement in distance-field units.
-    glowInner:    f32       // Inner glow boundary.
-    glowOuter:    f32       // Outer glow boundary.
-    glowPower:    f32       // Glow falloff exponent.
-    bevel:        f32       // Bevel intensity.
+    public
+    {
+        enabled:      f32       // Nonzero when at least one effect is active.
+        faceDilate:   f32       // Signed expansion of the glyph face in distance-field units.
+        faceSoftness: f32       // Width of the softened face edge.
+        outlineWidth: f32       // Outline thickness in distance-field units.
+        outlineColor: Color     // Straight-alpha outline color.
+        glowColor:    Color     // Straight-alpha glow color.
+        glowOffset:   f32       // Signed glow displacement in distance-field units.
+        glowInner:    f32       // Inner glow boundary.
+        glowOuter:    f32       // Outer glow boundary.
+        glowPower:    f32       // Glow falloff exponent.
+        bevel:        f32       // Bevel intensity.
+    }
 }
 
 // Stores one deferred painter command and its command-specific payload.
@@ -181,51 +193,54 @@ struct FontEffectParams
 // should use `Painter` methods instead of constructing commands directly.
 struct Command
 {
-    id: CommandId = undefined     // Operation represented by the active union payload.
-
-    using params: union     // Command-specific payload selected by `id`; inactive members must not be read.
+    public
     {
-        clear:          struct{ color: Color }
-        drawTriangles:  struct{ start: u32, count: u32 }
-        transform:      struct{ tr: Transform2 }
-        clippingRect:   struct{ rect: Math.Rectangle }
-        clippingRegion: struct{ mode: ClippingMode = undefined }
-        font:           struct{ fontRef: *Font }
-        blendingMode:   struct{ mode: BlendingMode = undefined }
-        textureFont:    struct{ font: *Font, atlasIndex: s32 }
-        colorMask:      ColorMask
-        renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
-        defaultShader:  struct{ id: DefaultShaderId = undefined, axis: s32, radius: f32, factor: s32 }
-        shader:         struct{ shader: #null *ShaderBase }
+        id: CommandId = undefined     // Operation represented by the active union payload.
 
-        shaderParam: struct
+        using params: union     // Command-specific payload selected by `id`; inactive members must not be read.
         {
-            param: ShaderParamHandle
-            type:  typeinfo = undefined
-            _f32:  f32
-            _s32:  s32
-        }
+            clear:          struct{ color: Color }
+            drawTriangles:  struct{ start: u32, count: u32 }
+            transform:      struct{ tr: Transform2 }
+            clippingRect:   struct{ rect: Math.Rectangle }
+            clippingRegion: struct{ mode: ClippingMode = undefined }
+            font:           struct{ fontRef: *Font }
+            blendingMode:   struct{ mode: BlendingMode = undefined }
+            textureFont:    struct{ font: *Font, atlasIndex: s32 }
+            colorMask:      ColorMask
+            renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
+            defaultShader:  struct{ id: DefaultShaderId = undefined, axis: s32, radius: f32, factor: s32 }
+            shader:         struct{ shader: #null *ShaderBase }
 
-        fontEffect: FontEffectParams
+            shaderParam: struct
+            {
+                param: ShaderParamHandle
+                type:  typeinfo = undefined
+                _f32:  f32
+                _s32:  s32
+            }
 
-        texture0: struct
-        {
-            boundRect:         Vector4
-            textureRect:       Vector4
-            type:              BrushType         = undefined
-            hatch:             HatchStyle        = undefined
-            uvMode:            UVMode            = undefined
-            interpolationMode: InterpolationMode = undefined
-            texture:           Texture
-            gradientStart:     Vector2
-            gradientEnd:       Vector2
-            gradientRadius0:   f32
-            gradientRadius1:   f32
-            gradientAngle0:    f32
-            gradientAngle1:    f32
-            gradientSpread:    GradientSpread    = undefined
-            gradientStopStart: u64
-            gradientStopCount: u64
+            fontEffect: FontEffectParams
+
+            texture0: struct
+            {
+                boundRect:         Vector4
+                textureRect:       Vector4
+                type:              BrushType         = undefined
+                hatch:             HatchStyle        = undefined
+                uvMode:            UVMode            = undefined
+                interpolationMode: InterpolationMode = undefined
+                texture:           Texture
+                gradientStart:     Vector2
+                gradientEnd:       Vector2
+                gradientRadius0:   f32
+                gradientRadius1:   f32
+                gradientAngle0:    f32
+                gradientAngle1:    f32
+                gradientSpread:    GradientSpread    = undefined
+                gradientStopStart: u64
+                gradientStopCount: u64
+            }
         }
     }
 }
@@ -249,80 +264,83 @@ struct Command
 // ```
 struct Painter
 {
-    // Optional backend selected for [[Painter.render]]. It is borrowed and may
-    // remain unset when the painter is used only to inspect recorded commands.
-    private
-    rendererItf: #null IRenderer
-
-    // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
-    // drawing methods append to it.
-    readonly
+    public
     {
-        commandBuffer: Array'Command          // Deferred renderer command stream.
-        vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
-    }
+        // Optional backend selected for [[Painter.render]]. It is borrowed and may
+        // remain unset when the painter is used only to inspect recorded commands.
+        private
+        rendererItf: #null IRenderer
 
-    // Gradient stops referenced by command ranges. Keeping them beside the command stream
-    // makes every recorded brush independent of the caller's lifetime without imposing a cap.
-    internal
-    gradientStops: Array'GradientStop
+        // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
+        // drawing methods append to it.
+        public readonly
+        {
+            commandBuffer: Array'Command          // Deferred renderer command stream.
+            vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
+        }
 
-    // Reusable workspaces. They only hold intermediate results of the call in progress.
-    private
-    {
-        triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
-        sharedLinePath:     LinePath                                // Reusable single-path workspace.
-        sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
-        sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
-        tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
+        // Gradient stops referenced by command ranges. Keeping them beside the command stream
+        // makes every recorded brush independent of the caller's lifetime without imposing a cap.
+        internal
+        gradientStops: Array'GradientStop
 
-        // Reusable shaped run for the immediate drawString path, so per-frame text drawing
-        // shapes without allocating a fresh glyph buffer on every call.
-        scratchShaped: ShapedRun     // Reusable shaping result for immediate text drawing.
-    }
+        // Reusable workspaces. They only hold intermediate results of the call in progress.
+        private
+        {
+            triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
+            sharedLinePath:     LinePath                                // Reusable single-path workspace.
+            sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
+            sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
+            tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
 
-    // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
-    // memos that keep the command stream free of redundant state changes.
-    private
-    {
-        stackState:     Array'PaintState     // States saved by [[Painter.pushState]].
-        stackTransform: Array'Transform2     // Transforms saved by [[Painter.pushTransform]].
+            // Reusable shaped run for the immediate drawString path, so per-frame text drawing
+            // shapes without allocating a fresh glyph buffer on every call.
+            scratchShaped: ShapedRun     // Reusable shaping result for immediate text drawing.
+        }
 
-        stackRT: Array'#null *RenderTarget     // Nested off-screen render targets.
-        curRT:   #null *RenderTarget           // Active off-screen target, or `null` for the surface.
+        // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
+        // memos that keep the command stream free of redundant state changes.
+        private
+        {
+            stackState:     Array'PaintState     // States saved by [[Painter.pushState]].
+            stackTransform: Array'Transform2     // Transforms saved by [[Painter.pushTransform]].
 
-        lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
-        lastTexture0Handle: TextureHandle              // Last brush texture handle emitted.
-        hasTextureFont:     bool                       // Whether a glyph atlas is currently bound.
+            stackRT: Array'#null *RenderTarget     // Nested off-screen render targets.
+            curRT:   #null *RenderTarget           // Active off-screen target, or `null` for the surface.
 
-        // The paintType / gradient uniforms live per shader program, but texture0 state
-        // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
-        // program's paint uniforms stale, so a program switch forces the next texture0
-        // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
-        texture0Dirty:  bool     // Whether brush uniforms must be re-emitted.
-        curTextProgram: s32      // Active text program: `0` none, `1` bitmap, `2` MSDF.
+            lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
+            lastTexture0Handle: TextureHandle              // Last brush texture handle emitted.
+            hasTextureFont:     bool                       // Whether a glyph atlas is currently bound.
 
-        // Last MSDF font-effect uniforms emitted this frame, to skip redundant
-        // SetFontEffect commands (most text shares the same -- usually empty -- effect).
-        lastFontEffect: FontEffectParams     // Last emitted MSDF effect values.
-        hasFontEffect:  bool                 // Whether `lastFontEffect` is initialized.
+            // The paintType / gradient uniforms live per shader program, but texture0 state
+            // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
+            // program's paint uniforms stale, so a program switch forces the next texture0
+            // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
+            texture0Dirty:  bool     // Whether brush uniforms must be re-emitted.
+            curTextProgram: s32      // Active text program: `0` none, `1` bitmap, `2` MSDF.
 
-        // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
-        // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
-        curTextureFont:      #null *Font     // Font owning the currently bound glyph atlas.
-        curTextureFontAtlas: s32 = -1        // Zero-based bound atlas index, or `-1`.
+            // Last MSDF font-effect uniforms emitted this frame, to skip redundant
+            // SetFontEffect commands (most text shares the same -- usually empty -- effect).
+            lastFontEffect: FontEffectParams     // Last emitted MSDF effect values.
+            hasFontEffect:  bool                 // Whether `lastFontEffect` is initialized.
 
-        drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
-        layoutOnly:     bool            // Whether text layout skips rendering commands.
-        overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
-        canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
-        curState:       PaintState      // Current mutable drawing state.
+            // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
+            // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
+            curTextureFont:      #null *Font     // Font owning the currently bound glyph atlas.
+            curTextureFontAtlas: s32 = -1        // Zero-based bound atlas index, or `-1`.
 
-        // Physical device pixels per painter path-space unit. The renderer multiplies
-        // every recorded coordinate by it at draw time, so the whole stream stays in
-        // logical units; the painter itself only consults it for antialiasing fringes,
-        // text resolution, and device-grid snapping.
-        curContentScale: f32 = 1     // Device pixels per logical unit for this stream.
+            drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
+            layoutOnly:     bool            // Whether text layout skips rendering commands.
+            overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
+            canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
+            curState:       PaintState      // Current mutable drawing state.
+
+            // Physical device pixels per painter path-space unit. The renderer multiplies
+            // every recorded coordinate by it at draw time, so the whole stream stays in
+            // logical units; the painter itself only consults it for antialiasing fringes,
+            // text resolution, and device-grid snapping.
+            curContentScale: f32 = 1     // Device pixels per logical unit for this stream.
+        }
     }
 }
 

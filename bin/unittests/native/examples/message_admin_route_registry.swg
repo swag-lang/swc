@@ -12,8 +12,11 @@ attr AdminRoute(method: string, path: string, permission: string, auditCode: str
 
 public struct InvoiceDeliveryReceipt
 {
-    updated:        bool
-    recipientCount: s32
+    public
+    {
+        updated:        bool
+        recipientCount: s32
+    }
 }
 
 var RebuildCacheCalls = 0

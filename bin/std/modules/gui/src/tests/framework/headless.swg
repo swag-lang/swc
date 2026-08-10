@@ -6,8 +6,11 @@ using Swag, Core
 // One labelled edit box of a modal to fill before accepting it.
 struct AutoEdit
 {
-    label: String     // Label associated with this value.
-    text:  String     // Text associated with this value.
+    public
+    {
+        label: String     // Label associated with this value.
+        text:  String     // Text associated with this value.
+    }
 }
 
 // Selects one action performed by the deterministic modal UI driver.
@@ -21,42 +24,48 @@ enum AutoStageKind
 // One step of the auto UI driver (see clickModalButtonWhenShown and friends).
 struct AutoStage
 {
-    kind:   AutoStageKind = ModalButton     // Kind associated with this value.
-    folder: String                          // Folder associated with this value.
-    file:   String                          // File associated with this value.
-    label:  String                          // Label associated with this value.
-    edits:  Array'AutoEdit                  // Edits associated with this value.
-    button: WndId         = undefined       // Button associated with this value.
+    public
+    {
+        kind:   AutoStageKind = ModalButton     // Kind associated with this value.
+        folder: String                          // Folder associated with this value.
+        file:   String                          // File associated with this value.
+        label:  String                          // Label associated with this value.
+        edits:  Array'AutoEdit                  // Edits associated with this value.
+        button: WndId         = undefined       // Button associated with this value.
+    }
 }
 
 // Hosts deterministic GUI trees, input, timers, modal dialogs, and rendering without an OS window.
 struct HeadlessHost
 {
-    app:        Application     // App associated with this value.
-    renderer:   RenderCpu       // Deterministic backend borrowed by `app.renderer`.
-    surface:    Surface         // Surface associated with this value.
-    surfaceWnd: SurfaceWnd      // Surface wnd associated with this value.
-    root:       Wnd             // Root associated with this value.
-    #[Swag.Late]
-    theme:        *Theme          // Theme associated with this value.
-    mousePos:     Math.Point      // Mouse pos associated with this value.
-    closed:       bool            // Closed associated with this value.
-    commandCount: u32             // Number of command entries.
-    lastCommand:  #null WndId     // Last command associated with this value.
+    public
+    {
+        app:        Application     // App associated with this value.
+        renderer:   RenderCpu       // Deterministic backend borrowed by `app.renderer`.
+        surface:    Surface         // Surface associated with this value.
+        surfaceWnd: SurfaceWnd      // Surface wnd associated with this value.
+        root:       Wnd             // Root associated with this value.
+        #[Swag.Late]
+        theme:        *Theme          // Theme associated with this value.
+        mousePos:     Math.Point      // Mouse pos associated with this value.
+        closed:       bool            // Closed associated with this value.
+        commandCount: u32             // Number of command entries.
+        lastCommand:  #null WndId     // Last command associated with this value.
 
-    // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
-    // is true once every armed stage has completed.
-    autoHandled:       bool                // Auto handled associated with this value.
-    autoArmed:         bool                // Auto armed associated with this value.
-    autoHookInstalled: bool                // Auto hook installed associated with this value.
-    autoFrames:        u32                 // Auto frames associated with this value.
-    autoMaxFrames:     u32                 // Auto max frames associated with this value.
-    autoStages:        Array'AutoStage     // Auto stages associated with this value.
-    autoStage:         u32                 // Auto stage associated with this value.
+        // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
+        // is true once every armed stage has completed.
+        autoHandled:       bool                // Auto handled associated with this value.
+        autoArmed:         bool                // Auto armed associated with this value.
+        autoHookInstalled: bool                // Auto hook installed associated with this value.
+        autoFrames:        u32                 // Auto frames associated with this value.
+        autoMaxFrames:     u32                 // Auto max frames associated with this value.
+        autoStages:        Array'AutoStage     // Auto stages associated with this value.
+        autoStage:         u32                 // Auto stage associated with this value.
 
-    // Payload the simulated drag helpers hand to the routing, reused across one gesture the
-    // way the platform layer reuses the one it reads from the source.
-    dragData: DragData
+        // Payload the simulated drag helpers hand to the routing, reused across one gesture the
+        // way the platform layer reuses the one it reads from the source.
+        dragData: DragData
+    }
 }
 
 impl HeadlessHost

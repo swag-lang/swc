@@ -5,17 +5,20 @@ using Core, Pixel
 // Displays a texture, sprite-sheet animation, or animated GIF inside a window.
 struct ImageRect
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    sigFrameChanged: SigArray'func||(*ImageRect)     // Emitted after the visible animation frame changes.
-
-    readonly
+    public
     {
-        movie: Movie     // Playback state for the current content.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    internal
-    uploadedTexture: Texture     // Renderer texture owned by this window, if any.
+        sigFrameChanged: SigArray'func||(*ImageRect)     // Emitted after the visible animation frame changes.
+
+        public readonly
+        {
+            movie: Movie     // Playback state for the current content.
+        }
+
+        internal
+        uploadedTexture: Texture     // Renderer texture owned by this window, if any.
+    }
 }
 
 impl IWnd for ImageRect

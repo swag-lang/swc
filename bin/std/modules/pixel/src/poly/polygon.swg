@@ -10,11 +10,11 @@ const ClipperScaleCoords = 1000.0'f64     // Scale from floating path pixels to 
 // area, and bounds.
 struct Polygon
 {
-    points: Array'Vector2     // Ordered contour vertices in path-space pixels.
+    public points: Array'Vector2     // Ordered contour vertices in path-space pixels.
 
     // Everything [[Pixel.Polygon.recompute]] derives from `points`. Change the points and recompute
     // again; writing one of these on its own would describe a contour that is not there.
-    readonly
+    public readonly
     {
         isClockwise: bool             // Winding direction after `recompute`.
         isConvex:    bool             // Whether every turn has the same orientation.

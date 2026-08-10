@@ -7,12 +7,12 @@ interface IDepTableScore
 
 struct DepTableScore
 {
-    value: s32
+    public value: s32
 }
 
 struct DepTableBonusScore
 {
-    value: s32
+    public value: s32
 }
 
 impl IDepTableScore for DepTableScore

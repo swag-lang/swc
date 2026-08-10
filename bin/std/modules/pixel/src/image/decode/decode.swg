@@ -10,9 +10,12 @@ struct ImageDecoder
 // Controls which parts of an encoded image are materialized.
 public struct DecodeOptions
 {
-    decodePixels = true     // Decode pixel storage; disable for metadata and geometry probing.
+    public
+    {
+        decodePixels = true     // Decode pixel storage; disable for metadata and geometry probing.
 
-    decodeMetadata = true     // Preserve supported format metadata in `Image.metadata`.
+        decodeMetadata = true     // Preserve supported format metadata in `Image.metadata`.
+    }
 }
 
 // Defines a decoder selected by filename extension and applied to encoded bytes.

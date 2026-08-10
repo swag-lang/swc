@@ -5,17 +5,20 @@ using Core, Pixel
 // Lets the user switch a Boolean option on or off.
 struct ToggleButton
 {
-    using button: Button     // Embedded button behavior and presentation.
-
-    sigChanged: SigArray'func||(*ToggleButton)     // Emitted after a user action changes the state.
-
-    // Color animations of the painted parts, driven by the toggle and hover state.
-    internal
+    public
     {
-        aniBk:     BlendColor     // Color animation of the background.
-        aniBorder: BlendColor     // Color animation of the border.
-        aniMark:   BlendColor     // Color animation of the toggle mark.
-        checked:   bool           // Current programmatic state.
+        using button: Button     // Embedded button behavior and presentation.
+
+        sigChanged: SigArray'func||(*ToggleButton)     // Emitted after a user action changes the state.
+
+        // Color animations of the painted parts, driven by the toggle and hover state.
+        internal
+        {
+            aniBk:     BlendColor     // Color animation of the background.
+            aniBorder: BlendColor     // Color animation of the border.
+            aniMark:   BlendColor     // Color animation of the toggle mark.
+            checked:   bool           // Current programmatic state.
+        }
     }
 }
 

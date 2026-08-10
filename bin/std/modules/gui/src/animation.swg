@@ -77,22 +77,25 @@ impl AnimationChannel
 // Configures one finite animation track.
 struct AnimationOptions
 {
-    delay:            Time.Duration                        // Non-negative time kept at the start value before progress begins.
-    duration:         Time.Duration      = 150'ms          // Non-negative time of one play, between the start and end values.
-    easing:           AnimationEasing    = .EaseInOut      // Named curve applied to normalized progress; ignored once 'curve' is set.
-    direction:        AnimationDirection = .Forward        // Endpoint from which the track starts.
-    repeatCount:      u32                = 1               // Number of successive plays; zero repeats until the track is cancelled.
-    autoReverse:      bool                                 // Whether every second play runs back toward the value it started from.
-    impact:           AnimationImpact    = .Paint          // Work invalidated by each update.
-    motion:           AnimationMotion    = .Decorative     // Reduced-motion classification.
-    preserveProgress: bool                                 // Whether retargeting keeps normalized progress.
+    public
+    {
+        delay:            Time.Duration                        // Non-negative time kept at the start value before progress begins.
+        duration:         Time.Duration      = 150'ms          // Non-negative time of one play, between the start and end values.
+        easing:           AnimationEasing    = .EaseInOut      // Named curve applied to normalized progress; ignored once 'curve' is set.
+        direction:        AnimationDirection = .Forward        // Endpoint from which the track starts.
+        repeatCount:      u32                = 1               // Number of successive plays; zero repeats until the track is cancelled.
+        autoReverse:      bool                                 // Whether every second play runs back toward the value it started from.
+        impact:           AnimationImpact    = .Paint          // Work invalidated by each update.
+        motion:           AnimationMotion    = .Decorative     // Reduced-motion classification.
+        preserveProgress: bool                                 // Whether retargeting keeps normalized progress.
 
-    // Authored curve applied to normalized progress instead of `easing`.
-    //
-    // The scheduler borrows it rather than copying it, so it has to outlive every track it was
-    // given to — a curve owned by the animated window, by its theme, or by the application all
-    // qualify, and a temporary declared next to the call does not. Leave it null to use `easing`.
-    curve: #null const *Math.Curve
+        // Authored curve applied to normalized progress instead of `easing`.
+        //
+        // The scheduler borrows it rather than copying it, so it has to outlive every track it was
+        // given to — a curve owned by the animated window, by its theme, or by the application all
+        // qualify, and a temporary declared next to the call does not. Leave it null to use `easing`.
+        curve: #null const *Math.Curve
+    }
 }
 
 // Identifies one scheduler-owned animation without retaining its target.

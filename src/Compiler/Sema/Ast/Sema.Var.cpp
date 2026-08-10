@@ -1183,6 +1183,19 @@ namespace
         return !sema.curScope().isLocal() && !sema.curScope().isParameters();
     }
 
+    // Access control belongs to an aggregate member, which is the only variable with an owner type
+    // to be restricted against. Leaving a local, a parameter and a global at the unrestricted
+    // default also keeps them out of the member checks entirely.
+    void stampMemberAccess(const Sema& sema, SymbolVariable& symVar)
+    {
+        const SymbolMap* owner = symVar.ownerSymMap();
+        if (!owner || !owner->safeCast<SymbolStruct>())
+            return;
+
+        const MemberAccessSpec spec = sema.frame().memberAccessFor(owner);
+        symVar.setMemberAccess(spec.access);
+        symVar.setMemberReadOnly(spec.readOnly);
+    }
 }
 
 Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
@@ -1196,9 +1209,7 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
         if (hasFlag(AstVarDeclFlagsE::Let))
             symVar.addExtraFlag(SymbolVariableFlagsE::Let);
 
-        // Only an aggregate body can carry a member access modifier, so locals and parameters
-        // always end up 'Public' here and the stamp costs them nothing.
-        symVar.setMemberAccess(sema.frame().memberAccessFor(symVar.ownerSymMap()));
+        stampMemberAccess(sema, symVar);
     }
 
     return Result::SkipChildren;
@@ -1307,7 +1318,7 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
             auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
             if (hasFlag(AstVarDeclFlagsE::Let))
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
-            symVar.setMemberAccess(sema.frame().memberAccessFor(symVar.ownerSymMap()));
+            stampMemberAccess(sema, symVar);
         }
     }
 

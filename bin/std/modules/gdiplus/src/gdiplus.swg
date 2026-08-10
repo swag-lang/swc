@@ -31,18 +31,24 @@ const GdipPixelFormat32bppPARGB      = 0x000E200B
 
 struct GdiplusStartupInput
 {
-    GdiplusVersion:           u32
-    DebugEventCallback:       #null *void
-    SuppressBackgroundThread: BOOL
-    SuppressExternalCodecs:   BOOL
+    public
+    {
+        GdiplusVersion:           u32
+        DebugEventCallback:       #null *void
+        SuppressBackgroundThread: BOOL
+        SuppressExternalCodecs:   BOOL
+    }
 }
 
 struct GpRectF
 {
-    x:      f32
-    y:      f32
-    width:  f32
-    height: f32
+    public
+    {
+        x:      f32
+        y:      f32
+        width:  f32
+        height: f32
+    }
 }
 
 #[Foreign("Gdiplus")]

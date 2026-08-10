@@ -13,10 +13,13 @@ public enum ElementType
 // Stores one compact segment in a [[Pixel.LinePath]].
 public struct Element
 {
-    type:     ElementType = undefined     // Segment representation.
-    position: Vector2                     // Endpoint, or center for an arc.
-    p1:       Vector2                     // First control point, or arc angle interval.
-    p2:       Vector2                     // Second control point, or arc radii.
+    public
+    {
+        type:     ElementType = undefined     // Segment representation.
+        position: Vector2                     // Endpoint, or center for an arc.
+        p1:       Vector2                     // First control point, or arc angle interval.
+        p2:       Vector2                     // Second control point, or arc radii.
+    }
 }
 
 // Builds a mutable vector path from lines, arcs, and Bézier curves.
@@ -36,7 +39,7 @@ public struct Element
 // ```
 public struct LinePath
 {
-    readonly
+    public readonly
     {
         elements:   Array'Element     // Ordered segments after the starting point.
         startPoint: Vector2           // First point in path-space pixels.

@@ -3,7 +3,7 @@
 // Groups the process-wide formatting conventions.
 public struct CultureInfo
 {
-    numberFormat: NumberFormatInfo     // Numeric formatting conventions.
+    public numberFormat: NumberFormatInfo     // Numeric formatting conventions.
 }
 
 var g_CultureInfo: CultureInfo

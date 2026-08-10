@@ -7,14 +7,17 @@ using Swag
 // Options for customizing JSON formatting.
 struct JsonOptions
 {
-    indentLevel: u32 = 4     // Number of spaces per indentation level.
-    saveBlanks:  bool        // Whether to include indentation and line breaks.
+    public
+    {
+        indentLevel: u32 = 4     // Number of spaces per indentation level.
+        saveBlanks:  bool        // Whether to include indentation and line breaks.
+    }
 }
 
 // A JSON writer.
 struct Json
 {
-    options: JsonOptions     // Formatting options.
+    public options: JsonOptions     // Formatting options.
 
     internal
     {

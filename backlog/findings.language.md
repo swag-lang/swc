@@ -332,33 +332,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   Check whether `default where` can be spelled that way instead and `default` restored to exactly
   one unguarded arm — a small change with a mechanical migration, if `bin/` does not lean on it.
 
-### F-056 — The default visibility inverts between a declaration and a field
-
-- Area: language
-- Found while: the same pass
-- Observation: the same four words mean opposite defaults depending on what they annotate. A
-  top-level declaration is `internal` unless it says otherwise; a struct field is `public` unless it
-  says otherwise
-  ([002_009_visibility_and_exports.swg](../bin/reference/modules/language/src/002_009_visibility_and_exports.swg#L1-L78)).
-  So a module's *functions* are closed by default and its *state* is open by default, which is the
-  reverse of what a module API wants, and the reverse of the rule the page states two paragraphs
-  earlier.
-- Evidence: the reference documents both defaults, back to back — "`internal` is the default" for
-  declarations, "`public` is the default: a field is part of the surface unless it says otherwise"
-  for fields.
-- Elsewhere: one rule for both is the norm. Rust is private-by-default for items and fields alike,
-  Java is package-private for both, C# is private for both, Go decides both by capitalization. The
-  single precedent for two defaults is C++, where `class` members are private and `struct` members
-  public — and there the choice is made by the *keyword the author picked*, not by whether the thing
-  being declared is a function or a field, so a reader can still name the rule in one sentence. The
-  C++ split also exists only for C source compatibility, which is not an argument available here.
-- Next step: count how many public struct fields under `bin/` are deliberately part of the surface
-  versus incidentally exposed. If the second number dominates, flipping the field default to
-  `internal` is the change, and `#[Swag.ExportType]`-style reflection walkers are the compatibility
-  risk to check first.
-- Related: [design-swag-bin-modules](../.agents/skills/design-swag-bin-modules/SKILL.md) reviews
-  module surface as one contract, and this default is upstream of it.
-
 ### F-057 — The slice upper bound is inclusive
 
 - Area: language

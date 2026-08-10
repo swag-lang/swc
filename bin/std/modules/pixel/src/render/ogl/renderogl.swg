@@ -65,49 +65,52 @@ const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0    
 #[Swag.NoCopy]
 struct RenderOgl
 {
-    // Glyph storage and font views of this renderer. A glyph atlas carries a GPU texture created
-    // in this renderer's context, so it must not outlive it: fonts are created through this cache
-    // and released with the renderer.
-    fonts: FontCache
-
-    // The built-in shaders. Bind one with [[Pixel.Painter.setShader]] and feed its uniforms
-    // with [[Pixel.Painter.setShaderParam]] to build a custom pass.
-    shaderSimple:   ShaderSimple      // Built-in non-antialiased shader.
-    shaderAA:       ShaderAA          // Built-in antialiased shader.
-    shaderBlur:     ShaderBlur        // Built-in separable-blur shader.
-    shaderResolve:  ShaderResolve     // Built-in supersampling-resolve shader.
-    shaderFont:     ShaderFont        // Built-in bitmap-font shader.
-    shaderFontMsdf: ShaderFont        // Built-in MSDF-font shader.
-
-    // The GPU objects and the state mirror of the context. Everything here belongs to the
-    // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
-    private
+    public
     {
-        using native:            NativeRenderOgl                              // Platform-specific context operations.
-        vertexbuffer:            GLuint                                       // OpenGL streaming vertex buffer.
-        worldTransform:          Transform2                                   // Current painter world transform.
-        orthoMatrix:             Matrix4x4                                    // Current surface projection matrix.
-        modelMatrix:             Matrix4x4                                    // Current model matrix.
-        whiteTexture:            GLuint                                       // Built-in one-pixel white texture.
-        hatchTextures:           [HatchStyle] GLuint                          // Built-in hatch texture handles.
-        gradientTexture:         GLuint                                       // Dynamically sized gradient-stop table.
-        gradientTextureCapacity: u64                                          // Stop slots allocated in `gradientTexture`.
-        gradientOffsetUpload:    Array'Vector4                                // Reused first texture row.
-        gradientColorUpload:     Array'Vector4                                // Reused second texture row.
-        blendingMode:            BlendingMode = .Alpha                        // Active OpenGL blending mode.
-        colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
-        curRC:                   RenderContext                                // Active drawable and viewport.
+        // Glyph storage and font views of this renderer. A glyph atlas carries a GPU texture created
+        // in this renderer's context, so it must not outlive it: fonts are created through this cache
+        // and released with the renderer.
+        fonts: FontCache
 
-        stackReleasedRT:       Array'#null *RenderTarget     // Targets queued for deferred release.
-        stackRT:               Array'#null *RenderTarget     // Nested bound render targets.
-        curRT:                 #null *RenderTarget           // Active off-screen target, if any.
-        curShader:             #null *ShaderBase             // Active shader, or the default shader.
-        overlapMode:           bool                          // Whether overlap-safe alpha drawing is active.
-        contentScale:          f32 = 1                       // Device pixels per unit of the painter stream being drawn.
-        nativeContext:         #null const *void             // Shared native OpenGL context owned by interface-created drawables.
-        contextCount:          u32                           // Number of live interface-created drawables.
-        advancedBlending:      u8                            // Advanced blend-equation family supplied by the current context.
-        advancedBarrierActive: bool                          // Whether this context must keep later framebuffer touches in separate passes.
+        // The built-in shaders. Bind one with [[Pixel.Painter.setShader]] and feed its uniforms
+        // with [[Pixel.Painter.setShaderParam]] to build a custom pass.
+        shaderSimple:   ShaderSimple      // Built-in non-antialiased shader.
+        shaderAA:       ShaderAA          // Built-in antialiased shader.
+        shaderBlur:     ShaderBlur        // Built-in separable-blur shader.
+        shaderResolve:  ShaderResolve     // Built-in supersampling-resolve shader.
+        shaderFont:     ShaderFont        // Built-in bitmap-font shader.
+        shaderFontMsdf: ShaderFont        // Built-in MSDF-font shader.
+
+        // The GPU objects and the state mirror of the context. Everything here belongs to the
+        // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
+        private
+        {
+            using native:            NativeRenderOgl                              // Platform-specific context operations.
+            vertexbuffer:            GLuint                                       // OpenGL streaming vertex buffer.
+            worldTransform:          Transform2                                   // Current painter world transform.
+            orthoMatrix:             Matrix4x4                                    // Current surface projection matrix.
+            modelMatrix:             Matrix4x4                                    // Current model matrix.
+            whiteTexture:            GLuint                                       // Built-in one-pixel white texture.
+            hatchTextures:           [HatchStyle] GLuint                          // Built-in hatch texture handles.
+            gradientTexture:         GLuint                                       // Dynamically sized gradient-stop table.
+            gradientTextureCapacity: u64                                          // Stop slots allocated in `gradientTexture`.
+            gradientOffsetUpload:    Array'Vector4                                // Reused first texture row.
+            gradientColorUpload:     Array'Vector4                                // Reused second texture row.
+            blendingMode:            BlendingMode = .Alpha                        // Active OpenGL blending mode.
+            colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
+            curRC:                   RenderContext                                // Active drawable and viewport.
+
+            stackReleasedRT:       Array'#null *RenderTarget     // Targets queued for deferred release.
+            stackRT:               Array'#null *RenderTarget     // Nested bound render targets.
+            curRT:                 #null *RenderTarget           // Active off-screen target, if any.
+            curShader:             #null *ShaderBase             // Active shader, or the default shader.
+            overlapMode:           bool                          // Whether overlap-safe alpha drawing is active.
+            contentScale:          f32 = 1                       // Device pixels per unit of the painter stream being drawn.
+            nativeContext:         #null const *void             // Shared native OpenGL context owned by interface-created drawables.
+            contextCount:          u32                           // Number of live interface-created drawables.
+            advancedBlending:      u8                            // Advanced blend-equation family supplied by the current context.
+            advancedBarrierActive: bool                          // Whether this context must keep later framebuffer touches in separate passes.
+        }
     }
 }
 

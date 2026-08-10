@@ -29,7 +29,7 @@ enum DropEffect
 struct DragContent
 {
     // File name the target creates, with no folder part.
-    readonly
+    public readonly
     name: String
 
     internal
@@ -99,28 +99,31 @@ impl DragContent
 // same rule spelled out in [[Gui.DragContent]].
 struct DragData
 {
-    // Absolute paths offered by the source, in the order it listed them, empty when it offers none.
-    readonly
-    files: Array'String
-
-    // Files offered by content rather than by path, in the order the source listed them.
-    //
-    // A gesture hovering a window carries their names and not their bytes, so a target decides
-    // what it will take from the names alone and reads the content from the `Drop` phase on.
-    readonly
-    contents: Array'DragContent
-
-    // Plain UTF-8 text offered by the source, empty when it offers none.
-    readonly
-    text: String
-
-    internal
+    public
     {
-        imageBytes:   Array'u8        // Encoded image bytes, as offered or as encoded on demand.
-        imageName:    String          // File name whose extension selects the decoder.
-        imageValue:   Pixel.Image     // Picture handed in, or the result of the one decode.
-        imageDecoded: bool            // Whether the decode was already attempted.
-        imageEncoded: bool            // Whether the encode was already attempted.
+        // Absolute paths offered by the source, in the order it listed them, empty when it offers none.
+        public readonly
+        files: Array'String
+
+        // Files offered by content rather than by path, in the order the source listed them.
+        //
+        // A gesture hovering a window carries their names and not their bytes, so a target decides
+        // what it will take from the names alone and reads the content from the `Drop` phase on.
+        public readonly
+        contents: Array'DragContent
+
+        // Plain UTF-8 text offered by the source, empty when it offers none.
+        public readonly
+        text: String
+
+        internal
+        {
+            imageBytes:   Array'u8        // Encoded image bytes, as offered or as encoded on demand.
+            imageName:    String          // File name whose extension selects the decoder.
+            imageValue:   Pixel.Image     // Picture handed in, or the result of the one decode.
+            imageDecoded: bool            // Whether the decode was already attempted.
+            imageEncoded: bool            // Whether the encode was already attempted.
+        }
     }
 }
 
@@ -273,22 +276,25 @@ impl DragData
 // invalidated on its behalf, so a control that draws nothing costs nothing per pointer move.
 struct DragDropEvent
 {
-    // Identifies the phase of a drag and drop gesture.
-    enum Kind
+    public
     {
-        Enter     // The pointer entered this window carrying a payload.
-        Over      // The pointer moved inside this window carrying a payload.
-        Leave     // The pointer left this window, or the gesture ended elsewhere.
-        Drop      // The payload was released over this window.
-    }
+        // Identifies the phase of a drag and drop gesture.
+        enum Kind
+        {
+            Enter     // The pointer entered this window carrying a payload.
+            Over      // The pointer moved inside this window carrying a payload.
+            Leave     // The pointer left this window, or the gesture ended elsewhere.
+            Drop      // The payload was released over this window.
+        }
 
-    using base: Event                              // Embedded base state.
-    kind:       Kind                               // Gesture phase being reported.
-    data:       *DragData          = undefined     // Payload being dragged, borrowed for this call.
-    surfacePos: Math.Point                         // Pointer position in surface coordinates.
-    modifiers:  Input.KeyModifiers = None          // Modifiers held during the gesture.
-    allowed:    DropEffect         = None          // Effects the source permits.
-    effect:     DropEffect         = None          // Effect this target commits to; `None` rejects.
+        using base: Event                              // Embedded base state.
+        kind:       Kind                               // Gesture phase being reported.
+        data:       *DragData          = undefined     // Payload being dragged, borrowed for this call.
+        surfacePos: Math.Point                         // Pointer position in surface coordinates.
+        modifiers:  Input.KeyModifiers = None          // Modifiers held during the gesture.
+        allowed:    DropEffect         = None          // Effects the source permits.
+        effect:     DropEffect         = None          // Effect this target commits to; `None` rejects.
+    }
 }
 
 impl IEvent for DragDropEvent {}

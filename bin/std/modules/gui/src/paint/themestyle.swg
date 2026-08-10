@@ -5,24 +5,30 @@ using Core, Pixel
 // Shares one owned theme between copied window styles.
 struct ThemeStyleRef
 {
-    #[Swag.Late]
-    theme: *Theme     // Theme associated with this value.
-    count: u32        // Count associated with this value.
+    public
+    {
+        #[Swag.Late]
+        theme: *Theme     // Theme associated with this value.
+        count: u32        // Count associated with this value.
+    }
 }
 
 // Applies local font, color, and metric overrides on top of a shared theme.
 struct ThemeStyle
 {
-    styleSheetMetrics: String         // Style sheet metrics associated with this value.
-    styleSheetColors:  String         // Style sheet colors associated with this value.
-    font:              FontFamily     // Font associated with this value.
-
-    // The shared theme this style resolves against, and whether it must be resolved again.
-    // The style takes and releases the reference itself, so its count stays correct.
-    internal
+    public
     {
-        refr:  #null *ThemeStyleRef     // Reference-counted theme this style resolves to.
-        dirty: bool                     // Whether the style sheets must be applied again.
+        styleSheetMetrics: String         // Style sheet metrics associated with this value.
+        styleSheetColors:  String         // Style sheet colors associated with this value.
+        font:              FontFamily     // Font associated with this value.
+
+        // The shared theme this style resolves against, and whether it must be resolved again.
+        // The style takes and releases the reference itself, so its count stays correct.
+        internal
+        {
+            refr:  #null *ThemeStyleRef     // Reference-counted theme this style resolves to.
+            dirty: bool                     // Whether the style sheets must be applied again.
+        }
     }
 }
 

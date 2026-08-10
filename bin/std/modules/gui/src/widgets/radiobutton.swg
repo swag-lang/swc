@@ -5,17 +5,20 @@ using Core, Pixel
 // Lets the user select one option from an optional group.
 struct RadioButton
 {
-    using button: Button     // Embedded button behavior and presentation.
-
-    groupId: #null WndId     // Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.
-
-    readonly
+    public
     {
-        flags = RadioButtonFlags.None     // Active marker placement options.
-        checked: bool                     // Whether this option is selected.
-    }
+        using button: Button     // Embedded button behavior and presentation.
 
-    sigChanged: SigArray'func||(*RadioButton)     // Emitted after a user action selects the button.
+        groupId: #null WndId     // Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.
+
+        public readonly
+        {
+            flags = RadioButtonFlags.None     // Active marker placement options.
+            checked: bool                     // Whether this option is selected.
+        }
+
+        sigChanged: SigArray'func||(*RadioButton)     // Emitted after a user action selects the button.
+    }
 }
 
 // Configures radio button marker placement.

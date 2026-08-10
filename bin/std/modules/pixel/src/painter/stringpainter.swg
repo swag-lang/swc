@@ -7,8 +7,11 @@ using Core
 // Configure font, color, alignment, and flags, then call [[StringPainter.draw]].
 struct StringPainter
 {
-    str: RichString           // Reusable parsed rich-text storage.
-    fmt: RichStringFormat     // Formatting applied by the next draw.
+    public
+    {
+        str: RichString           // Reusable parsed rich-text storage.
+        fmt: RichStringFormat     // Formatting applied by the next draw.
+    }
 }
 
 impl StringPainter

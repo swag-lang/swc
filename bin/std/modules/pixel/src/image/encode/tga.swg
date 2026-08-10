@@ -8,7 +8,7 @@ internal struct Encoder {}
 // Configures TGA packet encoding.
 public struct EncodeOptions
 {
-    rle = false     // Use TGA run-length encoded packets when true.
+    public rle = false     // Use TGA run-length encoded packets when true.
 }
 
 func writeTgaPixel(result: *ConcatBuffer, src: const [*] u8, pixelFormat: PixelFormat)

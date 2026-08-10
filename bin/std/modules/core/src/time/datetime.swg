@@ -57,13 +57,16 @@ internal struct WallClockFields
 #[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct DateTime
 {
-    year:        u16     // Year component (1 to 9999)
-    month:       u16     // Month component (1 to 12)
-    day:         u16     // Day component (1 to 31 depending on the month)
-    hour:        u16     // Hour component (0 to 23)
-    minute:      u16     // Minute component (0 to 59)
-    second:      u16     // Second component (0 to 59)
-    millisecond: u16     // Millisecond component (0 to 999)
+    public
+    {
+        year:        u16     // Year component (1 to 9999)
+        month:       u16     // Month component (1 to 12)
+        day:         u16     // Day component (1 to 31 depending on the month)
+        hour:        u16     // Hour component (0 to 23)
+        minute:      u16     // Minute component (0 to 59)
+        second:      u16     // Second component (0 to 59)
+        millisecond: u16     // Millisecond component (0 to 999)
+    }
 }
 
 impl DateTime

@@ -9,7 +9,7 @@ using Win32
 // representation of `KeyboardState`; callers should use `Keyboard` queries.
 public struct KeyboardStateNative
 {
-    nativeState: [256] BYTE     // Platform key-state bytes; use [[Core.Input.Keyboard]] for portable queries.
+    public nativeState: [256] BYTE     // Platform key-state bytes; use [[Core.Input.Keyboard]] for portable queries.
 }
 
 impl KeyboardStateNative

@@ -4,7 +4,7 @@ using UsingDeclForwardProperties
 
 struct UsingDeclForwardOptions
 {
-    enabled: bool
+    public enabled: bool
 }
 
 func semaTest001()

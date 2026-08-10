@@ -2,5 +2,5 @@
 
 struct UsingDeclForwardApplication
 {
-    options: UsingDeclForwardOptions
+    public options: UsingDeclForwardOptions
 }

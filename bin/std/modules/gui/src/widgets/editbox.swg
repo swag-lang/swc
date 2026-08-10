@@ -60,56 +60,59 @@ enum EditBoxFlags
 // Edits and validates a single line of text, optionally as a bounded numeric value.
 struct EditBox
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
-
-    internal
-    textStorage: String     // Current UTF-8 text content.
-
-    sigTextChanged: SigArray'func||(*EditBox)     // Emitted once after text changes.
-    sigFocusLost:   SigArray'func||(*EditBox)     // Emitted after keyboard focus is lost.
-    sigSubmitted:   SigArray'func||(*EditBox)     // Emitted when Enter is pressed.
-    sigCancelled:   SigArray'func||(*EditBox)     // Emitted when Escape is pressed.
-    readonly
+    public
     {
-        icon:           Icon                                           // Optional leading icon.
-        unit:           String                                         // Optional trailing unit, such as "kg".
-        form      = EditBoxForm.Rectangle                              // Current background geometry.
-        flags     = EditBoxFlags.None                                  // Active interaction and presentation options.
-        inputMode = EditBoxInputMode.Text                              // Current built-in validation mode.
-        maximumLength:  s32                                            // Maximum rune count, or zero for no limit.
-        trailingMargin: f32                                            // Extra trailing inset in logical units.
-        validator:      #null func||(*EditBox)->EditBoxCheckResult     // Custom validator, or null for built-in validation.
-    }
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-    internal
-    {
-        // Text the box held when it took the focus. It is what Escape puts back, so an edit
-        // the reader backs out of leaves the value the surface around it had written here.
-        originalText: String
+        internal
+        textStorage: String     // Current UTF-8 text content.
 
-        // Numeric bounds used when inputMode is S64/U64/X64/F64.
-        using minMax: union
+        sigTextChanged: SigArray'func||(*EditBox)     // Emitted once after text changes.
+        sigFocusLost:   SigArray'func||(*EditBox)     // Emitted after keyboard focus is lost.
+        sigSubmitted:   SigArray'func||(*EditBox)     // Emitted when Enter is pressed.
+        sigCancelled:   SigArray'func||(*EditBox)     // Emitted when Escape is pressed.
+        public readonly
         {
-            minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
-            minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
-            minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
+            icon:           Icon                                           // Optional leading icon.
+            unit:           String                                         // Optional trailing unit, such as "kg".
+            form      = EditBoxForm.Rectangle                              // Current background geometry.
+            flags     = EditBoxFlags.None                                  // Active interaction and presentation options.
+            inputMode = EditBoxInputMode.Text                              // Current built-in validation mode.
+            maximumLength:  s32                                            // Maximum rune count, or zero for no limit.
+            trailingMargin: f32                                            // Extra trailing inset in logical units.
+            validator:      #null func||(*EditBox)->EditBoxCheckResult     // Custom validator, or null for built-in validation.
         }
 
-        aniBk:     BlendColor = {speed: 4}     // Background colour animation
-        aniBorder: BlendColor = {speed: 4}     // Border colour animation
+        internal
+        {
+            // Text the box held when it took the focus. It is what Escape puts back, so an edit
+            // the reader backs out of leaves the value the surface around it had written here.
+            originalText: String
 
-        isInvalid:          bool                  // True if current content is invalid
-        isHot:              bool                  // True while the mouse is hovering
-        isDragging:         bool                  // True while the user is selecting text
-        selBeg, selEnd:     u64                   // Selection start/end (byte indices)
-        timerCaret:         #null *Timer          // Blinking‑caret timer
-        clearBtn:           #null *IconButton     // Optional clear button instance
-        clearBtnTextMargin: f32                   // Text margin reserved for the clear button
-        visibleCaret:       bool                  // True when the caret should be visible
-        posSelBeg:          f32                   // X‑position of selection start in pixels
-        posSelEnd:          f32                   // X‑position of selection end in pixels
-        scrollPosX:         f32                   // Horizontal scroll offset
-        countRunes:         s32                   // Number of runes currently in text
+            // Numeric bounds used when inputMode is S64/U64/X64/F64.
+            using minMax: union
+            {
+                minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
+                minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
+                minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
+            }
+
+            aniBk:     BlendColor = {speed: 4}     // Background colour animation
+            aniBorder: BlendColor = {speed: 4}     // Border colour animation
+
+            isInvalid:          bool                  // True if current content is invalid
+            isHot:              bool                  // True while the mouse is hovering
+            isDragging:         bool                  // True while the user is selecting text
+            selBeg, selEnd:     u64                   // Selection start/end (byte indices)
+            timerCaret:         #null *Timer          // Blinking‑caret timer
+            clearBtn:           #null *IconButton     // Optional clear button instance
+            clearBtnTextMargin: f32                   // Text margin reserved for the clear button
+            visibleCaret:       bool                  // True when the caret should be visible
+            posSelBeg:          f32                   // X‑position of selection start in pixels
+            posSelEnd:          f32                   // X‑position of selection end in pixels
+            scrollPosX:         f32                   // Horizontal scroll offset
+            countRunes:         s32                   // Number of runes currently in text
+        }
     }
 }
 

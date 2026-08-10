@@ -13,6 +13,7 @@ struct(T) GenBinaryPair
 impl GenBinaryPair
 {
     mtd(op: Swag.Operator) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
+        where op == .Add or op == .Sub or op == .Mul or op == .Div or op == .Mod
     {
         #static switch op
         {
@@ -31,12 +32,11 @@ impl GenBinaryPair
         case .Mod:
             return {x: .x % other.x, y: .y % other.y}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->GenBinaryPair'T
+        where op == .Add or op == .Sub or op == .Mul or op == .Div or op == .Mod
     {
         #static switch op
         {
@@ -55,8 +55,6 @@ impl GenBinaryPair
         case .Mod:
             return {x: me.x % scalar, y: me.y % scalar}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }

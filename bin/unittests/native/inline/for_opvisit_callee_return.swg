@@ -10,10 +10,8 @@ impl InlineBug10VisitBytes
 {
     #[Macro]
     mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code(item: u8, index: u64))
+        where !ptr
     {
-        #static if ptr do
-            #error("visiting by pointer is not needed for this regression")
-
         for .count
         {
             #static if back do

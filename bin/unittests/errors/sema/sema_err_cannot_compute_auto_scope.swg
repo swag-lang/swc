@@ -1,8 +1,7 @@
 #global private
 
-// An operator body is specialized with diagnostics on, except for the '#error' opt-out. A
-// misspelled enum member is therefore reported instead of silently making the operator
-// unavailable and blaming the call site.
+// A constraint admits Add, so a misspelled enum member in the selected body is reported
+// instead of silently making the operator unavailable and blaming the call site.
 struct AutoScopeOpBox
 {
     value: s32
@@ -11,11 +10,11 @@ struct AutoScopeOpBox
 impl AutoScopeOpBox
 {
     mtd(op: Swag.Operator) const opBinary(other: AutoScopeOpBox)->AutoScopeOpBox
+        where op == .Add
     {
         #static if op == .Addd do     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
             return AutoScopeOpBox{.value + other.value}
-        else do
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        return AutoScopeOpBox{.value + other.value}
     }
 }
 

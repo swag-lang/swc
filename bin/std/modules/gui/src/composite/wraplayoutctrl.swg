@@ -9,10 +9,10 @@ struct WrapLayoutCtrl
     {
         using wnd: Wnd     // Embedded wnd state.
 
-        spacing:    f32 = 5      // Horizontal and vertical gap between items.
-        itemWidth:  f32 = 64     // Fallback width when a child has no preferred width.
-        itemHeight: f32 = 64     // Fallback height when a child has no preferred height.
-        public readonly
+        spacing:       f32 = 5      // Horizontal and vertical gap between items.
+        itemWidth:     f32 = 64     // Fallback width when a child has no preferred width.
+        itemHeight:    f32 = 64     // Fallback height when a child has no preferred height.
+        readonly
         contentHeight: f32     // Height occupied by the latest layout pass.
     }
 }

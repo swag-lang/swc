@@ -18,6 +18,9 @@ attribute is mandatory.
 - 'ptr': if true, elements are visited by pointer (address).
 - 'back': if true, elements are visited in reverse order.
 
+Constrain unsupported modes with 'where'. A failing constraint removes that specialization
+before its body is instantiated, so the body only contains the modes it implements.
+
 The code block declares its parameters like a function, with 'func' replaced
 by '#code'. The parameter names ('item' and 'index' here) are the contract:
 they are the names the caller sees by default, and the names bound by
@@ -31,13 +34,8 @@ impl MyStruct
 {
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index: u64))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("Visiting by pointer is not supported in this example.")
-
-        #static if back do
-            #error("Reverse visiting is not supported in this example.")
-
         // Visit fields x, y, z in declaration order
         for [idx] in 3
         {
@@ -163,10 +161,8 @@ impl SliceStruct
 {
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
+        where !back
     {
-        #static if back do
-            #error("Reverse visiting is not supported for this slice example.")
-
         for [idx] in @countof(me.buffer)
         {
             #static if ptr do
@@ -228,10 +224,8 @@ impl WindowStruct
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
+        where !ptr
     {
-        #static if ptr do
-            #error("WindowStruct does not expose pointer iteration for pair visits.")
-
         for [idx] in 3
         {
             #inject(stmt, left = me.values[idx], right = me.values[idx + 1])

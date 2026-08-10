@@ -110,7 +110,7 @@ struct Properties
 
         // Construction options are read-only to callers. Use the setters below when a value has to
         // change so cached layout state remains synchronized.
-        public readonly
+        readonly
         {
             kind             = PropertiesKind.List     // Presentation selected at creation.
             editorWidth: s32 = 200                     // Preferred maximum width of value editors.
@@ -159,7 +159,7 @@ struct Properties
 
         // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
         // selection moves with the keyboard and the mouse; a host reads both to follow the grid.
-        public readonly
+        readonly
         {
             items:   ArrayPtr'PropertiesItem     // Rows of the grid, in display order.
             selItem: #null *PropertiesItem       // Selected row, or 'null'.
@@ -168,7 +168,7 @@ struct Properties
         // Scrolling viewport of the grid, established when it is created. A host configures the
         // scrollbars or scrolls the grid through it; the grid decides which window it is.
         #[Swag.Late]
-        public readonly
+        readonly
         scrollWnd: *ScrollWnd
 
         // View the rows are painted in, established when the grid is created.
@@ -213,7 +213,7 @@ struct Properties
         internal
         externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
         internal
-        undoEnabled: bool = true     // Whether edits record undo commands.
+        undoEnabled:   bool = true     // Whether edits record undo commands.
 
         // Recording state of the undo timeline the grid owns.
         internal

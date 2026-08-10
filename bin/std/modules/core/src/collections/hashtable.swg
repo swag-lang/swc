@@ -8,8 +8,8 @@ struct(K, V) HashTableEntry
     public
     {
         internal
-        hash: u32
-        public readonly
+        hash:  u32
+        readonly
         key:   K     // The key.
         value: V     // The value associated with the key.
     }

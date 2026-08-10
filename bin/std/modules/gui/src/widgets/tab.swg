@@ -52,8 +52,8 @@ struct TabItem
     public
     {
         using item: Item     // Embedded label, icon, identifier, and user data.
-        public readonly
-        view: #null *Wnd     // Page view owned by the tab control, if any.
+        readonly
+        view:       #null *Wnd     // Page view owned by the tab control, if any.
 
         // Placement computed by the bar layout, and the color animations of the painted parts.
         internal
@@ -78,7 +78,7 @@ struct Tab
 
         // The tabs the bar shows, in display order. Add and remove them through the methods, which
         // keep the views, the layout and the selection consistent.
-        public readonly
+        readonly
         {
             barForm:          TabBarForm  = .Flat            // Tab bar background presentation.
             itemForm:         TabItemForm = .Flat            // Individual tab presentation.
@@ -709,7 +709,7 @@ impl Tab
         .invalidate()
     }
 
-    // Enables or disables the standard fade-and-arrival transition between owned pages.
+    // Enables or disables the standard covered cross-fade-and-arrival transition between owned pages.
     mtd setPageTransitions(enabled: bool)
     {
         .pageTransitions = enabled

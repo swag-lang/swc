@@ -677,17 +677,63 @@ namespace
             return Cast::cast(sema, self, selfType.payloadTypeRef(), CastKind::Implicit);
         }
 
-        Result structLiteralForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+        bool isAggregateEqualityOperand(const TypeInfo& type)
         {
-            if (!self.type() || !other.type())
+            return type.isSlice() || type.isArray() || type.isStruct() || type.isAggregate();
+        }
+
+        Result aggregateLiteralForEquality(Sema& sema, SemaNodeView& literalView, SemaNodeView& typedView)
+        {
+            if (!literalView.type() || !typedView.type())
                 return Result::Continue;
 
-            const TypeInfo& selfType  = aliasEnumType(sema, self);
-            const TypeInfo& otherType = aliasEnumType(sema, other);
-            if (!selfType.isAggregateStruct() || !otherType.isStruct())
+            const TypeInfo& literalType = aliasEnumType(sema, literalView);
+            const TypeInfo& typedType   = aliasEnumType(sema, typedView);
+            const bool      arrayMatch  = literalType.isAggregateArray() && (typedType.isArray() || typedType.isSlice());
+            const bool      structMatch = literalType.isAggregateStruct() && typedType.isStruct();
+            if (!arrayMatch && !structMatch)
                 return Result::Continue;
 
-            SWC_RESULT(Cast::cast(sema, self, other.typeRef(), CastKind::Implicit));
+            TypeRef targetTypeRef = typedView.typeRef();
+            if (typedView.type()->isSlice() && !typedView.type()->isConst())
+            {
+                TypeInfo readOnlyType = *typedView.type();
+                readOnlyType.addFlag(TypeInfoFlagsE::Const);
+                targetTypeRef = sema.typeMgr().addType(readOnlyType);
+                SWC_RESULT(Cast::castIfNeeded(sema, typedView, targetTypeRef, CastKind::Implicit));
+            }
+
+            return Cast::cast(sema, literalView, targetTypeRef, CastKind::Implicit);
+        }
+
+        Result aggregateForEquality(Sema& sema, SemaNodeView& leftView, SemaNodeView& rightView)
+        {
+            if (!leftView.type() || !rightView.type() || leftView.typeRef() == rightView.typeRef())
+                return Result::Continue;
+
+            const TypeInfo& leftType  = aliasEnumType(sema, leftView);
+            const TypeInfo& rightType = aliasEnumType(sema, rightView);
+            if (!isAggregateEqualityOperand(leftType) || !isAggregateEqualityOperand(rightType))
+                return Result::Continue;
+
+            CastRequest leftRequest(CastKind::Implicit);
+            leftRequest.errorNodeRef = leftView.nodeRef();
+            leftRequest.probing      = true;
+            const Result leftResult  = Cast::castAllowed(sema, leftRequest, leftView.typeRef(), rightView.typeRef());
+            if (leftResult == Result::Pause)
+                return Result::Pause;
+            if (leftResult == Result::Continue)
+                return Cast::castIfNeeded(sema, leftView, rightView.typeRef(), CastKind::Implicit);
+
+            CastRequest rightRequest(CastKind::Implicit);
+            rightRequest.errorNodeRef = rightView.nodeRef();
+            rightRequest.probing      = true;
+            const Result rightResult  = Cast::castAllowed(sema, rightRequest, rightView.typeRef(), leftView.typeRef());
+            if (rightResult == Result::Pause)
+                return Result::Pause;
+            if (rightResult == Result::Continue)
+                return Cast::castIfNeeded(sema, rightView, leftView.typeRef(), CastKind::Implicit);
+
             return Result::Continue;
         }
 
@@ -813,8 +859,9 @@ namespace
             nullForEquality(sema, nodeRightView, nodeLeftView);
             SWC_RESULT(typeInfoForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(typeInfoForEquality(sema, nodeRightView, nodeLeftView));
-            SWC_RESULT(structLiteralForEquality(sema, nodeLeftView, nodeRightView));
-            SWC_RESULT(structLiteralForEquality(sema, nodeRightView, nodeLeftView));
+            SWC_RESULT(aggregateLiteralForEquality(sema, nodeLeftView, nodeRightView));
+            SWC_RESULT(aggregateLiteralForEquality(sema, nodeRightView, nodeLeftView));
+            SWC_RESULT(aggregateForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(pointerReferenceForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(pointerReferenceForEquality(sema, nodeRightView, nodeLeftView));
         }

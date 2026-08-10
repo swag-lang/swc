@@ -30,7 +30,7 @@ public struct AboutDlgParams
 
 public impl AboutDlg
 {
-    // Creates an about dialog; zero dimensions use the standard 500 by 300 size.
+    // Creates an about dialog; a zero width uses 500 units and a zero height fits the content.
     #[Swag.Discardable]
     func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg
     {
@@ -44,18 +44,28 @@ public impl AboutDlg
         srf.center(from)
 
         let metrics = dlg.themeMetrics()
-        let pad     = metrics.dialog_Padding
+        let body    = dlg.createContentView()
 
-        // One accent rule across the top edge, the same one every standard Swag surface
-        // carries. A box that names the product is the last place to drop the family mark.
-        Separator.create(srf.view(), .Top, .Accent)
+        if params.contentIcon.isValid()
+        {
+            // The product glyph takes one compact column and keeps the same clear lane as a
+            // message status icon. The dialog body already owns the outer inset.
+            let gap = metrics.dialog_BtnPadding * 2
+            with dlg.labelIcon = Label.create(body, "", {0, 0, params.contentIcon.sizeX + gap, 0})
+            {
+                .dockStyle = .Left
+                .setIcon(params.contentIcon)
+                .setIconAlignment(.Left, .Center)
+            }
+        }
 
-        // The text column keeps the dialog margin on the edges it touches. Its leading edge
-        // is the mark's business, so it takes nothing there.
-        with let stackLayout = StackLayoutCtrl.create(srf.view())
+        // The name and its description form one centered group: one heading, one measured gap,
+        // then the supporting copy. Any remaining room is shared above and below the group.
+        let stackLayout = StackLayoutCtrl.create(body, .VerticalCenter)
+        with stackLayout
         {
             .dockStyle = .Center
-            .padding   = {0, pad, pad, pad}
+            .spacing   = metrics.dialog_BtnPadding * 2
         }
 
         // The product name is the one heading of the box, so it is set once, in bold, and
@@ -72,7 +82,6 @@ public impl AboutDlg
         with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)
         {
             .dockStyle = .Top
-            .margin.y  = pad * 0.5
             .setTextAlignment(.Left, .Top)
         }
 
@@ -83,22 +92,18 @@ public impl AboutDlg
             srf.setIcon(cpyIcon)
         }
 
-        if params.contentIcon.isValid()
-        {
-            // The mark keeps one dialog margin of clear space on each side and nothing more:
-            // a panel wider than the glyph it holds is room taken from what the box has to
-            // say. It stands on the first line of the name rather than above it.
-            with dlg.labelIcon = Label.create(srf.wnd.view, "", {0, 0, params.contentIcon.sizeX + 2 * pad, 0})
-            {
-                .dockStyle = .Left
-                .padding.y = pad
-                .setIcon(params.contentIcon)
-                .setIconAlignment(.Center, .Top)
-            }
-        }
-
         dlg.addButton(strings().dlg_Close, Dialog.BtnCancel, true)
         dlg.sendResizeEvent()
+        if height == 0
+        {
+            dlg.applyLayout()
+            let availableWidth = Math.max(stackLayout.position.width, 1)
+            var contentHeight  = stackLayout.measure({availableWidth, 0}).preferred.y
+            if params.contentIcon.isValid() do
+                contentHeight = Math.max(contentHeight, cast(f32) params.contentIcon.sizeY)
+            dlg.fitHeightToContent(contentHeight)
+            srf.center(from)
+        }
         return dlg
     }
 }

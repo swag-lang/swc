@@ -100,10 +100,8 @@ namespace GenericCloneCodegenSupport
     {
         #[Swag.Macro]
         mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
+            where !ptr
         {
-            #static if ptr do
-                #error("OwnedPtrVisitBox does not expose pointer iteration.")
-
             #static if back
             {
                 if me.count > 1

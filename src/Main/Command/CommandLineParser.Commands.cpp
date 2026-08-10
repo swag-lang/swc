@@ -231,6 +231,17 @@ void CommandLineParser::registerCommands()
         &cmdLine_->verboseVerifyFilter,
         "Keep --verbose-verify messages and diagnostic IDs that match this string");
 
+    addEnum(HelpOptionGroup::Input, "format", "--style", nullptr,
+            &cmdLine_->formatStyle,
+            {
+                {"swag", FormatNamedStyle::Swag},
+                {"preserve", FormatNamedStyle::Preserve},
+            },
+            "Select the base formatting style every `.swc-format` file layers over; preserve normalizes nothing");
+    add(HelpOptionGroup::Input, "format", "--dump-config", nullptr,
+        &cmdLine_->dumpFormatConfig,
+        "Print the resolved formatting configuration as a complete `.swc-format` file, then exit without rewriting anything");
+
     add(HelpOptionGroup::Development, "all", "--dry-run smoke", "-dr",
         &cmdLine_->dryRun,
         "Preview planned stages, outputs, and external commands without executing compile-time code, native tools, tests, or emitted artifacts");

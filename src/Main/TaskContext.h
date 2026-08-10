@@ -11,8 +11,6 @@ class SourceFile;
 class TypeManager;
 class TypeGen;
 struct CommandLine;
-enum class DiagnosticId;
-
 class TaskContext
 {
 public:
@@ -42,12 +40,8 @@ public:
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
 
-    bool silentDiagnostic() const { return silentDiagnostic_; }
-    void setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
-    // Suppresses one diagnostic id instead of every diagnostic. Used where a specific failure
-    // is a sanctioned opt-out and every other failure is a genuine error worth reporting.
-    DiagnosticId                 silencedDiagnosticId() const { return silencedDiagnosticId_; }
-    void                         setSilencedDiagnosticId(DiagnosticId id) { silencedDiagnosticId_ = id; }
+    bool                         silentDiagnostic() const { return silentDiagnostic_; }
+    void                         setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
     bool                         reportToStats() const { return reportToStats_; }
     void                         setReportToStats(bool reportToStats) { reportToStats_ = reportToStats; }
     bool                         muteOutput() const { return muteOutput_; }
@@ -72,11 +66,10 @@ private:
     const CommandLine*                            cmdLine_          = nullptr;
     CompilerInstance*                             compilerInstance_ = nullptr;
     bool                                          silentDiagnostic_ = false;
-    DiagnosticId                                  silencedDiagnosticId_{};
-    bool                                          reportToStats_ = true;
-    bool                                          muteOutput_    = false;
-    bool                                          hasError_      = false;
-    bool                                          hasWarning_    = false;
+    bool                                          reportToStats_    = true;
+    bool                                          muteOutput_       = false;
+    bool                                          hasError_         = false;
+    bool                                          hasWarning_       = false;
     TaskState                                     state_;
     std::shared_ptr<void>                         genericNodeRunCache_;
     std::shared_ptr<void>                         genericInstanceNodeRunCache_;

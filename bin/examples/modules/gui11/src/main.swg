@@ -105,9 +105,9 @@ const ExpandedDetail  = 132.0
 func applyTheme()
 {
     if g_DarkTheme do
-        app.theme.colors.setDark()
+        app.theme.setDark()
     else do
-        app.theme.colors.setLight()
+        app.theme.setLight()
 
     let btn = g_ThemeButton
     if btn
@@ -736,7 +736,6 @@ func createRootView()
     let view = g_Surface!.view()
     g_View               = view
     view.backgroundStyle = .View
-    Separator.create(view, .Top, .Accent)
 
     let title = Label.create(view, "GUI11 motion laboratory")
     g_Title = title

@@ -50,11 +50,9 @@ struct(T) AutoScopeUnaryBox
 impl AutoScopeUnaryBox
 {
     func(op: Swag.Operator) opUnary(const me)->AutoScopeUnaryBox'T
+        where op == .BitNot
     {
-        #static if op == .BitNot do
-            return {value: ~.value}
-        else do
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        return {value: ~.value}
     }
 }
 

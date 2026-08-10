@@ -880,9 +880,7 @@ private impl ListView
             // as well would slide every cell out from under its title.
             if !@isset(.list.header)
             {
-                var gutter = metrics.activeRail_Margin
-                if colors.activeRail.a do
-                    gutter += metrics.activeRail_Size
+                let gutter = metrics.activeRail_Size + metrics.activeRail_Margin
                 labelPos.moveLeft(gutter)
             }
 

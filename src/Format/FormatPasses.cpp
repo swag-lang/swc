@@ -83,6 +83,8 @@ namespace FormatPass
         spacing(model);
         indent(model);
         wrap(model);
+        caseBlanks(model);
+        redundantSemicolons(model);
         comments(model);
         align(model);
     }

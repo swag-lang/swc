@@ -9,8 +9,8 @@ struct(K) HashSetEntry
     {
         internal
         hash: u32
-        public readonly
-        key: K     // The key itself.
+        readonly
+        key:  K     // The key itself.
     }
 }
 

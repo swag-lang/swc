@@ -263,7 +263,7 @@ struct Wnd
         invalidatePadding: Math.Vector4     // Extra repaint extent around the logical rectangle.
 
         // Presentation-only state changes painting without moving layout, hit testing, or focus.
-        public readonly
+        readonly
         {
             presentationOpacity: f32        = 1              // Opacity of this window and its descendants, from zero through one.
             presentationOffset:  Math.Point                  // Paint-only displacement in logical pixels.
@@ -278,7 +278,7 @@ struct Wnd
 
         // The child list is maintained by the window itself: attach through [setParent] and
         // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
-        public readonly
+        readonly
         children: Array'(*Wnd)
 
         name:    RichString      // Display text with optional rich spans.
@@ -321,11 +321,14 @@ struct Wnd
 
         backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
         internal
-        isAllocated: bool     // Whether destruction must release this allocation.
+        {
+            isAllocated:      bool     // Whether destruction must release this allocation.
+            paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
+        }
 
         // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
         // writing it from outside would desynchronize the pass from the tree.
-        public readonly
+        readonly
         {
             isPendingDestroy: bool                // Whether the window is scheduled for destruction.
             managedByLayout:  bool                // Whether a layout container places this window.
@@ -954,18 +957,13 @@ impl Wnd
             painter.popState()
             painter.setTransform(curTrs)
 
-            // Childs
-            for c in .children
-            {
-                if c.wndFlags.has(.Hidden) do
-                    continue
+            // A logically hidden transition page is a backdrop, so it is painted before every
+            // visible sibling independently of their structural order.
+            for c in .children where c.wndFlags.has(.Hidden) and c.paintsWhenHidden and !c.isPendingDestroy do
+                .paintChild(bc, c)
 
-                painter.pushState()
-                if !c.wndFlags.has(.NoScroll) do
-                    painter.translateTransform(-.scrollPos.x, -.scrollPos.y)
-                c.paint(bc)
-                painter.popState()
-            }
+            for c in .children where !c.wndFlags.has(.Hidden) do
+                .paintChild(bc, c)
 
             if .managedByLayout and .surface and (.surface).app.options.showLayoutRects
             {
@@ -1000,6 +998,16 @@ impl Wnd
 
         bc.isDisabled = lastDisabled
         .style.dirty  = false
+    }
+
+    private mtd paintChild(bc: *PaintContext, child: *Wnd)
+    {
+        let painter = bc.painter
+        painter.pushState()
+        if !child.wndFlags.has(.NoScroll) do
+            painter.translateTransform(-.scrollPos.x, -.scrollPos.y)
+        child.paint(bc)
+        painter.popState()
     }
 
     // Force the window to be repainted
@@ -1049,6 +1057,16 @@ impl Wnd
         let srf = .surface
         if srf do
             srf.invalidateRect(rect)
+    }
+
+    // Keeps a logically hidden window in its parent's paint order during a visual handoff.
+    internal mtd setPaintWhenHidden(enabled: bool)
+    {
+        if .paintsWhenHidden == enabled do
+            return
+        .paintsWhenHidden = enabled
+        if .parent do
+            .parent.invalidate()
     }
 
     // Changes paint-only opacity without changing layout, hit testing, or focus.

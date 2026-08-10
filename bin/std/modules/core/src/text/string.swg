@@ -123,6 +123,7 @@ impl String
 
     // Applies an assignment operator to the byte at the requested index.
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: u8)
+        where op == .AddAssign or op == .SubAssign
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
         let buffer = .buffer!
@@ -130,7 +131,6 @@ impl String
         {
         case .AddAssign: buffer[index] += #wrap value
         case .SubAssign: buffer[index] -= #wrap value
-        default:         #error("invalid operator '" ++ op.symbol() ++ "'")
         }
     }
 
@@ -144,54 +144,42 @@ impl String
 
     // Applies an assignment operator with a sequence of strings.
     mtd(op: Swag.Operator) opAssign(value: const [..] string)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            for v in value do
-                .append(v)
-        else do
-            #error("invalid operator '" ++ op.symbol() ++ "'")
+        for v in value do
+            .append(v)
     }
 
     mtd(op: Swag.Operator) opAssign(value: const [..] rune)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            for v in value do
-                .append(v)
-        else do
-            #error("invalid operator '" ++ op.symbol() ++ "'")
+        for v in value do
+            .append(v)
     }
 
     mtd(op: Swag.Operator) opAssign(value: const [..] u8)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            for v in value do
-                .append(v)
-        else do
-            #error("invalid operator '" ++ op.symbol() ++ "'")
+        for v in value do
+            .append(v)
     }
 
     mtd(op: Swag.Operator) opAssign(value: #null string)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            .append(value)
-        else do
-            #error("invalid operator '" ++ op.symbol() ++ "'")
+        .append(value)
     }
 
     mtd(op: Swag.Operator) opAssign(value: rune)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            .append(value)
-        else do
-            #error("invalid operator '" ++ op.symbol() ++ "'")
+        .append(value)
     }
 
     mtd(op: Swag.Operator) opAssign(value: u8)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            .append(value)
-        else do
-            #error("invalid operator '" ++ op.symbol() ++ "'")
+        .append(value)
     }
 
     // Completes a moved value.
@@ -242,11 +230,8 @@ impl String
     // See [[Utf8.visitRunes]] for the block parameters: the code value is forwarded as-is.
     #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool, back: bool) const opVisitRunes(stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("visiting runes by pointer is not supported")
-        #static if back do
-            #error("visiting runes in reverse order is not supported")
         Utf8.visitRunes(.toSlice(), stmt)
     }
 

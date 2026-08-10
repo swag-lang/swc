@@ -494,6 +494,27 @@ swc syntax -mf &lt;workspace&gt;/modules/app
 swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <p><span class="code-inline">--dry-run</span> previews planned stages without executing compile-time code, native tools, tests, or emitted programs. <span class="code-inline">--show-config</span> prints the resolved command, environment, toolchain, and artifact configuration, then exits.</p>
+<h3 id="_001_004_swc_command_line_swg_Formatting">Formatting</h3>
+<p>'swc format' rewrites sources in the canonical Swag style, which is built into the compiler. A Swag tree needs no configuration file to be formatted the way every other Swag tree is.</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Option</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>'--style swag'</td><td>Use the canonical Swag style; this is the default</td></tr>
+<tr><td>'--style preserve'</td><td>Normalize nothing: every option keeps the source as written</td></tr>
+<tr><td><span class="code-inline">--dump-config</span></td><td>Print the resolved configuration as a complete <span class="code-inline">.swc-format</span> file, then exit</td></tr>
+</tbody>
+</table>
+<p>A <span class="code-inline">.swc-format</span> file layers over that style. The formatter looks for one in the file's own directory and in every parent, and the closest one wins, so a subtree can depart from the style of the tree it sits in. A <span class="code-inline">style</span> key inside such a file rebases the whole option set before the rest of the file applies, wherever in the file it sits:</p>
+<div class="code-block"><span class="SCde">style = preserve
+indent-style = spaces
+</span></div>
+<p>That is also how a subtree is kept out of the formatter's way: a vendored or generated directory holding a <span class="code-inline">.swc-format</span> with 'style = preserve' alone is rendered back byte for byte, so nothing in it is ever rewritten.</p>
+<p><span class="code-inline">--dump-config</span> writes the answer for the first named input, or for the current directory when there is none. Every option carries its value and its accepted values, so redirecting the output into a <span class="code-inline">.swc-format</span> file gives a complete, documented starting point:</p>
+<div class="code-block"><span class="SCde">swc format --dump-config -d src &gt; src/.swc-format
+</span></div>
+<p>The canonical style deliberately leaves two dimensions alone. Line endings belong to the checkout rather than to the style, so they are preserved. And the style has no column budget: the formatter never adds and never removes a statement break, so where a line wraps is the author's decision and it survives formatting, which is what keeps a hand-laid data table intact. Setting <span class="code-inline">column-limit</span> turns wrapping on, and the formatter then breaks greedily, one break at a time, as high in the expression as it can.</p>
 <h3 id="_001_004_swc_command_line_swg_Documentation_Generation">Documentation Generation</h3>
 <p><span class="code-inline">swc doc</span> uses the module's <span class="code-inline">BuildCfg.genDoc</span> configuration. The documentation kind can generate a public API page, a numbered examples document, or one page per source file.</p>
 <table class="table-markdown">
@@ -1068,7 +1089,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SKwd">public</span> <span class="SKwd">readonly</span>
     count: <span class="STpe">s32</span>
     <span class="SKwd">private</span>
-    step: <span class="STpe">s32</span> = <span class="SNum">2</span>
+    step:  <span class="STpe">s32</span> = <span class="SNum">2</span>
 }
 
 <span class="SKwd">impl</span> <span class="SCst">Counter</span>
@@ -5378,7 +5399,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="_006_005_operator_overloading_swg">Operator Overloading</h3>
 <p>A struct in Swag can define operator overloads within the <span class="code-inline">impl</span> block. These hooks are predefined and recognized by the compiler, which lets a struct customize operators and core interactions.</p>
 <p><span class="code-inline">opBinary</span>, <span class="code-inline">opBinaryRight</span>, <span class="code-inline">opUnary</span>, <span class="code-inline">opAssign</span> and <span class="code-inline">opIndexAssign</span> take the operator as a compile-time <span class="code-inline">Swag.Operator</span> value, so one hook covers a whole family and a misspelled member is reported instead of being a comparison that silently never matches. Each spelling has its own member: unary <span class="code-inline">-</span> arrives as <span class="code-inline">Neg</span>, binary <span class="code-inline">-</span> as <span class="code-inline">Sub</span>. <span class="code-inline">op.symbol()</span> returns the source spelling when generated code or a diagnostic needs it.</p>
-<p>An operator body is compiled for the requested operator with diagnostics on, with a single exception: <span class="code-inline">#error</span> is the sanctioned way to say "this overload does not handle that operator", so it is silenced and the overload is simply skipped. Every other failure in the body is reported where it occurs.</p>
+<p>Use a <span class="code-inline">where</span> clause on <span class="code-inline">op</span> to state which operators a hook handles. A failing constraint removes that specialization from overload resolution; a <span class="code-inline">#error</span> reached in the body remains a compile-time error and is reported where it occurs.</p>
 <p>A literal suffix stays a string (<span class="code-inline">opSetLiteral</span>), because the set of suffixes is open-ended and chosen by the user rather than by the language.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">struct</span> <span class="SCst">Struct</span>
@@ -5522,12 +5543,12 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SCmt">// Binary operation. 'op' is the 'Swag.Operator' member the compiler asks for:</span>
     <span class="SCmt">// Add, Sub, Mul, Div, Mod, BitOr, BitAnd, BitXor, Shl, Shr</span>
     <span class="SKwd">func</span>(op: <span class="SCst">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinary</span>(<span class="STpe">me</span>, other: <span class="SCst">OneType</span>)-&gt;<span class="SCst">Struct</span>
+        <span class="SLgc">where</span> op == .<span class="SCst">Add</span> <span class="SLgc">or</span> op == .<span class="SCst">Sub</span>
     {
         <span class="SCmp">#static</span> <span class="SLgc">switch</span> op
         {
         <span class="SLgc">case</span> .<span class="SCst">Add</span>: <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
         <span class="SLgc">case</span> .<span class="SCst">Sub</span>: <span class="SLgc">return</span> {<span class="SNum">2</span>, <span class="SNum">1</span>}
-        <span class="SLgc">default</span>:   <span class="SCmp">#error</span>(<span class="SStr">"unsupported binary operation"</span>)
         }
     }
 
@@ -5751,19 +5772,15 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <li><span class="code-inline">ptr</span>: if true, elements are visited by pointer (address).</li>
 <li><span class="code-inline">back</span>: if true, elements are visited in reverse order.</li>
 </ul>
+<p>Constrain unsupported modes with <span class="code-inline">where</span>. A failing constraint removes that specialization before its body is instantiated, so the body only contains the modes it implements.</p>
 <p>The code block declares its parameters like a function, with <span class="code-inline">func</span> replaced by <span class="code-inline">#code</span>. The parameter names (<span class="code-inline">item</span> and <span class="code-inline">index</span> here) are the contract: they are the names the caller sees by default, and the names bound by <span class="code-inline">#inject</span>.</p>
 <p>Each <span class="code-inline">#inject</span> clones the caller's code: when a value is selected at runtime, compute it into a local first and keep a single <span class="code-inline">#inject</span>, instead of one <span class="code-inline">#inject</span> per branch.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">MyStruct</span>
 {
     <span class="SAtr">#[Swag.Macro]</span>
     <span class="SKwd">func</span>(ptr: <span class="STpe">bool</span>, back: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(<span class="STpe">me</span>, stmt: <span class="SItr">#code</span>(item: <span class="STpe">s32</span>, index: <span class="STpe">u64</span>))
+        <span class="SLgc">where</span> !ptr <span class="SLgc">and</span> !back
     {
-        <span class="SCmp">#static</span> <span class="SLgc">if</span> ptr <span class="SLgc">do</span>
-            <span class="SCmp">#error</span>(<span class="SStr">"Visiting by pointer is not supported in this example."</span>)
-
-        <span class="SCmp">#static</span> <span class="SLgc">if</span> back <span class="SLgc">do</span>
-            <span class="SCmp">#error</span>(<span class="SStr">"Reverse visiting is not supported in this example."</span>)
-
         <span class="SCmt">// Visit fields x, y, z in declaration order</span>
         <span class="SLgc">for</span> [idx] <span class="SLgc">in</span> <span class="SNum">3</span>
         {
@@ -5875,10 +5892,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 {
     <span class="SAtr">#[Swag.Macro]</span>
     <span class="SKwd">func</span>(ptr: <span class="STpe">bool</span>, back: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(<span class="STpe">me</span>, stmt: <span class="SItr">#code</span>(item, index: <span class="STpe">u64</span>))
+        <span class="SLgc">where</span> !back
     {
-        <span class="SCmp">#static</span> <span class="SLgc">if</span> back <span class="SLgc">do</span>
-            <span class="SCmp">#error</span>(<span class="SStr">"Reverse visiting is not supported for this slice example."</span>)
-
         <span class="SLgc">for</span> [idx] <span class="SLgc">in</span> <span class="SItr">@countof</span>(<span class="STpe">me</span>.buffer)
         {
             <span class="SCmp">#static</span> <span class="SLgc">if</span> ptr <span class="SLgc">do</span>
@@ -5932,10 +5947,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 {
     <span class="SAtr">#[Swag.Macro]</span>
     <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>, back: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisitPairs</span>(stmt: <span class="SItr">#code</span>(left: <span class="STpe">s32</span>, right: <span class="STpe">s32</span>))
+        <span class="SLgc">where</span> !ptr
     {
-        <span class="SCmp">#static</span> <span class="SLgc">if</span> ptr <span class="SLgc">do</span>
-            <span class="SCmp">#error</span>(<span class="SStr">"WindowStruct does not expose pointer iteration for pair visits."</span>)
-
         <span class="SLgc">for</span> [idx] <span class="SLgc">in</span> <span class="SNum">3</span>
         {
             <span class="SCmp">#inject</span>(stmt, left = <span class="STpe">me</span>.values[idx], right = <span class="STpe">me</span>.values[idx + <span class="SNum">1</span>])
@@ -10441,6 +10454,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Selecting Input|_001_004_swc_command_line_swg_Selecting_Input|",
 "h|Build Configurations|_001_004_swc_command_line_swg_Build_Configurations|",
 "h|Common Workflows|_001_004_swc_command_line_swg_Common_Workflows|",
+"h|Formatting|_001_004_swc_command_line_swg_Formatting|",
 "h|Documentation Generation|_001_004_swc_command_line_swg_Documentation_Generation|",
 "h|Test Controls|_001_004_swc_command_line_swg_Test_Controls|",
 "h|Modules and Source Code|_002_000_modules_and_source_code_swg|",

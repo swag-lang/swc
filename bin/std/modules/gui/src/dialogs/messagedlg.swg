@@ -3,14 +3,17 @@ using Core, Pixel
 // Displays a rich message, optional icon and extension, and caller-defined action buttons.
 public struct MessageDlg
 {
-    public using dialog: Dialog     // Embedded dialog state.
-    public readonly
+    public
     {
-        #[Swag.Late]
-        labelIcon: *Label     // Optional large icon label.
-        #[Swag.Late]
-        label:     *Label         // Rich message label.
-        extension: #null *Wnd     // Optional caller-owned extension docked below the message.
+        using dialog: Dialog     // Embedded dialog state.
+        readonly
+        {
+            #[Swag.Late]
+            labelIcon: *Label     // Optional large icon label.
+            #[Swag.Late]
+            label:     *Label         // Rich message label.
+            extension: #null *Wnd     // Optional caller-owned extension docked below the message.
+        }
     }
 }
 
@@ -22,7 +25,7 @@ public struct MessageDlgOptions
         title:     string       = ""                             // Surface title; empty keeps the helper's default.
         icon:      Icon                                          // Optional large message icon.
         iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
-        textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
+        textHorizontalAlignment = StringHorzAlignment.Left       // Horizontal message alignment.
         textVerticalAlignment   = StringVertAlignment.Center     // Vertical message alignment.
         onCreated: #null func||(*MessageDlg)                     // Optional callback invoked before icon setup and layout.
     }
@@ -41,9 +44,11 @@ public impl MessageDlg
         if @countof(options.title) do
             srf.setTitle(options.title)
 
-        let metrics = from.wnd.themeMetrics()
+        let body = dlg.createContentView()
+        let row  = Wnd.create'Wnd(body)
+        row.dockStyle = .Center
 
-        with dlg.label = Label.create(srf.view(), message, {})
+        with dlg.label = Label.create(row, message, {})
         {
             .dockStyle = .Center
 
@@ -51,7 +56,6 @@ public impl MessageDlg
             // is cut at the box's maximum width instead of forcing the box as wide as itself.
             .updateFlags(.WordWrap | .Ellipsis)
             .setTextAlignment(options.textHorizontalAlignment, options.textVerticalAlignment)
-            .setAllPaddings(metrics.dialog_Padding)
         }
 
         if options.onCreated do
@@ -83,7 +87,7 @@ public impl MessageDlg
     {
         let metrics = .themeMetrics()
 
-        // The room the message loses to the frame and to its own inset, on each side.
+        // The room the message loses to the frame and to the standard body inset, on each side.
         let chrome = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
 
         // Measured at the density the glyphs are really drawn at. Laid out at a scale of one
@@ -105,46 +109,38 @@ public impl MessageDlg
         for btn in .buttons do
             w += btn.position.width
         w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
-        w += 2 * metrics.dialog_Padding
-        w += metrics.btnPush_Width
-        w = Math.max(w, .label.name.boundRect.width + chrome)
+        w += 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
+        let iconRoom = @isset(.labelIcon) ? .labelIcon.position.width : 0
+        w = Math.max(w, .label.name.boundRect.width + iconRoom + chrome)
 
         if .extension do
             w = Math.max(w, .extension.position.width + chrome)
 
         // Height, measured a second time at the width the message will really be given: the
         // widest line decides the box, and the box then decides how many lines there are.
-        Painter.computeLayout({0, 0, Math.max(w - chrome, 1), MaxTextLayoutExtent}, &.label.name, rsf, deviceScale)
+        Painter.computeLayout({0, 0, Math.max(w - chrome - iconRoom, 1), MaxTextLayoutExtent}, &.label.name, rsf, deviceScale)
         .label.name.invalidate()
 
-        var h = Math.min(512, .label.name.boundRect.height + .label.padding.y + .label.padding.w)
+        var contentHeight = Math.min(512, .label.name.boundRect.height)
         if @isset(.labelIcon) do
-            h += .labelIcon.position.height
-        else do
-            h += metrics.dialog_Padding
-        h += .buttonBar.position.height
-        h += 2 * metrics.wnd_BorderSize
-        let srf = .surface!
-        if srf.flags & .SmallCaption do
-            h += metrics.wnd_SmallCaptionCY
-        elif srf.flags & .LargeCaption do
-            h += metrics.wnd_BigCaptionCY
+            contentHeight = Math.max(contentHeight, .labelIcon.icon.sizeY)
 
         let ext = .extension
         if ext do
-            h += ext.position.height
+            contentHeight += ext.margin.y + ext.position.height + ext.margin.w
 
-        let sdw = srf.app.theme.metrics.surfaceWnd_ShadowSize
+        let srf = .surface!
+        let sdw = srf.shadowMargin()
         w += sdw * 2
-        h += sdw * 2
+
+        .fitHeightToContent(contentHeight)
 
         // Everything measured above is in logical units; a surface rectangle is physical.
         // Handed over unscaled, the box opened at a fraction of the room its message needs
         // on any display past 100 percent: the text lost its whole band to the button bar
         // and the reader was left with an icon and an unreachable button.
         var pos = srf.position
-        pos.width  = w * srf.dpiScale
-        pos.height = h * srf.dpiScale
+        pos.width = w * srf.dpiScale
         srf.setPosition(pos)
     }
 
@@ -152,9 +148,12 @@ public impl MessageDlg
     mtd setExtension(wndExtension: *Wnd)
     {
         Debug.assert(.extension == null)
+        Debug.assert(.contentView != null, "a message dialog needs its standard content view before adding an extension")
+
+        wndExtension.setParent(.contentView)
         .extension           = wndExtension
         .extension.dockStyle = .Bottom
-        .extension.margin.x  = .themeMetrics().dialog_Padding
+        .extension.margin.y  = .themeMetrics().dialog_BtnPadding * 2
     }
 
     // Changes the large icon tint.
@@ -170,23 +169,31 @@ public impl MessageDlg
         if !icon.isValid() do
             return
 
+        let gap = .themeMetrics().dialog_BtnPadding * 2
         if !@isset(.labelIcon) do
-            .labelIcon = Label.create(.surface!.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
-        .label.padding.y = 0
+            .labelIcon = Label.create(.label.parent!, "", {0, 0, icon.sizeX + gap, 0})
 
         with me.labelIcon
         {
-            .dockStyle = .Top
+            .position.width = icon.sizeX + gap
+            .dockStyle      = .Left
             .setIcon(icon)
             .setIconColor(color)
-            .setIconAlignment(.Center, .Center)
+            .setIconAlignment(.Left, .Center)
         }
     }
 
     // Shows a modal message with one OK action.
     func ok(from: *Surface, message: string, options: MessageDlgOptions = {})
     {
-        with let dlg = create(from, message, options)
+        var opt = options
+        if !opt.icon.isValid()
+        {
+            opt.icon      = from.app.theme.icon(.Information, 48)
+            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
+        }
+
+        with let dlg = create(from, message, opt)
         {
             .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         }
@@ -197,7 +204,14 @@ public impl MessageDlg
     // Shows a modal message with OK and Cancel actions.
     func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
-        with let dlg = create(from, message, options)
+        var opt = options
+        if !opt.icon.isValid()
+        {
+            opt.icon      = from.app.theme.icon(.Question, 48)
+            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
+        }
+
+        with let dlg = create(from, message, opt)
         {
             .addButton(strings().dlg_Ok, Dialog.BtnOk, defaultId == Dialog.BtnOk)
             .addButton(strings().dlg_Cancel, Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
@@ -213,7 +227,7 @@ public impl MessageDlg
         if !opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
-            opt.iconColor = from.app.theme.colors.label_Text
+            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
         with let dlg = create(from, message, opt)
@@ -232,7 +246,7 @@ public impl MessageDlg
         if !opt.icon.isValid()
         {
             opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
-            opt.iconColor = from.app.theme.colors.label_Text
+            opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
         with let dlg = create(from, message, opt)

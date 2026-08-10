@@ -146,8 +146,21 @@ namespace
             return model_->piece(lineStart).isComment && FormatPassUtil::lineEndOf(*model_, lineStart) == lineStart;
         }
 
+        // `internal` / `readonly` / `private` / `public` written alone on a line
+        // is the first half of the declaration below it, not a line of its own,
+        // so it must not cut the run of declarations in two.
+        bool lineIsAccessModifierOnly(const uint32_t lineStart) const
+        {
+            if (!FormatPassUtil::isAccessModifier(model_->piece(lineStart)))
+                return false;
+            const uint32_t next = model_->nextPiece(lineStart);
+            return next == INVALID_PIECE || model_->gapHasNewline(next);
+        }
+
         bool lineIsTransparentFor(const AlignCategory category, const uint32_t lineStart) const
         {
+            if (lineIsAccessModifierOnly(lineStart))
+                return true;
             return category == AlignCategory::Aliases && model_->piece(lineStart).hasRole(FormatRoleE::AttrOpen);
         }
 
@@ -309,6 +322,13 @@ namespace
                 const bool     member = declLineHasColumn(startRole, lineStart);
                 const bool     blank  = lineIsBlankSeparated(lineStart);
                 const uint32_t indent = lineIndentColumn(lineStart);
+
+                if (!member && lineIsAccessModifierOnly(lineStart))
+                {
+                    if (!group.empty() && blank && mode == FormatAlignMode::Consecutive)
+                        flush();
+                    continue;
+                }
 
                 if (!group.empty())
                 {

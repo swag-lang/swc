@@ -71,10 +71,8 @@ impl ShelfBins
 
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
+        where !ptr
     {
-        #static if ptr do
-            #error("Address iteration requires a mutable ShelfBins receiver.")
-
         #static if back
         {
             for [idx] in 4

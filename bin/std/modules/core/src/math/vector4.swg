@@ -39,6 +39,7 @@ impl Vector4
     // Performs component-wise operations with another vector.
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(other: Vector4)
+        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
         #static switch op
         {
@@ -65,9 +66,6 @@ impl Vector4
             .y /= other.y
             .z /= other.z
             .w /= other.w
-
-        default:
-            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -75,6 +73,7 @@ impl Vector4
     // Applies the scalar 'value' to all components of the vector.
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(value: f32)
+        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
         #static switch op
         {
@@ -101,9 +100,6 @@ impl Vector4
             .y /= value
             .z /= value
             .w /= value
-
-        default:
-            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -111,6 +107,7 @@ impl Vector4
     // Performs component-wise operations between two vectors and returns the result.
     #[Swag.Inline]
     mtd(op: Swag.Operator) const opBinary(other: const &Vector4)->Vector4
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -118,7 +115,6 @@ impl Vector4
         case .Sub: return Vector4{.x - other.x, .y - other.y, .z - other.z, .w - other.w}
         case .Mul: return Vector4{.x * other.x, .y * other.y, .z * other.z, .w * other.w}
         case .Div: return Vector4{.x / other.x, .y / other.y, .z / other.z, .w / other.w}
-        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -126,6 +122,7 @@ impl Vector4
     // Applies the scalar 'value' to all components and returns the result.
     #[Swag.Inline, Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(value: f32)->Vector4
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -133,7 +130,6 @@ impl Vector4
         case .Sub: return Vector4{.x - value, .y - value, .z - value, .w - value}
         case .Mul: return Vector4{.x * value, .y * value, .z * value, .w * value}
         case .Div: return Vector4{.x / value, .y / value, .z / value, .w / value}
-        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -141,11 +137,9 @@ impl Vector4
     // Currently supports negation (-) to return a vector with all components negated.
     #[Swag.Inline]
     mtd(op: Swag.Operator) const opUnary()->Vector4
+        where op == .Neg
     {
-        #static if op == .Neg do
-            return Vector4{-.x, -.y, -.z, -.w}
-        else do
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        return Vector4{-.x, -.y, -.z, -.w}
     }
 
     // Set all four components of the vector.

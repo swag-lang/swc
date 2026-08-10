@@ -46,13 +46,12 @@ impl Vec4
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinary(other: const &Vec4)->Vec4
+        where op == .Add
     {
         #static switch op
         {
         case .Add:
             return Vec4{me.x + other.x, me.y + other.y, me.z + other.z, me.w + other.w}
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

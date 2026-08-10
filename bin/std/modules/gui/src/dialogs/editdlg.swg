@@ -33,19 +33,14 @@ public impl EditDlg
     func createSingleLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
         Debug.assert(from != null)
-        let dlg     = Wnd.create'EditDlg()
-        let metrics = from.wnd.themeMetrics()
-        let srf     = dlg.createSurface(from, 0, 0, 450, 210)
+        let dlg = Wnd.create'EditDlg()
+        let srf = dlg.createSurface(from, 0, 0, 450, 210)
         srf.setTitle(options.title)
 
-        dlg.edit = EditBox.create(srf.view(), "")
+        dlg.edit = EditBox.create(dlg.createContentView(), "")
         with dlg.edit
         {
             .dockStyle = .Bottom
-            .margin    = metrics.dialog_Padding
-            .style.addStyleSheetColors("edit_Bk $dlg_BtnBarBk")
-            .style.addStyleSheetColors("edit_FocusBk $dlg_BtnBarBk")
-            .setForm(.RoundedRectangle)
             .setFocus()
         }
 
@@ -62,23 +57,19 @@ public impl EditDlg
     {
         Debug.assert(from != null)
         Debug.assert(options.editorHeight > 0, "editor height must be positive")
-        let dlg     = Wnd.create'EditDlg()
-        let metrics = from.wnd.themeMetrics()
-        let srf     = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
+        let dlg = Wnd.create'EditDlg()
+        let srf = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
         srf.setTitle(options.title)
         srf.minSize.x = 500
-        srf.minSize.y = 180 + options.editorHeight
 
-        dlg.richEdit = RichEditCtrl.create(srf.view(), {0, 0, 0, options.editorHeight})
+        dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), {0, 0, 0, options.editorHeight})
         with dlg.richEdit
         {
             .anchorStyle = .Height
             .dockStyle   = .Bottom
-            .margin      = metrics.dialog_Padding
             .setFlags(.flags | .AutoLoseFocus)
-            .backgroundColorModel = "$dlg_BtnBarBk"
             .setForm(.Edit)
-            .setFrameForm(.Round)
+            .setFrameForm(.Square)
             .setFrameFlags(.FocusBorder)
             .setFocus()
         }
@@ -106,8 +97,35 @@ public impl EditDlg
                 .richEdit!.selectAll()
         }
 
+        .fitContent()
         let surface = .surface!
         surface.center(.parentSurface!)
+    }
+
+    // Fits the shared dialog layers around the editor and its optional explanation.
+    private mtd fitContent()
+    {
+        .applyLayout()
+
+        let edit = .edit
+        var contentHeight = edit ? edit.position.height : .richEdit!.position.height
+        if @isset(.label) do
+            contentHeight += .label.position.height + .label.margin.w
+
+        // The rich editor keeps its authored height while the surface is fitted around it.
+        let richEdit = .richEdit
+        if richEdit do
+            richEdit.anchorStyle = .None
+        .fitHeightToContent(contentHeight)
+        if richEdit do
+            richEdit.anchorStyle = .Height
+
+        // A resizable editor may grow, but it must not shrink below its fitted content.
+        if richEdit
+        {
+            let surface = .surface!
+            surface.minSize.y = surface.position.height / surface.dpiScale
+        }
     }
 
     // Replaces the editor contents.
@@ -139,41 +157,20 @@ public impl EditDlg
         if !@isset(.label)
         {
             @assert(.surface != null)
-            .label = Label.create(.surface.view(), message, {0, 0, 0, height})
+            .label = Label.create(.contentView!, message, {0, 0, 0, height}, flags: .WordWrap | .SecondaryText)
             with me.label
             {
                 .dockStyle = .Center
-                .setTextAlignment(.Center, .Center)
+                .margin.w  = .themeMetrics().dialog_BtnPadding * 2
+                .setTextAlignment(.Left, .Center)
             }
-
-            let edit2 = .edit
-            if edit2 do
-                edit2.margin.y = 0
-            else
-            {
-                let richEdit = .richEdit!
-                richEdit.margin.y = 0
-            }
-
-            // The surface rectangle is physical; the added message height is logical.
-            let surface = .surface
-            var pos     = surface.position
-            pos.height        += height * surface.dpiScale
-            surface.minSize.y += height
-
-            // A single-line dialog has only '.edit' (no '.richEdit'). Temporarily
-            // drop the rich edit anchor (when present) so it does not fight the
-            // resize, then restore it.
-            let richEdit2 = .richEdit
-            if richEdit2 do
-                richEdit2.anchorStyle = .None
-            surface.setPosition(pos)
-            if richEdit2 do
-                richEdit2.anchorStyle = .Height
         }
         else
         {
             .label.setText(message)
         }
+
+        .fitContent()
+        .surface!.center(.parentSurface!)
     }
 }

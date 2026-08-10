@@ -202,7 +202,11 @@ internal impl IWnd for PopupListView
                 painter.fillRect(rail, colors.activeRail)
             }
 
-            labelPos.moveLeft(metrics.popupList_Padding)
+            // Reserve the active-rule lane in every palette. The content then stays put when a
+            // theme starts railing its selected rows, with the full charted gap after the rule
+            // instead of the three pixels the former six-pixel inset left behind.
+            let leadingInset = Math.max(metrics.popupList_Padding, metrics.activeRail_Size + metrics.activeRail_Margin)
+            labelPos.moveLeft(leadingInset)
 
             // Icon, plainly centered, because the entry beside it is centered on its capitals: a
             // drop-down shows the very entries the field above it shows, so the two have to place

@@ -24,7 +24,7 @@ struct SplitterItem
         label:        #null *Label     // Optional pane title managed by the splitter.
         preserveSize: bool             // Whether other panes absorb resize changes first.
         internal
-        visible = true     // Whether the pane participates in layout.
+        visible           = true     // Whether the pane participates in layout.
 
         // Color animation of the bar that follows this pane.
         internal
@@ -43,7 +43,7 @@ struct SplitterCtrl
 
         // The panes the splitter manages, in order. Add them through the methods so the bars and
         // the layout follow.
-        public readonly
+        readonly
         items: ArrayPtr'SplitterItem
 
         // Hover and drag state of one gesture over a bar, and the pane count the layout derived.

@@ -183,3 +183,85 @@ Entries are sorted by identifier, ascending; position carries no priority.
   constants are published. Compare with the counted form `for [i] in Samples`, which resolves the
   same symbol correctly from the same header — the difference between those two paths is where the
   answer is. Add the case to the `parser` or `sema` suite depending on which side it lands on.
+
+### F-108 — A typed struct can intermittently reach default-value materialization before its size
+
+- Area: compiler
+- Found while: running `tools/tests.swgs dm changed --all-cfg` after a GUI theme and dialog pass.
+- Observation: semantic parsing intermittently asserts that a struct size is nonzero while
+  materializing the default value of `var cpu: RenderCpu`. The reported `RenderCpu` symbol is typed
+  and declared but has not completed semantic analysis. An immediate focused rerun of the same GUI
+  tests in Debug succeeds without source or compiler changes, which points to dependency scheduling
+  rather than an invalid declaration or a deterministic configuration error.
+- Evidence: the failure occurred in `bin/std/modules/gui/src/tests/unittests/headless.render.test.swg:10`
+  during the Debug leg, after the Release GUI tests had passed 368/368. The assertion is
+  `sizeInBytes != 0` in `src/Compiler/Sema/Symbol/Symbol.Struct.cpp:50`; its stack reaches
+  `resolveStaticPayloadRequiredShardIndex`, `materializeStaticPayloadConstant`, and
+  `SymbolStruct::computeDefaultValue`. The symbol state reported
+  `semaCompleted=false typed=true declared=true`. Running
+  `tools/std.swgs dm test gui -bc debug` immediately afterward passed 368/368.
+  A second occurrence during F-106 had the same source, assertion, stack and symbol state in the
+  Fast-Debug leg; `tools/std.swgs dm test gui -bc fast-debug` then passed 368/368 immediately.
+- Next step: stress the Debug GUI semantic pass while tracing jobs that publish `RenderCpu`'s
+  concrete layout and jobs that compute local default values. Confirm whether default-value
+  materialization is missing a wait on the struct's semantic-completion dependency, then reduce the
+  case to two imported structs before adding a compiler suite regression.
+
+### F-109 — A comment inside a bracket needs two format passes to settle its column
+
+- Area: compiler
+- Found while: a mangling campaign over `bin/` sources, feeding `swc format` badly indented but
+  valid Swag and checking that one pass reaches a fixed point
+- Observation: a whole-line comment sitting between the rows of a multi-line literal reaches its
+  final column only on the second run of the formatter, when the rows around it carry indentation
+  the formatter preserves rather than recomputes. The output is stable from the second pass on, so
+  the only visible effect is that one run is not enough.
+- Evidence: take `bin/std/modules/core/src/text/utf8.swg`, re-indent every line inside the `First`
+  table at random, and format twice with the canonical style: the first pass leaves
+  `// 0x80-0x8F` one column left of the row below it, and the second moves it. Same shape in
+  `bin/examples/modules/opengl3/src/main.swg` around `// Right face (+X) - yellow`. Both need the
+  rows of one table to disagree about their indentation, which only a rewrite produces.
+- Next step: `IndentPass::flushComments` places a pending comment at the column computed for the
+  next code line, and `recordHangingLine` then records both against the same anchor. Check whether
+  the comment's record is dropped — `canEditGap`, or an anchor that is invalid for a comment line —
+  because the code line alone is repaired by `Pass.Align::repairHangingLines`.
+- Related: T-384
+
+### F-110 — `column-limit` with `align-operands` needs two format passes
+
+- Area: compiler
+- Found while: measuring the greedy wrapper against clang-format on dense expressions
+- Observation: the wrapping pass runs after the indent pass, so the continuation lines it creates
+  under a column limit are never seen by the pass that would align them on the statement's first
+  operand. The alignment lands on the next run.
+- Evidence: with `column-limit = 40`, `align-operands = true` and `indent-width = 4`, the body
+  `result = compute(alpha, beta) + compute(gamma, delta) + compute(epsilon, zeta)` is broken
+  correctly on the first pass, but its operand lines only move under `compute(alpha` on the second.
+  With `align-operands` off the same input settles in one pass.
+- Next step: either have `Pass.Wrap` record its column-limit breaks as hanging lines the way it now
+  records list items and logical operands, or let the indent pass run once more after wrapping and
+  own every column. The second is the shape the passes already imply — wrapping decides where the
+  breaks are, indentation decides where the lines start — and it would retire the hanging-line
+  bookkeeping.
+
+### F-111 — Concurrent type generation can corrupt declared-method traversal
+
+- Area: compiler
+- Found while: rerunning `tools/tests.swgs dm --all-cfg` for F-106 after an unrelated intermittent
+  semantic-completion assertion had passed on immediate focused rerun.
+- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
+  and a hardware exception while type generation traversed a struct's declared methods. The same
+  compiler and sources had completed the full Release campaign immediately beforehand, and the
+  equality suites had already passed in all three build configurations, so the failure appears
+  scheduling-dependent rather than tied to one deterministic source construct.
+- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
+  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
+  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
+  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
+  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
+  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
+  three configurations.
+- Next step: persist the complete failing module and source context on the next occurrence, then
+  stress parallel type generation while tracing mutation and traversal of struct impl-function
+  lists. Check that every publication read by `declaredMethods` is immutable or protected for the
+  full lifetime of candidate probing before reducing the race to two concurrently completed impls.

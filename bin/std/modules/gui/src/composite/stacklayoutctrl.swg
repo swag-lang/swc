@@ -14,6 +14,7 @@ enum StackLayoutMode
     VerticalCenter       // Centers a top-to-bottom stack vertically.
     HorizontalFit        // Divides horizontal space evenly between children.
     VerticalFit          // Divides vertical space evenly between children.
+    HorizontalEnd        // Aligns a left-to-right stack to the trailing edge.
 }
 
 // Arranges visible children as a one-dimensional stack.
@@ -95,7 +96,7 @@ private impl StackLayoutCtrl
     {
         switch .mode
         {
-        case .Left, .Right, .HorizontalCenter, .Center, .HorizontalFit: return true
+        case .Left, .Right, .HorizontalEnd, .HorizontalCenter, .Center, .HorizontalFit: return true
         }
 
         return false
@@ -109,6 +110,11 @@ private impl StackLayoutCtrl
     mtd isCenteringMain()->bool
     {
         return .mode == .HorizontalCenter or .mode == .Center or .mode == .VerticalCenter
+    }
+
+    mtd isEndingMain()->bool
+    {
+        return .mode == .HorizontalEnd
     }
 
     mtd isFitMain()->bool
@@ -288,6 +294,8 @@ private impl StackLayoutCtrl
         var cursor: f32
         if .isReverse() do
             cursor = .isHorizontal() ? client.right() : client.bottom()
+        elif .isEndingMain() do
+            cursor = client.x + Math.max(availableMain - totalPreferred, 0)
         elif .isCenteringMain() do
             cursor = (.isHorizontal() ? client.x : client.y) + Math.max(availableMain - totalPreferred, 0) * 0.5
         else do

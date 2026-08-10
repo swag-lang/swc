@@ -484,19 +484,19 @@ namespace
                     continue;
                 }
 
-                // '#error' in an operator body is the sanctioned way to say "this overload does not
-                // handle that operator", so it is silenced and the candidate is skipped. Every other
-                // failure is a real defect in the body — a misspelled enum member, a bad expression —
-                // and must be reported instead of silently making the operator unavailable.
-                SymbolFunction*    specialized  = nullptr;
-                const DiagnosticId savedSilence = sema.ctx().silencedDiagnosticId();
-                sema.ctx().setSilencedDiagnosticId(DiagnosticId::sema_err_compiler_error);
-                const Result specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
-                sema.ctx().setSilencedDiagnosticId(savedSilence);
+                SymbolFunction* specialized = nullptr;
+                CastFailure     whereFailure;
+                const Result    specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized, &whereFailure);
                 if (specResult == Result::Pause)
                     return Result::Pause;
                 if (specResult != Result::Continue)
                     continue;
+                if (whereFailure.diagId != DiagnosticId::None)
+                {
+                    if (whereFailure.diagId == DiagnosticId::sema_err_function_where_failed)
+                        continue;
+                    return SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
+                }
                 if (specialized)
                 {
                     SWC_RESULT(sema.waitSemaCompleted(specialized, specialized->codeRef()));

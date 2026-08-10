@@ -868,8 +868,126 @@ SWC_TEST_BEGIN(FormatWrap_BinPackArgumentsOnePerLine)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatWrap_ContinuationKeepsRelativeIndent)
+SWC_TEST_BEGIN(FormatWrap_NoColumnLimitNeverMovesAStatementBreak)
 {
+    // The contract of the canonical style: the author owns the line breaks. With
+    // no column budget the formatter adds none and removes none, however long or
+    // short the line it is left with.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    result = compute(alpha, beta) + compute(gamma, delta) + compute(epsilon, zeta)\n"
+        "    other = compute(a,\n"
+        "                    b)\n"
+        "}\n";
+
+    // The 79-column line stays one line and the hand-wrapped call stays wrapped.
+    // Only the columns move.
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    result = compute(alpha, beta) + compute(gamma, delta) + compute(epsilon, zeta)\n"
+        "    other  = compute(a,\n"
+        "                     b)\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    if (options.columnLimit != 0)
+        return Result::Error;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_ColumnLimitBreaksHighestInTheExpression)
+{
+    // Greedy, and greedy on the right axis: the break that keeps the most
+    // structure is the shallowest and loosest-binding one that still fits, so
+    // the top-level `+` wins over the commas nested in its operands.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    result = compute(alpha, beta) + compute(gamma, delta) + compute(epsilon, zeta)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    result = compute(alpha, beta) +\n"
+        "        compute(gamma, delta) +\n"
+        "        compute(epsilon, zeta)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                = FormatIndentStyle::Spaces;
+    options.indentWidth                = 4;
+    options.columnLimit                = 40;
+    options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::After;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_ColumnLimitBreaksAtTheLoosestOperator)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    if alpha > beta and gamma < delta and epsilon != zeta and eta == theta\n"
+        "    {\n"
+        "        run()\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    if alpha > beta and\n"
+        "        gamma < delta and\n"
+        "        epsilon != zeta and eta == theta\n"
+        "    {\n"
+        "        run()\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                = FormatIndentStyle::Spaces;
+    options.indentWidth                = 4;
+    options.columnLimit                = 40;
+    options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::After;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_ColumnLimitKeepsOneIndentPerStatement)
+{
+    // Every continuation of one statement sits at the same column: measuring
+    // from the line being broken would step one level right at every break.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    render(surface, viewport, camera, lights, materials, options, timing)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    render(surface, viewport, camera,\n"
+        "        lights, materials, options,\n"
+        "        timing)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    options.columnLimit = 40;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_ContinuationOutsideBracketsTakesCanonicalIndent)
+{
+    // No bracket, so no hand-packed table to protect: the continuation lands at
+    // the canonical continuation indent whatever column the source put it at.
     static constexpr std::string_view SOURCE =
         "func foo()\n"
         "{\n"
@@ -881,12 +999,69 @@ SWC_TEST_BEGIN(FormatWrap_ContinuationKeepsRelativeIndent)
         "func foo()\n"
         "{\n"
         "    var x = 1 +\n"
-        "            2\n"
+        "        2\n"
         "}\n";
 
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_ContinuationInsideBracketsKeepsRelativeIndent)
+{
+    // Inside a bracket the distance to the statement is the author's column
+    // layout: a hand-packed data table survives only because it is kept.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "   let table = [1, 2,\n"
+        "                  3, 4]\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    let table = [1, 2,\n"
+        "                   3, 4]\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_WrappedCaseValuesAlignUnderTheFirstValue)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 2,\n"
+        "      4,\n"
+        "            6: @assert(true)\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 2,\n"
+        "         4,\n"
+        "         6: @assert(true)\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle      = FormatIndentStyle::Spaces;
+    options.indentWidth      = 4;
+    options.indentCaseLabels = false;
     return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

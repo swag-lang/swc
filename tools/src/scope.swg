@@ -143,7 +143,7 @@ private func classify(scope: *Scope, rawPath: string)
         discard scope.suites.add(String.from("native"))
         discard scope.suites.add(String.from("workspace"))
         scope.reference = true
-        scope.allApps  = true
+        scope.allApps   = true
         return
     }
 

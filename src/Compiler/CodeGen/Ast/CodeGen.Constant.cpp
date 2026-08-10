@@ -384,6 +384,14 @@ namespace
 
         if (existingPayload->reg.isValid())
         {
+            const SemaNodeView valueView = codeGen.viewTypeConstant(valueRef);
+            if (valueView.cstRef().isValid() && existingPayload->typeRef.isValid() && targetTypeRef.isValid() && existingPayload->typeRef != targetTypeRef)
+            {
+                const TypeInfo& existingType = codeGen.typeMgr().get(existingPayload->typeRef);
+                if (existingType.isAggregateStruct() || existingType.isAggregateArray())
+                    return false;
+            }
+
             outPayload = *existingPayload;
             return true;
         }
@@ -757,13 +765,21 @@ namespace
 
                 if (storageCst.isArray())
                 {
-                    builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageCst.getArray().data()), storageCstRef);
+                    const std::span<const std::byte> storageBytes = storageCst.getArray();
+                    if (storageBytes.empty())
+                        builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
+                    else
+                        builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageBytes.data()), storageCstRef);
                     payload.setIsAddress();
                     return Result::Continue;
                 }
 
                 SWC_ASSERT(storageCst.isStruct());
-                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageCst.getStruct().data()), storageCstRef);
+                const std::span<const std::byte> storageBytes = storageCst.getStruct();
+                if (storageBytes.empty())
+                    builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
+                else
+                    builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageBytes.data()), storageCstRef);
                 payload.setIsAddress();
                 return Result::Continue;
             }

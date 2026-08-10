@@ -38,9 +38,10 @@ struct RenderCpu
         blendingMode: BlendingMode = Alpha
         colorMask:    ColorMask    = {true, true, true, false}
 
-        paintCommand: Command = undefined
-        paintOn:      bool
-        program:      u8
+        paintCommand:  Command = undefined
+        gradientStops: #null const [..] GradientStop
+        paintOn:       bool
+        program:       u8
 
         surfaceStencil: Array'u8
         stencilOn:      bool
@@ -678,6 +679,7 @@ private impl RenderCpu
         let p = &params.texture0
         if p.gradientStopCount == 0 do
             return Color.fromArgb(Argb.White)
+        let stops = .gradientStops!
 
         var t: f32
         switch p.type
@@ -725,19 +727,19 @@ private impl RenderCpu
             t = u <= 1.0 ? u : 2.0 - u
         }
 
-        if t <= p.gradientStops[0].offset do
-            return p.gradientStops[0].color
-        for var i: u8 = 1; i < p.gradientStopCount; i += 1
+        if t <= stops[0].offset do
+            return stops[0].color
+        for var i = 1'u64; i < p.gradientStopCount; i += 1
         {
-            if t > p.gradientStops[i].offset do
+            if t > stops[i].offset do
                 continue
-            let lo = p.gradientStops[i - 1].offset
-            let hi = p.gradientStops[i].offset
+            let lo = stops[i - 1].offset
+            let hi = stops[i].offset
             let u  = hi == lo ? 1.0 : Math.saturate((t - lo) / (hi - lo))
-            return lerpColor(p.gradientStops[i - 1].color, p.gradientStops[i].color, u)
+            return lerpColor(stops[i - 1].color, stops[i].color, u)
         }
 
-        return p.gradientStops[p.gradientStopCount - 1].color
+        return stops[p.gradientStopCount - 1].color
     }
 
     mtd samplePaint(paintPos: Vector2)->Color
@@ -1386,7 +1388,11 @@ private impl RenderCpu
 
         case .BindTexture0:
             .paintCommand = dref cmd
-            .paintOn      = true
+            if cmd.texture0.gradientStopCount do
+                .gradientStops = @mkslice(painter.gradientStops.buffer + cmd.texture0.gradientStopStart, cmd.texture0.gradientStopCount)
+            else do
+                .gradientStops = null
+            .paintOn = true
 
         case .BindRenderTarget:
             .bindRenderTargetImpl(cmd.renderTgt.tgt)

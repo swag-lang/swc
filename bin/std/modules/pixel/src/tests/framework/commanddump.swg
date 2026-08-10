@@ -209,7 +209,7 @@ private
                 .dumpTriangles(painter, cmd.drawTriangles.start, cmd.drawTriangles.count)
 
             case .BindTexture0:
-                .dumpTexture0(cmd)
+                .dumpTexture0(painter, cmd)
 
             case .SetClippingRect:
                 let r = cmd.clippingRect.rect
@@ -253,7 +253,7 @@ private
             .body += "\n"
         }
 
-        mtd dumpTexture0(cmd: const *Command)
+        mtd dumpTexture0(painter: const *Painter, cmd: const *Command)
         {
             let p = &cmd.texture0
             .body.appendFormat(" % uv=% interp=%", fmtEnum(p.type), fmtEnum(p.uvMode), fmtEnum(p.interpolationMode))
@@ -284,7 +284,8 @@ private
                 {
                     if i do
                         .body += " "
-                    .body.appendFormat("%:%", fmtF(p.gradientStops[i].offset), fmtColor(p.gradientStops[i].color))
+                    let stop = painter.gradientStops[p.gradientStopStart + i]
+                    .body.appendFormat("%:%", fmtF(stop.offset), fmtColor(stop.color))
                 }
 
                 .body += "]"

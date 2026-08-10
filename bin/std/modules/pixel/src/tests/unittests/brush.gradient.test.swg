@@ -7,14 +7,14 @@ using Swag, Core
     var linear = Brush.createLinearGradient(0, 0, 10, 0, Color.fromArgb(0'u8, Argb.Red), Color.fromArgb(Argb.Blue), .Repeat)
     @assert(linear.type == .LinearGradient)
     @assert(linear.gradientSpread == .Repeat)
-    @assert(linear.gradientStopCount == 2)
+    @assert(linear.gradientStops.count == 2)
     @assert(linear.gradientStops[0].offset == 0)
     @assert(linear.gradientStops[1].offset == 1)
     @assert(linear.hasVisibleAlpha())
     @assert(!linear.isOpaque())
 
     linear.addGradientStop(0.5, Argb.Green)
-    @assert(linear.gradientStopCount == 3)
+    @assert(linear.gradientStops.count == 3)
     @assert(linear.gradientStops[0].offset == 0)
     @assert(linear.gradientStops[1].offset == 0.5)
     @assert(linear.gradientStops[2].offset == 1)
@@ -48,4 +48,16 @@ using Swag, Core
 
     let hidden = Brush.createLinearGradient(0, 0, 1, 1, Color.fromArgb(0'u8, Argb.White), Color.fromArgb(0'u8, Argb.Black))
     @assert(!hidden.hasVisibleAlpha())
+}
+
+// Gradient storage grows with authored content and preserves every sorted stop.
+#test
+{
+    var gradient = Brush.createLinearGradient(0, 0, 1, 0, Argb.Black, Argb.White)
+    for [i] in 32 do
+        gradient.addGradientStop(cast(f32) (31 - i) / 31.0, Color.fromRgb(cast(u8) i, 0, 0))
+
+    @assert(gradient.gradientStops.count == 34)
+    for var i = 1'u64; i < gradient.gradientStops.count; i += 1 do
+        @assert(gradient.gradientStops[i - 1].offset <= gradient.gradientStops[i].offset)
 }

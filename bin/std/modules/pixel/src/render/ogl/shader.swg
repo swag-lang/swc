@@ -35,7 +35,11 @@ struct ShaderBase
     gradientOffsets:   ShaderParamHandle     // Gradient-stop offsets uniform.
     gradientColors:    ShaderParamHandle     // Gradient-stop colors uniform.
     internal
-    premultiplyBlendSource: ShaderParamHandle = InvalidShaderParamHandle
+    {
+        gradientTexture:        ShaderParamHandle = InvalidShaderParamHandle
+        gradientTextureEnabled: ShaderParamHandle = InvalidShaderParamHandle
+        premultiplyBlendSource: ShaderParamHandle = InvalidShaderParamHandle
+    }
 }
 
 // Uses the standard shader without antialiasing coverage.

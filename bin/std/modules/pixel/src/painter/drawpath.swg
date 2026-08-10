@@ -529,8 +529,28 @@ impl Painter
         cxt.patternIndex        = 0
         cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
         cxt.remainingPatternLen *= cxt.pen.size
-        if !cxt.path.isClosed do
+        if !cxt.path.isClosed and cxt.pen.dashStyle != .Pattern do
             cxt.remainingPatternLen *= 0.5
+
+        if cxt.pen.dashOffset
+        {
+            var phase = cxt.pen.dashOffset
+            if phase < 0 do
+                phase = cxt.patternTotalLen - (Math.abs(phase) - Math.floor(Math.abs(phase) / cxt.patternTotalLen) * cxt.patternTotalLen)
+            else do
+                phase -= Math.floor(phase / cxt.patternTotalLen) * cxt.patternTotalLen
+            if phase >= cxt.patternTotalLen do
+                phase = 0
+
+            while phase >= cxt.remainingPatternLen
+            {
+                phase                   -= cxt.remainingPatternLen
+                cxt.patternIndex        = (cxt.patternIndex + 1) % cxt.patternCount
+                cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01) * cxt.pen.size
+            }
+
+            cxt.remainingPatternLen -= phase
+        }
     }
 
     mtd drawLine(cxt: *Context, pos: Math.Vector2)

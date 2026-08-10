@@ -21,8 +21,6 @@ enum GradientSpread
     Mirror     // Alternate forward and reversed intervals.
 }
 
-const MaxGradientStops = 8     // Maximum number of color stops stored by one brush.
-
 // Associates a normalized gradient position with a straight-alpha color.
 struct GradientStop
 {
@@ -53,15 +51,14 @@ struct Brush
     uvMode:  UVMode     = Fill                           // Texture coverage mode.
     uvRect:  Math.Rectangle                              // Source texel rectangle used by `.FillSubRect`.
 
-    gradientStart:     Math.Vector2                        // Linear start point or radial/sweep center.
-    gradientEnd:       Math.Vector2                        // Linear end point or secondary radial center.
-    gradientRadius0:   f32                                 // Inner radial radius, in pixels.
-    gradientRadius1:   f32                                 // Outer radial radius, in pixels.
-    gradientAngle0:    f32                                 // Sweep start angle, in radians.
-    gradientAngle1:    f32                                 // Sweep end angle, in radians.
-    gradientSpread:    GradientSpread = Clamp              // Sampling outside the endpoint interval.
-    gradientStops:     [MaxGradientStops] GradientStop     // Stops sorted by increasing offset.
-    gradientStopCount: u8                                  // Number of initialized entries in `gradientStops`.
+    gradientStart:   Math.Vector2               // Linear start point or radial/sweep center.
+    gradientEnd:     Math.Vector2               // Linear end point or secondary radial center.
+    gradientRadius0: f32                        // Inner radial radius, in pixels.
+    gradientRadius1: f32                        // Outer radial radius, in pixels.
+    gradientAngle0:  f32                        // Sweep start angle, in radians.
+    gradientAngle1:  f32                        // Sweep end angle, in radians.
+    gradientSpread:  GradientSpread = Clamp     // Sampling outside the endpoint interval.
+    gradientStops:   Array'GradientStop         // Stops sorted by increasing offset, without a format-specific fixed limit.
 }
 
 impl Brush
@@ -78,9 +75,9 @@ impl Brush
             if .color.a == 0 do
                 return false
 
-            for [i] in .gradientStopCount
+            for stop in .gradientStops
             {
-                if .gradientStops[i].color.a do
+                if stop.color.a do
                     return true
             }
 
@@ -103,9 +100,9 @@ impl Brush
             if .color.a != 255 do
                 return false
 
-            for [i] in .gradientStopCount
+            for stop in .gradientStops
             {
-                if .gradientStops[i].color.a != 255 do
+                if stop.color.a != 255 do
                     return false
             }
 
@@ -115,15 +112,13 @@ impl Brush
 
     // Inserts a gradient stop in increasing offset order.
     //
-    // `offset` is clamped to `[0, 1]`. The brush must contain fewer than
-    // [[Pixel.MaxGradientStops]] stops.
+    // `offset` is clamped to `[0, 1]`. Stops at the same offset retain their
+    // insertion order, which preserves hard transitions.
     mtd addGradientStop(offset: f32, color: Color)
     {
-        Debug.assert(.gradientStopCount < MaxGradientStops, "too many gradient stops")
-
-        let clamped      = Math.saturate(offset)
-        var insertAt: u8 = .gradientStopCount
-        for [i] in .gradientStopCount
+        let clamped       = Math.saturate(offset)
+        var insertAt: u64 = .gradientStops.count
+        for [i] in .gradientStops.count
         {
             if clamped < .gradientStops[i].offset
             {
@@ -132,15 +127,7 @@ impl Brush
             }
         }
 
-        var i = .gradientStopCount
-        while i > insertAt
-        {
-            .gradientStops[i] = .gradientStops[i - 1]
-            i                 -= 1
-        }
-
-        .gradientStops[insertAt] = {clamped, color}
-        .gradientStopCount       += 1
+        .gradientStops.insertAt(insertAt, GradientStop{clamped, color})
     }
 
     // Set the paint color multiplier used by textures, hatches and gradients.

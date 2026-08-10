@@ -224,8 +224,8 @@ struct Command
             gradientAngle0:    f32
             gradientAngle1:    f32
             gradientSpread:    GradientSpread    = undefined
-            gradientStops:     [MaxGradientStops] GradientStop
-            gradientStopCount: u8
+            gradientStopStart: u64
+            gradientStopCount: u64
         }
     }
 }
@@ -251,7 +251,8 @@ struct Painter
 {
     // Optional backend selected for [[Painter.render]]. It is borrowed and may
     // remain unset when the painter is used only to inspect recorded commands.
-    private rendererItf: #null IRenderer
+    private
+    rendererItf: #null IRenderer
 
     // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
     // drawing methods append to it.
@@ -260,6 +261,11 @@ struct Painter
         commandBuffer: Array'Command          // Deferred renderer command stream.
         vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
     }
+
+    // Gradient stops referenced by command ranges. Keeping them beside the command stream
+    // makes every recorded brush independent of the caller's lifetime without imposing a cap.
+    internal
+    gradientStops: Array'GradientStop
 
     // Reusable workspaces. They only hold intermediate results of the call in progress.
     private
@@ -490,8 +496,9 @@ impl Painter
         params.gradientAngle0    = brush.gradientAngle0
         params.gradientAngle1    = brush.gradientAngle1
         params.gradientSpread    = brush.gradientSpread
-        params.gradientStops     = brush.gradientStops
-        params.gradientStopCount = brush.gradientStopCount
+        params.gradientStopStart = .gradientStops.count
+        params.gradientStopCount = brush.gradientStops.count
+        .gradientStops.add(brush.gradientStops.toSlice())
 
         // Pixel mode keeps its meaning at every scale: the renderers sharpen it to
         // one device pixel of smoothing per texel edge when the content scale makes
@@ -812,6 +819,7 @@ impl Painter
 
         .commandBuffer.clear()
         .vertexBuffer.clear()
+        .gradientStops.clear()
 
         .drawingBegin   = true
         .layoutOnly     = layoutOnly

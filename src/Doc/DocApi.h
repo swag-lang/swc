@@ -4,9 +4,6 @@
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 
-#include <optional>
-#include <unordered_set>
-
 SWC_BEGIN_NAMESPACE();
 
 class SourceFile;

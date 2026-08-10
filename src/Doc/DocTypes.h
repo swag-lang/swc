@@ -3,9 +3,6 @@
 #include "Backend/Runtime.h"
 #include "Support/Core/Utf8.h"
 
-#include <unordered_map>
-#include <vector>
-
 SWC_BEGIN_NAMESPACE();
 
 class SourceFile;

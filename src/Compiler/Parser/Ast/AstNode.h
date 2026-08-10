@@ -236,6 +236,39 @@ struct AstNode
         payloadStorage_.store(state, mo);
     }
 
+    // The bits and reference form one publication. Partial writers must retry from the
+    // latest state so concurrently published flags, kinds, and references cannot be lost.
+    void updatePayloadBits(uint16_t clearMask, uint16_t setBits)
+    {
+        uint64_t expected = payloadState();
+        while (true)
+        {
+            const uint16_t bits    = payloadBitsFromState(expected);
+            const uint16_t newBits = static_cast<uint16_t>((bits & ~clearMask) | setBits);
+            const uint64_t desired = makePayloadState(newBits, payloadRefFromState(expected));
+            if (payloadStorage_.compare_exchange_weak(expected, desired, std::memory_order_release, std::memory_order_acquire))
+                return;
+        }
+    }
+
+    void updatePayloadState(uint16_t clearMask, uint16_t setBits, uint32_t ref)
+    {
+        uint64_t expected = payloadState();
+        while (true)
+        {
+            const uint16_t bits    = payloadBitsFromState(expected);
+            const uint16_t newBits = static_cast<uint16_t>((bits & ~clearMask) | setBits);
+            const uint64_t desired = makePayloadState(newBits, ref);
+            if (payloadStorage_.compare_exchange_weak(expected, desired, std::memory_order_release, std::memory_order_acquire))
+                return;
+        }
+    }
+
+    bool compareExchangePayloadState(uint64_t& expected, uint64_t desired)
+    {
+        return payloadStorage_.compare_exchange_weak(expected, desired, std::memory_order_release, std::memory_order_acquire);
+    }
+
     void clearPayload()
     {
         payloadStorage_.store(0, std::memory_order_release);

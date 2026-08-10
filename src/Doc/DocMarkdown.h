@@ -2,8 +2,6 @@
 
 #include "Doc/DocTypes.h"
 
-#include <span>
-
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;

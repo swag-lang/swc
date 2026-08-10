@@ -5,8 +5,6 @@
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
-#include <mutex>
-#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -228,7 +226,7 @@ public:
     SymbolFlags       flagsForCurrentAccess() const;
 
 private:
-    SymbolAccess                        access_                  = SymbolAccess::Internal;
+    SymbolAccess                        access_ = SymbolAccess::Internal;
     MemberAccessSpec                    memberAccess_;
     const SymbolMap*                    memberAccessMap_         = nullptr;
     bool                                globalCompilerIfEnabled_ = true;

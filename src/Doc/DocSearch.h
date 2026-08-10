@@ -2,8 +2,6 @@
 
 #include "Doc/DocTypes.h"
 
-#include <span>
-
 SWC_BEGIN_NAMESPACE();
 
 // One row of the index a page carries for its own search box. A page indexes what it

@@ -703,7 +703,7 @@ impl Tab
         .invalidate()
     }
 
-    // Enables or disables the standard fade-and-arrival transition between owned pages.
+    // Enables or disables the standard covered cross-fade-and-arrival transition between owned pages.
     mtd setPageTransitions(enabled: bool)
     {
         .pageTransitions = enabled

@@ -200,6 +200,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `SymbolStruct::computeDefaultValue`. The symbol state reported
   `semaCompleted=false typed=true declared=true`. Running
   `tools/std.swgs dm test gui -bc debug` immediately afterward passed 368/368.
+  A second occurrence during F-106 had the same source, assertion, stack and symbol state in the
+  Fast-Debug leg; `tools/std.swgs dm test gui -bc fast-debug` then passed 368/368 immediately.
 - Next step: stress the Debug GUI semantic pass while tracing jobs that publish `RenderCpu`'s
   concrete layout and jobs that compute local default values. Confirm whether default-value
   materialization is missing a wait on the struct's semantic-completion dependency, then reduce the
@@ -241,3 +243,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
   own every column. The second is the shape the passes already imply — wrapping decides where the
   breaks are, indentation decides where the lines start — and it would retire the hanging-line
   bookkeeping.
+
+### F-111 — Concurrent type generation can corrupt declared-method traversal
+
+- Area: compiler
+- Found while: rerunning `tools/tests.swgs dm --all-cfg` for F-106 after an unrelated intermittent
+  semantic-completion assertion had passed on immediate focused rerun.
+- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
+  and a hardware exception while type generation traversed a struct's declared methods. The same
+  compiler and sources had completed the full Release campaign immediately beforehand, and the
+  equality suites had already passed in all three build configurations, so the failure appears
+  scheduling-dependent rather than tied to one deterministic source construct.
+- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
+  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
+  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
+  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
+  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
+  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
+  three configurations.
+- Next step: persist the complete failing module and source context on the next occurrence, then
+  stress parallel type generation while tracing mutation and traversal of struct impl-function
+  lists. Check that every publication read by `declaredMethods` is immutable or protected for the
+  full lifetime of candidate probing before reducing the race to two concurrently completed impls.

@@ -108,6 +108,7 @@ namespace SemaHelpers
     Result                   attachRuntimeAsFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result                   attachRuntimeIsFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result                   attachRuntimeStringCmpFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
+    Result                   attachRuntimeSliceCmpFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result                   requireRuntimeSafetyPanicDependency(Sema& sema, const SourceCodeRef& codeRef);
     Result                   requireRuntimeSafetyPanicDependency(SymbolFunction*& outRuntimeFn, Sema& sema, const SourceCodeRef& codeRef);
     Result                   requireRuntimeAsDependency(Sema& sema, const SourceCodeRef& codeRef);

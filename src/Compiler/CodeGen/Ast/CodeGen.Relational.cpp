@@ -22,10 +22,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasPreparedRuntimeStringCompare(const CodeGen& codeGen)
+    // Sema attaches the comparison helper only where the operands really carry content: an
+    // operand compared against 'null' is a null test and must stay a plain register compare.
+    bool hasPreparedRuntimeContentCompare(const CodeGen& codeGen)
     {
         const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         return payload && payload->runtimeFunctionSymbol != nullptr;
+    }
+
+    SymbolFunction* preparedRuntimeCompareFunction(CodeGen& codeGen, IdentifierManager::PredefinedName fallbackName)
+    {
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
+        if (payload && payload->runtimeFunctionSymbol != nullptr)
+            return payload->runtimeFunctionSymbol;
+
+        const IdentifierRef idRef = codeGen.idMgr().predefined(fallbackName);
+        return idRef.isValid() ? codeGen.compiler().runtimeFunctionSymbol(idRef) : nullptr;
     }
 
     bool shouldReadScalarReference(CodeGen& codeGen, TypeRef typeRef)
@@ -237,21 +249,57 @@ namespace
         materializeCompareOperand(outReg, codeGen, payload, operandTypeRef, compareTypeRef);
     }
 
+    // Turns the 'true when equal' answer of a comparison helper into the boolean the operator
+    // yields, so '!=' costs the same as '=='.
+    void emitContentCompareResult(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& resultPayload)
+    {
+        MicroBuilder&   builder = codeGen.builder();
+        const MicroCond cond    = tokId == TokenId::SymEqualEqual ? MicroCond::NotEqual : MicroCond::Equal;
+        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitSetCondReg(resultPayload.reg, cond);
+        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+    }
+
+    // Two slices compare over their elements, like the array they view. The scalar path below
+    // would only look at the data pointer, so two slices holding the same bytes over different
+    // storage would answer 'false', and two slices of different lengths over the same storage
+    // would answer 'true'.
+    Result emitSliceCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, TypeRef sliceTypeRef)
+    {
+        SymbolFunction* sliceCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeSliceCmp);
+        SWC_ASSERT(sliceCmpSymbol != nullptr);
+        if (!sliceCmpSymbol)
+            return Result::Error;
+
+        const TypeInfo& sliceType   = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sliceTypeRef));
+        const uint64_t  elementSize = codeGen.typeMgr().get(sliceType.payloadTypeRef()).sizeOf(codeGen.ctx());
+
+        MicroBuilder&  builder       = codeGen.builder();
+        const MicroReg leftDataReg   = codeGen.nextVirtualIntRegister();
+        const MicroReg rightDataReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg leftCountReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg rightCountReg = codeGen.nextVirtualIntRegister();
+        const MicroReg sizeReg       = codeGen.nextVirtualIntRegister();
+
+        constexpr uint32_t dataOffset  = offsetof(Runtime::Slice<std::byte>, ptr);
+        constexpr uint32_t countOffset = offsetof(Runtime::Slice<std::byte>, count);
+        builder.emitLoadRegMem(leftDataReg, leftPayload.reg, dataOffset, MicroOpBits::B64);
+        builder.emitLoadRegMem(leftCountReg, leftPayload.reg, countOffset, MicroOpBits::B64);
+        builder.emitLoadRegMem(rightDataReg, rightPayload.reg, dataOffset, MicroOpBits::B64);
+        builder.emitLoadRegMem(rightCountReg, rightPayload.reg, countOffset, MicroOpBits::B64);
+        builder.emitLoadRegImm(sizeReg, ApInt(elementSize, 64), MicroOpBits::B64);
+
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const MicroReg            argRegs[]     = {leftDataReg, rightDataReg, leftCountReg, rightCountReg, sizeReg};
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *sliceCmpSymbol, argRegs, resultPayload.reg));
+
+        emitContentCompareResult(codeGen, tokId, resultPayload);
+        return Result::Continue;
+    }
+
     Result emitStringCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
     {
-        SymbolFunction* stringCmpSymbol = nullptr;
-        const auto*     payload         = codeGen.loweringPayload(codeGen.curNodeRef());
-        if (payload && payload->runtimeFunctionSymbol != nullptr)
-        {
-            stringCmpSymbol = payload->runtimeFunctionSymbol;
-        }
-        else
-        {
-            const IdentifierRef idRef = codeGen.idMgr().predefined(IdentifierManager::PredefinedName::RuntimeStringCmp);
-            if (idRef.isValid())
-                stringCmpSymbol = codeGen.compiler().runtimeFunctionSymbol(idRef);
-        }
-
+        SymbolFunction* stringCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeStringCmp);
         SWC_ASSERT(stringCmpSymbol != nullptr);
         if (!stringCmpSymbol)
             return Result::Error;
@@ -285,10 +333,7 @@ namespace
         SWC_ASSERT(normalizedRet.numBits == 8);
         ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
 
-        const MicroCond cond = tokId == TokenId::SymEqualEqual ? MicroCond::NotEqual : MicroCond::Equal;
-        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
-        builder.emitSetCondReg(resultPayload.reg, cond);
-        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        emitContentCompareResult(codeGen, tokId, resultPayload);
         return Result::Continue;
     }
 
@@ -575,8 +620,13 @@ namespace
 
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef) &&
-            hasPreparedRuntimeStringCompare(codeGen))
+            hasPreparedRuntimeContentCompare(codeGen))
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
+
+        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
+            CodeGenTypeHelpers::isSliceCompareType(codeGen.ctx(), compareTypeRef) &&
+            hasPreparedRuntimeContentCompare(codeGen))
+            return emitSliceCompareBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareTypeRef);
 
         const TypeInfo& compareType                   = codeGen.typeMgr().get(compareTypeRef);
         const bool      leftIsRuntimeTypeInfoPointer  = codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), leftOperandTypeRef);

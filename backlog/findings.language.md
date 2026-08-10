@@ -406,34 +406,72 @@ Entries are sorted by identifier, ascending; position carries no priority.
   used for across `bin/` — if it is overwhelmingly "one field per reflected field", that shape
   deserves a declarative spelling, and the string escape hatch can stay for everything else.
 
-### F-087 — `==` on two slices compares the view, not the content
+### F-093 — Equality accepts fewer slice operand pairs than assignment does
 
 - Area: language
-- Found while: T-039, writing a test that a dragged payload carries the bytes a producer made
-- Observation: `==` between two slices of the same element type compiles and answers whether they
-  are the *same view*, not whether they hold the same bytes. Two slices with identical content over
-  different storage compare `false`, silently. The neighbouring spellings all behave differently:
-  `slice == "literal"` compares content and is what
-  [004_002_slice.swg:98](../bin/reference/modules/language/src/004_002_slice.swg#L98) teaches, while
-  `[..] u8 == string` is rejected outright with "cannot compare". So the same operator means
-  content, identity, or nothing at all depending on which of three closely related types each side
-  has, and only the middle one is silent.
-- Evidence: an isolated probe, `swc test -d <dir>` on one standalone file:
+- Found while: F-087, probing which operand pairs `[..] T == [..] T` accepts now that it compares content
+- Observation: a comparison never writes through its operands, yet equality between two slices demands
+  that both types match exactly. `[..] u8 == const [..] u8` is rejected with "cannot compare", although
+  the very same value converts implicitly when it is passed to a `const [..] u8` parameter, and
+  `slice == [1, 2, 3]` is rejected although the literal converts implicitly on assignment. The
+  neighbouring rules already say otherwise: `checkEqualEqual` accepts any pointer pair whatever their
+  `const`, and `widenNullableCompareOperand` widens a bare operand to `#null` precisely because a
+  comparison cannot write. Slices are the odd one out, and arrays and structs share the gap.
+- Evidence: this predates the F-087 fix — a compiler built before it rejects the same three lines.
+  Isolated probe, `swc test -d <dir>` on one standalone file:
 
   ```swag
-  let src = cast(const [..] u8) "produced"       // 8 bytes, no terminator
-  var buf: [8] u8
-  for [i] in 8 do
-      buf[i] = src[i]
-  let copy: const [..] u8 = buf[0 to 7]
-  @assert(copy == src)                          // fails
+  var bytes: [4] u8        = [1, 2, 3, 4]
+  const cst: const [..] u8 = [1, 2, 3, 4]
+  @assert(bytes[to] == cst)                                 // cannot compare '[..] u8' with 'const [..] u8'
+  @assert(bytes[to] == [1'u8, 2'u8, 3'u8, 4'u8])            // cannot compare with 'array literal'
+
+  var maybe: #null const [..] u8
+  @assert(maybe == bytes[to])                               // cannot compare '#null const [..] u8' with '#null [..] u8'
   ```
 
-  The cost in practice was a passing-looking test that asserted the wrong thing; the fix was
-  `Gui.Testing.bytesAre`, which spells the content comparison with `Memory.compare`.
-- Next step: decide which of the three the operator should mean, then make the other two say so.
-  Content equality is the reading a reader brings from `slice == "literal"`, so the candidates are
-  making `[..] T == [..] T` compare content for a comparable `T`, or rejecting it the way
-  `[..] u8 == string` already is and offering a named `Slice.contentEquals`. Either beats a silent
-  identity test. Search `bin/` for `== ` between two slice-typed operands first: any existing site
-  is either already relying on identity or is a latent defect of this shape.
+- Next step: decide whether equality unifies its operands the way assignment does, for every aggregate
+  rather than for slices alone. `widenNullableCompareOperand` in
+  [Sema.Relational.cpp](../src/Compiler/Sema/Ast/Sema.Relational.cpp) is the shape to copy: widen the
+  narrower operand, then let the regular promotion unify the rest. Check what `[4] u8 == const [4] u8`
+  and `S == const S` already do first — a slices-only rule would trade one inconsistency for another.
+
+### F-094 — A struct compares its bytes, so a string or slice member compares as a view
+
+- Area: language
+- Found while: F-087, checking where else content equality stops
+- Observation: `==` between two structs without an `opEquals` compares their storage byte for byte,
+  so a member whose own `==` compares content does not. Two structs holding equal text over
+  different buffers answer `false` while the two members answer `true`, and nothing says so at the
+  call site. This is not new for `string` — it is what byte comparison has always meant — but it is
+  now the only place a slice still compares as the view it is, which makes the split visible:
+  `a.text == b.text` and `a == b` disagree about the same bytes.
+- Evidence: isolated probe, `swc test -d <dir>`, identical under the JIT and from the binary:
+
+  ```swag
+  struct Holder { text: string, tag: s64 }
+  var g_holders: [2] Holder = undefined
+  var g_left, g_right: [3] u8
+
+  #[Swag.Optimize(false)]
+  func eqHolder(a, b: Holder)->bool => a == b
+
+  g_left  = ['a', 'b', 'c']
+  g_right = ['a', 'b', 'c']
+  g_holders[0].text = cast(string) @mkslice(cast(const [*] u8) &g_left[0], 3'u64)
+  g_holders[1].text = cast(string) @mkslice(cast(const [*] u8) &g_right[0], 3'u64)
+
+  @assert(g_holders[0].text == g_holders[1].text)     // passes
+  @assert(eqHolder(g_holders[0], g_holders[1]))       // fails
+  ```
+
+  A `const [..] u8` member behaves the same way. `emitAggregateEqualsBool` in
+  [CodeGen.Relational.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Relational.cpp) is the byte compare
+  in question.
+- Next step: measure the blast radius before choosing. Count the structs under `bin/` that hold a
+  `string` or a slice and are compared with `==`; a member-wise compare is only worth its cost if
+  that set is small and the current answer is wrong for it. Padding is the other half of the
+  question: the byte compare already reads padding bytes, so a member-wise rule would change more
+  answers than the string ones. Whatever is decided, say it in
+  [003_006_operators.swg](../bin/reference/modules/language/src/003_006_operators.swg) — today the
+  reference states neither rule.

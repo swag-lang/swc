@@ -212,3 +212,32 @@ A pointer can be transformed into a slice by specifying a range.
     @assert(slice[1] == 40)
     @assert(@countof(slice) == 2)
 }
+
+/**
+# Comparing Slices
+
+'==' asks what a slice holds, not where it points. Two slices are equal when they have the
+same count and the same elements, so a copy into other storage compares equal to its
+source, and a shorter view over the same storage does not.
+
+Comparing against 'null' is the one exception: it asks whether the slice has any storage at
+all, which is what a '#null' slice records.
+*/
+
+#test
+{
+    var source: [4] u8 = [1, 2, 3, 4]
+    var copy:   [4] u8 = [1, 2, 3, 4]
+
+    let whole = source[to]
+    let other = copy[to]
+    @assert(@dataof(whole) != @dataof(other))
+    @assert(whole == other)
+
+    let head = source[to 2]
+    @assert(@dataof(whole) == @dataof(head))
+    @assert(whole != head)
+
+    let missing: #null const [..] u8 = null
+    @assert(missing == null)
+}

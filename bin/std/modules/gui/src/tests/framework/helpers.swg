@@ -82,14 +82,9 @@ func textBytes(text: string)->Array'u8
 
 // Whether a byte payload holds exactly the bytes of 'text'.
 //
-// Two slices compare as the views they are rather than as their content, so a test that means
-// "these bytes say this" has to ask for it.
-func bytesAre(bytes: const [..] u8, text: string)->bool
-{
-    if @countof(bytes) != cast(u64) @countof(text) do
-        return false
-    return Memory.compare(@dataof(bytes), @dataof(text), @countof(bytes)) == 0
-}
+// Slices compare over their content, but bytes and text are different types, so the
+// reinterpretation is spelled once here instead of at every call site.
+func bytesAre(bytes: const [..] u8, text: string)->bool => bytes == cast(const [..] u8) text
 
 // Deterministic BGRA test image: every pixel derives from its coordinates, so a
 // save/load round-trip can be verified byte-for-byte.

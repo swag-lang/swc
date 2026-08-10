@@ -243,6 +243,35 @@ namespace
         return leftType.isString() && rightType.isString();
     }
 
+    // Two slices compare like the array they view: same count, same elements. The operand pair
+    // that reaches here has already been unified, so both sides share one element type and one
+    // element size.
+    bool isSliceCompareOperands(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        if (!nodeLeftView.type() || !nodeRightView.type())
+            return false;
+
+        const TypeRef leftTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
+        const TypeRef rightTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeRightView.typeRef());
+        if (!leftTypeRef.isValid() || !rightTypeRef.isValid())
+            return false;
+
+        return sema.typeMgr().get(leftTypeRef).isSlice() && sema.typeMgr().get(rightTypeRef).isSlice();
+    }
+
+    bool sameSliceContent(const ConstantValue& leftCst, const ConstantValue& rightCst)
+    {
+        if (leftCst.getSliceCount() != rightCst.getSliceCount())
+            return false;
+
+        const std::span<const std::byte> leftBytes  = leftCst.getSlice();
+        const std::span<const std::byte> rightBytes = rightCst.getSlice();
+        if (leftBytes.size() != rightBytes.size())
+            return false;
+
+        return std::equal(leftBytes.begin(), leftBytes.end(), rightBytes.begin());
+    }
+
     bool hasNullComparableOperandConstant(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.cst() && isNullComparableConstant(sema, *nodeLeftView.cst()))
@@ -301,6 +330,15 @@ namespace
         if (compareLeftType.isString() && compareRightType.isString() && compareLeftView.cst()->isString() && compareRightView.cst()->isString())
         {
             result = sema.cstMgr().cstBool(compareLeftView.cst()->getString() == compareRightView.cst()->getString());
+            return Result::Continue;
+        }
+
+        // A slice constant carries its elements, so folding answers the same content question the
+        // runtime call answers. A 'null' operand is not a slice constant and keeps falling through
+        // to the null comparison below.
+        if (compareLeftType.isSlice() && compareRightType.isSlice() && compareLeftView.cst()->isSlice() && compareRightView.cst()->isSlice())
+        {
+            result = sema.cstMgr().cstBool(sameSliceContent(*compareLeftView.cst(), *compareRightView.cst()));
             return Result::Continue;
         }
 
@@ -850,9 +888,13 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
 
     if (!canConstantFold &&
         (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual) &&
-        isStringCompareOperands(sema, nodeLeftView, nodeRightView) &&
         !hasNullComparableOperandConstant(sema, nodeLeftView, nodeRightView))
-        SWC_RESULT(SemaHelpers::attachRuntimeStringCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
+    {
+        if (isStringCompareOperands(sema, nodeLeftView, nodeRightView))
+            SWC_RESULT(SemaHelpers::attachRuntimeStringCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
+        else if (isSliceCompareOperands(sema, nodeLeftView, nodeRightView))
+            SWC_RESULT(SemaHelpers::attachRuntimeSliceCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
+    }
 
     return Result::Continue;
 }

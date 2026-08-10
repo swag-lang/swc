@@ -36,13 +36,31 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
             return
         }
 
+        // Order the first, middle and last values, then partition around the median of the
+        // three, which this leaves at 'begin'. Taking the front value itself is the quadratic
+        // case for a range that is already sorted, or exactly reversed — and re-sorting an
+        // array that is already in order is an ordinary thing for a caller to do.
+        let mid = begin + (end - begin) / 2
+        if compare(buffer[mid], buffer[begin]) < 0 do
+            swap(&buffer[mid], &buffer[begin])
+        if compare(buffer[end], buffer[begin]) < 0 do
+            swap(&buffer[end], &buffer[begin])
+        if compare(buffer[end], buffer[mid]) < 0 do
+            swap(&buffer[end], &buffer[mid])
+        swap(&buffer[begin], &buffer[mid])
+
+        // Both scans stop on a value equal to the pivot, so a run of equal values is split
+        // down the middle. A scan that walked over its equals instead would peel one element
+        // per level, which is the same quadratic case reached from the other side.
         let pivot = begin
         var low   = begin
-        var high  = end
+        var high  = end + 1
         for
         {
-            while low < high and compare(buffer[low], buffer[pivot]) <= 0 do
+            low += 1
+            while low <= end and compare(buffer[low], buffer[pivot]) < 0 do
                 low += 1
+            high -= 1
             while compare(buffer[high], buffer[pivot]) > 0 do
                 high -= 1
             if low >= high do

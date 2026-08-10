@@ -4,6 +4,11 @@ internal var g_UpdatingLib: bool
 internal var g_DirtyList: bool = true
 internal const ItemMargin = 8.0
 
+// How often the visible set is rebuilt while the previews are still streaming in. Each
+// loaded capture marks the list dirty, so without a cadence the rebuild runs on every
+// frame of the load, and each rebuild is proportional to the whole library.
+internal const ListRefreshDelay = 200
+
 enum LibraryItemKind
 {
     Capture
@@ -54,6 +59,7 @@ struct LibraryView
     filterYear:  u64
     filterMonth: u64
     filterDay:   u64
+    listRefresh: Time.Stopwatch
     #[Swag.Late]
     imgSpin: *Spinner
 }
@@ -208,9 +214,8 @@ impl IWnd for LibraryView
         var y = clientRect.y
 
         let {w, h} = .getPreviewSize()
-        if g_DirtyList
+        if g_DirtyList and .takeListRefresh()
         {
-            g_DirtyList = false
             .filter()
             .sort()
             .libWnd.refreshAutomaticFilters()
@@ -325,6 +330,23 @@ impl IWnd for LibraryView
 
 impl LibraryView
 {
+    // Answers whether this frame rebuilds the visible set, and consumes the dirty mark when it
+    // does.
+    //
+    // Every loaded capture marks the list dirty and asks for a repaint, and the spinner repaints
+    // on its own besides, so a load of a large library asks for one full rebuild per frame. The
+    // list converges just as well on a fixed cadence, and the last state is never missed: the
+    // loader clears 'g_UpdatingLib' before its final repaint, and that frame rebuilds at once.
+    mtd takeListRefresh()->bool
+    {
+        if g_UpdatingLib and .listRefresh.isRunning() and .listRefresh.elapsedMilliseconds() < ListRefreshDelay do
+            return false
+
+        g_DirtyList = false
+        .listRefresh.restart()
+        return true
+    }
+
     mtd stopLoading()
     {
         if !.thread.isValid() do
@@ -467,6 +489,12 @@ impl LibraryView
 
         .items.clear()
         let search = .libWnd.searchText.toString()
+
+        // Both folders are resolved once for the whole pass. They do not change while it runs,
+        // and asking for them per item is a path build — and, for the default library, a shell
+        // lookup — repeated as many times as the library holds captures.
+        let dateFilterApplies = .libWnd.currentFolder() == Library.getFolder()
+
         for it in .allItems
         {
             let itn = it!
@@ -477,7 +505,7 @@ impl LibraryView
             let itemLoaded = itn.loaded
             .mutexLoaded.unlock()
 
-            if .libWnd.currentFolder() == Library.getFolder() and
+            if dateFilterApplies and
                ((.filterYear != 0 and itn.fi.lastWriteTime.year != .filterYear) or
                 (.filterMonth != 0 and itn.fi.lastWriteTime.month != .filterMonth) or
                 (.filterDay != 0 and itn.fi.lastWriteTime.day != .filterDay))
@@ -701,30 +729,47 @@ impl LibraryView
 
     mtd sortFiles()
     {
+        // Only the active criterion is read. A comparator runs O(n log n) times per re-sort and
+        // the list re-sorts while the previews stream in, so materializing every criterion — two
+        // file names, two applications, two window titles — on each comparison was most of the
+        // cost of a re-sort, whichever criterion was actually selected.
         .items.sort(func|libWnd = me.libWnd|(a, b)
         {
             var value: s32
 
-            let captureA     = a.capture
-            let captureB     = b.capture
-            let nameA        = captureA and !captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullname) orelse "")
-            let nameB        = captureB and !captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullname) orelse "")
-            let applicationA = captureA ? captureA.sourceApplication.toString() : ""
-            let applicationB = captureB ? captureB.sourceApplication.toString() : ""
-            let windowA      = captureA ? captureA.sourceWindowTitle.toString() : ""
-            let windowB      = captureB ? captureB.sourceWindowTitle.toString() : ""
-            let capturedA    = captureA and captureA.capturedAt.isValid() ? captureA.capturedAt : a.fi.lastWriteTime
-            let capturedB    = captureB and captureB.capturedAt.isValid() ? captureB.capturedAt : b.fi.lastWriteTime
+            let captureA = a.capture
+            let captureB = b.capture
 
             switch libWnd.sortMethod
             {
-            case .Recent:      value = capturedB <=> capturedA
-            case .Modified:    value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
-            case .Name:        value = Utf8.compare(nameA, nameB, .Latin1NoCase)
-            case .Application: value = Utf8.compare(applicationA, applicationB, .Latin1NoCase)
-            case .WindowTitle: value = Utf8.compare(windowA, windowB, .Latin1NoCase)
-            case .Dimensions:  value = cast(u64) b.width * cast(u64) b.height <=> cast(u64) a.width * cast(u64) a.height
-            case .FileSize:    value = b.fi.size <=> a.fi.size
+            case .Recent:
+                let capturedA = captureA and captureA.capturedAt.isValid() ? captureA.capturedAt : a.fi.lastWriteTime
+                let capturedB = captureB and captureB.capturedAt.isValid() ? captureB.capturedAt : b.fi.lastWriteTime
+                value = capturedB <=> capturedA
+
+            case .Modified:
+                value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
+
+            case .Name:
+                let nameA = captureA and !captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullname) orelse "")
+                let nameB = captureB and !captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullname) orelse "")
+                value = Utf8.compare(nameA, nameB, .Latin1NoCase)
+
+            case .Application:
+                let applicationA = captureA ? captureA.sourceApplication.toString() : ""
+                let applicationB = captureB ? captureB.sourceApplication.toString() : ""
+                value = Utf8.compare(applicationA, applicationB, .Latin1NoCase)
+
+            case .WindowTitle:
+                let windowA = captureA ? captureA.sourceWindowTitle.toString() : ""
+                let windowB = captureB ? captureB.sourceWindowTitle.toString() : ""
+                value = Utf8.compare(windowA, windowB, .Latin1NoCase)
+
+            case .Dimensions:
+                value = cast(u64) b.width * cast(u64) b.height <=> cast(u64) a.width * cast(u64) a.height
+
+            case .FileSize:
+                value = b.fi.size <=> a.fi.size
             }
 
             if !value do

@@ -7,6 +7,10 @@ struct Library
     rootFolder:   String
     revision:     u64
     loaded:       bool
+
+    // Resolved default folder, kept because the documents folder is a shell lookup and the
+    // library grid asks for the folder once per item. See 'getDefaultFolder'.
+    internal defaultFolder: String
 }
 
 impl Library
@@ -28,11 +32,19 @@ impl Library
 
     // Returns the stable default folder. Application state stays here even when the user
     // points the capture library somewhere else, so that choice can be found next launch.
+    //
+    // The answer cannot change while the process runs, and reaching the documents folder is a
+    // shell call: resolve it once. The library grid asks for the library folder once per item
+    // as it filters, and paying that call per item is what made a large library crawl.
     func getDefaultFolder()->String
     {
+        if !g_Library.defaultFolder.isEmpty() do
+            return g_Library.defaultFolder
+
         let str = Env.getSpecialDirectory(.UserDocuments)
         Debug.assert(!str.isEmpty())
-        return Path.combine(str, "sCapture")
+        g_Library.defaultFolder = Path.combine(str, "sCapture")
+        return g_Library.defaultFolder
     }
 
     // Returns the configured folder holding captures and browsable images.

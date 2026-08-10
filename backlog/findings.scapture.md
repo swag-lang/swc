@@ -69,3 +69,32 @@ Entries are sorted by identifier, ascending; position carries no priority.
   then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
   DPI crossing, `Surface` is where the ordering of the two rebuilds is decided. Move this entry to
   [findings.gui.md](findings.gui.md) once that bisection puts the defect in `Surface`.
+
+## Library scale
+
+### F-112 — A capture stores its images uncompressed, and the library reads all of them whole
+
+- Area: apps/sCapture, std/core (serialization), std/pixel
+- Found while: measuring why the library grid crawls on a real library. The grid work itself was a
+  separate defect and is fixed; this is what remained underneath.
+- Observation: the author's library holds 742 captures for 11.7 GB — 15.8 MB per capture on
+  average, up to 95.9 MB for one. A capture at 1920x1080 in BGRA8 is 8.3 MB of pixels, and a
+  capture stores two of them (`backImg` and `backImgOriginal`), which is the average almost
+  exactly. `Image.pixels` carries no `Serialization.Compress`, so those pixels travel raw. The
+  sizes are not new: the 2024 files already average 11 MB.
+- Second half of the cost: `Capture.load` reads the file with `File.readAllBytes` before it
+  decodes anything, so the preview load the library performs — which asks TagBin to ignore
+  `backImg` and `backImgOriginal` — still reads every one of those bytes off the disk. Showing a
+  256-pixel thumbnail for the whole library moves 11.7 GB.
+- Measured: 250 real captures, warm cache, `Capture.load(preview: true)` costs 9.7 ms each,
+  2.4 s for the 250; the raw `File.readAllBytes` pass over the same 250 moves 3.9 GB. A synthetic
+  probe over a TagBin stream carrying a 200 KB compressed payload decodes in 459 us against 79 us
+  when the payload is ignored, so the decode is not what dominates — the bytes are.
+- Next step: two independent moves, either of which stands alone.
+  1. Compress the pixel payload. `#[Serialization.Compress]` on `Image.pixels` costs a deflate
+     pass per save and shrinks a screen capture by a large factor; check what it does to save
+     latency before adopting it, since a capture is saved interactively.
+  2. Stop reading the whole file to answer a preview. The container header is already versioned
+     (`CaptureFileMagic`), so a preview offset (or a sidecar) would let the library read a few
+     kilobytes per capture instead of megabytes. This is the move that makes the library scale
+     regardless of what the pixels cost.

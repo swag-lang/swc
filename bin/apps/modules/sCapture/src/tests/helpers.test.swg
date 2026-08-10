@@ -91,6 +91,7 @@ func testUseScratchLibrary()
 {
     @assert(Env.isSandboxed())
     g_Library.rootFolder.clear()
+    g_Library.defaultFolder.clear()
     discard catch Library.init()
 
     g_Library.files.clear()

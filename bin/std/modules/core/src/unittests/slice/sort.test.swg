@@ -69,3 +69,39 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
     @assert(assertIntSlice(values, expected))
     @assert(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
+
+// Number of comparisons Slice.sort needs for 'values', which the sort must leave ordered.
+func countedSortCompares(values: [..] s32)->u64
+{
+    var compares = 0'u64
+    Slice.sort(values, func|counter = &compares|(x, y: s32)->s32
+    {
+        dref counter += 1
+        return x <=> y
+    })
+
+    @assert(Slice.isSorted(values))
+    return compares
+}
+
+// An input that is already ordered, or exactly reversed, must not cost the quadratic case.
+// Both are what a caller produces by re-sorting a list it sorted a moment ago.
+#test
+{
+    const Count       = 2000'u64
+    const MaxCompares = 20 * Count
+
+    var ascending: Core.Array's32
+    var reversed:  Core.Array's32
+    var equal:     Core.Array's32
+    for [i] in Count
+    {
+        ascending.add(cast(s32) i)
+        reversed.add(cast(s32) (Count - i))
+        equal.add(7)
+    }
+
+    @assert(countedSortCompares(ascending.toSlice()) < MaxCompares)
+    @assert(countedSortCompares(reversed.toSlice()) < MaxCompares)
+    @assert(countedSortCompares(equal.toSlice()) < MaxCompares)
+}

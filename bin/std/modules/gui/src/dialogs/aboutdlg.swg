@@ -27,7 +27,7 @@ public struct AboutDlgParams
 
 public impl AboutDlg
 {
-    // Creates an about dialog; zero dimensions use the standard 500 by 300 size.
+    // Creates an about dialog; a zero width uses 500 units and a zero height fits the content.
     #[Swag.Discardable]
     func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg
     {
@@ -52,13 +52,14 @@ public impl AboutDlg
             {
                 .dockStyle = .Left
                 .setIcon(params.contentIcon)
-                .setIconAlignment(.Left, .Top)
+                .setIconAlignment(.Left, .Center)
             }
         }
 
-        // The name and its description form the same top-aligned column every predefined
-        // dialog uses: one heading, one measured gap, then the supporting copy.
-        with let stackLayout = StackLayoutCtrl.create(body)
+        // The name and its description form one centered group: one heading, one measured gap,
+        // then the supporting copy. Any remaining room is shared above and below the group.
+        let stackLayout = StackLayoutCtrl.create(body, .VerticalCenter)
+        with stackLayout
         {
             .dockStyle = .Center
             .spacing   = metrics.dialog_BtnPadding * 2
@@ -90,6 +91,16 @@ public impl AboutDlg
 
         dlg.addButton(strings().dlg_Close, Dialog.BtnCancel, true)
         dlg.sendResizeEvent()
+        if height == 0
+        {
+            dlg.applyLayout()
+            let availableWidth = Math.max(stackLayout.position.width, 1)
+            var contentHeight  = stackLayout.measure({availableWidth, 0}).preferred.y
+            if params.contentIcon.isValid() do
+                contentHeight = Math.max(contentHeight, cast(f32) params.contentIcon.sizeY)
+            dlg.fitHeightToContent(contentHeight)
+            srf.center(from)
+        }
         return dlg
     }
 }

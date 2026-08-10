@@ -36,7 +36,7 @@ impl Dialog
     newCmdId("BtnOk")
     newCmdId("BtnCancel")
 
-    // Creates and centers a dialog surface owned by `from`.
+    // Creates and centers a compact-caption dialog surface owned by `from`.
     #[Swag.Discardable]
     func create(from: *Surface, width = 512, height = 300, title: #null string = null, flags = SurfaceFlags.None)->*Dialog
     {
@@ -77,6 +77,9 @@ impl Dialog
     }
 
     // Creates and attaches the native surface used by this dialog.
+    //
+    // Dialogs use the compact caption unless `flags` explicitly contains
+    // [[Gui.SurfaceFlags.LargeCaption]].
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.None)->*Surface
     {
         Debug.assert(from != null)
@@ -89,7 +92,8 @@ impl Dialog
         // puts it on, and a caller asking for it here is ignored.
         // A modal box sits on an application cut from the same ink. Without an edge of its
         // own it reads as part of the surface underneath it, so every dialog is outlined.
-        let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | SurfaceFlags.Border | (flags & ~SurfaceFlags.CloseButton)
+        let captionFlags = flags.has(.LargeCaption) ? SurfaceFlags.LargeCaption : SurfaceFlags.SmallCaption
+        let surfaceFlags = captionFlags | SurfaceFlags.ToolWindow | SurfaceFlags.Border | (flags & ~(SurfaceFlags.CloseButton | SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption))
         let srf          = (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))!
         srf.wnd.view.backgroundStyle = .Dialog
 
@@ -129,6 +133,31 @@ impl Dialog
         content.setAllPaddings(.themeMetrics().dialog_Padding)
         .contentView = content
         return content
+    }
+
+    // Gives the surface exactly the vertical room needed by its standard body.
+    //
+    // `contentHeight` excludes the body inset, action bar, caption, border, and shadow. Keeping
+    // those shared layers here prevents each predefined dialog from carrying a stale fixed
+    // allowance when one of the common metrics changes.
+    internal mtd fitHeightToContent(contentHeight: f32)
+    {
+        Debug.assert(contentHeight >= 0, "dialog content height cannot be negative")
+
+        let metrics = .themeMetrics()
+        let surface = .surface!
+        var height  = contentHeight + 2 * metrics.dialog_Padding
+        height += .buttonBar.position.height + 2 * metrics.wnd_BorderSize
+        if surface.flags & .SmallCaption do
+            height += metrics.wnd_SmallCaptionCY
+        elif surface.flags & .LargeCaption do
+            height += metrics.wnd_BigCaptionCY
+        height += 2 * surface.shadowMargin()
+
+        var pos = surface.position
+        pos.height = height * surface.dpiScale
+        surface.setPosition(pos)
+        .applyLayout()
     }
 
     // Runs the dialog modally and returns the accepted button identifier.

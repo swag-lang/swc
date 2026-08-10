@@ -52,9 +52,8 @@ impl FormDlg
         surface.center(from)
         surface.minSize = {Math.min(options.width, 360), Math.min(options.height, 240)}
 
-        result.form           = FormLayoutCtrl.create(surface.view(), options.formOptions)
+        result.form           = FormLayoutCtrl.create(result.createContentView(), options.formOptions)
         result.form.dockStyle = .Center
-        result.form.setAllMargins(result.themeMetrics().dialog_Padding)
 
         result.addButton(@countof(options.confirmButtonText) ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)
         if options.showCancelButton do

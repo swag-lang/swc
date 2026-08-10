@@ -175,10 +175,9 @@ impl FileDlg
 
         dlg.addButton(confirmText, Dialog.BtnOk, true)
         dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
-        dlg.backgroundStyle = .Window
 
         // Host the reusable browser composite.
-        with dlg.browser = FileBrowserCtrl.create(srf.view(), opt)
+        with dlg.browser = FileBrowserCtrl.create(dlg.createContentView(), opt)
         {
             .dockStyle             = .Center
             .sigAccepted           += func|fileDlg = dlg|(b) { fileDlg.closeWithResult(Dialog.BtnOk) }

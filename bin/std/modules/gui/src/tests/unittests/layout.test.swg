@@ -62,6 +62,24 @@ using Swag, Core
     @assert(c2.position.x == 125)
 }
 
+// StackLayoutCtrl HorizontalEnd keeps source order and aligns the group to the trailing edge.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(220, 120)
+    defer host.shutdown()
+    let stack = StackLayoutCtrl.create(&host.root, .HorizontalEnd, {0, 0, 200, 100})
+    stack.spacing = 5
+    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    stack.computeLayout()
+
+    @assert(c0.position.x == 70)
+    @assert(c1.position.x == 115)
+    @assert(c2.position.x == 160)
+}
+
 // StackLayoutCtrl VertCenter centers children vertically as a group.
 #test
 {

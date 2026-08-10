@@ -20,6 +20,17 @@ var g_FileState: FileDlgState
 // Modal dialog launchers (run on button click in interactive mode).
 //
 
+func onAbout(_b: *Button)
+{
+    var params: AboutDlgParams = undefined
+    params.surfaceTitle = "About GUI9"
+    params.contentTitle = "Swag GUI dialogs"
+    params.message      = "One shared composition for every predefined dialog: an inset body, a quiet action bar, and palette-owned color."
+    params.surfaceIcon  = app.theme.icon(.About, 18)
+    params.contentIcon  = app.theme.icon(.About, 64)
+    discard AboutDlg.create(g_Surface!, params).doModal()
+}
+
 func onMsgOk(_b: *Button)
 {
     MessageDlg.ok(g_Surface!, "This is a simple information message.")
@@ -66,6 +77,22 @@ func onEditMulti(_b: *Button)
     opt.message = "Enter a description:"
     opt.text    = "First line\nSecond line"
     discard EditDlg.createMultiLine(g_Surface!, opt).doModal()
+}
+
+func onForm(_b: *Button)
+{
+    var opt: FormDlgOptions
+    opt.title = "Profile"
+
+    let dlg = FormDlg.create(g_Surface!, opt)
+    discard dlg.form.addTextField("NAME", "Ada", placeholder: "Display name")
+    discard dlg.form.addPasswordField("PASSWORD", placeholder: "Optional password", help: "Leave empty to keep the current password.")
+    let role = dlg.form.addChoiceField("ROLE")
+    role.addItem("Developer")
+    role.addItem("Designer")
+    role.setSelectedIndex(0, false)
+    dlg.form.computeLayout()
+    discard dlg.doModal()
 }
 
 func onFileOpen(_b: *Button)
@@ -153,6 +180,7 @@ func createRootView()
         .spacing   = 8
         .setAllPaddings(16)
 
+        addDlgButton(stack, "About", &onAbout)
         addDlgButton(stack, "Message: OK", &onMsgOk)
         addDlgButton(stack, "Message: OK / Cancel", &onMsgOkCancel)
         addDlgButton(stack, "Message: Yes / No", &onMsgYesNo)
@@ -161,6 +189,7 @@ func createRootView()
         addDlgButton(stack, "Message: Error", &onMsgError)
         addDlgButton(stack, "Edit: single line", &onEditSingle)
         addDlgButton(stack, "Edit: multi line", &onEditMulti)
+        addDlgButton(stack, "Form", &onForm)
         addDlgButton(stack, "File: open", &onFileOpen)
         addDlgButton(stack, "File: save", &onFileSave)
         addDlgButton(stack, "File: select folder", &onSelectFolder)

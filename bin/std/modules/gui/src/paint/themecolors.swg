@@ -74,8 +74,9 @@ struct ThemeColors
 
     view_Bk: Color     // Ground content is read on.
 
-    dlg_Bk:       Color     // Ground of a dialog.
-    dlg_BtnBarBk: Color     // Ground of the button bar of a dialog.
+    dlg_Bk:              Color     // Ground of a dialog.
+    dlg_BtnBarBk:        Color     // Ground of the button bar of a dialog.
+    dlg_InformationIcon: Color     // Glyph of an informational or question dialog.
 
     btnPush_StrongText:   Color     // Label of a filled action.
     btnPush_StrongBorder: Color     // Border of a filled action.
@@ -532,8 +533,9 @@ impl ThemeColors
 
         .view_Bk = p.view
 
-        .dlg_Bk       = p.panel
-        .dlg_BtnBarBk = p.view
+        .dlg_Bk              = p.panel
+        .dlg_BtnBarBk        = p.view
+        .dlg_InformationIcon = p.infoText
 
         // The outline comes from the mark and the fill from the block, which is the same color
         // wherever the two agree. Where they do not, the outline is what gives a Voltage button
@@ -957,8 +959,10 @@ impl ThemeColors
         result.veil   = 0xFFFFFFFF
         result.shadow = 0x5A000000
 
-        result.caption         = 0xFF2C2C2C
-        result.captionInactive = 0xFF262626
+        // A flat caption still has to read as chrome. The previous band sat four levels above
+        // a content view and disappeared into it once the accent rule below it was removed.
+        result.caption         = 0xFF353535
+        result.captionInactive = 0xFF2C2C2C
         result.windowBorder    = 0xFF505050
 
         // A neutral theme follows the desktop it sits on, and the desktop draws a flat bar.

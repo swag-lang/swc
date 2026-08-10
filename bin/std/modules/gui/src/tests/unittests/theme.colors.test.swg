@@ -21,6 +21,7 @@ using Swag, Core
     @assert(colors.btnIcon_CheckedIcon == 0xFFF7F900)
     @assert(colors.view_Bk == 0xFF15151A)
     @assert(colors.wnd_Bk == 0xFF202026)
+    @assert(colors.dlg_InformationIcon == 0xFFB6D2F2)
     @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
     @assert(colors.wnd_CaptionBkLead == 0xFF46462B)
     @assert(colors.wnd_CaptionBkTrail == 0xFF212127)
@@ -53,6 +54,7 @@ using Swag, Core
     @assert(colors.activeRail == 0xFF0B0B0D)
     @assert(colors.btnIcon_CheckedBk == 0x00000000)
     @assert(colors.btnIcon_CheckedIcon == 0xFF0B0B0D)
+    @assert(colors.dlg_InformationIcon == 0xFF2E4270)
     @assert(colors.menuBar_SelectedBk == 0xFFECECF4)
     @assert(colors.popupItem_HotBk == 0xFFECECF4)
     @assert(colors.listItem_FocusSelectedBk == 0xFFE0E0EB)
@@ -100,6 +102,13 @@ using Swag, Core
         @assert(colors.wnd_CaptionBkLead == colors.wnd_CaptionBk)
         @assert(colors.wnd_CaptionBkTrail == colors.wnd_CaptionBk)
     }
+
+    // Flat does not mean merged. Without the accent rule applications used to draw below the
+    // caption, the neutral dark band still needs its own step above the content view.
+    var dark: ThemeColors
+    dark.setDark()
+    @assert(dark.wnd_CaptionBk == 0xFF353535)
+    @assert(dark.wnd_CaptionBk != dark.view_Bk)
 }
 
 // A surface outline is one stroke crossing two grounds: the caption ground down to the caption

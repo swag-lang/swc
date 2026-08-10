@@ -44,6 +44,11 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     @assert(dlg.buttons.count == 2)
     @assert(dlg.buttons[0].id == Dialog.BtnOk)
     @assert(dlg.buttons[1].id == Dialog.BtnCancel)
+    @assert(dlg.contentView == dlg.form.parent)
+    @assert(dlg.buttonBar.mode == .HorizontalEnd)
+    @assert(dlg.buttonBar.spacing == dlg.themeMetrics().dialog_BtnPadding)
+    @assert(dlg.contentView!.padding.x == dlg.themeMetrics().dialog_Padding)
+    @assert(dlg.contentView!.padding.y == dlg.themeMetrics().dialog_Padding)
 
     var didClose: bool
     host.app.sigFrame += func|host = &host, didClose = &didClose|(app)

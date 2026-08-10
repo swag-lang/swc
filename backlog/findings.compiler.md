@@ -199,3 +199,24 @@ Entries are sorted by identifier, ascending; position carries no priority.
   constants are published. Compare with the counted form `for [i] in Samples`, which resolves the
   same symbol correctly from the same header — the difference between those two paths is where the
   answer is. Add the case to the `parser` or `sema` suite depending on which side it lands on.
+
+### F-093 — A typed struct can intermittently reach default-value materialization before its size
+
+- Area: compiler
+- Found while: running `tools/tests.swgs dm changed --all-cfg` after a GUI theme and dialog pass.
+- Observation: semantic parsing intermittently asserts that a struct size is nonzero while
+  materializing the default value of `var cpu: RenderCpu`. The reported `RenderCpu` symbol is typed
+  and declared but has not completed semantic analysis. An immediate focused rerun of the same GUI
+  tests in Debug succeeds without source or compiler changes, which points to dependency scheduling
+  rather than an invalid declaration or a deterministic configuration error.
+- Evidence: the failure occurred in `bin/std/modules/gui/src/tests/unittests/headless.render.test.swg:10`
+  during the Debug leg, after the Release GUI tests had passed 368/368. The assertion is
+  `sizeInBytes != 0` in `src/Compiler/Sema/Symbol/Symbol.Struct.cpp:50`; its stack reaches
+  `resolveStaticPayloadRequiredShardIndex`, `materializeStaticPayloadConstant`, and
+  `SymbolStruct::computeDefaultValue`. The symbol state reported
+  `semaCompleted=false typed=true declared=true`. Running
+  `tools/std.swgs dm test gui -bc debug` immediately afterward passed 368/368.
+- Next step: stress the Debug GUI semantic pass while tracing jobs that publish `RenderCpu`'s
+  concrete layout and jobs that compute local default values. Confirm whether default-value
+  materialization is missing a wait on the struct's semantic-completion dependency, then reduce the
+  case to two imported structs before adding a compiler suite regression.

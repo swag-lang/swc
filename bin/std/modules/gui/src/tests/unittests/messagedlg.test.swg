@@ -31,6 +31,10 @@ func unbreakableMessage()->String
         .addButton("Ok", Dialog.BtnOk, true)
     }
 
+    @assert(dlg.label.textHorizontalAlignment == .Left)
+    @assert(dlg.contentView != null)
+    @assert(dlg.label.parent!.parent == dlg.contentView)
+
     // The box sizes itself as it opens, so its rectangle is read from inside the modal loop.
     var width = 0'f32
     host.app.sigFrame += func|host = &host, dlg, width = &width|(app)

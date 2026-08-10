@@ -30,19 +30,14 @@ public impl EditDlg
     func createSingleLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
         Debug.assert(from != null)
-        let dlg     = Wnd.create'EditDlg()
-        let metrics = from.wnd.themeMetrics()
-        let srf     = dlg.createSurface(from, 0, 0, 450, 210)
+        let dlg = Wnd.create'EditDlg()
+        let srf = dlg.createSurface(from, 0, 0, 450, 210)
         srf.setTitle(options.title)
 
-        dlg.edit = EditBox.create(srf.view(), "")
+        dlg.edit = EditBox.create(dlg.createContentView(), "")
         with dlg.edit
         {
             .dockStyle = .Bottom
-            .margin    = metrics.dialog_Padding
-            .style.addStyleSheetColors("edit_Bk $dlg_BtnBarBk")
-            .style.addStyleSheetColors("edit_FocusBk $dlg_BtnBarBk")
-            .setForm(.RoundedRectangle)
             .setFocus()
         }
 
@@ -59,23 +54,20 @@ public impl EditDlg
     {
         Debug.assert(from != null)
         Debug.assert(options.editorHeight > 0, "editor height must be positive")
-        let dlg     = Wnd.create'EditDlg()
-        let metrics = from.wnd.themeMetrics()
-        let srf     = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
+        let dlg = Wnd.create'EditDlg()
+        let srf = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
         srf.setTitle(options.title)
         srf.minSize.x = 500
         srf.minSize.y = 180 + options.editorHeight
 
-        dlg.richEdit = RichEditCtrl.create(srf.view(), {0, 0, 0, options.editorHeight})
+        dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), {0, 0, 0, options.editorHeight})
         with dlg.richEdit
         {
             .anchorStyle = .Height
             .dockStyle   = .Bottom
-            .margin      = metrics.dialog_Padding
             .setFlags(.flags | .AutoLoseFocus)
-            .backgroundColorModel = "$dlg_BtnBarBk"
             .setForm(.Edit)
-            .setFrameForm(.Round)
+            .setFrameForm(.Square)
             .setFrameFlags(.FocusBorder)
             .setFocus()
         }
@@ -136,20 +128,12 @@ public impl EditDlg
         if !@isset(.label)
         {
             @assert(.surface != null)
-            .label = Label.create(.surface.view(), message, {0, 0, 0, height})
+            .label = Label.create(.contentView!, message, {0, 0, 0, height}, flags: .WordWrap | .SecondaryText)
             with me.label
             {
                 .dockStyle = .Center
-                .setTextAlignment(.Center, .Center)
-            }
-
-            let edit2 = .edit
-            if edit2 do
-                edit2.margin.y = 0
-            else
-            {
-                let richEdit = .richEdit!
-                richEdit.margin.y = 0
+                .margin.w  = .themeMetrics().dialog_BtnPadding * 2
+                .setTextAlignment(.Left, .Center)
             }
 
             // The surface rectangle is physical; the added message height is logical.

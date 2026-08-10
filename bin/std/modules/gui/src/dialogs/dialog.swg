@@ -14,6 +14,9 @@ struct Dialog
         buttons:       Array'(*PushButton)              // Buttons in insertion order.
         parentSurface: #null *Surface                   // Surface that owns the modal dialog.
     }
+
+    internal
+    contentView: #null *Wnd     // Standard padded body created by the predefined dialog family.
 }
 
 impl IWnd for Dialog
@@ -92,14 +95,14 @@ impl Dialog
 
         let metrics = .themeMetrics()
         var h       = metrics.btnPush_Height
-        h += 2 * metrics.dialog_Padding
+        h += 2 * metrics.dialog_BtnPadding
         with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", {0, 0, 0, h})
         {
-            .spacing         = 10
-            .mode            = .Center
+            .spacing         = metrics.dialog_BtnPadding
+            .mode            = .HorizontalEnd
             .dockStyle       = .Bottom
             .backgroundStyle = .DialogBar
-            .setAllPaddings(metrics.dialog_Padding)
+            .padding         = {metrics.dialog_Padding, metrics.dialog_BtnPadding, metrics.dialog_Padding, metrics.dialog_BtnPadding}
         }
 
         return srf
@@ -109,6 +112,23 @@ impl Dialog
     mtd view()->*Wnd
     {
         return .surface!.wnd.view
+    }
+
+    // Creates the common body used by the predefined dialog family.
+    //
+    // The body owns the outer inset once, so individual dialogs only express the spacing
+    // between their own pieces. A raised content ground and a quieter action ground then
+    // separate the two bands without another border or accent rule.
+    internal mtd createContentView()->*Wnd
+    {
+        Debug.assert(.contentView == null, "a dialog can only have one standard content view")
+
+        let content = Wnd.create'Wnd(.surface!.wnd.view)
+        content.dockStyle       = .Center
+        content.backgroundStyle = .Transparent
+        content.setAllPaddings(.themeMetrics().dialog_Padding)
+        .contentView = content
+        return content
     }
 
     // Runs the dialog modally and returns the accepted button identifier.

@@ -63,8 +63,8 @@ struct ThemeMetrics
     btnCheck_Size:    f32 = 24     // Theme measurement used for btn check size.
     btnCheck_Padding: f32 = 4      // Theme measurement used for btn check padding.
 
-    dialog_Padding:    f32 = 20     // Theme measurement used for dialog padding.
-    dialog_BtnPadding: f32 = 5      // Theme measurement used for dialog btn padding.
+    dialog_Padding:    f32 = 24     // Outer inset kept around dialog content and action rows.
+    dialog_BtnPadding: f32 = 8      // Gap between dialog actions and vertical inset of their bar.
 
     editBox_SquarePadding: Math.Vector4 = {10, 5, 10, 5}     // Theme measurement used for edit box square padding.
     editBox_RoundPadding:  Math.Vector4 = {12, 5, 12, 5}     // Theme measurement used for edit box round padding.
@@ -109,7 +109,7 @@ struct ThemeMetrics
     comboBox_Padding:        f32 = 10      // Theme measurement used for combo box padding.
     comboBox_IconTextMargin: f32 = 6       // Theme measurement used for combo box icon text margin.
 
-    popupList_Padding:          f32 = 6     // Theme measurement used for popup list padding.
+    popupList_Padding:          f32 = 6     // Minimum leading inset of popup-list content.
     popupList_IconTextMargin:   f32 = 6     // Theme measurement used for popup list icon text margin.
     popupList_SeparatorPadding: f32 = 4     // Theme measurement used for popup list separator padding.
 
@@ -131,7 +131,7 @@ struct ThemeMetrics
     frameWnd_AnchorRoundBorderMargin:  f32          = 16                 // Theme measurement used for frame wnd anchor round border margin.
     frameWnd_AnchorSquareBorderMargin: f32          = 8                  // Theme measurement used for frame wnd anchor square border margin.
 
-    list_Padding:    f32 = 5      // Theme measurement used for list padding.
+    list_Padding:    f32 = 8      // Outer inset separating list rows from their frame.
     list_ExpandSize: f32 = 22     // Theme measurement used for list expand size.
 
     header_Height:    f32          = 35                 // Theme measurement used for header height.

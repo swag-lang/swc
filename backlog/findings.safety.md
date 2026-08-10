@@ -95,3 +95,54 @@ Entries are sorted by identifier, ascending; position carries no priority.
   function's decl. The visit stack (`AstVisit::parentNodeRef`) has the real ancestors at judgement
   time; the question to settle first is which ancestor to stop at, because stopping at the file
   would let a correct restore in one function silence a fault in another.
+
+## Views the escape rule does not recognize
+
+### F-105 — A local stored into a global `any` escapes with no diagnostic
+
+- Area: compiler
+- Found while: auditing the language reference for `backlog/findings.language.md`, checking whether
+  `any` behaves like the reference's "reference to an existing value" or like a box
+- Observation: the borrow rule names `any` as a view — "a pointer, a reference, a slice, a `string`,
+  an `any`, an interface, a closure capturing by address"
+  ([013_004_borrowing.swg:5-8](../bin/reference/modules/language/src/013_004_borrowing.swg#L5-L8)) —
+  and the escape half of that rule does not apply it. Assigning a function-local to a global `any`
+  compiles silently and leaves the global addressing a dead frame. The identical escape written with
+  a pointer is rejected, so it is not the *rule* that is missing, only its reach through the `any`
+  conversion: the storage the conversion takes the address of never becomes a borrow source.
+- Evidence: an isolated probe, `swc test -d <dir>` on one standalone file, `fast-debug`:
+
+  ```swag
+  var g_stash: #null any
+
+  func stashLocal()
+  {
+      var local = 42
+      g_stash = local          // accepted
+  }
+
+  #test { stashLocal(); @print(cast(s32) g_stash!, "\n") }
+  ```
+
+  It prints `-2143397400` under the JIT and `2092228504` from the forged binary — a stack read, and
+  a different one each way, which is what makes it worth stopping on rather than a stable wrong
+  answer. `return local` from a function returning `any` is accepted the same way.
+
+  The control is the same local behind a pointer, which the rule catches exactly as documented:
+
+  ```swag
+  var g_ptr: #null *s32
+  func stashLocalPointer() { var local = 42; g_ptr = &local }
+  ```
+
+  > error: borrowed data from local variable 'local' may escape through an assignment
+
+- Next step: find where the value-to-`any` conversion is lowered (`Cast::castToAny`, and the codegen
+  that fills the `any` data pointer) and check what it takes the address of — a local's storage, or
+  a materialized temporary. The borrow source has to be attributed at that point, because after the
+  conversion the assignment only sees an `any`. Do the temporary case at the same time: a literal
+  stored into a global `any` (`g_stash = 7`) also compiles, and whatever storage the compiler
+  invents for the `7` cannot outlive the statement either. Then write both as positives in
+  `bin/unittests/sanity`, next to the pointer cases that already pass.
+- Related: F-098 in [findings.language.md](findings.language.md), which is the documentation half —
+  one reference page calls this conversion a box and the other calls it a reference.

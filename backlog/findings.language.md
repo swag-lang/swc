@@ -9,7 +9,17 @@ should say it.
 
 Design questions already open *by choice* — exhaustive switches, tagged unions, generic contracts,
 concurrency — are the roadmap in [todo.language.md](todo.language.md) and are not repeated here.
-Compiler defects are in [findings.compiler.md](findings.compiler.md).
+Compiler defects are in [findings.compiler.md](findings.compiler.md). Two entries break the "the
+compiler does what the reference says" premise and are kept here anyway, because for both the fix is
+a sentence in the reference rather than a change to `swc`: F-097, where the safety page states the
+opposite of what the guard does, and F-098, where two pages describe the same conversion in
+incompatible terms.
+
+Every entry carries an `Elsewhere` line: what the neighbouring languages do about the same
+question. A wart no one else has and a convention half the industry shares are different problems,
+and the line exists so the difference is on the page before anyone argues from taste. It is not an
+argument that Swag should follow the majority — several entries below record a rule Swag shares
+with exactly one language and keeps deliberately.
 
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
@@ -28,7 +38,19 @@ Entries are sorted by identifier, ascending; position carries no priority.
   and is the correct spelling, but nothing steers a reader towards it: the positional form is the
   one every example uses, and it accepts the named-looking pattern silently.
 - Evidence: with `let point = {x: 10, y: 20}`, `let {y, x} = point` gives `y == 10` and `x == 20`.
-  Confirmed under both the JIT and the forged binary.
+  Confirmed under both the JIT and the forged binary. The same indifference to names governs
+  assignment: a `{width, height}` tuple takes a `{x, y}` tuple of the same field types, and
+  [004_003_tuple.swg:63-82](../bin/reference/modules/language/src/004_003_tuple.swg#L63-L82)
+  documents it — "tuples can be assigned to each other if their field types match, even if field
+  names differ", with `#typeof(x) != #typeof(y)` asserted on the same page.
+- Elsewhere: the languages that have both forms use a different delimiter for each. JavaScript
+  binds `{y, x}` by *name* and `[a, b]` by position; Rust does the same, by name in `Point { y, x }`
+  and by position in the tuple-struct pattern `Point(a, b)`. Swift destructures tuples with
+  parentheses and requires labels where names matter. So the brace is the by-name spelling almost
+  everywhere it exists, and Swag gives it to the by-position one. C# is the closest precedent for
+  the fix rather than for the rule: tuple element names are cosmetic there too, and the compiler
+  emits CS8123 — "the tuple element name is ignored because a different name is specified by the
+  target type" — for exactly the shape this entry is about.
 - Next step: decide whether a positional pattern whose every name matches a field of the source —
   in a different order — should be a warning (`sema_warn_positional_pattern_shadows_field`) or an
   error. A warning is enough: the shape is unambiguous to detect, and the fix is one colon per
@@ -50,6 +72,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: `func f(x, y: s32 = 0) => x + y * 2` accepts `f(x: 10)` (→ 10) *and* `f(y: 10)` (→ 20).
   The reference shows exactly this call pair and treats it as ordinary
   ([007_001_declaration.swg:102-107](../bin/reference/modules/language/src/007_001_declaration.swg#L102-L107)).
+  The *type* travels the same way: `func sum3(x, y = 0.0)` gives both parameters `f32`, so one
+  omitted annotation types the whole group
+  ([007_001_declaration.swg:54-58](../bin/reference/modules/language/src/007_001_declaration.swg#L54-L58)).
+- Elsewhere: no language combines the two halves. Go has the grouped-type parameter list
+  (`func f(x, y int)`) and no default values at all. Python, C++ and C# have default values and no
+  grouped form — each parameter repeats its type. Where C++ *does* allow several declarators on one
+  line, `int a = 0, b;` gives the initializer to `a` alone, which is the reading this entry proposes:
+  the language that looks most like Swag here already decided the other way.
 - Next step: sweep `bin/` for grouped parameter declarations carrying a default and count how many
   are deliberate. If the honest answer is "almost none", the rule to consider is that a default in a
   grouped declaration applies to the last name only, or is rejected outright — both are mechanical
@@ -68,6 +98,12 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: a `for 3` whose body opens a `#scope { break }` runs all three iterations and executes
   everything after the scope each time. A bare `#scope { n += 1; if n == 4 do break; continue }`
   runs four times. Both confirmed under the JIT and the forged binary.
+- Elsewhere: every language that can exit a plain block makes the label mandatory, and for this
+  exact reason. Java's `label: { ... break label; }` is legal, a *bare* `break` never targets a
+  block, and `continue` on a non-loop label is a compile error. Rust's `'a: { break 'a v }` and
+  Zig's `blk: { break :blk v; }` both require the label in the `break`. So the retargeting Swag
+  performs silently is the one case those designs went out of their way to make impossible — and
+  no language turns a brace block into a loop.
 - Next step: the retargeting is the dangerous half. Consider requiring `break to <Name>` inside a
   *named* scope and rejecting a bare `break` whose nearest enclosing structure is an unnamed
   `#scope` that sits inside a loop — the ambiguous case is exactly that one. Check first how many
@@ -90,6 +126,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   value is negative, but the target type is unsigned"). The same expression through runtime
   variables panics with "integer overflow" in `fast-debug` — and in `release`, where the overflow
   guard is off, it wraps.
+- Elsewhere: nobody narrows the signed operand. C and C++ promote both to `int` first, so `s8 + u8`
+  is computed in a type that holds every value of each — the "unsigned wins" hazard exists there
+  only at 32 bits and above, which is the width where it cannot be escaped. Java and C# do the same
+  promotion (and Java has no unsigned type at all). Rust, Go and Zig refuse the expression: mixed
+  integer types do not convert implicitly, and Zig's peer-type resolution additionally requires the
+  result to hold both operands. So the two rules Swag combines — no promotion, and unsigned wins —
+  are each held by a different half of the field, and no language holds both.
 - Next step: the promotion table is a deliberate design choice and should not be re-litigated
   wholesale. What can be decided narrowly is whether a *mixed-signedness* operation, specifically,
   deserves a warning at the operator rather than a panic at the conversion — the operand types are
@@ -109,6 +152,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   for.
 - Evidence: `for it in cells { cells[1].v = 99; seen += it.v }` sums 100, not 3. Identical with a
   `[2] s32` and a plain `it`. Confirmed under the JIT and the forged binary.
+- Elsewhere: the copy is the default everywhere the sigil exists. C++ `for (auto x : v)` copies and
+  `for (auto& x : v)` is the reference — the `&` selects indirection, which is exactly the reading
+  Swag's `&` invites and does not have. Go's `range` copies the element into the loop variable, and
+  Swift's value semantics make the binding a copy too. Rust splits the difference: `for x in &v`
+  yields a reference *and* the borrow checker rejects the mutation this entry demonstrates, so the
+  aliasing is visible in the type and unobservable in practice. Swag is alone in binding a live
+  reference implicitly and letting the write be read back through it.
 - Next step: this is a documentation fix before it is anything else — say plainly that the binding
   names the element, and that `&` adds the right to write through it. Then decide whether the
   invalidation half of the borrow rules should also cover an in-place element write read back
@@ -129,6 +179,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   ([007_003_closure.swg:131-154](../bin/reference/modules/language/src/007_003_closure.swg#L131-L154)).
 - Evidence: `let base = 10` captured as `func|base|()->s32 { base += 1; return base }` returns 11
   then 12 across calls, while the outer `base` stays 10.
+- Elsewhere: three languages with the same capture-by-copy model all make the writable copy a
+  separate spelling. C++ copies into a `const` member unless the lambda is declared `mutable`.
+  Rust requires the closure to be `FnMut` and the binding `mut`. Swift's capture list produces a
+  `let`, and the stateful-counter idiom is written by shadowing with a `var` outside the closure.
+  C# takes the other road entirely — captures are by reference, so mutating one changes the
+  original — but there too the two behaviours are never spelled the same. The proposed
+  `func|var base|` is C++'s `mutable`, moved to the capture it applies to.
 - Next step: the capacity is wanted; the spelling is the question. Consider requiring `var` on a
   capture the closure body writes (`func|var base|`), which keeps the stateful-counter idiom, keeps
   a read-only capture read-only, and makes the name-shadowing visible at the capture list rather
@@ -150,6 +207,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   second makes a test's success path stop matching the code it is testing.
 - Evidence: `func f()->u64 fail { return count(name) }` propagates without `try`. `try f()` inside
   `#test` returns the value where the identical line in a non-test function would propagate.
+- Elsewhere: every language that models errors as values makes the propagation point mandatory and
+  visible — Rust's `?`, Zig's `try`, Go's explicit `if err != nil`. Swift goes further and requires
+  `try` on the *call* even though propagation is implicit in the signature, precisely so a reader
+  can see which calls can leave. The invisible form is the exception model — C++, Java, C# — and
+  none of those also offers a visible keyword meaning the same thing, so no reader has to decide
+  which of two spellings is in force. The second half has no precedent at all: no language changes
+  what a keyword means inside a test.
 - Next step: these are two independent decisions and should be taken separately. For the first,
   measure how much `bin/` relies on the implicit form before considering making `try` mandatory. For
   the second, `expect` already exists and says what it means; the `#test` aliasing buys three saved
@@ -167,6 +231,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   ([007_007_discard.swg](../bin/reference/modules/language/src/007_007_discard.swg)). The two
   policies point in opposite directions: an unread `s32` is an error, an unread *failure* is a zero.
 - Evidence: `func swallow()->s32 { return catch mustFail() }` returns 0 with no diagnostic.
+- Elsewhere: the type default is nobody else's answer. Swift's `try?` yields an *optional*, so the
+  failure survives in the type and cannot be mistaken for a real value — the closest spelling to
+  `catch`, and the difference is the whole point. Zig writes the fallback by hand
+  (`catch default`, `catch unreachable`), Rust names it (`unwrap_or_default()`, and a discarded
+  `Result` trips `#[must_use]`), Go makes the discard explicit with `_`. Swag's `catch` is the only
+  one that both handles and substitutes with no mark, in a language that otherwise requires
+  `discard` for an unread `s32`.
 - Next step: the shape is legitimate and has real uses. What it lacks is the deliberateness the rest
   of the language asks for. Consider making the discarding form its own spelling — `catch discard
   f()`, or requiring the `as err` capture and letting an unread `err` be the thing the warning layer
@@ -189,6 +260,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
   disambiguate: `5 's32` is the suffixed literal, not `5` followed by a character.
 - Evidence: `let spaced = 5 's32` yields 5 as an `s32`; `idOf's32(7)` is a generic call and reads
   like a suffixed identifier; `' 'u32` is a space literal followed by a suffix.
+- Elsewhere: two of the four roles have precedent, the generic one has none. C++ gave the quote a
+  second job as a digit separator (`1'000'000`) and lives with the lexer lookbehind. Rust overloads
+  it three ways — character literal, lifetime `'a`, loop label `'outer` — disambiguated by whether a
+  closing quote follows, and it is a known papercut. Nobody spells generic arguments with a quote:
+  C++, Java and C# use `<>` and pay for it with the `>>` and less-than ambiguities, Go chose `[]`,
+  and Rust's turbofish `::<>` exists *because* generic arguments in expression position need a
+  marker the parser cannot confuse — which is the same problem `'` is solving here, with the one
+  character already carrying three other meanings.
 - Next step: nothing here is broken, and changing a sigil is expensive. What is worth measuring is
   the cost paid elsewhere: check how the syntax highlighter, the formatter's classifier, and the
   language reference each disambiguate, and whether any of the three gets it wrong. If they all
@@ -211,6 +290,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: the ordering fix is in the tree (`Sema.Member.Auto.cpp`), and the ambiguous-`.member`
   diagnostic is already a separate finding (F-025 in
   [findings.compiler.md](findings.compiler.md)).
+- Elsewhere: the languages with a leading dot give it exactly one rule. Swift's `.member` is
+  implicit-member lookup on the contextual type, and Zig's `.Field` is resolved by the expected
+  type — one subject, decided by the type checker, with no second candidate to order against.
+  Neither has a `with`. The `with` reading is the Pascal family's, and Visual Basic spells it the
+  same way Swag does (`.member` inside `With`); it is also the feature whose scoping ambiguity is
+  the standard cautionary tale — Wirth left it out of Oberon, and Delphi documentation still warns
+  that a `with` silently captures names the reader expected to come from the enclosing scope. Swag
+  stacks that reading on top of Swift's, plus `me`, plus interface scope.
 - Next step: this is a design question rather than a defect, and it should be written down as one
   before the next construct that wants a leading dot is added. The concrete deliverable is a
   precedence table in the reference — one place stating which subject a leading dot binds to, in
@@ -226,7 +313,20 @@ Entries are sorted by identifier, ascending; position carries no priority.
   is a `case` whose condition happens to be written without a value, and the plural makes "default"
   stop naming the fallback.
 - Evidence: a switch holding `default where y == 10:` followed by `default:` compiles and takes the
-  first one.
+  first one. The rule is narrower than "several defaults" and worth stating exactly, because the
+  compiler is stricter than the shape suggests: an *unguarded* second `default` is rejected with
+  `sema_err_switch_multiple_default`, and duplicate constant `case` values are rejected too, guard
+  or no guard (`checkDuplicateConstCaseValue`). What a `where` buys is an exemption from both
+  checks — `if (nodeWhereRef.isValid()) return Result::Continue;` in
+  [Sema.Switch.cpp:645-653](../src/Compiler/Sema/Ast/Sema.Switch.cpp#L645-L653). So a switch holds
+  any number of guarded defaults plus one plain one, and only the guarded ones are unexamined.
+- Elsewhere: a second `default` is a compile error in C, C++, C#, Java and Go ("multiple defaults in
+  switch"), and Swift additionally requires `default` to come last. Rust has no `default` — the
+  catch-all is the `_` pattern, and a second one is reported as an unreachable pattern. So every
+  neighbour that could hold two fallbacks rejects the shape outright rather than ordering them; what
+  Swag has that they do not is the guard, which is what makes the plural expressible in the first
+  place. Guarded arms themselves are ordinary: Rust's `match` guards and Swift's `case ... where`
+  are first-match-wins exactly like these, but neither calls a guarded arm `default`.
 - Next step: `case where <cond>` already expresses a valueless guarded arm in an expression-less
   `switch` ([005_005_switch.swg:343-367](../bin/reference/modules/language/src/005_005_switch.swg#L343-L367)).
   Check whether `default where` can be spelled that way instead and `default` restored to exactly
@@ -246,6 +346,12 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: the reference documents both defaults, back to back — "`internal` is the default" for
   declarations, "`public` is the default: a field is part of the surface unless it says otherwise"
   for fields.
+- Elsewhere: one rule for both is the norm. Rust is private-by-default for items and fields alike,
+  Java is package-private for both, C# is private for both, Go decides both by capitalization. The
+  single precedent for two defaults is C++, where `class` members are private and `struct` members
+  public — and there the choice is made by the *keyword the author picked*, not by whether the thing
+  being declared is a function or a field, so a reader can still name the rule in one sentence. The
+  C++ split also exists only for C source compatibility, which is not an argument available here.
 - Next step: count how many public struct fields under `bin/` are deliberately part of the surface
   versus incidentally exposed. If the second number dominates, flipping the field default to
   `internal` is the change, and `#[Swag.ExportType]`-style reflection walkers are the compatibility
@@ -267,6 +373,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
   their own paragraph and their own runtime guard
   ([004_002_slice.swg:113-135](../bin/reference/modules/language/src/004_002_slice.swg#L113-L135)),
   which the half-open form would not.
+- Elsewhere: every language a Swag user is likely to arrive from slices half-open — Python `a[1:3]`,
+  Go `a[1:3]`, Rust `&a[1..3]`, JavaScript `slice(1, 3)`, C# `a[1..3]`. Rust has an inclusive form
+  (`..=`) and still made the plain `..` the half-open one. The mainstream language that defaults to
+  inclusive is Ruby (`a[1..3]`, with `a[1...3]` for exclusive), and its one-dot difference is a
+  standing complaint; the Pascal and Ada families are inclusive but 1-based, so their ranges do not
+  compose the way a slice of a slice must. Dijkstra's EWD831 is the canonical argument for the
+  half-open convention, and its two points are the ones this entry lists: the length is the
+  difference of the bounds, and the empty case needs no special rule.
 - Next step: not a change to make — both spellings exist and the inclusive one is the shorter word
   by design. What is worth doing is measuring: count `to` versus `until` in slice position across
   `bin/`, and check whether the off-by-one it invites shows up in the test corpus. That number
@@ -283,6 +397,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   silent wire-format break, and the first member loses the zero that a flag set needs for "none".
 - Evidence: the reference's own example asserts `MyFlags.A == 0b00000001` for an enum declared
   `{ A, B, C, D }`.
+- Elsewhere: the language with the identically named attribute made it deliberately inert. C#'s
+  `[Flags]` changes `ToString` and nothing else — the values stay whatever the author wrote, and the
+  documented convention is to assign the powers of two by hand *and* to declare a `None = 0` member,
+  which is precisely the "explicit `= 0` first member" this entry proposes. Rust's `bitflags!` also
+  requires every value to be written out. Java has no flags attribute; `EnumSet` packs by ordinal and
+  never rewrites a declared value. So the one thing no neighbour does is let an annotation change the
+  numbers a serialized enum already shipped with.
 - Next step: this repository already knows what a silently-renumbered enum costs
   (`TagBin` flag values are wire format). The cheap guard is a warning when `Swag.EnumFlags` is
   added to an enum that has no explicit values *and* is reachable from a public API — or, more
@@ -305,6 +426,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
   ([002_008_sigils.swg:101-121](../bin/reference/modules/language/src/002_008_sigils.swg#L101-L121)).
 - Evidence: `let c = "a" ++ (b + 1) ++ "!"` is folded at compile time; the same line with a runtime
   `b` does not compile, and the fix is a `Std.Core` builder.
+- Elsewhere: the restriction has one exact precedent and the spelling has none. Zig's `++` is also
+  compile-time only — both operands must be comptime-known, and runtime text goes through
+  `std.fmt` — so the design is not an oddity, it is Zig's. What Zig does not do is give that
+  operator a spelling the reader arrives with another meaning for: `++` is increment in C, C++,
+  Java, C# and JavaScript, and it is *runtime* concatenation in Haskell and Elixir. D chose `~` for
+  concatenation precisely to keep it clear of the arithmetic operators. Rust refuses `&str + &str`
+  outright and makes the allocation visible (`String + &str`, `format!`), which is the same
+  "concatenation is not an operator" position Swag takes at runtime.
 - Next step: the honest question is whether the four diagnostics should be variadic instead, which
   removes most of `++`'s remaining job. That is a small parser change and it would let `++` be
   judged on its own merits — as a constant-folding operator that a `#[Swag.ConstExpr]` function
@@ -323,6 +452,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
   renaming a local in a *caller* can break a mixin declared in another file.
 - Evidence: `#[Swag.Mixin] func myMixin() { a += 1 }` compiles with no `a` in sight and resolves to
   whatever `a` the call site has.
+- Elsewhere: this is the C preprocessor's behaviour, and macro hygiene was invented to end it —
+  Scheme's `syntax-rules` named the concept, and Rust's `macro_rules!` carries it: an identifier the
+  macro writes cannot capture one the caller wrote, in either direction. D is the closest living
+  relative, with `mixin template` inserting declarations into the instantiation scope, and D had to
+  add named mixin scopes so a collision could be resolved at all. The sharpest comparison is
+  internal, though: Swag's *macros* already chose hygiene, so the language holds both answers at
+  once. Even the workaround is smaller than the C one it copies — `__COUNTER__` is unbounded, and
+  `#uniq0`..`#uniq9` stop at ten.
 - Next step: check how many mixins under `bin/` actually rely on free identifiers rather than on
   parameters and `#code` blocks. If the number is small, the interesting question is whether the
   free-identifier form still earns its keep now that `#code(...)` block parameters exist — they
@@ -341,6 +478,15 @@ Entries are sorted by identifier, ascending; position carries no priority.
   indicating that the block's control flow is under someone else's control.
 - Evidence: the reference's `repeatSquare` remaps `continue` to `break`, so a `continue` written in
   the user block exits the inner loop instead of continuing it — the two keywords trade places.
+- Elsewhere: nothing mainstream allows it. A `break` written inside a block passed to a Rust
+  `macro_rules!` still targets the caller's loop; the macro can emit its own `break`, never rebind
+  the caller's. C++ has no construct that reaches inside a lambda body to redefine a keyword. The
+  nearest thing is Common Lisp's `macrolet`, which can shadow *named* blocks — and the name is
+  written at the site, so a reader can see which block a `return-from` leaves. That naming is what
+  the proposed `#code(break, continue)` restores. The other half of the comparison is that the
+  problem is usually solved by not having the feature: languages that need user blocks in a
+  library-defined loop either make the block a closure, where `break` is a compile error (Swift's
+  `forEach`, Kotlin without an inline function), or make the construct part of the language.
 - Next step: the capacity is what makes `opVisit` work at all and should not be removed. What is
   missing is disclosure: consider requiring the block literal to acknowledge it
   (`#code(break, continue) { ... }`, the same shape the call site already uses to rename block
@@ -361,6 +507,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   show, which is the opposite of the trade the syntax suggests.
 - Evidence: the reference states it twice, in both chapters, as a property of the declaration rather
   than of the type.
+- Elsewhere: by-value is the default everywhere, and the reference is what gets a keyword. C++ copies
+  unless the signature says `const&`; Rust moves or copies unless it says `&T`; Go, C# and Swift pass
+  values, with C#'s `in` and Swift's `borrowing` as the opt-in indirections. D is the interesting
+  one: its `in` parameters were redefined to mean `const scope ref`, letting the compiler choose the
+  indirection — the same trade Swag makes — but D kept `in` as a *written* keyword, so the signature
+  still says which contract is in force. Swag has no by-value spelling at all, which is the part
+  none of them share: elsewhere the missing annotation means "copy", here it means "alias".
 - Next step: measure before designing. Instrument or sample the `bin/` call sites where a struct
   parameter is 16 bytes or less, and check what the backend already does — if it is passing them in
   registers regardless, this is a documentation gap; if it is not, an explicit by-value spelling is
@@ -379,6 +532,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   is a surprise for anyone reading it as a binding.
 - Evidence: `if let str = retNothing() where str[0] == 's'` takes the `else` branch without
   evaluating the `where`. Confirmed under the JIT and the forged binary.
+- Elsewhere: the two languages with this exact construct both restrict it to a type where "did I get
+  something" is the only reading. Swift's `if let x = opt` accepts an *optional* and rejects anything
+  else, and Rust's `if let Some(x) = opt` is a pattern match with no coercion at all — in both,
+  `if let a = 0` does not compile. Swift also removed `where` from condition clauses in Swift 3 (SE-0099)
+  and replaced it with a comma, on the argument that `where` read as though it introduced a different
+  kind of condition than the one before it, which is the reading this entry is about. The truthiness
+  half comes from C, where `if (int x = f())` does coerce — and C has no `where` to sit next to it.
 - Next step: decide whether the implicit truthiness test should be restricted to nullable-capable
   types, where "did I get something" is the intended reading and `#null` already marks it in the
   type. On a plain `s32` the same line silently means "is it non-zero", which the ternary already
@@ -402,6 +562,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: the reference's own real-world example builds struct fields by string-formatting a
   reflected field list into `"%: bool\n"`; a typo there surfaces as a parse error in generated
   source.
+- Elsewhere: D is the precedent for having both and is where the cost is documented — string mixins
+  (`mixin("...")`) and template mixins coexist there exactly as `#ast` and macros do here, and the
+  string form remains the only route to some generated declarations. Zig is the counterexample: one
+  system, `comptime`, with `@Type` and `std.builtin.Type` building a struct's fields from typed
+  values rather than from source text, so a mistake is a type error at the construction site. Rust
+  has two macro systems but both consume and produce token streams, so a declaration-generating
+  macro and an expression-generating one meet in the same representation. C# source generators emit
+  strings like `#ast` — and there the diagnostic problem is the same one this entry names.
 - Next step: no rewrite is proposed. The narrow, useful step is to find out what `#ast` is actually
   used for across `bin/` — if it is overwhelmingly "one field per reflected field", that shape
   deserves a declarative spelling, and the string escape hatch can stay for everything else.
@@ -431,9 +599,495 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
   The cost in practice was a passing-looking test that asserted the wrong thing; the fix was
   `Gui.Testing.bytesAre`, which spells the content comparison with `Memory.compare`.
+
+  A fourth reading exists on a neighbouring type: `==` between an `any` and a *type* asks whether the
+  boxed value has that type (`x == s32`, `x == A`), which is `@kindof` under an equality sign
+  ([004_009_any.swg:124-147](../bin/reference/modules/language/src/004_009_any.swg#L124-L147)).
+  That one is at least unambiguous — a type can never be a value — but it belongs in the same
+  inventory when the operator is finally pinned down.
+- Elsewhere: all three readings exist in the field, and the language that faced the same ambiguity
+  chose the option this entry lists second. Go makes `==` on slices a *compile error* — only `== nil`
+  is allowed — and sends content comparison to `slices.Equal`/`bytes.Equal`. Rust takes the other
+  road and makes `==` on `&[T]` compare content wherever `T` is comparable. The silent identity
+  answer is C's, where `==` on arrays compares decayed pointers, and Java's and C#'s, where it
+  compares references and `Arrays.equals`/`SequenceEqual` do the real work — and it is a classic
+  source of bugs in all three. What none of them has is Swag's split, where the neighbouring
+  spelling `slice == "literal"` already means content.
 - Next step: decide which of the three the operator should mean, then make the other two say so.
   Content equality is the reading a reader brings from `slice == "literal"`, so the candidates are
   making `[..] T == [..] T` compare content for a comparable `T`, or rejecting it the way
   `[..] u8 == string` already is and offering a named `Slice.contentEquals`. Either beats a silent
   identity test. Search `bin/` for `== ` between two slice-typed operands first: any existing site
   is either already relying on identity or is a latent defect of this shape.
+
+## Literal typing
+
+### F-093 — The base a number is written in decides its signedness
+
+- Area: language
+- Found while: a second reading pass over the reference, checking what the type of a literal depends
+  on
+- Observation: a decimal literal is an unsized constant of *unknown* sign, and a hexadecimal or
+  binary one is an unsized constant of *unsigned* sign. Both adapt to an imposed type, so the
+  difference is invisible wherever the target is written down — and it becomes the constant's real
+  type the moment nobody writes one. `const Mask = 0xF0` is a `u32`, `const Mask = 240` is an `s32`,
+  and from there the difference travels into every expression the constant enters, where F-048's
+  "the unsigned type wins" rule applies it to the other operand. The reference documents the
+  defaulting ("hexadecimal or binary literals default to type `u32`"
+  ([003_002_number_literals.swg:38-57](../bin/reference/modules/language/src/003_002_number_literals.swg#L38-L57)))
+  as a fact about magnitude, and says nothing about it being a fact about signedness.
+- Evidence: `Sema.Literal.cpp` builds a decimal literal with `TypeInfo::Sign::Unknown`
+  ([Sema.Literal.cpp:557](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L557)) and a hex or binary one
+  with `Sign::Unsigned`
+  ([Sema.Literal.cpp:469](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L469),
+  [Sema.Literal.cpp:509](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L509)). An isolated probe,
+  `swc test -d <dir>`, prints two types for one value:
+
+  ```swag
+  const Mask    = 0xF0
+  const DecMask = 240
+  var value: s32 = 0x7F
+  @print(#nameof(#typeof(value & Mask)))       // u32
+  @print(#nameof(#typeof(value & DecMask)))    // s32
+  ```
+
+  A `let bound = 0xF0` behaves like the `const`. The boundary is worth stating exactly, because it
+  is what makes the rule hard to see: a *bare* literal still adapts, so `x | 0b0001` on an `s32`
+  compiles and yields `s32`. The signedness only survives once the literal has been named — a
+  `const`, or a `let` with no annotation — and from then on it is the constant's type, not a
+  literal's default. The reference's operators page writes `x = x | cast(s32) 0b0001`
+  ([003_006_operators.swg:41](../bin/reference/modules/language/src/003_006_operators.swg#L41))
+  where the plain form compiles, which is some evidence that the boundary is not obvious even to the
+  page documenting the operators.
+- Elsewhere: C is the source of the rule and stops short of it. A decimal constant with no suffix
+  takes its type from a signed-only list (`int`, `long`, `long long`), while an octal or hex one
+  takes it from a list that also holds the unsigned types — so `0xFFFFFFFF` is `unsigned int` where
+  `4294967295` is `long`, but a small `0xFF` is a plain `int` like any other, because the list is
+  consulted in order and the first entry fits. Swag applies the unsigned reading at every magnitude.
+  Nobody else applies it at all: `0xFF` is `i32` in Rust, `int` in C# and Java, an untyped constant
+  in Go, and a signless `comptime_int` in Zig, where the base is purely notation.
+- Next step: decide whether the base should pin the sign, or only the width. The cheap experiment is
+  to build `swc` with the hex and binary paths using `Sign::Unknown` like the decimal one and run
+  the suites: what breaks is the set of places relying on a bare `0x...` being unsigned, and that
+  number is the argument either way. If the rule stays, F-048's proposed warning at a
+  mixed-signedness operator covers the damage, and the `#print`-visible surprise is worth one
+  sentence on the number-literals page.
+- Related: [F-048](#f-048--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
+  is what turns the difference into arithmetic.
+
+### F-094 — The width of an inferred float literal depends on its digits
+
+- Area: language
+- Found while: the same pass
+- Observation: the reference states plainly that "by default, floating-point literals are of type
+  `f32`", twice, and contrasts it with C
+  ([003_002_number_literals.swg:99-111](../bin/reference/modules/language/src/003_002_number_literals.swg#L99-L111)).
+  What actually happens is narrower: an untyped float literal is an `f32` only when its decimal text
+  is exactly representable in `f32`, and an `f64` otherwise. So the rule holds for `1.5` and fails
+  for `0.1`, `3.14` and most decimals anyone writes — and two locals initialized on adjacent lines
+  can have different types with nothing in the source saying so. The choice is defensible on its own
+  terms: it is the rule that never loses a digit the author wrote. What it is not is "the default
+  is `f32`".
+- Evidence: an isolated probe, `swc test -d <dir>`, same result under the JIT and the forged binary:
+
+  ```
+  1.5 = f32      16777216.0 = f32      16777217.0 = f64
+  0.1 = f64      3.1415927  = f64      3.141592653589793 = f64
+  ```
+
+  `let sum = 1.5 + 16777217.0` is therefore an `f64`, and `#typeof(a) == #typeof(b)` is false for two
+  literals that read alike. The reference's assertion `#assert(#typeof(a) == f32)` passes only
+  because its example is `1.5`
+  ([003_002_number_literals.swg:82-86](../bin/reference/modules/language/src/003_002_number_literals.swg#L82-L86));
+  the same assertion two lines below it, on the `let b = 0.11` of the same test, would fail — and
+  the page does not make it.
+- Elsewhere: no language makes a literal's width depend on its value. C, C++, Java, C#, JavaScript
+  and Swift all default to 64-bit; Go's untyped float constant carries arbitrary precision and
+  becomes `float64` when it needs a type; Rust infers `f64`; Zig's `comptime_float` is 128-bit and
+  resolves to `f64`. Where a language does police the digits it does so at the *annotation* and as a
+  diagnostic — Rust rejects a literal outside the range of the type it was annotated with — never by
+  letting the digits choose how wide the variable is. So the "widen instead of round" rule is
+  genuinely Swag's own, and the 32-bit default it is attached to is already unusual on its own.
+- Next step: fix the page first, because it is wrong today for the common case and one paragraph
+  fixes it — state the rule as "the narrowest of `f32` and `f64` that holds the written value
+  exactly". Then decide whether the value-dependence should be visible in a second way: an
+  inferred-`f64` literal in a context the author expected to be `f32` changes arithmetic width in a
+  hot loop, and the only current way to see it is `#typeof`. A warning is the wrong tool here — a
+  query on the doc page, and the habit of writing `'f32` where the width matters, is probably
+  enough. Measure how many `bin/` locals are inferred from a float literal before deciding.
+
+## Conversions the call site does not show
+
+### F-095 — A blank `cast()` performs whatever conversion the target turns out to need
+
+- Area: language
+- Found while: the same pass
+- Observation: `cast()` with no type "allows the compiler to infer the target type"
+  ([003_007_cast.swg:20-45](../bin/reference/modules/language/src/003_007_cast.swg#L20-L45)), and
+  the conversion it then performs is whichever one that target requires — including a float
+  truncation and an integer narrowing, in a language that otherwise refuses both without a written
+  cast. The spelling is a blanket permission attached to a call site rather than to a conversion:
+  it says "convert this", never "convert this to that", so changing a parameter's type at the callee
+  silently changes what every `cast()` argument does. The reference's own example is a truncation
+  presented as a convenience.
+- Evidence: `testAutoCast(cast() 1.4)` is the reference's illustration, and `1.4` arrives as `1`. An
+  isolated probe, `swc test -d <dir>`: one source expression, two targets, two different silent
+  conversions.
+
+  ```swag
+  func takeS32(value: s32)->s32 => value
+  func takeU8(value: u8)->u8 => value
+  @print(takeS32(cast() 1.9), " ", takeU8(cast() 1.9))     // 1 1
+  ```
+
+- Elsewhere: target-inferred conversion exists, but never lossy and never as one spelling for every
+  kind of loss. Rust's `.into()` is inferred from the target and is restricted to `From`
+  implementations, which are lossless by contract; the lossy conversion is `as`, and `as` always
+  names its type. Zig infers the destination of `@intCast` from context — the closest analogue —
+  but the conversion kind is in the name (`@intCast`, `@floatFromInt`, `@truncate`), and an
+  out-of-range `@intCast` panics in safe builds instead of arriving as a value. C++ has no
+  type-inferred cast at all, and the guidance that produced `static_cast` was precisely that a cast
+  should say what it does. Swag's `cast()` is one token covering the whole set.
+- Next step: count the `cast()` uses in `bin/` and sort them by what the conversion turned out to
+  be. If they are overwhelmingly widening or same-kind, the narrow rule worth proposing is that a
+  blank `cast()` performs only the conversions that would have been implicit anyway plus the
+  same-kind narrowing, and that a float-to-integer truncation needs its type written. That keeps the
+  convenience where it is a convenience and removes it where it is a silent behaviour change.
+
+### F-096 — A `#move` parameter accepts a plain value and copies it
+
+- Area: language
+- Found while: the same pass
+- Observation: `#move` in a parameter position is documented as part of the signature — "they select
+  how an argument reaches the callee"
+  ([002_008_sigils.swg:144-155](../bin/reference/modules/language/src/002_008_sigils.swg#L144-L155)).
+  At the call site it selects nothing: a `#move` parameter also accepts a plain argument, and the
+  compiler materializes a call-site copy and moves *that*
+  ([006_009_custom_copy_and_move.swg:93-98](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg#L93-L98)).
+  So a signature that reads "this callee consumes your value" is satisfied by a caller that keeps
+  it, and the difference between the two call styles is one hidden copy of the whole aggregate,
+  visible in the source as nothing at all. The capacity is deliberate and `#fwd` exists to avoid the
+  copy; what is not marked anywhere is *which* call paid for it.
+- Evidence: the reference measures the copy itself. With `Vector3.opPostCopy` adding 1 and
+  `opPostMove` adding 2, `assign(&b, a)` through a `#move` parameter yields `4, 5, 6` — one copy then
+  one move — while `assign(&b, #move a)` yields `3, 4, 5`
+  ([006_009_custom_copy_and_move.swg:141-162](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg#L141-L162)).
+- Elsewhere: the two ends of the field are both represented, and Swag is at one of them. C++ makes
+  the refusal the whole point: a `T&&` parameter cannot bind an lvalue, so a caller who still owns
+  the value must write `std::move` and the transfer is visible at every call site. Rust is stricter
+  still — a by-value parameter moves, the source becomes unusable, and there is no copy to insert.
+  Swift went the other way with `consuming` parameters: when the caller still needs the value the
+  compiler inserts a copy, exactly as here. So the behaviour has a precedent, and it is the
+  precedent from the language with implicit copies everywhere else; in Swag, where `#move` is
+  written at the call site in every example, the same rule reads as a guarantee it is not.
+- Next step: decide whether the copy should be reportable rather than whether it should exist.
+  The call site already distinguishes the two forms syntactically, so a warning at a plain argument
+  passed to a `#move` parameter of a type with `opPostCopy` is mechanical, names the exact line, and
+  has a one-token fix. Check first whether `bin/` relies on the copy path through lambdas and
+  interface methods, where the reference says a single `#move` function is what makes both styles
+  work at all — those call sites are the ones a warning must not drown.
+
+## Where a page and the compiler disagree
+
+### F-097 — The `.Switch` runtime guard covers only `switch #complete`, and the safety page says the opposite
+
+- Area: language
+- Found while: the same pass, reconciling the safety chapter with
+  [T-009](todo.language.md#t-009--enum-switches-are-silently-non-exhaustive)
+- Observation: the safety page states that "without `switch #complete`, an unmatched value reaches
+  no case and Swag panics"
+  ([013_002_safety.swg:248-273](../bin/reference/modules/language/src/013_002_safety.swg#L248-L273)).
+  The guard is installed under the exact opposite condition: `setupSwitchRuntimeSafety` returns
+  immediately unless the switch *is* `#complete`. A plain enum switch missing a case therefore falls
+  through to nothing, in every configuration, which is what T-009 says and what the roadmap is
+  measured against — while a reader of the safety page believes debug builds already report it. The
+  guard that does exist is the useful one and should be described: on a `#complete` switch every
+  declared value has an arm, so the only value that can reach no case is one outside the declared
+  set, and that is what panics.
+- Evidence: `if (!payload.isComplete) return Result::Continue;`
+  ([Sema.Switch.cpp:31-37](../src/Compiler/Sema/Ast/Sema.Switch.cpp#L31-L37)), where `isComplete`
+  is set from `AstModifierFlagsE::Complete`
+  ([Sema.Switch.cpp:499-510](../src/Compiler/Sema/Ast/Sema.Switch.cpp#L499-L510)). An isolated
+  probe, `swc test -d <dir>` in `fast-debug`, returns `-1` rather than panicking:
+
+  ```swag
+  enum Color { Red, Green, Blue }
+
+  func colorRank(color: Color)->s32
+  {
+      switch color
+      {
+      case .Red:   return 1
+      case .Green: return 2
+      }
+
+      return -1
+  }
+
+  #test { @assert(colorRank(Color.Blue) == -1) }
+  ```
+
+  The guard that *does* exist was observed firing while probing F-101: a `#complete` switch handed a
+  value outside its enum's declared set reports "complete switch received a value not covered by its
+  cases". So the mechanism works and only its documented trigger is wrong.
+- Elsewhere: not applicable to the contradiction, which is a documentation defect. On the underlying
+  rule, the field splits cleanly and T-009 already holds the decision: Rust, Swift and Kotlin require
+  exhaustiveness at compile time, Zig requires an `else` on a switch that does not cover its tag,
+  and C, C++, C#, Java and Go let an unmatched value fall through — which is what Swag does today.
+- Next step: fix the page, in the direction the code chose: describe the guard as the one that
+  catches a value outside an enum's declared set on a `#complete` switch. Whether a plain switch
+  should also be guarded is T-009's decision and must not be settled by a sentence in the safety
+  chapter. Add the probe above to the `sanity` or `native` suite as a positive so the two statements
+  cannot drift apart again.
+- Related: [T-009](todo.language.md#t-009--enum-switches-are-silently-non-exhaustive)
+
+### F-098 — `any` is a box on one page and a reference on another
+
+- Area: language
+- Found while: the same pass, checking which of the two readings the compiler implements
+- Observation: the `any` chapter opens with a warning that it is "**not** a variant. It holds a
+  reference to an existing value plus its runtime type info"
+  ([004_009_any.swg:3-10](../bin/reference/modules/language/src/004_009_any.swg#L3-L10)), and the
+  intrinsics chapter says "ordinary assignment **boxes** a value as `any`"
+  ([008_003_value_and_type_intrinsics.swg:37-42](../bin/reference/modules/language/src/008_003_value_and_type_intrinsics.swg#L37-L42)).
+  The two words carry opposite lifetime contracts, and the difference is the whole question a reader
+  has when they store an `any` in a field: a box owns a copy and outlives its source, a reference
+  dies with it. The compiler implements the reference reading — and, per F-105, does not yet judge
+  it, so the wrong belief is not caught by the build either. The same page also groups `@mkslice`
+  and `@mkstring` under "constructing non-owning views" with an explicit warning that the result
+  must not outlive its backing memory; `@mkany` sits under the next heading with no such line,
+  although it takes an address exactly the same way.
+- Evidence: the two sentences, two chapters apart. `@mkany(&value, s32)` on the intrinsics page takes
+  an address, which settles which reading is the implemented one.
+- Elsewhere: every neighbour with a dynamic any-type copies. Go's `any` stores a copy of the value in
+  the interface, C# and Java box onto the heap, Swift's `Any` holds a value. Rust is the one that
+  offers both and keeps them apart in the type: `Box<dyn Any>` owns, `&dyn Any` borrows and carries a
+  lifetime. So Swag's `any` behaves like Rust's `&dyn Any` while being spelled like Go's `any` — the
+  name a reader arrives with is the one that promises a copy.
+- Next step: pick the word and use it on both pages; "boxes" is the one to drop, since it is the one
+  the implementation contradicts. Then give the `@mkany` paragraph the same non-owning warning its
+  `@mkslice` neighbour already carries, and say on the `any` page that an `any` is a view for the
+  purposes of the borrow rules — which is what
+  [013_004_borrowing.swg:5-8](../bin/reference/modules/language/src/013_004_borrowing.swg#L5-L8)
+  already lists, without the `any` page ever pointing at it.
+- Related: F-105 in [findings.safety.md](findings.safety.md), the escape the rule currently misses.
+
+## Declining and leaking
+
+### F-099 — `#error` inside an operator body is silenced and declines the overload
+
+- Area: language
+- Found while: the same pass, reading the operator-overloading contract
+- Observation: `#error` raises a compile-time error and stops the build
+  ([014_003_compiler_instructions.swg:113-123](../bin/reference/modules/language/src/014_003_compiler_instructions.swg#L113-L123)).
+  Inside an operator overload body it means something else entirely: the error is caught, discarded,
+  and read as "this overload does not handle that operator", so the candidate is dropped from
+  resolution. The reference states the rule
+  ([006_005_operator_overloading.swg:13-18](../bin/reference/modules/language/src/006_005_operator_overloading.swg#L13-L18))
+  and it is deliberate, but it gives one directive two opposite meanings depending on where it is
+  written, and the quiet meaning is the one that produces no output. The language already has a
+  spelling for "this specialization does not apply" — a `where` constraint, which removes an
+  overload from resolution by design
+  ([009_003_where_constraints.swg:3-11](../bin/reference/modules/language/src/009_003_where_constraints.swg#L3-L11)).
+- Evidence: `sema.ctx().setSilencedDiagnosticId(DiagnosticId::sema_err_compiler_error)` around the
+  explicit instantiation of an operator candidate, restored immediately after
+  ([SemaSpecOp.Resolve.cpp:487-499](../src/Compiler/Sema/Helpers/SemaSpecOp.Resolve.cpp#L487-L499)).
+  It is the only use of the silencing mechanism in the compiler — `setSilencedDiagnosticId` appears
+  nowhere else outside its own accessor — so the exception is exactly one construct wide. The
+  reference's `Duration` literal uses the same shape for the opposite purpose, where the `#error` in
+  a `#static switch default` is a genuine build failure for a bad suffix
+  ([006_010_custom_literals.swg:40](../bin/reference/modules/language/src/006_010_custom_literals.swg#L40)):
+  the two readings sit in neighbouring chapters of the same part, spelled identically.
+- Elsewhere: the mechanism is universal, the spelling is not. C++ separates them completely —
+  substitution failure and `requires` decline a candidate, `static_assert` always stops the build,
+  and conflating them is a known category of bug. Rust declines through trait bounds and has no way
+  to make `compile_error!` mean "not applicable". D uses template constraints, `if (...)`, which is
+  Swag's `where`. Zig is the nearest: a `@compileError` inside a `comptime` branch that is never
+  selected simply does not fire — but there it is not *reached*, whereas here it fires, is caught,
+  and is reinterpreted.
+- Next step: check whether the operator bodies in `bin/` could state the same thing with `where`
+  over the `Swag.Operator` parameter, which is a compile-time value and therefore constrainable. If
+  they can, the silencing becomes a compatibility shim rather than a design, and it can be narrowed
+  to a diagnostic that says what it does — a dedicated `#declineoverload`, or simply reporting the
+  `#error` message as a note when *no* candidate survives, which is the case where the current rule
+  costs the user the one sentence that explains why.
+
+### F-100 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
+
+- Area: language
+- Found while: the same pass
+- Observation: `as err` "binds a fresh local ... visible in the enclosing scope, after the catch, so
+  each capture in a given scope needs its own name"
+  ([013_001_error_management.swg:24-30](../bin/reference/modules/language/src/013_001_error_management.swg#L24-L30)).
+  The declaration is written inside an expression, in the middle of an initializer, and its effect
+  reaches outward past the statement it appears in. Nothing else in the language does this: `if let`
+  scopes its binding to the branch, `for` to the body, `switch ... as` to the case. The consequence
+  the reference states — two catches in one scope collide — is the visible half; the invisible half
+  is that the name is live for the rest of the block whether or not it was read, so the "did I look
+  at the error" question F-052 wants to ask has nowhere to be asked from.
+- Evidence: the reference's own paragraph, and its `blockCatchCode` example, where `err` is declared
+  by a `catch { ... } as err` block and tested two statements later
+  ([013_001_error_management.swg:148-160](../bin/reference/modules/language/src/013_001_error_management.swg#L148-L160)).
+- Elsewhere: every language with an error capture scopes it inward. Zig's `catch |e|` binds `e` to
+  the handler block, Swift's `catch let e` to the `catch` body, Rust binds in the match arm. Go is
+  the closest to Swag's shape and it is not an exception: `v, err := f()` is an ordinary declaration
+  written in declaration position, not smuggled out of an expression — and Go's rule that `err` must
+  be re-declared or reassigned per scope is the same collision problem, solved by making the
+  declaration visible. Even the constructs that deliberately extend a binding's reach — C's
+  `for (int i = ...)`, C++17's `if (auto x = f(); x)` — scope inward, never outward.
+- Next step: this is worth settling together with F-052, since both are about what happens to a
+  caught error nobody looked at. The narrow question here is whether the capture could scope to the
+  statement plus the statements dominated by its test — which is what every use in the reference
+  actually needs — and whether anything in `bin/` reads an `err` outside the block that produced it.
+  Count that first; if the answer is nothing, the change is a scope narrowing with a mechanical
+  migration.
+- Related: [F-052](#f-052--catch-without-a-capture-substitutes-the-type-default-and-says-nothing)
+
+## Types and bindings that do not own what they name
+
+### F-101 — An enum that imports another's values does not own them
+
+- Area: language
+- Found while: the same pass, checking what `using` inside an `enum` actually produces
+- Observation: `using BasicErrors` inside `enum MyErrors` is documented as importing values, with the
+  note that they "keep their original enum type"
+  ([004_004_enum.swg:189-221](../bin/reference/modules/language/src/004_004_enum.swg#L189-L221)).
+  That note is doing more work than it looks. The import is a name-lookup alias and nothing else:
+  `MyErrors.FailedToLoad` is a `BasicErrors`, `@countof(MyErrors)` does not count it, and
+  `for value in MyErrors` does not visit it. So an enum spelled as the union of two sets behaves as
+  neither — it answers to every name, owns only its own values, and any exhaustive treatment of it
+  (a `switch #complete`, a `[MyErrors] T` table, a reflected walk) silently covers the smaller set.
+- Evidence: an isolated probe, `swc test -d <dir>`, on the reference's own declaration pair:
+
+  ```
+  typeof(MyErrors.FailedToLoad) = BasicErrors      typeof(MyErrors.NotFound) = MyErrors
+  countof(MyErrors) = 1                            countof(BasicErrors) = 2
+  for value in MyErrors  ->  1 iteration
+  ```
+
+  The implementation is a scope merge — `sema.curScope().addUsingSymMap(usingSymMap)` and
+  `ownerEnum.addUsingSymMap(usingSymMap)`
+  ([Sema.Enum.cpp:205-219](../src/Compiler/Sema/Ast/Sema.Enum.cpp#L205-L219)) — so the members are
+  reachable through the owner and belong to the imported enum, exactly as observed.
+
+  `switch #complete` follows the same count, which is where it starts to matter. A switch over a
+  `MyErrors` is accepted as complete with a single `case .NotFound` — one arm for a type that spells
+  three names — and the function needs no `return` after it, because the switch is exhaustive as far
+  as the flow analysis is concerned. Feeding it an imported value is caught, but only by the runtime
+  guard:
+
+  > error: complete switch received a value not covered by its cases
+
+  That is the `.Switch` guard of F-097, which `release` turns off. There, the same call falls off
+  the end of a function with a declared return type.
+- Elsewhere: no language lets one enum absorb another's members, so the comparison is with what is
+  offered instead. C++20's `using enum` brings the names into a scope for unqualified use, and it is
+  explicitly a lookup convenience: the members keep their own type, and the importing entity is a
+  scope rather than an enum claiming to hold them. Rust and Swift make the union case a real type —
+  a variant that wraps the other enum — so the count and the match arms follow. Java has no
+  extension at all, by design. The shape Swag has is C++'s `using enum` written *inside* a type
+  declaration, where the name of the construct promises the Rust answer.
+- Next step: take the `#complete` half first, because it is a correctness question and the rest is a
+  design one. `#complete` currently means "covers every value the owner declared itself", which is
+  not what the word promises on a type whose members include the imported names; decide whether it
+  should require the imported values too, or whether an enum carrying a `using` should be refused by
+  `#complete` outright until the design question below is settled. Either way the answer must not be
+  "the runtime guard catches it", since that guard is off in `release`.
+
+  Then decide what the construct is. If it is a lookup convenience, say so on the page in the words
+  C++ uses for `using enum`, and stop calling it importing *values*. If it is meant to be a union,
+  `@countof`, iteration and the member type all have to follow, and the imported members have to be
+  re-typed on import — at which point the base-type restriction the page already imposes is the
+  beginning of that design rather than an implementation detail.
+
+### F-102 — `[2, 2] T` and `[2][2] T` are different types indexed the same way
+
+- Area: language
+- Found while: the same pass
+- Observation: the two spellings produce unrelated types that do not convert to each other, and the
+  reference warns about it
+  ([004_001_array.swg:159-184](../bin/reference/modules/language/src/004_001_array.swg#L159-L184)).
+  What makes it a trap rather than a choice is that `[i, j]` indexes both. The one place a reader
+  could notice which type they have — the use site — reads identically for the two, so the
+  distinction is visible only in the declaration and only if it is nearby. The advice the page gives
+  is to "pick one spelling per API and keep it", which is the shape of a rule the compiler could
+  enforce and does not.
+- Evidence: the reference's own example declares `[2, 2] s32` and `[2][2] s32` side by side and
+  indexes both with `array[0, 1]`.
+- Elsewhere: C# is the language with the same pair, and it kept them apart at the use site: `int[,]`
+  is indexed `a[i, j]` and `int[][]` is indexed `a[i][j]`, so the spelling of the access tells you
+  which one you have. Everyone else has one form as the array type — C, C++, Java, Rust and Go build
+  the rectangular case out of nested arrays, while Fortran and Ada make it a single type with a
+  single spelling — and in each case there is nothing to confuse. Swag is alone in offering both
+  *and* giving them one access syntax.
+- Next step: measure before proposing anything: count `[a, b] T` versus `[a][b] T` declarations in
+  `bin/`. If one form is vestigial, deleting it is better than documenting it. If both are used, the
+  cheap guard is a warning when the two appear in one module's public surface, since the cost lands
+  on the consumer who cannot see the declarations side by side.
+
+### F-103 — The bracketed `for` binding names a position, not an index
+
+- Area: language
+- Found while: the same pass, reading the custom-iteration chapter after the `for` chapters
+- Observation: brackets are introduced as the index spelling — "put a name in brackets to bind the
+  index without binding the element"
+  ([005_003_for_elements.swg:23-27](../bin/reference/modules/language/src/005_003_for_elements.swg#L23-L27)).
+  Over a custom iterator they mean the *second block parameter*, whatever that parameter is. In the
+  reference's own `opVisitPairs`, `for #Pairs left, [right] in windows` binds `right` to the second
+  element of a pair, and the brackets say nothing about indices
+  ([006_008_custom_iteration.swg:216-262](../bin/reference/modules/language/src/006_008_custom_iteration.swg#L216-L262)).
+  A reader who learned the built-in rule reads that line as an index binding and gets a value.
+- Evidence: the two pages, and the fact that `for [i] in myStruct` over a struct whose `opVisit`
+  declares `(item, index)` binds the second parameter, which happens to be called `index` in that
+  example and does not have to be
+  ([006_008_custom_iteration.swg:84-93](../bin/reference/modules/language/src/006_008_custom_iteration.swg#L84-L93)).
+- Elsewhere: no language marks the index with a sigil, so none has this collision. Python, Rust,
+  Swift and JavaScript all destructure a pair with ordinary tuple syntax — `for i, x in
+  enumerate(v)`, `for (i, x) in v.iter().enumerate()` — and the index is present only because
+  something produced it, which makes the second name obviously positional. The one thing they all
+  keep is that the binding form does not claim a role: `(a, b)` says "two things", not "an index and
+  an element".
+- Next step: the honest fix may be naming rather than syntax. A custom visitor already declares its
+  block parameters, and `#inject` binds them by name, so the call site could name them too —
+  `for left, right: ... in windows`, or a named form for the second slot — leaving brackets to mean
+  the index over built-in collections where they are unambiguous. Check first how many `opVisit`
+  variants in `bin/` declare a second parameter that is not an index; if `opVisitPairs` in the
+  reference is the only one, this is a documentation sentence, not a syntax change.
+
+### F-104 — The `[i]` binding has three different integer types depending on what is iterated
+
+- Area: language
+- Found while: the same pass, after F-103
+- Observation: one spelling, three types. Binding the index over a collection gives a `u64`, over a
+  counted loop a `u32`, and over a range an `s32`. Nothing at the use site distinguishes the three,
+  and the difference is exactly the one F-048 turns into arithmetic: an index that is unsigned in
+  two of the three forms, next to a `@countof` that is always `u64` and a signed computation that is
+  `s32`. The reference asserts the collection case (`#assert(#typeof(index) == u64)`
+  ([005_003_for_elements.swg:29-40](../bin/reference/modules/language/src/005_003_for_elements.swg#L29-L40)))
+  and never mentions that the other two forms answer differently.
+- Evidence: an isolated probe, `swc test -d <dir>`, printing `#nameof(#typeof(index))` in three
+  neighbouring loops over the same data:
+
+  ```
+  for [index] in values   ->  u64
+  for [index] in 3        ->  u32
+  for [index] in 0 to 2   ->  s32
+  ```
+
+  The reference already documents the consequence without naming the cause: it warns not to write
+  `for [i] in 0 to count - 1` on an unsigned counter, because `count - 1` wraps when `count` is zero
+  and only the overflow guard reports it
+  ([005_002_for.swg:161-180](../bin/reference/modules/language/src/005_002_for.swg#L161-L180)).
+- Elsewhere: the question mostly does not arise, because the index is a value someone produced
+  rather than a binding the loop invents. Rust's `enumerate()` yields `usize` and `0..n` yields
+  whatever `n` is, so the type is written in the expression; Go's `range` index is `int` — signed —
+  for every form, which is the property Swag lacks; Python has one integer type; C# `for` and
+  `Enumerable.Range` both give `int`. Where a language does use an unsigned index everywhere,
+  as C++ does with `size_t`, the uniformity is the point, and the `i >= 0` loop bug that comes with
+  it is a single well-known hazard rather than a per-form one.
+- Next step: decide whether the three should agree, and on what. `u64` matches `@countof` and is the
+  only one that cannot overflow on a real collection; `s32` is the one that makes `i - 1` behave.
+  The cheapest useful step first: add the three-way result above to the `for` chapter, since a
+  reader today has no way to know which one they have without `#typeof`. Then check whether a
+  counted `for [i] in N` could simply take the type of `N`, which would remove one of the three
+  without touching the other two.

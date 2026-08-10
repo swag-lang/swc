@@ -72,7 +72,7 @@ The identifier is how an entry is named everywhere else — in conversation, in 
 another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
 changes file; the identifier does not.
 
-Next identifier: F-093
+Next identifier: F-106
 Next identifier: T-383
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
@@ -138,3 +138,16 @@ Use this compact format. Keep observations factual and make the next step action
 - Next step: smallest useful investigation
 - Related: issue, pull request, or backlog entry if applicable
 ```
+
+[findings.language.md](findings.language.md) adds one field to that shape, between `Evidence` and
+`Next step`, and every entry in that file carries it:
+
+```
+- Elsewhere: what the neighbouring languages do about the same question
+```
+
+A language rule is judged against alternatives that exist, so the entry states them before it
+proposes anything: a wart nobody else has and a convention half the field shares lead to different
+decisions. The line records what those languages do, not what Swag should do — several entries there
+keep a rule Swag shares with exactly one other language. Do not add the field elsewhere; a defect in
+`swc` has no neighbour to compare against.

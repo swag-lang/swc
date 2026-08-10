@@ -131,6 +131,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeIs, .str = "@is"},
         {.name = PredefinedName::RuntimeTypeCmp, .str = "@typecmp"},
         {.name = PredefinedName::RuntimeStringCmp, .str = "@stringcmp"},
+        {.name = PredefinedName::RuntimeSliceCmp, .str = "__sliceCmp"},
         {.name = PredefinedName::RuntimeTlsAlloc, .str = "__tlsAlloc"},
         {.name = PredefinedName::RuntimeTlsSetValue, .str = "__tlsSetValue"},
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
@@ -171,6 +172,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsVarPtr)]              = predefined(PredefinedName::RuntimeTlsVarPtr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)]         = predefined(PredefinedName::RuntimeRaiseException);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StringCmp)]              = predefined(PredefinedName::RuntimeStringCmp);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SliceCmp)]               = predefined(PredefinedName::RuntimeSliceCmp);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RunTest)]                = predefined(PredefinedName::RuntimeRunTest);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestsDone)]              = predefined(PredefinedName::RuntimeTestsDone);
 }

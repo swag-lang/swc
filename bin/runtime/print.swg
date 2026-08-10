@@ -245,3 +245,19 @@ func @stringcmp(str1: #null string, str2: #null string)->bool
         return true
     return !@memcmp(data1, data2, num1)
 }
+
+// Compares the content of two slices, and returns 'true' if they hold the same elements.
+// '==' between two slices of the same element type lowers to this call, so it answers the
+// same question as '@stringcmp' does for two strings.
+func __sliceCmp(data1, data2: #null const [*] void, count1, count2, sizeOf: u64)->bool
+{
+    if count1 != count2 do
+        return false
+    if count1 == 0 do
+        return true
+    if data1 == null or data2 == null do
+        return data1 == data2
+    if data1 == data2 do
+        return true
+    return !@memcmp(data1, data2, count1 * sizeOf)
+}

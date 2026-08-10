@@ -21,15 +21,9 @@ providing a streamlined and efficient way to process each item.
 }
 
 /**
-# Naming Only the Second Iteration Value
-Put a name in brackets to bind the second iteration value without binding the first.
-For built-in collections, that second value is the index. For custom iteration, it is
-the second block parameter supplied by 'opVisit' and does not have to be an index.
-
-The same form is used for counted loops: `for [index] in 3`. A counted-loop index has
-the type of the resolved count expression: an unsuffixed count uses 'u32', while an
-explicitly typed count keeps its type. A range index has the type inferred from its
-bounds. A built-in collection index is 'u64' unless the collection uses an enum index.
+# Naming Only the Index
+Put a name in brackets to bind the index without binding the element.
+The same form is used for counted loops: `for [index] in 3`.
 */
 
 #test
@@ -153,8 +147,7 @@ Element iteration works with multi-dimensional arrays and visits each element in
 
 /**
 # Modifying Elements with '&'
-A plain element binding is a read-only view of the live element, not a copy. Prefix the
-element name with '&' to make that view writable and modify the element in place.
+Prefix the element name with '&' to visit elements by address and modify them in place.
 */
 
 #test

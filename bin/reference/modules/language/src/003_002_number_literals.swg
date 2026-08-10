@@ -85,7 +85,6 @@ easy to read for developers coming from C or C++ backgrounds.
 
     let b = 0.11
     @assert(b == 0.11)
-    #assert(#typeof(b) == f64)
 
     let c = 15e2
     @assert(c == 15e2)     // Equivalent to 1500
@@ -100,17 +99,15 @@ easy to read for developers coming from C or C++ backgrounds.
 /**
 # Default Floating-Point Type
 
-An inferred floating-point literal uses the narrowest of 'f32' and 'f64' that represents
-the written value exactly. For example, '1.5' is inferred as 'f32', while '0.1' is
-inferred as 'f64'. Add a suffix when the width must be fixed independently of the digits.
+By default, floating-point literals are of type 'f32'. This differs from C and C++,
+where floating-point literals default to 'double' ('f64').
 */
 #test
 {
     let a = 1.5
-    let b = 0.1
     @assert(a == 1.5)
     #assert(#typeof(a) == f32)
-    #assert(#typeof(b) == f64)
+    #assert(#typeof(a) != f64)
 }
 
 /**

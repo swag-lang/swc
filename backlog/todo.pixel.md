@@ -81,24 +81,14 @@ Merge an ordered set of graph inputs without requiring them to be blended pairwi
 
 - Related: T-049
 
-### T-050 — Gradients cap at eight stops
+### T-186 — SVG gradient geometry is incomplete
 
-- `MaxGradientStops = 8` in `src/types/brush.swg`. Design tools and SVG routinely produce more, and
-  a gradient silently loses its later stops.
-- Remove the silent limit or return an explicit failure when the selected backend cannot represent
-  the input.
-- Related: T-186
-
-### T-186 — SVG gradients are not parsed
-
-- `src/svg/svgparse.swg` parses `svg`, `g`, `defs`, `use`, `path`, `rect`, `circle`, `ellipse`,
-  `line`, `polygon`, `polyline` and `style`. It does not parse `linearGradient`, `radialGradient`
-  or `stop` — so **an SVG with a gradient renders flat**, even though `Brush` supports linear,
-  radial and sweep gradients natively. The capability exists on both sides and nothing connects
-  them.
-- This constrains the repository directly: the GUI theme is vector — `gui/src/theme/widgets.svg`
-  and `icons.svg` — so the parser's coverage is the theme's design vocabulary.
-- Related: T-050, T-187, T-188, T-189, T-190, T-191, T-192, T-193, T-194
+- Linear and centered radial paint servers, stops, spreads, percentages, user-space units and
+  translate/scale gradient transforms are parsed. Radial focal points and non-square
+  object-bounding-box ellipses still need a brush representation that both renderers share.
+- Gradient inheritance resolves an already parsed `href`; forward inheritance chains and cycles
+  still need a deferred resolver with explicit invalid-reference behavior.
+- Related: T-187, T-188, T-189, T-190, T-191, T-192, T-193
 
 ### T-187 — SVG text elements are not parsed
 
@@ -148,12 +138,6 @@ Implement `symbol` instancing and viewport behavior independently of ordinary `u
 Map a declared subset of SVG filter primitives onto the effect graph from T-049.
 
 - Related: T-049, T-186
-
-### T-194 — SVG stroke dashes are not parsed
-
-Parse `stroke-dasharray` and `stroke-dashoffset` into the painter's existing dash support.
-
-- Related: T-186
 
 ---
 

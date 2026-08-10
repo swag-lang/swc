@@ -14,27 +14,40 @@ struct Shape
     {
         pathList: LinePathList     // Contours, in drawing user units.
 
-        fillColor: Color     // Straight-alpha fill color.
-        hasFill:   bool      // Whether the shape is filled.
-        evenOdd:   bool      // Whether the fill uses the even-odd rule.
+        fillBrush:   Brush       // Resolved fill paint.
+        fillColor:   Color       // Inherited solid fill before paint-server resolution.
+        fillPaintId: String      // Referenced gradient identifier, if any.
+        fillOpacity: f32 = 1     // Fill-only opacity multiplier.
+        hasFill:     bool        // Whether the shape is filled.
+        evenOdd:     bool        // Whether the fill uses the even-odd rule.
 
         hidden: bool     // Whether the shape is a reusable definition, not painted directly.
 
-        strokeColor: Color                    // Straight-alpha stroke color.
-        strokeWidth: f32          = 1         // Stroke width, in user units.
-        hasStroke:   bool                     // Whether the shape is stroked.
-        capStyle:    LineCapStyle = None      // Cap applied to open subpath ends.
-        joinStyle:   JoinStyle    = Miter     // Join between stroke segments.
+        strokeBrush:   Brush                    // Resolved stroke paint.
+        strokeColor:   Color                    // Inherited solid stroke before paint-server resolution.
+        strokePaintId: String                   // Referenced gradient identifier, if any.
+        strokeOpacity: f32          = 1         // Stroke-only opacity multiplier.
+        strokeWidth:   f32          = 1         // Stroke width, in user units.
+        strokePattern: Array'f32                // Alternating dash and gap lengths, in user units.
+        strokeOffset:  f32                      // Offset into the dash sequence, in user units.
+        strokeMiter:   f32          = 3         // Maximum miter length relative to stroke width.
+        hasStroke:     bool                     // Whether the shape is stroked.
+        capStyle:      LineCapStyle = None      // Cap applied to open subpath ends.
+        joinStyle:     JoinStyle    = Miter     // Join between stroke segments.
+
+        paintTx, paintTy: f32         // Element transform retained for user-space paint servers.
+        paintSx, paintSy: f32 = 1     // Element scale retained for user-space paint servers.
     }
 }
 
 // A parsed vector document, ready to paint at any scale.
 //
-// [[Pixel.Svg.Drawing.parse]] reads the SVG subset the standard themes are authored in:
-// `svg`, `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polygon` and `polyline`
-// elements; `translate`/`scale` transforms; solid fills and strokes with opacity.
-// Gradients, filters, text, and rotations are out of contract. Because nothing is
-// rasterized at parse time, the same drawing renders pixel perfect at every size.
+// [[Pixel.Svg.Drawing.parse]] reads the SVG subset used by standalone artwork and the
+// standard themes: basic shapes and paths, groups, definitions and uses, linear and
+// centered radial gradients, CSS Color 3 solid paints, opacity, path-length-calibrated
+// stroke dashes, `translate`/`scale` transforms, and simple element/class/id style rules. Filters, text, external images,
+// clipping, masks, patterns, markers, and rotations are out of contract. Because nothing
+// is rasterized at parse time, the same drawing renders pixel perfect at every size.
 struct Drawing
 {
     width:  f32     // View-box width, in user units.
@@ -50,15 +63,26 @@ private struct GroupState
     tx, ty: f32         // Accumulated translation, in drawing units.
     sx, sy: f32 = 1     // Accumulated scale.
 
-    fillColor: Color = Color.fromArgb(Argb.Black)     // Inherited fill color.
-    hasFill:   bool  = true                           // Whether fill is enabled.
-    evenOdd:   bool                                   // Inherited fill rule.
+    fillColor:   Color = Color.fromArgb(Argb.Black)     // Inherited fill color.
+    fillPaintId: String                                 // Inherited fill paint server.
+    fillOpacity: f32   = 1                              // Inherited fill-only opacity.
+    hasFill:     bool  = true                           // Whether fill is enabled.
+    evenOdd:     bool                                   // Inherited fill rule.
 
-    strokeColor: Color                    // Inherited stroke color.
-    strokeWidth: f32          = 1         // Inherited stroke width, in user units.
-    hasStroke:   bool                     // Whether stroke is enabled.
-    capStyle:    LineCapStyle = None      // Inherited stroke cap.
-    joinStyle:   JoinStyle    = Miter     // Inherited stroke join.
+    strokeColor:   Color                    // Inherited stroke color.
+    strokePaintId: String                   // Inherited stroke paint server.
+    strokeOpacity: f32          = 1         // Inherited stroke-only opacity.
+    strokeWidth:   f32          = 1         // Inherited stroke width, in user units.
+    strokePattern: Array'SvgLength          // Inherited alternating dash and gap lengths.
+    strokeOffset:  SvgLength                // Inherited offset into the dash sequence.
+    strokeMiter:   f32          = 3         // Inherited miter limit.
+    hasStroke:     bool                     // Whether stroke is enabled.
+    capStyle:      LineCapStyle = None      // Inherited stroke cap.
+    joinStyle:     JoinStyle    = Miter     // Inherited stroke join.
+
+    currentColor: Color = Color.fromArgb(Argb.Black)     // Inherited `currentColor` value.
+    isDisplayed:  bool  = true                           // Whether an ancestor selected `display:none`.
+    isVisible:    bool  = true                           // Inherited visibility state.
 
     opacity: f32 = 1     // Accumulated group opacity.
     inDefs:  bool        // Whether the element sits inside a `defs` scope.
@@ -73,8 +97,52 @@ private struct Parser
     // Shapes defined inside `defs`, by id, instantiated by `use` elements. The
     // ranges index the drawing's shape array: defs shapes are parsed in place and
     // withheld from painting.
-    defs:   HashTable'(String, { first: u64, count: u64 })
-    inDefs: bool     // Whether parsing currently sits inside a `defs` element.
+    defs:      HashTable'(String, { first: u64, count: u64 })
+    gradients: HashTable'(String, Gradient)
+    styles:    Array'StyleRule
+    svgDepth:  u32
+    inDefs:    bool     // Whether parsing currently sits inside a `defs` element.
+}
+
+private struct StyleRule
+{
+    selector:     String
+    declarations: String
+}
+
+private struct SvgLength
+{
+    value:     f32
+    isPercent: bool
+}
+
+private enum GradientKind
+{
+    Linear
+    Radial
+}
+
+private struct Gradient
+{
+    kind: GradientKind = Linear
+
+    x1: SvgLength = {0, true}
+    y1: SvgLength = {0, true}
+    x2: SvgLength = {1, true}
+    y2: SvgLength = {0, true}
+
+    cx: SvgLength = {0.5, true}
+    cy: SvgLength = {0.5, true}
+    r:  SvgLength = {0.5, true}
+    fx: SvgLength = {0.5, true}
+    fy: SvgLength = {0.5, true}
+    fr: SvgLength
+
+    userSpace: bool
+    spread:    GradientSpread = Clamp
+    tx, ty:    f32
+    sx, sy:    f32            = 1
+    stops:     Array'GradientStop
 }
 
 // Numeric scanning /////////////////////////////////////////////////////////////
@@ -119,6 +187,42 @@ private func scanNumber(s: string, pos: *u64)->f32
     return catch StrConv.toF32(cast(string) @mkslice(@dataof(s) + start, i - start))
 }
 
+private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
+{
+    var pos = 0'u64
+    while pos < @countof(value) and (value[pos] == ' ' or value[pos] == '\t' or value[pos] == '\n' or value[pos] == '\r') do
+        pos += 1
+    if pos >= @countof(value) or !isNumberStart(value[pos]) do
+        return defaultValue
+
+    var result: retval
+    result.value = scanNumber(value, &pos)
+    while pos < @countof(value) and value[pos] == ' ' do
+        pos += 1
+    if pos < @countof(value) and value[pos] == '%'
+    {
+        result.value     *= 0.01
+        result.isPercent = true
+    }
+
+    return result
+}
+
+private func parsePaintId(value: string)->String
+{
+    var result: retval
+    let trimmed = Latin1.trim(value)
+    if @countof(trimmed) < 7 or Latin1.compare(cast(string) @mkslice(@dataof(trimmed), 5), "url(#", ignoreCase: true) do
+        return result
+
+    var end = 5'u64
+    while end < @countof(trimmed) and trimmed[end] != ')' do
+        end += 1
+    if end > 5 do
+        result = cast(string) @mkslice(@dataof(trimmed) + 5, end - 5)
+    return result
+}
+
 // Colors ///////////////////////////////////////////////////////////////////////
 
 private func hexNibble(c: u8)->u8
@@ -132,6 +236,18 @@ private func hexNibble(c: u8)->u8
     return 0
 }
 
+private func scanCssComponent(value: string, pos: *u64, scale: f32)->f32
+{
+    var result = scanNumber(value, pos)
+    if dref pos < @countof(value) and value[dref pos] == '%'
+    {
+        result   *= 0.01 * scale
+        dref pos += 1
+    }
+
+    return Math.clamp(result, 0, scale)
+}
+
 // Parses a solid paint value. Returns the color and whether painting is enabled.
 private func parseColor(value: string)->{ color: Color, enabled: bool }
 {
@@ -139,53 +255,125 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     result.color   = Color.fromArgb(Argb.Black)
     result.enabled = true
 
-    if value == "none" or value == "transparent"
+    let text = Latin1.trim(value)
+
+    if !Latin1.compare(text, "none", ignoreCase: true)
     {
         result.enabled = false
         return result
     }
 
-    if value == "white"
+    if !Latin1.compare(text, "transparent", ignoreCase: true)
     {
-        result.color = Color.fromArgb(Argb.White)
+        result.color = Color.fromArgb(Argb.Zero)
         return result
     }
 
-    if value == "black" do
-        return result
-
-    let len = @countof(value)
-    if len and value[0] == '#'
+    let len = @countof(text)
+    if len and text[0] == '#'
     {
         if len == 4 or len == 5
         {
-            let r = hexNibble(value[1]) * 17
-            let g = hexNibble(value[2]) * 17
-            let b = hexNibble(value[3]) * 17
-            let a = len == 5 ? hexNibble(value[4]) * 17 : 255'u8
+            let r = hexNibble(text[1]) * 17
+            let g = hexNibble(text[2]) * 17
+            let b = hexNibble(text[3]) * 17
+            let a = len == 5 ? hexNibble(text[4]) * 17 : 255'u8
             result.color = Color.fromArgb(a, r, g, b)
             return result
         }
 
         if len == 7 or len == 9
         {
-            let r = hexNibble(value[1]) * 16 + hexNibble(value[2])
-            let g = hexNibble(value[3]) * 16 + hexNibble(value[4])
-            let b = hexNibble(value[5]) * 16 + hexNibble(value[6])
-            let a = len == 9 ? hexNibble(value[7]) * 16 + hexNibble(value[8]) : 255'u8
+            let r = hexNibble(text[1]) * 16 + hexNibble(text[2])
+            let g = hexNibble(text[3]) * 16 + hexNibble(text[4])
+            let b = hexNibble(text[5]) * 16 + hexNibble(text[6])
+            let a = len == 9 ? hexNibble(text[7]) * 16 + hexNibble(text[8]) : 255'u8
             result.color = Color.fromArgb(a, r, g, b)
             return result
         }
     }
 
-    if len > 4 and cast(string) @mkslice(@dataof(value), 4) == "rgb("
+    let isRgb  = len > 4 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 4), "rgb(", ignoreCase: true)
+    let isRgba = len > 5 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 5), "rgba(", ignoreCase: true)
+    if isRgb or isRgba
     {
-        var pos = 4'u64
-        let r   = scanNumber(value, &pos)
-        let g   = scanNumber(value, &pos)
-        let b   = scanNumber(value, &pos)
-        result.color = Color.fromArgb(255, cast(u8) Math.clamp(r, 0, 255), cast(u8) Math.clamp(g, 0, 255), cast(u8) Math.clamp(b, 0, 255))
+        var pos = isRgba ? 5'u64 : 4'u64
+        let r   = scanCssComponent(text, &pos, 255)
+        let g   = scanCssComponent(text, &pos, 255)
+        let b   = scanCssComponent(text, &pos, 255)
+        let a   = isRgba ? scanCssComponent(text, &pos, 1) : 1.0
+        result.color = Color.fromArgb(cast(u8) Math.round(a * 255), cast(u8) Math.round(r), cast(u8) Math.round(g), cast(u8) Math.round(b))
         return result
+    }
+
+    let isHsl  = len > 4 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 4), "hsl(", ignoreCase: true)
+    let isHsla = len > 5 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 5), "hsla(", ignoreCase: true)
+    if isHsl or isHsla
+    {
+        var pos = isHsla ? 5'u64 : 4'u64
+        var hue = scanNumber(text, &pos)
+        hue -= Math.floor(hue / 360) * 360
+        let saturation = scanCssComponent(text, &pos, 1)
+        let lightness  = scanCssComponent(text, &pos, 1)
+        let alpha      = isHsla ? scanCssComponent(text, &pos, 1) : 1.0
+        result.color   = Color.fromHsl(hue / 360, saturation, lightness)
+        result.color.a = cast(u8) Math.round(alpha * 255)
+        return result
+    }
+
+    // SVG uses the CSS named-color table. The enum preserves its canonical
+    // UpperCamelCase spellings, while authored values are compared case-insensitively.
+    let type = #typeof(Argb)
+    for it in type.values
+    {
+        if it.name and !Latin1.compare(it.name!, text, ignoreCase: true)
+        {
+            result.color = Color.fromArgb(dref cast(const *Argb) it.value!)
+            return result
+        }
+    }
+
+    return result
+}
+
+private func parseDashPattern(value: string)->Array'SvgLength
+{
+    var result: retval
+    var total:  f32
+    let text = Latin1.trim(value)
+    if !Latin1.compare(text, "none", ignoreCase: true) do
+        return result
+
+    var pos = 0'u64
+    while pos < @countof(text)
+    {
+        while pos < @countof(text) and (text[pos] == ' ' or text[pos] == ',' or text[pos] == '\t' or text[pos] == '\n' or text[pos] == '\r') do
+            pos += 1
+        if pos >= @countof(text) or !isNumberStart(text[pos]) do
+            break
+
+        var length = SvgLength{value: scanNumber(text, &pos)}
+        if pos < @countof(text) and text[pos] == '%'
+        {
+            length.value     *= 0.01
+            length.isPercent = true
+            pos              += 1
+        }
+
+        if length.value < 0 do
+            return {}
+        result.add(length)
+        total += length.value
+    }
+
+    if total == 0 do
+        return {}
+
+    if result.count & 1
+    {
+        let count = result.count
+        for [i] in count do
+            result.add(result[i])
     }
 
     return result
@@ -198,34 +386,86 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
     switch name
     {
     case "fill":
-        let {color, enabled} = parseColor(value)
-        state.hasFill = enabled
-        if enabled do
-            state.fillColor = color
+        let paintId = parsePaintId(value)
+        if !paintId.isEmpty()
+        {
+            state.fillPaintId = #move paintId
+            state.hasFill     = true
+        }
+        else
+        {
+            state.fillPaintId.clear()
+            if !Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
+            {
+                state.fillColor = state.currentColor
+                state.hasFill   = true
+            }
+            else
+            {
+                let {color, enabled} = parseColor(value)
+                state.hasFill = enabled
+                if enabled do
+                    state.fillColor = color
+            }
+        }
 
     case "stroke":
-        let {color, enabled} = parseColor(value)
-        state.hasStroke = enabled
-        if enabled do
-            state.strokeColor = color
+        let paintId = parsePaintId(value)
+        if !paintId.isEmpty()
+        {
+            state.strokePaintId = #move paintId
+            state.hasStroke     = true
+        }
+        else
+        {
+            state.strokePaintId.clear()
+            if !Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
+            {
+                state.strokeColor = state.currentColor
+                state.hasStroke   = true
+            }
+            else
+            {
+                let {color, enabled} = parseColor(value)
+                state.hasStroke = enabled
+                if enabled do
+                    state.strokeColor = color
+            }
+        }
+
+    case "color":
+        state.currentColor = parseColor(value).color
+
+    case "display":
+        if !Latin1.compare(Latin1.trim(value), "none", ignoreCase: true) do
+            state.isDisplayed = false
+
+    case "visibility":
+        let visible = Latin1.compare(Latin1.trim(value), "hidden", ignoreCase: true) != 0 and Latin1.compare(Latin1.trim(value), "collapse", ignoreCase: true) != 0
+        state.isVisible = visible
 
     case "fill-opacity":
-        var pos = 0'u64
-        let o   = Math.saturate(scanNumber(value, &pos))
-        state.fillColor.a = cast(u8) Math.round(state.fillColor.a * o)
+        state.fillOpacity = Math.saturate(parseLength(value).value)
 
     case "stroke-opacity":
-        var pos = 0'u64
-        let o   = Math.saturate(scanNumber(value, &pos))
-        state.strokeColor.a = cast(u8) Math.round(state.strokeColor.a * o)
+        state.strokeOpacity = Math.saturate(parseLength(value).value)
 
     case "opacity":
-        var pos = 0'u64
-        state.opacity *= Math.saturate(scanNumber(value, &pos))
+        state.opacity *= Math.saturate(parseLength(value).value)
 
     case "stroke-width":
         var pos = 0'u64
         state.strokeWidth = scanNumber(value, &pos)
+
+    case "stroke-dasharray":
+        state.strokePattern = parseDashPattern(value)
+
+    case "stroke-dashoffset":
+        state.strokeOffset = parseLength(value)
+
+    case "stroke-miterlimit":
+        var pos = 0'u64
+        state.strokeMiter = Math.max(scanNumber(value, &pos), 1)
 
     case "fill-rule":
         state.evenOdd = value == "evenodd"
@@ -333,6 +573,38 @@ private func applyAttribute(state: *GroupState, name, value: string)
     applyStyleProperty(state, name, value)
 }
 
+private func styleValue(style, property: string)->String
+{
+    var result: retval
+    var scan = style
+    while @countof(scan)
+    {
+        var stop = 0'u64
+        while stop < @countof(scan) and scan[stop] != ';' do
+            stop += 1
+        let declaration = @mkslice(@dataof(scan), stop)
+
+        var sep = 0'u64
+        while sep < @countof(declaration) and declaration[sep] != ':' do
+            sep += 1
+        if sep < @countof(declaration)
+        {
+            let name = Latin1.trim(cast(string) @mkslice(@dataof(declaration), sep))
+            if !Latin1.compare(name, property, ignoreCase: true)
+            {
+                result = Latin1.trim(cast(string) @mkslice(@dataof(declaration) + sep + 1, @countof(declaration) - sep - 1))
+                return result
+            }
+        }
+
+        if stop == @countof(scan) do
+            break
+        scan = cast(string) @mkslice(@dataof(scan) + stop + 1, @countof(scan) - stop - 1)
+    }
+
+    return result
+}
+
 // Geometry /////////////////////////////////////////////////////////////////////
 
 #[Swag.Inline]
@@ -426,11 +698,37 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
     var path:    #null *LinePath
     var started: bool
 
-    func flag(data: string, pos: *u64)->bool
+    func number(data: string, pos: *u64, valid: *bool)->f32
     {
-        while dref pos < @countof(data) and (data[dref pos] == ' ' or data[dref pos] == ',') do
+        if !dref valid do
+            return 0
+
+        var look = dref pos
+        while look < @countof(data) and (data[look] == ' ' or data[look] == ',' or data[look] == '\t' or data[look] == '\n' or data[look] == '\r') do
+            look += 1
+        if look >= @countof(data) or !isNumberStart(data[look])
+        {
+            dref valid = false
+            return 0
+        }
+
+        return scanNumber(data, pos)
+    }
+
+    func flag(data: string, pos: *u64, valid: *bool)->bool
+    {
+        if !dref valid do
+            return false
+
+        while dref pos < @countof(data) and (data[dref pos] == ' ' or data[dref pos] == ',' or data[dref pos] == '\t' or data[dref pos] == '\n' or data[dref pos] == '\r') do
             dref pos += 1
-        let f = dref pos < @countof(data) and data[dref pos] == '1'
+        if dref pos >= @countof(data) or (data[dref pos] != '0' and data[dref pos] != '1')
+        {
+            dref valid = false
+            return false
+        }
+
+        let f = data[dref pos] == '1'
         dref pos += 1
         return f
     }
@@ -446,11 +744,19 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
         if (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z')
         {
+            switch c
+            {
+            case 'M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z': discard c
+            default: return
+            }
+
             cmd = c
             pos += 1
             if cmd == 'Z' or cmd == 'z'
             {
-                if path and started do
+                if !path do
+                    return
+                if started do
                     path.close()
                 curX      = begX
                 curY      = begY
@@ -459,18 +765,21 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 continue
             }
         }
-        elif !isNumberStart(c)
-        {
-            pos += 1
-            continue
-        }
+        elif !isNumberStart(c) do
+            return
 
-        let rel = cmd >= 'a'
+        if !path and cmd != 'M' and cmd != 'm' do
+            return
+
+        let rel   = cmd >= 'a'
+        var valid = true
         switch cmd
         {
         case 'M', 'm':
-            var x = scanNumber(data, &pos)
-            var y = scanNumber(data, &pos)
+            var x = number(data, &pos, &valid)
+            var y = number(data, &pos, &valid)
+            if !valid do
+                return
             if rel
             {
                 x += curX
@@ -489,8 +798,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             cmd = rel ? cast(u8) 'l' : cast(u8) 'L'
 
         case 'L', 'l':
-            var x = scanNumber(data, &pos)
-            var y = scanNumber(data, &pos)
+            var x = number(data, &pos, &valid)
+            var y = number(data, &pos, &valid)
+            if !valid do
+                return
             if rel
             {
                 x += curX
@@ -506,14 +817,18 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             curY = y
 
         case 'H', 'h':
-            var x = scanNumber(data, &pos)
+            var x = number(data, &pos, &valid)
+            if !valid do
+                return
             if rel do
                 x += curX
             path!.lineTo(mapX(state, x), mapY(state, curY))
             curX = x
 
         case 'V', 'v':
-            var y = scanNumber(data, &pos)
+            var y = number(data, &pos, &valid)
+            if !valid do
+                return
             if rel do
                 y += curY
             path!.lineTo(mapX(state, curX), mapY(state, y))
@@ -523,8 +838,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             var c1x, c1y: f32
             if cmd == 'C' or cmd == 'c'
             {
-                c1x = scanNumber(data, &pos)
-                c1y = scanNumber(data, &pos)
+                c1x = number(data, &pos, &valid)
+                c1y = number(data, &pos, &valid)
                 if rel
                 {
                     c1x += curX
@@ -543,10 +858,12 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 }
             }
 
-            var c2x = scanNumber(data, &pos)
-            var c2y = scanNumber(data, &pos)
-            var x   = scanNumber(data, &pos)
-            var y   = scanNumber(data, &pos)
+            var c2x = number(data, &pos, &valid)
+            var c2y = number(data, &pos, &valid)
+            var x   = number(data, &pos, &valid)
+            var y   = number(data, &pos, &valid)
+            if !valid do
+                return
             if rel
             {
                 c2x += curX
@@ -567,8 +884,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             var c1x, c1y: f32
             if cmd == 'Q' or cmd == 'q'
             {
-                c1x = scanNumber(data, &pos)
-                c1y = scanNumber(data, &pos)
+                c1x = number(data, &pos, &valid)
+                c1y = number(data, &pos, &valid)
                 if rel
                 {
                     c1x += curX
@@ -586,8 +903,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 }
             }
 
-            var x = scanNumber(data, &pos)
-            var y = scanNumber(data, &pos)
+            var x = number(data, &pos, &valid)
+            var y = number(data, &pos, &valid)
+            if !valid do
+                return
             if rel
             {
                 x += curX
@@ -603,13 +922,15 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             continue
 
         case 'A', 'a':
-            let rx = scanNumber(data, &pos)
-            let ry = scanNumber(data, &pos)
-            discard scanNumber(data, &pos)     // x-axis rotation, out of contract
-            let largeArc = flag(data, &pos)
-            let sweepF   = flag(data, &pos)
-            var x        = scanNumber(data, &pos)
-            var y        = scanNumber(data, &pos)
+            let rx = number(data, &pos, &valid)
+            let ry = number(data, &pos, &valid)
+            discard number(data, &pos, &valid)     // x-axis rotation, out of contract
+            let largeArc = flag(data, &pos, &valid)
+            let sweepF   = flag(data, &pos, &valid)
+            var x        = number(data, &pos, &valid)
+            var y        = number(data, &pos, &valid)
+            if !valid do
+                return
             if rel
             {
                 x += curX
@@ -621,7 +942,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             curY = y
 
         default:
-            pos += 1
+            return
         }
 
         lastCurve = 0
@@ -634,7 +955,7 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
 {
     if list.paths.isEmpty() do
         return
-    if !state.hasFill and !state.hasStroke do
+    if !state.isDisplayed or !state.isVisible or (!state.hasFill and !state.hasStroke) do
         return
 
     // The triangulated fill treats every extra contour of a list as a hole cut into
@@ -714,7 +1035,8 @@ private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupSt
     if state.hasFill
     {
         shape.fillColor   = state.fillColor
-        shape.fillColor.a = cast(u8) Math.round(shape.fillColor.a * state.opacity)
+        shape.fillPaintId = state.fillPaintId
+        shape.fillOpacity = state.fillOpacity * state.opacity
         shape.evenOdd     = state.evenOdd
     }
 
@@ -722,31 +1044,46 @@ private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupSt
     if state.hasStroke
     {
         shape.strokeColor   = state.strokeColor
-        shape.strokeColor.a = cast(u8) Math.round(shape.strokeColor.a * state.opacity)
+        shape.strokePaintId = state.strokePaintId
+        shape.strokeOpacity = state.strokeOpacity * state.opacity
         shape.strokeWidth   = state.strokeWidth * state.sx
-        shape.capStyle      = state.capStyle
-        shape.joinStyle     = state.joinStyle
+        let viewportDiagonal = Math.sqrt(drawing.width * drawing.width + drawing.height * drawing.height) / Math.ConstF32.Sqrt2
+        shape.strokeOffset = (state.strokeOffset.isPercent ? state.strokeOffset.value * viewportDiagonal : state.strokeOffset.value) * state.sx
+        shape.strokeMiter  = state.strokeMiter
+        for value in state.strokePattern
+        {
+            let length = value.isPercent ? value.value * viewportDiagonal : value.value
+            shape.strokePattern.add(length * state.sx)
+        }
+
+        shape.capStyle  = state.capStyle
+        shape.joinStyle = state.joinStyle
     }
+
+    shape.paintTx = state.tx
+    shape.paintTy = state.ty
+    shape.paintSx = state.sx
+    shape.paintSy = state.sy
 }
 
-private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx: f32)
+private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx, ry: f32)
 {
     if w <= 0 or h <= 0 do
         return
 
     var list: LinePathList
-    let path    = list.newPath()
-    let halfMin = Math.min(w, h) * 0.5
+    let path = list.newPath()
+    let crx  = Math.min(rx, w * 0.5)
+    let cry  = Math.min(ry, h * 0.5)
 
-    if rx >= halfMin - 0.001 and Math.abs(w - h) < 0.001
+    if crx >= w * 0.5 - 0.001 and cry >= h * 0.5 - 0.001
     {
-        // A square with a full corner radius is a circle.
+        // Full horizontal and vertical corner radii form an ellipse.
         path.setEllipseRaw(mapX(state, x + w * 0.5), mapY(state, y + h * 0.5), w * 0.5 * state.sx, h * 0.5 * state.sy)
     }
-    elif rx > 0
+    elif crx > 0 and cry > 0
     {
-        let cr = Math.min(rx, halfMin)
-        path.setRoundRectRaw(mapX(state, x), mapY(state, y), w * state.sx, h * state.sy, cr * state.sx, cr * state.sy)
+        path.setRoundRectRaw(mapX(state, x), mapY(state, y), w * state.sx, h * state.sy, crx * state.sx, cry * state.sy)
     }
     else do
         path.setRectRaw(mapX(state, x), mapY(state, y), w * state.sx, h * state.sy)
@@ -804,6 +1141,100 @@ private impl Parser
             .pos += 1
     }
 
+    mtd parseStyleSheet()
+    {
+        let contentStart = .pos
+        var contentEnd   = .pos
+        while contentEnd + 7 < @countof(.text)
+        {
+            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and !Latin1.compare(cast(string) @mkslice(@dataof(.text) + contentEnd + 2, 5), "style", ignoreCase: true) do
+                break
+            contentEnd += 1
+        }
+
+        let content = cast(string) @mkslice(@dataof(.text) + contentStart, contentEnd - contentStart)
+        var pos     = 0'u64
+        while pos < @countof(content)
+        {
+            while pos < @countof(content) and content[pos] != '{' do
+                pos += 1
+            if pos >= @countof(content) do
+                break
+
+            var selectorStart = pos
+            while selectorStart and content[selectorStart - 1] != '}' do
+                selectorStart -= 1
+            let selector = Latin1.trim(cast(string) @mkslice(@dataof(content) + selectorStart, pos - selectorStart))
+            pos += 1
+            let declarationsStart = pos
+            while pos < @countof(content) and content[pos] != '}' do
+                pos += 1
+            if pos >= @countof(content) do
+                break
+
+            if @countof(selector) and selector[0] != '@' do
+                .styles.add({String.from(selector), String.from(Latin1.trim(cast(string) @mkslice(@dataof(content) + declarationsStart, pos - declarationsStart)))})
+            pos += 1
+        }
+
+        .pos = contentEnd
+        .skipUntil('>')
+        if .pos < @countof(.text) do
+            .pos += 1
+    }
+
+    mtd applyStyleRules(elementName: string, geo: *HashTable'(String, String), state: *GroupState)
+    {
+        let idAttr    = geo.tryFind("id")
+        let classAttr = geo.tryFind("class")
+
+        // Apply increasing selector specificity, preserving source order within
+        // each class. This deliberately supports the compact selectors common in
+        // standalone artwork without pretending to be a complete CSS engine.
+        for [specificity] in 3
+        {
+            for &rule in .styles
+            {
+                let selector = rule.selector.toString()
+                var matches  = false
+                switch specificity
+                {
+                case 0:
+                    matches = @countof(selector) and selector[0] != '.' and selector[0] != '#' and !Latin1.compare(selector, elementName, ignoreCase: true)
+
+                case 1:
+                    if @countof(selector) > 1 and selector[0] == '.' and classAttr
+                    {
+                        let wanted  = cast(string) @mkslice(@dataof(selector) + 1, @countof(selector) - 1)
+                        var classes = classAttr.value.toString()
+                        while @countof(classes)
+                        {
+                            var end = 0'u64
+                            while end < @countof(classes) and classes[end] != ' ' and classes[end] != '\t' and classes[end] != '\n' and classes[end] != '\r' do
+                                end += 1
+                            if !Latin1.compare(cast(string) @mkslice(@dataof(classes), end), wanted) do
+                                matches = true
+                            if matches or end == @countof(classes) do
+                                break
+                            classes = Latin1.trim(cast(string) @mkslice(@dataof(classes) + end, @countof(classes) - end))
+                        }
+                    }
+
+                case 2:
+                    if @countof(selector) > 1 and selector[0] == '#' and idAttr do
+                        matches = !Latin1.compare(cast(string) @mkslice(@dataof(selector) + 1, @countof(selector) - 1), idAttr.value.toString())
+                }
+
+                if matches do
+                    applyAttribute(state, "style", rule.declarations.toString())
+            }
+        }
+
+        let inlineStyle = geo.tryFind("style")
+        if inlineStyle do
+            applyAttribute(state, "style", inlineStyle.value.toString())
+    }
+
     // Scans the attributes of the current element into `state` and collects the
     // geometry attributes by name.
     mtd scanAttributes(state: *GroupState, geo: *HashTable'(String, String))->{ selfClosed: bool }
@@ -856,8 +1287,15 @@ private impl Parser
 
             switch name
             {
-            case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "points", "x1", "y1", "x2", "y2", "viewBox", "id", "href", "xlink:href": geo.add(name, value)
-            default: applyAttribute(state, name, value)
+            case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "fx", "fy", "fr", "points", "pathLength", "x1", "y1", "x2", "y2", "viewBox", "id", "class", "href", "xlink:href", "gradientUnits", "gradientTransform", "spreadMethod", "offset", "stop-color", "stop-opacity":
+                geo.add(name, value)
+
+            case "style":
+                geo.add(name, value)
+                applyAttribute(state, name, value)
+
+            default:
+                applyAttribute(state, name, value)
             }
         }
 
@@ -871,6 +1309,205 @@ private impl Parser
             return defaultValue
         var pos = 0'u64
         return scanNumber(here.value.toString(), &pos)
+    }
+
+    mtd geoLength(geo: *HashTable'(String, String), name: string, defaultValue: SvgLength)->SvgLength
+    {
+        let here = geo.tryFind(name)
+        if !here do
+            return defaultValue
+        return parseLength(here.value.toString(), defaultValue)
+    }
+
+    mtd applyPathLength(first, count: u64, authoredLength, geometryScale: f32)
+    {
+        if authoredLength <= 0 or Math.abs(geometryScale) <= 0.000001 do
+            return
+
+        var actualLength: f32
+        for [i] in count
+        {
+            let shape = &.drawing.shapes[first + i]
+            shape.pathList.flatten(.Normal)
+            for path in shape.pathList.paths
+            {
+                let pointCount = path.polygon.points.count
+                for [j] in 1 until pointCount do
+                    actualLength += path.polygon.points[j - 1].distanceTo(path.polygon.points[j])
+                if path.isClosed and pointCount > 1 do
+                    actualLength += path.polygon.points[pointCount - 1].distanceTo(path.polygon.points[0])
+            }
+        }
+
+        if actualLength <= 0 do
+            return
+        let scale = actualLength / (authoredLength * Math.abs(geometryScale))
+        for [i] in count
+        {
+            let shape = &.drawing.shapes[first + i]
+            for &value in shape.strokePattern do
+                value *= scale
+            shape.strokeOffset *= scale
+        }
+    }
+
+    mtd parseGradientStops(gradient: *Gradient) fail
+    {
+        let len = @countof(.text)
+        while .pos < len
+        {
+            .skipUntil('<')
+            if .pos >= len do
+                return
+            .pos += 1
+            if .pos >= len do
+                return
+
+            if .text[.pos] == '/'
+            {
+                .skipUntil('>')
+                .pos += 1
+                return
+            }
+
+            if .text[.pos] == '?' or .text[.pos] == '!'
+            {
+                .skipUntil('>')
+                .pos += 1
+                continue
+            }
+
+            let nameStart = .pos
+            while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
+                .pos += 1
+            let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+
+            var state: GroupState
+            var geo:   HashTable'(String, String)
+            let {selfClosed} = .scanAttributes(&state, &geo)
+            if name == "stop"
+            {
+                var offset     = SvgLength{}
+                let offsetAttr = geo.tryFind("offset")
+                if offsetAttr do
+                    offset = parseLength(offsetAttr.value.toString())
+
+                var color     = Color.fromArgb(Argb.Black)
+                var colorValue: String
+                let colorAttr = geo.tryFind("stop-color")
+                if colorAttr do
+                    colorValue = colorAttr.value
+                let style = geo.tryFind("style")
+                if style
+                {
+                    let styled = styleValue(style.value.toString(), "stop-color")
+                    if !styled.isEmpty() do
+                        colorValue = #move styled
+                }
+
+                if !colorValue.isEmpty() do
+                    color = parseColor(colorValue.toString()).color
+
+                var opacity     = 1.0'f32
+                let opacityAttr = geo.tryFind("stop-opacity")
+                if opacityAttr
+                {
+                    let parsed = parseLength(opacityAttr.value.toString(), {1, false})
+                    opacity = Math.saturate(parsed.value)
+                }
+
+                if style
+                {
+                    let styled = styleValue(style.value.toString(), "stop-opacity")
+                    if !styled.isEmpty()
+                    {
+                        let parsed = parseLength(styled.toString(), {1, false})
+                        opacity = Math.saturate(parsed.value)
+                    }
+                }
+
+                color.a = cast(u8) Math.round(cast(f32) color.a * opacity)
+                var normalizedOffset = Math.saturate(offset.value)
+                if gradient.stops.count do
+                    normalizedOffset = Math.max(normalizedOffset, gradient.stops.back().offset)
+                gradient.stops.add({normalizedOffset, color})
+            }
+
+            if !selfClosed do
+                try .parseGradientStops(gradient)
+        }
+    }
+
+    mtd parseGradient(kind: GradientKind, geo: *HashTable'(String, String), selfClosed: bool) fail
+    {
+        var gradient: Gradient
+
+        var href = geo.tryFind("href")
+        if !href do
+            href = geo.tryFind("xlink:href")
+        if href
+        {
+            var baseId = href.value.toString()
+            if @countof(baseId) and baseId[0] == '#' do
+                baseId = cast(string) @mkslice(@dataof(baseId) + 1, @countof(baseId) - 1)
+            let base = .gradients.tryFind(baseId)
+            if base do
+                gradient = base.value
+        }
+
+        gradient.kind = kind
+        switch kind
+        {
+        case .Linear:
+            gradient.x1 = .geoLength(geo, "x1", gradient.x1)
+            gradient.y1 = .geoLength(geo, "y1", gradient.y1)
+            gradient.x2 = .geoLength(geo, "x2", gradient.x2)
+            gradient.y2 = .geoLength(geo, "y2", gradient.y2)
+
+        case .Radial:
+            gradient.cx = .geoLength(geo, "cx", gradient.cx)
+            gradient.cy = .geoLength(geo, "cy", gradient.cy)
+            gradient.r  = .geoLength(geo, "r", gradient.r)
+            gradient.fx = .geoLength(geo, "fx", gradient.cx)
+            gradient.fy = .geoLength(geo, "fy", gradient.cy)
+            gradient.fr = .geoLength(geo, "fr", gradient.fr)
+        }
+
+        let units = geo.tryFind("gradientUnits")
+        if units do
+            gradient.userSpace = units.value.toString() == "userSpaceOnUse"
+
+        let spread = geo.tryFind("spreadMethod")
+        if spread
+        {
+            switch spread.value.toString()
+            {
+            case "repeat":  gradient.spread = .Repeat
+            case "reflect": gradient.spread = .Mirror
+            default:        gradient.spread = .Clamp
+            }
+        }
+
+        let transform = geo.tryFind("gradientTransform")
+        if transform
+        {
+            var transformState: GroupState
+            applyStyleProperty(&transformState, "transform", transform.value.toString())
+            gradient.tx = transformState.tx
+            gradient.ty = transformState.ty
+            gradient.sx = transformState.sx
+            gradient.sy = transformState.sy
+        }
+
+        if !selfClosed
+        {
+            gradient.stops.clear()
+            try .parseGradientStops(&gradient)
+        }
+
+        let id = geo.tryFind("id")
+        if id do
+            .gradients.add(id.value, #move gradient)
     }
 
     // Parses the elements between the current position and the parent's close tag.
@@ -910,28 +1547,42 @@ private impl Parser
             var state        = parent
             var geo: HashTable'(String, String)
             let {selfClosed} = .scanAttributes(&state, &geo)
-            let firstShape   = .drawing.shapes.count
+            .applyStyleRules(name, &geo, &state)
+            let firstShape = .drawing.shapes.count
 
             switch name
             {
             case "svg":
-                let vb = geo.tryFind("viewBox")
-                if vb
+                let isRoot = .svgDepth == 0
+                .svgDepth += 1
+                if isRoot
                 {
-                    var pos = 0'u64
-                    discard scanNumber(vb.value.toString(), &pos)
-                    discard scanNumber(vb.value.toString(), &pos)
-                    .drawing.width  = scanNumber(vb.value.toString(), &pos)
-                    .drawing.height = scanNumber(vb.value.toString(), &pos)
+                    let vb = geo.tryFind("viewBox")
+                    if vb
+                    {
+                        var pos   = 0'u64
+                        let viewX = scanNumber(vb.value.toString(), &pos)
+                        let viewY = scanNumber(vb.value.toString(), &pos)
+                        .drawing.width  = scanNumber(vb.value.toString(), &pos)
+                        .drawing.height = scanNumber(vb.value.toString(), &pos)
+                        state.tx        -= viewX * state.sx
+                        state.ty        -= viewY * state.sy
+                    }
+                    else
+                    {
+                        .drawing.width  = .geoNumber(&geo, "width", 0)
+                        .drawing.height = .geoNumber(&geo, "height", 0)
+                    }
                 }
                 else
                 {
-                    .drawing.width  = .geoNumber(&geo, "width", 0)
-                    .drawing.height = .geoNumber(&geo, "height", 0)
+                    state.tx += .geoNumber(&geo, "x") * state.sx
+                    state.ty += .geoNumber(&geo, "y") * state.sy
                 }
 
                 if !selfClosed do
                     try .parseContent(state)
+                .svgDepth -= 1
 
             case "g":
                 if !selfClosed do
@@ -951,10 +1602,12 @@ private impl Parser
 
             case "rect":
                 var rx = .geoNumber(&geo, "rx", -1)
-                let ry = .geoNumber(&geo, "ry", -1)
+                var ry = .geoNumber(&geo, "ry", -1)
                 if rx < 0 do
                     rx = ry
-                emitRect(.drawing, &state, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"), .geoNumber(&geo, "width"), .geoNumber(&geo, "height"), Math.max(rx, 0))
+                if ry < 0 do
+                    ry = rx
+                emitRect(.drawing, &state, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"), .geoNumber(&geo, "width"), .geoNumber(&geo, "height"), Math.max(rx, 0), Math.max(ry, 0))
                 if !selfClosed do
                     try .parseContent(state)
 
@@ -988,6 +1641,16 @@ private impl Parser
                 defState.inDefs = true
                 if !selfClosed do
                     try .parseContent(defState)
+
+            case "linearGradient":
+                try .parseGradient(.Linear, &geo, selfClosed)
+
+            case "radialGradient":
+                try .parseGradient(.Radial, &geo, selfClosed)
+
+            case "style":
+                if !selfClosed do
+                    .parseStyleSheet()
 
             case "use":
                 var href = geo.tryFind("href")
@@ -1032,12 +1695,148 @@ private impl Parser
                     try .parseContent(state)
             }
 
+            let authoredPathLength = .geoNumber(&geo, "pathLength", -1)
+            if authoredPathLength > 0 and .drawing.shapes.count > firstShape do
+                .applyPathLength(firstShape, .drawing.shapes.count - firstShape, authoredPathLength, state.sx)
+
             // Register the shapes a defs child emitted under its id.
             if state.inDefs and .drawing.shapes.count > firstShape
             {
                 let idAttr = geo.tryFind("id")
                 if idAttr do
                     .defs.add(idAttr.value, {firstShape, .drawing.shapes.count - firstShape})
+            }
+        }
+    }
+
+    mtd shapeBounds(shape: const *Shape)->{ min, max: Vector2 }
+    {
+        var result: retval
+        result.min = Vector2.Max
+        result.max = Vector2.NegMax
+        for path in shape.pathList.paths
+        {
+            result.min = Vector2.min(result.min, path.minBounds)
+            result.max = Vector2.max(result.max, path.maxBounds)
+        }
+
+        return result
+    }
+
+    mtd gradientCoordinate(length: SvgLength, begin, extent, viewportExtent: f32, userSpace: bool)->f32
+    {
+        if userSpace do
+            return length.isPercent ? length.value * viewportExtent : length.value
+        return begin + length.value * extent
+    }
+
+    mtd gradientPoint(gradient: const *Gradient, shape: const *Shape, x, y: SvgLength, boundsMin, boundsSize: Vector2)->Vector2
+    {
+        var px = .gradientCoordinate(x, boundsMin.x, boundsSize.x, .drawing.width, gradient.userSpace)
+        var py = .gradientCoordinate(y, boundsMin.y, boundsSize.y, .drawing.height, gradient.userSpace)
+        if gradient.userSpace
+        {
+            px = (px * gradient.sx + gradient.tx) * shape.paintSx + shape.paintTx
+            py = (py * gradient.sy + gradient.ty) * shape.paintSy + shape.paintTy
+        }
+        else
+        {
+            px = boundsMin.x + ((px - boundsMin.x) / Math.max(boundsSize.x, 0.000001) * gradient.sx + gradient.tx) * boundsSize.x
+            py = boundsMin.y + ((py - boundsMin.y) / Math.max(boundsSize.y, 0.000001) * gradient.sy + gradient.ty) * boundsSize.y
+        }
+
+        return {px, py}
+    }
+
+    mtd gradientBrush(gradient: const *Gradient, shape: const *Shape)->Brush
+    {
+        if gradient.stops.isEmpty() do
+            return Brush.createSolid(Color.fromArgb(Argb.Zero))
+
+        let {min, max} = .shapeBounds(shape)
+        let size       = max - min
+
+        var result: retval
+        result.color          = Color.fromArgb(Argb.White)
+        result.gradientSpread = gradient.spread
+        switch gradient.kind
+        {
+        case .Linear:
+            result.type          = .LinearGradient
+            result.gradientStart = .gradientPoint(gradient, shape, gradient.x1, gradient.y1, min, size)
+            result.gradientEnd   = .gradientPoint(gradient, shape, gradient.x2, gradient.y2, min, size)
+
+        case .Radial:
+            result.type          = .RadialGradient
+            result.gradientStart = .gradientPoint(gradient, shape, gradient.cx, gradient.cy, min, size)
+            result.gradientEnd   = result.gradientStart
+
+            if gradient.userSpace
+            {
+                let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
+                let radius           = gradient.r.isPercent ? gradient.r.value * viewportDiagonal : gradient.r.value
+                let inner            = gradient.fr.isPercent ? gradient.fr.value * viewportDiagonal : gradient.fr.value
+                result.gradientRadius0 = Math.max(inner * gradient.sx * shape.paintSx, 0)
+                result.gradientRadius1 = Math.max(radius * gradient.sx * shape.paintSx, result.gradientRadius0)
+            }
+            else
+            {
+                result.gradientRadius0 = Math.max(gradient.fr.value * size.x * gradient.sx, 0)
+                result.gradientRadius1 = Math.max(gradient.r.value * size.x * gradient.sx, result.gradientRadius0)
+            }
+        }
+
+        for stop in gradient.stops do
+            result.addGradientStop(stop.offset, stop.color)
+        return result
+    }
+
+    mtd resolvePaints()
+    {
+        for &shape in .drawing.shapes
+        {
+            if shape.hasFill
+            {
+                if shape.fillPaintId.isEmpty()
+                {
+                    shape.fillBrush = Brush.createSolid(shape.fillColor)
+                }
+                else
+                {
+                    let gradient = .gradients.tryFind(shape.fillPaintId)
+                    if gradient
+                    {
+                        shape.pathList.flatten(.Normal)
+                        shape.fillBrush = .gradientBrush(&gradient.value, &shape)
+                    }
+                    else do
+                        shape.hasFill = false
+                }
+
+                if shape.hasFill do
+                    shape.fillBrush.multiplyOpacity(shape.fillOpacity)
+            }
+
+            if shape.hasStroke
+            {
+                if shape.strokePaintId.isEmpty()
+                {
+                    shape.strokeBrush = Brush.createSolid(shape.strokeColor)
+                }
+                else
+                {
+                    let gradient = .gradients.tryFind(shape.strokePaintId)
+                    if gradient
+                    {
+                        shape.pathList.flatten(.Normal)
+                        shape.strokeBrush = .gradientBrush(&gradient.value, &shape)
+                    }
+                    else do
+                        shape.hasStroke = false
+                }
+
+                if shape.hasStroke do
+                    shape.strokeBrush.multiplyOpacity(shape.strokeOpacity)
             }
         }
     }
@@ -1051,21 +1850,40 @@ private impl Parser
             // reallocate the array and invalidate the source borrow.
             var list:                        LinePathList
             var fillColor, strokeColor:      Color
+            var fillPaintId, strokePaintId:  String
+            var fillOpacity, strokeOpacity:  f32
             var hasFill, hasStroke, evenOdd: bool
-            var strokeWidth:                 f32
+            var strokeWidth, strokeOffset:   f32
+            var strokeMiter:                 f32
+            var strokePattern:               Array'f32
             var capStyle:                    LineCapStyle = None
             var joinStyle:                   JoinStyle    = Miter
+            var paintTx, paintTy:            f32
+            var paintSx, paintSy:            f32
 
             {
                 let src = &.drawing.shapes[first + i]
-                fillColor   = src.fillColor
-                strokeColor = src.strokeColor
-                hasFill     = src.hasFill
-                hasStroke   = src.hasStroke
-                evenOdd     = src.evenOdd
-                strokeWidth = src.strokeWidth * state.sx
-                capStyle    = src.capStyle
-                joinStyle   = src.joinStyle
+                fillColor     = src.fillColor
+                strokeColor   = src.strokeColor
+                fillPaintId   = src.fillPaintId
+                strokePaintId = src.strokePaintId
+                fillOpacity   = src.fillOpacity
+                strokeOpacity = src.strokeOpacity
+                hasFill       = src.hasFill
+                hasStroke     = src.hasStroke
+                evenOdd       = src.evenOdd
+                strokeWidth   = src.strokeWidth * state.sx
+                strokeOffset  = src.strokeOffset * state.sx
+                strokeMiter   = src.strokeMiter
+                strokePattern = src.strokePattern
+                for &value in strokePattern do
+                    value *= state.sx
+                capStyle  = src.capStyle
+                joinStyle = src.joinStyle
+                paintTx   = mapX(state, src.paintTx + offX)
+                paintTy   = mapY(state, src.paintTy + offY)
+                paintSx   = src.paintSx * state.sx
+                paintSy   = src.paintSy * state.sy
 
                 for srcPath in src.pathList.paths
                 {
@@ -1101,16 +1919,27 @@ private impl Parser
             }
 
             let shape = .drawing.shapes.emplaceInitAddress()
-            shape.pathList    = #move list
-            shape.fillColor   = fillColor
-            shape.strokeColor = strokeColor
-            shape.hasFill     = hasFill
-            shape.hasStroke   = hasStroke
-            shape.evenOdd     = evenOdd
-            shape.strokeWidth = strokeWidth
-            shape.capStyle    = capStyle
-            shape.joinStyle   = joinStyle
-            shape.hidden      = state.inDefs
+            shape.pathList      = #move list
+            shape.fillColor     = fillColor
+            shape.fillPaintId   = #move fillPaintId
+            shape.fillOpacity   = fillOpacity
+            shape.strokeColor   = strokeColor
+            shape.strokePaintId = #move strokePaintId
+            shape.strokeOpacity = strokeOpacity
+            shape.hasFill       = hasFill
+            shape.hasStroke     = hasStroke
+            shape.evenOdd       = evenOdd
+            shape.strokeWidth   = strokeWidth
+            shape.strokeOffset  = strokeOffset
+            shape.strokeMiter   = strokeMiter
+            shape.strokePattern = #move strokePattern
+            shape.capStyle      = capStyle
+            shape.joinStyle     = joinStyle
+            shape.paintTx       = paintTx
+            shape.paintTy       = paintTy
+            shape.paintSx       = paintSx
+            shape.paintSy       = paintSy
+            shape.hidden        = state.inDefs
         }
     }
 }
@@ -1132,6 +1961,7 @@ impl Drawing
 
         var root: GroupState
         try parser.parseContent(root)
+        parser.resolvePaints()
 
         if result.width <= 0 or result.height <= 0 do
             fail Swag.SystemError{"SVG document has no valid dimensions"}
@@ -1172,21 +2002,47 @@ impl Drawing
 
             if shape.hasFill
             {
-                var fc = shape.fillColor
-                if compensateAlpha do
-                    fc.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) fc.a / 255.0))
-                painter.fillPath(&shape.pathList, fc)
+                var brush = shape.fillBrush
+                if compensateAlpha
+                {
+                    brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
+                    for &stop in brush.gradientStops do
+                        stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
+                }
+
+                painter.fillPath(&shape.pathList, brush)
             }
 
             if shape.hasStroke
             {
-                var sc = shape.strokeColor
-                if compensateAlpha do
-                    sc.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) sc.a / 255.0))
-                var pen = Pen.createSolid(sc, shape.strokeWidth)
-                pen.begCapStyle = shape.capStyle
-                pen.endCapStyle = shape.capStyle
-                pen.joinStyle   = shape.joinStyle
+                var brush = shape.strokeBrush
+                if compensateAlpha
+                {
+                    brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
+                    for &stop in brush.gradientStops do
+                        stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
+                }
+
+                var pen: Pen
+                pen.brush          = #move brush
+                pen.size           = shape.strokeWidth
+                pen.begCapStyle    = shape.capStyle
+                pen.endCapStyle    = shape.capStyle
+                pen.joinStyle      = shape.joinStyle
+                pen.joinMiterLimit = shape.strokeMiter
+                pen.dashOffset     = shape.strokeOffset
+                if shape.strokePattern.count
+                {
+                    pen.pattern = shape.strokePattern
+                    if Math.abs(shape.strokeWidth) > 0.000001
+                    {
+                        for &value in pen.pattern do
+                            value /= Math.abs(shape.strokeWidth)
+                    }
+
+                    pen.dashStyle = .Pattern
+                }
+
                 painter.drawPath(&shape.pathList, pen, .Separate)
             }
         }

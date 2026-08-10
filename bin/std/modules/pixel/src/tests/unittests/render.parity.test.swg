@@ -23,6 +23,13 @@ private const RenderSvgSource = "<svg width='96' height='64'>" ++
                                 "<circle cx='38' cy='24' r='14' fill='#EF476F' fill-opacity='0.5'/>" ++
                                 "<path d='M 56 8 L 88 8 L 88 30 Z' fill='none' stroke='#FFD166' stroke-width='4'/>" ++
                                 "<path d='M 10 38 h 34 v 20 h -34 Z M 18 52 h 18 v -8 h -18 Z' fill='#06D6A0'/>" ++
+                                "<rect x='52' y='38' width='36' height='18' fill='url(#many)'/>" ++
+                                "<defs><linearGradient id='many'>" ++
+                                "<stop offset='0' stop-color='#ff0000'/><stop offset='.125' stop-color='#df0020'/>" ++
+                                "<stop offset='.25' stop-color='#bf0040'/><stop offset='.375' stop-color='#9f0060'/>" ++
+                                "<stop offset='.5' stop-color='#7f0080'/><stop offset='.625' stop-color='#60009f'/>" ++
+                                "<stop offset='.75' stop-color='#4000bf'/><stop offset='.875' stop-color='#2000df'/>" ++
+                                "<stop offset='1' stop-color='#0000ff'/></linearGradient></defs>" ++
                                 "</svg>"
 
 private alias RenderParityScene = func||(IRenderer)->Image

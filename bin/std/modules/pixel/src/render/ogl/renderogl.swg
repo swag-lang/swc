@@ -83,16 +83,20 @@ struct RenderOgl
     // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
     private
     {
-        using native:   NativeRenderOgl                              // Platform-specific context operations.
-        vertexbuffer:   GLuint                                       // OpenGL streaming vertex buffer.
-        worldTransform: Transform2                                   // Current painter world transform.
-        orthoMatrix:    Matrix4x4                                    // Current surface projection matrix.
-        modelMatrix:    Matrix4x4                                    // Current model matrix.
-        whiteTexture:   GLuint                                       // Built-in one-pixel white texture.
-        hatchTextures:  [HatchStyle] GLuint                          // Built-in hatch texture handles.
-        blendingMode:   BlendingMode = .Alpha                        // Active OpenGL blending mode.
-        colorMask:      ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
-        curRC:          RenderContext                                // Active drawable and viewport.
+        using native:            NativeRenderOgl                              // Platform-specific context operations.
+        vertexbuffer:            GLuint                                       // OpenGL streaming vertex buffer.
+        worldTransform:          Transform2                                   // Current painter world transform.
+        orthoMatrix:             Matrix4x4                                    // Current surface projection matrix.
+        modelMatrix:             Matrix4x4                                    // Current model matrix.
+        whiteTexture:            GLuint                                       // Built-in one-pixel white texture.
+        hatchTextures:           [HatchStyle] GLuint                          // Built-in hatch texture handles.
+        gradientTexture:         GLuint                                       // Dynamically sized gradient-stop table.
+        gradientTextureCapacity: u64                                          // Stop slots allocated in `gradientTexture`.
+        gradientOffsetUpload:    Array'Vector4                                // Reused first texture row.
+        gradientColorUpload:     Array'Vector4                                // Reused second texture row.
+        blendingMode:            BlendingMode = .Alpha                        // Active OpenGL blending mode.
+        colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
+        curRC:                   RenderContext                                // Active drawable and viewport.
 
         stackReleasedRT:       Array'#null *RenderTarget     // Targets queued for deferred release.
         stackRT:               Array'#null *RenderTarget     // Nested bound render targets.
@@ -593,6 +597,14 @@ impl RenderOgl
 
         // Generate predefined textures
         .whiteTexture = generateTexture([1], 1, 1)
+        glGenTextures(1, &.gradientTexture)
+        glActiveTexture(GL_TEXTURE2)
+        glBindTexture(GL_TEXTURE_2D, .gradientTexture)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glActiveTexture(GL_TEXTURE0)
         using HatchStyle
         .hatchTextures[Dot]                   = generateTexture(Hatch.Dot, 8, 8)
         .hatchTextures[Horizontal]            = generateTexture(Hatch.Horizontal, 8, 8)
@@ -1145,16 +1157,54 @@ impl RenderOgl
                 glUniform2f(cast(GLint) curShader.gradientAngles, cast(GLfloat) params.gradientAngle0, cast(GLfloat) params.gradientAngle1)
                 glUniform1i(cast(GLint) curShader.gradientCount, cast(GLint) params.gradientStopCount)
 
-                var offsets: [MaxGradientStops] f32
-                var colors:  [MaxGradientStops] Vector4
-                for [i] in params.gradientStopCount
+                let stops = @mkslice(dc.gradientStops.buffer + params.gradientStopStart, params.gradientStopCount)
+                if params.gradientStopCount <= 8
                 {
-                    offsets[i] = params.gradientStops[i].offset
-                    colors[i]  = params.gradientStops[i].color.toVector4()
-                }
+                    glUniform1i(cast(GLint) curShader.gradientTextureEnabled, 0)
+                    var offsets: [8] f32
+                    var colors:  [8] Vector4
+                    for [i] in params.gradientStopCount
+                    {
+                        offsets[i] = stops[i].offset
+                        colors[i]  = stops[i].color.toVector4()
+                    }
 
-                glUniform1fv(cast(GLint) curShader.gradientOffsets, cast(GLsizei) params.gradientStopCount, &offsets[0])
-                glUniform4fv(cast(GLint) curShader.gradientColors, cast(GLsizei) params.gradientStopCount, &colors[0].x)
+                    if params.gradientStopCount
+                    {
+                        glUniform1fv(cast(GLint) curShader.gradientOffsets, cast(GLsizei) params.gradientStopCount, &offsets[0])
+                        glUniform4fv(cast(GLint) curShader.gradientColors, cast(GLsizei) params.gradientStopCount, &colors[0].x)
+                    }
+                }
+                else
+                {
+                    glUniform1i(cast(GLint) curShader.gradientTextureEnabled, 1)
+                    glUniform1i(cast(GLint) curShader.gradientTexture, 2)
+
+                    if .gradientTextureCapacity < params.gradientStopCount
+                    {
+                        .gradientTextureCapacity = Math.max(.gradientTextureCapacity * 2, params.gradientStopCount)
+                        glActiveTexture(GL_TEXTURE2)
+                        glBindTexture(GL_TEXTURE_2D, .gradientTexture)
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, cast(GLsizei) .gradientTextureCapacity, 2, 0, GL_RGBA, GL_FLOAT, null)
+                    }
+                    else
+                    {
+                        glActiveTexture(GL_TEXTURE2)
+                        glBindTexture(GL_TEXTURE_2D, .gradientTexture)
+                    }
+
+                    .gradientOffsetUpload.resize(params.gradientStopCount)
+                    .gradientColorUpload.resize(params.gradientStopCount)
+                    for [i] in params.gradientStopCount
+                    {
+                        .gradientOffsetUpload[i] = {stops[i].offset, 0, 0, 0}
+                        .gradientColorUpload[i]  = stops[i].color.toVector4()
+                    }
+
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) params.gradientStopCount, 1, GL_RGBA, GL_FLOAT, .gradientOffsetUpload.buffer)
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 1, cast(GLsizei) params.gradientStopCount, 1, GL_RGBA, GL_FLOAT, .gradientColorUpload.buffer)
+                    glActiveTexture(GL_TEXTURE0)
+                }
             }
 
             switch #complete params.uvMode
@@ -1442,6 +1492,8 @@ impl RenderOgl
         base.gradientCount          = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
         base.gradientOffsets        = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
         base.gradientColors         = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))
+        base.gradientTexture        = cast() glGetUniformLocation(progID, @dataof("gradientTexture"))
+        base.gradientTextureEnabled = cast() glGetUniformLocation(progID, @dataof("gradientTextureEnabled"))
         base.premultiplyBlendSource = cast() glGetUniformLocation(progID, @dataof("premultiplyBlendSource"))
     }
 }

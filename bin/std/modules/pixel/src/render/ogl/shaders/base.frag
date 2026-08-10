@@ -16,7 +16,23 @@ uniform vec2  gradientAngles;
 uniform int   gradientCount;
 uniform float gradientOffsets[8];
 uniform vec4  gradientColors[8];
+uniform sampler2D gradientTexture;
+uniform bool gradientTextureEnabled;
 uniform bool  premultiplyBlendSource;
+
+float gradientOffsetAt(int index)
+{
+    if(gradientTextureEnabled)
+        return texelFetch(gradientTexture, ivec2(index, 0), 0).r;
+    return gradientOffsets[index];
+}
+
+vec4 gradientColorAt(int index)
+{
+    if(gradientTextureEnabled)
+        return texelFetch(gradientTexture, ivec2(index, 1), 0);
+    return gradientColors[index];
+}
 
 void applyBlendingMode(inout vec4 value)
 {
@@ -43,24 +59,27 @@ vec4 sampleGradientStops(float t)
 
     t = applyGradientSpread(t);
 
-    if(t <= gradientOffsets[0])
-        return gradientColors[0];
+    float firstOffset = gradientOffsetAt(0);
+    vec4 firstColor = gradientColorAt(0);
+    if(t <= firstOffset)
+        return firstColor;
 
-    for(int i = 1; i < 8; ++i)
+    for(int i = 1; i < gradientCount; ++i)
     {
-        if(i >= gradientCount)
-            break;
+        float offset = gradientOffsetAt(i);
 
-        if(t <= gradientOffsets[i])
+        if(t <= offset)
         {
-            float lo = gradientOffsets[i - 1];
-            float hi = gradientOffsets[i];
+            float lo = gradientOffsetAt(i - 1);
+            float hi = offset;
+            vec4 color0 = gradientColorAt(i - 1);
+            vec4 color1 = gradientColorAt(i);
             float u  = hi == lo ? 1.0 : clamp((t - lo) / (hi - lo), 0.0, 1.0);
-            return mix(gradientColors[i - 1], gradientColors[i], u);
+            return mix(color0, color1, u);
         }
     }
 
-    return gradientColors[gradientCount - 1];
+    return gradientColorAt(gradientCount - 1);
 }
 
 vec2 subRectPixelMin()

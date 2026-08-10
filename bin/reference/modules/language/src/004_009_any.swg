@@ -7,6 +7,7 @@
 
 > WARNING:
 > 'any' is **not** a variant. It holds a reference to an existing value plus its runtime type info.
+> It is a non-owning view for the purposes of the borrowing rules and must not outlive the value it references.
 */
 
 #test

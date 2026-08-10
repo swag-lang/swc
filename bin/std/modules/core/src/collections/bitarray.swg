@@ -153,12 +153,8 @@ public impl BitArray
     // Block parameters: 'item' is the boolean value, 'index' the bit index.
     #[Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item: bool, index: u64))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("visiting by pointer is not supported for BitArray")
-        #static if back do
-            #error("visiting in reverse order is not supported for BitArray")
-
         if !.count do
             return
         var totalWords = .count >> 5

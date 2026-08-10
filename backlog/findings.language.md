@@ -828,44 +828,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Declining and leaking
 
-### F-099 — `#error` inside an operator body is silenced and declines the overload
-
-- Area: language
-- Found while: the same pass, reading the operator-overloading contract
-- Observation: `#error` raises a compile-time error and stops the build
-  ([014_003_compiler_instructions.swg:113-123](../bin/reference/modules/language/src/014_003_compiler_instructions.swg#L113-L123)).
-  Inside an operator overload body it means something else entirely: the error is caught, discarded,
-  and read as "this overload does not handle that operator", so the candidate is dropped from
-  resolution. The reference states the rule
-  ([006_005_operator_overloading.swg:13-18](../bin/reference/modules/language/src/006_005_operator_overloading.swg#L13-L18))
-  and it is deliberate, but it gives one directive two opposite meanings depending on where it is
-  written, and the quiet meaning is the one that produces no output. The language already has a
-  spelling for "this specialization does not apply" — a `where` constraint, which removes an
-  overload from resolution by design
-  ([009_003_where_constraints.swg:3-11](../bin/reference/modules/language/src/009_003_where_constraints.swg#L3-L11)).
-- Evidence: `sema.ctx().setSilencedDiagnosticId(DiagnosticId::sema_err_compiler_error)` around the
-  explicit instantiation of an operator candidate, restored immediately after
-  ([SemaSpecOp.Resolve.cpp:487-499](../src/Compiler/Sema/Helpers/SemaSpecOp.Resolve.cpp#L487-L499)).
-  It is the only use of the silencing mechanism in the compiler — `setSilencedDiagnosticId` appears
-  nowhere else outside its own accessor — so the exception is exactly one construct wide. The
-  reference's `Duration` literal uses the same shape for the opposite purpose, where the `#error` in
-  a `#static switch default` is a genuine build failure for a bad suffix
-  ([006_010_custom_literals.swg:40](../bin/reference/modules/language/src/006_010_custom_literals.swg#L40)):
-  the two readings sit in neighbouring chapters of the same part, spelled identically.
-- Elsewhere: the mechanism is universal, the spelling is not. C++ separates them completely —
-  substitution failure and `requires` decline a candidate, `static_assert` always stops the build,
-  and conflating them is a known category of bug. Rust declines through trait bounds and has no way
-  to make `compile_error!` mean "not applicable". D uses template constraints, `if (...)`, which is
-  Swag's `where`. Zig is the nearest: a `@compileError` inside a `comptime` branch that is never
-  selected simply does not fire — but there it is not *reached*, whereas here it fires, is caught,
-  and is reinterpreted.
-- Next step: check whether the operator bodies in `bin/` could state the same thing with `where`
-  over the `Swag.Operator` parameter, which is a compile-time value and therefore constrainable. If
-  they can, the silencing becomes a compatibility shim rather than a design, and it can be narrowed
-  to a diagnostic that says what it does — a dedicated `#declineoverload`, or simply reporting the
-  `#error` message as a note when *no* candidate survives, which is the case where the current rule
-  costs the user the one sentence that explains why.
-
 ### F-100 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
 
 - Area: language

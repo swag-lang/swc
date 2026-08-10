@@ -18,14 +18,13 @@ struct(T) Vec2
 impl Vec2
 {
     func(op: Swag.Operator) opUnary(const me)->Vec2
+        where op == .Neg
     {
-        #static if op == .Neg do
-            return {x: -me.x, y: -me.y}
-        else do
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        return {x: -me.x, y: -me.y}
     }
 
     func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
+        where op == .Add or op == .Sub
     {
         #static switch op
         {
@@ -35,17 +34,13 @@ impl Vec2
         case .Sub:
             return {x: me.x - other.x, y: me.y - other.y}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2
+        where op == .Mul
     {
-        #static if op == .Mul do
-            return {x: me.x * scalar, y: me.y * scalar}
-        else do
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        return {x: me.x * scalar, y: me.y * scalar}
     }
 
     func dot(a: const &Vec2, b: const &Vec2)->T
@@ -126,15 +121,14 @@ impl Mat2
     }
 
     func(op: Swag.Operator) opUnary(const me)->Mat2
+        where op == .Neg
     {
-        #static if op == .Neg do
-            return {a: -me.a, b: -me.b, c: -me.c, d: -me.d}
-        else do
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        return {a: -me.a, b: -me.b, c: -me.c, d: -me.d}
     }
 
     // Mat2 +/- Mat2, Mat2 * Mat2
     func(op: Swag.Operator) opBinary(const me, other: const &Mat2)->Mat2
+        where op == .Add or op == .Sub or op == .Mul
     {
         #static switch op
         {
@@ -152,19 +146,15 @@ impl Mat2
                     c: me.c * other.a + me.d * other.c,
                     d: me.c * other.b + me.d * other.d}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Mat2 * scalar
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Mat2
+        where op == .Mul
     {
-        #static if op == .Mul do
-            return {a: me.a * scalar, b: me.b * scalar,
-                    c: me.c * scalar, d: me.d * scalar}
-        else do
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        return {a: me.a * scalar, b: me.b * scalar,
+                c: me.c * scalar, d: me.d * scalar}
     }
 
     // Build from column vectors

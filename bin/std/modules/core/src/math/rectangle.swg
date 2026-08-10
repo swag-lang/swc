@@ -19,11 +19,9 @@ impl Rectangle
     // Scale the rectangle by a scalar value.
     // Multiplies all components (position and dimensions) by the given 'value'.
     mtd(op: Swag.Operator) const opBinary(value: f32)->Rectangle
+        where op == .Mul
     {
-        #static if op == .Mul do
-            return {.x * value, .y * value, .width * value, .height * value}
-        else do
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        return {.x * value, .y * value, .width * value, .height * value}
     }
 
     // Initialize the rectangle using two corner points.

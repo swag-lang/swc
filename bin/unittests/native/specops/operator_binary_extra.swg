@@ -13,6 +13,7 @@ impl RuntimeCommBox
 {
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinary(other: const &RuntimeCommBox)->RuntimeCommBox
+        where op == .Add or op == .Mul
     {
         #static switch op
         {
@@ -22,8 +23,6 @@ impl RuntimeCommBox
         case .Mul:
             return {value: .value * other.value}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -106,6 +105,7 @@ impl RuntimeFullArithBox
 {
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinary(other: const &RuntimeFullArithBox)->RuntimeFullArithBox
+        where op == .Add or op == .Sub or op == .Mul or op == .Div or op == .Mod
     {
         #static switch op
         {
@@ -124,13 +124,12 @@ impl RuntimeFullArithBox
         case .Mod:
             return {a: .a % other.a, b: .b % other.b}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->RuntimeFullArithBox
+        where op == .Add or op == .Sub or op == .Mul or op == .Div or op == .Mod
     {
         #static switch op
         {
@@ -149,8 +148,6 @@ impl RuntimeFullArithBox
         case .Mod:
             return {a: .a % scalar, b: .b % scalar}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }
@@ -243,6 +240,7 @@ impl RuntimeRightArithBox
 {
     #[Swag.NoInline, Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->RuntimeRightArithBox
+        where op == .Add or op == .Mul
     {
         #static switch op
         {
@@ -252,13 +250,12 @@ impl RuntimeRightArithBox
         case .Mul:
             return {a: .a * scalar, b: .b * scalar}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinaryRight(scalar: s32)->RuntimeRightArithBox
+        where op == .Sub or op == .Div
     {
         #static switch op
         {
@@ -268,8 +265,6 @@ impl RuntimeRightArithBox
         case .Div:
             return {a: scalar / .a, b: scalar / .b}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }

@@ -28,7 +28,9 @@ impl NumericArray
         return true
     }
 
+    // Applies addition, subtraction, multiplication, or division component by component.
     mtd(op: Swag.Operator) const opBinary(other: const &NumericArray)->NumericArray
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         var result: retval
         for [i] in N
@@ -39,14 +41,15 @@ impl NumericArray
             case .Sub: result.buf[i] = .buf[i] - other.buf[i]
             case .Mul: result.buf[i] = .buf[i] * other.buf[i]
             case .Div: result.buf[i] = .buf[i] / other.buf[i]
-            default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
             }
         }
 
         return result
     }
 
+    // Applies a compound arithmetic assignment with 'value' to every component.
     mtd(op: Swag.Operator) opAssign(value: T)
+        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
         for [i] in N
         {
@@ -56,12 +59,13 @@ impl NumericArray
             case .SubAssign: .buf[i] -= value
             case .MulAssign: .buf[i] *= value
             case .DivAssign: .buf[i] /= value
-            default:         #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
             }
         }
     }
 
+    // Applies a compound arithmetic assignment component by component.
     func(op: Swag.Operator) opAssign(me, value: NumericArray)
+        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
         for [i] in N
         {
@@ -71,7 +75,6 @@ impl NumericArray
             case .SubAssign: .buf[i] -= value.buf[i]
             case .MulAssign: .buf[i] *= value.buf[i]
             case .DivAssign: .buf[i] /= value.buf[i]
-            default:         #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
             }
         }
     }

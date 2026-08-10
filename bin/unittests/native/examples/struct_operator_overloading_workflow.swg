@@ -53,20 +53,16 @@ impl WorkflowAssignBox
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(value: s32)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            .setPair(.a + value, .b + value)
-        else do
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        .setPair(.a + value, .b + value)
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(other: const &WorkflowAssignBox)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            .setPair(.a + other.a, .b + other.b)
-        else do
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        .setPair(.a + other.a, .b + other.b)
     }
 }
 

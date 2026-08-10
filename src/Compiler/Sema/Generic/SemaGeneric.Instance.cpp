@@ -468,9 +468,11 @@ namespace SemaGeneric
             outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(param.idRef).name});
         }
 
-        Result instantiateGenericExplicit(Sema& sema, Symbol& genericRoot, std::span<const AstNodeRef> genericArgNodes, Symbol*& outInstance)
+        Result instantiateGenericExplicit(Sema& sema, Symbol& genericRoot, std::span<const AstNodeRef> genericArgNodes, Symbol*& outInstance, CastFailure* outWhereFailure = nullptr)
         {
             outInstance = nullptr;
+            if (outWhereFailure)
+                *outWhereFailure = {};
             if (!hasGenericParams(genericRoot))
                 return Result::Continue;
 
@@ -512,9 +514,9 @@ namespace SemaGeneric
                 FunctionWhereInputs whereInputs;
                 buildFunctionWhereInputs(*sourceSema, *function, source, whereInputs);
                 bool satisfied = true;
-                SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, whereInputs.bindings.span(), whereInputs.bindingText, nullptr, errorNodeRef));
+                SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, whereInputs.bindings.span(), whereInputs.bindingText, outWhereFailure, errorNodeRef));
                 if (!satisfied)
-                    return Result::Error;
+                    return outWhereFailure ? Result::Continue : Result::Error;
             }
 
             return createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), outInstance, errorNodeRef);
@@ -747,10 +749,10 @@ namespace SemaGeneric
         return evalGenericClonedNode(sema, root, defaultRef, bindings, GenericEvalReadyKind::Constant, outClonedRef);
     }
 
-    Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
+    Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance, CastFailure* outWhereFailure)
     {
         Symbol* instance = nullptr;
-        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
+        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance, outWhereFailure));
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }

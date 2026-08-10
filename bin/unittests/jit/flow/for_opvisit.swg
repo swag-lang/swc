@@ -11,10 +11,8 @@ impl JitFieldVisits
 {
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index: u64))
+        where !ptr
     {
-        #static if ptr do
-            #error("JitFieldVisits does not expose pointer iteration.")
-
         #static if back
         {
             for [idx] in 3
@@ -104,13 +102,8 @@ impl JitReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("JitReverseVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("reverse iteration must use opVisitReverse")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
@@ -119,10 +112,8 @@ impl JitReverseVisits
 
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index: u64))
+        where !ptr
     {
-        #static if ptr do
-            #error("JitReverseVisits does not expose pointer iteration.")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[2 - idx], index = @index)
@@ -161,13 +152,8 @@ impl JitHiddenAliasVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("JitHiddenAliasVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("JitHiddenAliasVisits does not expose reverse iteration.")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
@@ -179,10 +165,8 @@ impl JitFieldPointerVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
+        where !back
     {
-        #static if back do
-            #error("JitFieldPointerVisits does not expose reverse iteration.")
-
         #static if ptr
         {
             #inject(stmt, item = cast(&s32) &(me.first), index = 0'u64)
@@ -211,10 +195,8 @@ impl JitPairVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
+        where !ptr
     {
-        #static if ptr do
-            #error("JitPairVisits does not expose pointer iteration.")
-
         #static if back
         {
             for [idx] in 3
@@ -236,10 +218,8 @@ impl JitConstPointerVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
+        where !back
     {
-        #static if back do
-            #error("JitConstPointerVisits does not expose reverse iteration.")
-
         #static if ptr
         {
             for [idx] in 3
@@ -261,10 +241,8 @@ impl JitReturnVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
+        where !ptr
     {
-        #static if ptr do
-            #error("JitReturnVisits does not expose pointer iteration.")
-
         if !@countof(.values) do
             return
 
@@ -296,10 +274,8 @@ impl JitCallSourceVisits
 {
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
+        where !back
     {
-        #static if back do
-            #error("JitCallSourceVisits does not expose reverse iteration.")
-
         for [idx] in .count
         {
             #static if ptr do

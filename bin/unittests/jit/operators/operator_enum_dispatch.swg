@@ -11,6 +11,7 @@ struct Vec
 impl Vec
 {
     mtd(op: Swag.Operator) const opBinary(other: Vec)->Vec
+        where op == .Add or op == .Sub or op == .Mul or op == .BitXor or op == .Shl
     {
         #static switch op
         {
@@ -24,14 +25,13 @@ impl Vec
             return Vec{.x ^ other.x, .y ^ other.y}
         case .Shl:
             return Vec{.x << other.x, .y << other.y}
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     // Unary '-' arrives as 'Neg' and unary '+' as 'Pos', so neither collides with the
     // binary 'Sub' and 'Add' handled above.
     mtd(op: Swag.Operator) const opUnary()->Vec
+        where op == .Neg or op == .Pos or op == .BitNot
     {
         #static switch op
         {
@@ -41,12 +41,11 @@ impl Vec
             return Vec{.x, .y}
         case .BitNot:
             return Vec{~.x, ~.y}
-        default:
-            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     mtd(op: Swag.Operator) opAssign(other: Vec)
+        where op == .AddAssign or op == .SubAssign or op == .ShrAssign
     {
         #static switch op
         {
@@ -59,8 +58,6 @@ impl Vec
         case .ShrAssign:
             .x >>= other.x
             .y >>= other.y
-        default:
-            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }
@@ -137,6 +134,7 @@ impl Scaled
 {
     #[Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->Scaled
+        where op == .Add or op == .Mul or op == .Sub
     {
         #static switch op
         {
@@ -146,8 +144,6 @@ impl Scaled
             return Scaled{.value * scalar}
         case .Sub:
             return Scaled{.value - scalar}
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }

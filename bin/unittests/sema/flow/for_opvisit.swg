@@ -13,10 +13,8 @@ impl SemaFieldVisits
 {
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index))
+        where !ptr
     {
-        #static if ptr do
-            #error("SemaFieldVisits does not expose pointer iteration.")
-
         #static if back
         {
             for [idx] in 3
@@ -59,10 +57,8 @@ impl SemaBufferVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index))
+        where !back
     {
-        #static if back do
-            #error("SemaBufferVisits does not expose reverse iteration.")
-
         #static if ptr
         {
             for [idx] in 3
@@ -116,13 +112,8 @@ impl SemaHiddenAliasVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("SemaHiddenAliasVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("SemaHiddenAliasVisits does not expose reverse iteration.")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
@@ -134,10 +125,8 @@ impl SemaFieldPointerVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index))
+        where !back
     {
-        #static if back do
-            #error("SemaFieldPointerVisits does not expose reverse iteration.")
-
         #static if ptr
         {
             #inject(stmt, item = cast(&s32) &(me.first), index = 0'u64)
@@ -166,13 +155,8 @@ impl SemaReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("SemaReverseVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("reverse iteration must use opVisitReverse")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
@@ -181,10 +165,8 @@ impl SemaReverseVisits
 
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index))
+        where !ptr
     {
-        #static if ptr do
-            #error("SemaReverseVisits does not expose pointer iteration.")
-
         for [idx] in 3
         {
             #inject(stmt, item = me.values[2 - idx], index = @index)
@@ -196,10 +178,8 @@ impl SemaGenericReverseVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
+        where !ptr
     {
-        #static if ptr do
-            #error("SemaGenericReverseVisits does not expose pointer iteration.")
-
         #static if back
         {
             for [idx] in 3
@@ -221,10 +201,8 @@ impl SemaPairVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
+        where !ptr
     {
-        #static if ptr do
-            #error("SemaPairVisits does not expose pointer iteration.")
-
         #static if back
         {
             for [idx] in 3
@@ -246,10 +224,8 @@ impl SemaConstPointerVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
+        where !back
     {
-        #static if back do
-            #error("SemaConstPointerVisits does not expose reverse iteration.")
-
         #static if ptr
         {
             for [idx] in 3
@@ -277,13 +253,8 @@ impl SemaGenericScopedVisits
 {
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
+        where !ptr and !back
     {
-        #static if ptr do
-            #error("SemaGenericScopedVisits does not expose pointer iteration.")
-
-        #static if back do
-            #error("SemaGenericScopedVisits does not expose reverse iteration.")
-
         #scope(Outer)
             for 3
         {

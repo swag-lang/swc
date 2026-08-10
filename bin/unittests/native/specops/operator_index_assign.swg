@@ -19,6 +19,7 @@ impl RuntimeIndexAssignBox
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
+        where op == .AddAssign or op == .MulAssign
     {
         .writes += 1
         #static switch op
@@ -29,19 +30,15 @@ impl RuntimeIndexAssignBox
         case .MulAssign:
             .values[index] *= value
 
-        default:
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
         }
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: u32)
+        where op == .ShlAssign
     {
-        .shifts += 1
-        #static if op == .ShlAssign do
-            .values[index] <<= #wrap value
-        else do
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+        .shifts        += 1
+        .values[index] <<= #wrap value
     }
 }
 
@@ -56,15 +53,13 @@ impl RuntimeWriteOnlyIndexAssignBox
 {
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
+        where op == .AddAssign
     {
         .writes += 1
-        #static if op == .AddAssign do
-            if index == 0 do
-                .first += value
-            else do
-                .second += value
+        if index == 0 do
+            .first += value
         else do
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+            .second += value
     }
 }
 
@@ -86,12 +81,10 @@ impl RuntimeRefIndexAssignBox
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
+        where op == .AddAssign
     {
-        .writes += 1
-        #static if op == .AddAssign do
-            .values[index] += value
-        else do
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+        .writes        += 1
+        .values[index] += value
     }
 }
 
@@ -113,12 +106,10 @@ impl RuntimeMultiIndexAssignBox
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opIndexAssign(row: s32, col: s32, value: s32)
+        where op == .AddAssign
     {
-        .writes += 1
-        #static if op == .AddAssign do
-            .values[row * 2 + col] += value
-        else do
-            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+        .writes                += 1
+        .values[row * 2 + col] += value
     }
 }
 

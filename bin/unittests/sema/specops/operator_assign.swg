@@ -15,6 +15,7 @@ impl AssignBox
     }
 
     mtd(op: Swag.Operator) opAssign(value: s32)
+        where op == .AddAssign or op == .MulAssign
     {
         #static switch op
         {
@@ -24,25 +25,19 @@ impl AssignBox
         case .MulAssign:
             .setPair(.a * value, .b * value)
 
-        default:
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
         }
     }
 
     mtd(op: Swag.Operator) opAssign(value: u32)
+        where op == .ShlAssign
     {
-        #static if op == .ShlAssign do
-            .setPair(.a << value, .b << value)
-        else do
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        .setPair(.a << value, .b << value)
     }
 
     mtd(op: Swag.Operator) opAssign(other: const &AssignBox)
+        where op == .AddAssign
     {
-        #static if op == .AddAssign do
-            .setPair(.a + other.a, .b + other.b)
-        else do
-            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        .setPair(.a + other.a, .b + other.b)
     }
 }
 

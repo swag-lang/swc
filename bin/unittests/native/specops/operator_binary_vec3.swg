@@ -14,6 +14,7 @@ struct(T) GenVec3
 impl GenVec3
 {
     func(op: Swag.Operator) opBinary(const me, other: const &GenVec3'T)->GenVec3'T
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -29,12 +30,11 @@ impl GenVec3
         case .Div:
             return {x: me.x / other.x, y: me.y / other.y, z: me.z / other.z}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->GenVec3'T
+        where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
         {
@@ -50,8 +50,6 @@ impl GenVec3
         case .Div:
             return {x: me.x / scalar, y: me.y / scalar, z: me.z / scalar}
 
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 }

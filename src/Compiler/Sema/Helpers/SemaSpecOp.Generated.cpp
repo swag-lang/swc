@@ -502,6 +502,58 @@ namespace
     // 'opEquals' declared against another type — a '#null string' the struct compares itself
     // against, say — adds a comparison beside the built-in one instead of replacing it, so it
     // neither stands in for a generated overload nor stops the struct from receiving one.
+    bool declaredEqualityTargetsOwner(Sema& sema, const SymbolFunction& function, const SymbolStruct& ownerStruct)
+    {
+        const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!decl || decl->nodeParamsRef.isInvalid())
+            return false;
+
+        const Ast* declAst = nullptr;
+        if (sema.ast().tryFindNodeRef(decl).isValid())
+            declAst = &sema.ast();
+        else
+        {
+            const SourceView& declSrcView = sema.compiler().srcView(decl->srcViewRef());
+            if (const SourceFile* sourceFile = declSrcView.file())
+                declAst = &sourceFile->ast();
+        }
+        if (!declAst)
+            return false;
+
+        SmallVector<AstNodeRef> params;
+        declAst->node(decl->nodeParamsRef).collectChildrenFromAst(params, *declAst);
+        if (params.empty())
+            return false;
+
+        const AstNode* paramNode = &declAst->node(params.front());
+        while (const auto* attrList = paramNode->safeCast<AstAttributeList>())
+            paramNode = &declAst->node(attrList->nodeBodyRef);
+        const auto* param = paramNode->safeCast<AstSingleVarDecl>();
+        if (!param || param->nodeTypeRef.isInvalid())
+            return false;
+
+        const AstNode* typeNode = &declAst->node(param->nodeTypeRef);
+        while (true)
+        {
+            if (const auto* qualified = typeNode->safeCast<AstQualifiedType>())
+                typeNode = &declAst->node(qualified->nodeTypeRef);
+            else if (const auto* reference = typeNode->safeCast<AstReferenceType>())
+                typeNode = &declAst->node(reference->nodePointeeTypeRef);
+            else
+                break;
+        }
+
+        const auto* namedType = typeNode->safeCast<AstNamedType>();
+        if (!namedType || namedType->nodeIdentRef.isInvalid())
+            return false;
+
+        AstNodeRef nameRef = namedType->nodeIdentRef;
+        while (const auto* memberAccess = declAst->node(nameRef).safeCast<AstMemberAccessExpr>())
+            nameRef = memberAccess->nodeRightRef;
+        const AstNode& nameNode = declAst->node(nameRef);
+        return nameNode.is(AstNodeId::Identifier) && sema.tokenString(nameNode.codeRef()) == ownerStruct.name(sema.ctx());
+    }
+
     Result structHasSelfEqualityOverload(Sema& sema, bool& outResult, const SymbolStruct& ownerStruct)
     {
         outResult = false;
@@ -521,10 +573,10 @@ namespace
             {
                 if (!function || function->idRef() != idRef)
                     continue;
-                SWC_RESULT(sema.waitTyped(function, function->codeRef()));
-                if (function->parameters().size() < 2)
-                    continue;
-                if (SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, function->parameters()[1]->typeRef()))
+                const bool typedSelfTarget = function->parameters().size() >= 2 &&
+                                             function->parameters()[1]->typeRef().isValid() &&
+                                             SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, function->parameters()[1]->typeRef());
+                if (typedSelfTarget || declaredEqualityTargetsOwner(sema, *function, ownerStruct))
                 {
                     outResult = true;
                     return Result::Continue;

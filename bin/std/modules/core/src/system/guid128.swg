@@ -51,7 +51,7 @@ impl Guid128
     }
 
     // Returns whether both identifiers have the same bits.
-    mtd opEquals(other: Guid128)->bool
+    mtd const opEquals(other: Guid128)->bool
     {
         return .words[0] == other.words[0] and .words[1] == other.words[1]
     }

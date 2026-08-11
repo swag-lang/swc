@@ -77,7 +77,9 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Area: apps/sCapture, std/core (serialization), std/pixel
 - Found while: measuring why the library grid crawls on a real library. The grid work itself was a
   separate defect and is fixed; this is what remained underneath.
-- Observation: the author's library holds 742 captures for 11.7 GB — 15.8 MB per capture on
+- Observation: capture previews cannot be read without transferring the full, uncompressed image
+  payloads from disk.
+- Evidence: the author's library holds 742 captures for 11.7 GB — 15.8 MB per capture on
   average, up to 95.9 MB for one. A capture at 1920x1080 in BGRA8 is 8.3 MB of pixels, and a
   capture stores two of them (`backImg` and `backImgOriginal`), which is the average almost
   exactly. `Image.pixels` carries no `Serialization.Compress`, so those pixels travel raw. The

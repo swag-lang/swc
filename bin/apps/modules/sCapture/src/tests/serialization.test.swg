@@ -3,6 +3,11 @@
 
 using Swag, Core
 
+func testSameBytes(left, right: const [..] u8)->bool
+{
+    return @countof(left) == @countof(right) and (!@countof(left) or @memcmp(@dataof(left), @dataof(right), @countof(left)) == 0)
+}
+
 // Capture save/load round-trips every concrete form type and its regression-sensitive fields.
 #test
 {
@@ -15,6 +20,8 @@ using Swag, Core
     f.capture.heightOrg = 48
     f.capture.backImg   = Image.create(64, 48, .BGRA8)
     f.capture.backImg.fill(ColorBlue)
+    f.capture.backImgOriginal = Image.create(64, 48, .BGRA8)
+    f.capture.backImgOriginal.fill(ColorGreen)
 
     let shape = testAddShape(f.capture, 1, 2, 10, 11, .Highlight)
     shape.kind      = .RoundRectangle
@@ -89,12 +96,18 @@ using Swag, Core
     f.capture.changed = true
 
     expect f.capture.save()
+    @assert(expect Scc.hasSignature(path))
+    var container: Scc.Reader
+    expect container.initialize(path)
+    @assert(container.kind() == expect Guid128.parse("7355af24-cf65-447b-918c-18ac74e6dc66"))
+    container.close()
     let loaded = expect Capture.load(path)!
     defer Memory.delete(loaded)
     @assert(loaded.width == 64)
     @assert(loaded.height == 48)
     @assert(loaded.forms.count == 9)
     @assert(loaded.backImg.isValid())
+    @assert(loaded.backImgOriginal.isValid())
     @assert(loaded.title == "My Capture Name")
     @assert(loaded.sourceKind == .Screen)
     @assert(loaded.capturedAt == f.capture.capturedAt)
@@ -167,7 +180,7 @@ using Swag, Core
     @assert(lCallout.alignVert == .RightBottom)
 }
 
-// Preview loading ignores heavy images while preserving form metadata.
+// Preview loading reads only the SCC profile header and preview chunk.
 #test
 {
     var f: HeadlessFixture
@@ -177,6 +190,8 @@ using Swag, Core
     f.capture.height  = 32
     f.capture.backImg = Image.create(32, 32, .BGRA8)
     f.capture.backImg.fill(ColorRed)
+    f.capture.preview = Image.create(8, 6, .BGRA8)
+    f.capture.preview.fill(ColorBlue)
     f.capture.title = "Preview Title"
     discard testAddShape(f.capture, 2, 3, 4, 5)
 
@@ -188,10 +203,12 @@ using Swag, Core
     expect f.capture.save()
     let loaded = expect Capture.load(path, preview: true)!
     defer Memory.delete(loaded)
-    @assert(loaded.forms.count == 1)
+    @assert(loaded.forms.count == 0)
     @assert(!loaded.backImg.isValid())
+    @assert(loaded.preview.isValid())
+    @assert(loaded.preview.width == 8)
+    @assert(loaded.preview.height == 6)
     @assert(loaded.title == "Preview Title")
-    @assert((cast(*BaseForm) @dataof(loaded.forms[0])).capture == loaded)
 }
 
 // A capture file from before the container header still loads: a stream without the
@@ -236,4 +253,63 @@ using Swag, Core
 
     discard catch Capture.load(path) as errnew
     @assert(errnew != null)
+}
+
+// Migration makes and verifies a complete backup before replacing a legacy capture.
+#test
+{
+    let unique = testTempCapturePath()
+    var root   = String.from(unique)
+    root += ".library"
+    var backup = String.from(unique)
+    backup += ".backup"
+    var state = String.from(unique)
+    state += ".cfg"
+    defer
+    {
+        discard catch Directory.delete(root, recurse: true)
+        discard catch Directory.delete(backup, recurse: true)
+        discard catch File.delete(state)
+    }
+
+    expect Directory.create(root)
+
+    var capture: Capture
+    capture.width  = 80
+    capture.height = 45
+    capture.title  = "Legacy migration"
+    capture.tags.add("legacy")
+
+    var bytes: ConcatBuffer
+    bytes.addNative(CaptureFileMagic)
+    bytes.addNative(CaptureFileVersion)
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    expect encoder.writeAll(&bytes, capture)
+
+    let file = Path.combine(root, "legacy.scapture")
+    expect File.writeAllBytes(file, bytes)
+    expect File.writeAllBytes(Path.combine(root, "notes.txt"), "keep this too")
+    expect File.writeAllBytes(state, "legacy gui state")
+    let original = expect File.readAllBytes(file)
+
+    let report = expect CaptureMigration.backupAndMigrate(root, backup, state)
+    @assert(report.backedUpFiles == 3)
+    @assert(report.migrated == 1)
+    @assert(report.alreadyScc == 0)
+    @assert(report.failed == 0)
+    @assert(report.remaining == 0)
+    @assert(expect Scc.hasSignature(file))
+
+    let backupCapture = expect File.readAllBytes(Path.combine(backup, "legacy.scapture"))
+    @assert(testSameBytes(original.toSlice(), backupCapture.toSlice()))
+    @assert(!(expect Scc.hasSignature(Path.combine(backup, "legacy.scapture"))))
+    @assert(File.exists(Path.combine(backup, "notes.txt")))
+    @assert(File.exists(Path.combine(backup, "_application-state", Path.fileName(state) orelse "state.scc")))
+
+    let migrated = (expect Capture.load(file))!
+    defer Memory.delete(migrated)
+    @assert(migrated.width == 80)
+    @assert(migrated.height == 45)
+    @assert(migrated.title == "Legacy migration")
+    @assert(migrated.hasTag("legacy"))
 }

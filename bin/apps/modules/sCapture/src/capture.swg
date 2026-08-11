@@ -17,8 +17,9 @@ const TextFormSuperSample = 3
 // serialized capture. The version is what a future load dispatches its migrations on;
 // a file without the header predates it and reads as version 0. The serialized layout
 // itself is pinned by 'serialization.schema.test.swg'.
-const CaptureFileMagic   = 0x53434150'u32
-const CaptureFileVersion = 2'u32
+const CaptureFileMagic      = 0x53434150'u32
+const CaptureFileVersion    = 2'u32
+const CaptureProfileVersion = 3'u32
 
 // Where the pixels of a capture came from. Stored with the capture so the library can
 // distinguish a screen grab from a picture opened for annotation or a blank canvas.
@@ -29,6 +30,47 @@ enum CaptureSourceKind
     ImageFile       // Image file opened or dropped into sCapture.
     Clipboard       // Bitmap pasted or dragged without a source file.
     BlankCanvas     // Empty image created in sCapture.
+}
+
+// Small profile header read by the library without touching the editable document or pixels.
+#[Serialization.Version(1)]
+struct CaptureLibraryMetadata
+{
+    width, height:     s32
+    linkedImage:       String
+    linkedUpToDate:    bool = true
+    sourceKind:        CaptureSourceKind
+    capturedAt:        Time.DateTime
+    sourceApplication: String
+    sourceExecutable:  String
+    sourceWindowTitle: String
+    sourceWindowClass: String
+    favorite:          bool
+    rating:            u8
+}
+
+// Editable capture state stored independently from the large background images.
+#[Serialization.Version(1)]
+struct CaptureFileModel
+{
+    width, height:       s32
+    widthOrg, heightOrg: s32
+    backImagePos:        Math.Point
+    forms:               Array'IForm
+    nextStepIndex:       u32  = 1
+    nextGroupId:         u64  = 1
+    linkedImage:         String
+    linkedUpToDate:      bool = true
+    title:               String
+    sourceKind:          CaptureSourceKind
+    capturedAt:          Time.DateTime
+    sourceApplication:   String
+    sourceExecutable:    String
+    sourceWindowTitle:   String
+    sourceWindowClass:   String
+    tags:                Array'String
+    favorite:            bool
+    rating:              u8
 }
 
 struct Capture
@@ -452,22 +494,251 @@ impl Capture
         .hasChanged()
     }
 
+    private func sccId(text: string)->Guid128
+    {
+        var result: Guid128
+        let valid = Guid128.tryParse(text, &result)
+        Debug.assert(valid)
+        return result
+    }
+
+    private func containerKind()->Guid128 => sccId("7355af24-cf65-447b-918c-18ac74e6dc66")
+    private func tagBinType()->Guid128 => sccId("cbb8ce58-7baa-4381-aa22-3b95365a8ba2")
+    private func pngType()->Guid128 => sccId("7de5d04e-37f9-4143-81ac-e7bc6f694b38")
+    private func modelRole()->Guid128 => sccId("e4848e3e-60f5-405f-adad-f109e897a351")
+    private func previewRole()->Guid128 => sccId("f53e06c1-05a7-4537-9c6a-d85609209874")
+    private func backgroundRole()->Guid128 => sccId("04267f4e-d659-4d32-9296-cc68be5bdb9d")
+    private func originalRole()->Guid128 => sccId("11d1a796-38d8-46ca-a4e6-5e2271ebd321")
+
+    private func(T) encodeValue(value: const *T)->Array'u8 fail
+    {
+        var output:  ConcatBuffer
+        var encoder: Encoder'Write.TagBin
+        encoder.writeAll(&output, dref value)
+        output.makeLinear()
+
+        var result: retval
+        result.add(output.toSlice()!)
+        return result
+    }
+
+    private mtd libraryMetadata()->CaptureLibraryMetadata
+    {
+        var result: retval
+        result.width             = .width
+        result.height            = .height
+        result.linkedImage       = .linkedImage
+        result.linkedUpToDate    = .linkedUpToDate
+        result.sourceKind        = .sourceKind
+        result.capturedAt        = .capturedAt
+        result.sourceApplication = .sourceApplication
+        result.sourceExecutable  = .sourceExecutable
+        result.sourceWindowTitle = .sourceWindowTitle
+        result.sourceWindowClass = .sourceWindowClass
+        result.favorite          = .favorite
+        result.rating            = .rating
+        return result
+    }
+
+    private mtd fileModel()->CaptureFileModel
+    {
+        var result: retval
+        result.width             = .width
+        result.height            = .height
+        result.widthOrg          = .widthOrg
+        result.heightOrg         = .heightOrg
+        result.backImagePos      = .backImagePos
+        result.forms             = .forms
+        result.nextStepIndex     = .nextStepIndex
+        result.nextGroupId       = .nextGroupId
+        result.linkedImage       = .linkedImage
+        result.linkedUpToDate    = .linkedUpToDate
+        result.title             = .title
+        result.sourceKind        = .sourceKind
+        result.capturedAt        = .capturedAt
+        result.sourceApplication = .sourceApplication
+        result.sourceExecutable  = .sourceExecutable
+        result.sourceWindowTitle = .sourceWindowTitle
+        result.sourceWindowClass = .sourceWindowClass
+        result.tags              = .tags
+        result.favorite          = .favorite
+        result.rating            = .rating
+        return result
+    }
+
+    private func fromLibraryMetadata(metadata: CaptureLibraryMetadata, manifest: const *Scc.Manifest)->*Capture
+    {
+        let result = Memory.new'Capture()
+        result.width             = metadata.width
+        result.height            = metadata.height
+        result.linkedImage       = metadata.linkedImage
+        result.linkedUpToDate    = metadata.linkedUpToDate
+        result.title             = manifest.name
+        result.sourceKind        = metadata.sourceKind
+        result.capturedAt        = metadata.capturedAt
+        result.sourceApplication = metadata.sourceApplication
+        result.sourceExecutable  = metadata.sourceExecutable
+        result.sourceWindowTitle = metadata.sourceWindowTitle
+        result.sourceWindowClass = metadata.sourceWindowClass
+        result.tags              = manifest.tags
+        result.favorite          = metadata.favorite
+        result.rating            = metadata.rating
+        return result
+    }
+
+    private func fromFileModel(model: *CaptureFileModel)->*Capture
+    {
+        let result = Memory.new'Capture()
+        result.width             = model.width
+        result.height            = model.height
+        result.widthOrg          = model.widthOrg
+        result.heightOrg         = model.heightOrg
+        result.backImagePos      = model.backImagePos
+        result.forms             = #move model.forms
+        result.nextStepIndex     = model.nextStepIndex
+        result.nextGroupId       = model.nextGroupId
+        result.linkedImage       = #move model.linkedImage
+        result.linkedUpToDate    = model.linkedUpToDate
+        result.title             = #move model.title
+        result.sourceKind        = model.sourceKind
+        result.capturedAt        = model.capturedAt
+        result.sourceApplication = #move model.sourceApplication
+        result.sourceExecutable  = #move model.sourceExecutable
+        result.sourceWindowTitle = #move model.sourceWindowTitle
+        result.sourceWindowClass = #move model.sourceWindowClass
+        result.tags              = #move model.tags
+        result.favorite          = model.favorite
+        result.rating            = model.rating
+        return result
+    }
+
     mtd save() fail
     {
         if !.changed do
             return
+
+        var metadata = .libraryMetadata()
+        var model    = .fileModel()
+        var manifest: Scc.Manifest
+        manifest.profileVersion = CaptureProfileVersion
+        manifest.name           = .title
+        manifest.createdAt      = .capturedAt
+        manifest.modifiedAt     = Time.DateTime.now()
+        manifest.tags           = .tags
+        manifest.profileData    = try encodeValue(&metadata)
+
+        var writer: Scc.Writer
+        writer.initialize(containerKind())
+        dref writer.manifest() = #move manifest
+        let typeTagBin     = tagBinType()
+        let typePng        = pngType()
+        let roleModel      = modelRole()
+        let roleBackground = backgroundRole()
+        let roleOriginal   = originalRole()
+        let rolePreview    = previewRole()
+        let codecDeflate   = Scc.deflateCodecId()
+        var modelBytes     = try encodeValue(&model)
+        let modelId        = try writer.addChunk(modelBytes.toSlice(), {typeId: typeTagBin, roleId: roleModel, codecId: codecDeflate, flags: .Required | .Metadata})
+
+        var variants: Array'Guid128
+        if .backImg.isValid()
+        {
+            var bytes = try encodeValue(&.backImg)
+            variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleBackground, codecId: codecDeflate, flags: .Required}))
+        }
+
+        if .backImgOriginal.isValid()
+        {
+            var bytes = try encodeValue(&.backImgOriginal)
+            variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleOriginal, codecId: codecDeflate}))
+        }
+
+        if .preview.isValid()
+        {
+            var bytes = try .preview.encodeToBytes("preview.png")
+            variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typePng, roleId: rolePreview, flags: .Streamable}))
+        }
+
+        var entry: Scc.Entry
+        entry.id            = Guid128.random()
+        entry.kind          = .File
+        entry.name          = String.from(Path.fileName(.file) orelse "")
+        entry.tags          = .tags
+        entry.primaryChunk  = modelId
+        entry.variantChunks = #move variants
+        writer.manifest().entries.add(#move entry)
+        writer.saveAtomic(.file)
         .changed = false
-
-        var buf: ConcatBuffer
-        buf.addNative(CaptureFileMagic)
-        buf.addNative(CaptureFileVersion)
-
-        var encoder: Encoder'Write.TagBin
-        encoder.writeAll(&buf, dref &me)
-        File.writeAllBytes(.file, buf)
     }
 
-    func load(file: String, preview = false)->#null *Capture fail
+    private func loadScc(file: String, preview: bool)->*Capture fail
+    {
+        var reader: Scc.Reader
+        reader.initialize(file)
+        if reader.kind() != containerKind() do
+            fail Core.Errors.InvalidFormatError{"capture file has a different SCC profile"}
+        if reader.manifest().profileVersion > CaptureProfileVersion do
+            fail Core.Errors.InvalidVersion{wantedVersion: CaptureProfileVersion, foundVersion: reader.manifest().profileVersion}
+
+        var capture: *Capture = undefined
+        if preview
+        {
+            var decoder: Decoder'Read.TagBin
+            let metadata = decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())!
+            defer Memory.delete(metadata)
+            capture = fromLibraryMetadata(dref metadata, reader.manifest())
+        }
+        else
+        {
+            let info = reader.findRole(modelRole())
+            if !info do
+                fail Core.Errors.InvalidFormatError{"capture SCC has no document model chunk"}
+            var bytes = try reader.readChunk(info.id)
+            var decoder: Decoder'Read.TagBin
+            decoder.flags |= .IgnoreStructFieldError
+            let model = decoder.readAll'CaptureFileModel(bytes.toSlice())!
+            defer Memory.delete(model)
+            capture = fromFileModel(model)
+
+            let diag = decoder.serializer.diag
+            capture.loadIssues = diag.fieldErrors + diag.unknownTypes + diag.corruptPayloads
+
+            let background = reader.findRole(backgroundRole())
+            if background
+            {
+                var imageBytes = try reader.readChunk(background.id)
+                var imageDecoder: Decoder'Read.TagBin
+                let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
+                capture.backImg = #move dref image
+                Memory.delete(image)
+            }
+
+            let original = reader.findRole(originalRole())
+            if original
+            {
+                var imageBytes = try reader.readChunk(original.id)
+                var imageDecoder: Decoder'Read.TagBin
+                let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
+                capture.backImgOriginal = #move dref image
+                Memory.delete(image)
+            }
+        }
+
+        let previewInfo = reader.findRole(previewRole())
+        if previewInfo
+        {
+            var imageBytes = try reader.readChunk(previewInfo.id)
+            capture.preview = try Image.decode("preview.png", imageBytes.toSlice())
+        }
+
+        capture.file = file
+        for itf in capture.forms do
+            itf.setup(capture)
+        reader.close()
+        return capture
+    }
+
+    private func loadLegacy(file: String, preview: bool)->*Capture fail
     {
         var res = File.readAllBytes(file)
 
@@ -485,15 +756,11 @@ impl Capture
             }
         }
 
-        // Migrations dispatch on the container version deliberately. Every version so
-        // far decodes through the same tolerant field-by-field path; a newer one is
-        // refused instead of half-read.
         if version > CaptureFileVersion do
             fail Core.Errors.InvalidVersion{wantedVersion: CaptureFileVersion, foundVersion: version}
 
         var decoder: Decoder'Read.TagBin
         decoder.flags |= .IgnoreStructFieldError
-
         if preview
         {
             decoder.serializer.ignoreElements.add(#nameof(Capture.backImg))
@@ -502,15 +769,18 @@ impl Capture
 
         let capture = decoder.readAll'Capture(payload)!
         capture.file = file
-
-        // Keep what the tolerant decode had to swallow visible to the caller.
         let diag = decoder.serializer.diag
         capture.loadIssues = diag.fieldErrors + diag.unknownTypes + diag.corruptPayloads
-
         for itf in capture.forms do
             itf.setup(capture)
-
         return capture
+    }
+
+    func load(file: String, preview = false)->#null *Capture fail
+    {
+        if try Scc.hasSignature(file) do
+            return try loadScc(file, preview)
+        return try loadLegacy(file, preview)
     }
 
     //////////////////////////////

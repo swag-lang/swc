@@ -97,6 +97,12 @@ using Swag, Core
     @assert(c0.position.y == 50)
     @assert(c1.position.y == 85)
     @assert(c2.position.y == 120)
+
+    // Vertically, and only vertically: the other axis keeps the stack's own edge, so children
+    // of different widths read on one left edge instead of on as many as they have widths.
+    @assert(c0.position.x == 0)
+    @assert(c1.position.x == 0)
+    @assert(c2.position.x == 0)
 }
 
 // StackLayoutCtrl distributes remaining space only to expandable children.

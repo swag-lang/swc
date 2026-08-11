@@ -40,6 +40,11 @@ picks its colors, or a theme sheet — also read and follow
 [design-swag-themes](.agents/skills/design-swag-themes/SKILL.md): every color is derived
 from a small set of tokens, and the `gui10` inspector is how the result is judged.
 
+When the change touches a modal box — a dialog under `bin/std/modules/gui/src/dialogs`, a
+composite hosted in one, or an application's own modal — also read and follow
+[design-swag-dialogs](.agents/skills/design-swag-dialogs/SKILL.md): the inset, the gap, the
+action bar, and the way a box fits itself to its content are one composition.
+
 When adding, migrating, renaming, styling, packaging, or testing an official application under
 `bin/apps`, also read and follow
 [build-swag-standard-apps](.agents/skills/build-swag-standard-apps/SKILL.md): every shipped app

@@ -1131,6 +1131,18 @@ impl Application
         ser.endSection()
     }
 
+    private func stateId(text: string)->Guid128
+    {
+        var result: Guid128
+        let valid = Guid128.tryParse(text, &result)
+        Debug.assert(valid)
+        return result
+    }
+
+    private func stateContainerKind()->Guid128 => stateId("89c98d18-11dc-42a0-910c-4bb64b3e2776")
+    private func stateChunkType()->Guid128 => stateId("cbb8ce58-7baa-4381-aa22-3b95365a8ba2")
+    private func stateChunkRole()->Guid128 => stateId("a37d3af6-2ba5-4bc4-b796-48878fd09fe4")
+
     // Saves serializable surface placement to the configured state file.
     mtd saveState() fail
     {
@@ -1144,7 +1156,25 @@ impl Application
         .serializeState(&ser)
         ser.end()
 
-        File.writeAllBytes(.statePath, buf)
+        buf.makeLinear()
+        var manifest: Scc.Manifest
+        manifest.name       = String.from(Path.fileName(.statePath) orelse "")
+        manifest.modifiedAt = Time.DateTime.now()
+
+        var writer: Scc.Writer
+        writer.initialize(stateContainerKind())
+        dref writer.manifest() = #move manifest
+        let chunkType = stateChunkType()
+        let chunkRole = stateChunkRole()
+        let stateId   = try writer.addChunk(buf.toSlice()!, {typeId: chunkType, roleId: chunkRole, flags: .Required | .Metadata})
+
+        var entry: Scc.Entry
+        entry.id           = Guid128.random()
+        entry.kind         = .File
+        entry.name         = "state"
+        entry.primaryChunk = stateId
+        writer.manifest().entries.add(#move entry)
+        writer.saveAtomic(.statePath)
     }
 
     // Loads serializable surface placement from the configured state file.
@@ -1153,7 +1183,20 @@ impl Application
         if .statePath.isEmpty() do
             return
 
-        var buf = File.readAllBytes(.statePath)
+        var buf: Array'u8
+        if try Scc.hasSignature(.statePath)
+        {
+            var reader: Scc.Reader
+            reader.initialize(.statePath)
+            if reader.kind() != stateContainerKind() do
+                fail Errors.InvalidFormatError{"GUI state file has a different SCC profile"}
+            let state = reader.findRole(stateChunkRole())
+            if !state do
+                fail Errors.InvalidFormatError{"GUI state file has no state chunk"}
+            buf = try reader.readChunk(state.id)
+        }
+        else do
+            buf = try File.readAllBytes(.statePath)
 
         var load: Decoder'Read.TagBin
         var ser:  Serializer

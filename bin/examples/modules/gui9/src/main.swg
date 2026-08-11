@@ -58,7 +58,7 @@ func onMsgConfirm(_b: *Button)
 
 func onMsgError(_b: *Button)
 {
-    MessageDlg.error(g_Surface!, "Something went wrong while saving.")
+    MessageDlg.error(g_Surface!, "Unable to mount the virtual disk.\n\nThe password is incorrect or the container is damaged.")
 }
 
 func onEditSingle(_b: *Button)

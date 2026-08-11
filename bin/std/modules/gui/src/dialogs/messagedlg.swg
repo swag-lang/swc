@@ -83,45 +83,56 @@ public impl MessageDlg
     // Widest a message is allowed to run before it wraps.
     private const MaxMessageWidth = 512.0'f32
 
-    private mtd adaptSizeToMessage()
+    // Narrowest a message box is allowed to be, whatever it holds.
+    //
+    // Fitted to a short question and to nothing else, a box came out barely wider than its own
+    // action bar: two buttons at the theme width then ran edge to edge under one short line, and
+    // the box read as a pair of buttons with a caption. This is the width the single-line prompt
+    // of the same family opens at, so a question and a prompt are one object on screen.
+    internal const MinMessageWidth = 450.0'f32
+
+    // Tallest a message is allowed to grow before the box stops following it.
+    private const MaxMessageHeight = 512.0'f32
+
+    // Gives the surface the width its message wants and the height that width then calls for.
+    internal mtd adaptSizeToMessage()
     {
         let metrics = .themeMetrics()
+        let srf     = .surface!
 
         // The room the message loses to the frame and to the standard body inset, on each side.
-        let chrome = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
+        let chrome   = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
+        let iconRoom = @isset(.labelIcon) ? .labelIcon.position.width : 0
 
-        // Measured at the density the glyphs are really drawn at. Laid out at a scale of one
-        // and drawn at another, a run comes out a touch wider than the width reserved for it,
-        // and a message that was measured on one line wraps onto two the box has no room for.
-        // Ellipsis mirrors the label's own paint, and is what keeps the measurement bounded:
-        // a run that wrapping cannot break is cut at the maximum width instead of widening the box.
-        let deviceScale = .deviceScale()
-        var rsf: RichStringFormat
-        rsf.font          = .font()
-        rsf.flags         |= .WordWrap | .Ellipsis
-        rsf.horzAlignment = .label.textHorizontalAlignment
-
-        .label.name.compute()
-        Painter.computeLayout({0, 0, MaxMessageWidth, MaxTextLayoutExtent}, &.label.name, rsf, deviceScale)
-
-        // Width
+        // Width: what the actions need side by side, then whatever more the message wants, up to
+        // the width it is allowed to run before wrapping. The label answers with its own format
+        // and at the density its glyphs are really drawn at, so the measurement is the layout
+        // the paint will do. Ellipsis is what keeps it bounded: a run that wrapping cannot break
+        // — a path, a URL — is cut at the maximum instead of widening the box to its own length.
         var w = 0'f32
         for btn in .buttons do
             w += btn.position.width
         w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
-        w += 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
-        let iconRoom = @isset(.labelIcon) ? .labelIcon.position.width : 0
-        w = Math.max(w, .label.name.boundRect.width + iconRoom + chrome)
+        w += chrome
+        w = Math.max(w, .label.itf.measureContent({MaxMessageWidth, 0}).x + iconRoom + chrome)
 
         if .extension do
             w = Math.max(w, .extension.position.width + chrome)
 
-        // Height, measured a second time at the width the message will really be given: the
-        // widest line decides the box, and the box then decides how many lines there are.
-        Painter.computeLayout({0, 0, Math.max(w - chrome - iconRoom, 1), MaxTextLayoutExtent}, &.label.name, rsf, deviceScale)
-        .label.name.invalidate()
+        w = Math.max(w, MinMessageWidth)
 
-        var contentHeight = Math.min(512, .label.name.boundRect.height)
+        // The width is committed before the height is measured, and the height then answers for
+        // the width the message was really given rather than for the one just asked for. The two
+        // differ: a window lands on whole physical pixels and its tree is laid out on whole
+        // logical ones, so a box fitted to the exact extent of its own message came back a
+        // fraction of a unit narrower, wrapped one line more than it had been made tall for, and
+        // clipped its own text top and bottom — which is what every two-sentence error box did.
+        var pos = srf.position
+        pos.width = .physicalRoom(w + 2 * srf.shadowMargin())
+        srf.setPosition(pos)
+        .applyLayout()
+
+        var contentHeight = Math.min(MaxMessageHeight, .label.itf.measureContent({.label.position.width, 0}).y)
         if @isset(.labelIcon) do
             contentHeight = Math.max(contentHeight, .labelIcon.icon.sizeY)
 
@@ -129,19 +140,7 @@ public impl MessageDlg
         if ext do
             contentHeight += ext.margin.y + ext.position.height + ext.margin.w
 
-        let srf = .surface!
-        let sdw = srf.shadowMargin()
-        w += sdw * 2
-
         .fitHeightToContent(contentHeight)
-
-        // Everything measured above is in logical units; a surface rectangle is physical.
-        // Handed over unscaled, the box opened at a fraction of the room its message needs
-        // on any display past 100 percent: the text lost its whole band to the button bar
-        // and the reader was left with an icon and an unreachable button.
-        var pos = srf.position
-        pos.width = w * srf.dpiScale
-        srf.setPosition(pos)
     }
 
     // Docks one extension below the message content.
@@ -193,6 +192,11 @@ public impl MessageDlg
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
+        // Every box names itself. Left empty the caption still takes its band, so the box opened
+        // under an empty bar and read as one the application had forgotten to finish.
+        if !@countof(opt.title) do
+            opt.title = strings().dlg_InfoTitle
+
         with let dlg = create(from, message, opt)
         {
             .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
@@ -210,6 +214,9 @@ public impl MessageDlg
             opt.icon      = from.app.theme.icon(.Question, 48)
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
+
+        if !@countof(opt.title) do
+            opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
         {
@@ -230,6 +237,9 @@ public impl MessageDlg
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
+        if !@countof(opt.title) do
+            opt.title = strings().dlg_ConfirmTitle
+
         with let dlg = create(from, message, opt)
         {
             .addButton(strings().dlg_Yes, Dialog.BtnYes, defaultId == Dialog.BtnYes)
@@ -248,6 +258,9 @@ public impl MessageDlg
             opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
+
+        if !@countof(opt.title) do
+            opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
         {

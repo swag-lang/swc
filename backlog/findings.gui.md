@@ -260,3 +260,41 @@ Entries are sorted by identifier, ascending; position carries no priority.
   width, corner, pointer offset and screen-edge placement as one themed tooltip contract. Add a
   visual/headless case with long translated text at 100%, 150% and 200% scale, and verify that no
   edit border, scrollbar or focusable child is present.
+
+### F-113 — A message taller than the box's cap is still clipped
+
+- Area: std/gui
+- Found while: fixing the two-sentence error box that clipped its own message
+- Observation: `MessageDlg.adaptSizeToMessage` clamps its content height at `MaxMessageHeight`,
+  512 logical units or roughly thirty lines. Past that the box stops growing while the label goes
+  on centering its text, and the message is cut at both ends — the same failure the fit was just
+  corrected for, at a different length. The charter says a box is as tall as what it holds; above
+  the cap it is not.
+- Evidence: the `Math.min(MaxMessageHeight, ...)` in
+  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg). Reproduce by handing forty
+  lines to `MessageDlg.ok`.
+- Next step: decide what a box does when its message outgrows the screen, rather than a constant
+  standing in for that decision. Bound the surface by the owner monitor's work area — the platform
+  layer already resolves it for `Surface.constrainPositionToScreen` — and give the message a scroll
+  when the bound bites. Then extend the length sweep in `dialogs.layout.test.swg` past the cap: it
+  is written to walk lengths already and would have caught this one had it gone far enough.
+
+### F-114 — A composite that commits a measured size loses the fraction the layout rounds off
+
+- Area: std/gui
+- Found while: the same investigation; the dialog family is fixed, nothing else is
+- Observation: `Wnd.resize` rounds a window's logical size to whole units and
+  `Surface.setPosition` places a native window on whole physical pixels. A composite that measures
+  its content, commits that measurement as its size, and then assumes the content still fits loses
+  up to half a logical unit in the round trip. Half a unit is enough: in the message box it was one
+  wrapped line, and it clipped the second sentence of every error box on a scaled display. Only
+  some lengths land on a losing fraction, which is why it read as intermittent.
+- Evidence: `Dialog.physicalRoom` and the commit-then-measure order in
+  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs.
+  [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) has the same shape and no such guard: it
+  takes `edit.evaluateSize()`, adds its padding, and hands the raw result to `setPosition`, where
+  `Wnd.resize` rounds it — with `WordWrap` on the rich edit inside.
+- Next step: audit the composites that size themselves from a measurement — the tooltip first, then
+  the popup list, the menu popup, and the automatic label height — for that pattern, and either
+  round out through one shared helper or measure the second axis after committing the first. Prove
+  it the way `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.

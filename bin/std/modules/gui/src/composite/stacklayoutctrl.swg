@@ -358,9 +358,14 @@ private impl StackLayoutCtrl
                 cursor  += .startMargin(margin) + mainSize + .endMargin(margin) + .spacing
             }
 
+            // Only [[StackLayoutMode.Center]] centers the axis it does not stack along; the two
+            // one-axis modes are named for the axis they center and leave the other alone. Listed
+            // here, `VerticalCenter` centered its children horizontally as well, and a stacked
+            // heading and paragraph — each hugging its own text — then read on two different left
+            // edges, which is what made the about box look set on nothing.
             let crossBase = .isHorizontal() ? client.y : client.x
             var crossPos  = crossBase + .crossStartMargin(margin)
-            if .mode == .Center or .mode == .VerticalCenter or align == LayoutAlign.Center do
+            if .mode == .Center or align == LayoutAlign.Center do
                 crossPos = crossBase + (availableCross - crossSize) * 0.5
             elif align == LayoutAlign.End do
                 crossPos = crossBase + availableCross - .crossEndMargin(margin) - crossSize

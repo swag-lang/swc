@@ -126,16 +126,34 @@ impl Dialog
     // The body owns the outer inset once, so individual dialogs only express the spacing
     // between their own pieces. A raised content ground and a quieter action ground then
     // separate the two bands without another border or accent rule.
-    internal mtd createContentView()->*Wnd
+    //
+    // `inset` is the air a box keeps around loose content — a message, a column of fields, a
+    // prompt. A box whose body is one panel carrying its own ground and its own edges — a file
+    // browser, a list, an editor — asks for none: set inside the inset, the panel reads as a card
+    // adrift in a margin, and the box then has to grow by twice that inset to show the same rows.
+    internal mtd createContentView(inset = true)->*Wnd
     {
         Debug.assert(.contentView == null, "a dialog can only have one standard content view")
 
         let content = Wnd.create'Wnd(.surface!.wnd.view)
         content.dockStyle       = .Center
         content.backgroundStyle = .Transparent
-        content.setAllPaddings(.themeMetrics().dialog_Padding)
+        if inset do
+            content.setAllPaddings(.themeMetrics().dialog_Padding)
         .contentView = content
         return content
+    }
+
+    // Returns the physical size a surface must take to really hand `logical` units to its content.
+    //
+    // A window is placed on whole physical pixels, and the tree inside it is laid out on whole
+    // logical ones. A rectangle rounded by neither therefore comes back a fraction of a unit
+    // smaller than it asked for — and a box fitted to the exact extent of its own content then
+    // clips the very content it was fitted to. Rounding out costs at most one pixel and is what
+    // makes a fitted box hold what it measured.
+    internal mtd const physicalRoom(logical: f32)->f32
+    {
+        return Math.ceil(Math.ceil(logical) * .surface!.dpiScale)
     }
 
     // Gives the surface exactly the vertical room needed by its standard body.
@@ -158,7 +176,7 @@ impl Dialog
         height += 2 * surface.shadowMargin()
 
         var pos = surface.position
-        pos.height = height * surface.dpiScale
+        pos.height = .physicalRoom(height)
         surface.setPosition(pos)
         .applyLayout()
     }

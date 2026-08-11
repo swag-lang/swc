@@ -20,6 +20,7 @@ struct Strings
         dlg_ConfirmTitle: string = "Please confirm"               // Title of a confirmation dialog.
         dlg_ConfirmText:  string = "Do you want to continue?"     // Default question of a confirmation dialog.
         dlg_ErrorTitle:   string = "Error"                        // Title of an error dialog.
+        dlg_InfoTitle:    string = "Information"                  // Title of an informational dialog.
 
         fileDlg_TitleSaveFile:     string = "Save File"                                   // File dialog title when saving a file.
         fileDlg_TitleSelectFile:   string = "Select File"                                 // File dialog title when picking one file.

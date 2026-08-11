@@ -109,8 +109,15 @@ public impl EditDlg
 
         let edit = .edit
         var contentHeight = edit ? edit.position.height : .richEdit!.position.height
-        if @isset(.label) do
-            contentHeight += .label.position.height + .label.margin.w
+        if @isset(.label)
+        {
+            // The explanation is as tall as its own wording at the width it has, floored by the
+            // band the caller asked to keep for it. Read back from the layout instead, the band
+            // was whatever the authored shell had left over, so a message needing a second line
+            // was cut in half by a box that had never measured it.
+            let wording = .label.itf.measureContent({.label.position.width, 0}).y
+            contentHeight += Math.max(wording, .label.preferredSize.y) + .label.margin.w
+        }
 
         // The rich editor keeps its authored height while the surface is fitted around it.
         let richEdit = .richEdit
@@ -151,6 +158,10 @@ public impl EditDlg
     }
 
     // Creates or updates an explanatory message above the editor.
+    //
+    // The box refits around the wording, so an explanation running onto a second line is given
+    // that line instead of losing it. `height` is the band kept for a message shorter than that,
+    // not a height the message is held to.
     mtd setMessage(message: string, height: s32 = 40)
     {
         Debug.assert(height > 0, "message height must be positive")
@@ -167,6 +178,7 @@ public impl EditDlg
         }
         else
         {
+            .label.preferredSize.y = cast(f32) height
             .label.setText(message)
         }
 

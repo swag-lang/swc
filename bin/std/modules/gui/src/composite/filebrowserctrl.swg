@@ -304,7 +304,8 @@ private impl FileBrowserCtrl
         {
             .setSelectionMode(me.options.mode == FileDlgMode.SelectFiles ? ListSelectionMode.Multi : ListSelectionMode.Single)
             .dockStyle = .Center
-            .margin.z  = 10
+            .margin.x  = edgePadding(view)
+            .margin.z  = edgePadding(view)
             .updateFlags(.HotTrack)
             .backgroundStyle = .View
 
@@ -465,6 +466,18 @@ private impl FileBrowserCtrl
 
 impl FileBrowserCtrl
 {
+    // Returns the inset every band of the browser keeps from the edges of its column.
+    //
+    // The navigation bar, the list, the status line and the name form are four bands of one
+    // object, so they share a left edge and a right edge. Given an inset each, they lined up on
+    // none: the first tool of the bar, the first column of the list and the first label of the
+    // form each started at a different place, and the right edge of a field missed the right
+    // edge of the list by the difference between their two paddings.
+    private func edgePadding(wnd: *Wnd)->f32
+    {
+        return wnd.themeMetrics().dialog_BtnPadding * 2
+    }
+
     // Creates an embedded file browser inside `parent`.
     #[Swag.Discardable]
     func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
@@ -473,6 +486,8 @@ impl FileBrowserCtrl
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
         fileBrowser.options         = opt
         fileBrowser.backgroundStyle = .Window
+
+        let pad = edgePadding(fileBrowser)
 
         if fileBrowser.options.shortcuts.isEmpty()
         {
@@ -517,8 +532,8 @@ impl FileBrowserCtrl
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
-            .padding.x       = 10
-            .padding.z       = 10
+            .padding.x       = pad
+            .padding.z       = pad
             .padding.y       = 8
             .padding.w       = 8
         }
@@ -594,10 +609,12 @@ impl FileBrowserCtrl
         formOptions.labelWidth     = 95
         formOptions.fieldHeight    = 30
         formOptions.rowSpacing     = 5
-        let form = FormLayoutCtrl.create(fileBrowser, formOptions, {0, 0, 0, 90})
+        // No authored height: the rows and the spacing between them are what the band is worth,
+        // and a number beside them is a number to re-tune the day a row changes.
+        let form = FormLayoutCtrl.create(fileBrowser, formOptions)
         form.dockStyle       = .Bottom
         form.backgroundStyle = .Window
-        form.padding         = {15, 8, 15, 8}
+        form.padding         = {pad, 8, pad, 8}
 
         let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? strings().browser_FolderName : strings().browser_FileName
         fileBrowser.editFile = EditBox.create(form, "")
@@ -621,8 +638,8 @@ impl FileBrowserCtrl
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Window
-            .padding.x       = 15
-            .padding.z       = 15
+            .padding.x       = pad
+            .padding.z       = pad
         }
 
         // A count of what a folder holds is read at a glance and never acted on, so it sits

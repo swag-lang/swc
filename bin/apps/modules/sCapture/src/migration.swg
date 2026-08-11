@@ -146,6 +146,10 @@ func migrateBatch(libraryPath: String, maxCaptures: u64 = 32)->CaptureMigrationR
     let source   = normalized(libraryPath)
     let captures = try Directory.enumerateFiles(source, ".scapture", recurse: true)
     var result: retval
+
+    // This can run after the application and its windows have allocated on the same thread.
+    // Retiring that shared allocator heap per file corrupts unrelated live application storage;
+    // the isolated migration command already releases the complete process between batches.
     for file in captures
     {
         if try Scc.hasSignature(file.fullname)
@@ -165,7 +169,6 @@ func migrateBatch(libraryPath: String, maxCaptures: u64 = 32)->CaptureMigrationR
         }
         else do
             result.migrated += 1
-        Swag.releaseAllocatorThreadCache()
     }
 
     for file in captures where !(try Scc.hasSignature(file.fullname)) do

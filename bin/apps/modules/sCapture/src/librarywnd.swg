@@ -595,7 +595,6 @@ impl LibraryWnd
                 {
                     if item!.fi.fullname != file do
                         continue
-                    libWnd.view.app().renderer.removeTexture(&item!.texture)
                     libWnd.view.allItems.deleteAt(i)
                     break
                 }
@@ -977,12 +976,7 @@ impl LibraryWnd
     mtd exportCapture(file: String, folder: String) fail
     {
         let capture = (try Capture.load(file))!
-        defer
-        {
-            if capture.backTexture.isValid() do
-                .main.editWnd.editView.app().renderer.removeTexture(&capture.backTexture)
-            Memory.delete(capture)
-        }
+        defer Memory.delete(capture)
 
         capture.editView = .main.editWnd.editView
         var image = capture.toImage()

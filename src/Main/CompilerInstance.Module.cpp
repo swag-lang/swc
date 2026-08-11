@@ -842,6 +842,23 @@ namespace
         return true;
     }
 
+    // Dates the compiler that is about to consume a build.
+    //
+    // The embedded runtime sources (<resource root>/runtime/*.swg) are compiled into every
+    // module, so a change there must invalidate a build exactly like a new compiler binary.
+    bool tryGetCompilerBuildTime(fs::file_time_type& outTime, const fs::path& compilerPath)
+    {
+        if (!tryGetWorkspacePathWriteTime(outTime, compilerPath))
+            return false;
+
+        fs::file_time_type runtimeTime{};
+        if (!tryCollectLatestWorkspaceTreeWriteTime(runtimeTime, FileSystem::compilerResourceRoot(compilerPath) / "runtime"))
+            return false;
+
+        outTime = std::max(outTime, runtimeTime);
+        return true;
+    }
+
     void appendWorkspaceInputFiles(std::vector<fs::path>& outInputs, const std::set<fs::path>& inputFiles)
     {
         outInputs.reserve(outInputs.size() + inputFiles.size());
@@ -1058,16 +1075,8 @@ namespace
         }
 
         fs::file_time_type compilerTime{};
-        if (!tryGetWorkspacePathWriteTime(compilerTime, compilerPath))
+        if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
             return false;
-
-        // The embedded runtime sources (<resource root>/runtime/*.swg) are compiled
-        // into every module: a change there must invalidate builds exactly like a
-        // new compiler binary. Fold their latest write time into the compiler time.
-        fs::file_time_type runtimeTime{};
-        if (!tryCollectLatestWorkspaceTreeWriteTime(runtimeTime, FileSystem::compilerResourceRoot(compilerPath) / "runtime"))
-            return false;
-        compilerTime = std::max(compilerTime, runtimeTime);
 
         fs::file_time_type latestDependencyTime{};
         bool               hasDependencyTime = false;
@@ -1127,6 +1136,101 @@ namespace
         if (hasDependencyTime && buildTime < latestDependencyTime)
             return false;
         return buildTime >= compilerTime;
+    }
+
+    // The build a dependency output directory claims, when no manifest names it. A dependency that
+    // did not come from a workspace build here — a published library, a hand-copied tree — has no
+    // record of what it was made from, and the newest file it holds is the only date available.
+    bool dependencyBuildPredatesCompiler(const fs::path& apiDir, const fs::path& compilerPath)
+    {
+        fs::file_time_type compilerTime{};
+        if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
+            return false;
+
+        fs::file_time_type buildTime{};
+        if (!tryCollectLatestWorkspaceTreeWriteTime(buildTime, apiDir))
+            return false;
+
+        return buildTime < compilerTime;
+    }
+
+    // A source file that appeared, or disappeared, since the build. It is in no list the build
+    // could have written, so the only trace of it is the modification time of the directory that
+    // holds it — which every recorded input names.
+    bool workspaceInputDirectoryChangedSince(std::span<const fs::path> inputs, const fs::file_time_type buildTime)
+    {
+        std::unordered_set<Utf8> checkedDirs;
+        for (const fs::path& inputPath : inputs)
+        {
+            const fs::path parentDir = inputPath.parent_path();
+            if (parentDir.empty() || !checkedDirs.insert(Utf8(parentDir)).second)
+                continue;
+
+            fs::file_time_type parentTime;
+            if (tryGetWorkspacePathWriteTime(parentTime, parentDir) && parentTime > buildTime)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool dependencyBuildIsOutdated(std::unordered_set<Utf8>& ioCheckedApiDirs, const fs::path& apiDir, const fs::path& compilerPath);
+
+    // Whether anything the dependency was built from has moved since — including inside the
+    // dependencies of that dependency, which is how a script that imports `gui` notices an edit
+    // to `core`.
+    bool dependencyClosureIsOutdated(std::unordered_set<Utf8>& ioCheckedApiDirs, std::span<const fs::path> dependencyDirs, const fs::path& compilerPath)
+    {
+        for (const fs::path& dependencyDir : dependencyDirs)
+        {
+            if (dependencyBuildIsOutdated(ioCheckedApiDirs, dependencyDir, compilerPath))
+                return true;
+        }
+
+        return false;
+    }
+
+    // Answers whether a dependency no longer matches what it was built from.
+    //
+    // This is the question a workspace build asks about its own modules, asked from outside. A
+    // script does not own the library it imports, but it has to notice when that library moved
+    // under it: a new compiler, an edited source, a rebuilt dependency of its own. The manifest a
+    // build leaves in its output directory names every input, every dependency and every artifact,
+    // so the whole answer costs one stat per recorded path instead of a workspace scan.
+    //
+    // It matters more here than for any other consumer, because a dependency is consumed as
+    // source: its exported API is `.swg` text this compiler parses, so a library exported by an
+    // older one can spell syntax this one has dropped, and the error surfaces in whoever imports
+    // it rather than in itself.
+    bool dependencyBuildIsOutdated(std::unordered_set<Utf8>& ioCheckedApiDirs, const fs::path& apiDir, const fs::path& compilerPath)
+    {
+        if (!ioCheckedApiDirs.insert(Utf8(FileSystem::normalizePath(apiDir))).second)
+            return false;
+
+        // Always the plain manifest: what a script consumes is what a normal build produces, never
+        // the '.test' variant a test build writes beside it.
+        const fs::path            manifestPath = (apiDir / K_WORKSPACE_ARTIFACT_MANIFEST_FILE).lexically_normal();
+        WorkspaceArtifactManifest manifest;
+        if (!readWorkspaceArtifactManifest(manifest, manifestPath))
+            return dependencyBuildPredatesCompiler(apiDir, compilerPath);
+
+        // The manifest is its own record of what was current, so it answers for both lists.
+        if (!workspaceArtifactsAreUpToDate(manifest, apiDir, manifestPath, compilerPath, {}, manifest.dependencyDirs, {}))
+            return true;
+
+        fs::file_time_type buildTime{};
+        if (!tryGetWorkspacePathWriteTime(buildTime, manifestPath))
+            return true;
+        if (workspaceInputDirectoryChangedSince(manifest.inputs, buildTime))
+            return true;
+
+        return dependencyClosureIsOutdated(ioCheckedApiDirs, manifest.dependencyDirs, compilerPath);
+    }
+
+    bool dependencyBuildIsOutdated(const fs::path& apiDir, const fs::path& compilerPath)
+    {
+        std::unordered_set<Utf8> checkedApiDirs;
+        return dependencyBuildIsOutdated(checkedApiDirs, apiDir, compilerPath);
     }
 
     bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine)
@@ -1254,7 +1358,9 @@ struct ModuleSetupInputApplier
     Result resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    Result buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    bool   tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    bool   canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const;
+    Result buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest);
     Result resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
     Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
     // Parsing+sema'ing a dependency's .dep metadata file is expensive and the same file is reached
@@ -1280,6 +1386,7 @@ struct ModuleSetupInputApplier
     CompilerInstance*                                                          compiler = nullptr;
     TaskContext*                                                               ctx      = nullptr;
     fs::path                                                                   workspaceDependencyRoot;
+    std::unordered_set<Utf8>                                                   onDemandBuiltModules;
     std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
     std::unordered_map<Utf8, std::vector<Utf8>>                                dependencyClosureCache;
     std::unordered_set<Utf8>                                                   processedDependencyApis;
@@ -1303,6 +1410,18 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
     if (instance().cmdLine().scriptMode)
     {
         workspaceDependencyRoot = FileSystem::normalizePath(scriptDependencyDirectory(instance().cmdLine(), setupSnapshot.imports));
+
+        // '--rebuild' answers for everything the run consumes, and the mirror is a cache like any
+        // other. It also sits under a hashed temporary path nobody can be expected to find, so
+        // dropping it here is the only way a user has to force it to be filled again.
+        if (instance().cmdLine().rebuild)
+        {
+            std::error_code ec;
+            fs::remove_all(workspaceDependencyRoot, ec);
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(taskCtx(), workspaceDependencyRoot, FileSystem::normalizeSystemMessage(ec));
+        }
+
         std::unordered_set<fs::path> ensuredDirs;
         SWC_RESULT(ensureWorkspaceDependencyDirectory(taskCtx(), ensuredDirs, workspaceDependencyRoot));
     }
@@ -1407,21 +1526,34 @@ Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, co
 }
 
 // Builds one standard-library module in place, so a script that imports it runs on a checkout
-// where the library has never been built for this configuration.
+// where the library has never been built for this configuration, or was last built by a compiler
+// this one has replaced.
 //
 // This is what makes a script a substitute for a shell script: `swc script.swgs` has to work the
-// way `python script.py` does, with no install step in front of it. Only a script gets it. A
-// module or a workspace names its own inputs and is built by whoever asked for it, so an absent
-// dependency there is a mistake worth reporting instead of a build worth starting.
+// way `python script.py` does, with no install step in front of it, and no build step either the
+// day the compiler moves under it. Only a script gets it. A module or a workspace names its own
+// inputs and is built by whoever asked for it, so a missing or outdated dependency there is a
+// mistake worth reporting instead of a build worth starting.
 //
 // `outBuilt` says whether a build actually ran, which is the caller's cue to look again. The
 // build is an ordinary workspace command on the standard library, narrowed to the wanted module
 // and its workspace dependencies, and it is not itself a script: nothing it imports can come back
 // here, so this cannot recurse.
-Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest) const
+bool ModuleSetupInputApplier::canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const
+{
+    return instance().cmdLine().scriptMode && importRequest.location == "swag@std";
+}
+
+Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest)
 {
     outBuilt = false;
-    if (!instance().cmdLine().scriptMode || importRequest.location != "swag@std")
+    if (!canBuildSwagStdModuleOnDemand(importRequest))
+        return Result::Continue;
+
+    // One module is asked for as many times as it is imported — once per importer, and once more
+    // by each dependency-closure walk. The answer cannot change within one setup, and under
+    // '--rebuild' every one of those asks would otherwise start the same build again.
+    if (!onDemandBuiltModules.insert(importRequest.moduleName).second)
         return Result::Continue;
 
     fs::path workspacePath;
@@ -1473,6 +1605,11 @@ Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const
     return Result::Continue;
 }
 
+bool ModuleSetupInputApplier::tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
+{
+    return findDependencyConfigurationDirectory(outPaths.apiDir, outBecause, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) == Result::Continue;
+}
+
 Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot)
 {
     outPaths = {};
@@ -1483,14 +1620,23 @@ Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportP
         SWC_RESULT(resolveExplicitDependencyRoot(dependencyRoot, importRequest));
 
         Utf8 because;
-        if (findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
+        bool resolved = tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest);
+
+        // A dependency that no longer matches what it was built from is as unusable as an absent
+        // one, so it is rebuilt on the same terms — which only a script gets. '--rebuild' asks for
+        // the same thing without consulting a date: it is how a build is forced when every
+        // timestamp says otherwise. Neither question is worth asking where nothing can act on it.
+        const bool onDemand = canBuildSwagStdModuleOnDemand(importRequest);
+        if (!resolved || (onDemand && (instance().cmdLine().rebuild || dependencyBuildIsOutdated(outPaths.apiDir, instance().exeFullName_))))
         {
             bool built = false;
             SWC_RESULT(buildSwagStdModuleOnDemand(built, importRequest));
-            if (!built ||
-                findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
-                return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+            if (built)
+                resolved = tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest);
         }
+
+        if (!resolved)
+            return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
 
         return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
     }

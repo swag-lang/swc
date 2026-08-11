@@ -118,7 +118,7 @@ private
     {
         mtd texRef(texture: Texture)->String
         {
-            for it, [idx] in .textures where it == texture.handle do
+            for it, idx in .textures where it == texture.handle do
                 return Format.toString("tex#%", idx)
 
             .textures.add(texture.handle)
@@ -129,7 +129,7 @@ private
 
         mtd fontRef(font: const *Font)->String
         {
-            for it, [idx] in .fonts where it == font do
+            for it, idx in .fonts where it == font do
                 return Format.toString("font#%", idx)
 
             .fonts.add(font)
@@ -147,7 +147,7 @@ private
             if !target do
                 return String.from("none")
 
-            for it, [idx] in .targets where it == target do
+            for it, idx in .targets where it == target do
                 return Format.toString("rt#%", idx)
 
             .targets.add(target)
@@ -161,7 +161,7 @@ private
             if !shader do
                 return String.from("none")
 
-            for it, [idx] in .shaders where it == shader do
+            for it, idx in .shaders where it == shader do
                 return Format.toString("shader#%", idx)
 
             .shaders.add(shader)
@@ -172,7 +172,7 @@ private
         // so it is remapped like any other opaque handle.
         mtd paramRef(param: ShaderParamHandle)->String
         {
-            for it, [idx] in .params where it == param do
+            for it, idx in .params where it == param do
                 return Format.toString("p#%", idx)
 
             .params.add(param)
@@ -280,7 +280,7 @@ private
             if p.gradientStopCount
             {
                 .body.appendFormat(" spread=% stops=[", fmtEnum(p.gradientSpread))
-                for [i] in p.gradientStopCount
+                for i in p.gradientStopCount
                 {
                     if i do
                         .body += " "
@@ -329,7 +329,7 @@ private
             var hasUv = false
             var extraCol: u32
 
-            for [i] in count
+            for i in count
             {
                 let v = painter.vertexBuffer[cast(u64) (start + i)]
 
@@ -374,7 +374,7 @@ private
                 .body.appendFormat(" uv=(%,%)-(%,%)", fmtF(uvMin.x), fmtF(uvMin.y), fmtF(uvMax.x), fmtF(uvMax.y))
 
             .body += " colors=["
-            for c, [i] in colors
+            for c, i in colors
             {
                 if i do
                     .body += " "

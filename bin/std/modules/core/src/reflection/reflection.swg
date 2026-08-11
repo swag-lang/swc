@@ -316,7 +316,7 @@ func inferInterfaceImplementation(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
     var ambiguous: bool
 
     Sync.sharedLock(&g_HashLock)
-    for ignoredCrc, [t] in g_HashCrcToType
+    for ignoredCrc, t in g_HashCrcToType
     {
         if !hasInterface(t, itf) do
             continue

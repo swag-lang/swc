@@ -45,7 +45,7 @@ func day3A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    for l, [y] in lines
+    for l, y in lines
     {
         for var x = 0; x < l.length; x += 1
         {
@@ -77,7 +77,7 @@ func day3A()
     var total = 0'u64
     for n in nums
     {
-        for [x] in n.x to n.lx
+        for x in n.x to n.lx
         {
             if hasSymbol(x, n.y - 1) or
                hasSymbol(x, n.y + 1) or

@@ -776,40 +776,11 @@ Entries are sorted by identifier, ascending; position carries no priority.
   cheap guard is a warning when the two appear in one module's public surface, since the cost lands
   on the consumer who cannot see the declarations side by side.
 
-### F-103 — The bracketed `for` binding names a position, not an index
+### F-104 — The index binding has three different integer types depending on what is iterated
 
 - Area: language
-- Found while: the same pass, reading the custom-iteration chapter after the `for` chapters
-- Observation: brackets are introduced as the index spelling — "put a name in brackets to bind the
-  index without binding the element"
-  ([005_003_for_elements.swg:23-27](../bin/reference/modules/language/src/005_003_for_elements.swg#L23-L27)).
-  Over a custom iterator they mean the *second block parameter*, whatever that parameter is. In the
-  reference's own `opVisitPairs`, `for #Pairs left, [right] in windows` binds `right` to the second
-  element of a pair, and the brackets say nothing about indices
-  ([006_008_custom_iteration.swg:216-262](../bin/reference/modules/language/src/006_008_custom_iteration.swg#L216-L262)).
-  A reader who learned the built-in rule reads that line as an index binding and gets a value.
-- Evidence: the two pages, and the fact that `for [i] in myStruct` over a struct whose `opVisit`
-  declares `(item, index)` binds the second parameter, which happens to be called `index` in that
-  example and does not have to be
-  ([006_008_custom_iteration.swg:84-93](../bin/reference/modules/language/src/006_008_custom_iteration.swg#L84-L93)).
-- Elsewhere: no language marks the index with a sigil, so none has this collision. Python, Rust,
-  Swift and JavaScript all destructure a pair with ordinary tuple syntax — `for i, x in
-  enumerate(v)`, `for (i, x) in v.iter().enumerate()` — and the index is present only because
-  something produced it, which makes the second name obviously positional. The one thing they all
-  keep is that the binding form does not claim a role: `(a, b)` says "two things", not "an index and
-  an element".
-- Next step: the honest fix may be naming rather than syntax. A custom visitor already declares its
-  block parameters, and `#inject` binds them by name, so the call site could name them too —
-  `for left, right: ... in windows`, or a named form for the second slot — leaving brackets to mean
-  the index over built-in collections where they are unambiguous. Check first how many `opVisit`
-  variants in `bin/` declare a second parameter that is not an index; if `opVisitPairs` in the
-  reference is the only one, this is a documentation sentence, not a syntax change.
-
-### F-104 — The `[i]` binding has three different integer types depending on what is iterated
-
-- Area: language
-- Found while: the same pass, after F-103
-- Observation: one spelling, three types. Binding the index over a collection gives a `u64`, over a
+- Found while: the same pass, while reviewing index bindings
+- Observation: one role, three types. Binding the index over a collection gives a `u64`, over a
   counted loop a `u32`, and over a range an `s32`. Nothing at the use site distinguishes the three,
   and the difference is exactly the one F-048 turns into arithmetic: an index that is unsigned in
   two of the three forms, next to a `@countof` that is always `u64` and a signed computation that is
@@ -820,13 +791,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   neighbouring loops over the same data:
 
   ```
-  for [index] in values   ->  u64
-  for [index] in 3        ->  u32
-  for [index] in 0 to 2   ->  s32
+  for ?, index in values  ->  u64
+  for index in 3          ->  u32
+  for index in 0 to 2     ->  s32
   ```
 
   The reference already documents the consequence without naming the cause: it warns not to write
-  `for [i] in 0 to count - 1` on an unsigned counter, because `count - 1` wraps when `count` is zero
+  `for i in 0 to count - 1` on an unsigned counter, because `count - 1` wraps when `count` is zero
   and only the overflow guard reports it
   ([005_002_for.swg:161-180](../bin/reference/modules/language/src/005_002_for.swg#L161-L180)).
 - Elsewhere: the question mostly does not arise, because the index is a value someone produced
@@ -840,7 +811,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   only one that cannot overflow on a real collection; `s32` is the one that makes `i - 1` behave.
   The cheapest useful step first: add the three-way result above to the `for` chapter, since a
   reader today has no way to know which one they have without `#typeof`. Then check whether a
-  counted `for [i] in N` could simply take the type of `N`, which would remove one of the three
+  counted `for i in N` could simply take the type of `N`, which would remove one of the three
   without touching the other two.
 
 ## What equality compares

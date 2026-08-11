@@ -11,7 +11,7 @@ func createListsPage(parent: *Wnd)
     simple.updateFlags(.HotTrack)
     simple.setSelectionMode(.Multi)
     simple.setIconSize(16)
-    for [i] in 24 do
+    for i in 24 do
         discard simple.createLine(Format.toString("Inbox item %", i + 1), sampleIcon(i))
     simple.computeLayout()
 
@@ -35,7 +35,7 @@ func createListsPage(parent: *Wnd)
     checks.setSelectionMode(.Multi)
     checks.setIconSize(16)
     addListFlags(checks)
-    for [i] in 14
+    for i in 14
     {
         let line = checks.createLine(Format.toString("pipeline step %", i + 1), sampleIcon(i + 2))
         line.canCheck = true

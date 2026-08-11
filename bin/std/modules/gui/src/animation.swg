@@ -796,7 +796,7 @@ impl Animator
         .duringAdvance = oldDuringAdvance
         if run.cancelRequested
         {
-            for [index] in .animations.count where .animations[index] == run
+            for index in .animations.count where .animations[index] == run
             {
                 .finishAt(index, .Cancelled)
                 break
@@ -804,7 +804,7 @@ impl Animator
         }
         elif done
         {
-            for [index] in .animations.count where .animations[index] == run
+            for index in .animations.count where .animations[index] == run
             {
                 .finishAt(index, .Completed)
                 break
@@ -859,7 +859,7 @@ impl Animator
     {
         if !handle.isValid() do
             return
-        for [index] in .animations.count
+        for index in .animations.count
         {
             if .animations[index]!.id != handle.id do
                 continue

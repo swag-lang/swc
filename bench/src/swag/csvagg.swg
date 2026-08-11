@@ -43,7 +43,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     let text = cast([*] u8) (@alloc(ROWS * 48))!
     var n    = 0'u64
 
-    for [j] in ROWS
+    for j in ROWS
     {
         if j > 0
         {
@@ -61,7 +61,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         n       = writeUInt(text, n, j)
         text[n] = ','
         n += 1
-        for [i] in @countof(region)
+        for i in @countof(region)
         {
             text[n] = region[i]
             n += 1
@@ -177,7 +177,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     var order: [64] u64 = undefined
     var keyIdx: [64] u64 = undefined
     var nk               = 0'u64
-    for [i] in 64'u64
+    for i in 64'u64
     {
         if agg.used[i] != 0
         {
@@ -186,12 +186,12 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         }
     }
 
-    for [i] in nk do
+    for i in nk do
         order[i] = i
-    for [i] in nk
+    for i in nk
     {
         var best = i
-        for [j] in nk
+        for j in nk
         {
             if j <= i do
                 continue
@@ -210,7 +210,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     }
 
     var check = rows
-    for [k] in nk
+    for k in nk
     {
         let slot = agg.val[keyIdx[order[k]]]
         check += (k + 1) * (cast(u64)(slotRev[slot] * 100.0'f64 + 0.5'f64) % 1000003)

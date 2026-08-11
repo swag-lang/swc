@@ -17,9 +17,9 @@ using Swag, Core
     ed.setDefaultMapping()
     @assert(ed.mapping.count == mappingCount)
 
-    for [i] in ed.mapping.count
+    for i in ed.mapping.count
     {
-        for [j] in i + 1 until ed.mapping.count
+        for j in i + 1 until ed.mapping.count
         {
             @assert(ed.mapping[i].key != ed.mapping[j].key or ed.mapping[i].modifiers != ed.mapping[j].modifiers)
         }

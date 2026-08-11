@@ -411,7 +411,7 @@ impl Allocator
 
         .segmentMutex.lock()
 
-        for [i] in AllocatorClassCount
+        for i in AllocatorClassCount
         {
             let cls  = &heap.classes[i]
             var scan = cls.first
@@ -1048,7 +1048,7 @@ impl Allocator
         while segment
         {
             result.countSegment += 1
-            for [i] in segment.pageCount
+            for i in segment.pageCount
             {
                 let page = &segment.pages[i]
                 if page.state == AllocatorPageState.Free do
@@ -1084,7 +1084,7 @@ impl Allocator
         let heap = currentAllocatorThreadHeap()
         if heap and heap.allocator == me
         {
-            for [i] in AllocatorClassCount
+            for i in AllocatorClassCount
             {
                 let cls  = &heap.classes[i]
                 var scan = cls.first
@@ -1174,7 +1174,7 @@ impl Allocator
         while segment
         {
             let next = segment.nextSegment
-            for [i] in segment.pageCount
+            for i in segment.pageCount
             {
                 let page = &segment.pages[i]
                 if page.state != AllocatorPageState.Free

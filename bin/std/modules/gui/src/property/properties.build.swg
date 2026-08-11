@@ -208,7 +208,7 @@ internal impl Properties
             let numItemsBefore = .items.count
 
             var newData = data
-            for [i] in typeArr.count
+            for i in typeArr.count
             {
                 var subValue: Swag.TypeValue
                 subValue.name        = Format.toString("%", i).toString()
@@ -286,7 +286,7 @@ internal impl Properties
         // fields first even though the language forces the base to be declared first.
         var walkOrder: Array'u64
         let tsFields = typeStruct.fields!
-        for [i] in @countof(typeStruct.fields)
+        for i in @countof(typeStruct.fields)
         {
             if !.usingFieldsLast or !tsFields[i].flags.has(.HasUsing) do
                 walkOrder.add(i)
@@ -294,7 +294,7 @@ internal impl Properties
 
         if .usingFieldsLast
         {
-            for [i] in @countof(typeStruct.fields)
+            for i in @countof(typeStruct.fields)
             {
                 if tsFields[i].flags.has(.HasUsing) do
                     walkOrder.add(i)
@@ -334,7 +334,7 @@ internal impl Properties
                 // error, so guard the loop.
                 if common < segs.count
                 {
-                    for [i] in common until segs.count
+                    for i in common until segs.count
                     {
                         let parentForCateg = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
                         let citem          = .addCategoryHeader(segs[i], parentForCateg)

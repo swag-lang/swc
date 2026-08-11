@@ -83,7 +83,7 @@ impl RichEditCtrl
         result.y = line.drawingRect.bottom()
 
         result.x = .leftMargin()
-        for [i] in Math.min(cp.charPosInLine, line.length()) do
+        for i in Math.min(cp.charPosInLine, line.length()) do
             result.x = .advanceRuneX(line, i, result.x)
 
         return result
@@ -222,7 +222,7 @@ impl RichEditCtrl
 
                 if count
                 {
-                    for [j] in count
+                    for j in count
                     {
                         let size = .runeSize(line, j, rect.x)
                         rect.width = size.x

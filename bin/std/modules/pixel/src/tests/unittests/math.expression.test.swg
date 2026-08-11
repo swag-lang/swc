@@ -370,7 +370,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let font = makeMathTestFont(&cache)
     var painter: Painter
     painter.begin()
-    for source, [idx] in PathOnlyExpressions
+    for source, idx in PathOnlyExpressions
     {
         var expression     = expect MathExpression.parse(source)
         let oldVertexCount = painter.vertexBuffer.count

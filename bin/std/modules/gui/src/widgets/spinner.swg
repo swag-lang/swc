@@ -48,7 +48,7 @@ impl IWnd for Spinner
 
         painter.setAntialiased(true)
 
-        for [i] in count
+        for i in count
         {
             // The dot that just passed the head of the cycle is the faintest, so the ring
             // reads as one bright point trailing off behind it.

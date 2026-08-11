@@ -90,9 +90,9 @@ func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaBord
 
     Debug.assert(pixelFormat.hasAlpha())
     var pixel = result.pixels.buffer!
-    for [y] in result.height
+    for y in result.height
     {
-        for [x] in result.width
+        for x in result.width
         {
             let edgeDistance = Math.min(Math.min(x, result.width - x - 1), Math.min(y, result.height - y - 1))
             let borderAlpha  = cast(u8) Math.min(edgeDistance * AlphaFadeStep, 255)
@@ -109,9 +109,9 @@ func paletteVariant(source: const &Image, withAlpha: bool)->Image
     var result      = sourceVariant(source, withAlpha ? .RGBA8 : .RGB8)
     var pixel       = result.pixels.buffer!
     let borderWidth = Math.max(Math.min(result.width, result.height) / 12, 1)
-    for [y] in result.height
+    for y in result.height
     {
-        for [x] in result.width
+        for x in result.width
         {
             pixel[0] = (pixel[0] >> 6) * 85
             pixel[1] = (pixel[1] >> 6) * 85
@@ -278,7 +278,7 @@ func drawScene(painter: *Pixel.Painter)
     painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont!, Argb.MidnightBlue)
     drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont!, Argb.DimGray)
 
-    for [i] in CardsPerPage do
+    for i in CardsPerPage do
         drawCard(painter, getCardRect(i), g_Cards[g_Page][i])
 
     let footer = Format.toString("F1 : next codec (%/%). BMP, TGA, JPEG, PNG, GIF, TIFF, ICO and WebP.", g_Page + 1, PageCount)

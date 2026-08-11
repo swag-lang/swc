@@ -38,7 +38,7 @@ private func truncate32(value: u64)->u64 => value & 0xFFFF_FFFF
 #[Swag.Inline]
 private func store32Le(data: [*] u8, value: u32)
 {
-    for [i] in 4 do
+    for i in 4 do
         data[i] = cast(u8) ((value >> cast(u32) (i * 8)) & 0xFF)
 }
 
@@ -63,7 +63,7 @@ private func mixBlock(block: [*] u64, a, b, c, d: u64)
 private func permute(block: [*] u64, base, stride: u64)
 {
     var index: [16] u64
-    for [i] in 16 do
+    for i in 16 do
         index[i] = base + (i / 2) * stride + (i % 2)
 
     mixBlock(block, index[0], index[4], index[8], index[12])
@@ -83,18 +83,18 @@ private func compress(destination: [*] u64, x, y: const [*] u64, accumulate: boo
 {
     var mixed:  [Argon2Words] u64
     var result: [Argon2Words] u64
-    for [i] in Argon2Words
+    for i in Argon2Words
     {
         mixed[i]  = x[i] ^ y[i]
         result[i] = mixed[i]
     }
 
-    for [i] in 8 do
+    for i in 8 do
         permute(&result[0], i * 16, 2)
-    for [i] in 8 do
+    for i in 8 do
         permute(&result[0], i * 2, 16)
 
-    for [i] in Argon2Words
+    for i in Argon2Words
     {
         let value = result[i] ^ mixed[i]
         destination[i] = accumulate ? destination[i] ^ value : value
@@ -287,9 +287,9 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     var origin: [Hash.Blake2bMaxDigestSize + 8] u8
     defer secureClear(origin)
     @memcpy(&origin[0], &seed[0], Hash.Blake2bMaxDigestSize)
-    for [lane] in lanes
+    for lane in lanes
     {
-        for [slot] in 2
+        for slot in 2
         {
             store32Le(&origin[Hash.Blake2bMaxDigestSize], cast(u32) slot)
             store32Le(&origin[Hash.Blake2bMaxDigestSize + 4], cast(u32) lane)
@@ -304,11 +304,11 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     defer secureClear(input)
     defer secureClear(addresses)
 
-    for [pass] in passes
+    for pass in passes
     {
-        for [slice] in Argon2SyncPoints
+        for slice in Argon2SyncPoints
         {
-            for [lane] in lanes
+            for lane in lanes
             {
                 // Argon2id takes its addresses from a counter for the first half
                 // of the first pass, and from the previous block afterwards.
@@ -333,7 +333,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
                 }
 
                 var previous = lane * laneLength + (slice * segmentLength + start + laneLength - 1) % laneLength
-                for [step] in start until segmentLength
+                for step in start until segmentLength
                 {
                     let index   = slice * segmentLength + step
                     let current = lane * laneLength + index
@@ -366,12 +366,12 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     // The tag folds the last block of every lane together.
     var final: [Argon2Words] u64
     defer secureClear(final)
-    for [i] in Argon2Words do
+    for i in Argon2Words do
         final[i] = blocks[((lanes - 1) * laneLength + laneLength - 1) * Argon2Words + i]
-    for [lane] in lanes - 1
+    for lane in lanes - 1
     {
         let last = (lane * laneLength + laneLength - 1) * Argon2Words
-        for [i] in Argon2Words do
+        for i in Argon2Words do
             final[i] ^= blocks[last + i]
     }
 

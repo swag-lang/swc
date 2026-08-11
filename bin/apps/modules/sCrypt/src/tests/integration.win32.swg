@@ -84,7 +84,7 @@ namespace Integration
     func findFreeMountPoint()->String fail
     {
         let available = WinFsp.availableDriveLetters()
-        for [offset] in 23
+        for offset in 23
         {
             let index = 25'u32 - cast(u32) offset
             if containsDriveLetter(available.toSlice(), cast(rune) ('A' + index)) do
@@ -342,11 +342,11 @@ namespace Integration
         let bulk = Path.combine(documents, "Bulk")
         trace("FS: bulk directory enumeration")
         Directory.create(bulk)
-        for [index] in 24
+        for index in 24
         {
             let name = Path.combine(bulk, Format.toString("item-%.bin", index))
             var bytes: [113] u8
-            for [byteIndex] in #sizeof(bytes) do
+            for byteIndex in #sizeof(bytes) do
                 bytes[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
             discard File.writeAllBytes(name, bytes)
         }

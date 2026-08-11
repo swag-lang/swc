@@ -149,7 +149,7 @@ impl LosslessHuffmanTree
         {
             baseCode = cast(u32) losslessReverseByte(cast(u8) (code & 0xFF)) >> (8 - codeLength)
             let count = 1'u32 << (LOSSLESS_LUT_BITS - codeLength)
-            for [i] in count do
+            for i in count do
                 .lut[baseCode | (i << codeLength)] = (symbol << 8) | (codeLength + 1)
         }
 
@@ -200,7 +200,7 @@ impl LosslessHuffmanTree
         var symbolCount: u32
         var lastSymbol:  u32
         var maxLength:   u32
-        for [symbol] in @countof(codeLengths)
+        for symbol in @countof(codeLengths)
         {
             let length = codeLengths[symbol]
             if length
@@ -239,7 +239,7 @@ impl LosslessHuffmanTree
             length            += 1
         }
 
-        for [symbol] in @countof(codeLengths)
+        for symbol in @countof(codeLengths)
         {
             let length = codeLengths[symbol]
             if !length do
@@ -257,7 +257,7 @@ impl LosslessHuffmanTree
         Memory.clear(cast([*] void) .nodes.buffer!, .nodes.count * #sizeof(LosslessHuffmanNode))
         Memory.clear(&.lut[0], #sizeof(.lut))
 
-        for [i] in symbolCount
+        for i in symbolCount
         {
             if symbols[i] >= alphabetSize do
                 losslessTreeError()
@@ -395,7 +395,7 @@ func losslessDecodeHuffmanTree(reader: *LosslessBitReader, tree: #null *Lossless
         losslessTreeError()
 
     var codeLengthCodeLengths: [@countof(LOSSLESS_CODE_LENGTH_ORDER)] u32
-    for [i] in codeCount do
+    for i in codeCount do
         codeLengthCodeLengths[LOSSLESS_CODE_LENGTH_ORDER[i]] = reader.read(3)
 
     var codeLengths: Array'u32
@@ -503,7 +503,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
         if maxGroupIndex >= 1000 or maxGroupIndex >= tileCount
         {
             mapping.resize(maxGroupIndex + 1)
-            for [i] in mapping.count do
+            for i in mapping.count do
                 mapping[i] = -1
 
             groupCount = 0
@@ -530,7 +530,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
 
     groups.resize(groupCount)
     let groupData = groups.buffer!
-    for [realIndex] in maxGroupIndex + 1
+    for realIndex in maxGroupIndex + 1
     {
         var group: #null *LosslessHuffmanGroup
         if mapping.count == 0 do
@@ -538,7 +538,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
         elif mapping[realIndex] != -1 do
             group = groupData + mapping[realIndex]
 
-        for [treeIndex] in LOSSLESS_HUFFMAN_TREES
+        for treeIndex in LOSSLESS_HUFFMAN_TREES
         {
             var alphabetSize = LOSSLESS_ALPHABET_SIZES[treeIndex]
             if treeIndex == LOSSLESS_HUFF_GREEN and colorCacheBits do
@@ -765,46 +765,46 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
                 losslessAddAt(pixels, offset + 3, 0xFF)
 
             case 1:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, data[offset + channel - 4])
 
             case 2:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, data[top + channel])
 
             case 3:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, data[top + channel + 4])
 
             case 4:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, data[top + channel - 4])
 
             case 5:
-                for [channel] in 4
+                for channel in 4
                 {
                     let prediction = losslessAverage(losslessAverage(data[offset + channel - 4], data[top + channel + 4]), data[top + channel])
                     losslessAddAt(pixels, offset + channel, prediction)
                 }
 
             case 6:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, losslessAverage(data[offset + channel - 4], data[top + channel - 4]))
 
             case 7:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, losslessAverage(data[offset + channel - 4], data[top + channel]))
 
             case 8:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, losslessAverage(data[top + channel - 4], data[top + channel]))
 
             case 9:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, losslessAverage(data[top + channel], data[top + channel + 4]))
 
             case 10:
-                for [channel] in 4
+                for channel in 4
                 {
                     let leftAverage = losslessAverage(data[offset + channel - 4], data[top + channel - 4])
                     let topAverage  = losslessAverage(data[top + channel], data[top + channel + 4])
@@ -842,11 +842,11 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
                 }
 
             case 12:
-                for [channel] in 4 do
+                for channel in 4 do
                     losslessAddAt(pixels, offset + channel, losslessClampAddSubtractFull(data[offset + channel - 4], data[top + channel], data[top + channel - 4]))
 
             case 13:
-                for [channel] in 4
+                for channel in 4
                 {
                     let average = losslessAverage(data[offset + channel - 4], data[top + channel])
                     losslessAddAt(pixels, offset + channel, losslessClampAddSubtractHalf(average, data[top + channel - 4]))
@@ -872,10 +872,10 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array'u8,
     let tilesPerRow = losslessTileCount(transform.oldWidth, transform.bits)
     let data        = cast([*] u8) pixels.buffer!
 
-    for [y] in height
+    for y in height
     {
         var transformOffset = cast(u64) (4 * (y >> transform.bits) * tilesPerRow)
-        for [x] in transform.oldWidth
+        for x in transform.oldWidth
         {
             if (x & mask) == 0
             {
@@ -952,7 +952,7 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array'
     var packedValue:       u32
     for height
     {
-        for [x] in transform.oldWidth
+        for x in transform.oldWidth
         {
             if (x & xMask) == 0
             {

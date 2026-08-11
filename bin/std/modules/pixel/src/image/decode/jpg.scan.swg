@@ -20,7 +20,7 @@ impl Decoder
         {
             var blockMcuOfsX = 0
             var blockMcuOfsY = 0
-            for [mcuBlock] in .blocksPerMcu
+            for mcuBlock in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
 
@@ -71,7 +71,7 @@ impl Decoder
             .blockMcuY[.compList[0]] += 1
         else
         {
-            for [componentNum] in .compsInScan
+            for componentNum in .compsInScan
             {
                 let componentId = .compList[componentNum]
                 .blockMcuY[componentId] += .compSampV[componentId]
@@ -146,7 +146,7 @@ impl Decoder
             if .restartInterval and (.restartsLeft == 0) do
                 .restartProcess()
 
-            for [mcuBlock] in .blocksPerMcu
+            for mcuBlock in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
                 var p           = .blockSeg[rowBlock]!
@@ -324,7 +324,7 @@ impl Decoder
                             (!.hasAdobeMarker and !.hasJfifMarker and .compIdent[0] == 'R' and .compIdent[1] == 'G' and .compIdent[2] == 'B')
             if directRgb
             {
-                for [i] in 3
+                for i in 3
                 {
                     if .compSampH[i] != 1 or .compSampV[i] != 1 do
                         fail UnsupportedFormatError{"JPEG direct RGB only supports 1x1 component sampling"}
@@ -399,7 +399,7 @@ impl Decoder
             fail InvalidFormatError{"assertion error"}
 
         .quantBuf.resize(cast(u64) .maxBlocksPerRow * 64 * #sizeof(s16) + 8)
-        for [i] in .maxBlocksPerRow
+        for i in .maxBlocksPerRow
         {
             .blockSeg[i]       = cast([*] s16) (cast([*] u8) .quantBuf.buffer! + i * 64 * #sizeof(s16))
             .blockMaxZagSet[i] = 64
@@ -421,7 +421,7 @@ impl Decoder
         fix[2] = cast(s32) -((0.71414 / 2) * (1 << 16) + 0.5)
         fix[3] = cast(s32) -((0.34414 / 2) * (1 << 16) + 0.5)
 
-        for [i] in 256
+        for i in 256
         {
             let k = cast(s32) i * 2 - 256
             .crr[i] = (fix[0] * k + (1 << (16 - 1))) >> 16
@@ -479,7 +479,7 @@ impl Decoder
 
     mtd checkQuantTables() fail
     {
-        for [i] in .compsInScan
+        for i in .compsInScan
         {
             if .quant[.compQuant[.compList[i]]].isEmpty() do
                 fail InvalidFormatError{"undefined quant table"}
@@ -493,7 +493,7 @@ impl Decoder
 
         var p          = 0
         let huffNumBuf = .huffNum[idx].buffer!
-        for [l] in 1 to 16
+        for l in 1 to 16
         {
             for var i = 1; i <= huffNumBuf[l]; i += 1
             {
@@ -582,7 +582,7 @@ impl Decoder
 
     mtd checkHuffTables() fail
     {
-        for [i] in .compsInScan
+        for i in .compsInScan
         {
             if (.spectralStart == 0) and (.huffNum[.compDcTab[.compList[i]]].isEmpty()) do
                 fail InvalidFormatError{"undefined huff table"}
@@ -591,7 +591,7 @@ impl Decoder
                 fail InvalidFormatError{"undefined huff table"}
         }
 
-        for [i] in MaxHuffTables
+        for i in MaxHuffTables
         {
             if .huffNum[i].count
             {
@@ -599,7 +599,7 @@ impl Decoder
             }
         }
 
-        for [i] in .blocksPerMcu
+        for i in .blocksPerMcu
         {
             .dcHuffSeg[i] = &.h[.compDcTab[.mcuOrg[i]]]
             .acHuffSeg[i] = &.h[.compAcTab[.mcuOrg[i]]]
@@ -612,13 +612,13 @@ impl Decoder
         var maxSampH = 1
         var maxSampV = 1
 
-        for [cid] in .compsInFrame
+        for cid in .compsInFrame
         {
             maxSampH = Math.max(maxSampH, .compSampH[cid])
             maxSampV = Math.max(maxSampV, .compSampV[cid])
         }
 
-        for [cid] in .compsInFrame
+        for cid in .compsInFrame
         {
             .compBlocksH[cid] = ((((.imageSizeX * .compSampH[cid]) + (maxSampH - 1)) / maxSampH) + 7) / 8
             .compBlocksV[cid] = ((((.imageSizeY * .compSampV[cid]) + (maxSampV - 1)) / maxSampV) + 7) / 8
@@ -643,7 +643,7 @@ impl Decoder
         else
         {
             .blocksPerMcu = 0
-            for [cNum] in .compsInScan
+            for cNum in .compsInScan
             {
                 let cid        = .compList[cNum]
                 var num_blocks = .compSampH[cid] * .compSampV[cid]

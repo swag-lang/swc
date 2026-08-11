@@ -146,7 +146,7 @@ private impl FocusOrder
     // Returns the position of `wnd` in the ring, or `-1` when it is not a stop of it.
     mtd const rank(wnd: #null *Wnd)->s64
     {
-        for stop, [index] in .stops where stop == wnd do
+        for stop, index in .stops where stop == wnd do
             return cast(s64) index
         return -1
     }
@@ -191,7 +191,7 @@ private impl FocusOrder
         var result: retval
 
         var candidates: Array'FocusCandidate
-        for child, [index] in wnd.children do
+        for child, index in wnd.children do
             candidates.add({child, index})
 
         // Top to bottom first, so the rows come out in the order they are stacked. This also

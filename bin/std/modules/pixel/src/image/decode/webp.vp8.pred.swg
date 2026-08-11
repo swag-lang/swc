@@ -54,13 +54,13 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
     case VP8_PRED_DC:
         var sum   = 4 + b + c + d + e + p + q + r + s
         let value = cast(u8) (sum / 8)
-        for [j] in 4 do
-            for [i] in 4 do
+        for j in 4 do
+            for i in 4 do
                 decoder.ybr[y + j][x + i] = value
 
     case VP8_PRED_TM:
-        for [j] in 4 do
-            for [i] in 4 do
+        for j in 4 do
+            for i in 4 do
                 decoder.ybr[y + j][x + i] = cast(u8) vp8Clip(cast(s32) decoder.ybr[y + j][x - 1] + decoder.ybr[y - 1][x + i] - a, 0, 255)
 
     case VP8_PRED_VE:
@@ -68,7 +68,7 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
         let bcd = vp8Average3(b, c, d)
         let cde = vp8Average3(c, d, e)
         let def = vp8Average3(d, e, f)
-        for [j] in 4
+        for j in 4
         {
             decoder.ybr[y + j][x + 0] = abc
             decoder.ybr[y + j][x + 1] = bcd
@@ -81,7 +81,7 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
         let pqr = vp8Average3(p, q, r)
         let qrs = vp8Average3(q, r, s)
         let rss = vp8Average3(r, s, s)
-        for [i] in 4
+        for i in 4
         {
             decoder.ybr[y + 0][x + i] = apq
             decoder.ybr[y + 1][x + i] = pqr
@@ -242,7 +242,7 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
         decoder.ybr[y + 2][x + 1] = rss
         decoder.ybr[y + 2][x + 2] = cast(u8) s
         decoder.ybr[y + 2][x + 3] = cast(u8) s
-        for [i] in 4 do
+        for i in 4 do
             decoder.ybr[y + 3][x + i] = cast(u8) s
     }
 }
@@ -253,52 +253,52 @@ func vp8PredictLarge(decoder: *Vp8Decoder, y, x, size: s32, predictor: u8)
     {
     case VP8_PRED_DC:
         var sum = size
-        for [i] in size do
+        for i in size do
             sum += decoder.ybr[y - 1][x + i]
-        for [i] in size do
+        for i in size do
             sum += decoder.ybr[y + i][x - 1]
         let value = cast(u8) (sum / (2 * size))
-        for [j] in size do
-            for [i] in size do
+        for j in size do
+            for i in size do
                 decoder.ybr[y + j][x + i] = value
 
     case VP8_PRED_TM:
         let corner = cast(s32) decoder.ybr[y - 1][x - 1]
-        for [j] in size do
-            for [i] in size do
+        for j in size do
+            for i in size do
                 decoder.ybr[y + j][x + i] = cast(u8) vp8Clip(cast(s32) decoder.ybr[y + j][x - 1] + decoder.ybr[y - 1][x + i] - corner, 0, 255)
 
     case VP8_PRED_VE:
-        for [j] in size do
-            for [i] in size do
+        for j in size do
+            for i in size do
                 decoder.ybr[y + j][x + i] = decoder.ybr[y - 1][x + i]
 
     case VP8_PRED_HE:
-        for [j] in size do
-            for [i] in size do
+        for j in size do
+            for i in size do
                 decoder.ybr[y + j][x + i] = decoder.ybr[y + j][x - 1]
 
     case VP8_PRED_DC_TOP:
         var sum = size / 2
-        for [i] in size do
+        for i in size do
             sum += decoder.ybr[y + i][x - 1]
         let value = cast(u8) (sum / size)
-        for [j] in size do
-            for [i] in size do
+        for j in size do
+            for i in size do
                 decoder.ybr[y + j][x + i] = value
 
     case VP8_PRED_DC_LEFT:
         var sum = size / 2
-        for [i] in size do
+        for i in size do
             sum += decoder.ybr[y - 1][x + i]
         let value = cast(u8) (sum / size)
-        for [j] in size do
-            for [i] in size do
+        for j in size do
+            for i in size do
                 decoder.ybr[y + j][x + i] = value
 
     case VP8_PRED_DC_NONE:
-        for [j] in size do
-            for [i] in size do
+        for j in size do
+            for i in size do
                 decoder.ybr[y + j][x + i] = 0x80
     }
 }
@@ -319,7 +319,7 @@ func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
         predictor = VP8_PRED_TM
     }
 
-    for [i] in 4
+    for i in 4
     {
         decoder.upMb[mbX].predictor[i] = predictor
         decoder.leftMb.predictor[i]    = predictor
@@ -342,10 +342,10 @@ func vp8ParsePredC8(decoder: *Vp8Decoder)
 
 func vp8ParsePredY4(decoder: *Vp8Decoder, mbX: s32)
 {
-    for [j] in 4
+    for j in 4
     {
         var predictor = decoder.leftMb.predictor[j]
-        for [i] in 4
+        for i in 4
         {
             let probability = cast(u64) (decoder.upMb[mbX].predictor[i] * 10 + predictor) * 9
             if !decoder.firstPart.readBit(VP8_PRED_PROB[probability + 0]) do

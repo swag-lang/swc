@@ -375,7 +375,7 @@ private func parseDashPattern(value: string)->Array'SvgLength
     if result.count & 1
     {
         let count = result.count
-        for [i] in count do
+        for i in count do
             result.add(result[i])
     }
 
@@ -669,7 +669,7 @@ private func appendArc(path: *LinePath, x0, y0: f32, rxIn, ryIn: f32, largeArc, 
     let k        = 4.0 / 3.0 * Math.tan(segAngle * 0.25)
 
     var angle = startAngle
-    for [i] in segCount
+    for i in segCount
     {
         let a0  = angle
         let a1  = angle + segAngle
@@ -974,13 +974,13 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
 
         var depth: Array's32
         depth.resize(n)
-        for [i] in n
+        for i in n
         {
             let pi = work.paths[i]
             if pi.polygon.points.count == 0 do
                 continue
             let probe = pi.polygon.points[0]
-            for [j] in n where j != i
+            for j in n where j != i
             {
                 if work.paths[j].polygon.contains(probe) do
                     depth[i] += 1
@@ -988,12 +988,12 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
         }
 
         var roots = 0
-        for [i] in n where depth[i] % 2 == 0 do
+        for i in n where depth[i] % 2 == 0 do
             roots += 1
 
         if roots > 1
         {
-            for [i] in n
+            for i in n
             {
                 if depth[i] % 2 != 0 do
                     continue
@@ -1003,7 +1003,7 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
                 let rootPoly = &work.paths[i].polygon
 
                 // Attach this root's immediate holes.
-                for [j] in n
+                for j in n
                 {
                     if depth[j] != depth[i] + 1 do
                         continue
@@ -1194,7 +1194,7 @@ private impl Parser
         // Apply increasing selector specificity, preserving source order within
         // each class. This deliberately supports the compact selectors common in
         // standalone artwork without pretending to be a complete CSS engine.
-        for [specificity] in 3
+        for specificity in 3
         {
             for &rule in .styles
             {
@@ -1328,14 +1328,14 @@ private impl Parser
             return
 
         var actualLength: f32
-        for [i] in count
+        for i in count
         {
             let shape = &.drawing.shapes[first + i]
             shape.pathList.flatten(.Normal)
             for path in shape.pathList.paths
             {
                 let pointCount = path.polygon.points.count
-                for [j] in 1 until pointCount do
+                for j in 1 until pointCount do
                     actualLength += path.polygon.points[j - 1].distanceTo(path.polygon.points[j])
                 if path.isClosed and pointCount > 1 do
                     actualLength += path.polygon.points[pointCount - 1].distanceTo(path.polygon.points[0])
@@ -1345,7 +1345,7 @@ private impl Parser
         if actualLength <= 0 do
             return
         let scale = actualLength / (authoredLength * Math.abs(geometryScale))
-        for [i] in count
+        for i in count
         {
             let shape = &.drawing.shapes[first + i]
             for &value in shape.strokePattern do
@@ -1847,7 +1847,7 @@ private impl Parser
     // Appends transformed copies of a definition's shapes.
     mtd instantiate(first, count: u64, state: *GroupState, offX, offY: f32)
     {
-        for [i] in count
+        for i in count
         {
             // Build the transformed copy fully before appending: appending can
             // reallocate the array and invalidate the source borrow.

@@ -38,7 +38,7 @@ impl LinePathList
     // Deep-copies every owned path after copying the list.
     mtd opPostCopy()
     {
-        for p, [i] in .paths
+        for p, i in .paths
         {
             var ptr = Memory.new'LinePath()
             dref ptr  = dref p
@@ -98,7 +98,7 @@ impl LinePathList
         if Math.isZeroEpsilon(value) do
             return
 
-        for p, [i] in .paths
+        for p, i in .paths
         {
             let v = p.polygon.isClockwise ? value : -value
             p.polygon.offset(v)

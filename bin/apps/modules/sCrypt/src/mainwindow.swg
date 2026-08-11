@@ -826,7 +826,7 @@ impl MainWindow
     {
         if .language.isEmpty() do
             return 0
-        for &one, [index] in Gui.languages() where one.tag == .language do
+        for &one, index in Gui.languages() where one.tag == .language do
             return cast(u32) index + 1
         return 0
     }
@@ -1092,7 +1092,7 @@ impl MainWindow
     // Selects `mountPoint` when that letter is still available.
     mtd selectMountPoint(mountPoint: string)->bool
     {
-        for item, [index] in .drive.items where item!.name.raw == mountPoint
+        for item, index in .drive.items where item!.name.raw == mountPoint
         {
             .drive.setSelectedIndex(cast(u32) index, notify: false)
             return true
@@ -1727,7 +1727,7 @@ impl MainWindow
     // Returns the startup entry for `path`, or `Swag.U64.Max` when there is none.
     mtd startupIndex(path: string)->u64
     {
-        for &one, [index] in .startupVaults where one.path == path do
+        for &one, index in .startupVaults where one.path == path do
             return index
         return Swag.U64.Max
     }
@@ -1738,7 +1738,7 @@ impl MainWindow
     // start, not what it happens to be showing now.
     mtd applyStartupMarks()
     {
-        for &one, [index] in .mountedDrives.drives
+        for &one, index in .mountedDrives.drives
         {
             let checked = .mountedDrives.list.isLineChecked(cast(u32) index)
             if checked == one.atStartup do

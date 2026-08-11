@@ -295,7 +295,7 @@ func linearSecond()->AnimationOptions
 
     // A bounce lands and rebounds without ever passing its endpoint.
     var bounce = AnimationEasing.EaseOutBounce
-    for [step] in 21
+    for step in 21
     {
         let value = bounce.evaluate(cast(f32) step / 20)
         @assert(value >= 0 and value <= 1.001)

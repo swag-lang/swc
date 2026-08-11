@@ -553,7 +553,7 @@ impl Undo
         case .MoveToFront:
             capture.hotForm = Swag.U64.Max
             var dstIdx = capture.forms.count - 1
-            for #reverse [i] in @countof(.selection)
+            for #reverse i in @countof(.selection)
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx -= 1
@@ -562,7 +562,7 @@ impl Undo
         case .MoveToBack:
             capture.hotForm = Swag.U64.Max
             var dstIdx = 0'u64
-            for [i] in @countof(.selection)
+            for i in @countof(.selection)
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx += 1
@@ -570,7 +570,7 @@ impl Undo
 
         case .MoveForward:
             capture.hotForm = Swag.U64.Max
-            for #reverse [i] in @countof(.selection)
+            for #reverse i in @countof(.selection)
             {
                 let srcIdx = .selection[i]
                 if srcIdx != capture.forms.count - 1 do
@@ -579,7 +579,7 @@ impl Undo
 
         case .MoveBackward:
             capture.hotForm = Swag.U64.Max
-            for [i] in @countof(.selection)
+            for i in @countof(.selection)
             {
                 let srcIdx = .selection[i]
                 if srcIdx != 0 do

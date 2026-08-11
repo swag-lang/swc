@@ -36,7 +36,7 @@ func writeTgaPixel(result: *ConcatBuffer, src: const [*] u8, pixelFormat: PixelF
 
 func sameTgaPixel(left, right: const [*] u8, bytesPerPixel: u64)->bool
 {
-    for [i] in bytesPerPixel
+    for i in bytesPerPixel
     {
         if left[i] != right[i] do
             return false
@@ -88,7 +88,7 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
 
         let rawCount = index - rawStart
         result.addNative(cast(u8) (rawCount - 1))
-        for [i] in rawCount do
+        for i in rawCount do
             writeTgaPixel(result, src + (rawStart + i) * bytesPerPixel, image.pixelFormat)
     }
 }
@@ -137,7 +137,7 @@ internal impl IImageEncoder for Encoder
             return
         }
 
-        for [i] in pixelCount do
+        for i in pixelCount do
             writeTgaPixel(result, src + i * bytesPerPixel, image.pixelFormat)
     }
 }

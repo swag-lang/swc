@@ -14,7 +14,7 @@
     func constantEmpty()->s32
     {
         var acc: s32 = 0
-        for [i] in 0 until 0 do
+        for i in 0 until 0 do
             acc += i + 1
         return acc
     }
@@ -29,7 +29,7 @@
     func constantEmptyNonZeroBound()->s32
     {
         var acc: s32 = 0
-        for [i] in 5 until 5 do
+        for i in 5 until 5 do
             acc += i + 1
         return acc
     }
@@ -44,7 +44,7 @@
     func constantEmptyNegativeBound()->s32
     {
         var acc: s32 = 0
-        for [i] in -3 until -3 do
+        for i in -3 until -3 do
             acc += i
         return acc
     }
@@ -60,7 +60,7 @@
     func constantInclusiveSingle()->s32
     {
         var acc: s32 = 0
-        for [i] in 5 to 5 do
+        for i in 5 to 5 do
             acc += i
         return acc
     }
@@ -71,13 +71,13 @@
 }
 
 //
-// Dynamic bounds: the emblematic 'for [i] in 0 until count' idiom on an empty collection
+// Dynamic bounds: the emblematic 'for i in 0 until count' idiom on an empty collection
 //
 
 func loopUntil(low, high: s32)->s32
 {
     var acc: s32 = 0
-    for [i] in low until high do
+    for i in low until high do
         acc += i + 1
     return acc
 }
@@ -98,7 +98,7 @@ func loopUntil(low, high: s32)->s32
 func loopUntilUnsigned(low, high: u32)->u32
 {
     var acc = 0'u32
-    for [i] in low until high do
+    for i in low until high do
         acc += i + 1
     return acc
 }
@@ -116,7 +116,7 @@ func loopUntilUnsigned(low, high: u32)->u32
 func countElements(values: const [..] s32)->s32
 {
     var acc: s32 = 0
-    for [i] in 0 until cast(s32) @countof(values) do
+    for i in 0 until cast(s32) @countof(values) do
         acc += values[i]
     return acc
 }
@@ -138,7 +138,7 @@ func countElements(values: const [..] s32)->s32
 func reverseLoopUntil(low, high: s32)->s32
 {
     var acc: s32 = 0
-    for #reverse [i] in low until high do
+    for #reverse i in low until high do
         acc += i + 1
     return acc
 }
@@ -158,7 +158,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func constantReverseEmpty()->s32
     {
         var acc: s32 = 0
-        for #reverse [i] in 2 until 2 do
+        for #reverse i in 2 until 2 do
             acc += i + 1
         return acc
     }
@@ -177,7 +177,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func emptyWithWhereFilter(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in low until high where i % 2 == 0 do
+        for i in low until high where i % 2 == 0 do
             acc += i + 1
         return acc
     }
@@ -192,10 +192,10 @@ func reverseLoopUntil(low, high: s32)->s32
     func emptyInnerLoop(inner: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in 0 until 3
+        for i in 0 until 3
         {
             defer acc += 1
-            for [j] in 0 until inner do
+            for j in 0 until inner do
                 acc += 10
         }
 
@@ -217,7 +217,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func invertedExclusive(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in low until high do
+        for i in low until high do
             acc += i + 1
         return acc
     }
@@ -234,7 +234,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func invertedInclusive(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in low to high do
+        for i in low to high do
             acc += i + 1
         return acc
     }
@@ -251,7 +251,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func invertedUnguarded(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in low to high do
+        for i in low to high do
             acc += i + 1
         return acc
     }
@@ -267,7 +267,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func sumUpToLast(count: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in 0 to count - 1 do
+        for i in 0 to count - 1 do
             acc += i + 1
         return acc
     }
@@ -283,7 +283,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func invertedReverse(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for #reverse [i] in low to high do
+        for #reverse i in low to high do
             acc += i + 1
         return acc
     }

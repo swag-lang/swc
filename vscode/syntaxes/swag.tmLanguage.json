@@ -5,6 +5,7 @@
     { "include": "#one-line-comment" },
     { "include": "#multi-line-comment" },
     { "include": "#destructuring-pattern" },
+    { "include": "#ignored-loop-binding" },
     { "include": "#attributes" },
     { "include": "#compiler-functions" },
     { "include": "#compiler-global" },
@@ -48,6 +49,10 @@
     { "include": "#code" }
   ],
   "repository": {
+    "ignored-loop-binding": {
+      "name": "constant.language.ignore",
+      "match": "\\?(?=\\s*,\\s*[A-Za-z_]\\w*\\s+\\bin\\b)"
+    },
     "destructuring-pattern": {
       "name": "meta.destructuring.swag",
       "begin": "(?:(\\b(?:let|var|const)\\b)\\s*)?(\\{)(?=[^}]*\\}\\s*=)",

@@ -135,7 +135,7 @@ impl Node
                 failWith("A block run falls outside the container.", .Corrupted)
 
             result.blocks.reserve(result.blocks.count + count)
-            for [i] in count do
+            for i in count do
                 result.blocks.add({logical + i, physical + i})
             mapped += count
         }

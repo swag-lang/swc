@@ -74,7 +74,7 @@ public impl Poly1305
         .r[4] = (t3 >> 8) & 0x00F_FFFF
 
         // The second half is added once, at finalization.
-        for [i] in 4 do
+        for i in 4 do
             .pad[i] = load32Le(@dataof(key) + Poly1305BlockSize + i * 4)
         .initialized = true
     }
@@ -118,7 +118,7 @@ public impl Poly1305
         var h     = .accumulator
         var carry = h[1] >> 26
         h[1] &= LimbMask
-        for [i] in 2 to 4
+        for i in 2 to 4
         {
             h[i]  += carry
             carry = h[i] >> 26
@@ -136,7 +136,7 @@ public impl Poly1305
         g[0]  = h[0] + 5
         carry = g[0] >> 26
         g[0]  &= LimbMask
-        for [i] in 1 to 3
+        for i in 1 to 3
         {
             g[i]  = h[i] + carry
             carry = g[i] >> 26
@@ -148,7 +148,7 @@ public impl Poly1305
         let borrowed = (g[4] >> 63) & 1
         let keepG    = borrowed - 1
         let keepH    = ~keepG
-        for [i] in 5 do
+        for i in 5 do
             h[i] = (h[i] & keepH) | (g[i] & keepG)
 
         var packed: [4] u64
@@ -159,10 +159,10 @@ public impl Poly1305
 
         var result: retval
         var sum = 0'u64
-        for [i] in 4
+        for i in 4
         {
             sum = packed[i] + .pad[i] + (sum >> 32)
-            for [b] in 4 do
+            for b in 4 do
                 result[i * 4 + b] = cast(u8) ((sum >> cast(u32) (b * 8)) & 0xFF)
         }
 
@@ -217,7 +217,7 @@ public impl Poly1305
         // Reducing modulo 2^130 - 5 folds the overflow back with a factor of
         // five, so the wrapped limbs are scaled instead of discarded.
         var scaled: [5] u64
-        for [i] in 1 to 4 do
+        for i in 1 to 4 do
             scaled[i] = .r[i] * 5
 
         var d: [5] u64
@@ -228,7 +228,7 @@ public impl Poly1305
         d[4] = h[0] * .r[4] + h[1] * .r[3] + h[2] * .r[2] + h[3] * .r[1] + h[4] * .r[0]
 
         var carry = 0'u64
-        for [i] in 5
+        for i in 5
         {
             d[i]            += carry
             carry           = d[i] >> 26

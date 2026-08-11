@@ -32,8 +32,8 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
     let golden = expect Image.load(getTestDataPath(goldenName))
     @assert(golden.width == width)
     @assert(golden.height == height)
-    for [y] in height do
-        for [x] in width
+    for y in height do
+        for x in width
         {
             let got  = decoded.pixelColor(x, y)
             let want = golden.pixelColor(x, y)
@@ -58,9 +58,9 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     @assert(golden.width == 2 * halfWidth)
     @assert(golden.height == height + halfHeight + (withAlpha ? height : 0))
 
-    for [y] in height
+    for y in height
     {
-        for [x] in width
+        for x in width
         {
             let sourceY   = height - y - 1
             let luma      = cast(s32) golden.pixelColor(x, sourceY).r
@@ -95,8 +95,8 @@ func assertEncodedWebpRoundtrip(source: Image)
     @assert(decoded.width == source.width)
     @assert(decoded.height == source.height)
     @assert(decoded.pixelFormat == .RGBA8)
-    for [y] in source.height do
-        for [x] in source.width
+    for y in source.height do
+        for x in source.width
         {
             let got  = decoded.pixelColor(x, y)
             let want = source.pixelColor(x, y)

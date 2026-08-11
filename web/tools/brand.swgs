@@ -152,7 +152,7 @@ func buildMark(scale, originX, originY: f32)->LinePath
     var pen    = MarkPen{&result, scale, originX, originY}
 
     let count = @countof(corners)
-    for &corner, [index] in corners do
+    for &corner, index in corners do
         pen.open(corner, corners[(index + count - 1) % count], corners[(index + 1) % count])
 
     result.close()

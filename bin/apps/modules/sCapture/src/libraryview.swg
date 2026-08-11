@@ -83,7 +83,7 @@ impl IWnd for LibraryView
 
         // Hit test
         var ht = Swag.U32.Max
-        for it, [idx] in .items
+        for it, idx in .items
         {
             if it.rect.contains(pos)
             {
@@ -222,7 +222,7 @@ impl IWnd for LibraryView
         }
 
         let spos = .scrollWnd.scrollPosition()
-        for it, [i] in .items
+        for it, i in .items
         {
             it.visible = true
             if y + h < spos.y do
@@ -479,7 +479,7 @@ impl LibraryView
     {
         var selectedFiles: Array'String
         var focusedFile:   String
-        for item, [i] in .items
+        for item, i in .items
         {
             if .selModel.isSelected(cast() i) do
                 selectedFiles.add(item.fi.fullname)
@@ -575,7 +575,7 @@ impl LibraryView
 
         .selModel.clear()
         .focusItem = Swag.U32.Max
-        for item, [i] in .items
+        for item, i in .items
         {
             if selectedFiles.contains(item.fi.fullname) do
                 .selModel.select(cast() i)
@@ -723,7 +723,7 @@ impl LibraryView
             }
         }
 
-        for it, [i] in nitems do
+        for it, i in nitems do
             .items[i] = it
     }
 
@@ -788,7 +788,7 @@ impl LibraryView
 
         var selectedFiles: Array'String
         var focusedFile:   String
-        for item, [i] in .items
+        for item, i in .items
         {
             if .selModel.isSelected(cast() i) do
                 selectedFiles.add(item.fi.fullname)
@@ -806,7 +806,7 @@ impl LibraryView
 
         .selModel.clear()
         .focusItem = Swag.U32.Max
-        for item, [i] in .items
+        for item, i in .items
         {
             if selectedFiles.contains(item.fi.fullname) do
                 .selModel.select(cast() i)

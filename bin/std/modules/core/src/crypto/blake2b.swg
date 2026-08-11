@@ -42,7 +42,7 @@ private func load64(data: const [*] u8)->u64
 #[Swag.Inline]
 private func store64(data: [*] u8, value: u64)
 {
-    for [i] in 8 do
+    for i in 8 do
         data[i] = cast(u8) ((value >> cast(u32) (i * 8)) & 0xFF)
 }
 
@@ -165,7 +165,7 @@ public impl Blake2b
         .compress(true)
 
         var words: [Blake2bMaxDigestSize] u8
-        for [i] in 8 do
+        for i in 8 do
             store64(&words[i * 8], .state[i])
         @memcpy(@dataof(destination), &words[0], .digestSize)
         Crypto.secureClear(words)
@@ -216,11 +216,11 @@ public impl Blake2b
             .counterHigh += 1
 
         var m: [16] u64
-        for [i] in 16 do
+        for i in 16 do
             m[i] = load64(&.buffer[i * 8])
 
         var v: [16] u64
-        for [i] in 8
+        for i in 8
         {
             v[i]     = .state[i]
             v[8 + i] = Iv[i]
@@ -231,7 +231,7 @@ public impl Blake2b
         if last do
             v[14] ^= 0xFFFF_FFFF_FFFF_FFFF
 
-        for [round] in 12
+        for round in 12
         {
             let s = round * 16
             mix(&v, 0, 4, 8, 12, m[Sigma[s + 0]], m[Sigma[s + 1]])
@@ -244,7 +244,7 @@ public impl Blake2b
             mix(&v, 3, 4, 9, 14, m[Sigma[s + 14]], m[Sigma[s + 15]])
         }
 
-        for [i] in 8 do
+        for i in 8 do
             .state[i] ^= v[i] ^ v[8 + i]
 
         Crypto.secureClear(m)

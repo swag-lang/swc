@@ -104,7 +104,7 @@ func packLiteralTiffLzw(data: const [..] u8)->Array'u8
     var nextCode = 258'u32
     writer.write(256, width)
 
-    for [i] in @countof(data)
+    for i in @countof(data)
     {
         writer.write(@dataof(data)[i], width)
         if i
@@ -184,7 +184,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
 
     var stripOffs: Array'u32
     var acc = dataStart
-    for [i] in numStrips
+    for i in numStrips
     {
         stripOffs.add(acc)
         acc += stripLens[i]
@@ -226,9 +226,9 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     // External arrays
     if stripArraysExternal
     {
-        for [i] in numStrips do
+        for i in numStrips do
             tw32(&cb, le, stripOffs[i])
-        for [i] in numStrips do
+        for i in numStrips do
             tw32(&cb, le, stripLens[i])
     }
 
@@ -241,7 +241,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if hasPalette
     {
         let pal = palette!
-        for [i] in palCount do
+        for i in palCount do
             tw16(&cb, le, pal[i])
     }
 
@@ -558,7 +558,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 6, 1, 1, 1, 5, 1, 8, nnBytes(writer.bytes.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    for [i] in img.pixels.count do
+    for i in img.pixels.count do
         @assert(img.pixels.buffer![i] == 65'u8)
 }
 
@@ -573,9 +573,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf    = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)
     let img    = expect decodeTiff(nnBytes(buf.toSlice()))
     let pixels = img.pixels.buffer!
-    for [y] in 64
+    for y in 64
     {
-        for [x] in 64
+        for x in 64
         {
             let expected = raw[cast(u64) (63 - y) * 64 + x]
             let offset   = cast(u64) (y * 64 + x) * 3
@@ -715,9 +715,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var src    = Image.create(32, 3, .RGBA8)
     let srcBuf = src.pixels.buffer!
-    for [y] in src.height
+    for y in src.height
     {
-        for [x] in src.width
+        for x in src.width
         {
             let offset = cast(u64) (y * src.width + x) * 4
             srcBuf[offset]     = cast(u8) (10 + y)
@@ -746,7 +746,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var src    = Image.create(5, 1, .BGR8)
     let srcBuf = src.pixels.buffer!
-    for [x] in src.width
+    for x in src.width
     {
         let offset = cast(u64) x * 3
         srcBuf[offset]     = 3'u8
@@ -773,7 +773,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var src    = Image.create(128, 40, .RGBA8)
     let srcBuf = src.pixels.buffer!
     var state  = 0x12345678'u32
-    for [i] in src.pixels.count
+    for i in src.pixels.count
     {
         state     *= #wrap 1664525
         state     += #wrap 1013904223

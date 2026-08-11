@@ -64,7 +64,7 @@ using Swag
 
 #test
 {
-    for [value] in 1000
+    for value in 1000
     {
         let expectedMilliseconds = cast(u64) value
         let duration             = Time.Duration.fromMilliseconds(expectedMilliseconds)

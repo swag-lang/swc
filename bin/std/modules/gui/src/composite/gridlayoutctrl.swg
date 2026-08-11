@@ -151,9 +151,9 @@ private impl GridLayoutCtrl
 
         var done: Array'(#null *Wnd)
         let client = .paddedClientRect()
-        for [row] in .numRows
+        for row in .numRows
         {
-            for [col] in .numColumns
+            for col in .numColumns
             {
                 let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
@@ -203,7 +203,7 @@ private impl GridLayoutCtrl
 
         var total  = spacingTotal
         var weight = 0'f32
-        for [i] in count
+        for i in count
         {
             let size = .computeTrackSize(tracks[i], content[i])
             result.add(size)
@@ -224,7 +224,7 @@ private impl GridLayoutCtrl
             while remaining > 0.001
             {
                 var activeWeight = 0'f32
-                for [i] in count
+                for i in count
                 {
                     if tracks[i].kind == GridTrackKind.Fraction and result[i] < .trackMax(tracks[i]) do
                         activeWeight += tracks[i].value > 0 ? tracks[i].value : 1
@@ -234,7 +234,7 @@ private impl GridLayoutCtrl
                     break
 
                 var distributed = 0'f32
-                for [i] in count
+                for i in count
                 {
                     if tracks[i].kind != GridTrackKind.Fraction or result[i] >= .trackMax(tracks[i]) do
                         continue
@@ -253,13 +253,13 @@ private impl GridLayoutCtrl
         elif extra < 0
         {
             var shrinkPool = 0'f32
-            for [i] in count do
+            for i in count do
                 shrinkPool += Math.max(result[i] - tracks[i].minimum, 0)
 
             if shrinkPool > 0
             {
                 let shortage = -extra
-                for [i] in count
+                for i in count
                 {
                     let shrink = Math.max(result[i] - tracks[i].minimum, 0)
                     result[i] -= shortage * shrink / shrinkPool
@@ -274,7 +274,7 @@ private impl GridLayoutCtrl
     mtd trackOffset(sizes: [..] f32, idx: s32, spacing: f32)->f32
     {
         var result: retval
-        for [i] in idx
+        for i in idx
         {
             result += sizes[i]
             result += spacing
@@ -286,7 +286,7 @@ private impl GridLayoutCtrl
     mtd trackSpanSize(sizes: [..] f32, idx, span: s32, spacing: f32)->f32
     {
         var result: retval
-        for [i] in span
+        for i in span
         {
             if i do
                 result += spacing
@@ -327,9 +327,9 @@ impl GridLayoutCtrl
 
         var done: Array'(#null *Wnd)
         var maxW, maxH = 0'f32
-        for [row] in .numRows
+        for row in .numRows
         {
-            for [col] in .numColumns
+            for col in .numColumns
             {
                 let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
@@ -411,17 +411,17 @@ impl GridLayoutCtrl
         Debug.assert(column + columnSpan <= .numColumns and row + rowSpan <= .numRows)
         Debug.assert(columnSpan > 0 and rowSpan > 0)
 
-        for [idx] in .layout.count
+        for idx in .layout.count
         {
             if .layout[idx] == child do
                 .layout[idx] = null
         }
 
-        for [i] in columnSpan
+        for i in columnSpan
         {
             var x = column + (row * .numColumns)
             x += i
-            for [j] in rowSpan
+            for j in rowSpan
             {
                 let x1 = x + (j * .numColumns)
                 Debug.assert(!.layout[x1], "grid cell is already assigned")

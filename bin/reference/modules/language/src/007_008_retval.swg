@@ -62,7 +62,7 @@ initialization or copying, resulting in faster, more memory-efficient code.
     func toto()->[255] s32
     {
         var result: retval = undefined
-        for [i] in 255 do
+        for i in 255 do
             result[i] = i
         return result
     }

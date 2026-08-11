@@ -21,7 +21,7 @@ struct HmacSha256
 private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest
 {
     var result: retval
-    for [i] in 8
+    for i in 8
     {
         let word = digest[i]
         result[i * 4 + 0] = cast(u8) ((word >> 24) & 0xFF)
@@ -60,7 +60,7 @@ public impl HmacSha256
 
         var innerPad: [64] u8
         var outerPad: [64] u8
-        for [i] in 64
+        for i in 64
         {
             innerPad[i] = normalized[i] ^ 0x36
             outerPad[i] = normalized[i] ^ 0x5C

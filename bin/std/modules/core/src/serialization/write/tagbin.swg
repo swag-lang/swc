@@ -376,7 +376,7 @@ impl TagBin
             // Ad-hoc section: the fat carries its own crc/offset pairs and its count.
             let fatSeek = ConcatBuffer.offsetOf(output.position())
             output.addNative(TagBinSignature.Fat)
-            for k, [v] in sec.mapSeek
+            for k, v in sec.mapSeek
             {
                 output.addNative(k)                            // Crc
                 output.addNative(ConcatBuffer.offsetOf(v))     // Offset inside the body

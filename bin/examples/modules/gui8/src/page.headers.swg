@@ -17,7 +17,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     header.setSortIndicator(1, round ? .Ascending : .Descending)
 
     let rowY = 148.0
-    for [i] in 4
+    for i in 4
     {
         let y    = rowY + i * 34
         let icon = Label.create(panel, "", {34, y, 20, 24})
@@ -50,7 +50,7 @@ func createHeadersPage(parent: *Wnd)
     list.header.itemAt(2).reservesIconSpace = true
     list.header.setSortIndicator(0, .Ascending)
     addListFlags(list)
-    for [i] in 10
+    for i in 10
     {
         let line = list.createLine(Format.toString("header sample %", i + 1), sampleIcon(i + 1))
         line.setItem(1, i % 2 == 0 ? "table" : "tree")

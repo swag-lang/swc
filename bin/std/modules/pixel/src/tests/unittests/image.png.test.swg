@@ -186,13 +186,13 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var raw: ConcatBuffer
     if !interlace
     {
-        for [y] in height
+        for y in height
         {
             raw.addNative(0'u8)
-            for [x] in width
+            for x in width
             {
                 let pixel = cast(u64) (y * width + x) * cast(u64) channels
-                for [c] in channels do
+                for c in channels do
                     addPngU16Be(&raw, samples[pixel + c])
             }
         }
@@ -204,7 +204,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
         let stepX:  [7] s32 = [8, 8, 4, 4, 2, 2, 1]
         let stepY:  [7] s32 = [8, 8, 8, 4, 4, 2, 2]
 
-        for [pass] in 7
+        for pass in 7
         {
             if startX[pass] >= width or startY[pass] >= height do
                 continue
@@ -215,7 +215,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
                 for var x = startX[pass]; x < width; x += stepX[pass]
                 {
                     let pixel = cast(u64) (y * width + x) * cast(u64) channels
-                    for [c] in channels do
+                    for c in channels do
                         addPngU16Be(&raw, samples[pixel + c])
                 }
             }
@@ -415,9 +415,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     const Height = 5
 
     var samples: Array'u16
-    for [y] in Height
+    for y in Height
     {
-        for [x] in Width
+        for x in Width
         {
             samples.add(cast(u16) (10 + x + y * Width) * 257)
             samples.add(cast(u16) (50 + x * 2 + y) * 257)
@@ -429,9 +429,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let img = expect Image.decode("rgb16-adam7.png", nnBytes(png.toSlice()), {})
     @assert(img.pixelFormat == .RGB8)
 
-    for [y] in Height
+    for y in Height
     {
-        for [x] in Width
+        for x in Width
         {
             assertPngPixelAt(img, x, Height - y - 1, cast(u8) (10 + x + y * Width), cast(u8) (50 + x * 2 + y), cast(u8) (100 + x + y * 3), 255'u8)
         }
@@ -607,9 +607,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     var rgb    = Image.create(9, 7, .RGB8)
     let rgbBuf = rgb.pixels.buffer!
-    for [y] in rgb.height
+    for y in rgb.height
     {
-        for [x] in rgb.width
+        for x in rgb.width
         {
             let offset = cast(u64) (y * rgb.width + x) * 3
             rgbBuf[offset]     = cast(u8) (x * 17 + y)
@@ -628,9 +628,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     var bgra    = Image.create(9, 7, .BGRA8)
     let bgraBuf = bgra.pixels.buffer!
-    for [y] in bgra.height
+    for y in bgra.height
     {
-        for [x] in bgra.width
+        for x in bgra.width
         {
             let offset = cast(u64) (y * bgra.width + x) * 4
             bgraBuf[offset]     = cast(u8) (10 + x)
@@ -647,7 +647,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let bgraDecoded = expect Image.decode("adam7-bgra.png", bgraBytes, {})
     @assert(bgraDecoded.pixelFormat == .RGBA8)
     let decodedBuf = bgraDecoded.pixels.buffer!
-    for [i] in cast(u64) bgra.width * cast(u64) bgra.height
+    for i in cast(u64) bgra.width * cast(u64) bgra.height
     {
         let offset = i * 4
         @assert(decodedBuf[offset] == bgraBuf[offset + 2])

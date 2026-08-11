@@ -98,7 +98,7 @@ internal impl IImageEncoder for Encoder
         // Pixel data, top-down RGB(A). The internal buffer is bottom-up.
         var rawData: Array'u8
         rawData.reserve(rawDataLen)
-        for [fileY] in height
+        for fileY in height
         {
             let srcY = height - fileY - 1
             var psrc = image.pixels.buffer + cast(u64) srcY * image.rowStride
@@ -150,7 +150,7 @@ internal impl IImageEncoder for Encoder
         }
         elif userOptions.compression == .PackBits
         {
-            for [y] in height do
+            for y in height do
                 packBitsRow(&packedData, storedData + cast(u64) y * rowBytes, rowBytes)
             storedData     = cast(const [*] u8) packedData.buffer!
             storedLen      = packedData.count

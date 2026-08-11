@@ -5,7 +5,7 @@
 #[Swag.Inline]
 func(T) forEachMutable(values: [..] T, action: func||(*T))
 {
-    for [i] in @countof(values) do
+    for i in @countof(values) do
         action(&values[i])
 }
 
@@ -28,7 +28,7 @@ func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
     var result = values[0]
     if @countof(values) == 1 do
         return result
-    for [i] in 1 to @countof(values) - 1 do
+    for i in 1 to @countof(values) - 1 do
         result = combine(result, values[i])
     return result
 }
@@ -42,7 +42,7 @@ func(T) min(values: const [..] T)->{ value: T, index: u64 }
     if @countof(values) == 1 do
         return result
 
-    for [i] in 1 to @countof(values) - 1
+    for i in 1 to @countof(values) - 1
     {
         if values[i] < result.value
         {
@@ -63,7 +63,7 @@ func(T) max(values: const [..] T)->{ value: T, index: u64 }
     if @countof(values) == 1 do
         return result
 
-    for [i] in 1 to @countof(values) - 1
+    for i in 1 to @countof(values) - 1
     {
         if values[i] > result.value
         {

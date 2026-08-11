@@ -287,7 +287,7 @@ impl Transform
         .rangeTest(pgBuf[highI])
         initEdge(&edges[0], &edges[1], &edges[highI], pgBuf[0])
         initEdge(&edges[highI], &edges[0], &edges[highI - 1], pgBuf[highI])
-        for #reverse [i] in 1 until highI
+        for #reverse i in 1 until highI
         {
             .rangeTest(pgBuf[i])
             initEdge(&edges[i], &edges[i + 1], &edges[i - 1], pgBuf[i])
@@ -2051,7 +2051,7 @@ impl Transform
     {
         .copyAELToSEL()
         .intersectList.sort()
-        for [i] in @countof(.intersectList)
+        for i in @countof(.intersectList)
         {
             if !edgesAdjacent(nnIntersect(.intersectList[i]))
             {
@@ -3109,7 +3109,7 @@ impl Transform
             // if #null any output polygons share an edge, they'll need joining later ...
             if op1 and isHorizontal(nnEdge(rb)) and !.ghostJoinList.isEmpty() and (rb.windDelta != 0)
             {
-                for [i] in .ghostJoinList.count
+                for i in .ghostJoinList.count
                 {
                     let jr = .ghostJoinList[i]!
                     if horzSegmentsOverlap(nnOutPt(jr.outPt1).pt.x, jr.offPt.x, rb.bot.x, rb.top.x) do
@@ -3170,7 +3170,7 @@ impl Transform
     mtd buildResult(polys: *ClipperPaths)
     {
         polys.reserve(.polyOuts.count)
-        for [i] in @countof(.polyOuts)
+        for i in @countof(.polyOuts)
         {
             let outRec = nnOutRec(.polyOuts[i])
             if !outRec.pts do
@@ -3195,7 +3195,7 @@ impl Transform
 
     mtd disposeAllOutRecs()
     {
-        for [i] in @countof(.polyOuts) do
+        for i in @countof(.polyOuts) do
             .disposeOutRec(i)
         .polyOuts.clear()
     }

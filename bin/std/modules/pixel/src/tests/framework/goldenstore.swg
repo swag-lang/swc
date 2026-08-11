@@ -171,9 +171,9 @@ private
         if !result.sameSize do
             return result
 
-        for [y] in actual.height
+        for y in actual.height
         {
-            for [x] in actual.width
+            for x in actual.width
             {
                 let expectedColor = expected.pixelColor(x, y)
                 let actualColor   = actual.pixelColor(x, y)
@@ -305,7 +305,7 @@ private
         var result: retval
         var cur:    String
 
-        for [i] in @countof(text)
+        for i in @countof(text)
         {
             if text[i] == '\n'u8
             {
@@ -334,7 +334,7 @@ private
         Console.println("         lines  : ", expectedLines.count, " expected, ", actualLines.count, " produced")
 
         let common = Math.min(expectedLines.count, actualLines.count)
-        for [i] in common
+        for i in common
         {
             if expectedLines[i] == actualLines[i] do
                 continue

@@ -111,7 +111,7 @@ impl Encoder
         var hasAlpha    = false
         var output: u64
 
-        for [y] in image.height
+        for y in image.height
         {
             var pixel = source + cast(u64) (image.height - y - 1) * image.rowStride
             for image.width
@@ -163,7 +163,7 @@ impl Encoder
         writer.writeBits(0, 1)
         let codeCount = includeNine ? 13'u32 : 12'u32
         writer.writeBits(codeCount - 4, 4)
-        for [i] in codeCount
+        for i in codeCount
         {
             let symbol = WEBP_ENCODE_CODE_LENGTH_ORDER[i]
             let length = symbol == 8 or (includeNine and symbol == 9) ? 1'u32 : 0'u32
@@ -244,7 +244,7 @@ impl Encoder
     func writeLength(writer: *EncodeBitWriter, length: u32)
     {
         Debug.assert(length >= 1 and length <= 4096)
-        for [symbol] in LOSSLESS_LENGTH_CODES
+        for symbol in LOSSLESS_LENGTH_CODES
         {
             var base:      u32
             var extraBits: u32

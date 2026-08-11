@@ -50,7 +50,7 @@ func day6B()
         let cx    = expect StrConv.toS32(Latin1.trim(split[0])) + W / 2
         let cy    = expect StrConv.toS32(Latin1.trim(split[1])) + W / 2
 
-        for [i] in W * W
+        for i in W * W
         {
             let x = i % W
             let y = i / W

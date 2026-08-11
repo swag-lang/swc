@@ -208,7 +208,7 @@ impl Decoder
             var index = .getBits1(8)
             var count = 0
             huffNumt[0] = 0
-            for [i] in 1 to 16
+            for i in 1 to 16
             {
                 huffNumt[i] = cast(u8) .getBits1(8)
                 count       += huffNumt[i]
@@ -216,7 +216,7 @@ impl Decoder
 
             if count > 255 do
                 fail InvalidFormatError{"bad dht counts"}
-            for [i] in count
+            for i in count
             {
                 huffValt[i] = cast(u8) .getBits1(8)
             }
@@ -257,7 +257,7 @@ impl Decoder
 
             .quant[n].resize(64)
             let qbuf = .quant[n].buffer!
-            for [i] in 64
+            for i in 64
             {
                 var temp = .getBits1(8)
                 if prec do
@@ -301,7 +301,7 @@ impl Decoder
         if left != (.compsInFrame * 3 + 8) do
             fail InvalidFormatError{"bad sof length"}
 
-        for [i] in .compsInFrame
+        for i in .compsInFrame
         {
             .compIdent[i] = .getBits1(8)
             .compSampH[i] = .getBits1(4)
@@ -370,7 +370,7 @@ impl Decoder
         if (left != (n * 2 + 3)) or (n < 1) or (n > MaxCompsInScan) do
             fail InvalidFormatError{"bad sos length"}
 
-        for [i] in n
+        for i in n
         {
             let cc = .getBits1(8)
             let c  = .getBits1(8)

@@ -41,15 +41,15 @@ Within a `for`, the compiler provides the built-in `@index`, representing the cu
 /**
 # Naming the Loop Index
 
-You can bind the loop index by putting its name in brackets. The brackets distinguish
-an index binding from an element binding, while `@index` remains accessible.
+You can bind the loop index by naming it before `in`. In a counted loop, that name
+always denotes the current index, while `@index` remains accessible.
 */
 #test
 {
     var cpt  = 0
     var cpt1 = 0
 
-    for [i] in 5
+    for i in 5
     {
         cpt  += i
         cpt1 += @index
@@ -124,7 +124,7 @@ The `break` and `continue` keywords control loop flow.
 #test
 {
     var cpt = 0
-    for [x] in 10
+    for x in 10
     {
         if x == 5 do
             break
@@ -142,7 +142,7 @@ The `break` and `continue` keywords control loop flow.
 #test
 {
     var cpt = 0
-    for [x] in 10
+    for x in 10
     {
         if x == 5 do
             continue
@@ -172,10 +172,10 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
 
 > WARNING:
 > On an **unsigned** counter, do not write a collection-sized loop as
-> `for [i] in 0 to count - 1`. This has nothing to do with inverted ranges: when `count` is
+> `for i in 0 to count - 1`. This has nothing to do with inverted ranges: when `count` is
 > zero, `count - 1` wraps to the largest value of the type, and the resulting range is valid
 > and ascending, so no range rule can catch it. Only the overflow guard reports it, and it is
-> off in `release`. Write `for [i] in 0 until count`, which needs no subtraction and is empty
+> off in `release`. Write `for i in 0 until count`, which needs no subtraction and is empty
 > for a zero count.
 */
 #test
@@ -183,7 +183,7 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
     var count = 0
     var sum   = 0
 
-    for [i] in -1 to 1
+    for i in -1 to 1
     {
         count += 1
         sum   += i
@@ -201,7 +201,7 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
 #test
 {
     var cpt = 0
-    for [i] in 1 until 3
+    for i in 1 until 3
     {
         cpt += i
     }
@@ -213,7 +213,7 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
 # Empty Ranges
 
 An `until` range whose bounds are equal is **empty**: the loop runs zero times. This makes
-`for [i] in 0 until count` safe when `count` is zero, so a collection-sized loop needs no
+`for i in 0 until count` safe when `count` is zero, so a collection-sized loop needs no
 guard of its own. Only an inverted range, where the lower bound is above the upper bound,
 is an error.
 */
@@ -222,7 +222,7 @@ is an error.
     func sumUpTo(count: s32)->s32
     {
         var sum = 0
-        for [i] in 0 until count do
+        for i in 0 until count do
             sum += i
         return sum
     }
@@ -232,7 +232,7 @@ is an error.
 
     // The same holds for a constant empty range, and away from zero.
     var cpt = 0
-    for [i] in 7 until 7 do
+    for i in 7 until 7 do
         cpt += 1
     @assert(cpt == 0)
 }
@@ -282,7 +282,7 @@ Only iterations meeting the condition are executed.
 {
     var result = 0
 
-    for [i] in 10 where i % 2 == 0
+    for i in 10 where i % 2 == 0
     {
         result += i
     }
@@ -300,7 +300,7 @@ Loop over the element count and use `where` to filter which indices run the body
     var arr        = [10, 21, 30, 41, 50]
     var sumOfEvens = 0
 
-    for [i] in @countof(arr) where arr[i] % 2 == 0
+    for i in @countof(arr) where arr[i] % 2 == 0
     {
         sumOfEvens += arr[i]
     }
@@ -318,7 +318,7 @@ The `where` clause supports multiple logical conditions for advanced filtering.
     var arr         = [10, 15, 20, 25, 30, 35]
     var filteredSum = 0
 
-    for [i] in @countof(arr) where arr[i] % 2 == 0 and arr[i] > 15
+    for i in @countof(arr) where arr[i] % 2 == 0 and arr[i] > 15
     {
         filteredSum += arr[i]
     }
@@ -331,7 +331,7 @@ The `where` clause supports multiple logical conditions for advanced filtering.
     var arr        = [10, 25, 30, 45, 50, 65]
     var complexSum = 0
 
-    for [i] in @countof(arr) where arr[i] % 2 == 0 or arr[i] > 40
+    for i in @countof(arr) where arr[i] % 2 == 0 or arr[i] > 40
     {
         complexSum += arr[i]
     }
@@ -348,7 +348,7 @@ The `where` clause can also be applied to ranges.
 {
     var sumOfPositiveEvens = 0
 
-    for [i] in -5 to 5 where i > 0 and i % 2 == 0
+    for i in -5 to 5 where i > 0 and i % 2 == 0
     {
         sumOfPositiveEvens += i
     }
@@ -366,7 +366,7 @@ You can combine `#reverse` with `where` for reverse conditional iteration.
     var arr         = [10, 20, 30, 40, 50]
     var reversedSum = 0
 
-    for #reverse [i] in @countof(arr) where arr[i] % 2 == 0
+    for #reverse i in @countof(arr) where arr[i] % 2 == 0
     {
         reversedSum += arr[i]
     }

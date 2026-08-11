@@ -39,7 +39,7 @@ private func authenticate(key, nonce, associatedData, ciphertext: const [..] u8)
     updatePadded(&mac, ciphertext)
 
     var lengths: [16] u8
-    for [i] in 8
+    for i in 8
     {
         lengths[i]     = cast(u8) ((@countof(associatedData) >> cast(u32) (i * 8)) & 0xFF)
         lengths[8 + i] = cast(u8) ((@countof(ciphertext) >> cast(u32) (i * 8)) & 0xFF)

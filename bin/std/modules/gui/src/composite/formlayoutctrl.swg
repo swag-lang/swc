@@ -243,7 +243,7 @@ private impl FormLayoutCtrl
         let labelWidth = .options.labelPlacement == .Left ? .labelColumnWidth() : 0
 
         var cursor = client.y
-        for &row, [index] in .rows
+        for &row, index in .rows
         {
             cursor = .options.labelPlacement == .Above ? .arrangeRowAbove(&row, client, cursor, place) : .arrangeRowLeft(&row, client, cursor, labelWidth, place)
             if index + 1 < .rows.count do

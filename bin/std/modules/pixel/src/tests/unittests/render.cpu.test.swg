@@ -104,7 +104,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     var painter: Painter
     painter.begin()
     painter.setColorMaskFull()
-    for mode, [idx] in modes
+    for mode, idx in modes
     {
         let x = cast(f32) idx * 2.0
         painter.setBlendingMode(.Copy)
@@ -116,7 +116,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.end()
 
     let image = renderCpu(22, 2, &painter)
-    for value, [idx] in expected do
+    for value, idx in expected do
         assertPixel(image, cast(s32) idx * 2, 0, value)
 }
 
@@ -136,7 +136,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     var painter: Painter
     painter.begin()
     painter.setColorMaskFull()
-    for mode, [idx] in modes
+    for mode, idx in modes
     {
         let x = cast(f32) idx * 2.0
         painter.setBlendingMode(.Copy)
@@ -148,7 +148,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.end()
 
     let image = renderCpu(8, 2, &painter)
-    for value, [idx] in expected do
+    for value, idx in expected do
         assertPixel(image, cast(s32) idx * 2, 0, value)
 }
 
@@ -345,9 +345,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 #test
 {
     var source = Image.create(4, 4, .BGRA8)
-    for [y] in 4
+    for y in 4
     {
-        for [x] in 4
+        for x in 4
         {
             let pixel = source.pixels.buffer! + cast(u64) ((3 - y) * source.rowStride + x * source.bytesPerPixel)
             if x < 2

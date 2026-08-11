@@ -437,7 +437,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortLoopsJoin)
     static constexpr std::string_view SOURCE =
         "func foo()\n"
         "{\n"
-        "    for [i] in 3\n"
+        "    for i in 3\n"
         "    {\n"
         "        bar()\n"
         "    }\n"
@@ -447,7 +447,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortLoopsJoin)
     static constexpr std::string_view EXPECTED =
         "func foo()\n"
         "{\n"
-        "    for [i] in 3 { bar() }\n"
+        "    for i in 3 { bar() }\n"
         "}\n"
         "func bar() {}\n";
 

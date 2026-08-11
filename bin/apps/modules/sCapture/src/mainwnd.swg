@@ -161,7 +161,7 @@ impl IWnd for MainWnd
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
 
-            for [idx] in @countof(me.monitors) do
+            for idx in @countof(me.monitors) do
                 .addItem(ActionCapture.screenId(idx))
 
             .addSeparator()
@@ -733,7 +733,7 @@ impl MainWnd
         {
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
-            for [idx] in @countof(me.monitors) do
+            for idx in @countof(me.monitors) do
                 .addItem(ActionCapture.screenId(idx))
 
             .addSeparator()

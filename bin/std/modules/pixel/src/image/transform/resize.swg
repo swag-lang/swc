@@ -74,7 +74,7 @@ namespace ResizeTools
         res.windowSize = windowSize
         res.lineLength = lineLength
         res.row.resize(cast(u64) lineLength)
-        for [i] in lineLength do
+        for i in lineLength do
             res.row[i].weights.resize(cast(u64) windowSize)
         return res
     }
@@ -188,7 +188,7 @@ namespace ResizeTools
         var res: retval
         res = allocContributions(lineSize, windowSize)
 
-        for [u] in lineSize
+        for u in lineSize
         {
             let center = u / scale
 
@@ -236,7 +236,7 @@ namespace ResizeTools
             // Normalize weight of neighboring points
             if totalWeight != 0
             {
-                for [src] in (right - left) + 1 do
+                for src in (right - left) + 1 do
                     res.row[u].weights[src] /= totalWeight
             }
 
@@ -258,7 +258,7 @@ namespace ResizeTools
         func(BPP: u8) doIt()
         {
             let crow0 = contrib.row.buffer!
-            for [x] in imgDst.width
+            for x in imgDst.width
             {
                 let crow  = crow0 + x
                 let left  = crow.left
@@ -311,7 +311,7 @@ namespace ResizeTools
         func(BPP: u8) doIt()
         {
             let crow0 = contrib.row.buffer!
-            for [y] in imgDst.height
+            for y in imgDst.height
             {
                 let crow  = crow0 + y
                 let left  = crow.left

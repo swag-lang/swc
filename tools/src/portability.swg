@@ -530,7 +530,7 @@ private func containsIdentifierPrefix(text: string, prefix: string)->bool
 
 private func isApprovedDeclaration(path: string, line: string)->bool
 {
-    for [index] in @countof(NativeDeclarationApprovals) / 2
+    for index in @countof(NativeDeclarationApprovals) / 2
     {
         if samePath(path, NativeDeclarationApprovals[index * 2]) and line == NativeDeclarationApprovals[index * 2 + 1] do
             return true

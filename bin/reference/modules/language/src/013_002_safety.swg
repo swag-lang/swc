@@ -200,7 +200,7 @@ empty, not inverted, so it runs zero iterations without panicking.
     func sumRange(low, high: s32)->s32
     {
         var sum = 0
-        for [i] in low until high do
+        for i in low until high do
             sum += i
         return sum
     }

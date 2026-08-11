@@ -331,14 +331,6 @@ AstNodeRef Parser::parseForInfinite()
     return nodeRef;
 }
 
-TokenRef Parser::parseForIndexBinding()
-{
-    const TokenRef openRef = expectAndConsume(TokenId::SymLeftBracket, DiagnosticId::parser_err_expected_token_before);
-    const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
-    return nameRef;
-}
-
 AstNodeRef Parser::parseForLoop()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>(consume());
@@ -366,8 +358,25 @@ AstNodeRef Parser::parseForLoop()
     }
     else if (is(TokenId::SymLeftBracket))
     {
+        const TokenRef openRef = consume();
+        const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+        expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
+
+        Diagnostic diag = reportError(DiagnosticId::parser_err_for_binding_brackets_removed, openRef);
+        if (nameRef.isValid())
+            diag.addArgument(Diagnostic::ARG_TOK, ast_->srcView().tokenString(nameRef));
+        diag.report(*ctx_);
+
         nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
-        tokNames.push_back(parseForIndexBinding());
+        tokNames.push_back(nameRef);
+    }
+    else if (is(TokenId::SymQuestion) && nextIs(TokenId::SymComma))
+    {
+        consume();
+        consumeAssert(TokenId::SymComma);
+        nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
+        tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
+        isElementForm = true;
     }
     else if (is(TokenId::Identifier) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
@@ -378,15 +387,21 @@ AstNodeRef Parser::parseForLoop()
     while (hasValueBinding && consumeIf(TokenId::SymComma).isValid())
     {
         isElementForm = true;
-        if (isNot(TokenId::SymLeftBracket))
+        if (is(TokenId::SymLeftBracket))
         {
-            const Diagnostic diag = reportError(DiagnosticId::parser_err_for_index_binding_brackets, ref());
+            const TokenRef openRef = consume();
+            const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+            expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
+
+            Diagnostic diag = reportError(DiagnosticId::parser_err_for_binding_brackets_removed, openRef);
+            if (nameRef.isValid())
+                diag.addArgument(Diagnostic::ARG_TOK, ast_->srcView().tokenString(nameRef));
             diag.report(*ctx_);
-            tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
+            tokNames.push_back(nameRef);
             continue;
         }
 
-        tokNames.push_back(parseForIndexBinding());
+        tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
     }
 
     nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
@@ -395,6 +410,12 @@ AstNodeRef Parser::parseForLoop()
 
     if (isElementForm)
         nodePtr->setId(AstNodeId::ForeachStmt);
+
+    if (isAny(TokenId::KwdTo, TokenId::KwdUntil))
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_for_range_missing_lower_bound, ref());
+        diag.report(*ctx_);
+    }
 
     nodePtr->nodeExprRef = parseRangeExpression();
 

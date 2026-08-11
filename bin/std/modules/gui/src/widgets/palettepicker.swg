@@ -37,7 +37,7 @@ private impl PalettePicker
 
         var x = rect.x
         var y = rect.y
-        for [i] in @countof(.colors)
+        for i in @countof(.colors)
         {
             .itemRects[i] = {x, y, cast(f32) .itemSize, cast(f32) .itemSize}
             x             += .itemSize + .spacing
@@ -66,7 +66,7 @@ impl IWnd for PalettePicker
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
 
-        for color, [i] in .colors
+        for color, i in .colors
         {
             var itemRect = .itemRects[i]
             let border   = i == .hotIndex or i == .selectedIndex ? colors.palPicker_HotBorder : colors.palPicker_Border
@@ -88,7 +88,7 @@ impl IWnd for PalettePicker
         evt.accepted = false
 
         var newHotIndex = Swag.S32.Max
-        for [i] in @countof(.itemRects)
+        for i in @countof(.itemRects)
         {
             if .itemRects[i].contains(pos)
             {
@@ -212,7 +212,7 @@ impl PalettePicker
         Debug.assert(count >= 0, "palette color count cannot be negative")
         Debug.assert(saturation >= 0 and saturation <= 1, "saturation must be between zero and one")
         Debug.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
-        for [i] in count
+        for i in count
         {
             var color = Color.fromHsl(i / cast(f32) count, saturation, lightness)
             color.a = 255
@@ -227,7 +227,7 @@ impl PalettePicker
     {
         Debug.assert(count >= 0, "palette color count cannot be negative")
         let {hue, saturation, ?} = base.toHsl()
-        for [i] in count
+        for i in count
         {
             let lightness = count <= 1 ? 0.5 : i / cast(f32) (count - 1)
             var color     = Color.fromHsl(hue, saturation, lightness)
@@ -244,7 +244,7 @@ impl PalettePicker
         Debug.assert(count >= 0, "palette color count cannot be negative")
         Debug.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
         let {hue, ?, ?} = base.toHsl()
-        for [i] in count
+        for i in count
         {
             let saturation = count <= 1 ? 0 : i / cast(f32) (count - 1)
             var color      = Color.fromHsl(hue, saturation, lightness)

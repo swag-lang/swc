@@ -433,7 +433,7 @@ impl GlyphCache
     // Releases atlas descriptors and cached kerning data owned by this cache.
     mtd opDrop()
     {
-        for k, [v] in .glyphRef do
+        for k, v in .glyphRef do
             Memory.delete(v)
         .glyphRef.free()
         .kernRef.free()
@@ -538,7 +538,7 @@ impl GlyphCache
         var buffer = ca.data.buffer! + x + (ca.width * (ca.height - 1))
         buffer -= (y * ca.width)
         var src = bmpRef.buffer
-        for [j] in bmpRef.rows
+        for j in bmpRef.rows
         {
             Memory.copy(buffer, src, cast(u64) rowBytes)
             src    += bmpRef.pitch

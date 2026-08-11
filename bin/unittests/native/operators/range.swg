@@ -2,14 +2,8 @@
 
 #test
 {
-    var countTo = 0
-    for to 4 { countTo += 1 }
-    var countUntil = 0
-    for until 4 { countUntil += 1 }
     var countSingle = 0
     for 4 to 4 { countSingle += 1 }
-    @assert(countTo == 5)
-    @assert(countUntil == 4)
     @assert(countSingle == 1)
 }
 

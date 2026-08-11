@@ -44,7 +44,7 @@ impl IconSet
     // frame textures until the renderer's own teardown.
     mtd free()
     {
-        for key, [value] in .lists
+        for key, value in .lists
         {
             if @isset(.renderer) do
                 value.release(.renderer)

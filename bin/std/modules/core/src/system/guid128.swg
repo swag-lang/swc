@@ -154,7 +154,7 @@ impl Guid128
 
         var parsed: Guid128
         var sourceIndex = 0'u64
-        for [byteIndex] in 16
+        for byteIndex in 16
         {
             if sourceIndex == 8 or sourceIndex == 13 or sourceIndex == 18 or sourceIndex == 23
             {

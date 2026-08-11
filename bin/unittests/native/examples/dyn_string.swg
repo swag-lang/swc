@@ -42,7 +42,7 @@ func storeBytes(s: *DynString, src: const [*] u8, len: u64)
 {
     reserve(s, len)
     let data = s.data!
-    for [i] in len do
+    for i in len do
         data[i] = src[i]
     s.count = len
 }
@@ -54,7 +54,7 @@ func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
     reserve(s, s.count + len)
     let data = s.data!
     let from = src!
-    for [i] in len do
+    for i in len do
         data[s.count + i] = from[i]
     s.count += len
 }
@@ -94,7 +94,7 @@ impl DynString
         .capacity = 0
         reserve(&me, .count)
         let data = .data!
-        for [i] in .count do
+        for i in .count do
             data[i] = oldData[i]
     }
 
@@ -157,7 +157,7 @@ impl DynString
             return true
         let data      = .data!
         let otherData = other.data!
-        for [i] in .count
+        for i in .count
         {
             if data[i] != otherData[i] do
                 return false
@@ -244,7 +244,7 @@ impl DynString
     s = "abcdef"
 
     // Uppercase each byte via opIndex + opIndexSet
-    for [i] in s.count
+    for i in s.count
     {
         let c = s[i]
         s[i] = c - ('a'u8 - 'A'u8)

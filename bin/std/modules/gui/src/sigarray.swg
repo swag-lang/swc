@@ -73,7 +73,7 @@ impl SigArray
 
                 sb.appendString("fn(")
                 let tsParams = ts.parameters!
-                for [i] in @countof(ts.parameters)
+                for i in @countof(ts.parameters)
                 {
                     if i do
                         sb.appendString(",")

@@ -214,9 +214,9 @@ func addAliens()
     let span = ((Cols - 1) * DIST) + cast(f32) g_RedImg.width
     let left = Math.max((g_Rect.width - span) * 0.5, 0)
 
-    for [xc] in Cols
+    for xc in Cols
     {
-        for [yc] in Rows
+        for yc in Rows
         {
             let x = left + (xc * DIST)
             let y = 140 + yc * DIST

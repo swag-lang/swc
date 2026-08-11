@@ -181,7 +181,7 @@ impl LibraryWnd
         // we never delete from the list we are iterating, which would skip entries
         // and desync the selection/indices.
         var toRemove: Array'String
-        for it, [i] in .view.items
+        for it, i in .view.items
         {
             if it.filtered do
                 continue
@@ -199,7 +199,7 @@ impl LibraryWnd
     mtd selectedFiles()->Array'String
     {
         var res: retval
-        for it, [i] in .view.items
+        for it, i in .view.items
         {
             if it.filtered do
                 continue
@@ -353,7 +353,7 @@ impl LibraryWnd
         let valuesB = dref b
         if valuesA.count != valuesB.count do
             return false
-        for value, [i] in valuesA
+        for value, i in valuesA
         {
             if value.count != valuesB[i].count or
                Utf8.compare(value.name.toSlice(), valuesB[i].name.toSlice(), .Latin1NoCase) != 0 or
@@ -377,7 +377,7 @@ impl LibraryWnd
         let rootCount = root.setItem(1, Format.toString("% ", values.count))
         rootCount.horzAlign = .Right
 
-        for value, [i] in values
+        for value, i in values
         {
             var icon: Icon
             if kind == .Application and !value.executable.isEmpty()
@@ -421,7 +421,7 @@ impl LibraryWnd
         elif !.tagFilter.isEmpty() do
             wantedKind = .Tag
 
-        for [i] in .listCtrl.lineCount()
+        for i in .listCtrl.lineCount()
         {
             let line = .listCtrl.lineAt(cast(u32) i)!
             let kind = cast(LibrarySidebarFilter) cast(u64) line.userData3
@@ -581,7 +581,7 @@ impl LibraryWnd
                 // corresponding ArrayPtr element, then resume any pending previews.
                 libWnd.view.stopLoading()
 
-                for item, [i] in libWnd.view.items
+                for item, i in libWnd.view.items
                 {
                     if item.fi.fullname == file
                     {
@@ -591,7 +591,7 @@ impl LibraryWnd
                     }
                 }
 
-                for item, [i] in libWnd.view.allItems
+                for item, i in libWnd.view.allItems
                 {
                     if item!.fi.fullname != file do
                         continue
@@ -859,7 +859,7 @@ impl LibraryWnd
     mtd selectedCaptureFiles()->Array'String
     {
         var result: retval
-        for item, [i] in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast() i) do
+        for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast() i) do
             result.add(item.fi.fullname)
         return result
     }
@@ -957,7 +957,7 @@ impl LibraryWnd
     {
         let files    = .selectedCaptureFiles()
         var favorite = false
-        for item, [i] in .view.items
+        for item, i in .view.items
         {
             if item.capture and .view.selModel.isSelected(cast() i) and !item.capture!.favorite do
                 favorite = true
@@ -1070,7 +1070,7 @@ impl LibraryWnd
         }
 
         // Add levels root-first.
-        for #reverse [idx] in fulls.count
+        for #reverse idx in fulls.count
         {
             let fp = fulls[idx].toString()
             var nm = Path.fileName(fp) orelse ""
@@ -1109,7 +1109,7 @@ impl LibraryWnd
         for d in dirs do
             .menuPaths.add(String.from(d.fullname))
 
-        for d, [i] in dirs
+        for d, i in dirs
         {
             let name = Path.fileName(d.fullname) orelse d.fullname.toString()
             menu.addItem(name, .menuPaths[i].toString(), checked: d.fullname == currentChild)

@@ -7,7 +7,7 @@ using Swag
 {
     var pad: Input.Gamepad
 
-    for [i] in @countof(Input.GamepadButton)
+    for i in @countof(Input.GamepadButton)
     {
         let button = cast(Input.GamepadButton) i
         @assert(!pad.isButtonPressed(button))
@@ -22,7 +22,7 @@ using Swag
 {
     var pad: Input.Gamepad
 
-    for [i] in @countof(Input.GamepadButton)
+    for i in @countof(Input.GamepadButton)
     {
         let button = cast(Input.GamepadButton) i
         let pos    = Math.Point{cast(f32) i + 1.0, cast(f32) i + 2.0}
@@ -53,7 +53,7 @@ using Swag
 {
     var pad: Input.Gamepad
 
-    for [i] in @countof(Input.GamepadButton)
+    for i in @countof(Input.GamepadButton)
     {
         let button = cast(Input.GamepadButton) i
         pad.setControlStates(button, true, true, {1, 2}, {3, 4})
@@ -61,7 +61,7 @@ using Swag
 
     pad.clear()
 
-    for [i] in @countof(Input.GamepadButton)
+    for i in @countof(Input.GamepadButton)
     {
         let button = cast(Input.GamepadButton) i
         @assert(!pad.previousState.pressed[button])

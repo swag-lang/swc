@@ -645,7 +645,7 @@ impl Wnd
 
     private mtd firstTopMostIndex()->u64
     {
-        for c, [i] in .children
+        for c, i in .children
         {
             if c.wndFlags.has(.TopMost) do
                 return i
@@ -1503,7 +1503,7 @@ impl Wnd
         Debug.assert(count <= .children.count)
         Debug.assert(index + count <= .children.count)
 
-        for [i] in count do
+        for i in count do
             .children.insertAt(index + i, .children[.children.count - count + i])
         .children.count -= count
     }
@@ -1764,7 +1764,7 @@ impl Wnd
             c.setPosition(pos, false)
         }
 
-        for c, [i] in .children
+        for c, i in .children
         {
             if !c.isVisible() do
                 continue
@@ -2110,7 +2110,7 @@ impl Wnd
         // Resume after the last stop this subtree owns, so a whole form going down hands the
         // keyboard to what follows the form rather than to the top of the surface.
         var from = order.indexOf(me)
-        for stop, [index] in order.stops where stop == me or .isAncestorOf(stop) do
+        for stop, index in order.stops where stop == me or .isAncestorOf(stop) do
             from = cast(s64) index
 
         for var step = 1's64; step < count; step += 1

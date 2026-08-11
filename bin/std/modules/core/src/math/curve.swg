@@ -201,7 +201,7 @@ private impl Curve
         const Cosines  = [1'f32, Diagonal, 0, -Diagonal, -1, -Diagonal, 0, Diagonal]
 
         var result: retval
-        for [index] in Steps
+        for index in Steps
         {
             let eighth   = (index + 6) % 8
             let x        = cast(f32) index * Eighth
@@ -454,7 +454,7 @@ impl Curve
         if count < 2 do
             return
 
-        for [index] in count
+        for index in count
         {
             let low  = index ? index - 1 : index
             let high = index + 1 < count ? index + 1 : index

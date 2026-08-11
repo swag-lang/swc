@@ -164,7 +164,7 @@ impl BitString
 // Precalculate YCbCr tables
 #run
 {
-    for [r] in 256
+    for r in 256
     {
         let rr = cast(s32) r
         TabYR[r]  = cast(s32) (65536.0 * 0.299 + 0.5) * rr
@@ -247,13 +247,13 @@ impl Encoder
         let pdst = .bufferRGB.buffer!
         var pref = image.pixels.buffer!
 
-        for [nrline] in .imageY
+        for nrline in .imageY
         {
             let line = pdst + nrline * xDiv8
             switch image.pixelFormat
             {
             case .BGR8:
-                for [column] in .imageX
+                for column in .imageX
                 {
                     line[column].b = pref[0]
                     line[column].g = pref[1]
@@ -262,7 +262,7 @@ impl Encoder
                 }
 
             case .RGB8:
-                for [column] in .imageX
+                for column in .imageX
                 {
                     line[column].b = pref[2]
                     line[column].g = pref[1]
@@ -271,7 +271,7 @@ impl Encoder
                 }
 
             case .BGRA8:
-                for [column] in .imageX
+                for column in .imageX
                 {
                     line[column].b = pref[0]
                     line[column].g = pref[1]
@@ -280,7 +280,7 @@ impl Encoder
                 }
 
             case .RGBA8:
-                for [column] in .imageX
+                for column in .imageX
                 {
                     line[column].b = pref[2]
                     line[column].g = pref[1]

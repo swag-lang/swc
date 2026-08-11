@@ -73,7 +73,7 @@ func(var T, const Count: s32) genericRepeat(value: T)->[Count] T
     where Count >= 0
 {
     var result: [Count] T
-    for [index] in Count do
+    for index in Count do
         result[index] = value
     return result
 }

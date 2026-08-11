@@ -10,9 +10,9 @@ impl Encoder
         var location = cast(s32) ypos * .imageX + xpos
         let pdst     = .bufferRGB.buffer!
 
-        for [y] in 8
+        for y in 8
         {
-            for [x] in 8
+            for x in 8
             {
                 let r = pdst[location].r
                 let g = pdst[location].g
@@ -31,11 +31,11 @@ impl Encoder
     func quantization(data: [*] s8, fdtbl: [*] f32, outData: [*] s16)
     {
         var dataFloat: [64] f32
-        for [i] in 64 do
+        for i in 64 do
             dataFloat[i] = data[i]
 
         var dataptr = cast([*] f32) &dataFloat[0]
-        for #reverse [ctr] in 0 to 7
+        for #reverse ctr in 0 to 7
         {
             let tmp0 = dataptr[0] + dataptr[7]
             let tmp7 = dataptr[0] - dataptr[7]
@@ -80,7 +80,7 @@ impl Encoder
 
         dataptr = &dataFloat[0]
 
-        for #reverse [ctr] in 0 to 7
+        for #reverse ctr in 0 to 7
         {
             let tmp0 = dataptr[0] + dataptr[56]
             let tmp7 = dataptr[0] - dataptr[56]
@@ -123,7 +123,7 @@ impl Encoder
             dataptr += 1
         }
 
-        for [i] in 64
+        for i in 64
         {
             let temp = dataFloat[i] * fdtbl[i]
             outData[i] = cast(s16) (cast(s16) (temp + 16384.5) - 16384)
@@ -137,7 +137,7 @@ impl Encoder
 
         quantization(componentDU, fdtbl, .duDct)
 
-        for [i] in 64 do
+        for i in 64 do
             .du[ZigZag[i]] = .duDct[i]
         let diff = .du[0] - dref dC
         dref dC = .du[0]
@@ -172,7 +172,7 @@ impl Encoder
             var nrzeroes = i - startpos
             if nrzeroes >= 16
             {
-                for [nrmarker] in 1 to nrzeroes / 16 do
+                for nrmarker in 1 to nrzeroes / 16 do
                     .writeBits(m16Zeroes)
                 nrzeroes = nrzeroes % 16
             }

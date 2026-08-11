@@ -63,13 +63,13 @@ func qsort(lowIn, highIn: s64)
     let vocabLen   = cast([*] u64) (@alloc(VOCAB * #sizeof(u64)))!
 
     var vp = 0'u64
-    for [i] in VOCAB
+    for i in VOCAB
     {
         var nn = i + 1
         let l  = 3 + (i % 6)
         vocabOff[i] = vp
         vocabLen[i] = l
-        for [k] in l
+        for k in l
         {
             vocabBytes[vp] = cast(u8)(97 + (nn % 26))
             vp += 1
@@ -79,12 +79,12 @@ func qsort(lowIn, highIn: s64)
 
     g_Text = cast([*] u8) (@alloc(WORDS * 12))!
     var n  = 0'u64
-    for [j] in WORDS
+    for j in WORDS
     {
         let idx = rnd() % VOCAB
         let o   = vocabOff[idx]
         let l   = vocabLen[idx]
-        for [k] in l
+        for k in l
         {
             g_Text[n] = vocabBytes[o + k]
             n += 1
@@ -145,7 +145,7 @@ func qsort(lowIn, highIn: s64)
     g_Idx        = cast([*] u64) (@alloc(distinct * #sizeof(u64)))!
 
     var ni = 0'u64
-    for [s] in CAP
+    for s in CAP
     {
         if counts.used[s] == 0 do
             continue
@@ -159,7 +159,7 @@ func qsort(lowIn, highIn: s64)
     qsort(0, cast(s64) distinct - 1)
 
     var check = distinct * 7
-    for [k] in 20'u64 do
+    for k in 20'u64 do
         check += (k + 1) * g_Cnt[g_Idx[k]]
 
     let t1 = now()

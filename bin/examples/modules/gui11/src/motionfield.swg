@@ -138,7 +138,7 @@ impl IWnd for MotionField
         }
 
         // Oldest sample first, so the newest one is drawn on top of the ones it came from.
-        for [step] in .trailUsed
+        for step in .trailUsed
         {
             let index = (.trailNext + TrailLength - .trailUsed + step) % TrailLength
             let ratio = cast(f32) (step + 1) / cast(f32) .trailUsed

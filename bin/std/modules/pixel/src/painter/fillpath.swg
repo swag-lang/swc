@@ -22,7 +22,7 @@ public impl Painter
             return
 
         let argb = color.argb
-        for [i] in count
+        for i in count
         {
             let j      = (i + 1) % count
             let innerA = polygon.offsetPointAt(i, innerOff)
@@ -52,7 +52,7 @@ public impl Painter
         // its inner half overlaps the solid, which is harmless for opaque fills (same
         // colour over same colour). Convex fills inset the solid to avoid the overlap
         // entirely; non-convex fills accept a faint rim on translucent colours.
-        for [i] in p.triangles.triangleCount()
+        for i in p.triangles.triangleCount()
         {
             let vertexIndex = i * 3
             discard .pushTriangle(p.triangles.vertices[vertexIndex], p.triangles.vertices[vertexIndex + 1], p.triangles.vertices[vertexIndex + 2], brush.color)
@@ -123,7 +123,7 @@ public impl Painter
             else
             {
                 let center = Vector2{path.minBounds.x + (path.maxBounds.x - path.minBounds.x) * 0.5, path.minBounds.y + (path.maxBounds.y - path.minBounds.y) * 0.5}
-                for [i] in count
+                for i in count
                 {
                     let v0 = polygon.offsetPointAt(i, so)
                     let v1 = polygon.offsetPointAt((i + 1) % count, so)

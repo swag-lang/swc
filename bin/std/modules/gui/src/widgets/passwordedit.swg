@@ -30,7 +30,7 @@ private impl PasswordEdit
     mtd byteOffsetAt(runeIndex: u64)->u64
     {
         var byteOffset = 0'u64
-        for [i] in runeIndex
+        for i in runeIndex
         {
             discard i
             let {?, eat} = Utf8.decodeRune(.storage[byteOffset until .byteCount])

@@ -29,6 +29,21 @@ struct Pair
     b: s32
 }
 
+// Scalar elements bind by copy: changing the source does not change the current value.
+#test
+{
+    var values: [3] s32 = [10, 20, 30]
+    var sum             = 0
+    for value, index in values
+    {
+        #assert(#typeof(value) == s32)
+        values[index] = 100
+        sum += value
+    }
+
+    @assert(sum == 60)
+}
+
 // No copy, no lifecycle per iteration for the by-value struct binding.
 #test
 {
@@ -63,7 +78,7 @@ struct Pair
 #test
 {
     var arr: [3] Tracked
-    for v, [i] in arr
+    for v, i in arr
     {
         arr[i].x += 100
         @assert(v.x == arr[i].x)
@@ -86,7 +101,7 @@ struct Pair
 #test
 {
     var arr: [2] Pair = [{1, 2}, {3, 4}]
-    for &v, [i] in arr do
+    for &v, i in arr do
         v = Pair{cast(s32) i + 10, cast(s32) i + 20}
     @assert(arr[0].a == 10 and arr[0].b == 20)
     @assert(arr[1].a == 11 and arr[1].b == 21)

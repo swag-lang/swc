@@ -17,7 +17,7 @@ impl SemaFieldVisits
     {
         #static if back
         {
-            for [idx] in 3
+            for idx in 3
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -33,7 +33,7 @@ impl SemaFieldVisits
             return
         }
 
-        for [idx] in 3
+        for idx in 3
         {
             var visitItem: s32 = undefined
             switch idx
@@ -61,14 +61,14 @@ impl SemaBufferVisits
     {
         #static if ptr
         {
-            for [idx] in 3
+            for idx in 3
             {
                 #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
             }
         }
         else
         {
-            for [idx] in 3
+            for idx in 3
             {
                 #inject(stmt, item = me.values[idx], index = @index)
             }
@@ -114,7 +114,7 @@ impl SemaHiddenAliasVisits
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
         where !ptr and !back
     {
-        for [idx] in 3
+        for idx in 3
         {
             #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
         }
@@ -135,7 +135,7 @@ impl SemaFieldPointerVisits
         }
         else
         {
-            for [idx] in 3
+            for idx in 3
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -157,7 +157,7 @@ impl SemaReverseVisits
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index))
         where !ptr and !back
     {
-        for [idx] in 3
+        for idx in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
         }
@@ -167,7 +167,7 @@ impl SemaReverseVisits
     mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index))
         where !ptr
     {
-        for [idx] in 3
+        for idx in 3
         {
             #inject(stmt, item = me.values[2 - idx], index = @index)
         }
@@ -182,7 +182,7 @@ impl SemaGenericReverseVisits
     {
         #static if back
         {
-            for [idx] in 3
+            for idx in 3
             {
                 #inject(stmt, item = me.values[2 - idx], index = @index)
             }
@@ -190,7 +190,7 @@ impl SemaGenericReverseVisits
             return
         }
 
-        for [idx] in 3
+        for idx in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
         }
@@ -205,7 +205,7 @@ impl SemaPairVisits
     {
         #static if back
         {
-            for [idx] in 3
+            for idx in 3
             {
                 #inject(stmt, left = me.values[2 - idx], right = me.values[3 - idx])
             }
@@ -213,7 +213,7 @@ impl SemaPairVisits
             return
         }
 
-        for [idx] in 3
+        for idx in 3
         {
             #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
         }
@@ -228,14 +228,14 @@ impl SemaConstPointerVisits
     {
         #static if ptr
         {
-            for [idx] in 3
+            for idx in 3
             {
                 #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
         else
         {
-            for [idx] in 3
+            for idx in 3
             {
                 #inject(stmt, item = me.values[idx], index = @index)
             }
@@ -272,7 +272,7 @@ impl SemaGenericScopedVisits
 func semaTest001()
 {
     var values = SemaBufferVisits{}
-    for &value, [ordinal] in values
+    for &value, ordinal in values
     {
         #assert(#typeof(value) == #type &s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -284,7 +284,7 @@ func semaTest002()
 {
     var values = SemaReverseVisits{}
 
-    for #Reverse value, [ordinal] in values
+    for #Reverse value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -298,7 +298,7 @@ func semaTest002b()
     var values: SemaGenericReverseVisits's32
     values.values = [1, 2, 3]
 
-    for #reverse value, [ordinal] in values
+    for #reverse value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -336,7 +336,7 @@ func semaTest005()
 {
     var values = SemaHiddenAliasVisits{}
 
-    for value, [scaled] in values
+    for value, scaled in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
@@ -351,7 +351,7 @@ func semaTest006()
 {
     var values = SemaFieldPointerVisits{}
 
-    for &value, [ordinal] in values
+    for &value, ordinal in values
     {
         #assert(#typeof(value) == #type &s32)
         var x = value
@@ -363,7 +363,7 @@ func semaTest007()
 {
     var values = SemaPairVisits{}
 
-    for #Pairs left, [right] in values
+    for #Pairs left, right in values
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
@@ -378,7 +378,7 @@ func semaTest008()
 {
     let values = SemaConstPointerVisits{}
 
-    for &value, [ordinal] in values
+    for &value, ordinal in values
     {
         #assert(#typeof(value) == #type const &s32)
         var x = value
@@ -390,7 +390,7 @@ func semaTest009()
 {
     let values: SemaGenericScopedVisits's32 = {values: [10, 20, 30]}
 
-    for value, [ordinal] in values
+    for value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -405,7 +405,7 @@ func semaTest010()
     var outside: s32 = 0
     var inside:  s32 = 0
 
-    for value, [i] in visits
+    for value, i in visits
     {
         if !(i & 1) do
             outside += value
@@ -413,7 +413,7 @@ func semaTest010()
             inside += value
     }
 
-    for [i] in 0 until 1
+    for i in 0 until 1
     {
         var x = i
     }

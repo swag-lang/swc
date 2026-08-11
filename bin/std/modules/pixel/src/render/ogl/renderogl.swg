@@ -126,7 +126,7 @@ private impl RenderOgl
     {
         var count: GLint
         glGetIntegerv(GL_NUM_EXTENSIONS, &count)
-        for [idx] in count
+        for idx in count
         {
             let value = glGetStringi(GL_EXTENSIONS, cast(GLuint) idx)
             if value and cast(string) (cast(const cstring) value!) == name do
@@ -288,7 +288,7 @@ private impl RenderOgl
         Debug.assert(@countof(datas) <= 8 * 8)
 
         var arr: [64] u32
-        for p, [i] in datas do
+        for p, i in datas do
             arr[i] = p ? 0xFFFFFFFF : 0
 
         var result: GLuint
@@ -1166,7 +1166,7 @@ impl RenderOgl
                     glUniform1i(cast(GLint) curShader.gradientTextureEnabled, 0)
                     var offsets: [8] f32
                     var colors:  [8] Vector4
-                    for [i] in params.gradientStopCount
+                    for i in params.gradientStopCount
                     {
                         offsets[i] = stops[i].offset
                         colors[i]  = stops[i].color.toVector4()
@@ -1198,7 +1198,7 @@ impl RenderOgl
 
                     .gradientOffsetUpload.resize(params.gradientStopCount)
                     .gradientColorUpload.resize(params.gradientStopCount)
-                    for [i] in params.gradientStopCount
+                    for i in params.gradientStopCount
                     {
                         .gradientOffsetUpload[i] = {stops[i].offset, 0, 0, 0}
                         .gradientColorUpload[i]  = stops[i].color.toVector4()
@@ -1372,11 +1372,11 @@ impl RenderOgl
         .setBlendingMode(BlendingMode.Alpha)
         .setColorMask({true, true, true, false})
 
-        for [i] in 4 do
+        for i in 4 do
             glEnableVertexAttribArray(cast(GLuint) i)
-        for cmd, [cmdIdx] in dc.commandBuffer do
+        for cmd, cmdIdx in dc.commandBuffer do
             .executeCommand(dc, cmd, cmdIdx)
-        for [i] in 4 do
+        for i in 4 do
             glDisableVertexAttribArray(cast(GLuint) i)
         .finishAdvancedBlendPass()
     }
@@ -1404,7 +1404,7 @@ impl RenderOgl
         let w2 = Math.roundUpToPowerOf2(cast(u32) width)
         let h2 = Math.roundUpToPowerOf2(cast(u32) height)
 
-        for rt, [i] in .stackReleasedRT
+        for rt, i in .stackReleasedRT
         {
             let r = rt!
             if r.colorBuffer.width == w2 and r.colorBuffer.height == h2
@@ -1414,7 +1414,7 @@ impl RenderOgl
             }
         }
 
-        for rt, [i] in .stackReleasedRT
+        for rt, i in .stackReleasedRT
         {
             let r = rt!
             if r.colorBuffer.width >= w2 and r.colorBuffer.height >= h2

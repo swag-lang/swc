@@ -159,7 +159,7 @@ internal impl Voice
             fail SystemError{"too many buses", errorID: count}
 
         handle.busCount = cast(u32) count
-        for [i] in count
+        for i in count
         {
             let bus = buses[i]
             if !bus or !bus.handle do

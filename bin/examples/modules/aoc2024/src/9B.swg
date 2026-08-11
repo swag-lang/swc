@@ -116,7 +116,7 @@ func day9BB()
     var filesBySize: [10] Array's32
     var moved:       HashTable'(s32, u8)
 
-    for [i] in line.length where i % 2 == 0 do
+    for i in line.length where i % 2 == 0 do
         filesBySize[line[i] - '0'].add(cast(s32) i)
 
     var total         = 0'u64
@@ -144,7 +144,7 @@ func day9BB()
 
             if numSpaces
             {
-                for [j] in 1 to numSpaces
+                for j in 1 to numSpaces
                 {
                     let temp = &filesBySize[j]
                     if temp.isEmpty() do

@@ -155,7 +155,7 @@ func wait(threads: *Thread...)
     while start < @countof(threads)
     {
         let count = Math.min(MaxThreadWaitCount, cast(u32) (@countof(threads) - start))
-        for [i] in count
+        for i in count
         {
             let thread = threads[start + cast(u64) i]
             Debug.assert(thread.isValid())

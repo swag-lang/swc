@@ -878,7 +878,7 @@ impl Capture
 
         var boundRect: Math.Rectangle
 
-        for itf, [idx] in res
+        for itf, idx in res
         {
             itf.setup(me)
             let bound = itf.boundRect()
@@ -914,7 +914,7 @@ impl Capture
 
         // Select added forms
         .selection.clear()
-        for [i] in @countof(undo.oldForms) do
+        for i in @countof(undo.oldForms) do
             .selection.add(countBefore + i)
 
         .selectionHasChanged()
@@ -1177,7 +1177,7 @@ impl Capture
         }
 
         // Gizmos
-        for f, [i] in .forms
+        for f, i in .forms
         {
             var flags = FormFlags.Zero
             if i == .hotForm do
@@ -1341,7 +1341,7 @@ impl Capture
         arrY.add(.height)
         arrY.add(.height / 2)
 
-        for f, [i] in .forms
+        for f, i in .forms
         {
             let autoSel = .selection.contains(i) or @dataof(f) == @dataof(editForm)
             let form    = cast(*BaseForm) @dataof(f)
@@ -1363,7 +1363,7 @@ impl Capture
 
             case FormPolygon:
                 let form2 = cast(*FormPolygon) form
-                for pt, [idx] in form2.points
+                for pt, idx in form2.points
                 {
                     if !autoSel or idx != idxPt
                     {
@@ -1727,7 +1727,7 @@ impl Capture
             if ctrlPressed do
                 newSel = .selection
 
-            for f, [idx] in .forms
+            for f, idx in .forms
             {
                 let pp = f.boundRect() * view.zoom
                 if pp.intersects(r) and !newSel.contains(idx) do
@@ -1740,7 +1740,7 @@ impl Capture
             var selChanged = newSel.count != .selection.count
             if !selChanged
             {
-                for [i] in newSel.count
+                for i in newSel.count
                 {
                     if newSel[i] != .selection[i]
                     {
@@ -1869,7 +1869,7 @@ impl Capture
         if !.forms.count do
             return result
         let editView = .editView!
-        for #reverse [i] in @countof(.forms)
+        for #reverse i in @countof(.forms)
         {
             let f = .forms[i]
             if !f.hitTest(localPos, editView.zoom) do
@@ -1957,7 +1957,7 @@ impl Capture
 
     func groupIndexOf(arr: Array'u64, v: u64)->s64
     {
-        for x, [i] in arr where x == v do
+        for x, i in arr where x == v do
             return i
         return -1
     }
@@ -1984,7 +1984,7 @@ impl Capture
         if ids.isEmpty() do
             return
 
-        for f, [i] in .forms
+        for f, i in .forms
         {
             let g = formOuterGroup(f)
             if g != 0 and ids.contains(g) and !sel.contains(i) do
@@ -2053,7 +2053,7 @@ impl Capture
         for f in forms
         {
             let b = cast(*BaseForm) @dataof(f)
-            for [i] in b.groups.count
+            for i in b.groups.count
             {
                 let idx = groupIndexOf(oldIds, b.groups[i])
                 if idx >= 0 do

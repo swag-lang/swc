@@ -514,7 +514,7 @@ public impl Crc32
         const bytesAtOnce = 16 * unroll
         while length >= bytesAtOnce
         {
-            for [unrolling] in unroll
+            for unrolling in unroll
             {
                 #static if BIG_ENDIAN
                 {

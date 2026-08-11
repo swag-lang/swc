@@ -5,7 +5,7 @@ func rangeBytes(count: u64, first: u8)->Array'u8
 {
     var result: retval
     result.resize(count)
-    for [i] in count do
+    for i in count do
         result[i] = cast(u8) ((first + i) & 0xFF)
     return result
 }

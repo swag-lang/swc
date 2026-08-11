@@ -169,7 +169,7 @@ public impl Decoder
             let bgcolor = cast([*] u8) &.palette.colors[.bgIndex * 3'u32]
             if bgcolor[0] or bgcolor[1] or bgcolor[2]
             {
-                for [i] in size do
+                for i in size do
                     Memory.copy(&.canvas[i * 3], bgcolor, 3)
             }
         }

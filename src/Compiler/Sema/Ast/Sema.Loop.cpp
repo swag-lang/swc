@@ -718,14 +718,6 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
             }
         }
 
-        if (named && !hasFlag(AstForeachStmtFlagsE::IndexOnly))
-        {
-            const TokenRef   tokNameRef = forStmtNameRef(sema, *this);
-            const Diagnostic diag       = SemaError::report(sema, DiagnosticId::sema_err_for_count_binding_brackets, SourceCodeRef{srcViewRef(), tokNameRef});
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
         if (const auto* payload = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef()))
             SWC_RESULT(setupForLoopBoundCheck(sema, *this, *payload));
     }

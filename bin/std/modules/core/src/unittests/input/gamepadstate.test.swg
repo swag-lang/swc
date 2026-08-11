@@ -7,7 +7,7 @@ using Swag
 {
     var state: Input.GamepadState
 
-    for [i] in @countof(Input.GamepadButton)
+    for i in @countof(Input.GamepadButton)
     {
         let button = cast(Input.GamepadButton) i
         state.setPressed(button, true)
@@ -16,7 +16,7 @@ using Swag
 
     state.clear()
 
-    for [i] in @countof(Input.GamepadButton)
+    for i in @countof(Input.GamepadButton)
     {
         let button = cast(Input.GamepadButton) i
         @assert(!state.pressed[button])

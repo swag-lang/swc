@@ -60,7 +60,7 @@ impl Image
                             else
                             {
                                 let destinationFactor = destinationAlpha * (1.0 - sourceAlpha)
-                                for [channel] in 3
+                                for channel in 3
                                 {
                                     let value = (pixSrc[channel] * sourceAlpha + pix[channel] * destinationFactor) / outputAlpha
                                     pixDst[channel] = cast(u8) Math.round(value)

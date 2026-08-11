@@ -19,7 +19,7 @@ impl Image
 
         if .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
         {
-            for [i] in 256
+            for i in 256
             {
                 let c = Color.fromHsl(h, s, i / 255.0)
                 convArr[i, 0] = cast(f32) c.b
@@ -29,7 +29,7 @@ impl Image
         }
         elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
         {
-            for [i] in 256
+            for i in 256
             {
                 let c = Color.fromHsl(h, s, i / 255.0)
                 convArr[i, 0] = cast(f32) c.r

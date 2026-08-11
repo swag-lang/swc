@@ -28,15 +28,15 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
     // ---- data generation (not timed) ----
     let data = cast([*] u32) @alloc(SIZE * 4)!
-    for [i] in SIZE do
+    for i in SIZE do
         data[i] = cast(u32) (rnd() & M32)
 
     var key: [8] u32
-    for [i] in 8 do
+    for i in 8 do
         key[i] = cast(u32) (rnd() & M32)
 
     var nonce: [3] u32
-    for [i] in 3 do
+    for i in 3 do
         nonce[i] = cast(u32) (rnd() & M32)
 
     // ---- timed work ----
@@ -47,9 +47,9 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
     initial[1] = 0x3320646E
     initial[2] = 0x79622D32
     initial[3] = 0x6B206574
-    for [i] in 8 do
+    for i in 8 do
         initial[4 + i] = key[i]
-    for [i] in 3 do
+    for i in 3 do
         initial[13 + i] = nonce[i]
 
     var offset  = 0'u64
@@ -71,7 +71,7 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
             quarterRound(&state, 3, 4, 9, 14)
         }
 
-        for [i] in 16'u64 do
+        for i in 16'u64 do
             data[offset + i] ^= add32(state[i], initial[i])
 
         offset += 16
@@ -79,7 +79,7 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
     }
 
     var check = 0'u64
-    for [i] in SIZE do
+    for i in SIZE do
         check ^= (cast(u64) data[i] + i) & M32
 
     let t1 = now()

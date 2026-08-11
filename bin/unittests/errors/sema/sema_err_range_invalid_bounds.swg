@@ -2,8 +2,6 @@
 
 #test
 {
-    for to 4 {}
-    for until 4 {}
     for 4 to 4 {}
 
     // An exclusive range with equal bounds is empty, not invalid.

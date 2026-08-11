@@ -193,7 +193,7 @@ private func appendFlattenedContour(data: *String, path: const *LinePath, qualit
     if polygon.points.count < 2 do
         return
 
-    for &point, [i] in polygon.points do
+    for &point, i in polygon.points do
         data.appendFormat("%% %", i == 0 ? "M" : "L", num(point.x), num(point.y))
     dref data += "Z"
 }

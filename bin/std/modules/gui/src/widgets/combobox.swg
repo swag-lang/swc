@@ -316,7 +316,7 @@ private impl ComboBox
     {
         if forward
         {
-            for item, [idx] in .items
+            for item, idx in .items
             {
                 if !item!.isSeparator
                 {

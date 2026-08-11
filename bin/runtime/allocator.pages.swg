@@ -503,7 +503,7 @@ private func allocatorAddArena()->bool
 private func allocatorCreateSegment(unitShift: u32)->#null *AllocatorSegment
 {
     var chosen: #null *AllocatorArena
-    for [i] in g_AllocatorArenaCount
+    for i in g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[i]
         if arena.used + AllocatorSegmentSize <= arena.end
@@ -596,7 +596,7 @@ func allocatorPageOf(address: u64)->#null *AllocatorPage
 {
     // Plain loads: the target is x86-64, where a store is visible to another core in program
     // order, and a caller that reached this address already synchronized with its producer.
-    for [i] in g_AllocatorArenaCount
+    for i in g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[i]
         if address < arena.base or address >= arena.used do

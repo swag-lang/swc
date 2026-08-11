@@ -329,7 +329,7 @@ impl Volume
         if !.file.readExactAt(KeySlotAreaOffset, area) do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
-        for [index] in KeySlotCount
+        for index in KeySlotCount
         {
             var slot = KeySlot.decode(area[index * KeySlotSize until (index + 1) * KeySlotSize])
             defer slot.clear()
@@ -375,7 +375,7 @@ impl Volume
 
         var candidate: [Crypto.MasterKeySize] u8
         defer Core.Crypto.secureClear(candidate)
-        for [index] in KeySlotCount
+        for index in KeySlotCount
         {
             var slot = KeySlot.decode(area[index * KeySlotSize until (index + 1) * KeySlotSize])
             defer slot.clear()
@@ -419,7 +419,7 @@ impl Volume
         if (try .findKeySlot(additional)) != Swag.U64.Max do
             failWith("That password already opens this container.", .AlreadyExists)
 
-        for [index] in KeySlotCount
+        for index in KeySlotCount
         {
             if (.keySlotMask & keySlotBit(index)) != 0 do
                 continue
@@ -651,7 +651,7 @@ impl Volume
             let count = reader.readLittleEndian'u64()
             if !count or first >= .blockCount or count > .blockCount - first or count > expectedPages - .metadataPages.count do
                 failWith("A metadata page falls outside the container.", .Corrupted)
-            for [i] in count do
+            for i in count do
                 .metadataPages.add(first + i)
         }
 
@@ -661,7 +661,7 @@ impl Volume
         var image: Array'u8
         defer Core.Crypto.secureClear(image.toSlice())
         image.resize(.metadataPages.count * BlockSize)
-        for page, [i] in .metadataPages do
+        for page, i in .metadataPages do
             try .readMetadataPage(page, image[i * BlockSize until (i + 1) * BlockSize])
         image.resize(.metadataSize)
         try .loadNodes(image.toSlice())
@@ -789,10 +789,10 @@ impl Volume
         // never writes over a block the previous one still needs.
         var pages: Array'u64
         pages.reserve(pageCount)
-        for [i] in pageCount do
+        for i in pageCount do
             pages.add(try .blocks.allocate())
 
-        for page, [i] in pages do
+        for page, i in pages do
             try .writeMetadataPage(page, image[i * BlockSize until (i + 1) * BlockSize])
 
         .metadataPages = #move pages
@@ -916,7 +916,7 @@ impl Volume
         if .touchedSet.contains(id)
         {
             .touchedSet.remove(id)
-            for value, [i] in .touched
+            for value, i in .touched
             {
                 if value == id
                 {
@@ -1088,7 +1088,7 @@ impl Volume
         var parent = .nodeById(1)
         if !parent do
             return {null, parts[parts.count - 1]}
-        for [i] in 0 until parts.count - 1
+        for i in 0 until parts.count - 1
         {
             parent = .findChild(parent!.id, parts[i])
             if !parent or !parent!.isDirectory() do

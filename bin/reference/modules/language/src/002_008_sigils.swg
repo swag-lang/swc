@@ -241,8 +241,8 @@ One ordering rule does exist: on 'for', a custom sharp selector comes **before**
 the modifiers, because the selector names which iteration hook is resolved.
 
 ```swag
-for #Pairs #reverse [right] in values     // accepted
-for #reverse #Pairs [right] in values     // rejected
+for #Pairs #reverse right in values     // accepted
+for #reverse #Pairs right in values     // rejected
 ```
 */
 

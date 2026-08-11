@@ -353,7 +353,7 @@ private func resetTable(table: *StringTable)
 private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, pool: #null *Array'(*String)) fail
 {
     let lines = Tokenize.splitLines(content)
-    for oneit, [idx] in lines
+    for oneit, idx in lines
     {
         var one = Tokenize.eatSpaces(oneit)
         if @countof(one) == 0 do

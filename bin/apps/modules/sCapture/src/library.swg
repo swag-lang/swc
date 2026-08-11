@@ -177,7 +177,7 @@ impl Library
         if Path.lowercaseExtension(name) != ".scapture" do
             return
 
-        for fi, [idx] in .files
+        for fi, idx in .files
         {
             if fi.fullname == name
             {

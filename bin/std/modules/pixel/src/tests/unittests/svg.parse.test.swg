@@ -74,7 +74,7 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
                                "svg-wpt/render-until-error.svg"]
     const ShapeCounts: [4] u64 = [2, 1, 0, 2]
 
-    for name, [i] in Names
+    for name, i in Names
     {
         let text    = expect File.readAllText(getTestDataPath(name))
         let drawing = expect Svg.Drawing.parse(text.toString())

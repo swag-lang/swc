@@ -162,7 +162,7 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
     var previousClass = MathAtomClass.Ord
     var hasPrevious   = false
 
-    for child, [idx] in node.children
+    for child, idx in node.children
     {
         mathLayoutNode(child, font, style, variant, options)
 
@@ -632,9 +632,9 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
     rowDescents.resize(node.rowLengths.count)
 
     var childIndex = 0'u64
-    for count, [row] in node.rowLengths
+    for count, row in node.rowLengths
     {
-        for [column] in count
+        for column in count
         {
             let child = node.children[childIndex]
             mathLayoutNode(child, font, cellStyle, variant, options)
@@ -650,14 +650,14 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
     let columnGap = options.columnGapEm * em
     let rowGap    = options.rowGapEm * em
     var totalWidth, totalHeight: f32
-    for width, [idx] in columnWidths
+    for width, idx in columnWidths
     {
         totalWidth += width
         if idx + 1 < columnWidths.count do
             totalWidth += columnGap
     }
 
-    for ascent, [idx] in rowAscents
+    for ascent, idx in rowAscents
     {
         totalHeight += ascent + rowDescents[idx]
         if idx + 1 < rowAscents.count do
@@ -667,11 +667,11 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
     let axisY = -0.25'f32 * em
     var y     = axisY - totalHeight * 0.5
     childIndex = 0
-    for count, [row] in node.rowLengths
+    for count, row in node.rowLengths
     {
         let baseline = y + rowAscents[row]
         var x        = 0.0'f32
-        for [column] in count
+        for column in count
         {
             let child = node.children[childIndex]
             node.offsets[childIndex] = {x + (columnWidths[column] - child.metrics.width) * 0.5, baseline}
@@ -896,7 +896,7 @@ private func mathDrawNode(painter: *Painter, node: *MathNode, x, baseline: f32, 
         painter.drawString(x + draw.pos.x, top, draw.text, draw.font, color, .None, draw.scale)
     }
 
-    for child, [idx] in node.children
+    for child, idx in node.children
     {
         let offset = node.offsets[idx]
         mathDrawNode(painter, child, x + offset.x, baseline + offset.y, color)

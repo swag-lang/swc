@@ -923,7 +923,7 @@ private impl EditBox
             let base      = clientRect.right() - Painter.measureStringSnapped(&shaped, deviceScale: .deviceScale())
             var lastWidth = 0'f32
             var diff      = 0'f32
-            for [idx] in 1 until .textStorage.length
+            for idx in 1 until .textStorage.length
             {
                 let met = Painter.measureStringSnapped(&shaped, idx, .deviceScale())
                 diff = (met - lastWidth) * 0.5
@@ -949,7 +949,7 @@ private impl EditBox
             let shaped    = Painter.shapeRun(.textStorage.toString(), font)
             var lastWidth = 0'f32
             var diff      = 0'f32
-            for [idx] in 1 until .textStorage.length
+            for idx in 1 until .textStorage.length
             {
                 let met = Painter.measureStringSnapped(&shaped, idx, .deviceScale())
                 diff = (met - lastWidth) * 0.5

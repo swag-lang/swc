@@ -39,7 +39,7 @@ func rejectsPassword(path: string, password: const [..] u8)->bool
 func testDigestBytes(digest: Hash.Sha256.Digest)->[32] u8
 {
     var result: retval
-    for [i] in 8
+    for i in 8
     {
         let word = digest[i]
         result[i * 4 + 0] = cast(u8) ((word >> 24) & 0xFF)
@@ -136,7 +136,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(volume.resolve("\\DOCUMENTS\\SAMPLE.BIN") != null)
 
     var source: [7000] u8
-    for value, [i] in source do
+    for value, i in source do
         source[i] = cast(u8) ((i * 37 + 11) & 0xFF)
     @assert(expect volume.writeNode(fileId, 0, source, false, false) == #sizeof(source))
     expect volume.commit()
@@ -217,10 +217,10 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var grown: [20] u8
     @assert(expect volume.readNode(fileId, 0, grown) == #sizeof(grown))
-    for [i] in 10 do
+    for i in 10 do
         @assert(grown[i] == 0)
     @assert(grown[10] == 1 and grown[11] == 2)
-    for [i] in 12 until 20 do
+    for i in 12 until 20 do
         @assert(grown[i] == 0)
 
     volume.close()
@@ -367,7 +367,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     // Filling the journal forces a checkpoint rather than overwriting a record
     // that has not been consolidated yet.
-    for [i] in JournalCapacity do
+    for i in JournalCapacity do
         discard expect volume.createNode(Format.toString("\\filler_%", i), true, FileAttributeDirectory, emptyBytes())
     @assert(volume.checkpointAt > afterCreate)
     @assert(volume.sequence - volume.checkpointAt < JournalCapacity)
@@ -376,7 +376,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var reopened = expect Volume.open(path, testPassword())
     @assert(reopened.resolve("\\one") != null)
     @assert(reopened.resolve("\\two") != null)
-    for [i] in JournalCapacity do
+    for i in JournalCapacity do
         @assert(reopened.resolve(Format.toString("\\filler_%", i)) != null)
 
     // Closing consolidated everything, so nothing is left to replay.
@@ -507,7 +507,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     const FileCount = 1200'u64
 
     var volume = expect Volume.create(path, testPassword(), pagingContainerSize())
-    for [i] in FileCount do
+    for i in FileCount do
         discard expect volume.createNode(Format.toString("\\entry_%.bin", i), false, FileAttributeNormal, emptyBytes())
     volume.close()
 
@@ -516,11 +516,11 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var reopened = expect Volume.open(path, testPassword())
     @assert(reopened.nodes.count == FileCount + 1)
-    for [i] in FileCount do
+    for i in FileCount do
         @assert(reopened.resolve(Format.toString("\\entry_%.bin", i)) != null)
 
     // Deleting everything gives the metadata pages back too.
-    for [i] in FileCount
+    for i in FileCount
     {
         let node = reopened.resolve(Format.toString("\\entry_%.bin", i))!
         expect reopened.deleteNode(node.id)
@@ -604,7 +604,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // A used slot and an unused one are both noise: no run of repeated bytes
     // marks the boundary between them.
     var runs = 0'u64
-    for [i] in KeySlotAreaSize - 1
+    for i in KeySlotAreaSize - 1
     {
         if area[i] == area[i + 1] do
             runs += 1
@@ -680,7 +680,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var runs = 0'u64
     var counts: [256] u64
-    for byte, [i] in window
+    for byte, i in window
     {
         counts[byte] += 1
         if i and window[i - 1] == byte do

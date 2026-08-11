@@ -224,7 +224,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
 
     let easing = ComboBox.create(controls)
     g_StageEasing = easing
-    for [index] in @countof(WallCurves) do
+    for index in @countof(WallCurves) do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(5, false)
     easing.sigChanged += func(box, index)
@@ -256,7 +256,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
         playEntrance()
     }
 
-    for [index] in StageCardCount do
+    for index in StageCardCount do
         g_Cards.add(MotionCard.create(page, cast(s32) index + 1, StageTitles[index], StageDetails[index]))
 
     g_StageHint = Label.create(page, "Press Replay while the strip is still arriving: each tile keeps the value it is showing and continues from there.", {}, null, .SecondaryText)
@@ -293,7 +293,7 @@ func playEntrance()
     let stagger  = cast(f64) g_StageStagger!.value() / 1000
 
     var group = AnimationGroup.parallel()
-    for card, [index] in g_Cards
+    for card, index in g_Cards
     {
         let wnd   = card!
         let delay = Time.Duration.fromSeconds(stagger * cast(f64) index)
@@ -350,7 +350,7 @@ func layoutStagePage()
     let rowY    = inner.y + CaptionGap
     let columns = [168.0, 190.0, 190.0]
     var x       = inner.x
-    for caption, [index] in g_StageCaptions
+    for caption, index in g_StageCaptions
     {
         caption!.setPosition({x, inner.y, columns[index], 20})
         x += columns[index] + 16
@@ -369,7 +369,7 @@ func layoutStagePage()
     let cardH  = Math.clamp(rect.height - stripY - PagePad - 30, 90.0, MaxCardH)
     let cardW  = (width - cast(f32) (StageCardCount - 1) * RowGap) / cast(f32) StageCardCount
 
-    for card, [index] in g_Cards do
+    for card, index in g_Cards do
         card!.setPosition({PagePad + cast(f32) index * (cardW + RowGap), stripY, cardW, cardH})
     g_StageHint!.setPosition({PagePad, stripY + cardH + 10, width, 22})
 }
@@ -401,7 +401,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
 
     let easing = ComboBox.create(controls)
     g_FieldEasing = easing
-    for [index] in @countof(WallCurves) do
+    for index in @countof(WallCurves) do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(2, false)
     easing.sigChanged += func(box, index)

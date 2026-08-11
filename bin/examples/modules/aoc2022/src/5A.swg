@@ -90,7 +90,7 @@ func day5A()
         }
         else
         {
-            for [stack] in (l.length + 3) / 4
+            for stack in (l.length + 3) / 4
             {
                 let i = stack * 4
                 if stack >= stacks.count do

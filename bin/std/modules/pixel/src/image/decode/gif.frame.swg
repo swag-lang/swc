@@ -46,9 +46,9 @@ impl Decoder
 
         if pf.hasAlpha()
         {
-            for #reverse [j] in 0 until .fh
+            for #reverse j in 0 until .fh
             {
-                for [k] in cast(u32) .fw
+                for k in cast(u32) .fw
                 {
                     let index = .frame[(.fy + j) * cast(u32) .width + (.fx + k)]
                     let color = cast([*] u8) &palette.colors[index * 3'u32]
@@ -64,9 +64,9 @@ impl Decoder
         }
         else
         {
-            for #reverse [j] in 0 until .fh
+            for #reverse j in 0 until .fh
             {
-                for [k] in .fw
+                for k in .fw
                 {
                     let index = .frame[(.fy + j) * .width + (.fx + k)]
                     let color = cast([*] u8) &palette.colors[index * 3'u32]

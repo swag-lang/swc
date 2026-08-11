@@ -282,7 +282,7 @@ impl Decoder
     {
         var tmpArr: Array'u8
         var input = .dcmpBuf.buffer!
-        for [p] in 7
+        for p in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
             let y = (.header.height - Adam7OrigY[p] + Adam7SpacingY[p] - 1) / Adam7SpacingY[p]
@@ -297,16 +297,16 @@ impl Decoder
             .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
 
             var t = tmpBuffer
-            for [j] in y
+            for j in y
             {
-                for [i] in x
+                for i in x
                 {
                     let out_y   = .header.height - ((j * Adam7SpacingY[p]) + Adam7OrigY[p]) - 1
                     let out_x   = (i * Adam7SpacingX[p]) + Adam7OrigX[p]
                     var out_off = out_y * .header.width * pixelBytes
                     out_off += out_x * pixelBytes
                     let dstPixels = .safeDstPixels()
-                    for [z] in pixelBytes do
+                    for z in pixelBytes do
                         dstPixels[out_off + z] = t[z]
                     t += pixelBytes
                 }

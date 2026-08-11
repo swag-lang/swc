@@ -32,7 +32,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 #test
 {
     var prev = 0'u64
-    for [i] in AllocatorClassCount
+    for i in AllocatorClassCount
     {
         let sz = Allocator.classSize(cast(u32) i)
         @assert(sz > prev)
@@ -43,7 +43,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     }
 
     // ...and one byte past a class spills into the next one.
-    for [i] in AllocatorClassCount - 1
+    for i in AllocatorClassCount - 1
     {
         let sz = Allocator.classSize(cast(u32) i)
         @assert(Allocator.sizeClass(sz + 1) == cast(u32) i + 1)
@@ -57,12 +57,12 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     // Every class above the first is a multiple of 16, which is what lets the page path
     // satisfy a 16-byte alignment with no extra work.
-    for [i] in 1 until AllocatorClassCount do
+    for i in 1 until AllocatorClassCount do
         @assert(Allocator.classSize(cast(u32) i) % 16 == 0)
 
     // Splitting each power of two into four bounds the step at a fifth of the class it lands in,
     // which is the most of a block a request can leave unused.
-    for [i] in 9 until AllocatorClassCount
+    for i in 9 until AllocatorClassCount
     {
         let sz     = Allocator.classSize(cast(u32) i)
         let prevSz = Allocator.classSize(cast(u32) i - 1)
@@ -81,7 +81,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     const Count = 40_000
     var addresses: [Count] #null *void
-    for [i] in Count
+    for i in Count
     {
         addresses[i] = allocOne(itf, 32)
         @assert(addresses[i] != null)
@@ -93,7 +93,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     @assert(live.countPage < 64)
     @assert(live.countSegment <= 2)
 
-    for [i] in Count do
+    for i in Count do
         freeOne(itf, addresses[i])
 
     @assert(alloc.stats().countAlloc == 0)
@@ -130,7 +130,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
-    for [i] in AllocatorClassCount
+    for i in AllocatorClassCount
     {
         let expected = Allocator.classSize(cast(u32) i)
         let address  = allocOne(itf, expected)
@@ -273,7 +273,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     const Count = 8192
     var addresses: [Count] #null *void
-    for [i] in Count
+    for i in Count
     {
         addresses[i] = allocOne(itf, 64)
         @assert(addresses[i] != null)
@@ -282,7 +282,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     let live = alloc.stats()
     @assert(live.countPage >= 8)
 
-    for [i] in Count do
+    for i in Count do
         freeOne(itf, addresses[i])
 
     alloc.trim()
@@ -306,13 +306,13 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     const Count = 64
     var addresses: [Count] #null *void
-    for [i] in Count
+    for i in Count
     {
         addresses[i] = allocOne(itf, 128)
         @assert(addresses[i] != null)
     }
 
-    for [i] in Count do
+    for i in Count do
         freeOne(itf, addresses[i])
 
     @assert(alloc.quarantineBytes <= alloc.maxQuarantineBytes)
@@ -359,7 +359,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     @assert(req.address != null)
 
     let p = cast([*] u8) req.address!
-    for [i] in 64 do
+    for i in 64 do
         p[i] = cast(u8) (i + 1)
 
     // 64 and 80 share no class, but 60 and 64 do, so only the second call moves.
@@ -375,7 +375,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     @assert(cast(u64) req.address % 128 == 0)
 
     let moved = cast([*] u8) req.address!
-    for [i] in 60 do
+    for i in 60 do
         @assert(moved[i] == cast(u8) (i + 1))
 
     itf.free(&req)
@@ -396,7 +396,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     @assert(req.address != null)
 
     let seed = cast([*] u8) req.address!
-    for [i] in 24 do
+    for i in 24 do
         seed[i] = cast(u8) (i * 3 + 7)
 
     var size = 24'u64
@@ -408,7 +408,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         @assert(req.address != null)
 
         let grown = cast([*] u8) req.address!
-        for [i] in 24 do
+        for i in 24 do
             @assert(grown[i] == cast(u8) (i * 3 + 7))
     }
 
@@ -440,12 +440,12 @@ func freeOne(itf: IAllocator, address: #null *void)
     let itf = makeAllocator(&alloc)
 
     var addresses: [16] #null *void
-    for [i] in 16
+    for i in 16
     {
         addresses[i] = allocOne(itf, 48)
         @assert(addresses[i] != null)
     }
-    for [i] in 16 do
+    for i in 16 do
         freeOne(itf, addresses[i])
 
     let cached = alloc.stats()
@@ -600,13 +600,13 @@ func freeOne(itf: IAllocator, address: #null *void)
         @atomadd(&shared.ready, 1)
         while @atomcmpxchg(&shared.start, 0, 0) == 0 {}
 
-        for [i] in PageThreadAllocCount
+        for i in PageThreadAllocCount
         {
             addresses[i] = allocOne(itf, 32)
             @assert(addresses[i] != null)
         }
 
-        for [i] in PageThreadAllocCount do
+        for i in PageThreadAllocCount do
             freeOne(itf, addresses[i])
 
         // Deliberately omit releaseAllocatorThreadCache(): the FLS destructor
@@ -624,7 +624,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         shared.itf = itf
 
         var handles: [PageThreadCount] Th.HANDLE = undefined
-        for [i] in PageThreadCount
+        for i in PageThreadCount
         {
             var tid: Th.DWORD
             handles[i] = Th.CreateThread(null, 0, &pageThread, &shared, 0, &tid)
@@ -634,7 +634,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         while @atomcmpxchg(&shared.ready, 0, 0) != PageThreadCount {}
         discard @atomxchg(&shared.start, 1)
 
-        for [i] in PageThreadCount
+        for i in PageThreadCount
         {
             discard Th.WaitForSingleObject(handles[i], Th.INFINITE)
             Th.CloseHandle(handles[i])
@@ -675,7 +675,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     func stressFreerThread(param: *void)->Th.DWORD
     {
         let s = cast(*StressShared) param
-        for [i] in StressCount do
+        for i in StressCount do
             freeOne(s.itf!, s.slots[i])
         @atomadd(&s.freerDone, 1)
         return 0
@@ -705,13 +705,13 @@ func freeOne(itf: IAllocator, address: #null *void)
         shared.alloc = &alloc
 
         var handles: [StressCount] Th.HANDLE = undefined
-        for [i] in StressCount
+        for i in StressCount
         {
             var tid: Th.DWORD
             handles[i] = Th.CreateThread(null, 0, &stressAllocRetireThread, &shared, 0, &tid)
             @assert(handles[i] != null)
         }
-        for [i] in StressCount
+        for i in StressCount
         {
             discard Th.WaitForSingleObject(handles[i], Th.INFINITE)
             Th.CloseHandle(handles[i])

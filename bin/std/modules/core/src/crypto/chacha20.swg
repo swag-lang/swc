@@ -54,7 +54,7 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
     initial[1] = 0x3320646E
     initial[2] = 0x79622D32
     initial[3] = 0x6B206574
-    for [i] in 8 do
+    for i in 8 do
         initial[4 + i] = load32(@dataof(key) + i * 4)
     initial[12] = counter
     initial[13] = load32(@dataof(nonce))
@@ -62,7 +62,7 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
     initial[15] = load32(@dataof(nonce) + 8)
 
     var state = initial
-    for [round] in 10
+    for round in 10
     {
         discard round
         quarterRound(&state, 0, 4, 8, 12)
@@ -76,7 +76,7 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
     }
 
     var result: retval
-    for [i] in 16 do
+    for i in 16 do
         store32(&result[i * 4], add32(state[i], initial[i]))
     secureClear(initial)
     secureClear(state)

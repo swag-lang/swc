@@ -184,7 +184,7 @@ impl Guid64
             return false
 
         var value: u64 = 0
-        for [i] in 16
+        for i in 16
         {
             let c = str[startIndex + i]
             var digit: u64

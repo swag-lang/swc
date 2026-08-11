@@ -73,7 +73,7 @@ func removeDynamicArrayElement(arrayPointer: #null *void, elementType: #null typ
         let countMove = arr.count - index - 1
         if hasPostMove(nnType)
         {
-            for [i] in index until arr.count - 1
+            for i in index until arr.count - 1
             {
                 Memory.copy(arr.buffer + i * sizeValue, arr.buffer + (i + 1) * sizeValue, sizeValue)
                 Memory.postMoveType(arr.buffer + (i * sizeValue), nnType)

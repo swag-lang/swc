@@ -7,7 +7,7 @@ using Swag
 {
     var keyboard: Input.Keyboard
 
-    for [i] in @countof(Input.Key)
+    for i in @countof(Input.Key)
     {
         let key = cast(Input.Key) i
         @assert(!keyboard.isKeyPressed(key))
@@ -21,7 +21,7 @@ using Swag
 {
     var keyboard: Input.Keyboard
 
-    for [i] in @countof(Input.Key)
+    for i in @countof(Input.Key)
     {
         let key = cast(Input.Key) i
 
@@ -83,7 +83,7 @@ using Swag
 {
     var keyboard: Input.Keyboard
 
-    for [i] in @countof(Input.Key)
+    for i in @countof(Input.Key)
     {
         keyboard.setKeyStates(cast(Input.Key) i, true, true)
         keyboard.isRepeating[i] = true
@@ -92,7 +92,7 @@ using Swag
 
     keyboard.clear()
 
-    for [i] in @countof(Input.Key)
+    for i in @countof(Input.Key)
     {
         @assert(!keyboard.previousState.pressed[i])
         @assert(!keyboard.currentState.pressed[i])

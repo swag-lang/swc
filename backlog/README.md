@@ -43,6 +43,7 @@ allowed to stop.
 | File | Area |
 | --- | --- |
 | [findings.compiler.md](findings.compiler.md) | Frontend, semantic analysis, and code generation defects |
+| [findings.format.md](findings.format.md) | The `format` command and formatter defects |
 | [findings.language.md](findings.language.md) | Language rules that surprise: overloaded spellings, defaults, and silent conversions |
 | [findings.optimization.md](findings.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [findings.safety.md](findings.safety.md) | Borrow, lifetime, and sanity analysis |

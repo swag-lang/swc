@@ -374,6 +374,13 @@ namespace
             return;
         }
 
+        const SymbolImpl* symImpl = symbol.declImplContext();
+        if (symImpl && symImpl->isForEnum() && symImpl->symEnum())
+        {
+            appendPublicApiScopedSymbolPath(out, ctx, *symImpl->symEnum(), true);
+            return;
+        }
+
         appendPublicApiScopedSymbolPath(out, ctx, symbol, false);
     }
 
@@ -396,6 +403,31 @@ namespace
                     continue;
 
                 outOverloads.push_back(candidate);
+            }
+
+            return;
+        }
+
+        const SymbolImpl* symImpl = symbol.declImplContext();
+        if (symImpl && symImpl->isForEnum() && symImpl->symEnum())
+        {
+            for (const SymbolImpl* enumImpl : symImpl->symEnum()->impls())
+            {
+                if (!enumImpl)
+                    continue;
+
+                std::vector<const Symbol*> symbols;
+                enumImpl->getAllSymbols(symbols);
+                for (const Symbol* candidateBase : symbols)
+                {
+                    const auto* candidate = candidateBase ? candidateBase->safeCast<SymbolFunction>() : nullptr;
+                    if (!candidate || candidate->idRef() != symbol.idRef())
+                        continue;
+                    if (!isPublicApiExportedOverload(*candidate))
+                        continue;
+
+                    outOverloads.push_back(candidate);
+                }
             }
 
             return;
@@ -659,7 +691,7 @@ bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
         return false;
     if (attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
         return false;
-    if (const SymbolImpl* symImpl = declImplContext(); symImpl && !symImpl->isForStruct())
+    if (const SymbolImpl* symImpl = declImplContext(); symImpl && !symImpl->isForStruct() && !symImpl->isForEnum())
         return false;
 
     if (attributes().hasRtFlag(RtAttributeFlagsE::Macro) || attributes().hasRtFlag(RtAttributeFlagsE::Mixin))

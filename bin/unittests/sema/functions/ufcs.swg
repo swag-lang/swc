@@ -51,15 +51,21 @@ impl Direction
         using Direction
         return me == North or me == South
     }
+
+    mtd const constCode()->s32 => directionCode(me)
 }
+
+func directionCode(value: Direction)->s32 => value == .North ? 1 : 2
 
 func semaTest002()
 {
     var dir      = Direction.North
     let opposite = dir.opposite()
     let vertical = dir.isVertical()
+    let code     = dir.constCode()
     #assert(#typeof(opposite) == Direction)
     #assert(#typeof(vertical) == bool)
+    #assert(#typeof(code) == s32)
 }
 
 func invertUfcs(value: bool)->bool => !value

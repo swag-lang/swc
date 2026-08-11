@@ -207,14 +207,18 @@ namespace
     Result validatePublicFunctionOwner(TaskContext& ctx, const SymbolFunction& symbolFunction, ModuleApiValidationStack& stack)
     {
         const SymbolImpl* symImpl = symbolFunction.declImplContext();
-        if (!symImpl || !symImpl->isForStruct())
+        if (!symImpl)
             return Result::Continue;
 
-        const SymbolStruct* ownerStruct = symImpl->symStruct();
-        if (!ownerStruct)
+        const Symbol* ownerType = nullptr;
+        if (symImpl->isForStruct())
+            ownerType = symImpl->symStruct();
+        else if (symImpl->isForEnum())
+            ownerType = symImpl->symEnum();
+        if (!ownerType)
             return Result::Continue;
 
-        return validateTypeReferenceSymbol(ctx, symbolFunction, symbolFunction, "its owner type", *ownerStruct, stack);
+        return validateTypeReferenceSymbol(ctx, symbolFunction, symbolFunction, "its owner type", *ownerType, stack);
     }
 }
 

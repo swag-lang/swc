@@ -66,20 +66,20 @@ enum CaptureIcons
     AlignBottom         // Bottom vertical alignment.
 }
 
-// The parsed application icon document, shared by the main window and the headless
-// test fixtures; parsed once per process.
-var g_CaptureIconsDrawing: Svg.Drawing
-var g_CaptureIconsParsed:  bool
+// The application icon document and the frames rasterized from it, shared by the main window
+// and the headless test fixtures; parsed and rasterized once per process.
+var g_CaptureIcons:       Gui.IconAtlas
+var g_CaptureIconsParsed: bool
 
-func captureIconsDrawing()->*Svg.Drawing
+func captureIcons()->*Gui.IconAtlas
 {
     if !g_CaptureIconsParsed
     {
-        g_CaptureIconsDrawing = expect Svg.Drawing.parse(cast(string) IconsSvg)
-        g_CaptureIconsParsed  = true
+        expect g_CaptureIcons.setup(cast(string) IconsSvg)
+        g_CaptureIconsParsed = true
     }
 
-    return &g_CaptureIconsDrawing
+    return &g_CaptureIcons
 }
 
 enum BottomSize
@@ -1013,7 +1013,7 @@ impl MainWnd
         {
             let resSrf = res.surface!
             resSrf.setView(res)
-            .icons.setup(renderer, captureIconsDrawing())
+            .icons.setup(renderer, captureIcons())
             .appIcon.set(renderer.addImage(imgApp))
             .backgroundStyle = .Window
             .mdlFavorite     = &res.mdlFormShape

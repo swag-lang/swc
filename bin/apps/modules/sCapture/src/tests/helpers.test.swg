@@ -31,7 +31,7 @@ impl HeadlessFixture
         .main  = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
         g_Main = .main
         let renderer = .gui.app.renderer
-        .main.icons.setup(renderer, captureIconsDrawing())
+        .main.icons.setup(renderer, captureIcons())
         .main.appIcon.set(renderer.addImage(Image.create(512, 512, .RGBA8)))
         .main.mdlFavorite  = &.main.mdlFormShape
         .main.mdlHighlight = &.main.mdlFormShape

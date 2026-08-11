@@ -29,15 +29,18 @@ private const DefaultIcons = #include(DefaultIconsName)
 
 // Parsed default theme art, shared by every Theme instance. Parsing the embedded sources is
 // pure CPU work whose result never changes, so it is done once per process (same policy as
-// the TypeFace/Font caches). Every piece of theme art is a vector document; widget
-// rasterizations depend only on the requested scale, so they are cached beside the drawings.
+// the TypeFace/Font caches). Every piece of theme art is a vector document, and rasterizing one
+// depends on the requested size and scale alone, so the results are cached beside the drawings:
+// widget atlases here by scale, icon sheets inside the [[Gui.IconAtlas]] by cell size. A process
+// that builds many themes — a test executable creates one per headless host — then pays for the
+// rasterization of each sheet once rather than once per theme.
 private struct DefaultThemeImages
 {
     lock:           Sync.Mutex
     decoded:        bool
     widgets:        Svg.Drawing                // Vector widgets atlas, parsed once.
     widgetsRasters: HashTable'(s32, Image)     // Rasterizations of `widgets`, by whole scale.
-    icons:          Svg.Drawing                // Vector icon set, parsed once.
+    icons:          IconAtlas                  // Vector icon set, parsed once, with its own frames.
 }
 
 // Bundle names of the theme resources. The `Default*Name` constants above are include
@@ -111,7 +114,7 @@ private func defaultThemeImages()->*DefaultThemeImages
     if !cache.decoded
     {
         cache.widgets = expect Svg.Drawing.parse(cast(string) DefaultImage)
-        cache.icons   = expect Svg.Drawing.parse(cast(string) DefaultIcons)
+        expect cache.icons.setup(cast(string) DefaultIcons)
         cache.decoded = true
     }
 

@@ -92,3 +92,51 @@ Entries are sorted by identifier, ascending; position carries no priority.
   into. A path named explicitly through `-f` should never be filtered. And a run that ends with
   zero inputs should say so: `format.swgs` on an empty selection and `format.swgs` on a conformant
   tree print the same thing today, which is what let this go unnoticed.
+- Still live 2026-08-11, and it is not only a reporting problem: an agent working in a worktree
+  cannot format at all, so the only way to check a change against the canonical style is to copy
+  the files to a path with no dot segment, copy `bin/.swc-format` beside them, format there, and
+  copy the result back.
+
+### F-118 — A test executable that outlives its run changes the next run's result
+
+- Area: tooling
+- Found while: A/B measuring the sCapture suite, where `scapture.surface` failed on one run and
+  passed on the next with no source change in between
+- Observation: `sCapture.test.exe` from an earlier run was still alive, and it still held the
+  global `PrintScreen` hotkey. The next run's application therefore failed to register it, put an
+  error bar across the top of its window — "Cannot register global shortcut 'PrintScreen'" — and
+  the golden comparison saw 27 560 pixels outside tolerance. Nothing in the failure names the
+  cause: it reads as a rendering regression in whatever change is being tested.
+- Evidence: `Get-Process sCapture.test` showed pid 9604 from the previous run; killing it and
+  re-running turned the same working tree from `1 did not pass` to `149 tests` green. The two
+  golden images differ by the error bar alone.
+- Why it matters: this is a false failure that points at the change under test, and it is
+  self-perpetuating — the run that leaks the process is usually the run that was interrupted, so
+  the next one fails for a reason that no longer exists in the sources.
+- Next step: two halves. The runner should not leave a bounded run behind: `runGeneratedArtifact`
+  already kills on `--run-timeout`, but a run stopped by a failing test, or by the tool being
+  interrupted, can leave the child alive — it should be killed on every exit path. And a headless
+  test that needs an exclusive machine-wide resource should either not take it or not fail the
+  picture when it cannot; the sandbox already isolates the filesystem, and a global hotkey is
+  exactly the kind of thing it does not cover.
+
+### F-119 — Nothing records where a campaign's time goes
+
+- Area: tooling
+- Found while: asking why `tests.swgs dm --all-cfg` takes about fifty minutes
+- Observation: `swc` already times every stage and prints one line per module
+  (`ScopedTimedLog`), but `tests.swgs` launches a hundred of those processes per configuration and
+  keeps none of the numbers. There is no per-step total, no ranking, and no record at the end of a
+  run, so the only way to learn which rung costs what is to reconstruct it from the modification
+  times of the artifacts in `.output` while a campaign is running.
+- Evidence: one measured run, 2026-08-11, `dm --all-cfg`, 48 min 57 s wall — rungs 1+2 3 min 25,
+  rung 3 (std) 6 min 46, rung 4 (apps + reference) 18 min 33, rung 5 (smoke) 20 min 13. Reaching
+  those four numbers took an hour of observation that a five-line summary would have printed for
+  free.
+- Also: wall time on a developer machine is not a usable A/B signal at this granularity. The same
+  sCapture suite, same binary, measured 2 min 00, 2 min 43, 3 min 11 and 3 min 34 across four
+  consecutive runs with an IDE open. Anything measuring a campaign change needs either a
+  deterministic counter or many alternated rounds.
+- Next step: have `Context.runCompiler` time each invocation and accumulate `(label, seconds)`,
+  then print a table ordered by cost at the end of `runTests`. The labels already exist — the rung,
+  the configuration, and the workspace or suite name are all known at the call site.

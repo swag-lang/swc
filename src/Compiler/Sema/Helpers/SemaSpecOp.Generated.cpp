@@ -498,6 +498,167 @@ namespace
         source += "    }\n";
     }
 
+    // Declaring any 'opEquals' takes the struct out of the byte comparison: '==' between two of
+    // its values then goes through overload resolution, which answers with the matching overload
+    // or with an error. So the two questions asked here are different. 'Self' means an overload
+    // takes the struct, so 'a == b' is that call. 'Foreign' means every overload takes something
+    // else — a '#null string' the struct compares itself against, say — and 'a == b' between two
+    // of them is rejected, which is what makes a member-wise body impossible for anything holding
+    // one.
+    enum class EqualityOverload : uint8_t
+    {
+        None,
+        Foreign,
+        Self,
+    };
+
+    EqualityOverload declaredEqualityOverload(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        if (ownerStruct.attributes().generatedOperators.has(GeneratedOperatorFlagsE::OpEquals))
+            return EqualityOverload::Self;
+
+        const IdentifierRef idRef  = specOpIdFromKind(sema, SpecOpKind::OpEquals);
+        EqualityOverload    result = EqualityOverload::None;
+        for (const SymbolImpl* impl : ownerStruct.impls())
+        {
+            if (!impl)
+                continue;
+
+            for (const SymbolFunction* function : impl->specOps())
+            {
+                if (!function || function->idRef() != idRef || function->parameters().size() < 2)
+                    continue;
+                if (SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, function->parameters()[1]->typeRef()))
+                    return EqualityOverload::Self;
+                result = EqualityOverload::Foreign;
+            }
+        }
+
+        return result;
+    }
+
+    bool typeComparesAsBytes(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
+
+    bool structHasSelfEqualityOverload(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        return declaredEqualityOverload(sema, ownerStruct) == EqualityOverload::Self;
+    }
+
+    // A struct answers '==' member by member. Comparing its storage instead is only the same
+    // question when every member itself compares as bytes, which is what this decides. It never
+    // filters '#[Swag.OperatorIgnore]' fields: an ignored field still makes the struct generate
+    // an 'opEquals', and the generated body is where the field drops out.
+    bool structComparesAsBytes(Sema& sema, const SymbolStruct& ownerStruct, std::unordered_set<TypeRef>& visiting)
+    {
+        if (structHasSelfEqualityOverload(sema, ownerStruct))
+            return false;
+
+        // Union members share one storage, so there is no member-wise answer to give.
+        if (ownerStruct.isUnion())
+            return true;
+
+        bool needsMemberWise = false;
+        for (const SymbolVariable* field : ownerStruct.fields())
+        {
+            if (!field)
+                continue;
+
+            // A member with foreign overloads only has no '==' against itself, so no member-wise
+            // body can be written here at all and the storage comparison stays.
+            const SymbolStruct* fieldStruct = generatedOperatorFieldStruct(sema, field->typeRef());
+            if (fieldStruct && declaredEqualityOverload(sema, *fieldStruct) == EqualityOverload::Foreign)
+                return true;
+
+            if (!typeComparesAsBytes(sema, field->typeRef(), visiting))
+                needsMemberWise = true;
+        }
+
+        return !needsMemberWise;
+    }
+
+    // A 'string' or a slice compares the content it views rather than the view itself, and a
+    // struct carrying an 'opEquals' compares whatever that method decides. An array is left
+    // out on purpose: its own '==' is a byte comparison whatever it holds, so a member-wise
+    // struct comparison and a byte comparison give it the same answer.
+    bool typeComparesAsBytes(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    {
+        typeRef = unwrapAlias(sema.ctx(), typeRef);
+        if (typeRef.isInvalid())
+            return true;
+        if (!visiting.insert(typeRef).second)
+            return true;
+
+        const TypeInfo& type   = sema.typeMgr().get(typeRef);
+        bool            result = true;
+        if (type.isString() || type.isSlice())
+            result = false;
+        else if (type.isStruct())
+            result = structComparesAsBytes(sema, type.payloadSymStruct(), visiting);
+        else if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef memberTypeRef : type.payloadAggregate().types)
+            {
+                if (!typeComparesAsBytes(sema, memberTypeRef, visiting))
+                {
+                    result = false;
+                    break;
+                }
+            }
+        }
+
+        visiting.erase(typeRef);
+        return result;
+    }
+
+    // A struct declared inside a function body lands in the local scope instead of a symbol
+    // map, which is what leaves it without an owner map. The language rejects an 'impl' block
+    // there too, so nothing ever had to name such a type from another context: the generated
+    // pass for a non-generic one still runs in the declaring scope and resolves the name, but
+    // a generic instance is completed from a rebuilt scope where the name is gone. Those keep
+    // comparing their storage.
+    bool isLocalScopeStruct(const SymbolStruct& ownerStruct)
+    {
+        return ownerStruct.genericRootOrSelf()->ownerSymMap() == nullptr;
+    }
+
+    bool shouldGenerateEqualityOperator(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        if (ownerStruct.isUnion() || ownerStruct.fields().empty())
+            return false;
+        if (ownerStruct.isGenericInstance() && isLocalScopeStruct(ownerStruct))
+            return false;
+
+        // A struct already answering '==' with an overload of its own needs nothing generated,
+        // which is the other reason 'structComparesAsBytes' says no.
+        if (structHasSelfEqualityOverload(sema, ownerStruct))
+            return false;
+
+        std::unordered_set<TypeRef> visiting;
+        return !structComparesAsBytes(sema, ownerStruct, visiting);
+    }
+
+    Utf8 makeGeneratedEqualityMethodSource(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        SmallVector<Utf8> fields;
+        collectGeneratedOperatorFieldNames(sema, ownerStruct, fields);
+
+        Utf8 source;
+        source += "// Generated member-wise equality.\n";
+        appendGeneratedEqualsOperator(sema, source, ownerStruct, fields.span());
+        return source;
+    }
+
+    Utf8 makeGeneratedEqualitySource(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        Utf8 source;
+        source += "impl ";
+        source += ownerStruct.typeInfo(sema.ctx()).toName(sema.ctx());
+        source += "\n{\n";
+        source += makeGeneratedEqualityMethodSource(sema, ownerStruct);
+        source += "}\n";
+        return source;
+    }
+
     Utf8 makeGeneratedOperatorsSource(Sema& sema, const SymbolStruct& ownerStruct, GeneratedOperatorFlags flags)
     {
         SmallVector<Utf8> fields;
@@ -943,6 +1104,39 @@ Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& o
     const Utf8 source = makeGeneratedLifecycleSource(sema, ownerStruct, plan);
     SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view()));
     ownerStruct.publishGeneratedLifecycle();
+    return Result::Continue;
+}
+
+// '==' on a struct that declares no 'opEquals' is lowered to a comparison of its storage, which
+// answers a different question than its members do as soon as one of them compares its content
+// instead of its bytes. Give that struct the member-wise 'opEquals' it needs, the same way a
+// field owning an 'opDrop' gives its holder a drop wrapper, so the two answers cannot disagree.
+Result SemaSpecOp::ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct)
+{
+    if (ownerStruct.generatedEqualityPublished())
+        return Result::Continue;
+
+    const std::scoped_lock lock(ownerStruct.generatedEqualityMutex());
+    if (ownerStruct.generatedEqualityPublished())
+        return Result::Continue;
+
+    if (!ownerStruct.tryMarkGeneratedEquality() || !shouldGenerateEqualityOperator(sema, ownerStruct))
+    {
+        ownerStruct.publishGeneratedEquality();
+        return Result::Continue;
+    }
+
+    if (ownerStruct.isGenericInstance())
+    {
+        const Utf8 source = makeGeneratedEqualityMethodSource(sema, ownerStruct);
+        SWC_RESULT(declareGeneratedImplBlockSource(sema, ownerStruct, source.view()));
+        ownerStruct.publishGeneratedEquality();
+        return Result::Continue;
+    }
+
+    const Utf8 source = makeGeneratedEqualitySource(sema, ownerStruct);
+    SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view()));
+    ownerStruct.publishGeneratedEquality();
     return Result::Continue;
 }
 

@@ -117,6 +117,52 @@ equality, inequality, and relational comparisons.
 }
 
 /**
+# Struct Comparison
+
+'==' on a struct compares it member by member, and each member compares the way its own type
+does. A 'string' or a slice member therefore compares the content it views rather than the
+view itself, and a member owning an 'opEquals' has that method called.
+
+The compiler compares the whole storage in one go whenever every member gives the same answer
+its bytes give, which is what a struct of numbers, pointers and enums does. A union always
+compares its storage as well: its members share it, so there is no member-wise answer to give.
+
+Declare an 'opEquals' to decide the comparison yourself, or ask for a generated one with
+'#[Swag.Operators(opEquals)]'.
+*/
+
+struct Tolerance
+{
+    value: s32
+}
+
+impl Tolerance
+{
+    // Two readings one unit apart count as the same reading.
+    mtd const opEquals(other: const &Tolerance)->bool
+    {
+        return .value == other.value or .value + 1 == other.value or .value == other.value + 1
+    }
+}
+
+struct Measure
+{
+    reading: Tolerance
+    label:   s32
+}
+
+#test
+{
+    let a = Measure{reading: {value: 10}, label: 7}
+    let b = Measure{reading: {value: 11}, label: 7}
+    let c = Measure{reading: {value: 10}, label: 8}
+
+    @assert(a.reading == b.reading)     // the member decides these readings are equal
+    @assert(a == b)                     // so the two measures are equal too
+    @assert(a != c)                     // 'label' still compares as the number it is
+}
+
+/**
 # Logical Operators
 
 Logical operators evaluate expressions and return a boolean result. Swag uses

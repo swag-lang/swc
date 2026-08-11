@@ -816,42 +816,133 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## What equality compares
 
-### F-107 — A struct compares its bytes, so a string or slice member compares as a view
+### F-107 — A struct of scalars still compares its padding bytes
 
 - Area: language
-- Found while: F-087, checking where else content equality stops
-- Observation: `==` between two structs without an `opEquals` compares their storage byte for byte,
-  so a member whose own `==` compares content does not. Two structs holding equal text over
-  different buffers answer `false` while the two members answer `true`, and nothing says so at the
-  call site. This is not new for `string` — it is what byte comparison has always meant — but it is
-  now the only place a slice still compares as the view it is, which makes the split visible:
-  `a.text == b.text` and `a == b` disagree about the same bytes.
+- Found while: giving a struct whose members do not compare as bytes a generated member-wise
+  `opEquals`, which left this half of the question open
+- Observation: a struct every member of which compares as bytes keeps being compared as one block
+  of storage, and that block includes the padding the layout inserted. Two values whose every
+  member is equal answer `false` when the bytes between the members differ, which they do after
+  `= undefined`, after a `@memset`, or after any write that reused the storage. The rule the
+  reference now states — a struct compares member by member, and the byte comparison is the
+  shortcut taken when the two answers agree — is exactly what padding breaks: nothing about `a.a ==
+  b.a and a.b == b.b` mentions the seven bytes between them.
 - Evidence: isolated probe, `swc test -d <dir>`, identical under the JIT and from the binary:
 
   ```swag
-  struct Holder { text: string, tag: s64 }
-  var g_holders: [2] Holder = undefined
-  var g_left, g_right: [3] u8
+  struct Padded { a: u8, b: u64 }
 
   #[Swag.Optimize(false)]
-  func eqHolder(a, b: Holder)->bool => a == b
+  func eqPadded(x, y: Padded)->bool => x == y
 
-  g_left  = ['a', 'b', 'c']
-  g_right = ['a', 'b', 'c']
-  g_holders[0].text = cast(string) @mkslice(cast(const [*] u8) &g_left[0], 3'u64)
-  g_holders[1].text = cast(string) @mkslice(cast(const [*] u8) &g_right[0], 3'u64)
-
-  @assert(g_holders[0].text == g_holders[1].text)     // passes
-  @assert(eqHolder(g_holders[0], g_holders[1]))       // fails
+  var p0, p1: Padded = undefined
+  @memset(&p0, 0xAA, #sizeof(Padded))
+  @memset(&p1, 0x55, #sizeof(Padded))
+  p0.a, p1.a = 1
+  p0.b, p1.b = 2
+  @assert(eqPadded(p0, p1))     // fails
   ```
 
-  A `const [..] u8` member behaves the same way. `emitAggregateEqualsBool` in
+  `emitAggregateEqualsBool` in
   [CodeGen.Relational.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Relational.cpp) is the byte compare
-  in question.
-- Next step: measure the blast radius before choosing. Count the structs under `bin/` that hold a
-  `string` or a slice and are compared with `==`; a member-wise compare is only worth its cost if
-  that set is small and the current answer is wrong for it. Padding is the other half of the
-  question: the byte compare already reads padding bytes, so a member-wise rule would change more
-  answers than the string ones. Whatever is decided, say it in
-  [003_006_operators.swg](../bin/reference/modules/language/src/003_006_operators.swg) — today the
-  reference states neither rule.
+  in question; `shouldGenerateEqualityOperator` in
+  [SemaSpecOp.Generated.cpp](../src/Compiler/Sema/Helpers/SemaSpecOp.Generated.cpp) is what decides
+  a struct keeps it.
+- Elsewhere: Go's `==` on a comparable struct is defined field by field and says nothing about
+  padding, and gc zeroes padding on assignment so the two agree; Rust's `#[derive(PartialEq)]`
+  expands to a field-by-field `&&` and never sees padding; C++ leaves `memcmp` on a padded struct
+  undefined for exactly this reason, which is why `operator==` is written or defaulted field-wise.
+  No neighbour compares padding on purpose.
+- Next step: teach `emitAggregateEqualsBool` the ranges it may read instead of widening the
+  generated-`opEquals` rule to every padded struct. The layout already knows each member offset and
+  size, so the comparison can walk the covered ranges — merged where they are adjacent — and skip
+  the holes, which costs nothing for a struct with no padding and keeps the single-block fast path
+  for the common case. Measure it on a struct compared in a loop before and after: the padded case
+  turns one 16-byte compare into two, and that has to stay cheaper than a call.
+
+### F-115 — An array compares its bytes, whatever its elements compare
+
+- Area: language
+- Found while: F-107, deciding which members force a struct to compare member by member
+- Observation: `==` between two arrays compares their storage byte for byte, so an array of
+  `string`, of slices, or of structs owning an `opEquals` answers a different question than its
+  elements do. This is the same defect a struct had until a struct without an `opEquals` started
+  comparing member by member, and it is now the reason an array member deliberately does *not*
+  force that: an array's own `==` is a byte comparison, so member-wise and byte-wise agree about
+  it, and both are wrong. A struct therefore compares its `text: string` member by content and its
+  `names: [2] string` member by storage.
+- Evidence: isolated probe, `swc test -d <dir>`, identical under the JIT and from the binary:
+
+  ```swag
+  #[Swag.Optimize(false)]
+  func viewText(buffer: const [*] u8)->string => cast(string) @mkslice(buffer, 3'u64)
+
+  #[Swag.Optimize(false)]
+  func eqNames(x, y: [2] string)->bool => x == y
+
+  var left, right: [3] u8 = ['a', 'b', 'c']
+  var n0, n1: [2] string  = ["", ""]
+  n0[0] = viewText(cast(const [*] u8) &left[0])
+  n1[0] = viewText(cast(const [*] u8) &right[0])
+  @assert(n0[0] == n1[0])       // passes
+  @assert(eqNames(n0, n1))      // fails
+  ```
+
+  A struct holding that array answers `false` the same way. The byte compare is
+  `emitAggregateEqualsBool` in
+  [CodeGen.Relational.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Relational.cpp).
+- Elsewhere: Go compares an array element by element with the element's own `==`; Rust's
+  `PartialEq` for `[T; N]` forwards to `T`; C# `SequenceEqual` and C++ `std::array::operator==`
+  both compare elements. None of them reinterprets the array as storage.
+- Next step: an array has no `impl` to hang a generated `opEquals` on, so the fix belongs where the
+  comparison is emitted rather than where methods are generated. Decide between unrolling the
+  element comparisons for a small count and emitting a loop above it, and check first whether
+  `emitAggregateEqualsBool` can call the element's `opEquals` at all — the runtime content compare
+  for a `string` element is prepared per node today
+  (`SemaHelpers::attachRuntimeStringCmpFunctionToNode`), so a nested element comparison needs the
+  same preparation to exist before code generation runs.
+
+### F-117 — One `opEquals` against another type makes the struct incomparable with itself
+
+- Area: language
+- Found while: F-107, giving a struct whose members do not compare as bytes a member-wise
+  `opEquals`, which needs every member to have an `==` of its own
+- Observation: a struct with no `opEquals` compares its storage, and a struct with an `opEquals`
+  resolves `==` through overload resolution. There is no third path, so declaring an `opEquals`
+  against *another* type — a struct that answers `count == "text"` — removes the storage
+  comparison without putting anything in its place, and `a == b` between two of those values
+  becomes an error at every call site. Nothing at the declaration says the author just took the
+  struct's own equality away; the error arrives later and names the parameter type as if the call
+  were the mistake.
+- Evidence: isolated probe, `swc test -d <dir>`, on the compiler before F-107 changed anything:
+
+  ```swag
+  struct Counted { length: u64 }
+
+  impl Counted
+  {
+      mtd const opEquals(other: #null string)->bool => .length == @countof(other)
+  }
+
+  #[Swag.Optimize(false)]
+  func eqCounted(a, b: Counted)->bool => a == b
+  ```
+
+  > error: argument 2 for call to 'opEquals' has type 'Counted', but parameter 'other' needs
+  > '#null string'
+
+  `bin/unittests/jit/flow/if.swg` declares exactly that shape, and it is why a struct holding such
+  a member is excluded from generated member-wise equality: the body would not compile.
+- Elsewhere: C++ and C# add an `operator==` overload without removing the others, and neither
+  removes anything the type already had — C++ has no implicit struct `==` to lose, and a C# record
+  keeps its generated one. Rust's `PartialEq<Rhs>` is parameterized by the right-hand type, so
+  `impl PartialEq<str> for Counted` leaves `PartialEq<Counted>` simply not implemented, and
+  `a == b` reports *that* — the missing implementation — instead of blaming the argument. Swift is
+  the same: `==` is a protocol requirement per operand pair.
+- Next step: decide between two answers, both cheap. Keep the storage comparison available when no
+  overload takes the struct itself, which makes the declaration purely additive; or reject the
+  comparison with a diagnostic that names the cause — "'Counted' declares 'opEquals' but none
+  accepts 'Counted'" — plus the note that a self overload restores it. The second is the smaller
+  change and the one that stops the surprise at the call site; the first is the one that matches
+  what the neighbours do.

@@ -134,7 +134,9 @@ namespace SemaSpecOp
     SpecOpKind       computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     void             addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
     bool             typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);
+    bool             isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef);
     Result           ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct);
+    Result           ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct);
     Result           ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct);
     Result           validateSymbol(Sema& sema, SymbolFunction& sym);
     Result           registerSymbol(Sema& sema, SymbolFunction& sym);

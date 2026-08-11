@@ -132,12 +132,16 @@ public:
     void                          setGenericNodeCompleted() const noexcept;
     std::mutex&                   generatedLifecycleMutex() const noexcept { return generatedLifecycleMutex_; }
     std::mutex&                   generatedOperatorsMutex() const noexcept { return generatedOperatorsMutex_; }
+    std::mutex&                   generatedEqualityMutex() const noexcept { return generatedEqualityMutex_; }
     bool                          generatedLifecyclePublished() const noexcept { return generatedLifecyclePublished_.load(std::memory_order_acquire); }
     bool                          generatedOperatorsPublished() const noexcept { return generatedOperatorsPublished_.load(std::memory_order_acquire); }
+    bool                          generatedEqualityPublished() const noexcept { return generatedEqualityPublished_.load(std::memory_order_acquire); }
     void                          publishGeneratedLifecycle() const noexcept { generatedLifecyclePublished_.store(true, std::memory_order_release); }
     void                          publishGeneratedOperators() const noexcept { generatedOperatorsPublished_.store(true, std::memory_order_release); }
+    void                          publishGeneratedEquality() const noexcept { generatedEqualityPublished_.store(true, std::memory_order_release); }
     bool                          tryMarkGeneratedLifecycleFunctions() const noexcept;
     bool                          tryMarkGeneratedOperators() const noexcept;
+    bool                          tryMarkGeneratedEquality() const noexcept;
     bool                          exportsRuntimeMethods(const TaskContext& ctx) const;
 
 private:
@@ -165,11 +169,14 @@ private:
     SymbolFunction*                                   opPostMove_ = nullptr;
     mutable std::mutex                                generatedLifecycleMutex_;
     mutable std::mutex                                generatedOperatorsMutex_;
+    mutable std::mutex                                generatedEqualityMutex_;
     mutable std::atomic<GenericData*>                 genericData_                 = nullptr;
     mutable std::atomic_bool                          generatedLifecycleDone_      = false;
     mutable std::atomic_bool                          generatedOperatorsDone_      = false;
+    mutable std::atomic_bool                          generatedEqualityDone_       = false;
     mutable std::atomic_bool                          generatedLifecyclePublished_ = false;
     mutable std::atomic_bool                          generatedOperatorsPublished_ = false;
+    mutable std::atomic_bool                          generatedEqualityPublished_  = false;
     uint64_t                                          sizeInBytes_                 = 0;
     ConstantRef                                       defaultStructCst_            = ConstantRef::invalid();
     uint32_t                                          alignment_                   = 0;

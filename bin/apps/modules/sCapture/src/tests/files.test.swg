@@ -651,3 +651,112 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.openedSurfaceCount() == 0)
 }
+
+// Opening a library item replaces the editor document only after saving that editor document.
+// Library mode exposes a lightweight preview through MainWnd.getCapture(); it must never stand in
+// for the independently owned capture that EditView is about to release.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+    let lib = f.setupLibraryWnd()
+
+    let editorPath = testPrepareSavedCapture(f.capture)
+    defer discard catch File.delete(editorPath)
+    f.capture.title   = "Unsaved editor title"
+    f.capture.changed = true
+
+    let other = Memory.new'Capture()
+    other.width, other.widthOrg   = 37
+    other.height, other.heightOrg = 23
+    other.backImg = Gui.Testing.indexedImage(37, 23)
+    other.preview = Gui.Testing.indexedImage(32, 20)
+    let otherPath = testPrepareSavedCapture(other)
+    defer
+    {
+        discard catch File.delete(otherPath)
+        Memory.delete(other)
+    }
+
+    f.main.recentWnd.addRecent(otherPath, other.preview, front: true)
+    discard testAddLibraryItem(lib.view, otherPath, 1, 1)
+    lib.view.focusItem = 0
+    f.main.libraryMode = true
+
+    f.main.recentWnd.recentView.select(0)
+
+    let saved = expect Capture.load(editorPath)!
+    defer Memory.delete(saved)
+    @assert(saved.title == "Unsaved editor title")
+    @assert(f.main.editWnd.getCapture()!.file == otherPath)
+}
+
+// Moving an existing recent item to the front keeps the old selected item identified while its
+// zoom is saved. The selection index follows the pointer relocation before the new item is opened.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+
+    let first = Memory.new'Capture()
+    first.width, first.widthOrg   = 41
+    first.height, first.heightOrg = 29
+    first.backImg = Gui.Testing.indexedImage(41, 29)
+    first.preview = Gui.Testing.indexedImage(32, 20)
+    let firstPath = testPrepareSavedCapture(first)
+    defer
+    {
+        discard catch File.delete(firstPath)
+        Memory.delete(first)
+    }
+
+    let second = Memory.new'Capture()
+    second.width, second.widthOrg   = 43
+    second.height, second.heightOrg = 31
+    second.backImg = Gui.Testing.indexedImage(43, 31)
+    second.preview = Gui.Testing.indexedImage(32, 20)
+    let secondPath = testPrepareSavedCapture(second)
+    defer
+    {
+        discard catch File.delete(secondPath)
+        Memory.delete(second)
+    }
+
+    f.main.recentWnd.addRecent(firstPath, first.preview, front: false)
+    f.main.recentWnd.addRecent(secondPath, second.preview, front: false)
+    f.main.recentWnd.recentView.select(0)
+    f.main.editWnd.editView.setZoom(1.75)
+
+    f.main.recentWnd.addRecent(secondPath, second.preview, front: true, sel: true)
+
+    @assert(f.main.recentWnd.recentView.items[0]!.file == secondPath)
+    @assert(f.main.recentWnd.recentView.items[1]!.file == firstPath)
+    @assert(Math.isEqualEpsilon(f.main.recentWnd.recentView.items[1]!.zoom, 1.75, 0.001))
+    @assert(f.main.recentWnd.recentView.selected == 0)
+}
+
+// Captures created from an in-memory image use the preview overload directly. Keep that path
+// bounded too, otherwise each new capture retains another thumbnail texture indefinitely.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+
+    let preview = Gui.Testing.indexedImage(32, 20)
+    for [i] in 16 do
+        f.main.recentWnd.addRecent(Format.toString("capture-%", i), preview, front: true)
+
+    @assert(f.main.recentWnd.recentView.items.count == 15)
+    @assert(f.main.recentWnd.recentView.items[0]!.file == "capture-15")
+    @assert(f.main.recentWnd.recentView.items.back()!.file == "capture-1")
+
+    f.main.recentWnd.recentView.selected = 14
+    f.main.recentWnd.addRecent("one-more", preview, front: true)
+    @assert(f.main.recentWnd.recentView.selected == Swag.U64.Max)
+}

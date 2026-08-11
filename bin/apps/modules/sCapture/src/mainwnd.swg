@@ -418,10 +418,6 @@ impl MainWnd
         loaded.editView = .editWnd.editView
         Clipboard.addImage(loaded.toImage())
 
-        // toImage() may have uploaded the background as a GPU texture on this transient
-        // capture; opDrop only frees the forms, so release it explicitly to avoid a leak.
-        if loaded.backTexture.isValid() do
-            .editWnd.editView.app().renderer.removeTexture(&loaded.backTexture)
         Memory.delete(loaded)
     }
 

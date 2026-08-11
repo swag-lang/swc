@@ -11,38 +11,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Window automation and lifecycle
 
-### F-039 — The sCapture main window cannot be painted headlessly
-
-- Area: apps/sCapture
-- Found while: photographing both shipped surfaces in every palette, to review them without a
-  desktop. sCrypt renders; sCapture faults.
-- Observation: a headless host that builds the real window with `MainWnd.create(&gui.root)` — the
-  same call `dialogs.test.swg` already makes and which succeeds — dies with an access violation
-  (0xC0000005) as soon as that window is laid out and painted. Creating it and never painting it is
-  fine, which is what every existing test does.
-- Evidence: reproduced four times, in release, with and without a `Capture` set on the edit view,
-  with and without `Library.init` through `testUseScratchLibrary`, and with and without a theme
-  broadcast — the fault survives all six combinations, so it is neither the capture, nor the
-  library, nor the harness change made in the same task. The 127 other tests of the module pass in
-  the same binary.
-- Narrowed (2026-08-06), and the bisection this entry used to propose is now ruled out:
-  - creation and `applyLayout()` both complete; two `HeadlessHost.pump()` calls complete. The
-    fault is on the FIRST PAINT — which is what `settleAnimations` and `render` do and what
-    `pump` does not, since `pump` only drains the posted, destroy and delete queues.
-  - hiding every direct child of the window before painting (`topBar`, `toolRail`, `recentBar`,
-    `rightBar`, `editWnd`) does NOT avoid it. So it is not one subtree: it is the window's own
-    paint, or the surface chrome painted around it.
-- Next step: instrument the paint rather than the tree. `Surface.paintWnd` is the entry; find
-  whether the fault is inside it or in the `readRenderTarget` that follows, then compare against
-  `sCrypt`, whose main window paints through the same call — the difference is that sCrypt's
-  window installs itself as the view of its surface (`MainWindow.create(&host.surfaceWnd)`) while
-  sCapture's is built as a child of the host root (`MainWnd.create(&gui.root)`), so the two paint
-  through different parents. Build the probe in `-bc debug`: a use-after-free reads clean in
-  fast-debug and release.
-- Why it matters beyond the crash: sCapture has 133 tests and none of them can see the window, so
-  no appearance regression in the one application that *is* a visual tool can ever fail a test.
-  The same photograph is one test away for sCrypt and impossible here.
-
 ### F-040 — sCapture dies when its window is moved and resized in one call
 
 - Area: apps/sCapture, std/gui

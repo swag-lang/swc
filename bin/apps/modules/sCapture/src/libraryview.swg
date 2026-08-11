@@ -35,6 +35,8 @@ impl LibraryItem
 {
     mtd opDrop()
     {
+        if .texture.isValid() do
+            g_App.renderer.removeTexture(&.texture)
         Memory.delete(.capture)
     }
 }
@@ -836,14 +838,6 @@ impl LibraryView
         {
             res = catch Library.enumerateSupportedFiles(cf)
         }
-
-        let renderer = .app().renderer
-
-        // Release textures over the full set, not just the filtered '.items': items
-        // filtered out are absent from '.items' and would leak their GPU texture
-        // when 'allItems' is cleared below.
-        for it in .allItems do
-            renderer.removeTexture(&it!.texture)
 
         // Add items
         .allItems.clear()

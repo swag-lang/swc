@@ -19,6 +19,15 @@ struct RecentItem
     zoom:           f32
 }
 
+impl RecentItem
+{
+    mtd opDrop()
+    {
+        if .preview.isValid() do
+            g_App.renderer.removeTexture(&.preview)
+    }
+}
+
 struct RecentInfos
 {
     hot:            bool
@@ -75,7 +84,7 @@ impl RecentView
             // Only commit the selection once the capture has actually loaded,
             // otherwise .selected would point at an item never shown in the view.
             .selected = idx
-            let previousCapture = .main.getCapture()
+            let previousCapture = .main.editWnd.getCapture()
             if previousCapture do
                 .main.saveCapture(previousCapture)
             view.setCapture(capture)
@@ -309,7 +318,7 @@ impl IWnd for RecentWnd
             return
         }
 
-        let maybeCapture = .main.getCapture()
+        let maybeCapture = .main.editWnd.getCapture()
         if maybeCapture
         {
             let capture = maybeCapture
@@ -457,7 +466,7 @@ impl RecentWnd
             .app().removeTimer(.timer)
         .timer = .app().addTimer(1's, me)
 
-        let capture = .main.getCapture()
+        let capture = .main.editWnd.getCapture()
         if !capture do
             return
 
@@ -489,16 +498,6 @@ impl RecentWnd
         let loaded  = capture!
         .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
 
-        // Too much recent. Remove the oldest
-        if front and .recentView.items.count > MaxRecent
-        {
-            let back = .recentView.items.back()!
-            if back.preview.isValid() do
-                .app().renderer.removeTexture(&back.preview)
-            .recentView.items.destroy(back)
-            .recentView.items.count -= 1
-        }
-
         return loaded
     }
 
@@ -517,9 +516,15 @@ impl RecentWnd
                 // so relocate the (owned) pointer slot instead without freeing the item.
                 if front and i
                 {
+                    let oldSelected = .recentView.selected
                     .recentView.items.removeAtOrdered(i)
                     .recentView.items.insertAt(0, it)
                     idxSel = 0
+
+                    if oldSelected == i do
+                        .recentView.selected = 0
+                    elif oldSelected < i do
+                        .recentView.selected = oldSelected + 1
                 }
 
                 if sel do
@@ -537,6 +542,8 @@ impl RecentWnd
         item.linkedUpToDate = linkedUpToDate
         if front
         {
+            if .recentView.selected < .recentView.items.count do
+                .recentView.selected += 1
             .recentView.items.insertAt(0, item)
             if sel
             {
@@ -549,6 +556,18 @@ impl RecentWnd
             .recentView.items.add(item)
             if sel do
                 .recentView.select(.recentView.items.count - 1, force: true)
+        }
+
+        // Captures created from the clipboard reach this overload directly, without loading a
+        // file first. Enforce the same MRU bound for both paths so thumbnail textures cannot
+        // accumulate for the whole application lifetime.
+        if front and .recentView.items.count > MaxRecent
+        {
+            if .recentView.selected == .recentView.items.count - 1 do
+                .recentView.selected = Swag.U64.Max
+            let back = .recentView.items.back()!
+            .recentView.items.destroy(back)
+            .recentView.items.count -= 1
         }
 
         .invalidate()

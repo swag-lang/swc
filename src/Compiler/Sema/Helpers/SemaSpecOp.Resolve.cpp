@@ -539,6 +539,38 @@ namespace
                idRef == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCompare);
     }
 
+    // The type a relational operand compares as: a reference compares as what it refers to, and an
+    // alias as what it names.
+    TypeRef relationalOperandTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const TypeInfo& valueType = sema.typeMgr().get(typeRef);
+        if (valueType.isReference())
+            typeRef = valueType.payloadTypeRef();
+
+        const TypeRef unwrappedTypeRef = unwrapAlias(sema.ctx(), typeRef);
+        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    }
+
+    // Whether one of the collected operators can actually take the right operand. Asking the
+    // matcher is what keeps a comparison promoted through a 'using' member — which no signature
+    // test would recognize as taking the embedder — from being mistaken for no answer at all.
+    Result hasViableRelationalCandidate(bool& outViable, Sema& sema, const AstRelationalExpr& node, std::span<Symbol* const> candidates)
+    {
+        outViable = false;
+
+        SmallVector<AstNodeRef> args;
+        args.push_back(node.nodeRightRef);
+
+        const SemaNodeView            calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
+        Match::FunctionCandidateProbe probe;
+        SWC_RESULT(Match::probeFunctionCandidates(sema, calleeView, candidates, args.span(), node.nodeLeftRef, probe, true));
+        outViable = probe.matched && probe.fn != nullptr;
+        return Result::Continue;
+    }
+
     Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, bool requireDeclaredGenericRoots = false)
     {
         outCandidates.clear();
@@ -1932,16 +1964,8 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     if (!leftView.type())
         return Result::Continue;
 
-    TypeRef         unwrappedTypeRef = leftView.typeRef();
-    const TypeInfo& leftValueType    = sema.typeMgr().get(unwrappedTypeRef);
-    if (leftValueType.isReference())
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), leftValueType.payloadTypeRef());
-    else
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
-    if (!unwrappedTypeRef.isValid())
-        unwrappedTypeRef = leftView.typeRef();
-
-    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
+    const TypeRef   unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
+    const TypeInfo& leftType         = sema.typeMgr().get(unwrappedTypeRef);
     if (!leftType.isStruct())
         return Result::Continue;
 
@@ -1952,6 +1976,20 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opIdRef, std::span<const AstNodeRef>{}, candidates));
     if (candidates.empty())
         return Result::Continue;
+
+    // Declaring 'opEquals' adds a comparison; it never takes away the one the struct already had.
+    // So when none of the overloads can take the other operand, and that operand is this same
+    // struct, the built-in comparison answers instead of a bad-argument error at every call site.
+    // Any other operand type keeps reporting, which is where the overload is what the author
+    // meant, and ordering keeps reporting throughout because it has no built-in answer.
+    if (Token::isOpEquality(tok.id) &&
+        SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, relationalOperandTypeRef(sema, sema.viewType(node.nodeRightRef).typeRef())))
+    {
+        bool viable = false;
+        SWC_RESULT(hasViableRelationalCandidate(viable, sema, node, candidates.span()));
+        if (!viable)
+            return Result::Continue;
+    }
 
     const AstNodeRef relRef = sema.curNodeRef();
 

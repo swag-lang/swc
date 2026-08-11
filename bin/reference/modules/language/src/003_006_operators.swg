@@ -123,12 +123,17 @@ equality, inequality, and relational comparisons.
 does. A 'string' or a slice member therefore compares the content it views rather than the
 view itself, and a member owning an 'opEquals' has that method called.
 
-The compiler compares the whole storage in one go whenever every member gives the same answer
-its bytes give, which is what a struct of numbers, pointers and enums does. A union always
-compares its storage as well: its members share it, so there is no member-wise answer to give.
+The compiler compares the bytes in one go whenever every member gives the same answer its bytes
+give, which is what a struct of numbers, pointers and enums does. It compares the bytes the
+members occupy and no others: the padding a layout inserts between them is not a member, so two
+values whose every member is equal are equal whatever those bytes hold. A union is the exception
+and compares all of its storage, because its members share it and there is no member-wise answer
+to give.
 
 Declare an 'opEquals' to decide the comparison yourself, or ask for a generated one with
-'#[Swag.Operators(opEquals)]'.
+'#[Swag.Operators(opEquals)]'. Declaring one against *another* type — a struct that answers
+'count == "text"' — adds that comparison beside the built-in one rather than replacing it, so two
+values of the struct still compare the way they did.
 */
 
 struct Tolerance

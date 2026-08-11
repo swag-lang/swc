@@ -102,8 +102,8 @@ struct Counted
 
 impl Counted
 {
-    // An 'opEquals' declared against another type answers nothing about two 'Counted' values,
-    // so it neither replaces a generated one nor keeps the holder from getting one.
+    // An 'opEquals' declared against another type adds a comparison beside the built-in one
+    // instead of replacing it, so two 'Counted' values still compare as the storage they are.
     mtd const opEquals(other: #null string)->bool
     {
         return .length == @countof(other)
@@ -126,6 +126,20 @@ union OverlappedHolder
 struct PlainPair
 {
     x, y: s32
+}
+
+// A layout with a hole in it: 7 bytes of padding between the members, and the same again in
+// every element of an array of them.
+struct Padded
+{
+    small: u8
+    wide:  u64
+}
+
+struct PaddedHolder
+{
+    first:  Padded
+    second: Padded
 }
 
 #[Swag.Optimize(false)]
@@ -196,6 +210,36 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var left:  [3] u8 = ['a', 'b', 'c']
     var right: [3] u8 = ['a', 'b', 'c']
 
+    // A struct declared in a function body has no name reachable from where its generic instance
+    // is completed, and the generated comparison names its type through the block it lives in.
+    struct(T) LocalHolder
+    {
+        value: T
+        tag:   s64
+    }
+
+    let a = LocalHolder'string{value: viewText(cast(const [*] u8) &left[0]), tag: 1}
+    let b = LocalHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 1}
+    let c = LocalHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 2}
+    @assert(a == b)
+    @assert(a != c)
+
+    struct LocalPlainHolder
+    {
+        text: string
+        tag:  s64
+    }
+
+    let d = LocalPlainHolder{text: viewText(cast(const [*] u8) &left[0]), tag: 1}
+    let e = LocalPlainHolder{text: viewText(cast(const [*] u8) &right[0]), tag: 1}
+    @assert(d == e)
+}
+
+#test
+{
+    var left:  [3] u8 = ['a', 'b', 'c']
+    var right: [3] u8 = ['a', 'b', 'c']
+
     // Each generic instance decides on its own members.
     let a = GenericHolder'string{value: viewText(cast(const [*] u8) &left[0]), tag: 4}
     let b = GenericHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 4}
@@ -255,19 +299,23 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
 #test
 {
-    var left: [3] u8 = ['a', 'b', 'c']
+    var left:  [3] u8 = ['a', 'b', 'c']
+    var right: [3] u8 = ['a', 'b', 'c']
 
-    // 'Counted == Counted' has no overload to resolve to, so a member-wise body would not
-    // compile and the holder keeps comparing its storage.
-    let text = viewText(cast(const [*] u8) &left[0])
-    let a    = CountedHolder{counted: {length: 3}, text: text}
-    let b    = CountedHolder{counted: {length: 3}, text: text}
-    let c    = CountedHolder{counted: {length: 4}, text: text}
+    // The overload against another type is additive: two 'Counted' values still compare, and
+    // the holder still gets its member-wise comparison.
+    let a = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8) &left[0])}
+    let b = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8) &right[0])}
+    let c = CountedHolder{counted: {length: 4}, text: viewText(cast(const [*] u8) &right[0])}
     @assert(a == b)
     @assert(a != c)
 
+    @assert(a.counted == b.counted)
+    @assert(a.counted != c.counted)
+
     // The foreign overload keeps answering what it was written for.
     @assert(a.counted == "abc")
+    @assert(a.counted != "ab")
 }
 
 #test
@@ -282,6 +330,72 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
     b.text = "other"
     @assert(a != b)
+}
+
+#[Swag.Optimize(false)]
+func eqPadded(a, b: Padded)->bool => a == b
+
+#[Swag.Optimize(false)]
+func eqPaddedHolder(a, b: PaddedHolder)->bool => a == b
+
+#[Swag.Optimize(false)]
+func eqPaddedArray(a, b: [3] Padded)->bool => a == b
+
+#test
+{
+    // Padding is not a member: two values whose every member is equal compare equal whatever
+    // the bytes between them hold. 'undefined' plus a fill is the only way to observe it, since
+    // a defaulted value zeroes its storage.
+    var a: Padded = undefined
+    var b: Padded = undefined
+    @memset(&a, 0xAA, #sizeof(Padded))
+    @memset(&b, 0x55, #sizeof(Padded))
+    a.small = 1
+    a.wide  = 2
+    b.small = 1
+    b.wide  = 2
+    @assert(eqPadded(a, b))
+
+    b.wide = 3
+    @assert(!eqPadded(a, b))
+}
+
+#test
+{
+    // The same holds through a nested member and through an array element.
+    var a: PaddedHolder = undefined
+    var b: PaddedHolder = undefined
+    @memset(&a, 0xAA, #sizeof(PaddedHolder))
+    @memset(&b, 0x55, #sizeof(PaddedHolder))
+    a.first.small  = 1
+    a.first.wide   = 2
+    a.second.small = 3
+    a.second.wide  = 4
+    b.first.small  = 1
+    b.first.wide   = 2
+    b.second.small = 3
+    b.second.wide  = 4
+    @assert(eqPaddedHolder(a, b))
+
+    b.second.wide = 5
+    @assert(!eqPaddedHolder(a, b))
+
+    var c: [3] Padded = undefined
+    var d: [3] Padded = undefined
+    @memset(&c, 0xAA, #sizeof([3] Padded))
+    @memset(&d, 0x55, #sizeof([3] Padded))
+    for i in 3
+    {
+        c[i].small = 1
+        c[i].wide  = 2
+        d[i].small = 1
+        d[i].wide  = 2
+    }
+
+    @assert(eqPaddedArray(c, d))
+
+    d[2].wide = 3
+    @assert(!eqPaddedArray(c, d))
 }
 
 #test

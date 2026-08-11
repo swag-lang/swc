@@ -30,7 +30,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     }
 
     // One gap between two actions, and it is the bar's own.
-    for [i] in 1 until dlg.buttons.count
+    for i in 1 until dlg.buttons.count
     {
         let gap = dlg.buttons[i].position.x - dlg.buttons[i - 1].position.right()
         @assert(Math.abs(gap - metrics.dialog_BtnPadding) < 0.5)

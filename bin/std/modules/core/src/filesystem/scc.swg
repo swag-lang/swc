@@ -217,13 +217,13 @@ private func writeU16(buffer: *Array'u8, value: u16)
 
 private func writeU32(buffer: *Array'u8, value: u32)
 {
-    for [i] in 4 do
+    for i in 4 do
         buffer.add(cast(u8) ((value >> (i * 8)) & 0xFF))
 }
 
 private func writeU64(buffer: *Array'u8, value: u64)
 {
-    for [i] in 8 do
+    for i in 8 do
         buffer.add(cast(u8) ((value >> (i * 8)) & 0xFF))
 }
 
@@ -235,7 +235,7 @@ private func readU16(buffer: const [..] u8, offset: u64)->u16
 private func readU32(buffer: const [..] u8, offset: u64)->u32
 {
     var result: u32
-    for [i] in 4 do
+    for i in 4 do
         result |= cast(u32) buffer[offset + i] << (i * 8)
     return result
 }
@@ -243,7 +243,7 @@ private func readU32(buffer: const [..] u8, offset: u64)->u32
 private func readU64(buffer: const [..] u8, offset: u64)->u64
 {
     var result: u64
-    for [i] in 8 do
+    for i in 8 do
         result |= cast(u64) buffer[offset + i] << (i * 8)
     return result
 }
@@ -447,7 +447,7 @@ public impl Writer
 
         var headerBytes = try encodeHeader(&.header)
         var dataOffset  = alignUp(PrefixSize + headerBytes.count, 8)
-        for [i] in .chunks.count
+        for i in .chunks.count
         {
             dataOffset = alignUp(dataOffset, .chunks[i].alignment)
             if .chunks[i].info.storedSize > 0xFFFFFFFFFFFFFFFF - dataOffset do

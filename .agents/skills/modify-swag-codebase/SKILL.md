@@ -39,6 +39,23 @@ user process.
 - Waiting for an occupied slot is the required behavior. Do not bypass it by changing configuration,
   executable, shell, output directory, or worktree.
 
+## Bump The Compiler Version With Every Change
+
+[src/Main/Version.h](../../../src/Main/Version.h) carries the compiler's identity, and that
+identity is part of the key of every cache the compiler fills — the script dependency cache keys
+its directory on it. Increment `SWC_BUILD_NUM` (`0.0.1` → `0.0.2` → `0.0.3`) in the same change
+that touches any compiler source under `src/`.
+
+The point is not release numbering; it is that a build produced by one compiler is never read back
+by another. A version that does not move lets a cache filled by the previous binary look valid to
+the next one, and the failure surfaces far from its cause — as a syntax error inside a dependency,
+or as a link against an artifact nothing can explain.
+
+- Bump it for any change under `src/`, however small; a change that cannot alter output is not
+  worth the exception.
+- Do not bump it for a change that only touches `bin/`, `backlog/`, or documentation.
+- One bump per change, not one per file.
+
 ## Improve The Platform Along The Way
 
 Treat every repository task, especially every Swag programming task, as an opportunity to

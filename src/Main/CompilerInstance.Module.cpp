@@ -22,6 +22,8 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Main/Version.h"
+#include "Main/WorkspaceLayout.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
@@ -161,19 +163,9 @@ namespace
         return (workspaceModulesDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
     }
 
-    fs::path workspaceOutputDirectory(const fs::path& workspacePath)
-    {
-        return (workspacePath / ".output").lexically_normal();
-    }
-
-    fs::path workspaceDependencyDirectory(const fs::path& workspacePath)
-    {
-        return (workspacePath / ".dep").lexically_normal();
-    }
-
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
     {
-        fs::path result = workDirectory ? (workspacePath / ".tmp") : workspaceOutputDirectory(workspacePath);
+        fs::path result = workDirectory ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
         result /= fs::path(moduleName.c_str());
         result /= fs::path(backendKindName(backendKind).c_str());
         result /= fs::path(cmdLine.buildCfg.c_str());
@@ -353,6 +345,58 @@ namespace
         return Utf8{fallbackStem};
     }
 
+    // Extension of a dependency copy still being written. It belongs to the process whose id it
+    // carries, so every other process leaves it alone: pruning one would break the rename it is
+    // waiting for. One survives only a compiler killed mid-copy, and '--rebuild' or `swc clean`
+    // takes it from there.
+    constexpr std::string_view K_WORKSPACE_DEPENDENCY_TEMP_EXTENSION = ".swctmp";
+
+    bool isWorkspaceDependencyTempPath(const fs::path& path)
+    {
+        return path.extension() == K_WORKSPACE_DEPENDENCY_TEMP_EXTENSION;
+    }
+
+    // Copies one dependency file so that the destination path never names a partial one.
+    //
+    // Two compilers can mirror the same dependency at the same time — two scripts sharing a set of
+    // imports share their mirror — and a reader of a half-written file has no way to tell. So the
+    // copy lands beside its destination under a name only this process uses, takes the source
+    // modification time there (it is what the next run compares), and is moved into place by a
+    // rename, which either happened or did not.
+    Result copyWorkspaceDependencyFile(TaskContext& ctx, const fs::path& srcPath, const fs::path& dstPath)
+    {
+        fs::path tempPath = dstPath;
+        tempPath += std::format(".{}{}", Os::currentProcessId(), K_WORKSPACE_DEPENDENCY_TEMP_EXTENSION);
+
+        std::error_code ec;
+        fs::copy_file(srcPath, tempPath, fs::copy_options::overwrite_existing, ec);
+        if (ec)
+            return reportWorkspaceDependencySyncFailure(ctx, tempPath, FileSystem::normalizeSystemMessage(ec));
+
+        ec.clear();
+        const auto srcTime = fs::last_write_time(srcPath, ec);
+        if (!ec)
+        {
+            ec.clear();
+            fs::last_write_time(tempPath, srcTime, ec);
+        }
+
+        if (!ec)
+        {
+            ec.clear();
+            fs::rename(tempPath, dstPath, ec);
+        }
+
+        if (ec)
+        {
+            std::error_code removeEc;
+            fs::remove(tempPath, removeEc);
+            return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
+        }
+
+        return Result::Continue;
+    }
+
     Result syncWorkspaceDependencyDirectory(TaskContext& ctx, const fs::path& srcDir, const fs::path& dstDir)
     {
         if (srcDir.empty() || dstDir.empty())
@@ -407,19 +451,7 @@ namespace
             if (!dstParent.empty())
                 SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, dstParent));
 
-            fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
-
-            ec.clear();
-            const auto srcTime = fs::last_write_time(it->path(), ec);
-            if (!ec)
-            {
-                ec.clear();
-                fs::last_write_time(dstPath, srcTime, ec);
-                if (ec)
-                    return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
-            }
+            SWC_RESULT(copyWorkspaceDependencyFile(ctx, it->path(), dstPath));
         }
 
         std::vector<fs::path> stalePaths;
@@ -430,6 +462,8 @@ namespace
 
             const fs::path relativePath = it->path().lexically_relative(normalizedDstDir);
             if (relativePath.empty() || pathIsCurrentOrParentDirectory(relativePath))
+                continue;
+            if (isWorkspaceDependencyTempPath(it->path()))
                 continue;
 
             const fs::path srcPath = (resolvedSrcDir / relativePath).lexically_normal();
@@ -1286,58 +1320,265 @@ namespace
         return result;
     }
 
-    fs::path normalizedScriptImportBaseDir(const CompilerInstance::ModuleSetupImport& importRequest)
+    // Where a dependency directory sits inside the root it was found through. A copy keeps that
+    // shape — '<module>/<backend>/<build-cfg>/<arch>' — so a path in a diagnostic still says which
+    // module and which configuration the compiler was reading.
+    Result resolveDependencyMirrorRelativePath(fs::path& outRelativePath, TaskContext& ctx, const fs::path& normalizedSourceDir, const fs::path& normalizedSourceRoot)
     {
-        if (importRequest.baseDir.empty())
-            return {};
-        return FileSystem::normalizePath(importRequest.baseDir);
-    }
-
-    bool scriptImportLess(const CompilerInstance::ModuleSetupImport* lhs, const CompilerInstance::ModuleSetupImport* rhs)
-    {
-        if (lhs->moduleName != rhs->moduleName)
-            return lhs->moduleName < rhs->moduleName;
-        if (lhs->location != rhs->location)
-            return lhs->location < rhs->location;
-        if (lhs->version != rhs->version)
-            return lhs->version < rhs->version;
-        if (lhs->linkBackendKind != rhs->linkBackendKind)
-            return lhs->linkBackendKind < rhs->linkBackendKind;
-        return normalizedScriptImportBaseDir(*lhs) < normalizedScriptImportBaseDir(*rhs);
-    }
-
-    fs::path scriptDependencyDirectory(const CommandLine& cmdLine, std::span<const CompilerInstance::ModuleSetupImport> imports)
-    {
-        std::vector<const CompilerInstance::ModuleSetupImport*> sortedImports;
-        sortedImports.reserve(imports.size());
-        for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
-            sortedImports.push_back(&importRequest);
-
-        std::ranges::sort(sortedImports, scriptImportLess);
-
-        Utf8 signature = "version=1\n";
-        signature += "build-cfg=";
-        signature += cmdLine.buildCfg;
-        signature += "\narch=";
-        signature += targetArchName(cmdLine.targetArch);
-        signature += "\n";
-        for (const CompilerInstance::ModuleSetupImport* importRequest : sortedImports)
+        if (!FileSystem::pathStartsWith(normalizedSourceDir, normalizedSourceRoot))
         {
-            signature += importRequest->moduleName;
-            signature += '\t';
-            signature += importRequest->location;
-            signature += '\t';
-            signature += importRequest->version;
-            signature += '\t';
-            signature += backendKindName(importRequest->linkBackendKind);
-            signature += '\t';
-            signature += Utf8(normalizedScriptImportBaseDir(*importRequest));
-            signature += '\n';
+            const Utf8 because = std::format("dependency folder '{}' is not under root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
+            return reportWorkspaceDependencySyncFailure(ctx, normalizedSourceDir, because);
         }
 
-        const std::string_view signatureView = signature.view();
-        const auto             digest        = sha256(std::span{reinterpret_cast<const std::byte*>(signatureView.data()), signatureView.size()});
-        return (Os::getTemporaryPath() / "swag" / "scripts" / fs::path(bytesToLowerHex(digest).c_str()) / ".dep").lexically_normal();
+        outRelativePath = normalizedSourceDir.lexically_relative(normalizedSourceRoot);
+        if (outRelativePath.empty() || pathIsCurrentOrParentDirectory(outRelativePath))
+        {
+            const Utf8 because = std::format("cannot mirror dependency folder '{}' from root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
+            return reportWorkspaceDependencySyncFailure(ctx, normalizedSourceDir, because);
+        }
+
+        return Result::Continue;
+    }
+
+    // What identifies one build of a dependency: every file it holds, with its size and its
+    // modification time. It is the same evidence a copy already trusted to decide a file was
+    // unchanged, read once for the whole directory instead of once per file, and it costs one
+    // stat per file where hashing the bytes would cost a read.
+    bool tryCollectDependencyCacheSignature(Utf8& outSignature, const fs::path& srcDir)
+    {
+        std::vector<Utf8> entries;
+        std::error_code   ec;
+        for (fs::recursive_directory_iterator it(srcDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return false;
+
+            ec.clear();
+            if (!it->is_regular_file(ec) || ec)
+                continue;
+
+            ec.clear();
+            const uintmax_t fileSize = it->file_size(ec);
+            if (ec)
+                return false;
+
+            ec.clear();
+            const auto writeTime = it->last_write_time(ec);
+            if (ec)
+                return false;
+
+            entries.push_back(std::format("{}\t{}\t{}", Utf8(it->path().lexically_relative(srcDir)).c_str(), fileSize, writeTime.time_since_epoch().count()));
+        }
+
+        // The order a directory is walked in is not part of what it holds.
+        std::ranges::sort(entries);
+        outSignature = Utf8Helper::join(entries, "\n");
+        return true;
+    }
+
+    fs::path dependencyCacheEntryDirectory(const fs::path& srcDir, const Utf8& signature)
+    {
+        // The source path belongs in the name: two dependencies can hold the same bytes and still
+        // be different answers to where a module comes from, which is what a diagnostic naming the
+        // copy has to stay able to say.
+        Utf8 identity = "version=1\nsource=";
+        identity += Utf8(srcDir);
+        identity += '\n';
+        identity += signature;
+
+        const std::string_view identityView = identity.view();
+        const auto             digest       = sha256(std::span{reinterpret_cast<const std::byte*>(identityView.data()), identityView.size()});
+        return (WorkspaceLayout::dependencyCacheRoot() / fs::path(bytesToLowerHex(digest).c_str())).lexically_normal();
+    }
+
+    fs::path dependencyCacheUsedMarkerPath(const fs::path& entryDir)
+    {
+        return (entryDir / fs::path(std::string(WorkspaceLayout::DEPENDENCY_CACHE_USED_MARKER))).lexically_normal();
+    }
+
+    // Re-dates the entry, so that a trim can tell what is still in use from what nothing has asked
+    // for in weeks. It is the one thing ever written to a published entry, it says nothing about
+    // the copy, and a cache that fails to record it still answers every question correctly.
+    void touchDependencyCacheEntry(const fs::path& entryDir)
+    {
+        std::error_code ec;
+        fs::last_write_time(dependencyCacheUsedMarkerPath(entryDir), fs::file_time_type::clock::now(), ec);
+    }
+
+    Result writeDependencyCacheUsedMarker(TaskContext& ctx, const fs::path& entryDir, const fs::path& srcDir)
+    {
+        const fs::path          markerPath = dependencyCacheUsedMarkerPath(entryDir);
+        const Utf8              content    = std::format("{}\n", Utf8(srcDir).c_str());
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::writeBinaryFile(markerPath, content.data(), content.size(), ioError) == Result::Continue)
+            return Result::Continue;
+
+        return reportWorkspaceDependencySyncFailure(ctx, markerPath, FileSystem::describeIoFailure(ioError));
+    }
+
+    // Days a copy may go unused before a newly published one takes it. Long enough that a
+    // configuration returned to after a weekend is still there, short enough that a week of
+    // rebuilding the library does not keep every intermediate state of it.
+    constexpr uint32_t K_DEPENDENCY_CACHE_UNUSED_DAYS = 7;
+
+    // Removes what nothing has used in a while, and only right after a new entry is published:
+    // that is exactly when the cache grew, and it is rare enough for one directory scan to cost
+    // nothing. Everything here is a cache operation, so a failure is not reported — it only means
+    // the disk is given back later, by the next publication or by `swc clean --cache`.
+    //
+    // An entry is renamed out of the way before it is removed, because a copy in use cannot be
+    // renamed — Windows holds the directory of a library it has loaded — while a removal that
+    // failed halfway would leave a gutted entry that still looks complete to the next run.
+    void trimUnusedDependencyCacheEntries(const fs::path& publishedEntryDir)
+    {
+        const auto            maxAge = std::chrono::seconds(86400ULL * K_DEPENDENCY_CACHE_UNUSED_DAYS);
+        const auto            now    = fs::file_time_type::clock::now();
+        std::vector<fs::path> unusedEntryDirs;
+        std::error_code       ec;
+        for (fs::directory_iterator it(WorkspaceLayout::dependencyCacheRoot(), fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return;
+
+            ec.clear();
+            if (!it->is_directory(ec) || ec)
+                continue;
+            if (FileSystem::pathEquals(it->path(), publishedEntryDir))
+                continue;
+
+            ec.clear();
+            const auto usedTime = fs::last_write_time(dependencyCacheUsedMarkerPath(it->path()), ec);
+            if (ec || std::chrono::duration_cast<std::chrono::seconds>(now - usedTime) < maxAge)
+                continue;
+
+            unusedEntryDirs.push_back(it->path());
+        }
+
+        for (const fs::path& entryDir : unusedEntryDirs)
+        {
+            const Utf8     retiredName = std::format("{}.retired.{}", entryDir.filename().string(), Os::currentProcessId());
+            const fs::path retiredDir  = (WorkspaceLayout::dependencyCacheStagingRoot() / fs::path(retiredName.c_str())).lexically_normal();
+
+            ec.clear();
+            fs::rename(entryDir, retiredDir, ec);
+            if (ec)
+                continue;
+
+            ec.clear();
+            fs::remove_all(retiredDir, ec);
+        }
+    }
+
+    Result copyDependencyCacheTree(TaskContext& ctx, const fs::path& srcDir, const fs::path& dstDir)
+    {
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(srcDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(ctx, srcDir, FileSystem::normalizeSystemMessage(ec));
+
+            const fs::path relativePath = it->path().lexically_relative(srcDir);
+            if (relativePath.empty())
+                continue;
+
+            const fs::path dstPath = (dstDir / relativePath).lexically_normal();
+            ec.clear();
+            if (it->is_directory(ec))
+            {
+                ec.clear();
+                fs::create_directories(dstPath, ec);
+                if (ec)
+                    return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
+                continue;
+            }
+
+            ec.clear();
+            if (!it->is_regular_file(ec) || ec)
+                continue;
+
+            ec.clear();
+            fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
+
+            // The copy keeps the date of its source, so what an entry holds stays recognizable as
+            // what it was made from.
+            ec.clear();
+            const auto srcTime = fs::last_write_time(it->path(), ec);
+            if (!ec)
+            {
+                ec.clear();
+                fs::last_write_time(dstPath, srcTime, ec);
+            }
+        }
+
+        return Result::Continue;
+    }
+
+    // Fills an entry, and makes it exist for everyone else in one step.
+    //
+    // The copy is assembled under a name only this process uses and moved into place by a single
+    // rename, so no other compiler can find a directory that is still being written. Losing that
+    // rename is the ordinary outcome of two scripts starting at once rather than a failure: the
+    // entry the other one published holds the same bytes, and this copy is dropped.
+    Result publishDependencyCacheEntry(TaskContext& ctx, const fs::path& entryDir, const fs::path& srcDir, const fs::path& relativePath)
+    {
+        const Utf8     stagingName = std::format("{}.{}", entryDir.filename().string(), Os::currentProcessId());
+        const fs::path stagingDir  = (WorkspaceLayout::dependencyCacheStagingRoot() / fs::path(stagingName.c_str())).lexically_normal();
+
+        std::error_code ec;
+        fs::remove_all(stagingDir, ec);
+
+        ec.clear();
+        fs::create_directories(stagingDir / relativePath, ec);
+        if (ec)
+            return reportWorkspaceDependencySyncFailure(ctx, stagingDir, FileSystem::normalizeSystemMessage(ec));
+
+        Result result = copyDependencyCacheTree(ctx, srcDir, (stagingDir / relativePath).lexically_normal());
+        if (result == Result::Continue)
+            result = writeDependencyCacheUsedMarker(ctx, stagingDir, srcDir);
+
+        if (result == Result::Continue)
+        {
+            ec.clear();
+            fs::create_directories(entryDir.parent_path(), ec);
+            ec.clear();
+            fs::rename(stagingDir, entryDir, ec);
+            if (ec && !fs::is_directory(entryDir))
+                result = reportWorkspaceDependencySyncFailure(ctx, entryDir, FileSystem::normalizeSystemMessage(ec));
+        }
+
+        ec.clear();
+        fs::remove_all(stagingDir, ec);
+
+        if (result == Result::Continue)
+            trimUnusedDependencyCacheEntries(entryDir);
+        return result;
+    }
+
+    // Answers with a directory holding the same files as `srcDir`, that nothing will rewrite.
+    //
+    // A script consumes its dependencies from a copy rather than from where they were built,
+    // because the compiler loads their shared libraries into its own process: pointed at the build
+    // output, `swc tools/std.swgs` — a script that rebuilds the very library it runs on — would be
+    // asked to replace a DLL Windows has locked. Naming the copy after what it holds is what makes
+    // the copy affordable: every script importing the same build shares one, and a rebuilt
+    // dependency lands in a new entry beside the one a running script is still reading.
+    Result resolveDependencyCacheEntry(fs::path& outMirroredDir, TaskContext& ctx, const fs::path& srcDir, const fs::path& relativePath)
+    {
+        Utf8 signature;
+        if (!tryCollectDependencyCacheSignature(signature, srcDir))
+            return reportWorkspaceDependencySyncFailure(ctx, srcDir, "cannot read what the dependency holds");
+
+        const fs::path  entryDir = dependencyCacheEntryDirectory(srcDir, signature);
+        std::error_code ec;
+        if (!fs::is_directory(entryDir, ec))
+            SWC_RESULT(publishDependencyCacheEntry(ctx, entryDir, srcDir, relativePath));
+
+        touchDependencyCacheEntry(entryDir);
+        outMirroredDir = (entryDir / relativePath).lexically_normal();
+        return Result::Continue;
     }
 }
 
@@ -1357,7 +1598,10 @@ struct ModuleSetupInputApplier
     Result apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot);
     Result resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    bool   mirrorsDependencies() const;
+    Result mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
     Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    Result mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
     bool   tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     bool   canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest);
@@ -1388,6 +1632,7 @@ struct ModuleSetupInputApplier
     fs::path                                                                   workspaceDependencyRoot;
     std::unordered_set<Utf8>                                                   onDemandBuiltModules;
     std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
+    std::unordered_map<Utf8, fs::path>                                         scriptDependencyEntries;
     std::unordered_map<Utf8, std::vector<Utf8>>                                dependencyClosureCache;
     std::unordered_set<Utf8>                                                   processedDependencyApis;
     std::unordered_map<Utf8, std::vector<CompilerInstance::ModuleSetupImport>> dependencyImportsCache;
@@ -1398,7 +1643,7 @@ ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInsta
     compiler = &compilerInstance;
     ctx      = &taskContext;
     if (!instance().cmdLine().workspacePath.empty())
-        workspaceDependencyRoot = FileSystem::normalizePath(workspaceDependencyDirectory(instance().cmdLine().workspacePath));
+        workspaceDependencyRoot = FileSystem::normalizePath(WorkspaceLayout::workspaceDependencyDirectory(instance().cmdLine().workspacePath));
 }
 
 Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot)
@@ -1406,25 +1651,6 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
     instance().moduleSetupImports_ = setupSnapshot.imports;
     instance().nativeRuntimeImports_.clear();
     instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
-
-    if (instance().cmdLine().scriptMode)
-    {
-        workspaceDependencyRoot = FileSystem::normalizePath(scriptDependencyDirectory(instance().cmdLine(), setupSnapshot.imports));
-
-        // '--rebuild' answers for everything the run consumes, and the mirror is a cache like any
-        // other. It also sits under a hashed temporary path nobody can be expected to find, so
-        // dropping it here is the only way a user has to force it to be filled again.
-        if (instance().cmdLine().rebuild)
-        {
-            std::error_code ec;
-            fs::remove_all(workspaceDependencyRoot, ec);
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(taskCtx(), workspaceDependencyRoot, FileSystem::normalizeSystemMessage(ec));
-        }
-
-        std::unordered_set<fs::path> ensuredDirs;
-        SWC_RESULT(ensureWorkspaceDependencyDirectory(taskCtx(), ensuredDirs, workspaceDependencyRoot));
-    }
 
     SWC_RESULT(processImports(setupSnapshot.imports, nullptr, true));
 
@@ -1490,11 +1716,27 @@ Result ModuleSetupInputApplier::resolveLinkAndSharedDirs(ResolvedModuleImportPat
     return Result::Continue;
 }
 
+// Whether the compiler reads its dependencies from a copy instead of from where they were built.
+//
+// A workspace vendors them into a '.dep' directory it owns. A script has no directory of its own
+// and shares the content-addressed cache. Everything else reads them where they are: only these
+// two run a program whose libraries may be rebuilt underneath it by the very run that loaded them.
+bool ModuleSetupInputApplier::mirrorsDependencies() const
+{
+    return !workspaceDependencyRoot.empty() || instance().cmdLine().scriptMode;
+}
+
+Result ModuleSetupInputApplier::mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
+{
+    if (ioDir.empty())
+        return Result::Continue;
+    if (!workspaceDependencyRoot.empty())
+        return mirrorWorkspaceDependencyDir(ioDir, sourceDependencyRoot);
+    return mirrorScriptDependencyDir(ioDir, sourceDependencyRoot);
+}
+
 Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
 {
-    if (workspaceDependencyRoot.empty() || ioDir.empty())
-        return Result::Continue;
-
     const fs::path normalizedSourceDir  = FileSystem::normalizePath(ioDir);
     const fs::path normalizedSourceRoot = FileSystem::normalizePath(sourceDependencyRoot);
     if (FileSystem::pathEquals(normalizedSourceRoot, workspaceDependencyRoot))
@@ -1503,18 +1745,8 @@ Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, co
         return Result::Continue;
     }
 
-    if (!FileSystem::pathStartsWith(normalizedSourceDir, normalizedSourceRoot))
-    {
-        const Utf8 because = std::format("dependency folder '{}' is not under root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
-        return reportWorkspaceDependencySyncFailure(taskCtx(), normalizedSourceDir, because);
-    }
-
-    const fs::path relativePath = normalizedSourceDir.lexically_relative(normalizedSourceRoot);
-    if (relativePath.empty() || pathIsCurrentOrParentDirectory(relativePath))
-    {
-        const Utf8 because = std::format("cannot mirror dependency folder '{}' from root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
-        return reportWorkspaceDependencySyncFailure(taskCtx(), normalizedSourceDir, because);
-    }
+    fs::path relativePath;
+    SWC_RESULT(resolveDependencyMirrorRelativePath(relativePath, taskCtx(), normalizedSourceDir, normalizedSourceRoot));
 
     fs::path   destinationDir = (workspaceDependencyRoot / relativePath).lexically_normal();
     const Utf8 mirrorKey      = std::format("{}|{}", Utf8(normalizedSourceDir).c_str(), Utf8(destinationDir).c_str());
@@ -1522,6 +1754,38 @@ Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, co
         SWC_RESULT(syncWorkspaceDependencyDirectory(taskCtx(), normalizedSourceDir, destinationDir));
 
     ioDir = std::move(destinationDir);
+    return Result::Continue;
+}
+
+Result ModuleSetupInputApplier::mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
+{
+    const fs::path normalizedSourceDir = FileSystem::normalizePath(ioDir);
+
+    // What already lives in the cache is never copied into it again.
+    if (FileSystem::pathStartsWith(normalizedSourceDir, FileSystem::normalizePath(WorkspaceLayout::dependencyCacheRoot())))
+    {
+        ioDir = normalizedSourceDir;
+        return Result::Continue;
+    }
+
+    // One directory is asked for as many times as it answers for — an API directory that is also
+    // the link directory, a module two others import — and reading what it holds is the expensive
+    // half of the answer.
+    const auto entryKey = Utf8(normalizedSourceDir);
+    const auto it       = scriptDependencyEntries.find(entryKey);
+    if (it != scriptDependencyEntries.end())
+    {
+        ioDir = it->second;
+        return Result::Continue;
+    }
+
+    fs::path relativePath;
+    SWC_RESULT(resolveDependencyMirrorRelativePath(relativePath, taskCtx(), normalizedSourceDir, FileSystem::normalizePath(sourceDependencyRoot)));
+
+    fs::path mirroredDir;
+    SWC_RESULT(resolveDependencyCacheEntry(mirroredDir, taskCtx(), normalizedSourceDir, relativePath));
+    scriptDependencyEntries.emplace(entryKey, mirroredDir);
+    ioDir = std::move(mirroredDir);
     return Result::Continue;
 }
 
@@ -1654,7 +1918,7 @@ Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportP
         std::error_code ec;
         if (fs::is_directory(workspaceModuleDir, ec))
         {
-            const fs::path dependencyRoot = workspaceOutputDirectory(instance().cmdLine().workspacePath);
+            const fs::path dependencyRoot = WorkspaceLayout::workspaceOutputDirectory(instance().cmdLine().workspacePath);
             Utf8           because;
             if (findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
                 return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
@@ -1784,12 +2048,11 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
         ResolvedModuleImportPaths importPaths;
         SWC_RESULT(resolveDependencyImportDir(importPaths, importRequest, preferredDependencyRoot));
         const fs::path sourceDependencyRoot = importPaths.dependencyRoot;
-        if (!workspaceDependencyRoot.empty())
+        if (mirrorsDependencies())
         {
-            SWC_RESULT(mirrorWorkspaceDependencyDir(importPaths.apiDir, importPaths.dependencyRoot));
-            SWC_RESULT(mirrorWorkspaceDependencyDir(importPaths.linkDir, importPaths.dependencyRoot));
-            SWC_RESULT(mirrorWorkspaceDependencyDir(importPaths.sharedDir, importPaths.dependencyRoot));
-            importPaths.dependencyRoot = workspaceDependencyRoot;
+            SWC_RESULT(mirrorDependencyDir(importPaths.apiDir, sourceDependencyRoot));
+            SWC_RESULT(mirrorDependencyDir(importPaths.linkDir, sourceDependencyRoot));
+            SWC_RESULT(mirrorDependencyDir(importPaths.sharedDir, sourceDependencyRoot));
         }
 
         instance().collectImportedApiFolderFiles(importPaths.apiDir);

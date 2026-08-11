@@ -12,6 +12,7 @@ enum class CommandKind
 {
     Invalid = -1,
     New,
+    Clean,
     Format,
     Syntax,
     Sema,
@@ -39,6 +40,7 @@ struct CommandInfo
 
 inline constexpr CommandInfo COMMANDS[] = {
     {CommandKind::New, "new", "Create a runnable script or an executable workspace module"},
+    {CommandKind::Clean, "clean", "Remove what a build produced, and the caches the compiler keeps between runs"},
     {CommandKind::Format, "format", "Parse source files and write their canonical formatting back to disk"},
     {CommandKind::Syntax, "syntax", "Check source syntax without generating IR or backend code"},
     {CommandKind::Sema, "sema", "Analyze source semantics, including type checking"},
@@ -170,6 +172,7 @@ struct CommandLine
     bool stats                   = false;
     bool statsMem                = false;
     bool publish                 = false;
+    bool cleanCache              = false;
     bool rebuild                 = false;
     bool dryRun                  = false;
     bool showConfig              = false;
@@ -213,6 +216,9 @@ struct CommandLine
     bool     randomize = false;
     uint32_t randSeed  = 0;
 #endif
+
+    // Days a dependency copy may go unused before 'clean --cache' takes it; zero removes them all.
+    uint32_t cleanCacheDays = 0;
 
     uint32_t                        syntaxColorLum  = 0;
     uint32_t                        numCores        = 0;
@@ -264,6 +270,8 @@ constexpr std::string_view commandName(const CommandKind command)
     {
         case CommandKind::New:
             return "new";
+        case CommandKind::Clean:
+            return "clean";
         case CommandKind::Format:
             return "format";
         case CommandKind::Syntax:

@@ -1250,6 +1250,17 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->exportApiDir));
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->docOutputDir));
 
+    // Nothing about a removal is guessed: the command empties the directories it was pointed at.
+    if (cmdLine_->command == CommandKind::Clean &&
+        cmdLine_->workspacePath.empty() &&
+        cmdLine_->modulePath.empty() &&
+        !cmdLine_->cleanCache)
+    {
+        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_clean_no_target);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
     updateDefaultBuildCfg(*cmdLine_);
 
     return Result::Continue;

@@ -15,6 +15,7 @@ The current commands are:
 | Command | Purpose |
 |---|---|
 | 'new' | Create a runnable script or an executable workspace module |
+| 'clean' | Remove what a build produced, and the caches kept between runs |
 | 'build' | Compile and emit native artifacts without running them |
 | 'run' | Build, then run emitted executables |
 | 'test' | Run source-driven tests and '#test' functions |
@@ -65,8 +66,9 @@ Use one input model per invocation:
 | '--directory PATH', '-d PATH' | Add a directory of source files |
 | '--file PATH', '-f PATH' | Add an individual source file |
 
-'--workspace' is available to 'new', 'build', 'run', 'test', 'sema', and 'doc'.
-'--workspace-module' is available to the five compilation commands. The
+'--workspace' is available to 'new', 'clean', 'build', 'run', 'test', 'sema',
+and 'doc'. '--workspace-module' is available to the five compilation commands
+and to 'clean'. The
 'format', 'syntax', and compiler-internal 'unittest' commands use the direct
 module, module-file, directory, or file modes instead.
 
@@ -105,6 +107,44 @@ swc format -mf <workspace>/modules/app --dry-run
 '--dry-run' previews planned stages without executing compile-time code, native
 tools, tests, or emitted programs. '--show-config' prints the resolved command,
 environment, toolchain, and artifact configuration, then exits.
+
+# Cleaning
+
+'swc clean' removes what a build wrote, and nothing else. It compiles nothing,
+so it still answers on a tree that no longer builds.
+
+| Option | Removes |
+|---|---|
+| '--workspace PATH' | The '.output', '.tmp', and '.dep' directories of that workspace |
+| '--workspace-module NAME' | That module's artifacts alone, keeping the '.dep' directory the workspace shares |
+| '--module PATH' | The '.output' directory under that module root, and '--out-dir' and '--work-dir' when they are set |
+| '--cache' | Every dependency copy a script filled outside a workspace |
+| '--cache-days N' | With '--cache', only the copies unused for at least N days |
+
+```text
+swc clean -w <workspace>
+swc clean -w <workspace> -m app
+swc clean --cache
+swc clean --cache --cache-days 7
+swc clean -w <workspace> --dry-run
+```
+
+The command needs at least one of those targets, and never chooses one on its
+own. A directory that is not there counts as already clean, and '--dry-run'
+reports what each target holds while removing nothing.
+
+A script reads its dependencies from a copy rather than from where they were
+built, because the compiler loads their shared libraries into its own process:
+'swc tools/std.swgs' rebuilds the very library it is running on, and could not
+replace a file the run has locked. Each copy is named after what it holds, so
+every script importing the same build shares one, a rebuilt dependency lands
+beside the copy a running script is reading instead of replacing it, and no run
+can observe a copy while it is being filled.
+
+Nothing invalidates a copy, because nothing can make one wrong: a dependency
+built again is different bytes, and different bytes are a different copy. What
+the old ones cost is disk. Publishing a copy removes the ones no run has used
+for a week, and '--cache' gives back the rest on demand.
 
 # Formatting
 

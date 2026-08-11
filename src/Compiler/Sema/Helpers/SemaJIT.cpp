@@ -787,6 +787,15 @@ namespace
         return Result::Continue;
     }
 
+    bool constantPayloadFitsByteSize(const ConstantValue& value, uint64_t byteSize)
+    {
+        if (value.isStruct())
+            return value.getStruct().size() == byteSize;
+        if (value.isArray())
+            return value.getArray().size() == byteSize;
+        return true;
+    }
+
     Result buildConstCallArguments(Sema& sema, bool& outBuilt, const SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         outBuilt = false;
@@ -855,6 +864,8 @@ namespace
                     return Result::Continue;
                 if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
                     return Result::Continue;
+                if (!constantPayloadFitsByteSize(argConstantValue, pointeeByteSize))
+                    return Result::Continue;
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 pointeeStorage.resize(pointeeByteSize);
@@ -879,6 +890,8 @@ namespace
                 return Result::Continue;
             SWC_ASSERT(argStorageSize <= std::numeric_limits<uint32_t>::max());
             if (argStorageSize > std::numeric_limits<uint32_t>::max())
+                return Result::Continue;
+            if (!constantPayloadFitsByteSize(argConstantValue, argStorageSize))
                 return Result::Continue;
 
             auto& argStorage = outArgStorage.emplace_back();
@@ -941,6 +954,8 @@ namespace
                     return Result::Continue;
                 if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
                     return Result::Continue;
+                if (receiverInitCstRef.isValid() && !constantPayloadFitsByteSize(sema.cstMgr().get(receiverInitCstRef), pointeeByteSize))
+                    return Result::Continue;
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 pointeeStorage.resize(pointeeByteSize);
@@ -996,6 +1011,8 @@ namespace
                     return Result::Continue;
                 if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
                     return Result::Continue;
+                if (!constantPayloadFitsByteSize(argConstantValue, pointeeByteSize))
+                    return Result::Continue;
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 pointeeStorage.resize(pointeeByteSize);
@@ -1017,6 +1034,8 @@ namespace
 
             const uint64_t argStorageSize = argValueType.sizeOf(ctx);
             if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
+                return Result::Continue;
+            if (!constantPayloadFitsByteSize(argConstantValue, argStorageSize))
                 return Result::Continue;
 
             auto& argStorage = outArgStorage.emplace_back();

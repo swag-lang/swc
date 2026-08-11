@@ -69,6 +69,7 @@ struct AllocatorPage
 
     // Blocks pushed by another thread and not yet collected. Live blocks are 'used - remoteCount'.
     remoteCount: u32
+    remoteLock:  u32
 
     classIndex: u32
     unitIndex:  u32
@@ -223,6 +224,7 @@ impl AllocatorPage
         .prevPage    = null
         .used        = 0
         .remoteCount = 0
+        .remoteLock  = 0
         .classIndex  = classIndex
         .unitIndex   = unitIndex
         .state       = .Owned
@@ -278,17 +280,32 @@ impl AllocatorPage
 
     mtd capacityBytes()->u64 => .areaEnd - .areaStart
 
-    // Moves the blocks other threads freed onto the owner's free list. Only the owning thread runs
-    // this, so the exchange is the single synchronization point of the whole transfer.
+    mtd lockRemote()
+    {
+        while @atomcmpxchg(&.remoteLock, 0, 1) != 0 {}
+    }
+
+    mtd unlockRemote()
+    {
+        discard @atomxchg(&.remoteLock, 0)
+    }
+
+    // Moves the blocks other threads freed onto the owner's free list. A page can alternate between
+    // owners and the abandoned list while frees are still arriving, so detaching the intrusive list
+    // is serialized with its producers. Once detached, no producer can reach those links again.
     mtd collectRemote()
     {
-        // A plain read is enough to skip the work: on x86-64 an aligned load is already an
-        // acquire, and the exchange below is what actually takes the list.
-        if .remoteFree == 0 do
+        .lockRemote()
+        if .remoteFree == 0
+        {
+            .unlockRemote()
             return
+        }
 
-        var list  = @atomxchg(&.remoteFree, 0'u64)
-        var taken = 0'u32
+        var list    = .remoteFree
+        .remoteFree = 0
+        .unlockRemote()
+        var taken   = 0'u32
 
         while list != 0
         {
@@ -315,15 +332,10 @@ impl AllocatorPage
         let encoded = .encode(address)
         discard @atomadd(&.remoteCount, 1)
 
-        var head = .remoteFree
-        while true
-        {
-            dref cast(*u64) address = head
-            let seen = @atomcmpxchg(&.remoteFree, head, encoded)
-            if seen == head do
-                return
-            head = seen
-        }
+        .lockRemote()
+        dref cast(*u64) address = .remoteFree
+        .remoteFree             = encoded
+        .unlockRemote()
     }
 
     // Hands out the next block, from the free list first and from the untouched tail after that.
@@ -368,13 +380,18 @@ impl AllocatorPage
             scan = dref cast(*u64) .decode(scan)
         }
 
-        scan = atomicGet(&.remoteFree)
+        .lockRemote()
+        scan = .remoteFree
         while scan != 0
         {
-            if scan == wanted do
+            if scan == wanted
+            {
+                .unlockRemote()
                 return true
+            }
             scan = dref cast(*u64) .decode(scan)
         }
+        .unlockRemote()
 
         return false
     }

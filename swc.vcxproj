@@ -398,6 +398,7 @@
         <ClCompile Include="src\Format\Formatter.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\Command\Command.New.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Clean.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Format.cpp"/>
         <ClCompile Include="src\Main\Command\Command.DryRun.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Sema.cpp"/>

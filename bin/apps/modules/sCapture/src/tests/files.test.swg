@@ -749,7 +749,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     testPrepareRecentLibrary(f.main)
 
     let preview = Gui.Testing.indexedImage(32, 20)
-    for [i] in 16 do
+    for i in 16 do
         f.main.recentWnd.addRecent(Format.toString("capture-%", i), preview, front: true)
 
     @assert(f.main.recentWnd.recentView.items.count == 15)

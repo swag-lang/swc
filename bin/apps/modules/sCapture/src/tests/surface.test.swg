@@ -57,7 +57,7 @@ func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost)->*MainWnd
     f.setup(320, 240)
     defer f.shutdown()
 
-    for [i] in 32
+    for i in 32
     {
         let capture = Memory.new'Capture()
         capture.width, capture.widthOrg   = 96 + cast(s32) i

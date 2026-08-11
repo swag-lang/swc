@@ -204,6 +204,28 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         return;
     }
 
+    if (command == "clean")
+    {
+        entries.clear();
+        addInfoEntry(entries, "--workspace", "Remove the .output, .tmp, and .dep directories of that workspace", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "--workspace-module", "Restrict the removal to one module, keeping the .dep directory the workspace shares", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "--module", "Remove the .output directory under that module root, and --out-dir and --work-dir when they are set", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "--cache", "Remove every dependency copy a script filled outside a workspace", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "--cache-days", "Keep the copies a run has used within that many days", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "--dry-run", "Report what each target holds and remove nothing", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Absent paths", "Count as already clean", LogColor::White, 0, LogColor::Dim);
+        Logger::printFieldGroup(ctx, "Removes", entries, nextHelpGroupStyle(hasPrintedGroup, 20));
+
+        entries.clear();
+        addInfoEntry(entries, "Workspace", "swc clean --workspace bin/std", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "One module", "swc clean --workspace bin/std --workspace-module core", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Script copies", "swc clean --cache", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Stale copies", "swc clean --cache --cache-days 7", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Preview", "swc clean --workspace bin/std --dry-run", LogColor::White, 0, helpArgumentLabelColor());
+        Logger::printFieldGroup(ctx, "Examples", entries, nextHelpGroupStyle(hasPrintedGroup, 20));
+        return;
+    }
+
     const Utf8 oldCommand = command_;
     command_              = command;
 

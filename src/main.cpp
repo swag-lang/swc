@@ -90,6 +90,14 @@ int main(int argc, char* argv[])
         return static_cast<int>(result == swc::Result::Continue ? swc::ExitCode::Success : swc::ExitCode::ErrorCommand);
     }
 
+    // Removing what a build wrote needs none of what a build needs: no inputs to collect, no
+    // module setup to run, and nothing to schedule.
+    if (cmdLine.command == swc::CommandKind::Clean)
+    {
+        const swc::Result result = swc::Command::clean(startupCtx);
+        return static_cast<int>(result == swc::Result::Continue ? swc::ExitCode::Success : swc::ExitCode::ErrorCommand);
+    }
+
 #if SWC_HAS_UNITTEST
     if (cmdLine.command == swc::CommandKind::Unittest && !cmdLine.dryRun && !cmdLine.showConfig)
     {

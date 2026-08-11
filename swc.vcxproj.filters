@@ -693,6 +693,9 @@
     <ClCompile Include="src\Main\Command\Command.New.cpp">
       <Filter>src\Main\Command</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\Command\Command.Clean.cpp">
+      <Filter>src\Main\Command</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\Command\Command.Format.cpp">
       <Filter>src\Main\Command</Filter>
     </ClCompile>

@@ -502,10 +502,14 @@ namespace
     // 'opEquals' declared against another type — a '#null string' the struct compares itself
     // against, say — adds a comparison beside the built-in one instead of replacing it, so it
     // neither stands in for a generated overload nor stops the struct from receiving one.
-    bool structHasSelfEqualityOverload(Sema& sema, const SymbolStruct& ownerStruct)
+    Result structHasSelfEqualityOverload(Sema& sema, bool& outResult, const SymbolStruct& ownerStruct)
     {
+        outResult = false;
         if (ownerStruct.attributes().generatedOperators.has(GeneratedOperatorFlagsE::OpEquals))
-            return true;
+        {
+            outResult = true;
+            return Result::Continue;
+        }
 
         const IdentifierRef idRef = specOpIdFromKind(sema, SpecOpKind::OpEquals);
         for (const SymbolImpl* impl : ownerStruct.impls())
@@ -515,63 +519,93 @@ namespace
 
             for (const SymbolFunction* function : impl->specOps())
             {
-                if (!function || function->idRef() != idRef || function->parameters().size() < 2)
+                if (!function || function->idRef() != idRef)
+                    continue;
+                SWC_RESULT(sema.waitTyped(function, function->codeRef()));
+                if (function->parameters().size() < 2)
                     continue;
                 if (SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, function->parameters()[1]->typeRef()))
-                    return true;
+                {
+                    outResult = true;
+                    return Result::Continue;
+                }
             }
         }
 
-        return false;
+        return Result::Continue;
     }
 
-    bool typeComparesAsBytes(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
+    Result typeComparesAsBytes(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
 
     // A struct answers '==' member by member. Comparing its storage instead is only the same
     // question when every member itself compares as bytes, which is what this decides. It never
     // filters '#[Swag.OperatorIgnore]' fields: an ignored field still makes the struct generate
     // an 'opEquals', and the generated body is where the field drops out.
-    bool structComparesAsBytes(Sema& sema, const SymbolStruct& ownerStruct, std::unordered_set<TypeRef>& visiting)
+    Result structComparesAsBytes(Sema& sema, bool& outResult, const SymbolStruct& ownerStruct, std::unordered_set<TypeRef>& visiting)
     {
-        if (structHasSelfEqualityOverload(sema, ownerStruct))
-            return false;
+        bool hasSelfEqualityOverload = false;
+        SWC_RESULT(structHasSelfEqualityOverload(sema, hasSelfEqualityOverload, ownerStruct));
+        if (hasSelfEqualityOverload)
+        {
+            outResult = false;
+            return Result::Continue;
+        }
 
         // Union members share one storage, so there is no member-wise answer to give.
         if (ownerStruct.isUnion())
-            return true;
+        {
+            outResult = true;
+            return Result::Continue;
+        }
 
         for (const SymbolVariable* field : ownerStruct.fields())
         {
-            if (field && !typeComparesAsBytes(sema, field->typeRef(), visiting))
-                return false;
+            if (!field)
+                continue;
+
+            bool fieldComparesAsBytes = true;
+            SWC_RESULT(typeComparesAsBytes(sema, fieldComparesAsBytes, field->typeRef(), visiting));
+            if (!fieldComparesAsBytes)
+            {
+                outResult = false;
+                return Result::Continue;
+            }
         }
 
-        return true;
+        outResult = true;
+        return Result::Continue;
     }
 
     // A 'string' or a slice compares the content it views rather than the view itself, and a
     // struct carrying an 'opEquals' compares whatever that method decides. An array is left
     // out on purpose: its own '==' is a byte comparison whatever it holds, so a member-wise
     // struct comparison and a byte comparison give it the same answer.
-    bool typeComparesAsBytes(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    Result typeComparesAsBytes(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
+        outResult = true;
         typeRef = unwrapAlias(sema.ctx(), typeRef);
         if (typeRef.isInvalid())
-            return true;
+            return Result::Continue;
         if (!visiting.insert(typeRef).second)
-            return true;
+            return Result::Continue;
 
         const TypeInfo& type   = sema.typeMgr().get(typeRef);
         bool            result = true;
         if (type.isString() || type.isSlice())
             result = false;
         else if (type.isStruct())
-            result = structComparesAsBytes(sema, type.payloadSymStruct(), visiting);
+        {
+            const auto& nestedStruct = type.payloadSymStruct();
+            SWC_RESULT(sema.waitSemaCompleted(&nestedStruct, sema.curNode().codeRef()));
+            SWC_RESULT(structComparesAsBytes(sema, result, nestedStruct, visiting));
+        }
         else if (type.isAggregateStruct() || type.isAggregateArray())
         {
             for (const TypeRef memberTypeRef : type.payloadAggregate().types)
             {
-                if (!typeComparesAsBytes(sema, memberTypeRef, visiting))
+                bool memberComparesAsBytes = true;
+                SWC_RESULT(typeComparesAsBytes(sema, memberComparesAsBytes, memberTypeRef, visiting));
+                if (!memberComparesAsBytes)
                 {
                     result = false;
                     break;
@@ -580,21 +614,28 @@ namespace
         }
 
         visiting.erase(typeRef);
-        return result;
+        outResult = result;
+        return Result::Continue;
     }
 
-    bool shouldGenerateEqualityOperator(Sema& sema, const SymbolStruct& ownerStruct)
+    Result shouldGenerateEqualityOperator(Sema& sema, bool& outResult, const SymbolStruct& ownerStruct)
     {
+        outResult = false;
         if (ownerStruct.isUnion() || ownerStruct.fields().empty())
-            return false;
+            return Result::Continue;
 
         // A struct already answering '==' with an overload of its own needs nothing generated,
         // which is the other reason 'structComparesAsBytes' says no.
-        if (structHasSelfEqualityOverload(sema, ownerStruct))
-            return false;
+        bool hasSelfEqualityOverload = false;
+        SWC_RESULT(structHasSelfEqualityOverload(sema, hasSelfEqualityOverload, ownerStruct));
+        if (hasSelfEqualityOverload)
+            return Result::Continue;
 
         std::unordered_set<TypeRef> visiting;
-        return !structComparesAsBytes(sema, ownerStruct, visiting);
+        bool                        comparesAsBytes = true;
+        SWC_RESULT(structComparesAsBytes(sema, comparesAsBytes, ownerStruct, visiting));
+        outResult = !comparesAsBytes;
+        return Result::Continue;
     }
 
     Utf8 makeGeneratedEqualityMethodSource(Sema& sema, const SymbolStruct& ownerStruct, std::string_view selfTypeName)
@@ -604,6 +645,10 @@ namespace
 
         Utf8 source;
         source += "// Generated member-wise equality.\n";
+        // The implicit method takes aggregate references and its body can itself dispatch to a
+        // member's equality operator. The ordinary inline materializer cannot preserve that
+        // nested aggregate receiver yet, so keep the generated bridge on the regular call path.
+        source += "    #[Swag.NoInline]\n";
         appendGeneratedEqualsOperator(sema, source, ownerStruct, fields.span(), selfTypeName);
         return source;
     }
@@ -1109,7 +1154,9 @@ Result SemaSpecOp::ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct
     if (ownerStruct.generatedEqualityPublished())
         return Result::Continue;
 
-    if (!ownerStruct.tryMarkGeneratedEquality() || !shouldGenerateEqualityOperator(sema, ownerStruct))
+    bool shouldGenerate = false;
+    SWC_RESULT(shouldGenerateEqualityOperator(sema, shouldGenerate, ownerStruct));
+    if (!ownerStruct.tryMarkGeneratedEquality() || !shouldGenerate)
     {
         ownerStruct.publishGeneratedEquality();
         return Result::Continue;

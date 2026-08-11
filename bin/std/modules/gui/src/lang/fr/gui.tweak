@@ -8,6 +8,7 @@ dlg_Close        Fermer
 dlg_ConfirmTitle Veuillez confirmer
 dlg_ConfirmText  Voulez-vous continuer ?
 dlg_ErrorTitle   Erreur
+dlg_InfoTitle    Information
 
 fileDlg_TitleSaveFile     Enregistrer un fichier
 fileDlg_TitleSelectFile   Sélectionner un fichier

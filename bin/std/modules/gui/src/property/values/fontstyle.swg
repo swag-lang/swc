@@ -33,11 +33,16 @@ internal impl IPropertyEditor for FontStyleEditor
 
         // Toggle, not Radio: bold/italic are independent on/off switches, so a
         // click on a checked button must uncheck it (Radio remains checked).
+        //
+        // A switch that is on says so in the accent it is lettered in. The rule a tool rail
+        // marks its picked tool with would run under a field of the form here, which reads
+        // as an underlined row rather than as one letter being on.
         with let btnBold = IconButton.create(line, {}, {0, 0, BtnW, lineH})
         {
             .name = "B"
             .setForm(.RoundedRectangle)
             .updateFlags(.Toggle)
+            .setCheckIndicator(.Ink)
         }
 
         with let btnItalic = IconButton.create(line, {}, {0, 0, BtnW, lineH})
@@ -45,6 +50,7 @@ internal impl IPropertyEditor for FontStyleEditor
             .name = "I"
             .setForm(.RoundedRectangle)
             .updateFlags(.Toggle)
+            .setCheckIndicator(.Ink)
         }
 
         func writeStyle(list: *Properties, item: *PropertiesItem, style: #null *FontFamilyStyle, btnBold, btnItalic: *IconButton)

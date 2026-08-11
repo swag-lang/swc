@@ -48,7 +48,8 @@ enum IconButtonTextPosition
 // Selects checked-state indicator placement.
 enum IconButtonCheckIndicator
 {
-    None       // Draws no separate checked-state indicator.
+    None       // Draws no separate checked-state indicator, and reads as pressed while checked.
+    Ink        // Draws no indicator either, and says it is checked with the checked ink alone.
     Bottom     // Draws an indicator along the bottom edge.
     Top        // Draws an indicator along the top edge.
     Left       // Draws an indicator along the left edge.
@@ -170,12 +171,13 @@ impl IWnd for IconButton
         }
 
         // The checked-state rail runs in a lane of its own, so it never eats into the group.
-        // A full indicator is a background fill and asks for nothing.
+        // A full indicator is a background fill and asks for nothing, and the two indicator-less
+        // placements draw nothing at all.
         switch #complete .checkIndicator
         {
-        case .None, .Full:  break
-        case .Left, .Right: width += metrics.activeRail_Size + metrics.activeRail_Margin
-        case .Bottom, .Top: height += metrics.activeRail_Size + metrics.activeRail_Margin
+        case .None, .Ink, .Full: break
+        case .Left, .Right:      width += metrics.activeRail_Size + metrics.activeRail_Margin
+        case .Bottom, .Top:      height += metrics.activeRail_Size + metrics.activeRail_Margin
         }
 
         let padding = 2 * metrics.btnIcon_Padding
@@ -328,7 +330,11 @@ impl IWnd for IconButton
             .focusRingGround = .aniBk.cur()
         }
 
-        if !flat and !overlay and .isChecked and colors.activeRail.a
+        // A checked button says so with a mark of its own, unless it was told to draw none:
+        // `None` then reads as pressed and `Ink` keeps the checked ink, and both leave the box
+        // exactly as the state colors above left it.
+        let marked = !flat and !overlay and .isChecked and .checkIndicator != .None and .checkIndicator != .Ink
+        if marked and colors.activeRail.a
         {
             // The rule stops short of both ends of the edge it runs along, so it reads as a
             // mark placed against the cell rather than as a bar filling one of its sides.
@@ -349,7 +355,7 @@ impl IWnd for IconButton
                 rail.width = thickness
                 rail.inflate(0, -.railInset(rail.height))
 
-            case .None, .Bottom, .Full:
+            default:
                 rail.y      = rail.bottom() - thickness
                 rail.height = thickness
                 rail.inflate(-.railInset(rail.width), 0)
@@ -359,7 +365,7 @@ impl IWnd for IconButton
             // it cannot do. Drawn at full accent, the rule says the tool is available.
             bc.painter.fillRect(rail, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.activeRail)
         }
-        elif !flat and !overlay and .isChecked and .checkIndicator != .None
+        elif marked
         {
             switch .checkIndicator
             {

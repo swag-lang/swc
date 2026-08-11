@@ -11,10 +11,13 @@ enum FormTextAlign
 struct FormText
 {
     using base: BaseForm
-    #[Name("Font"), FontName]
-    fontName: String
+
+    // What the form says comes before how it is set: the reader types the words first, then
+    // dresses them. A face picked above an empty box asks a question in the wrong order.
     #[Name("Text"), MultiLine]
     text: String
+    #[Name("Font"), FontName]
+    fontName: String
     #[Name("Font Style")]
     fontStyle = FontFamilyStyle.Regular
     #[Name("Align")]
@@ -46,6 +49,22 @@ struct FormText
         totalY:      f32
         paths:       Array'LinePathList
         borderPaths: Array'LinePathList
+    }
+}
+
+impl FormText
+{
+    // The outline one line of text is measured and placed by.
+    //
+    // A form with an outline is laid out on the offset path, because that is what the reader
+    // sees the edges of. Without one the border path stays empty, and the glyph path is both
+    // what is painted and what answers for the extent.
+    mtd measuredPath(idx: u64)->*LinePathList
+    {
+        let borderPath = &.borderPaths[idx]
+        if borderPath.count() do
+            return borderPath
+        return &.paths[idx]
     }
 }
 
@@ -160,8 +179,11 @@ impl IForm for FormText
         var cxtCpy = cxt
         cxtCpy.z = 1
 
+        // The preview range is what the sample cell can hold, outline included: a glyph set at
+        // the size the document uses fills its cell edge to edge and is cut by it, which reads
+        // as a broken preset rather than as a big one.
         let bSize = BaseForm.adaptSize(.borderSize, MinTextBorderSize, MaxTextBorderSize, cxtCpy, 2, 4)
-        let fSize = BaseForm.adaptSize(.fontSize, MinFontSize, MaxFontSize, cxtCpy, 20, 48)
+        let fSize = BaseForm.adaptSize(.fontSize, MinFontSize, MaxFontSize, cxtCpy, 12, 24)
         let sSize = BaseForm.adaptSize(.boldSize, MinBoldSize, MaxBoldSize, cxtCpy, 1, 2)
         let z     = cxt.z
 
@@ -268,10 +290,15 @@ impl IForm for FormText
 
         let count = .paths.count
 
+        // A line is placed by the outline that is actually painted. With no border to offset,
+        // the border path is empty and its bounds are zero, so measuring it alone put every
+        // line of a plain text form at zero height and started the glyph at the middle of the
+        // box instead of centering it there.
         var totalYZ = 0'f32
-        for &pathl in .borderPaths
+        for &pathl, idx in .paths
         {
-            totalYZ += (pathl.maxBounds.y - pathl.minBounds.y) * zscale
+            let mp = .measuredPath(idx)
+            totalYZ += (mp.maxBounds.y - mp.minBounds.y) * zscale
         }
 
         if count > 1 do
@@ -289,8 +316,9 @@ impl IForm for FormText
         for &pathl, idx in .paths
         {
             let borderPath = &.borderPaths[idx]
-            let wt         = (borderPath.maxBounds.x - borderPath.minBounds.x) * zscale
-            let ht         = (borderPath.maxBounds.y - borderPath.minBounds.y) * zscale
+            let mp         = .measuredPath(idx)
+            let wt         = (mp.maxBounds.x - mp.minBounds.x) * zscale
+            let ht         = (mp.maxBounds.y - mp.minBounds.y) * zscale
 
             var x0 = 0'f32
             switch aH
@@ -301,8 +329,8 @@ impl IForm for FormText
             }
 
             let tt    = painter.transform()
-            let drawX = x0 - (borderPath.minBounds.x * zscale)
-            let drawY = y0 - (borderPath.minBounds.y * zscale)
+            let drawX = x0 - (mp.minBounds.x * zscale)
+            let drawY = y0 - (mp.minBounds.y * zscale)
 
             painter.pushTransform()
             var localTransform = tt

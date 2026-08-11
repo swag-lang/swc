@@ -13,6 +13,13 @@ const MaxBoldSize       = 20.0
 // stroke width, line caps, arrow heads and shadows.
 const FormPaintOverdraw = 200.0
 
+// The same margin for a preset sample, which is drawn at a fraction of that size.
+//
+// Everything a sample paints outside its own rectangle is scaled down with it, so the
+// document margin would size the layer of a 44 pixel picture at 438 pixels a side — a
+// hundred times the pixels, on the one surface that repaints on every hover.
+const QuickPaintOverdraw = 32.0
+
 const ColorRed:    Color = 0xFFE80808
 const ColorGreen:  Color = 0xFF60C447
 const ColorBlue:   Color = 0xFF199CF4

@@ -1050,8 +1050,12 @@ impl ThemeColors
         result.selectHot     = result.hot
         result.selectPressed = result.pressed
 
+        // A control has to read as an object the reader can act on, which is one step above a
+        // divider and not two: taken as far as the ink of a disabled label, the edge of every
+        // field and every combo of a form drew the form as a grid of boxes, and the panel was
+        // read as its borders rather than as its rows.
         result.line        = 0xFF3D3D48
-        result.controlLine = 0xFF6B6B77
+        result.controlLine = 0xFF575763
 
         result.text      = 0xFFE9E9ED
         result.softText  = 0xFFB4B4BE
@@ -1124,7 +1128,7 @@ impl ThemeColors
         result.selectPressed = result.pressed
 
         result.line        = 0xFFE3E3EC
-        result.controlLine = 0xFFC5C5D2
+        result.controlLine = 0xFFD0D0DC     // one step above the divider, as in the dark palette
 
         result.text      = 0xFF1B1B1D
         result.softText  = 0xFF55555C

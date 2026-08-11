@@ -53,9 +53,9 @@ func testAssertSchema(type: typeinfo, expected: string) fail
     expect testAssertSchema(#typeof(FormLine), "base:BaseForm,beginCap:LineCapStyle,endCap:LineCapStyle,dashCap:DashCapStyle,startSize:f32,endSize:f32,xa:f32,ya:f32,xb:f32,yb:f32,xc:f32,yc:f32,cacheCoords:Rectangle,cacheCoords2:Point,cacheBv:Rectangle")
     expect testAssertSchema(#typeof(FormShape), "base:BaseForm,kind:FormShapeKind,roundSize:f32")
     expect testAssertSchema(#typeof(FormStep), "base:BaseForm,kind:FormShapeKind,index:u32,typeIndex:FormStepType")
-    expect testAssertSchema(#typeof(FormText), "base:BaseForm,fontName:String,text:String,fontStyle:FontFamilyStyle,alignHorz:FormTextAlign,alignVert:FormTextAlign,fontSize:f32,boldSize:f32,lineSpacing:f32")
+    expect testAssertSchema(#typeof(FormText), "base:BaseForm,text:String,fontName:String,fontStyle:FontFamilyStyle,alignHorz:FormTextAlign,alignVert:FormTextAlign,fontSize:f32,boldSize:f32,lineSpacing:f32")
     expect testAssertSchema(#typeof(FormImage), "base:BaseForm,image:Image,kind:FormImageKind,strength:s32,place:FormImagePlacement,freePos:Rectangle")
     expect testAssertSchema(#typeof(FormPolygon), "base:BaseForm,points:Array'(Vector2)")
     expect testAssertSchema(#typeof(FormDraw), "base:BaseForm,points:Array'(Vector2),anchorSize:f32")
-    expect testAssertSchema(#typeof(FormCallout), "base:BaseForm,fontName:String,text:String,fontStyle:FontFamilyStyle,alignHorz:FormTextAlign,alignVert:FormTextAlign,fontSize:f32,roundSize:f32,tailX:f32,tailY:f32,boldSize:f32,lineSpacing:f32,textColor:Color")
+    expect testAssertSchema(#typeof(FormCallout), "base:BaseForm,text:String,fontName:String,fontStyle:FontFamilyStyle,alignHorz:FormTextAlign,alignVert:FormTextAlign,fontSize:f32,roundSize:f32,tailX:f32,tailY:f32,boldSize:f32,lineSpacing:f32,textColor:Color")
 }

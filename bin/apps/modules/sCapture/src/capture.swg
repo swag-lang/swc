@@ -931,7 +931,7 @@ impl Capture
         var boundRect = f.boundRect()
         boundRect.width  = Math.max(boundRect.width, 1)
         boundRect.height = Math.max(boundRect.height, 1)
-        boundRect.inflate(FormPaintOverdraw)
+        boundRect.inflate(quickMode ? QuickPaintOverdraw : FormPaintOverdraw)
 
         var clipOffset:    Math.Vector2
         var savePaintPos:  Math.Rectangle

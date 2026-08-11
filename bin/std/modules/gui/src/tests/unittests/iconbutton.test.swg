@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, Pixel
 
 const IconButtonHeadless_Command = "IconButtonHeadless.Command"
 
@@ -131,6 +131,88 @@ func iconButtonHeadlessReset()
     @assert(!btn.isChecked)
     @assert(IconButtonHeadlessCheckCount == 2)
     @assert(host.commandCount == 2 and host.lastCommand == IconButtonHeadless_Command)
+}
+
+// Number of pixels painted in one exact color.
+func iconButtonColorCount(image: const *Image, color: Color)->s32
+{
+    var result = 0
+    for y in cast(s32) image.height
+    {
+        for x in cast(s32) image.width
+        {
+            if image.pixelColor(x, y).argb == color.argb do
+                result += 1
+        }
+    }
+
+    return result
+}
+
+// A checked button draws the indicator its placement asks for, and none at all when it asks
+// for none.
+//
+// Under a railed palette the two indicator-less placements shared a branch with the default one
+// and got a rule in the accent along their bottom edge. That rule is how a tool rail marks the
+// tool in use; drawn under a color swatch, a field of a form, or a preset cell painted in the
+// user's own colors, it reads as one more thing painted in the cell.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(80, 80)
+    defer host.shutdown()
+    host.theme.setSwagDark()     // a palette that marks the active item with a rail
+    host.notify(.ThemeChanged)
+
+    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    btn.setForm(.Rectangle)
+    btn.setChecked(true)
+
+    let rail = host.theme.colors.activeRail
+    @assert(rail.a != 0)
+
+    for indicator in [IconButtonCheckIndicator.None, .Ink]
+    {
+        btn.setCheckIndicator(indicator)
+        host.finishAnimations()
+        var image = host.render()
+        @assert(iconButtonColorCount(&image, rail) == 0)
+    }
+
+    for indicator in [IconButtonCheckIndicator.Bottom, .Top, .Left, .Right, .Full]
+    {
+        btn.setCheckIndicator(indicator)
+        host.finishAnimations()
+        var image = host.render()
+        @assert(iconButtonColorCount(&image, rail) > 0)
+    }
+}
+
+// The two indicator-less placements differ by what they leave the state colors saying: `None`
+// reads as pressed, `Ink` keeps the checked ink so the glyph itself carries the state.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(80, 80)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    btn.setForm(.Rectangle)
+    btn.setChecked(true)
+
+    let colors = host.theme.colors
+
+    btn.setCheckIndicator(.None)
+    host.finishAnimations()
+    var pressed = host.render()
+    @assert(iconButtonColorCount(&pressed, colors.btnIcon_CheckedPressedBk) > 0)
+
+    btn.setCheckIndicator(.Ink)
+    host.finishAnimations()
+    var ink = host.render()
+    @assert(iconButtonColorCount(&ink, colors.btnIcon_CheckedPressedBk) == 0)
 }
 
 // Hiding a button resets both its pointer state and its animated overlay state.

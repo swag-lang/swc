@@ -77,6 +77,10 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(tf.joinStyle == .Round)
     @assert(joins.comboBox.selectedIndex == 1)
 
+    // What the form says comes before how it is set: the box the words are typed in stands
+    // above the face they are set in.
+    @assert(testItemIndex(prop, #nameof(FormText.text)) < testItemIndex(prop, #nameof(FormText.fontName)))
+
     // Most specific first: the text form's own fields come before the shared BaseForm
     // block, even though the language declares 'using base' first
     @assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))

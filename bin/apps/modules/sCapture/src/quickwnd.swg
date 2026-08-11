@@ -88,8 +88,7 @@ struct QuickButton
 
 struct QuickStylePaintForm
 {
-    itf:   #null IForm
-    title: String
+    itf: #null IForm
 }
 
 func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
@@ -97,6 +96,57 @@ func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
     if paint.itf do
         Memory.delete(@dataof(paint.itf), @kindof(paint.itf))
     paint.itf = null
+}
+
+// Name of what a preset cell shows, for its tooltip.
+//
+// A processed image form is the one family whose samples say what they do rather than how
+// they look, so the word is worth having. It belongs on the tooltip and not inside the cell:
+// printed there it overflowed the cell on both axes and crossed the sample it was naming.
+func quickStyleTip(itf: IForm)->string
+{
+    if @kindof(itf) != FormImage do
+        return ""
+
+    let img = cast(*FormImage) @dataof(itf)
+    switch #complete img.kind
+    {
+    case .Image:    return appStrings().prop_KindImage
+    case .Blur:     return appStrings().prop_KindBlur
+    case .Pixelate: return appStrings().prop_KindPixelate
+    case .Zoom:     return appStrings().prop_KindZoom
+    case .Capture:  return appStrings().prop_KindCapture
+    }
+
+    return ""
+}
+
+// Room a sample needs between its own geometry and the edge of its cell.
+//
+// Everything a form paints outside its rectangle lives in there: half a stroke for a box, and
+// the line ends for a line or an arrow, which are as wide as the stroke times their scale and
+// stand across the diagonal the sample runs along. Answered too small, an arrow head is cut
+// flat by the cell and the preset reads as broken rather than as pointed.
+func quickStyleInset(itf: IForm, cxt: FormPaintContext)->f32
+{
+    let sel  = cast(*BaseForm) @dataof(itf)
+    let type = @kindof(itf)
+
+    // An arrow is a line carrying its own defaults, so both answer through the line.
+    if type == FormLine or type == FormArrow
+    {
+        let line  = cast(*FormLine) @dataof(itf)
+        let sizes = line.paintSizes(cxt)
+        let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
+        let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
+        let room  = Math.max(Math.max(beg.w, beg.l), Math.max(end.w, end.l))
+
+        // The sample runs corner to corner, so what stands across it lands on both axes at
+        // the cosine of that diagonal.
+        return room * Math.ConstF32.OneBySqrt2
+    }
+
+    return BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
 }
 
 func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
@@ -109,9 +159,7 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     cxt.z         = 1
     cxt.quickMode = true
 
-    let sel  = cast(*BaseForm) @dataof(paintItf)
-    let s    = cast(s32) BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
-    let m    = QuickCellMargin + s
+    let m    = QuickCellMargin + quickStyleInset(paintItf, cxt)
     let rect = Math.Rectangle{m, m, QuickCellSize - 2 * m, QuickCellSize - 2 * m}
 
     var result: QuickStylePaintForm
@@ -127,16 +175,6 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
 
     case FormText as txt:
         txt.text = "A"
-
-    case FormImage as img:
-        switch img.kind
-        {
-        case .Image:    result.title = "image"
-        case .Blur:     result.title = "blur"
-        case .Pixelate: result.title = "pixelate"
-        case .Zoom:     result.title = "zoom"
-        case .Capture:  result.title = "capture"
-        }
     }
 
     paintItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
@@ -197,6 +235,14 @@ impl IWnd for QuickWnd
         }
 
         .scrollWnd.IWnd.onMouseEvent(evt)
+    }
+
+    // A preset cell names what it shows on its tooltip, and that word is written once, when the
+    // cell is built. A language switch has to write it again, which the rebuild does.
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .updateQuickStyles(forceRebuild: true)
     }
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
@@ -722,13 +768,6 @@ impl QuickWnd
             defer quickStyleReleasePaintForm(&paintForm)
 
             Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paintForm.itf!, zoom: 1, quickMode: true)
-
-            if !paintForm.title.isEmpty()
-            {
-                let textColor = g_App.theme.colors.btnIcon_Text
-                let rect      = paintForm.itf!.boundRect()
-                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, btnp.font().regular!, textColor)
-            }
         }
 
         let edMode    = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
@@ -792,8 +831,14 @@ impl QuickWnd
             let btn = Wnd.create'QuickButton(.layout, null, {0, 0, QuickCellSize, QuickCellSize})
             btn.updateFlags(.Radio)
             btn.setForm(.Rectangle)
+
+            // The picked preset is the cell that is lit, not the cell with a bar under it: a
+            // rule in the accent below a sample drawn in the user's own colors reads as one
+            // more thing painted in the cell rather than as the state of the cell.
+            btn.setCheckIndicator(.None)
             btn.formItf  = it
             btn.quickWnd = me
+            btn.toolTip  = quickStyleTip(it)
 
             btn.iconPainter = func(btn, bc, pos, flags) { paintForm(bc.painter, cast(*QuickButton) btn) }
 
@@ -839,6 +884,7 @@ impl QuickWnd
             btn.userData = cast(*void) 1'u64     // This is the model button
             btn.formItf  = formItf
             btn.setForm(.Rectangle)
+            btn.setCheckIndicator(.None)
             btn.style.addStyleSheetColors("btnIcon_Bk          0x0")
             btn.style.addStyleSheetColors("btnIcon_HotBk       0x0")
             btn.style.addStyleSheetColors("btnIcon_PressedBk   0x0")

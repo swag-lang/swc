@@ -8,10 +8,13 @@
 struct FormCallout
 {
     using base: BaseForm
-    #[Name("Font"), FontName]
-    fontName: String
+
+    // What the form says comes before how it is set, as in a text form: the box the words are
+    // typed in stands above the face they are set in.
     #[Name("Text"), MultiLine]
     text: String
+    #[Name("Font"), FontName]
+    fontName: String
     #[Name("Font Style")]
     fontStyle = FontFamilyStyle.Regular
     #[Name("Align")]

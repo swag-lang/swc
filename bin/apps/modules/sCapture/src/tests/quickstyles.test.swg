@@ -35,6 +35,81 @@ using Swag, Core
     quickStyleReleasePaintForm(&polyPaint)
 }
 
+// A preset sample is centered in its cell whether or not the style carries an outline.
+//
+// A line of text is placed by the outline it actually paints, and a form with no outline has an
+// empty border path. Measured on that path alone it answered a zero extent, so the glyph started
+// at the middle of the cell instead of being centered in it, and the plain text presets showed an
+// 'A' hanging out of the bottom right corner of their cell.
+#test
+{
+    func newTextStyle(border: Color)->IForm
+    {
+        let form = Memory.new'FormText()
+        form.borderSize  = 4
+        form.fontSize    = 48
+        form.borderColor = border
+        form.backColor   = Argb.White
+        form.text        = "A"
+        let itf: IForm = form
+        itf.setup(null)
+        return itf
+    }
+
+    // Bounding box of everything the cell painted, read back from the rendered pixels: the
+    // sample is drawn by the form itself, so nothing but the picture can say where it landed.
+    func inkBounds(image: *Image)->Math.Rectangle
+    {
+        var x0, y0 = Swag.S32.Max
+        var x1, y1 = Swag.S32.Min
+        for y in image.height
+        {
+            for x in image.width
+            {
+                let color = image.pixelColor(cast() x, cast() y)
+                if color.r < 128 or color.g < 128 or color.b < 128 do
+                    continue
+                x0 = Math.min(x0, cast(s32) x)
+                y0 = Math.min(y0, cast(s32) y)
+                x1 = Math.max(x1, cast(s32) x)
+                y1 = Math.max(y1, cast(s32) y)
+            }
+        }
+
+        return {cast() x0, cast() y0, cast(f32) (x1 - x0), cast(f32) (y1 - y0)}
+    }
+
+    var f: HeadlessFixture
+    f.setup(QuickCellSize, QuickCellSize)
+    defer f.shutdown()
+
+    for border in [Argb.White, Argb.Zero]
+    {
+        let itf = newTextStyle(border)
+        defer testDeleteForm(itf)
+
+        let btn = IconButton.create(&f.gui.root, {}, {0, 0, QuickCellSize, QuickCellSize})
+        defer btn.destroy()
+        btn.iconPainter = func|itf|(btn, bc, pos, flags)
+        {
+            var paint = quickStyleNewPaintForm(itf)
+            defer quickStyleReleasePaintForm(&paint)
+            Capture.paintForm(bc.painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paint.itf!, zoom: 1, quickMode: true)
+        }
+
+        var image = f.gui.render(btn)
+        let ink   = inkBounds(&image)
+        @assert(ink.width > 4 and ink.height > 4)
+        @assert(Math.abs(ink.horzCenter() - QuickCellSize * 0.5) <= 2)
+        @assert(Math.abs(ink.vertCenter() - QuickCellSize * 0.5) <= 2)
+
+        // Half the cell is the ceiling a glyph takes; the rest is what separates one preset
+        // from the next.
+        @assert(ink.width <= QuickCellSize * 0.6)
+        @assert(ink.height <= QuickCellSize * 0.6)
+    }
+}
+
 // Dismissing the QuickStyle context menu must not disturb the right-side Properties pane.
 #test
 {
@@ -159,6 +234,54 @@ using Swag, Core
     @assert(imageKinds.contains(FormImageKind.Blur))
     @assert(imageKinds.contains(FormImageKind.Pixelate))
     @assert(imageKinds.contains(FormImageKind.Capture))
+
+    quick.destroy()
+    f.gui.pump()
+}
+
+// A preset cell names what it shows on its tooltip, and that name follows a live language switch.
+//
+// The word is written once, when the cell is built, so a window that answers a switch by
+// repainting alone keeps the previous language on every image preset.
+#test
+{
+    // The tooltip of the preset showing a blurred area, empty when no cell carries one. Blur is
+    // the kind whose two wordings differ, so it is the one that can tell the tables apart.
+    func blurTip(quick: *QuickWnd)->String
+    {
+        var result: retval
+        for c in quick.layout.children
+        {
+            let btn = cast(*QuickButton) c
+            if btn.userData or !btn.formItf do
+                continue
+            if @kindof(btn.formItf!) != FormImage do
+                continue
+            if (cast(*FormImage) @dataof(btn.formItf!)).kind == .Blur do
+                return btn.toolTip
+        }
+
+        return result
+    }
+
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    // Whatever this test switches to, the next one starts on the reference wording.
+    defer discard catch f.gui.app.setLanguage(Gui.ReferenceLanguage)
+
+    let quick = QuickWnd.create(f.main, f.main)
+    f.main.quickWnd = quick
+    f.main.editMode = .Image
+    quick.setDefault()
+    quick.updateQuickStyles(forceRebuild: true)
+    @assert(blurTip(quick) == appStrings().prop_KindBlur)
+
+    expect f.gui.app.setLanguage("fr")
+    f.gui.notify(.LanguageChanged)
+    f.gui.pump()
+    @assert(blurTip(quick) == "Flou")
 
     quick.destroy()
     f.gui.pump()

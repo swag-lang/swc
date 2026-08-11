@@ -42,6 +42,11 @@ impl IPropertyEditor for AlignEditor
                 .setForm(.Rectangle)
                 .updateFlags(.Radio)
 
+                // The picked alignment is already the one glyph in the accent, and three
+                // rules under a row of three buttons underline the row rather than mark
+                // one of them. The rail belongs to a tool rail, not to a field.
+                .setCheckIndicator(.Ink)
+
                 // The sCapture toolbar icons when the app is there, letter fallbacks otherwise
                 // (the headless fixtures build panels without a full application).
                 if g_Main

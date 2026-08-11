@@ -21,6 +21,24 @@ struct FormLine
     }
 }
 
+impl FormLine
+{
+    // The stroke and the two line-end scales this line paints with in one context.
+    //
+    // A preset cell reads the same values to know how much room its sample needs, so the
+    // preview sizes cannot drift away from the room reserved for them and leave an arrow
+    // head cut flat by the edge of its cell.
+    mtd paintSizes(cxt: FormPaintContext)->{ stroke: f32, begScale: f32, endScale: f32 }
+    {
+        var result: retval
+        let base = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
+        result.stroke   = BaseForm.adaptSize(base, MinBorderSize, MaxBorderSize, cxt, 6, 9)
+        result.begScale = cxt.quickMode ? BaseForm.adaptSize(.startSize, MinCapSize, MaxCapSize, cxt, 1, 3) : .startSize
+        result.endScale = cxt.quickMode ? BaseForm.adaptSize(.endSize, MinCapSize, MaxCapSize, cxt, 1, 3) : .endSize
+        return result
+    }
+}
+
 impl IForm for FormLine
 {
     mtd impl isSame(ptr: *BaseForm)->bool
@@ -169,10 +187,7 @@ impl IForm for FormLine
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
-        var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
-        bSize = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt, 8, 12)
-        let sSize = cxt.quickMode ? BaseForm.adaptSize(.startSize, MinCapSize, MaxCapSize, cxt, 1, 4) : .startSize
-        let eSize = cxt.quickMode ? BaseForm.adaptSize(.endSize, MinCapSize, MaxCapSize, cxt, 1, 4) : .endSize
+        let {bSize, sSize, eSize} = .paintSizes(cxt)
 
         if .bezier
         {

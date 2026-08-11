@@ -17,7 +17,7 @@ func day1B()
     let lines    = expect File.readAllText(dataPath)
 
     var total = 0
-    for #Bytes c in lines
+    for c in lines.bytes()
     {
         total += c == '(' ? 1 : -1
         if total == -1

@@ -13,6 +13,23 @@ enum CharacterSet
     Unicode     // Selects unicode.
 }
 
+// Iterates Unicode scalar values decoded lazily from borrowed UTF-8 bytes.
+#[Swag.Opaque]
+struct StringRunes
+{
+    bytes: const [..] u8
+}
+
+impl StringRunes
+{
+    #[Macro, Swag.CalleeReturn]
+    mtd(ptr: bool) const opVisit(stmt: #code(value: rune, charIndex: u64, byteIndex: u64))
+        where !ptr
+    {
+        Utf8.visitRunes(.bytes, stmt)
+    }
+}
+
 // Owns a growable UTF-8 buffer, with small strings stored inline.
 //
 // Like [[Core.Array]], a string is a header over a memory block and that header is part of its
@@ -226,55 +243,53 @@ impl String
         return buffer[index]
     }
 
-    // Visit the String runes
-    // See [[Utf8.visitRunes]] for the block parameters: the code value is forwarded as-is.
-    #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisitRunes(stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
-        where !ptr and !back
+    // Returns a mutable borrowed view of the UTF-8 bytes.
+    #[Inline]
+    mtd bytes()->[..] u8
     {
-        Utf8.visitRunes(.toSlice(), stmt)
+        return .toSlice()
     }
 
-    // Visit the String utf8 bytes
-    // Block parameters: 'item' is the byte (or the pointer to it), 'index' the byte index.
+    // Returns an immutable borrowed view of the UTF-8 bytes.
+    #[Inline]
+    mtd const bytes()->const [..] u8
+    {
+        return .toSlice()
+    }
+
+    // Returns a zero-allocation view that decodes Unicode scalar values lazily.
+    #[Inline]
+    mtd const runes()->StringRunes
+    {
+        return {bytes: .toSlice()}
+    }
+
+    // Returns a zero-allocation view that traverses the UTF-8 bytes from last to first.
+    mtd reversed()->ReversedSlice'u8
+    {
+        return reverseSlice(.toSlice())
+    }
+
+    // Returns an immutable zero-allocation view that traverses the UTF-8 bytes from last to first.
+    mtd const reversed()->ConstReversedSlice'u8
+    {
+        return reverseSlice(.toSlice())
+    }
+
+    // Default element iteration visits UTF-8 bytes in storage order.
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code(var item, var index: u64))
+    mtd(ptr: bool) const opVisit(stmt: #code(var item, var index: u64))
     {
         if !.length do
             return
-
-        // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         let buffer = .buffer!
-
-        #static if back do
-            var scan = buffer + .length
-        else do
-            var scan = buffer - 1
-
-        for .length
+        for index in .length
         {
-            #static if back do
-                scan -= 1
-            else do
-                scan += 1
-
-            #static if back do
-                let visitIdx = me.length - @index - 1
-            else do
-                let visitIdx = @index
-
             #static if ptr do
-                #inject(stmt, item = cast(&u8) scan, index = visitIdx)
+                #inject(stmt, item = cast(&u8) (buffer + index), index = index)
             else do
-                #inject(stmt, item = dref scan, index = visitIdx)
+                #inject(stmt, item = buffer[index], index = index)
         }
-    }
-
-    // Default element iteration, by bytes: the code value is forwarded to 'opVisitBytes' as-is.
-    #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(var item, var index: u64))
-    {
-        .opVisitBytes'(ptr, back)(stmt)
     }
 
     // Set the length of the String to 0

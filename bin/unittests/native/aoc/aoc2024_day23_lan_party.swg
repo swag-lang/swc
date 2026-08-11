@@ -4,7 +4,7 @@
 // Part 1: count triangles where at least one node starts with 't'.
 // Part 2: find largest clique, output names sorted, comma-separated.
 // Exercises: @mkslice in inline (day 19 fix), inline + retval (day 20 fix),
-// with &ptr (day 21 fix), for #reverse, nested struct methods, adjacency
+// with &ptr (day 21 fix), reverse-view iteration, nested struct methods, adjacency
 // matrix bit manipulation, sorting with spaceship <=>.
 
 const SampleInput =

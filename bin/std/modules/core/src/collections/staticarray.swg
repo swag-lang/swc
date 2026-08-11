@@ -126,31 +126,21 @@ impl StaticArray
 
     // Provides a way to iterate over each element in the array.
     // This is a macro that accepts a code block to execute for each element.
-    // Visiting by pointer and in reverse order is supported.
+    // Visiting by pointer is supported.
     // Block parameters: 'item' is the element (or a pointer to it), 'index' its ordinal.
     #[Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         if !.count do
             return
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
-        #static if back do
-            var scan = cast([*] T) &.buffer[0] + .count
-        else do
-            var scan = cast([*] T) &.buffer[0] - 1
+        var scan = cast([*] T) &.buffer[0] - 1
 
         for .count
         {
-            #static if back do
-                scan -= 1
-            else do
-                scan += 1
-
-            #static if back do
-                let visitIdx = me.count - @index - 1
-            else do
-                let visitIdx = @index
+            scan += 1
+            let visitIdx = @index
 
             #static if ptr do
                 #inject(stmt, item = cast(&T) scan, index = visitIdx)
@@ -159,6 +149,24 @@ impl StaticArray
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
+    }
+
+    // Returns a zero-allocation view that traverses the elements from last to first.
+    mtd reversed()->ReversedSlice'T
+    {
+        return reverseSlice(.toSlice())
+    }
+
+    // Returns an immutable zero-allocation view that traverses the elements from last to first.
+    mtd const reversed()->ConstReversedSlice'T
+    {
+        return reverseSlice(.toSlice())
+    }
+
+    // Returns a zero-allocation view over adjacent elements.
+    mtd const pairs()->Pairs'T
+    {
+        return pairsView(.toSlice())
     }
 
     // Drops all elements in the array, setting its me.count to 0.

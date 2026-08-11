@@ -257,7 +257,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|complete|fail|nofail|raw)\\b"
+          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|null|complete|fail|nofail|raw)\\b"
         }
       ]
     },
@@ -303,18 +303,6 @@
     },
     "op": {
       "patterns": [
-        {
-          "name": "entity.name.function.intrinsic",
-          "match": "\\b(opVisit)(\\w+)\\b",
-          "captures": {
-            "1": {
-              "name": "entity.name.function.intrinsic"
-            },
-            "2": {
-              "name": "constant.character.escape"
-            }
-          }
-        },
         {
           "name": "entity.name.function.intrinsic",
           "match": "\\b(opSlice|opBinary|opBinaryRight|opUnary|opAssign|opIndexAssign|opIndexSet|opCast|opCount|opData|opVisit|opInit|opReloc|opEquals|opCompare|opPostCopy|opPostMove|opDrop|opCount|opSet|opSetLiteral|opIndex|opIndexAssign)\\b"

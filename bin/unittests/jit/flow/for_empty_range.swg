@@ -132,13 +132,13 @@ func countElements(values: const [..] s32)->s32
 }
 
 //
-// '#reverse' over an empty exclusive range
+// '.reversed()' over an empty exclusive range
 //
 
 func reverseLoopUntil(low, high: s32)->s32
 {
     var acc: s32 = 0
-    for #reverse i in low until high do
+    for i in range(low, high).reversed() do
         acc += i + 1
     return acc
 }
@@ -158,7 +158,7 @@ func reverseLoopUntil(low, high: s32)->s32
     func constantReverseEmpty()->s32
     {
         var acc: s32 = 0
-        for #reverse i in 2 until 2 do
+        for i in range(2, 2).reversed() do
             acc += i + 1
         return acc
     }
@@ -276,14 +276,14 @@ func reverseLoopUntil(low, high: s32)->s32
     @assert(sumUpToLast(3) == 1 + 2 + 3)
 }
 
-// '#reverse' walks the same range backwards and is empty on the same input.
+// '.reversed()' walks the same range backwards and is empty on the same input.
 #[Swag.Safety(.BoundCheck, true)]
 #test
 {
     func invertedReverse(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for #reverse i in low to high do
+        for i in rangeTo(low, high).reversed() do
             acc += i + 1
         return acc
     }

@@ -52,9 +52,16 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Types<span class="toc-count">46</span></summary>
+<summary>Types<span class="toc-count">53</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
+<li><a href="#ConstReversedSlice">ConstReversedSlice</a></li>
+<li><a href="#IterationRange">IterationRange</a></li>
+<li><a href="#Pairs">Pairs</a></li>
+<li><a href="#ReversedCount">ReversedCount</a></li>
+<li><a href="#ReversedCString">ReversedCString</a></li>
+<li><a href="#ReversedRange">ReversedRange</a></li>
+<li><a href="#ReversedSlice">ReversedSlice</a></li>
 <li><a href="#Swag_Allocator">Swag.Allocator</a></li>
 <li><a href="#Swag_AllocatorArena">Swag.AllocatorArena</a></li>
 <li><a href="#Swag_AllocatorFooter">Swag.AllocatorFooter</a></li>
@@ -196,7 +203,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">186</span></summary>
+<summary>Functions<span class="toc-count">190</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#_abs">@abs</a></li>
@@ -304,9 +311,13 @@
 <li><a href="#memcpy">memcpy</a></li>
 <li><a href="#memmove">memmove</a></li>
 <li><a href="#memset">memset</a></li>
+<li><a href="#pairs">pairs</a></li>
 <li><a href="#pow">pow</a></li>
 <li><a href="#powf">powf</a></li>
+<li><a href="#range">range</a></li>
+<li><a href="#rangeTo">rangeTo</a></li>
 <li><a href="#realloc">realloc</a></li>
+<li><a href="#reversed">reversed</a></li>
 <li><a href="#round">round</a></li>
 <li><a href="#roundf">roundf</a></li>
 <li><a href="#sin">sin</a></li>
@@ -415,6 +426,14 @@
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#ConstReversedSlice">ConstReversedSlice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#IterationRange">IterationRange</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#Pairs">Pairs</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Iterates adjacent elements of an immutable slice without allocating pairs.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#ReversedCount">ReversedCount</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#ReversedCString">ReversedCString</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#ReversedRange">ReversedRange</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#ReversedSlice">ReversedSlice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_Allocator">Swag.Allocator</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorArena">Swag.AllocatorArena</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_AllocatorFooter">Swag.AllocatorFooter</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
@@ -764,9 +783,17 @@
 <tr><td class="code-type"><a href="#memcpy">memcpy</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#memmove">memmove</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#memset">memset</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#pairs">pairs</a></td><td><p>Returns a zero-allocation view over adjacent elements of <span class="code-inline">values</span>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#pow">pow</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#powf">powf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#range">range</a></td><td><p>Returns a zero-allocation half-open interval <span class="code-inline">[lower, upper)</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#rangeTo">rangeTo</a></td><td><p>Returns a zero-allocation closed interval <span class="code-inline">[lower, upper]</span>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#realloc">realloc</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#reversed">reversed</a></td><td><p>Returns a zero-allocation view that visits the indices of <span class="code-inline">count</span> in descending order.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#round">round</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#roundf">roundf</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#sin">sin</a></td><td></td></tr>
@@ -1323,6 +1350,42 @@
 </table>
 </section>
 <h3 id="types">Types</h3>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="ConstReversedSlice" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ConstReversedSlice</span> <a class="api-item-permalink" href="#ConstReversedSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L146">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#ConstReversedSlice">ConstReversedSlice</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="IterationRange" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">IterationRange</span> <a class="api-item-permalink" href="#IterationRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L37">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#IterationRange">IterationRange</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pairs" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pairs</span> <a class="api-item-permalink" href="#Pairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L188">src</a></div>
+<p>Iterates adjacent elements of an immutable slice without allocating pairs.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#Pairs">Pairs</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="ReversedCount" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ReversedCount</span> <a class="api-item-permalink" href="#ReversedCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L6">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#ReversedCount">ReversedCount</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="ReversedCString" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ReversedCString</span> <a class="api-item-permalink" href="#ReversedCString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L223">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#ReversedCString">ReversedCString</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="ReversedRange" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ReversedRange</span> <a class="api-item-permalink" href="#ReversedRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L59">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#ReversedRange">ReversedRange</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="ReversedSlice" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ReversedSlice</span> <a class="api-item-permalink" href="#ReversedSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L120">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#ReversedSlice">ReversedSlice</a></span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_Allocator" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Allocator</span> <a class="api-item-permalink" href="#Swag_Allocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L111">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Allocator">Allocator</a></span></span></div>
@@ -3574,6 +3637,13 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">memset</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, value: <span class="STpe">s32</span>, size: <span class="STpe">s64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="pairs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">pairs</span> <a class="api-item-permalink" href="#pairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L219">src</a></div>
+<p>Returns a zero-allocation view over adjacent elements of <span class="code-inline">values</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">pairs</span>(values: <span class="SKwd">const</span> [..] <span class="SCst">T</span>)-&gt;<span class="SFct">Pairs</span>'<span class="SCst">T</span>
+    =&gt; pairsView</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="pow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">pow</span> <a class="api-item-permalink" href="#pow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os_windows.swg#L198">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(val1, val2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
@@ -3582,8 +3652,44 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">powf</span>(val1, val2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="range" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">range</span> <a class="api-item-permalink" href="#range" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L46">src</a></div>
+<p>Returns a zero-allocation half-open interval <span class="code-inline">[lower, upper)</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">range</span>(lower, upper: <span class="SCst">T</span>)-&gt;<span class="SFct">IterationRange</span>'<span class="SCst">T</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="rangeTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">rangeTo</span> <a class="api-item-permalink" href="#rangeTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L53">src</a></div>
+<p>Returns a zero-allocation closed interval <span class="code-inline">[lower, upper]</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">rangeTo</span>(lower, upper: <span class="SCst">T</span>)-&gt;<span class="SFct">IterationRange</span>'<span class="SCst">T</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="realloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">realloc</span> <a class="api-item-permalink" href="#realloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os_windows.swg#L202">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">realloc</span>(ptr: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, s: <span class="STpe">s64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">reversed</span> <a class="api-item-permalink" href="#reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L28">src</a></div>
+<p>Returns a zero-allocation view that visits the indices of <span class="code-inline">count</span> in descending order.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(count: <span class="SCst">T</span>)-&gt;<span class="SFct">ReversedCount</span>'<span class="SCst">T</span>
+    <span class="SLgc">where</span> <span class="SItr">#typeof</span>(<span class="SItr">#type</span> <span class="SCst">T</span>).kind == .<span class="SCst"><a href="#Swag_TypeInfoKind_Native">Native</a></span> <span class="SLgc">and</span>
+          (<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst"><a href="#Swag_TypeInfoNative">TypeInfoNative</a></span>) <span class="SItr">#typeof</span>(<span class="SItr">#type</span> <span class="SCst">T</span>)).nativeKind &gt;= .<span class="SCst"><a href="swag.runtime.html#namespace_Swag_S8">S8</a></span> <span class="SLgc">and</span>
+          (<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst"><a href="#Swag_TypeInfoNative">TypeInfoNative</a></span>) <span class="SItr">#typeof</span>(<span class="SItr">#type</span> <span class="SCst">T</span>)).nativeKind &lt;= .<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span></span></div>
+<p>Returns the same interval with descending traversal.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(value: <span class="SFct">IterationRange</span>'<span class="SCst">T</span>)-&gt;<span class="SFct">ReversedRange</span>'<span class="SCst">T</span>
+    =&gt;</span></div>
+<p>Returns a mutable zero-allocation view that traverses <span class="code-inline">values</span> in reverse order.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(values: [..] <span class="SCst">T</span>)-&gt;<span class="SFct">ReversedSlice</span>'<span class="SCst">T</span>
+    =&gt; reverseSlice</span></div>
+<p>Returns an immutable zero-allocation view that traverses <span class="code-inline">values</span> in reverse order.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(values: <span class="SKwd">const</span> [..] <span class="SCst">T</span>)-&gt;<span class="SFct">ConstReversedSlice</span>'<span class="SCst">T</span>
+    =&gt; reverseSlice</span></div>
+<p>Returns an immutable zero-allocation view over a null-terminated byte string.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">reversed</span>(value: <span class="SKwd">const</span> <span class="STpe">cstring</span>)-&gt;<span class="SCst"><a href="#ReversedCString">ReversedCString</a></span>
+    =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="round" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">round</span> <a class="api-item-permalink" href="#round" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os_windows.swg#L191">src</a></div>
@@ -4295,6 +4401,13 @@
 "n|Swag.U32|namespace_Swag_U32|",
 "n|Swag.U64|namespace_Swag_U64|",
 "n|Swag.U8|namespace_Swag_U8|",
+"s|ConstReversedSlice|ConstReversedSlice|",
+"s|IterationRange|IterationRange|",
+"s|Pairs|Pairs|Iterates adjacent elements of an immutable slice without allocating pairs.",
+"s|ReversedCount|ReversedCount|",
+"s|ReversedCString|ReversedCString|",
+"s|ReversedRange|ReversedRange|",
+"s|ReversedSlice|ReversedSlice|",
 "s|Swag.Allocator|Swag_Allocator|",
 "s|Swag.AllocatorArena|Swag_AllocatorArena|",
 "s|Swag.AllocatorFooter|Swag_AllocatorFooter|",
@@ -4941,9 +5054,13 @@
 "f|memcpy|memcpy|",
 "f|memmove|memmove|",
 "f|memset|memset|",
+"f|pairs|pairs|Returns a zero-allocation view over adjacent elements of values.",
 "f|pow|pow|",
 "f|powf|powf|",
+"f|range|range|Returns a zero-allocation half-open interval [lower, upper).",
+"f|rangeTo|rangeTo|Returns a zero-allocation closed interval lower, upper.",
 "f|realloc|realloc|",
+"f|reversed|reversed|Returns a zero-allocation view that visits the indices of count in descending order.",
 "f|round|round|",
 "f|roundf|roundf|",
 "f|sin|sin|",

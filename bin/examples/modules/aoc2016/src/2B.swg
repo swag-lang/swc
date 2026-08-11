@@ -39,7 +39,7 @@ func day2B()
     var cde = 0
     for l in lines
     {
-        for #Bytes c in l
+        for c in l.bytes()
         {
             switch c
             {

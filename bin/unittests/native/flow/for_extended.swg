@@ -84,7 +84,7 @@
 #test
 {
     var count = 0
-    for #reverse 0
+    for ? in (0).reversed()
     {
         count += 1
     }
@@ -95,7 +95,7 @@
 #test
 {
     var count = 0
-    for #reverse 1
+    for ? in (1).reversed()
     {
         count += 1
     }

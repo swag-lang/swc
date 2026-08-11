@@ -125,7 +125,7 @@ func day10B()
     var startX, startY: s64
     for l, line in lines
     {
-        for #Bytes c, col in l
+        for c, col in l.bytes()
         {
             let one: &Dir = &mp(cast(s64) col, cast(s64) line)
             switch c
@@ -202,7 +202,7 @@ func day10B()
     var total: u64
     for l, line in lines
     {
-        for #Bytes c, col in l
+        for c, col in l.bytes()
         {
             let one = mp(cast(s64) col, cast(s64) line)
             if one & .Edge do

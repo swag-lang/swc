@@ -107,13 +107,13 @@ impl CountedBag
     @assert(count == 4)
 }
 
-// '#reverse' element iteration.
+// '.reversed()' element iteration.
 #test
 {
     var arr:   [3] s32 = [1, 2, 3]
     var order: [3] s32
     var slot           = 0
-    for #reverse v in arr
+    for v in (arr).reversed()
     {
         order[slot] = v
         slot        += 1

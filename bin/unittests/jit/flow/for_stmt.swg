@@ -93,7 +93,7 @@ impl StringRefIndexBox
     func reverseRangeLoop()->s32
     {
         var acc: s32 = 0
-        for #reverse i in 1 to 4
+        for i in rangeTo(1, 4).reversed()
         {
             acc = acc * 10 + cast(s32) i
         }

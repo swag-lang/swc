@@ -50,9 +50,8 @@ impl RegressionArray
     }
 
     #[Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
+    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
-        discard back
 
         if !.count do
             return

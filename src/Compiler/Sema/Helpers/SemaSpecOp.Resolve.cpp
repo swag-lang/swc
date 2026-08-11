@@ -259,20 +259,6 @@ namespace
         return nodeRef;
     }
 
-    IdentifierRef foreachVisitSpecializationId(Sema& sema, const AstForeachStmt& node)
-    {
-        if (node.tokSpecializationRef.isInvalid())
-            return IdentifierRef::invalid();
-
-        const SourceCodeRange tokenRange = sema.srcView(node.srcViewRef()).tokenCodeRange(sema.ctx(), node.tokSpecializationRef);
-        if (!tokenRange.srcView || tokenRange.len <= 1)
-            return IdentifierRef::invalid();
-
-        Utf8 opVisitName = "opVisit";
-        opVisitName += tokenRange.srcView->codeView(tokenRange.offset + 1, tokenRange.len - 1);
-        return sema.idMgr().addIdentifierOwned(opVisitName);
-    }
-
     AstNodeRef unwrapVisitFunctionDeclRef(const Ast& ast, AstNodeRef childRef)
     {
         const AstNode& childNode = ast.node(childRef);
@@ -367,16 +353,6 @@ namespace
 
     Result waitPendingVisitSpecOp(Sema& sema, const SymbolStruct& ownerStruct, const AstForeachStmt& node)
     {
-        const IdentifierRef specializedId = foreachVisitSpecializationId(sema, node);
-        if (specializedId.isValid())
-            return waitVisitSpecOpRegistration(sema, ownerStruct, specializedId, node.codeRef());
-
-        if (node.modifierFlags.has(AstModifierFlagsE::Reverse))
-        {
-            const IdentifierRef reverseId = sema.idMgr().addIdentifier("opVisitReverse");
-            SWC_RESULT(waitVisitSpecOpRegistration(sema, ownerStruct, reverseId, node.codeRef()));
-        }
-
         const IdentifierRef opVisitId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpVisit);
         return waitVisitSpecOpRegistration(sema, ownerStruct, opVisitId, node.codeRef());
     }
@@ -786,21 +762,9 @@ namespace
         return Result::Continue;
     }
 
-    Result collectVisitSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const AstForeachStmt& node, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
+    Result collectVisitSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
     {
         outCandidates.clear();
-
-        const IdentifierRef specializedId = foreachVisitSpecializationId(sema, node);
-        if (specializedId.isValid())
-            return collectSpecOpCandidates(sema, ownerStruct, specializedId, genericArgNodes, outCandidates);
-
-        if (node.modifierFlags.has(AstModifierFlagsE::Reverse))
-        {
-            const IdentifierRef reverseId = sema.idMgr().addIdentifier("opVisitReverse");
-            SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, reverseId, genericArgNodes, outCandidates));
-            if (!outCandidates.empty())
-                return Result::Continue;
-        }
 
         const IdentifierRef opVisitId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpVisit);
         return collectSpecOpCandidates(sema, ownerStruct, opVisitId, genericArgNodes, outCandidates);
@@ -1204,10 +1168,9 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
 
     SmallVector<AstNodeRef> genericArgs;
     genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node)));
-    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), node.modifierFlags.has(AstModifierFlagsE::Reverse)));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, node, genericArgs.span(), candidates));
+    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, genericArgs.span(), candidates));
     if (candidates.empty())
         return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
@@ -1235,10 +1198,9 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, Symbo
 
     SmallVector<AstNodeRef> genericArgs;
     genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node)));
-    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), node.modifierFlags.has(AstModifierFlagsE::Reverse)));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, node, genericArgs.span(), candidates));
+    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, genericArgs.span(), candidates));
     if (candidates.empty())
         return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 

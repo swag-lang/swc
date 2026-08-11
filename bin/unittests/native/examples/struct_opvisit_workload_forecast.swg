@@ -1,7 +1,7 @@
 #global private
 
 // Real-life example: a delivery workload forecast exposes several traversal
-// modes over weekday fields. Forward iteration sums the week, a named pair
+// modes over weekday fields. Forward iteration sums the week, a pair view
 // visit inspects adjacent days, and by-address iteration rebalances capacity.
 
 struct WorkloadForecast
@@ -13,11 +13,29 @@ struct WorkloadForecast
     friday:    s32
 }
 
+#[Swag.Opaque]
+struct WorkloadPairs
+{
+    source: const *WorkloadForecast
+}
+
+impl WorkloadPairs
+{
+    #[Swag.Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(today: s32, nextDay: s32))
+        where !ptr
+    {
+        #inject(stmt, today = .source.monday, nextDay = .source.tuesday)
+        #inject(stmt, today = .source.tuesday, nextDay = .source.wednesday)
+        #inject(stmt, today = .source.wednesday, nextDay = .source.thursday)
+        #inject(stmt, today = .source.thursday, nextDay = .source.friday)
+    }
+}
+
 impl WorkloadForecast
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
-        where !back
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
@@ -47,8 +65,8 @@ impl WorkloadForecast
     }
 
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
+        where !ptr
     {
         for idx in 5
         {
@@ -66,14 +84,9 @@ impl WorkloadForecast
         }
     }
 
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(today: s32, nextDay: s32))
-        where !ptr and !back
+    mtd const pairs()->WorkloadPairs
     {
-        #inject(stmt, today = me.monday, nextDay = me.tuesday)
-        #inject(stmt, today = me.tuesday, nextDay = me.wednesday)
-        #inject(stmt, today = me.wednesday, nextDay = me.thursday)
-        #inject(stmt, today = me.thursday, nextDay = me.friday)
+        return {source: &me}
     }
 }
 
@@ -88,7 +101,7 @@ func totalStops(forecast: WorkloadForecast)->s32
 func adjacentSignature(forecast: WorkloadForecast)->s32
 {
     var signature: s32
-    for #Pairs today, nextDay in forecast do
+    for today, nextDay in forecast.pairs() do
         signature = signature * 100 + (nextDay - today + 50)
     return signature
 }
@@ -96,7 +109,7 @@ func adjacentSignature(forecast: WorkloadForecast)->s32
 func maxAdjacentRise(forecast: WorkloadForecast)->s32
 {
     var best = -1000
-    for #Pairs today, nextDay in forecast
+    for today, nextDay in forecast.pairs()
     {
         let delta = nextDay - today
         if delta > best do
@@ -105,7 +118,7 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
     return best
 }
 
-// Forecast operations over a struct-backed week with forward, named, and
+// Forecast operations over a struct-backed week with forward, pair-view, and
 // by-address custom element-iteration passes.
 #test
 {

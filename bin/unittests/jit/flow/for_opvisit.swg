@@ -10,26 +10,9 @@ struct JitFieldVisits
 impl JitFieldVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index: u64))
+    func(ptr: bool) opVisit(me, stmt: #code(item: s32, index: u64))
         where !ptr
     {
-        #static if back
-        {
-            for idx in 3
-            {
-                var visitItem: s32 = undefined
-                switch idx
-                {
-                case 0:  visitItem = me.z
-                case 1:  visitItem = me.y
-                default: visitItem = me.x
-                }
-
-                #inject(stmt, item = visitItem, index = @index)
-            }
-
-            return
-        }
 
         for idx in 3
         {
@@ -54,27 +37,8 @@ struct JitBufferVisits
 impl JitBufferVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
+    func(ptr: bool) opVisit(me, stmt: #code(item, index: u64))
     {
-        #static if back
-        {
-            #static if ptr
-            {
-                for idx in 3
-                {
-                    #inject(stmt, item = cast(&s32) &(me.values[2 - idx]), index = @index)
-                }
-            }
-            else
-            {
-                for idx in 3
-                {
-                    #inject(stmt, item = me.values[2 - idx], index = @index)
-                }
-            }
-        }
-        else
-        {
             #static if ptr
             {
                 for idx in 3
@@ -89,7 +53,6 @@ impl JitBufferVisits
                     #inject(stmt, item = me.values[idx], index = @index)
                 }
             }
-        }
     }
 }
 
@@ -101,8 +64,8 @@ struct JitReverseVisits
 impl JitReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
+        where !ptr
     {
         for idx in 3
         {
@@ -110,15 +73,7 @@ impl JitReverseVisits
         }
     }
 
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index: u64))
-        where !ptr
-    {
-        for idx in 3
-        {
-            #inject(stmt, item = me.values[2 - idx], index = @index)
-        }
-    }
+    mtd const reversed() => reverseSlice(me.values)
 }
 
 struct JitHiddenAliasVisits
@@ -151,8 +106,8 @@ struct JitReturnVisits
 impl JitHiddenAliasVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
+        where !ptr
     {
         for idx in 3
         {
@@ -164,8 +119,7 @@ impl JitHiddenAliasVisits
 impl JitFieldPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
-        where !back
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
@@ -193,32 +147,13 @@ impl JitFieldPointerVisits
 
 impl JitPairVisits
 {
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
-        where !ptr
-    {
-        #static if back
-        {
-            for idx in 3
-            {
-                #inject(stmt, left = me.values[2 - idx], right = me.values[3 - idx])
-            }
-
-            return
-        }
-
-        for idx in 3
-        {
-            #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
-        }
-    }
+    mtd const pairs() => pairsView(me.values)
 }
 
 impl JitConstPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
-        where !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
@@ -240,7 +175,7 @@ impl JitConstPointerVisits
 impl JitReturnVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where !ptr
     {
         if !@countof(.values) do
@@ -273,8 +208,7 @@ struct JitCallSourceVisits
 impl JitCallSourceVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
-        where !back
+    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
         for idx in .count
         {
@@ -364,7 +298,7 @@ func jitForeachVisitSecondOnly()->s32
     let values = JitPairVisits{}
     var signature: s32
 
-    for #Pairs ?, right in values
+    for ?, right in values.pairs()
     {
         #assert(#typeof(right) == s32)
         signature = signature * 10 + right

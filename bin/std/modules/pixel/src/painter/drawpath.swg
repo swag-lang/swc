@@ -712,7 +712,7 @@ impl Painter
             let endPoint  = cxt.path.polygon.offsetPointAt(pointCount - 1, cxt.offsetPath)
             var lastPoint = endPoint
 
-            for #reverse i in 0 to pointCount - 2
+            for i in rangeTo(0'u64, pointCount - 2).reversed()
             {
                 let currentPoint = cxt.path.polygon.offsetPointAt(i, cxt.offsetPath)
                 let segmentVec   = lastPoint - currentPoint

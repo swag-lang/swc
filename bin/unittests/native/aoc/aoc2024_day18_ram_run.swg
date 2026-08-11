@@ -314,7 +314,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
             tmpLen      += 1
             v           /= 10
         }
-        for #reverse i in tmpLen
+        for i in (tmpLen).reversed()
         {
             buf[pos] = tmp[i]
             pos      += 1
@@ -342,7 +342,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
             tmpLen      += 1
             v           /= 10
         }
-        for #reverse i in tmpLen
+        for i in (tmpLen).reversed()
         {
             buf[pos] = tmp[i]
             pos      += 1
@@ -439,7 +439,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
     @assert(@countof(cs) == 3)
 }
 
-// for #reverse on digits
+// reverse-view iteration on digits
 #test
 {
     var buf: [4] u8

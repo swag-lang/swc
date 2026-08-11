@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 22: pseudorandom secret number evolution.
 // Part 1: sum of 2000th secret numbers.
 // Part 2: find the 4-change price sequence that maximises bananas.
-// Exercises: bitwise XOR, #run compile-time tables, for #reverse sliding
+// Exercises: bitwise XOR, #run compile-time tables, reverse-view iteration sliding
 // window, with &ptr blocks, inline + retval, @mkslice in inline, large
 // heap arrays.
 
@@ -177,8 +177,8 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
             let change = price - prevPrice
             prevPrice = price
 
-            // Slide the window using for #reverse, then insert new change
-            for #reverse i in 1 until 4
+            // Slide the window using reverse-view iteration, then insert new change
+            for i in range(1, 4).reversed()
             {
                 ch[i] = ch[i - 1]
             }
@@ -287,12 +287,12 @@ func solve(text: string)->SolveResult
     @assert(r.bestBananas == 42'u64)
 }
 
-// for #reverse sliding window
+// reverse-view iteration sliding window
 #test
 {
     var ch: [4] s32
     ch[0] = 10; ch[1] = 20; ch[2] = 30; ch[3] = 40
-    for #reverse i in 1 until 4 { ch[i] = ch[i - 1] }
+    for i in range(1, 4).reversed() { ch[i] = ch[i - 1] }
     ch[0] = 99
     @assert(ch[0] == 99)
     @assert(ch[1] == 10)

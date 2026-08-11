@@ -194,10 +194,10 @@ impl IDigitFinder for DigitOnlyFinder
 
     mtd impl findLast(line: const [..] u8)->s32
     {
-        for #reverse @countof(line)
+        for index in (@countof(line)).reversed()
         {
-            if isDigit(line[@index]) do
-                return digitValue(line[@index])
+            if isDigit(line[index]) do
+                return digitValue(line[index])
         }
         return -1
     }
@@ -220,11 +220,11 @@ impl IDigitFinder for WordAwareFinder
 
     mtd impl findLast(line: const [..] u8)->s32
     {
-        for #reverse @countof(line)
+        for index in (@countof(line)).reversed()
         {
-            if isDigit(line[@index]) do
-                return digitValue(line[@index])
-            let w = spelledDigitAt(line, @index)
+            if isDigit(line[index]) do
+                return digitValue(line[index])
+            let w = spelledDigitAt(line, index)
             if w >= 0 do
                 return w
         }

@@ -191,7 +191,7 @@ private impl FileBrowserCtrl
         .comboPathStr.clear()
 
         let all = Tokenize.split(.currentFolder.toString(), '/'rune)
-        for #reverse i in @countof(all)
+        for i in @countof(all).reversed()
         {
             var str: String
             for j in i + 1

@@ -99,23 +99,9 @@ namespace GenericCloneCodegenSupport
     impl OwnedPtrVisitBox
     {
         #[Swag.Macro]
-        mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
+        mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
             where !ptr
         {
-            #static if back
-            {
-                if me.count > 1
-                {
-                    #inject(stmt, item = me.second, index = 1'u64)
-                }
-
-                if me.count > 0
-                {
-                    #inject(stmt, item = me.first, index = 0'u64)
-                }
-
-                return
-            }
 
             if me.count > 0
             {

@@ -23,34 +23,21 @@ namespace InjectExprCloneSupport
         }
 
         #[Macro]
-        mtd(ptr: bool, back: bool) opVisit(stmt: #code(item: &InjectExprCloneSupport.VisitProbe, index: u64))
+        mtd(ptr: bool) opVisit(stmt: #code(item: &InjectExprCloneSupport.VisitProbe, index: u64))
         {
-            #static if back do
-                var cursor = .count
-            else do
                 var cursor: u64 = 0
 
             #scope(Up)
                 while true
             {
-                #static if back
-                {
-                    if !cursor do
-                        break
-                    cursor -= 1
-                }
-                else
-                {
                     if cursor >= .count do
                         break
-                }
 
                 #scope(Down)
                 {
                     #inject(stmt, item = cast(&InjectExprCloneSupport.VisitProbe) &.values[cursor], index = cursor, break = break to Up, continue = break to Down)
                 }
 
-                #static if !back do
                     cursor += 1
             }
         }

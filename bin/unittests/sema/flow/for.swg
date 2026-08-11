@@ -18,7 +18,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    for #reverse 5
+    for ? in (5).reversed()
     {
         var x = 0
     }
@@ -26,7 +26,7 @@ func semaTest003()
 
 func semaTest004()
 {
-    for #reverse i in 5
+    for i in (5).reversed()
     {
         var x = i
     }
@@ -66,7 +66,7 @@ func semaTest008()
 
 func semaTest009()
 {
-    for #reverse i in 1 to 5
+    for i in rangeTo(1, 5).reversed()
     {
         var x = i
     }
@@ -74,7 +74,7 @@ func semaTest009()
 
 func semaTest010()
 {
-    for #reverse i in 1 until 5
+    for i in range(1, 5).reversed()
     {
         var x = i
     }
@@ -106,7 +106,7 @@ func semaTest013()
 
 func semaTest014()
 {
-    for #reverse i in 10 where i < 5
+    for i in (10).reversed() where i < 5
     {
         var x = i
     }

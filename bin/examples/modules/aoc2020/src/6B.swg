@@ -57,7 +57,7 @@ func day6B0()
         if l.length do
             num += 1
 
-        for #Bytes c in l do
+        for c in l.bytes() do
             count[c - 'a'] += 1
 
         if @index == lines.count - 1 or lines[@index + 1].length == 0
@@ -98,7 +98,7 @@ func day6B1()
         if l.length
         {
             lineVal = 0
-            for #Bytes c in l do
+            for c in l.bytes() do
                 lineVal |= 1 << cast(u32) (c - 'a')
             interVal &= lineVal
         }

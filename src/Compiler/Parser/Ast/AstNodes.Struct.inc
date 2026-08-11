@@ -1644,7 +1644,6 @@ enum class AstForeachStmtFlagsE : AstNode::ParserFlags
 
 struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>
 {
-    TokenRef         tokSpecializationRef;
     AstModifierFlags modifierFlags;
     SpanRef          spanNamesRef;
     AstNodeRef       nodeExprRef;
@@ -1687,7 +1686,6 @@ struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
 // ForeachStmt in place (setId) when the iterated expression is a collection.
 struct AstForStmt : AstNodeT<AstNodeId::ForStmt, AstForeachStmtFlagsE>
 {
-    TokenRef         tokSpecializationRef;
     AstModifierFlags modifierFlags;
     SpanRef          spanNamesRef;
     AstNodeRef       nodeExprRef;

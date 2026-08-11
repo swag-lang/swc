@@ -146,9 +146,4 @@ bool LangSpec::isSpecOpName(std::string_view name)
     return std::isupper(static_cast<unsigned char>(name[2])) != 0;
 }
 
-bool LangSpec::isOpVisitName(std::string_view name)
-{
-    return name.rfind("opVisit", 0) == 0;
-}
-
 SWC_END_NAMESPACE();

@@ -5,7 +5,7 @@
 // moves the claw by a fixed delta. Solve the 2×2 linear system for each
 // machine; only non-negative integer solutions are valid.
 // Part 2 shifts every prize coordinate by 10 000 000 000 000.
-// Exercises: switch with fallthrough, 'switch #complete', for #reverse,
+// Exercises: switch with fallthrough, 'switch #complete', reverse-view iteration,
 // 0 to N inclusive range, ternary operator, @abs, while..do,
 // #[Swag.NoInline], struct literal arguments.
 
@@ -191,8 +191,8 @@ func solve(text: string)->Result
         result.part1 += solveMachine(machines[i])
     }
 
-    // Part 2: shift prizes, iterate in reverse to exercise for #reverse
-    for #reverse i in n
+    // Part 2: shift prizes, iterate in reverse to exercise reverse-view iteration
+    for i in (n).reversed()
     {
         var m = machines[i]
         m.prize.x    += Part2Offset
@@ -368,7 +368,7 @@ func costTier(cost: u64)->u32
     @assert(solveMachine(m) == 0'u64)
 }
 
-// for #reverse: reverse order produces same sum
+// reverse-view iteration: reverse order produces same sum
 #test
 {
     var fwd: s64
@@ -377,7 +377,7 @@ func costTier(cost: u64)->u32
     {
         fwd += cast(s64) i
     }
-    for #reverse i in 1 to 10
+    for i in rangeTo(1, 10).reversed()
     {
         rev += cast(s64) i
     }

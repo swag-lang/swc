@@ -132,7 +132,7 @@ alias StrictForeachF32           = f32
     var text:  const cstring = cast(const cstring) @dataof("ABC")
     var order: [3] u8
     var pos:   u64
-    for #reverse v, i in text
+    for v, i in (text).reversed()
     {
         order[pos] = v
         pos        += 1

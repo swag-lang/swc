@@ -335,15 +335,19 @@ AstNodeRef Parser::parseForLoop()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>(consume());
 
-    // Specialization (foreach form)
-    nodePtr->tokSpecializationRef = consumeIf(TokenId::SharpIdentifier);
+    while (is(TokenId::SharpIdentifier))
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_for_selector_removed, ref());
+        diag.report(*ctx_);
+        consume();
+    }
 
     nodePtr->modifierFlags = parseModifiers();
 
-    // The element-iteration forms ('&name', several names, or a specialization) are
+    // The element-iteration forms ('&name' or several names) are
     // resolved at parse time. A single value or index binding stays a ForStmt until
     // Sema knows whether the expression is a count/range or a collection.
-    bool isElementForm = nodePtr->tokSpecializationRef.isValid();
+    bool isElementForm = false;
 
     SmallVector<TokenRef> tokNames;
     bool                  hasValueBinding = false;
@@ -376,6 +380,13 @@ AstNodeRef Parser::parseForLoop()
         consumeAssert(TokenId::SymComma);
         nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
         tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
+        isElementForm = true;
+    }
+    else if (is(TokenId::SymQuestion) && nextIs(TokenId::KwdIn))
+    {
+        consume();
+        consumeAssert(TokenId::KwdIn);
+        nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
         isElementForm = true;
     }
     else if (is(TokenId::Identifier) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))

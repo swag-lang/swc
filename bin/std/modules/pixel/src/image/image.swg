@@ -109,7 +109,7 @@ impl Image
     // its zero-based row-major ordinal. Set `back` to use reverse visitation where
     // supported by the macro invocation.
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(var pixel, var index: u64))
+    func(ptr: bool) opVisit(me, stmt: #code(var pixel, var index: u64))
     {
         var scan = pixels.buffer
         for width * height

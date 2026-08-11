@@ -247,9 +247,6 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierNoDrop:
                 toSet = AstModifierFlagsE::NoDrop;
                 break;
-            case TokenId::ModifierReverse:
-                toSet = AstModifierFlagsE::Reverse;
-                break;
             case TokenId::ModifierComplete:
                 toSet = AstModifierFlagsE::Complete;
                 break;

@@ -355,7 +355,6 @@ namespace
             case AstModifierFlagsE::Promote: return TokenId::ModifierPromote;
             case AstModifierFlagsE::Wrap: return TokenId::ModifierWrap;
             case AstModifierFlagsE::NoDrop: return TokenId::ModifierNoDrop;
-            case AstModifierFlagsE::Reverse: return TokenId::ModifierReverse;
             case AstModifierFlagsE::Complete: return TokenId::ModifierComplete;
             case AstModifierFlagsE::Move: return TokenId::ModifierMove;
             case AstModifierFlagsE::Relocate: return TokenId::ModifierRelocate;

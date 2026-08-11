@@ -54,7 +54,6 @@ public:
 
     static bool isReservedNamespace(std::string_view ns);
     static bool isSpecOpName(std::string_view name);
-    static bool isOpVisitName(std::string_view name);
 
 private:
     CharFlags                                     charFlags_[256];

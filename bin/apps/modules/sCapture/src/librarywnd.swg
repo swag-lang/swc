@@ -1070,7 +1070,7 @@ impl LibraryWnd
         }
 
         // Add levels root-first.
-        for #reverse idx in fulls.count
+        for idx in fulls.count.reversed()
         {
             let fp = fulls[idx].toString()
             var nm = Path.fileName(fp) orelse ""

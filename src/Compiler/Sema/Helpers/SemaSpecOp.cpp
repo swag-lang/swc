@@ -63,7 +63,7 @@ namespace
             case SpecOpKind::OpIndexSet:
                 return "mtd opIndexSet(index: <type>[, index: <same type>...], value: <type>) -> void";
             case SpecOpKind::OpVisit:
-                return "mtd(ptr: bool, back: bool) opVisit(stmt: #code) -> void";
+                return "mtd(ptr: bool) opVisit(stmt: #code) -> void";
             case SpecOpKind::None:
             case SpecOpKind::Invalid:
             default:
@@ -163,7 +163,7 @@ namespace
     std::span<const SpecOpGenericValue> expectedSpecOpGenericValueTypes(SpecOpKind kind)
     {
         static constexpr SpecOpGenericValue K_STRING[]   = {SpecOpGenericValue::String};
-        static constexpr SpecOpGenericValue K_BOOL2[]    = {SpecOpGenericValue::Bool, SpecOpGenericValue::Bool};
+        static constexpr SpecOpGenericValue K_BOOL1[]    = {SpecOpGenericValue::Bool};
         static constexpr SpecOpGenericValue K_OPERATOR[] = {SpecOpGenericValue::Operator};
 
         switch (kind)
@@ -180,7 +180,7 @@ namespace
                 return K_STRING;
 
             case SpecOpKind::OpVisit:
-                return K_BOOL2;
+                return K_BOOL1;
 
             default:
                 return {};
@@ -520,14 +520,6 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
         return Result::Error;
     }
 
-    const std::string_view name = idMgr.get(idRef).name;
-    if (kind == SpecOpKind::OpVisit && name.size() > std::string_view("opVisit").size())
-    {
-        const char variantStart = name[std::string_view("opVisit").size()];
-        if (std::isupper(static_cast<unsigned char>(variantStart)) == 0)
-            return reportSpecOpError(sema, sym, kind);
-    }
-
     const SymbolStruct* ownerStruct = sym.ownerStruct();
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
@@ -621,8 +613,6 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
         }
     }
 
-    if (LangSpec::isOpVisitName(name))
-        return SpecOpKind::OpVisit;
     return SpecOpKind::Invalid;
 }
 

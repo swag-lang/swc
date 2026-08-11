@@ -42,7 +42,6 @@ namespace
         MicroReg        boundReg      = MicroReg::invalid();
         TypeRef         indexTypeRef  = TypeRef::invalid();
         SymbolVariable* indexSym      = nullptr;
-        bool            reverse       = false;
         bool            inclusive     = false;
         bool            unsignedCmp   = false;
     };
@@ -339,32 +338,11 @@ namespace
 
         SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType));
 
-        if (loopState.reverse)
-        {
-            loopState.boundReg = lowerReg;
-            // Reverse loops start from the upper bound and pre-decrement when the range is exclusive, so
-            // the first visible value still belongs to the source interval.
-            builder.emitCmpRegReg(upperReg, lowerReg, opBits);
-            if (loopState.inclusive)
-            {
-                builder.emitJumpToLabel(CodeGenCompareHelpers::lessCond(loopState.unsignedCmp), MicroOpBits::B32, loopState.doneLabel);
-                builder.emitLoadRegReg(loopState.indexReg, upperReg, opBits);
-            }
-            else
-            {
-                builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(loopState.unsignedCmp), MicroOpBits::B32, loopState.doneLabel);
-                builder.emitLoadRegReg(loopState.indexReg, upperReg, opBits);
-                builder.emitOpBinaryRegImm(loopState.indexReg, ApInt(1, 64), MicroOp::Subtract, opBits);
-            }
-        }
-        else
-        {
-            loopState.boundReg = upperReg;
-            builder.emitLoadRegReg(loopState.indexReg, lowerReg, opBits);
-            builder.emitCmpRegReg(loopState.indexReg, upperReg, opBits);
-            const auto cpuCond = loopState.inclusive ? CodeGenCompareHelpers::greaterCond(loopState.unsignedCmp) : CodeGenCompareHelpers::greaterEqualCond(loopState.unsignedCmp);
-            builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, loopState.doneLabel);
-        }
+        loopState.boundReg = upperReg;
+        builder.emitLoadRegReg(loopState.indexReg, lowerReg, opBits);
+        builder.emitCmpRegReg(loopState.indexReg, upperReg, opBits);
+        const auto cpuCond = loopState.inclusive ? CodeGenCompareHelpers::greaterCond(loopState.unsignedCmp) : CodeGenCompareHelpers::greaterEqualCond(loopState.unsignedCmp);
+        builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, loopState.doneLabel);
 
         if (loopState.indexSym != nullptr)
             emitLoopVariablePayload(codeGen, *loopState.indexSym, loopState.indexReg);
@@ -545,7 +523,6 @@ Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
     loopState.loopLabel     = builder.createLabel();
     loopState.continueLabel = builder.createLabel();
     loopState.doneLabel     = builder.createLabel();
-    loopState.reverse       = modifierFlags.has(AstModifierFlagsE::Reverse);
 
     const SemaNodeView symbolView = codeGen.curViewSymbol();
     if (symbolView.sym() != nullptr && symbolView.sym()->isVariable())
@@ -620,28 +597,18 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         builder.placeLabel(loopState->continueLabel);
         if (loopState->indexSym != nullptr)
             emitLoopVariableReg(codeGen, *loopState->indexSym, loopState->indexReg);
-        if (loopState->reverse)
+        if (loopState->inclusive)
         {
             builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
-            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Subtract, opBits);
+            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
         }
         else
         {
-            if (loopState->inclusive)
-            {
-                builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
-                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
-                builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
-                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
-            }
-            else
-            {
-                builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
-                builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
-                builder.emitJumpToLabel(CodeGenCompareHelpers::lessCond(loopState->unsignedCmp), MicroOpBits::B32, loopState->loopLabel);
-            }
+            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
+            builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
+            builder.emitJumpToLabel(CodeGenCompareHelpers::lessCond(loopState->unsignedCmp), MicroOpBits::B32, loopState->loopLabel);
         }
 
         codeGen.popFrame();

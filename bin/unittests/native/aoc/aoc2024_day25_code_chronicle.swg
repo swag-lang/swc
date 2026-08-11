@@ -7,7 +7,7 @@
 // fixed-size arrays, for loops with until, struct equality, with &ptr
 // blocks, heap allocation for dynamic collections, multi-line string
 // parsing, cast chains, compile-time constants, @countof on slices,
-// for #reverse, inline retval struct return.
+// reverse-view iteration, inline retval struct return.
 
 const SampleInput =
     """#####
@@ -179,7 +179,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
         for col in NumCols
         {
             var count: u8
-            for #reverse row in 1 until GridRows
+            for row in range(1, GridRows).reversed()
             {
                 if grid[row - 1][col] == '#' do count += 1
                 else do break
@@ -547,10 +547,10 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     @assert(locks[1].fits(keys[2]))
 }
 
-// for #reverse in key parsing (exercises reverse loop)
+// reverse-view iteration in key parsing (exercises reverse loop)
 #test
 {
-    // Verify key parsing uses #reverse correctly
+    // Verify key parsing uses .reversed() correctly
     let keyStr =
         """.....
 .....

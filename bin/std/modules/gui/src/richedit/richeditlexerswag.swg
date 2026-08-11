@@ -363,7 +363,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#move", State.Modifier)
         .mapWords.add("#relocate", State.Modifier)
         .mapWords.add("#fwd", State.Modifier)
-        .mapWords.add("#reverse", State.Modifier)
         .mapWords.add("#null", State.Modifier)
         .mapWords.add("#complete", State.Modifier)
     }
@@ -660,7 +659,7 @@ impl IRichEditLexer for RichEditLexerSwag
                     let seekEnd = seek
                     seek = saveSeek
 
-                    if Utf8.startsWith(word, "opVisit") do
+                    if word == "opVisit" do
                         currentState = State.FunctionSpecOp
                     elif !word.isEmpty()
                     {

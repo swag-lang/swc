@@ -26,6 +26,40 @@ struct(T) List
     }
 }
 
+// Iterates a borrowed list from its tail to its head.
+#[Swag.Opaque]
+struct(T) ReversedList
+{
+    source: const *List'T
+}
+
+impl ReversedList
+{
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(item, node, index: u64))
+    {
+        var node = .source.tail
+        var index: u64
+        #scope(Up)
+            while node
+        {
+            let current = node orelse cast(*ListEntry'T) 1'u64
+            #scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt, item = cast(&T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
+                elif Reflection.isStruct(T) do
+                    #inject(stmt, item = cast(const &T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
+                else do
+                    #inject(stmt, item = current.value, node = current, index = index, break = break to Up, continue = break to Down)
+            }
+
+            node = current.prev
+            index += 1
+        }
+    }
+}
+
 impl List
 {
     // Returns the number of elements in the list.
@@ -61,18 +95,15 @@ impl List
 
     // Provides a way to iterate over each element in the list.
     // This is a macro that accepts a code block to execute for each element.
-    // Visiting by pointer and in reverse order is supported.
+    // Visiting by pointer is supported.
     // Block parameters:
     // - 'item':  The value of the element (or a pointer to it).
     // - 'node':  A pointer to the list node ('ListEntry').
     // - 'index': The index of the element.
     #[Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, node, index: u64))
+    mtd(ptr: bool) opVisit(stmt: #code(item, node, index: u64))
     {
-        #static if back do
-            var n = .tail
-        else do
-            var n = .head
+        var n = .head
         var ordinal: u64 = 0
         #scope(Up)
             while n
@@ -88,12 +119,15 @@ impl List
                     #inject(stmt, item = node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
             }
 
-            #static if back do
-                n = node.prev
-            else do
-                n = node.next
+            n = node.next
             ordinal += 1
         }
+    }
+
+    // Returns an immutable zero-allocation view that traverses the list from tail to head.
+    mtd const reversed()->ReversedList'T
+    {
+        return {source: &me}
     }
 
     // Removes and deallocates all elements from the list.

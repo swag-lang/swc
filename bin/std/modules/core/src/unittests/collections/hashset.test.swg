@@ -21,7 +21,7 @@ func assertReverseIntSetIteration(values: const &HashSet's32)->bool
         forward.add(value)
 
     var reverse: Array's32
-    for #reverse value in values do
+    for value in values.reversed() do
         reverse.add(value)
 
     if forward.count != reverse.count do

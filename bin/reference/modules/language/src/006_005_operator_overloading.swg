@@ -217,11 +217,9 @@ impl Struct
     // -------------------------------------------------------------------------
 
     // Called in a 'for' iteration block to iterate over the struct's elements.
-    // Multiple versions can be defined by adding a name after 'opVisit'.
+    // Alternative traversals are ordinary view types that define their own opVisit.
     #[Swag.Macro]
     {
-        func(ptr: bool, back: bool) opVisit(me, stmt: #code) {}
-        func(ptr: bool, back: bool) opVisitWhatever(me, stmt: #code) {}
-        func(ptr: bool, back: bool) opVisitAnother(me, stmt: #code) {}
+        func(ptr: bool) opVisit(me, stmt: #code) {}
     }
 }

@@ -11,21 +11,37 @@ struct ShelfBins
     evening:   s32
 }
 
-impl ShelfBins
+#[Swag.Opaque]
+struct ReversedShelfBins
+{
+    source: const *ShelfBins
+}
+
+impl ReversedShelfBins
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
+        where !ptr
+    {
+        #inject(stmt, item = .source.evening, index = 3'u64)
+        #inject(stmt, item = .source.afternoon, index = 2'u64)
+        #inject(stmt, item = .source.lunch, index = 1'u64)
+        #inject(stmt, item = .source.morning, index = 0'u64)
+    }
+}
+
+impl ShelfBins
+{
+    mtd const reversed()->ReversedShelfBins
+    {
+        return {source: &me}
+    }
+
+    #[Swag.Macro]
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
-            #static if back
-            {
-                #inject(stmt, item = cast(&s32) &(me.evening), index = 0'u64)
-                #inject(stmt, item = cast(&s32) &(me.afternoon), index = 1'u64)
-                #inject(stmt, item = cast(&s32) &(me.lunch), index = 2'u64)
-                #inject(stmt, item = cast(&s32) &(me.morning), index = 3'u64)
-                return
-            }
 
             #inject(stmt, item = cast(&s32) &(me.morning), index = 0'u64)
             #inject(stmt, item = cast(&s32) &(me.lunch), index = 1'u64)
@@ -34,24 +50,6 @@ impl ShelfBins
         }
         else
         {
-            #static if back
-            {
-                for idx in 4
-                {
-                    var visitItem: s32 = undefined
-                    switch idx
-                    {
-                    case 0: visitItem = me.evening
-                    case 1: visitItem = me.afternoon
-                    case 2: visitItem = me.lunch
-                    case 3: visitItem = me.morning
-                    }
-
-                    #inject(stmt, item = visitItem, index = @index)
-                }
-
-                return
-            }
 
             for idx in 4
             {
@@ -70,27 +68,9 @@ impl ShelfBins
     }
 
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
         where !ptr
     {
-        #static if back
-        {
-            for idx in 4
-            {
-                var visitItem: s32 = undefined
-                switch idx
-                {
-                case 0:  visitItem = me.evening
-                case 1:  visitItem = me.afternoon
-                case 2:  visitItem = me.lunch
-                default: visitItem = me.morning
-                }
-
-                #inject(stmt, item = visitItem, index = @index)
-            }
-
-            return
-        }
 
         for idx in 4
         {
@@ -119,12 +99,12 @@ func countUnits(bins: ShelfBins)->s32
 func reverseCode(bins: ShelfBins)->s32
 {
     var code: s32
-    for #reverse reverseUnits in bins do
+    for reverseUnits in (bins).reversed() do
         code = code * 10 + reverseUnits
     return code
 }
 
-// Custom element iteration over struct fields with forward, reverse, and by-address passes
+// Custom element iteration over struct fields with forward, reverse-view, and by-address passes
 #test
 {
     var bins = ShelfBins{morning: 2, lunch: 4, afternoon: 6, evening: 8}

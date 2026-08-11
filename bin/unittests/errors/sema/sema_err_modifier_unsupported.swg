@@ -16,13 +16,6 @@ func initializerWrap()
     discard a
 }
 
-func initializerReverse()
-{
-    var x = 1
-    var a = #reverse x     // swc-expected-error {{sema_err_modifier_unsupported}}
-    discard a
-}
-
 func initializerComplete()
 {
     var x = 1

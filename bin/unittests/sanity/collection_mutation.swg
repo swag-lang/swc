@@ -53,7 +53,7 @@ impl CollMutVec
     }
 
     #[Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
+    func(ptr: bool) opVisit(me, stmt: #code(item, index: u64))
     {
         for idx in me.count
         {

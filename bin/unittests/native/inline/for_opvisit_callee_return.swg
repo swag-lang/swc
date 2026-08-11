@@ -8,15 +8,17 @@ struct InlineBug10VisitBytes
 
 impl InlineBug10VisitBytes
 {
+    mtd const reversed()->ConstReversedSlice'u8
+    {
+        return reverseSlice(@mkslice(&me.values[0], me.count))
+    }
+
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code(item: u8, index: u64))
+    mtd(ptr: bool) const visitBytes(stmt: #code(item: u8, index: u64))
         where !ptr
     {
         for .count
         {
-            #static if back do
-                let idx = .count - @index - 1
-            else do
                 let idx = @index
 
             #inject(stmt, item = me.values[idx], index = idx)
@@ -24,16 +26,16 @@ impl InlineBug10VisitBytes
     }
 
     #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: u8, index: u64))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: u8, index: u64))
     {
-        .opVisitBytes'(ptr, back)(stmt)
+        .visitBytes'(ptr)(stmt)
     }
 }
 
 #[Swag.Inline]
 func inlineBug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes, minValue: u8)->u64
 {
-    for #reverse value, index in values
+    for value, index in (values).reversed()
     {
         if value < minValue do
             continue
@@ -46,7 +48,7 @@ func inlineBug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes,
 
 func bug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes, minValue: u8)->u64
 {
-    for #reverse value, index in values
+    for value, index in (values).reversed()
     {
         if value < minValue do
             continue

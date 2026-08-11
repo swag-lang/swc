@@ -10,247 +10,153 @@ struct MyStruct
 /**
 # The 'opVisit' Iteration Hook
 
-'opVisit' is a flexible macro for iterating over elements of a struct or any
-data it owns (dynamic arrays, buffers, object graphs). The '#[Swag.Macro]'
-attribute is mandatory.
+'opVisit' is the single custom iteration hook. It is a macro generic over the
+compile-time boolean 'ptr': 'ptr' is true for a loop binding introduced by '&'.
+There is no traversal selector or direction argument. Alternative traversals
+are ordinary borrowed views returned by functions or methods.
 
-'opVisit' is generic over two compile-time booleans:
-- 'ptr': if true, elements are visited by pointer (address).
-- 'back': if true, elements are visited in reverse order.
-
-Constrain unsupported modes with 'where'. A failing constraint removes that specialization
-before its body is instantiated, so the body only contains the modes it implements.
-
-The code block declares its parameters like a function, with 'func' replaced
-by '#code'. The parameter names ('item' and 'index' here) are the contract:
-they are the names the caller sees by default, and the names bound by
-'#inject'.
-
-Each '#inject' clones the caller's code: when a value is selected at runtime,
-compute it into a local first and keep a single '#inject', instead of one
-'#inject' per branch.
+The '#code' parameters are the values made available to loop destructuring.
+A loop may bind any prefix of them, or discard a position with '?'. Struct
+values are borrowed read-only by default; scalar values are copied.
 */
 impl MyStruct
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index: u64))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, doubled: s32, index: u64))
+        where !ptr
     {
-        // Visit fields x, y, z in declaration order
-        for idx in 3
+        for index in 3
         {
-            var visitItem: s32 = undefined
-            switch idx
+            var item: s32 = undefined
+            switch index
             {
-            case 0:  visitItem = me.x
-            case 1:  visitItem = me.y
-            default: visitItem = me.z
+            case 0:  item = me.x
+            case 1:  item = me.y
+            default: item = me.z
             }
 
-            #inject(stmt, item = visitItem, index = @index)
+            #inject(stmt, item = item, doubled = item * 2, index = index)
         }
     }
 }
 
 /**
-# Iterating Over Struct Fields
+# Destructuring Visit Values
 
-Example usage of 'opVisit' to traverse fields of a struct. A plain name binds
-the first block parameter, and a second name binds the second parameter. As with
-built-in collections, `for ?, i in value` discards the first and binds only the second.
+The bindings after 'for' are positional. '?' discards one position, consistently
+with other destructuring forms.
 */
 #test
 {
-    var myStruct = MyStruct{}
-    var cpt      = 0
+    let values = MyStruct{}
+    var total: s32
 
-    for v, i in myStruct
-    {
-        switch i
-        {
-        case 0: @assert(v == 10)
-        case 1: @assert(v == 20)
-        case 2: @assert(v == 30)
-        }
+    for value, doubled, index in values do
+        total += value + doubled + cast(s32) index
 
-        cpt += 1
-    }
+    for ?, doubled in values do
+        total += doubled
 
-    @assert(cpt == 3)
+    @assert(total == 303)
 }
 
-#test
+#[Swag.Opaque]
+struct ReversedMyStruct
 {
-    var myStruct = MyStruct{}
-    var sum: u64
-
-    for ?, i in myStruct do
-        sum += i
-
-    @assert(sum == 3)
+    source: const *MyStruct
 }
 
-/**
-# Extending 'opVisit': Reverse Order Iteration
-
-An alternative macro that visits fields in reverse order.
-*/
-impl MyStruct
+impl ReversedMyStruct
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisitReverse(stmt: #code(item: s32, index: u64))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
+        where !ptr
     {
-        for idx in 3
-        {
-            var visitItem: s32 = undefined
-            switch idx
-            {
-            case 0:  visitItem = me.z
-            case 1:  visitItem = me.y
-            default: visitItem = me.x
-            }
+        #inject(stmt, item = me.source.z, index = 2'u64)
+        #inject(stmt, item = me.source.y, index = 1'u64)
+        #inject(stmt, item = me.source.x, index = 0'u64)
+    }
+}
 
-            #inject(stmt, item = visitItem, index = @index)
-        }
+impl MyStruct
+{
+    // Returns a zero-allocation borrowed view with reverse traversal.
+    mtd const reversed()->ReversedMyStruct
+    {
+        return {source: &me}
     }
 }
 
 /**
-# Reverse Order Iteration
+# Composable Traversal Views
 
-Using 'opVisitReverse' to iterate fields from last to first.
+A view is an ordinary small value, usually a pointer or slice. Constructing it
+does not copy the source or allocate memory. Since the view itself implements
+'opVisit', views compose with regular calls and require no compiler-specific
+'#Name' convention.
 */
 #test
 {
-    var myStruct = MyStruct{}
-    var cpt      = 0
+    let values = MyStruct{}
+    var code: s32
 
-    for #Reverse v, i in myStruct
-    {
-        switch i
-        {
-        case 0: @assert(v == 30)
-        case 1: @assert(v == 20)
-        case 2: @assert(v == 10)
-        }
+    for value in values.reversed() do
+        code = code * 100 + value
 
-        cpt += 1
-    }
-
-    @assert(cpt == 3)
+    @assert(code == 302010)
 }
 
-/**
-# Visiting Elements in Dynamic Arrays
-
-Beyond fields, 'opVisit' can target owned collections such as dynamic arrays.
-*/
 struct SliceStruct
 {
     buffer: [?] s32 = [1, 2, 3, 4, 5]
 }
 
-/**
-# Custom 'opVisit' for Dynamic Arrays
-
-Iterate over 'buffer' elements instead of struct fields. When the element
-type depends on compile-time parameters ('ptr' here), leave the block
-parameter untyped and pick the binding expression per branch.
-*/
 impl SliceStruct
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
-        where !back
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
-        for idx in @countof(me.buffer)
+        for index in @countof(me.buffer)
         {
             #static if ptr do
-                #inject(stmt, item = cast(&s32) &me.buffer[idx], index = @index)
+                #inject(stmt, item = cast(&s32) &me.buffer[index], index = index)
             else do
-                #inject(stmt, item = me.buffer[idx], index = @index)
+                #inject(stmt, item = me.buffer[index], index = index)
         }
     }
 }
 
 /**
-# Iterating Over a Dynamic Array
+# Visiting by Address
 
-Sum elements of a slice via 'opVisit'.
+The '&' binding selects 'ptr == true', allowing the hook to expose mutable
+elements. Without '&', scalar elements are copied into the loop binding.
 */
 #test
 {
-    var arrStruct = SliceStruct{}
-    var sum       = 0
+    var values = SliceStruct{}
 
-    for v, i in arrStruct do
-        sum += v
+    for &value, index in values do
+        value += cast(s32) index
 
-    @assert(sum == 1 + 2 + 3 + 4 + 5)
+    @assert(values.buffer[0] == 1)
+    @assert(values.buffer[4] == 9)
 }
 
 /**
-# Visiting by Pointer
+# Standard Views
 
-'ptr == true' lets custom iteration expose elements by reference so the loop body
-can update the underlying storage.
+Collections expose traversal policies as regular methods. For example,
+'.pairs()' visits adjacent elements and '.reversed()' visits in reverse order.
+Both return constant-size, zero-allocation views.
 */
 #test
 {
-    var arrStruct = SliceStruct{}
+    let values: [4] s32 = [2, 4, 6, 8]
+    var code: s32
 
-    for &v, i in arrStruct do
-        v += cast(s32) i
-
-    @assert(arrStruct.buffer[0] == 1)
-    @assert(arrStruct.buffer[1] == 3)
-    @assert(arrStruct.buffer[2] == 5)
-    @assert(arrStruct.buffer[3] == 7)
-    @assert(arrStruct.buffer[4] == 9)
-}
-
-/**
-# Named Variants of 'opVisit'
-
-A specialization such as 'for #Pairs ...' resolves to 'opVisitPairs'.
-This is useful when a type wants to expose multiple traversal strategies.
-*/
-struct WindowStruct
-{
-    values: [4] s32 = [2, 4, 6, 8]
-}
-
-impl WindowStruct
-{
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
-        where !ptr
-    {
-        for idx in 3
-        {
-            #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
-        }
-    }
-}
-
-/**
-# Iterating Over Adjacent Pairs
-
-Named variants can expose completely custom block parameters; '@index' still
-tracks the iteration ordinal.
-*/
-#test
-{
-    let windows = WindowStruct{}
-    var code    = 0
-    var ordinals: u64
-
-    for #Pairs left, right in windows
-    {
-        code     = code * 100 + left * 10 + right
-        ordinals += @index
-    }
+    for left, right in values.pairs() do
+        code = code * 100 + left * 10 + right
 
     @assert(code == 244668)
-    @assert(ordinals == 3)
 }

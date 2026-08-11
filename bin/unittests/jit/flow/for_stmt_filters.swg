@@ -22,7 +22,7 @@
     func reverseSignedRange()->s32
     {
         var acc: s32 = 0
-        for #reverse i in -2 to 2
+        for i in rangeTo(-2, 2).reversed()
         {
             acc = acc * 10 + cast(s32) (i + 3)
         }

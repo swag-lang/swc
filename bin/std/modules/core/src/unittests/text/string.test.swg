@@ -28,7 +28,7 @@ func makePatternString(count: u64)->String
 
 func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 {
-    for #reverse byte, index in value
+    for byte, index in value.reversed()
     {
         if byte < minByte do
             continue

@@ -14,8 +14,7 @@ struct ForeachAliasBuffer
 impl ForeachAliasBuffer
 {
     #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
-        where !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
         for @countof(.data)
         {

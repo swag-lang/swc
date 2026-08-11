@@ -47,6 +47,48 @@ struct(K, V) HashTable
     }
 }
 
+// Iterates a borrowed hash table by descending storage slot.
+#[Swag.Opaque]
+struct(K, V) ReversedHashTable
+{
+    source: const *HashTable'(K, V)
+}
+
+impl ReversedHashTable
+{
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(key, value))
+    {
+        let table  = .source.constTablePtr()
+        var remain = .source.count
+        #scope(Up)
+            for offset in .source.capacity
+        {
+            let tableIndex = .source.capacity - offset - 1
+            if table[tableIndex].hash < 2'u32 do
+                continue
+
+            #scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt, key = cast(&K) &table[tableIndex].key, value = cast(&V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                elif Reflection.isStruct(K) do
+                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                elif Reflection.isStruct(V) do
+                    #inject(stmt, key = table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                else do
+                    #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+            }
+
+            remain -= 1
+            if !remain do
+                break
+        }
+    }
+}
+
 impl HashTable
 {
     #[Swag.NoDoc]
@@ -152,7 +194,7 @@ impl HashTable
     // This is a macro that accepts a code block to execute for each pair.
     // Block parameters: 'key' and 'value' (values, or pointers when visiting by pointer).
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(key, value))
+    mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
         if !.count do
             return
@@ -162,10 +204,7 @@ impl HashTable
         #scope(Up)
             for .capacity
         {
-            #static if back do
-                let tableIndex = .capacity - @index - 1
-            else do
-                let tableIndex = @index
+            let tableIndex = @index
 
             if table[tableIndex].hash < HashTable.HASH_FIRST do
                 continue
@@ -188,6 +227,12 @@ impl HashTable
             if !remain do
                 break
         }
+    }
+
+    // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
+    mtd const reversed()->ReversedHashTable'(K, V)
+    {
+        return {source: &me}
     }
 
     // Computes the hash for a given key.

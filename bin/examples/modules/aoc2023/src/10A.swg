@@ -122,7 +122,7 @@ func day10A()
     var startX, startY: s64
     for l, line in lines
     {
-        for #Bytes c, col in l
+        for c, col in l.bytes()
         {
             let one: &Dir = &mp(cast(s64) col, cast(s64) line)
             switch c

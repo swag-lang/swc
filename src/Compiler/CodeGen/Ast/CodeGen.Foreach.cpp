@@ -46,7 +46,6 @@ namespace
         const SymbolVariable* sourceSpillSym   = nullptr;
         uint64_t              elementSize      = 0;
         uint64_t              valueSize        = 0;
-        bool                  reverse          = false;
         bool                  enumValues       = false;
     };
 
@@ -510,10 +509,7 @@ namespace
             }
         }
 
-        if (loopState.reverse)
-            builder.emitLoadRegReg(loopState.indexReg, loopState.countReg, MicroOpBits::B64);
-        else
-            builder.emitLoadRegImm(loopState.indexReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(loopState.indexReg, ApInt(0, 64), MicroOpBits::B64);
 
         emitForeachStoreLoopState(codeGen, loopState);
         return Result::Continue;
@@ -552,7 +548,6 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
     loopState.whereFalseLabel = builder.createLabel();
     loopState.continueLabel   = builder.createLabel();
     loopState.doneLabel       = builder.createLabel();
-    loopState.reverse         = modifierFlags.has(AstModifierFlagsE::Reverse);
     setForeachStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
@@ -598,11 +593,6 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         emitForeachLoadLoopState(codeGen, *loopState);
         builder.emitCmpRegImm(loopState->countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
-        if (loopState->reverse)
-        {
-            builder.emitLoadRegReg(loopState->indexReg, loopState->countReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        }
         SWC_RESULT(emitForeachBindSymbols(codeGen, *this, *loopState));
         return Result::Continue;
     }
@@ -635,8 +625,7 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         }
         builder.placeLabel(loopState->continueLabel);
         emitForeachLoadLoopState(codeGen, *loopState);
-        if (!loopState->reverse)
-            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(loopState->countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         emitForeachStoreLoopState(codeGen, *loopState);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);

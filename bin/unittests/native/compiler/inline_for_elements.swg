@@ -15,7 +15,7 @@ struct ReturnVisits
 impl ReturnVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where !ptr
     {
         if !@countof(.values) do

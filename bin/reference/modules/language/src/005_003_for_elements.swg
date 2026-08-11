@@ -90,28 +90,30 @@ enum Channel: u8
 }
 
 /**
-# Reverse Order with '#reverse'
-Iterate from the last element to the first by adding the '#reverse' modifier.
-'@index' still reflects the loop index within the original collection.
+# Reverse Order with '.reversed()'
+Iterate from the last element to the first through a borrowed reverse view.
+The second visit value is the index within the original collection; '@index'
+is the ordinal within the view.
 */
 #test
 {
-    var cpt = 0
-    for #reverse value in "ABC"
+    let text = cast(const cstring) @dataof("ABC")
+    var cpt  = 0
+    for value, index in text.reversed()
     {
         switch cpt
         {
         case 0:
             @assert(value == 'C')
-            @assert(@index == 2)
+            @assert(index == 2)
 
         case 1:
             @assert(value == 'B')
-            @assert(@index == 1)
+            @assert(index == 1)
 
         case 2:
             @assert(value == 'A')
-            @assert(@index == 0)
+            @assert(index == 0)
         }
 
         cpt += 1

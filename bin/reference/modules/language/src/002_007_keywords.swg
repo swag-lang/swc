@@ -98,7 +98,7 @@ attribute instead.
 
 ```swag
 #bit  #complete  #fail  #fwd  #move  #nodrop  #nofail  #null
-#prom  #raw  #relocate  #reverse  #unconst  #wrap
+#prom  #raw  #relocate  #unconst  #wrap
 ```
 
 # Runtime and Compiler Intrinsics

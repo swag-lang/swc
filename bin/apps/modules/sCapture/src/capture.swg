@@ -1869,7 +1869,7 @@ impl Capture
         if !.forms.count do
             return result
         let editView = .editView!
-        for #reverse i in @countof(.forms)
+        for i in @countof(.forms).reversed()
         {
             let f = .forms[i]
             if !f.hitTest(localPos, editView.zoom) do

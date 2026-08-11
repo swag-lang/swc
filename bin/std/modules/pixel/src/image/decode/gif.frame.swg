@@ -46,7 +46,7 @@ impl Decoder
 
         if pf.hasAlpha()
         {
-            for #reverse j in 0 until .fh
+            for j in range(0, .fh).reversed()
             {
                 for k in cast(u32) .fw
                 {
@@ -64,7 +64,7 @@ impl Decoder
         }
         else
         {
-            for #reverse j in 0 until .fh
+            for j in range(0, .fh).reversed()
             {
                 for k in .fw
                 {

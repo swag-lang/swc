@@ -287,7 +287,7 @@ impl Transform
         .rangeTest(pgBuf[highI])
         initEdge(&edges[0], &edges[1], &edges[highI], pgBuf[0])
         initEdge(&edges[highI], &edges[0], &edges[highI - 1], pgBuf[highI])
-        for #reverse i in 1 until highI
+        for i in range(cast(s64) 1, highI).reversed()
         {
             .rangeTest(pgBuf[i])
             initEdge(&edges[i], &edges[i + 1], &edges[i - 1], pgBuf[i])

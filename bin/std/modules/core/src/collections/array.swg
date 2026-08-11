@@ -169,32 +169,22 @@ impl Array
 
     // Provides a way to iterate over each element in the array.
     // This is a macro that accepts a code block to execute for each element.
-    // Visiting by address and in reverse order is supported via parameters.
+    // Visiting by address is supported via a compile-time parameter.
     // Block parameters: 'item' is the element (or a pointer to it), 'index' its ordinal.
     #[Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
+    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
         if !.count do
             return
         let buffer = .buffer!
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
-        #static if back do
-            var scan = buffer + .count
-        else do
-            var scan = buffer - 1
+        var scan = buffer - 1
 
         for .count
         {
-            #static if back do
-                scan -= 1
-            else do
-                scan += 1
-
-            #static if back do
-                let visitIdx = me.count - @index - 1
-            else do
-                let visitIdx = @index
+            scan += 1
+            let visitIdx = @index
 
             #static if ptr do
                 #inject(stmt, item = cast(&T) scan, index = visitIdx)
@@ -203,6 +193,24 @@ impl Array
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
+    }
+
+    // Returns a zero-allocation view that traverses the elements from last to first.
+    mtd reversed()->ReversedSlice'T
+    {
+        return reverseSlice(.toSlice())
+    }
+
+    // Returns an immutable zero-allocation view that traverses the elements from last to first.
+    mtd const reversed()->ConstReversedSlice'T
+    {
+        return reverseSlice(.toSlice())
+    }
+
+    // Returns a zero-allocation view over adjacent elements.
+    mtd const pairs()->Pairs'T
+    {
+        return pairsView(.toSlice())
     }
 
     // Returns a mutable reference to an element using a single coordinate.

@@ -51,7 +51,7 @@ func day6A()
     var total: u64
     for l in lines
     {
-        for #Bytes c in l do
+        for c in l.bytes() do
             map.add(c)
         if @index == lines.count - 1 or lines[@index + 1].length == 0
         {

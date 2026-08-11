@@ -155,8 +155,8 @@ public impl BitArray
     // This is a macro that accepts a code block to execute for each bit.
     // Block parameters: 'item' is the boolean value, 'index' the bit index.
     #[Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item: bool, index: u64))
-        where !ptr and !back
+    mtd(ptr: bool) opVisit(stmt: #code(item: bool, index: u64))
+        where !ptr
     {
         if !.count do
             return

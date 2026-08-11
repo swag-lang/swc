@@ -129,7 +129,7 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
         v           /= 10
     }
 
-    for #reverse i in tmpLen
+    for i in (tmpLen).reversed()
     {
         buffer[len] = tmp[i]
         len         += 1

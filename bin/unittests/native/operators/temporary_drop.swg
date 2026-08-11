@@ -81,7 +81,7 @@ struct TemporaryVisits
 impl TemporaryVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item: s32, index: u64))
+    func(ptr: bool) opVisit(const me, stmt: #code(item: s32, index: u64))
     {
         for idx in 2
         {

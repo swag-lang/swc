@@ -48,6 +48,35 @@ struct ConcatBuffer
     }
 }
 
+// Iterates a borrowed concatenation buffer from its last bucket to its first.
+#[Swag.Opaque]
+struct ReversedConcatBuffer
+{
+    source: const *ConcatBuffer
+}
+
+impl ReversedConcatBuffer
+{
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(bucket))
+    {
+        if !.source.firstBucket do
+            return
+
+        let firstBucket = .source.firstBucket!
+        var tail        = .source.lastBucket!.next
+        while tail != firstBucket
+        {
+            var bucket = firstBucket
+            while bucket.next != tail do
+                bucket = bucket.next!
+
+            #inject(stmt, bucket = bucket)
+            tail = bucket
+        }
+    }
+}
+
 impl ConcatBuffer
 {
     // Returns the total number of bytes in the buffer.
@@ -66,30 +95,11 @@ impl ConcatBuffer
     // This is a macro that accepts a code block to execute for each bucket.
     // Block parameter: 'bucket' is the bucket pointer.
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(bucket))
+    mtd(ptr: bool) const opVisit(stmt: #code(bucket))
     {
         if !.firstBucket do
             return
-        let firstBucket = .firstBucket!
-        let lastBucket  = .lastBucket!
-
-        #static if back
-        {
-            var tail = lastBucket.next
-            while tail != firstBucket
-            {
-                var reverseBucket = firstBucket
-                while reverseBucket.next != tail do
-                    reverseBucket = reverseBucket.next!
-
-                #inject(stmt, bucket = reverseBucket)
-
-                tail = reverseBucket
-            }
-
-            return
-        }
-
+        let lastBucket = .lastBucket!
         var b = .firstBucket
         while b != lastBucket.next
         {
@@ -98,6 +108,12 @@ impl ConcatBuffer
 
             b = bucket.next
         }
+    }
+
+    // Returns an immutable zero-allocation view that traverses buckets from last to first.
+    mtd const reversed()->ReversedConcatBuffer
+    {
+        return {source: &me}
     }
 
     // Returns the total number of bytes currently stored in the buffer.

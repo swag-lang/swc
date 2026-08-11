@@ -8,8 +8,8 @@ struct CustomVisitTooManyNames
 impl CustomVisitTooManyNames
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
+        where !ptr
     {
         for idx in 2
         {
@@ -27,5 +27,5 @@ impl CustomVisitTooManyNames
 #test
 {
     var values = CustomVisitTooManyNames{}
-    for value, ordinal, extra in values {}     // swc-expected-error {{sema_err_foreach_too_many_names}}
+    for value, ordinal, extra in values {}     // swc-expected-error {{sema_err_too_many_aliases}}
 }

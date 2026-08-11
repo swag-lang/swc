@@ -144,7 +144,7 @@ internal func dropType(dst: #null *void, type: typeinfo)
 
         if concreteType.flags & TypeInfoFlags.Tuple
         {
-            for #reverse field in typeStruct.fields
+            for field in typeStruct.fields!.reversed()
             {
                 let pointedType = field.pointedType
                 if !pointedType do

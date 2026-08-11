@@ -168,7 +168,7 @@ impl SelModel
 
     // Block parameters: `item` is the selected index and `index` its selection ordinal.
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
     {
         #scope(Up)
             for &range in .rangesStorage

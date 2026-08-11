@@ -73,7 +73,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last  = -1
     var sum   = 0
-    for #reverse i in 3
+    for i in (3).reversed()
     {
         var x = i
         if first == -1 do
@@ -89,7 +89,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    for #reverse 5
+    for ? in (5).reversed()
     {
         var x = 0
         count += 1
@@ -100,7 +100,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for #reverse i in 5
+    for i in (5).reversed()
     {
         var x = i
         sum += cast(s32) i
@@ -184,7 +184,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var sum   = 0
-    for #reverse i in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
+    for i in rangeTo(cast(ForStrictU8) 0, cast(ForStrictU8) 255).reversed()
     {
         let value = forStrictU8RefValue(i)
         count += 1
@@ -249,7 +249,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last  = -1
     var sum   = 0
-    for #reverse i in 1 to 5
+    for i in rangeTo(1, 5).reversed()
     {
         var x = i
         if first == -1 do
@@ -267,7 +267,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last  = -1
     var sum   = 0
-    for #reverse i in 1 until 5
+    for i in range(1, 5).reversed()
     {
         var x = i
         if first == -1 do
@@ -360,7 +360,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last  = -1
     var count = 0
-    for #reverse i in 10 where i < 5
+    for i in (10).reversed() where i < 5
     {
         var x = i
         if first == -1 do

@@ -13,10 +13,8 @@ struct InlineDefaultSelfCells
 impl InlineDefaultSelfCells
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
-        #static if back do
-            return
 
         #static if ptr
         {

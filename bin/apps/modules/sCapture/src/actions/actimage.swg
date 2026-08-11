@@ -425,7 +425,7 @@ impl MainWnd
         }
 
         #scope(Right)
-            for #reverse x in capture.backImg.width
+            for x in capture.backImg.width.reversed()
         {
             if x + capture.backImagePos.x >= capture.width do
                 continue
@@ -457,7 +457,7 @@ impl MainWnd
         }
 
         #scope(Down)
-            for #reverse y in capture.backImg.height
+            for y in capture.backImg.height.reversed()
         {
             if y + capture.backImagePos.y >= capture.height do
                 continue

@@ -12,26 +12,9 @@ struct SemaFieldVisits
 impl SemaFieldVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index))
+    func(ptr: bool) opVisit(me, stmt: #code(item: s32, index))
         where !ptr
     {
-        #static if back
-        {
-            for idx in 3
-            {
-                var visitItem: s32 = undefined
-                switch idx
-                {
-                case 0:  visitItem = me.z
-                case 1:  visitItem = me.y
-                default: visitItem = me.x
-                }
-
-                #inject(stmt, item = visitItem, index = @index)
-            }
-
-            return
-        }
 
         for idx in 3
         {
@@ -56,8 +39,7 @@ struct SemaBufferVisits
 impl SemaBufferVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index))
-        where !back
+    mtd(ptr: bool) opVisit(stmt: #code(item, index))
     {
         #static if ptr
         {
@@ -111,8 +93,8 @@ struct SemaConstPointerVisits
 impl SemaHiddenAliasVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
+        where !ptr
     {
         for idx in 3
         {
@@ -124,8 +106,7 @@ impl SemaHiddenAliasVisits
 impl SemaFieldPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index))
-        where !back
+    mtd(ptr: bool) opVisit(stmt: #code(item, index))
     {
         #static if ptr
         {
@@ -154,8 +135,8 @@ impl SemaFieldPointerVisits
 impl SemaReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index))
+        where !ptr
     {
         for idx in 3
         {
@@ -163,68 +144,34 @@ impl SemaReverseVisits
         }
     }
 
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index))
-        where !ptr
-    {
-        for idx in 3
-        {
-            #inject(stmt, item = me.values[2 - idx], index = @index)
-        }
-    }
+    mtd const reversed() => reverseSlice(me.values)
 }
 
 impl SemaGenericReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
         where !ptr
     {
-        #static if back
-        {
-            for idx in 3
-            {
-                #inject(stmt, item = me.values[2 - idx], index = @index)
-            }
-
-            return
-        }
 
         for idx in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
         }
     }
+
+    mtd const reversed() => reverseSlice(me.values)
 }
 
 impl SemaPairVisits
 {
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
-        where !ptr
-    {
-        #static if back
-        {
-            for idx in 3
-            {
-                #inject(stmt, left = me.values[2 - idx], right = me.values[3 - idx])
-            }
-
-            return
-        }
-
-        for idx in 3
-        {
-            #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
-        }
-    }
+    mtd const pairs() => pairsView(me.values)
 }
 
 impl SemaConstPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
-        where !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
     {
         #static if ptr
         {
@@ -252,8 +199,8 @@ struct(T) SemaGenericScopedVisits
 impl SemaGenericScopedVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+        where !ptr
     {
         #scope(Outer)
             for 3
@@ -284,7 +231,7 @@ func semaTest002()
 {
     var values = SemaReverseVisits{}
 
-    for #Reverse value, ordinal in values
+    for value, ordinal in (values).reversed()
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -298,7 +245,7 @@ func semaTest002b()
     var values: SemaGenericReverseVisits's32
     values.values = [1, 2, 3]
 
-    for #reverse value, ordinal in values
+    for value, ordinal in (values).reversed()
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -347,6 +294,18 @@ func semaTest005()
     }
 }
 
+func semaTest005b()
+{
+    let values = SemaHiddenAliasVisits{}
+
+    for value, scaled, index in values
+    {
+        var x = value
+        var y = scaled
+        var z = index
+    }
+}
+
 func semaTest006()
 {
     var values = SemaFieldPointerVisits{}
@@ -363,7 +322,7 @@ func semaTest007()
 {
     var values = SemaPairVisits{}
 
-    for #Pairs left, right in values
+    for left, right in values.pairs()
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)

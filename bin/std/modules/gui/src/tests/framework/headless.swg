@@ -630,7 +630,7 @@ impl HeadlessHost
             return false
 
         var wnd: #null *Wnd
-        for #reverse surface in .app.modalSurfaces
+        for surface in .app.modalSurfaces.reversed()
         {
             let view = surface.view()
             if !view do

@@ -179,26 +179,7 @@ namespace
 
     Result raiseForeachTypeNotVisitable(Sema& sema, const AstForeachStmt& node, TypeRef typeRef)
     {
-        if (node.tokSpecializationRef.isValid())
-        {
-            const SourceCodeRange tokenRange = sema.srcView(node.srcViewRef()).tokenCodeRange(sema.ctx(), node.tokSpecializationRef);
-            auto                  diag       = SemaError::report(sema, DiagnosticId::sema_err_type_not_visitable_specialization, node.nodeExprRef, SemaError::ReportLocation::Children);
-            diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-            if (tokenRange.srcView && tokenRange.len)
-            {
-                const auto specialization = Utf8(tokenRange.srcView->codeView(tokenRange.offset, tokenRange.len));
-                Utf8       visitOp        = "opVisit";
-                if (tokenRange.len > 1)
-                    visitOp += tokenRange.srcView->codeView(tokenRange.offset + 1, tokenRange.len - 1);
-                diag.addArgument(Diagnostic::ARG_VALUE, specialization);
-                diag.addArgument(Diagnostic::ARG_SPEC_OP, visitOp);
-            }
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        const DiagnosticId diagId = node.modifierFlags.has(AstModifierFlagsE::Reverse) ? DiagnosticId::sema_err_type_not_reverse_visitable : DiagnosticId::sema_err_type_not_visitable;
-        auto               diag   = SemaError::report(sema, diagId, node.nodeExprRef, SemaError::ReportLocation::Children);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_type_not_visitable, node.nodeExprRef, SemaError::ReportLocation::Children);
         diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
         diag.report(sema.ctx());
         return Result::Error;
@@ -479,12 +460,12 @@ Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 
 Result AstForStmt::semaPreNode(Sema& sema) const
 {
-    return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Reverse);
+    return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Zero);
 }
 
 Result AstForeachStmt::semaPreNode(Sema& sema) const
 {
-    return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Reverse);
+    return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Zero);
 }
 
 Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -547,7 +528,6 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef == nodeExprRef)
     {
-        SWC_RESULT(validateForeachAliasCount(sema, *this));
         SWC_RESULT(concretizeForeachAggregateArraySource(sema, nodeExprRef));
 
         bool canResolveVisit = false;
@@ -578,6 +558,8 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
         if (!isEnumTypeExpr(sema, exprView))
             SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
+
+        SWC_RESULT(validateForeachAliasCount(sema, *this));
 
         TypeRef valueTypeRef = TypeRef::invalid();
         TypeRef indexTypeRef = TypeRef::invalid();

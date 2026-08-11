@@ -45,7 +45,7 @@ func for_control_flow_ok()
         var sum = i
     }
 
-    for #reverse i in 3 to 8
+    for i in rangeTo(3, 8).reversed()
     {
         var value = i
     }

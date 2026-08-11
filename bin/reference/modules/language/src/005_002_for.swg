@@ -91,20 +91,21 @@ The `for` construct can iterate over any type supporting `@countof`, such as arr
 /**
 # Reverse Looping
 
-To iterate in reverse order, add the `#reverse` modifier.
+To iterate in reverse order, iterate the zero-allocation view returned by
+`reversed`.
 */
 #test
 {
     var cpt = 0
 
-    for #reverse 3
+    for index in reversed(3)
     {
         if cpt == 0 do
-            @assert(@index == 2)
+            @assert(index == 2)
         elif cpt == 1 do
-            @assert(@index == 1)
+            @assert(index == 1)
         elif cpt == 2 do
-            @assert(@index == 0)
+            @assert(index == 0)
         cpt += 1
     }
 }
@@ -240,15 +241,15 @@ is an error.
 /**
 # Reverse Range Looping
 
-Use `#reverse` to iterate a range in reverse order.
+Construct a range view, then compose it with `.reversed()`.
 */
 #test
 {
-    for #reverse 0 to 5 {}
+    for ? in rangeTo(0, 5).reversed() {}
 
-    for #reverse -1 to 1 {}
+    for ? in rangeTo(-1, 1).reversed() {}
 
-    for #reverse -2 until 2 {}
+    for ? in range(-2, 2).reversed() {}
 }
 
 /**
@@ -357,16 +358,16 @@ The `where` clause can also be applied to ranges.
 }
 
 /**
-# Combining '#reverse' and 'where'
+# Combining '.reversed()' and 'where'
 
-You can combine `#reverse` with `where` for reverse conditional iteration.
+You can combine a reverse view with `where` for conditional iteration.
 */
 #test
 {
     var arr         = [10, 20, 30, 40, 50]
     var reversedSum = 0
 
-    for #reverse i in @countof(arr) where arr[i] % 2 == 0
+    for i in reversed(@countof(arr)) where arr[i] % 2 == 0
     {
         reversedSum += arr[i]
     }

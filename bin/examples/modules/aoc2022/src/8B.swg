@@ -49,13 +49,13 @@ func day8B()
         if line == 0 or line == lines.count - 1 do
             continue
 
-        for #Bytes c, col in l
+        for c, col in l.bytes()
         {
             if col == 0 or col == l.length - 1 do
                 continue
 
             var score0 = 0
-            for #reverse x in 0 until col
+            for x in range(0'u64, col).reversed()
             {
                 score0 += 1
                 if l[x] >= l[col] do
@@ -71,7 +71,7 @@ func day8B()
             }
 
             var score2 = 0
-            for #reverse y in 0 until line
+            for y in range(0'u64, line).reversed()
             {
                 score2 += 1
                 if lines[y][col] >= l[col] do

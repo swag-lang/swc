@@ -45,6 +45,44 @@ struct(K) HashSet
     }
 }
 
+// Iterates a borrowed hash set by descending storage slot.
+#[Swag.Opaque]
+struct(K) ReversedHashSet
+{
+    source: const *HashSet'K
+}
+
+impl ReversedHashSet
+{
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(key))
+    {
+        let table  = .source.constTablePtr()
+        var remain = .source.count
+        #scope(Up)
+            for offset in .source.capacity
+        {
+            let tableIndex = .source.capacity - offset - 1
+            if table[tableIndex].hash < 2'u32 do
+                continue
+
+            #scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                elif Reflection.isStruct(K) do
+                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                else do
+                    #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
+            }
+
+            remain -= 1
+            if !remain do
+                break
+        }
+    }
+}
+
 impl HashSet
 {
     #[Swag.NoDoc]
@@ -127,7 +165,7 @@ impl HashSet
     // This is a macro that accepts a code block to execute for each key.
     // Block parameter: 'key' is the key (or a pointer to it).
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(key))
+    mtd(ptr: bool) const opVisit(stmt: #code(key))
     {
         if !.count do
             return
@@ -137,11 +175,7 @@ impl HashSet
         #scope(Up)
             for .capacity
         {
-            #static if back do
-                let tableIndex = .capacity - @index - 1
-            else do
-                let tableIndex = @index
-
+            let tableIndex = @index
             if table[tableIndex].hash < HashSet.HASH_FIRST do
                 continue
 
@@ -159,6 +193,12 @@ impl HashSet
             if !remain do
                 break
         }
+    }
+
+    // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
+    mtd const reversed()->ReversedHashSet'K
+    {
+        return {source: &me}
     }
 
     // Computes the hash for a given key.

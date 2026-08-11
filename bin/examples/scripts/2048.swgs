@@ -203,7 +203,7 @@ func animate(wnd: *Wnd)
     if wasMoving and !g_IsMoving do
         randValue()
 
-    for #reverse i in g_Cells.count where g_Cells[i].remove do
+    for i in g_Cells.count.reversed() where g_Cells[i].remove do
         g_Cells.removeAt(i)
 }
 

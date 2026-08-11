@@ -30,7 +30,7 @@ func day1A()
     let lines    = expect File.readAllText(dataPath)
 
     var total = 0
-    for #Bytes c in lines do
+    for c in lines.bytes() do
         total += c == '(' ? 1 : -1
 
     @assert(total == 232)

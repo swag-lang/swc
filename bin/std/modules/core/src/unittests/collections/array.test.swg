@@ -115,7 +115,7 @@ func visitStructArray(values: &Array'ArrayVisitProbe)->s32
 func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 {
     var score = 0
-    for #reverse value, index in values
+    for value, index in values.reversed()
     {
         score += value.value + cast(s32) index
         if value.value == 12 do
@@ -395,7 +395,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     values.add(seed)
 
     var reverseIndex = Swag.U64.Max
-    for #reverse value, index in values
+    for value, index in values.reversed()
     {
         if value == 30 do
             reverseIndex = index

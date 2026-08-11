@@ -12,26 +12,9 @@ struct FieldVisits
 impl FieldVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index))
+    func(ptr: bool) opVisit(me, stmt: #code(item: s32, index))
         where !ptr
     {
-        #static if back
-        {
-            for idx in 3
-            {
-                var visitItem: s32 = undefined
-                switch idx
-                {
-                case 0:  visitItem = me.z
-                case 1:  visitItem = me.y
-                default: visitItem = me.x
-                }
-
-                #inject(stmt, item = visitItem, index = @index)
-            }
-
-            return
-        }
 
         for idx in 3
         {
@@ -56,27 +39,8 @@ struct BufferVisits
 impl BufferVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index))
     {
-        #static if back
-        {
-            #static if ptr
-            {
-                for idx in 3
-                {
-                    #inject(stmt, item = cast(&s32) &(me.values[2 - idx]), index = @index)
-                }
-            }
-            else
-            {
-                for idx in 3
-                {
-                    #inject(stmt, item = me.values[2 - idx], index = @index)
-                }
-            }
-        }
-        else
-        {
             #static if ptr
             {
                 for idx in 3
@@ -91,7 +55,6 @@ impl BufferVisits
                     #inject(stmt, item = me.values[idx], index = @index)
                 }
             }
-        }
     }
 }
 
@@ -103,8 +66,8 @@ struct ReverseVisits
 impl ReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index))
+        where !ptr
     {
         for idx in 3
         {
@@ -112,15 +75,7 @@ impl ReverseVisits
         }
     }
 
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index))
-        where !ptr
-    {
-        for idx in 3
-        {
-            #inject(stmt, item = me.values[2 - idx], index = @index)
-        }
-    }
+    mtd const reversed() => reverseSlice(me.values)
 }
 
 struct HiddenAliasVisits
@@ -140,6 +95,11 @@ struct PairVisits
     values: [4] s32 = [2, 4, 6, 8]
 }
 
+impl PairVisits
+{
+    mtd const pairs() => pairsView(me.values)
+}
+
 struct ConstPointerVisits
 {
     values: [3] s32 = [7, 8, 9]
@@ -153,8 +113,8 @@ struct ReturnVisits
 impl HiddenAliasVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
+        where !ptr
     {
         for idx in 3
         {
@@ -166,8 +126,7 @@ impl HiddenAliasVisits
 impl FieldPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index))
-        where !back
+    mtd(ptr: bool) opVisit(stmt: #code(item, index))
     {
         #static if ptr
         {
@@ -193,34 +152,10 @@ impl FieldPointerVisits
     }
 }
 
-impl PairVisits
-{
-    #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
-        where !ptr
-    {
-        #static if back
-        {
-            for idx in 3
-            {
-                #inject(stmt, left = me.values[2 - idx], right = me.values[3 - idx])
-            }
-
-            return
-        }
-
-        for idx in 3
-        {
-            #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
-        }
-    }
-}
-
 impl ConstPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
-        where !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
     {
         #static if ptr
         {
@@ -242,7 +177,7 @@ impl ConstPointerVisits
 impl ReturnVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where !ptr
     {
         if !@countof(.values) do
@@ -288,8 +223,7 @@ struct CallSourceVisits
 impl CallSourceVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
-        where !back
+    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
         for idx in .count
         {
@@ -319,8 +253,8 @@ struct(T) GenericScopedVisits
 impl GenericScopedVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
-        where !ptr and !back
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+        where !ptr
     {
         #scope(Outer)
             for 3
@@ -389,7 +323,7 @@ impl GenericScopedVisits
     var code   = 0
     var order: u64
 
-    for #reverse value, index in values
+    for value, index in (values).reversed()
     {
         code  = code * 10 + value
         order += index
@@ -404,7 +338,7 @@ impl GenericScopedVisits
     var values = ReverseVisits{}
     var code   = 0
 
-    for #Reverse value, index in values
+    for value, index in (values).reversed()
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == #typeof(@index))
@@ -465,6 +399,17 @@ impl GenericScopedVisits
 
 #test
 {
+    let values = HiddenAliasVisits{}
+    var sum    = 0
+
+    for value, scaled, index in values do
+        sum += value + scaled + cast(s32) index
+
+    @assert(sum == 168)
+}
+
+#test
+{
     var values     = FieldPointerVisits{}
     var mutatedSum = 0
 
@@ -487,7 +432,7 @@ impl GenericScopedVisits
     var signature = 0
     var order: u64
 
-    for #Pairs left, right in values
+    for left, right in values.pairs()
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)

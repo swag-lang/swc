@@ -14,11 +14,6 @@ The prefix describes the facility's role, not necessarily when it executes.
 An intrinsic such as '@min' works in compile-time code and runtime code;
 '@compiler' is available only at compile time.
 
-Some extension points also accept a user-defined sharp selector. For example,
-'for #Pairs ...' resolves the custom iteration hook 'opVisitPairs'. Such a
-selector is still part of '#'-syntax; it does not create an ordinary identifier
-named '#Pairs'.
-
 # Modifier or Attribute
 
 A modifier and an attribute both annotate code, so one rule decides which is
@@ -184,22 +179,15 @@ let pattern = #raw "(\d+)x(\d+)"
 let payload = #raw """{"key": "value"}"""
 ```
 
-# Statement Selectors
+# Statement Modifiers
 
-These choose a variant of the statement they follow. A statement has no symbol,
-so a selector is the only form available — and this is the family a user
-extends with a custom sharp selector such as 'for #Pairs'.
+These refine the statement they follow. A statement has no symbol, and this
+syntax does not define an extension point. Iteration strategies are ordinary views,
+returned by methods such as '.pairs()' and '.reversed()'.
 */
 
 #test
 {
-    var expected = 2
-    for #reverse 3
-    {
-        @assert(@index == expected)
-        expected -= 1
-    }
-
     enum Direction { Up, Down }
     let direction = Direction.Up
 
@@ -218,7 +206,7 @@ statement. They are opposite exit paths and cannot be combined.
 
 A modifier is always written **immediately after the keyword it modifies**, never
 after the operand: 'switch #complete value', not 'switch value #complete'. The
-same holds for 'cast', 'for', 'defer', and an assignment operator.
+same holds for 'cast', 'defer', and an assignment operator.
 
 A directive is the opposite: it comes **first**, because it introduces the
 construct instead of refining one. '#static switch' is not a 'switch' carrying a
@@ -237,12 +225,11 @@ a = #nodrop #move b     // same as '#move #nodrop'
 let bits = cast #bit #unconst (*s32) p
 ```
 
-One ordering rule does exist: on 'for', a custom sharp selector comes **before**
-the modifiers, because the selector names which iteration hook is resolved.
+Custom traversal uses regular expression composition:
 
 ```swag
-for #Pairs #reverse right in values     // accepted
-for #reverse #Pairs right in values     // rejected
+for left, right in values.pairs() {}
+for value in values.reversed() {}
 ```
 */
 

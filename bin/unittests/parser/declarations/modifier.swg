@@ -7,7 +7,6 @@
 #assert(cast #prom (s32) 9)
 #assert(cast #wrap (s32) 9)
 #assert(cast #nodrop (s32) 9)
-#assert(cast #reverse (s32) 9)
 #assert(cast #move (s32) 9)
 #assert(cast #relocate (s32) 9)
 #assert(cast #null (s32) 9)

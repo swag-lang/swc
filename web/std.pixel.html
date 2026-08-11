@@ -7407,7 +7407,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <p>Visits every pixel in storage order.</p>
 <p>The injected <span class="code-inline">pixel</span> value is the address of the current pixel and <span class="code-inline">index</span> is its zero-based row-major ordinal. Set <span class="code-inline">back</span> to use reverse visitation where supported by the macro invocation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
-<span class="SKwd">func</span>(ptr: <span class="STpe">bool</span>, back: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(<span class="STpe">me</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> pixel, <span class="SKwd">var</span> index: <span class="STpe">u64</span>))</span></div>
+<span class="SKwd">func</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(<span class="STpe">me</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> pixel, <span class="SKwd">var</span> index: <span class="STpe">u64</span>))</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Image_pixelColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.pixelColor</span> <a class="api-item-permalink" href="#Pixel_Image_pixelColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/image.swg#L358">src</a></div>

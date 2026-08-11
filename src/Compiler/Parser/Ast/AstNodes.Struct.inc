@@ -364,6 +364,7 @@ enum class AstClosureArgumentFlagsE : AstNode::ParserFlags
 {
     Zero    = 0,
     Address = 1 << 0,
+    Var     = 1 << 1,
 };
 
 struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument, AstClosureArgumentFlagsE>

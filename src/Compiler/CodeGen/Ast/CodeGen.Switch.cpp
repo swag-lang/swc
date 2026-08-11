@@ -710,8 +710,7 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
 
     SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(breakCtx.nodeRef));
 
-    if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop ||
-        breakCtx.kind == CodeGenFrame::BreakContextKind::Scope)
+    if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop)
     {
         if (breakLabel != MicroLabelRef::invalid())
         {

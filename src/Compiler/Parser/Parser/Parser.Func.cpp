@@ -57,7 +57,11 @@ AstNodeRef Parser::parseClosureArg()
 {
     EnumFlags flags = AstClosureArgumentFlagsE::Zero;
 
+    // `var` marks the captured copy writable. Without it the copy is read-only, so a closure
+    // that keeps state says so at the capture rather than at the first assignment.
     const TokenRef tokStart = ref();
+    if (consumeIf(TokenId::KwdVar).isValid())
+        flags.add(AstClosureArgumentFlagsE::Var);
     if (consumeIf(TokenId::SymAmpersand).isValid())
         flags.add(AstClosureArgumentFlagsE::Address);
 

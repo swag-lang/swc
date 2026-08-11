@@ -419,7 +419,7 @@ impl PropWnd
             // Defer the undo entry until the color actually changes: `first` (closure-owned) is
             // true only on the first change, so opening then closing without picking leaves no
             // no-op undo entry, while later changes still replace the previous one (first = false).
-            picker.sigColorChanged += func|prop, btn, first = true|(pk)
+            picker.sigColorChanged += func|prop, btn, var first = true|(pk)
             {
                 prop.pushTypedValue(pk.color().argb, BaseForm, #nameof(BaseForm.borderColor), first, true)
                 first = false
@@ -481,7 +481,7 @@ impl PropWnd
                 // Defer the undo entry until the color actually changes: `first` (closure-owned) is
                 // true only on the first change, so opening then closing without picking leaves no
                 // no-op undo entry, while later changes still replace the previous one (first = false).
-                picker.sigColorChanged += func|prop, btn, first = true|(pk)
+                picker.sigColorChanged += func|prop, btn, var first = true|(pk)
                 {
                     prop.pushTypedValue(pk.color().argb, BaseForm, #nameof(BaseForm.backColor), first, true)
                     first = false
@@ -675,7 +675,7 @@ impl PropWnd
         {
             let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
             var picker = createColorPicker(btn, curSel.textColor)
-            picker.sigColorChanged += func|prop, btn, first = true|(pk)
+            picker.sigColorChanged += func|prop, btn, var first = true|(pk)
             {
                 prop.pushTypedValue(pk.color().argb, FormCallout, #nameof(FormCallout.textColor), first)
                 first = false

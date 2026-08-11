@@ -37,18 +37,21 @@ must not outlive its backing memory.
 /**
 # Constructing and Inspecting 'any'
 
-Ordinary assignment boxes a value as 'any'. '@mkany' is the lower-level form:
-it combines an address and a 'typeinfo'. '@kindof' recovers the stored concrete
-type and '@dataof' recovers its address.
+Ordinary assignment makes an 'any' referring to a value. '@mkany' is the
+lower-level form: it combines an address and a 'typeinfo'. '@kindof' recovers the
+stored concrete type and '@dataof' recovers its address.
+
+An 'any' is a view, not an owner: it holds the address of the value it refers to,
+so like '@mkslice' above, it must not outlive the storage it points at.
 */
 #test
 {
     var value = 42
-    let boxed = @mkany(&value, s32)
+    let view  = @mkany(&value, s32)
 
-    @assert(@kindof(boxed) == s32)
-    @assert(@dataof(boxed) == &value)
-    @assert(cast(s32) boxed == 42)
+    @assert(@kindof(view) == s32)
+    @assert(@dataof(view) == &value)
+    @assert(cast(s32) view == 42)
 }
 
 /**

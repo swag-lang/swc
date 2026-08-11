@@ -470,14 +470,14 @@ void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind k
     breakable_.nodeRef = nodeRef;
     breakable_.kind    = kind;
 
-    if (kind == BreakContextKind::Loop || kind == BreakContextKind::Scope || kind == BreakContextKind::None)
+    if (kind == BreakContextKind::Loop || kind == BreakContextKind::None)
     {
         continuable_.nodeRef        = nodeRef;
         continuable_.kind           = kind;
         currentLoopHasContinueJump_ = false;
     }
 
-    if (kind != BreakContextKind::Switch && kind != BreakContextKind::Scope)
+    if (kind != BreakContextKind::Switch)
     {
         currentLoopIndexReg_     = MicroReg::invalid();
         currentLoopIndexTypeRef_ = TypeRef::invalid();

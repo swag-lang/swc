@@ -107,3 +107,31 @@ func switchSafetyEnabled()->bool
     const value = #run completeScalarSwitchValid(3)
     @assert(value == 20)
 }
+
+// The guard covers 'switch #complete' only. A plain enum switch missing a case reaches
+// no case and keeps going, whatever '.Switch' is set to.
+#test
+{
+    enum Color
+    {
+        Red
+        Green
+        Blue
+    }
+
+    #[Swag.Safety(.Switch, true)]
+    func plainEnumSwitchFallsThrough(color: Color)->s32
+    {
+        switch color
+        {
+        case .Red:   return 1
+        case .Green: return 2
+        }
+
+        return -1
+    }
+
+    @assert(plainEnumSwitchFallsThrough(Color.Blue) == -1)
+    const value = #run plainEnumSwitchFallsThrough(Color.Blue)
+    @assert(value == -1)
+}

@@ -144,5 +144,5 @@ Entries are sorted by identifier, ascending; position carries no priority.
   stored into a global `any` (`g_stash = 7`) also compiles, and whatever storage the compiler
   invents for the `7` cannot outlive the statement either. Then write both as positives in
   `bin/unittests/sanity`, next to the pointer cases that already pass.
-- Related: F-098 in [findings.language.md](findings.language.md), which is the documentation half —
-  one reference page calls this conversion a box and the other calls it a reference.
+- Related: the reference now states on both the `any` page and the intrinsics page that an `any` is
+  a non-owning view, so what is missing here is the rule that enforces it.

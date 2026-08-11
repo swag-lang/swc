@@ -97,10 +97,11 @@ struct SemaNarrowFact
 class SemaFrame
 {
 public:
+    // A '#scope' is deliberately absent: it is reachable by 'break to <name>' only, never by a
+    // bare 'break' or by 'continue', so it never becomes the current break or continue context.
     enum class BreakContextKind : uint8_t
     {
         None,
-        Scope,
         Loop,
         Switch,
     };
@@ -180,6 +181,11 @@ public:
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
     const BreakContext& currentContinueContext() const { return continuable_; }
     BreakContextKind    currentContinuableKind() const { return continuable_.kind; }
+    // Innermost enclosing '#scope', named or not. It is not a break or continue target; the
+    // frame keeps it so a bare 'break' or a 'continue' that finds no loop can name the
+    // construct the reader was aiming at instead of reporting a bare absence.
+    AstNodeRef          currentCompilerScope() const { return compilerScope_; }
+    void                setCurrentCompilerScope(AstNodeRef nodeRef) { compilerScope_ = nodeRef; }
     AstNodeRef          currentErrorScope() const { return currentErrorScope_; }
     ErrorContextMode    currentErrorContextMode() const { return currentErrorContextMode_; }
     void                setCurrentErrorContext(AstNodeRef nodeRef, ErrorContextMode mode)
@@ -249,6 +255,7 @@ private:
     bool                                ignoreRedirectedLookupSymMaps_ = false;
     BreakContext                        breakable_;
     BreakContext                        continuable_;
+    AstNodeRef                          compilerScope_            = AstNodeRef::invalid();
     AstNodeRef                          currentErrorScope_        = AstNodeRef::invalid();
     ErrorContextMode                    currentErrorContextMode_  = ErrorContextMode::None;
     TypeRef                             currentLoopIndexTypeRef_  = TypeRef::invalid();

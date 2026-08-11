@@ -33,12 +33,34 @@ func semaTest003()
     }
 }
 
-#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
+// A '#scope' is transparent to the bare statements: both reach the enclosing loop.
 func semaTest004()
 {
-    #scope(Loop)
+    for 10
     {
-        continue
-        break
+        #scope(Grouped)
+        {
+            if @index == 3 do
+                continue
+            break
+        }
+    }
+}
+
+// The same holds when a switch is the nearest enclosing breakable construct.
+func semaTest005()
+{
+    for 10
+    {
+        #scope(Grouped)
+        {
+            switch @index
+            {
+            case 0:
+                break
+            default:
+                continue
+            }
+        }
     }
 }

@@ -131,13 +131,13 @@ func runMePathCapture()->s32
 #test
 {
     var seed                 = 5
-    let first: func||()->s32 = func|seed|()->s32
+    let first: func||()->s32 = func|var seed|()->s32
     {
         seed += 1
         return seed
     }
 
-    let second: func||()->s32 = func|seed|()->s32
+    let second: func||()->s32 = func|var seed|()->s32
     {
         seed += 10
         return seed
@@ -202,7 +202,7 @@ func runMePathCapture()->s32
 {
     var total                = 4
     var factor               = 3
-    let cb: func||(s32)->s32 = func|factor, &total|(value: s32)->s32
+    let cb: func||(s32)->s32 = func|var factor, &total|(value: s32)->s32
     {
         total  += value * factor
         factor += 1

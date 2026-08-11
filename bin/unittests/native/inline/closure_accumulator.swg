@@ -4,7 +4,7 @@
 func inlineClosureAccumulator(start: s32)->func||(s32)->s32
 {
     var total = start
-    return func|total|(delta: s32)->s32
+    return func|var total|(delta: s32)->s32
     {
         total += delta
         return total

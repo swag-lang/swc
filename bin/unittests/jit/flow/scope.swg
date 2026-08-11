@@ -32,16 +32,20 @@ func breakToLabeledStatement()->s32
     return count
 }
 
-func continueInScope()->s32
+// A '#scope' is transparent to the bare statements: both reach the enclosing loop.
+func bareStatementsReachTheLoop()->s32
 {
     var count: s32 = 0
 
-    #scope(Loop)
+    for 10
     {
-        count += 1
-        if count == 4 do
+        #scope(Grouped)
+        {
+            count += 1
+            if count < 4 do
+                continue
             break
-        continue
+        }
     }
 
     return count
@@ -68,5 +72,5 @@ func breakToNearestNamedScope()->s32
 
 #assert(#run breakToNamedScope() == 1)
 #assert(#run breakToLabeledStatement() == 1)
-#assert(#run continueInScope() == 4)
+#assert(#run bareStatementsReachTheLoop() == 4)
 #assert(#run breakToNearestNamedScope() == 2)

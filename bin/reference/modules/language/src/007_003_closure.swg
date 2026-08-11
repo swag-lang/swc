@@ -11,6 +11,10 @@ A by-value capture is a plain byte copy into the closure: the closure never runs
 (without 'opDrop', 'opPostCopy', or 'opPostMove', and not marked '#[Swag.NoCopy]')
 can therefore be captured by value; other types must be captured by reference
 with '&'.
+
+The copy is read-only unless the capture is written 'var'. Because the copy is
+storage of the closure's own, the capture list states its mutability rather than
+inheriting it from the source declaration.
 */
 
 /**
@@ -129,9 +133,11 @@ and are plain data (POD).
 }
 
 /**
-# Modifying Captured Variables
+# Modifying Captured Values with 'var'
 
-Captured values belong to the closure and can be mutated, enabling stateful behavior.
+A 'var' capture is a writable copy owned by the closure. It outlives the variable
+it was copied from and keeps its value across calls, which is what makes a stateful
+closure. The source is untouched, whether it was declared 'let' or 'var'.
 */
 #test
 {
@@ -139,7 +145,7 @@ Captured values belong to the closure and can be mutated, enabling stateful beha
     {
         let x = 10
 
-        return func|x|()->s32
+        return func|var x|()->s32
         {
             x += 1
             return x
@@ -151,4 +157,21 @@ Captured values belong to the closure and can be mutated, enabling stateful beha
     @assert(fct() == 11)
     @assert(fct() == 12)
     @assert(fct() == 13)
+}
+
+/**
+Without 'var' the copy is read-only, so a capture that is only read says so, and
+a closure that keeps state announces it at the capture list instead of at its
+first assignment. Use '&' instead of 'var' to write the outer variable itself.
+*/
+#test
+{
+    var counter = 0
+
+    let readOnly: func||()->s32 = func|counter|()->s32 { return counter }
+    let writable: func||()      = func|&counter|() { counter += 1 }
+
+    writable()
+    @assert(counter == 1)
+    @assert(readOnly() == 0)     // The read-only capture copied the original value
 }

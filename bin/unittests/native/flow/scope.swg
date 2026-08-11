@@ -32,16 +32,20 @@
     @assert(count == 1)
 }
 
+// A '#scope' is transparent to the bare statements: both reach the enclosing loop.
 #test
 {
     var count = 0
 
-    #scope(Loop)
+    for 10
     {
-        count += 1
-        if count == 4 do
+        #scope(Grouped)
+        {
+            count += 1
+            if count < 4 do
+                continue
             break
-        continue
+        }
     }
 
     @assert(count == 4)

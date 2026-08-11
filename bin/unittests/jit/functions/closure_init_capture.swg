@@ -32,7 +32,7 @@ impl InitCaptureOwner
 {
     var base              = 2
     var step              = 5
-    let cb: func||()->s32 = func|sum = base + step|()->s32
+    let cb: func||()->s32 = func|var sum = base + step|()->s32
     {
         sum += 1
         return sum

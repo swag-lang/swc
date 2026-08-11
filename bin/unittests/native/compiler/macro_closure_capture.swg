@@ -76,7 +76,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         func makeCounter(start: s32)->func||()->s32
         {
             var total = start
-            return func|total|()->s32
+            return func|var total|()->s32
             {
                 total += 1
                 return total
@@ -96,7 +96,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         func makeCounter(start: s32)->func||()->s32
         {
             var total = start
-            return func|total|()->s32
+            return func|var total|()->s32
             {
                 total += 1
                 return total
@@ -116,7 +116,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         func makeCounter(seed: s32)->func||()->s32
         {
             var total = seed
-            return func|total|()->s32
+            return func|var total|()->s32
             {
                 total += 1
                 return total
@@ -137,7 +137,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         {
             var total = seed
             let step  = 2
-            return func|total, step|()->s32
+            return func|var total, step|()->s32
             {
                 total += step
                 return total

@@ -396,8 +396,11 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
+    // A '#scope' is left out of the break and continue contexts on purpose: a bare 'break'
+    // keeps targeting the enclosing loop or switch, and 'continue' keeps targeting the
+    // enclosing loop. Only 'break to <name>' leaves the scope itself.
     SemaFrame frame = sema.frame();
-    frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Scope);
+    frame.setCurrentCompilerScope(sema.curNodeRef());
     if (tokNameRef.isValid())
     {
         // Named `#scope` resolution is an ancestor context just like `break` ownership,

@@ -180,7 +180,7 @@ struct Pair { a, b: s32 }
 func makeCounter(start: s32)->func||()->s32
 {
     var counter = start
-    return func|counter|()->s32
+    return func|var counter|()->s32
     {
         counter += 1
         return counter

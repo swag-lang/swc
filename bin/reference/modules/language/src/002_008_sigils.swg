@@ -282,9 +282,9 @@ but the parser and type checker give the two forms distinct roles.
 
 #test
 {
-    let boxed: any = "text"
+    let value: any = "text"
 
-    switch boxed
+    switch value
     {
     case string as text: @assert(text == "text")
     default:             @assert(false)

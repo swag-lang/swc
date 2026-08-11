@@ -47,6 +47,26 @@ namespace
         return sym;
     }
 
+    // A bare 'break' and a 'continue' both stop at the enclosing '#scope' instead of reaching
+    // through it. Name the construct they landed on, and its scope name when it has one, so the
+    // reader sees why the statement found no target rather than a bare absence.
+    Result reportScopeStatement(Sema& sema, DiagnosticId diagId, AstNodeRef scopeRef)
+    {
+        const AstNode& scopeNode = sema.node(scopeRef);
+        auto           diag      = SemaError::report(sema, diagId, sema.curNodeRef());
+
+        if (const TokenRef tokNameRef = scopeNode.cast<AstCompilerScope>().tokNameRef; tokNameRef.isValid())
+        {
+            const SourceCodeRef nameCodeRef{scopeNode.srcViewRef(), tokNameRef};
+            diag.addArgument(Diagnostic::ARG_SYM, sema.token(nameCodeRef).string(sema.srcView(nameCodeRef.srcViewRef)));
+        }
+
+        diag.addNote(DiagnosticId::sema_note_enclosing_scope_here);
+        diag.last().addSpan(scopeNode.codeRange(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     uint64_t enumValueCount(const SymbolEnum& symEnum)
     {
         std::vector<const Symbol*> symbols;
@@ -794,9 +814,15 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
 Result AstBreakStmt::semaPreNode(Sema& sema)
 {
-    if (sema.frame().currentBreakableKind() == SemaFrame::BreakContextKind::None)
-        return SemaError::raise(sema, DiagnosticId::sema_err_break_outside_breakable, sema.curNodeRef());
-    return Result::Continue;
+    if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::None)
+        return Result::Continue;
+
+    // Inside a '#scope' the reader almost certainly meant to leave that scope, which only
+    // 'break to <name>' does. Point at the scope instead of reporting a bare absence.
+    if (const AstNodeRef scopeRef = sema.frame().currentCompilerScope(); scopeRef.isValid())
+        return reportScopeStatement(sema, DiagnosticId::sema_err_break_targets_scope, scopeRef);
+
+    return SemaError::raise(sema, DiagnosticId::sema_err_break_outside_breakable, sema.curNodeRef());
 }
 
 Result AstUnreachableStmt::semaPreNode(Sema& sema)
@@ -807,15 +833,19 @@ Result AstUnreachableStmt::semaPreNode(Sema& sema)
 Result AstContinueStmt::semaPreNode(Sema& sema)
 {
     const SemaFrame::BreakContextKind continueKind = sema.frame().currentContinuableKind();
-    if (continueKind == SemaFrame::BreakContextKind::None)
-    {
-        if (sema.frame().currentBreakableKind() == SemaFrame::BreakContextKind::None)
-            return SemaError::raise(sema, DiagnosticId::sema_err_continue_outside_breakable, sema.curNodeRef());
-        return SemaError::raise(sema, DiagnosticId::sema_err_continue_not_in_loop, sema.curNodeRef());
-    }
+    if (continueKind == SemaFrame::BreakContextKind::Loop)
+        return Result::Continue;
 
-    SWC_ASSERT(continueKind == SemaFrame::BreakContextKind::Loop || continueKind == SemaFrame::BreakContextKind::Scope);
-    return Result::Continue;
+    SWC_ASSERT(continueKind == SemaFrame::BreakContextKind::None);
+    if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::None)
+        return SemaError::raise(sema, DiagnosticId::sema_err_continue_not_in_loop, sema.curNodeRef());
+
+    // A '#scope' is not a loop, so there is nothing to restart. Say which construct was
+    // mistaken for one rather than reporting that no loop encloses the statement.
+    if (const AstNodeRef scopeRef = sema.frame().currentCompilerScope(); scopeRef.isValid())
+        return reportScopeStatement(sema, DiagnosticId::sema_err_continue_in_scope, scopeRef);
+
+    return SemaError::raise(sema, DiagnosticId::sema_err_continue_outside_breakable, sema.curNodeRef());
 }
 
 SWC_END_NAMESPACE();

@@ -16,7 +16,7 @@ func addOne(value: s32)->s32 => value + 1
 func makeCounter(start: s32)->func||()->s32
 {
     var counter = start
-    return func|counter|()->s32
+    return func|var counter|()->s32
     {
         counter += 1
         return counter
@@ -56,7 +56,7 @@ func makeNested(base: s32)->func||()->s32
     let outer: func||()->func||()->s32 = func|base|()->func||()->s32
     {
         let initial = base + 1
-        return func|base, initial|()->s32
+        return func|base, var initial|()->s32
         {
             initial += base
             return initial
@@ -188,4 +188,32 @@ impl LifecycleCounter
     @assert(read() == 5)
     tracked.value = 9
     @assert(read() == 9)
+}
+
+// 'var' makes the copy writable and leaves the source alone, whether it was 'let' or 'var'.
+#test
+{
+    let fromLet             = 10
+    var fromVar             = 20
+    let bumpLet: func||()->s32 = func|var fromLet|()->s32 { fromLet += 1; return fromLet }
+    let bumpVar: func||()->s32 = func|var fromVar|()->s32 { fromVar += 1; return fromVar }
+
+    @assert(bumpLet() == 11)
+    @assert(bumpLet() == 12)
+    @assert(bumpVar() == 21)
+    @assert(fromLet == 10)
+    @assert(fromVar == 20)
+}
+
+// Two 'var' captures of the same source own separate cells.
+#test
+{
+    var seed                = 5
+    let first: func||()->s32  = func|var seed|()->s32 { seed += 1; return seed }
+    let second: func||()->s32 = func|var seed|()->s32 { seed += 10; return seed }
+
+    @assert(first() == 6)
+    @assert(second() == 15)
+    @assert(first() == 7)
+    @assert(seed == 5)
 }

@@ -665,12 +665,10 @@ Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
 Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
 {
     const CodeGenFrame::BreakContext continueCtx = codeGen.frame().currentContinueContext();
-    if (continueCtx.kind != CodeGenFrame::BreakContextKind::Loop &&
-        continueCtx.kind != CodeGenFrame::BreakContextKind::Scope)
+    if (continueCtx.kind != CodeGenFrame::BreakContextKind::Loop)
         return Result::Continue;
 
-    if (continueCtx.kind == CodeGenFrame::BreakContextKind::Loop)
-        codeGen.frame().setCurrentLoopHasContinueJump(true);
+    codeGen.frame().setCurrentLoopHasContinueJump(true);
 
     const MicroLabelRef continueLabel = codeGen.frame().currentLoopContinueLabel();
     if (continueLabel == MicroLabelRef::invalid())

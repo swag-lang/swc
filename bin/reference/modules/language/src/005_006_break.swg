@@ -2,7 +2,7 @@
 
 /**
 # The 'break' Statement
-The 'break' statement exits the nearest enclosing control structure.
+The 'break' statement exits the nearest enclosing loop or switch case.
 It works with 'for', 'while', and 'switch'. Use it to stop a loop
 early or to leave a switch case.
 */
@@ -23,7 +23,7 @@ early or to leave a switch case.
 
 /**
 # Default Behavior
-By default, 'break' exits only the innermost loop or control structure.
+By default, 'break' exits only the innermost loop or switch case.
 Outer structures continue to run.
 */
 #test
@@ -48,7 +48,7 @@ Outer structures continue to run.
 /**
 # Named Scopes with '#scope'
 Define a named scope with '#scope(Name)'. 'break to Name' exits that scope
-from anywhere inside it.
+from anywhere inside it, however deeply nested.
 */
 #test
 {
@@ -69,54 +69,65 @@ from anywhere inside it.
 }
 
 /**
-# Using 'continue' with Named Scopes
-Within a scope, 'continue' restarts execution from the beginning of that scope.
-Combine a terminating condition with a plain 'break' to end the scope loop.
+# A Scope Is Never the Target of a Bare 'break'
+'break to Name' is the only statement that leaves a '#scope'. A bare 'break'
+written inside one keeps targeting the enclosing loop or switch, so wrapping a
+piece of a loop body in a scope does not change where its 'break' statements go.
 */
 #test
 {
-    var cpt = 0
+    var runs = 0
 
-    #scope(Loop)
+    for 10
     {
-        cpt += 1
-        if cpt == 5 do
-            break     // End the 'Loop' scope
-        continue     // Jump back to the start of 'Loop'
+        #scope(Grouped)
+        {
+            runs += 1
+            break     // Exits the 'for', not 'Grouped'
+        }
     }
 
-    @assert(cpt == 5)
+    @assert(runs == 1)
+}
+
+/**
+'continue' behaves the same way: a scope is not a loop, so 'continue' restarts
+the enclosing loop and never the scope. Repeating a block therefore needs a real
+loop, and a '#scope' that encloses no loop rejects both bare statements.
+*/
+#test
+{
+    var visited = 0
+
+    for 3
+    {
+        #scope(Grouped)
+        {
+            visited += 1
+            continue     // Restarts the 'for'
+        }
+    }
+
+    @assert(visited == 3)
 }
 
 /**
 # Unnamed Scopes
-Scopes can be unnamed. 'break' exits the current (unnamed) scope immediately.
-This can simplify multi-branch flows.
+A scope can be left unnamed when nothing needs to jump out of it. It then only
+groups statements and bounds the lifetime of what it declares. Give it a name as
+soon as a 'break to' has to reach it.
 */
 #test
 {
-    let cpt = 0
+    var total = 0
 
     #scope
     {
-        if cpt == 1
-        {
-            @assert(cpt == 1)
-            break
-        }
-
-        if cpt == 2
-        {
-            @assert(cpt == 2)
-            break
-        }
-
-        if cpt == 3
-        {
-            @assert(cpt == 3)
-            break
-        }
+        let step = 4
+        total += step
     }
+
+    @assert(total == 4)
 }
 
 /**

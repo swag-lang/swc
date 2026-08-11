@@ -231,6 +231,8 @@ namespace
         return result;
     }
 
+    // A '#scope' is not one of these: a bare 'break' or 'continue' written inside it still
+    // belongs to the enclosing loop or switch, so an injected one keeps being substituted.
     bool startsNestedBreakableContext(const AstNode& node)
     {
         return node.is(AstNodeId::WhileStmt) ||
@@ -238,8 +240,7 @@ namespace
                node.is(AstNodeId::ForCStyleStmt) ||
                node.is(AstNodeId::ForStmt) ||
                node.is(AstNodeId::InfiniteLoopStmt) ||
-               node.is(AstNodeId::SwitchStmt) ||
-               node.is(AstNodeId::CompilerScope);
+               node.is(AstNodeId::SwitchStmt);
     }
 
     bool sameBindingIdentity(const SemaClone::ParamBinding& lhs, const SemaClone::ParamBinding& rhs)

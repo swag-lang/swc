@@ -650,9 +650,14 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
                                                   leftView.type()->isReference();
             if (!canWriteThroughReference)
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, leftExprRef);
+                // A read-only capture is repaired in the capture list, not at the declaration the
+                // copy came from, so it gets its own message and points at the capture.
+                const auto* symVar = leftView.sym()->safeCast<SymbolVariable>();
+                const bool  capture = symVar && symVar->isClosureCapture();
+
+                auto diag = SemaError::report(sema, capture ? DiagnosticId::sema_err_assign_to_capture : DiagnosticId::sema_err_assign_to_let, leftExprRef);
                 SemaError::setReportArguments(sema, diag, leftView.sym());
-                diag.addNote(DiagnosticId::sema_note_let_variable_declared_here);
+                diag.addNote(capture ? DiagnosticId::sema_note_capture_declared_here : DiagnosticId::sema_note_let_variable_declared_here);
                 diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
                 diag.last().addSpan(leftView.sym()->codeRange(sema.ctx()));
                 diag.report(sema.ctx());

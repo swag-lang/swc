@@ -69,4 +69,6 @@ SWC_DIAG_DEF(sema_note_attribute_declared_usage, Note, "the attribute declares w
 SWC_DIAG_DEF(sema_note_field_access_declared_here, Note, "field '{sym}' declares its access here")
 SWC_DIAG_DEF(sema_note_runtime_raise_location, Note, "raised at {value}")
 SWC_DIAG_DEF(sema_note_flow_stops_here, Note, "the flow of the block stops here")
+SWC_DIAG_DEF(sema_note_enclosing_scope_here, Note, "the enclosing '#scope' starts here")
+SWC_DIAG_DEF(sema_note_capture_declared_here, Note, "capture '{sym}' is declared here")
 SWC_DIAG_DEF(sema_help_missing_spec_op, Help, "operator overload '{spec-op}' is not implemented for current-module type '{decl-sym}'")

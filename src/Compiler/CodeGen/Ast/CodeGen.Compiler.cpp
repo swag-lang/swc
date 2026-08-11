@@ -92,8 +92,7 @@ namespace
 
     struct CompilerScopeCodeGenPayload
     {
-        MicroLabelRef continueLabel = MicroLabelRef::invalid();
-        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel = MicroLabelRef::invalid();
     };
 
     CompilerScopeCodeGenPayload* compilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -458,8 +457,7 @@ Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
 {
     MicroBuilder&               builder = codeGen.builder();
     CompilerScopeCodeGenPayload scopeState;
-    scopeState.continueLabel = builder.createLabel();
-    scopeState.doneLabel     = builder.createLabel();
+    scopeState.doneLabel = builder.createLabel();
     setCompilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef(), scopeState);
     return Result::Continue;
 }
@@ -469,17 +467,9 @@ Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    const CompilerScopeCodeGenPayload* scopeState = compilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
-    SWC_ASSERT(scopeState != nullptr);
-
-    MicroBuilder& builder = codeGen.builder();
-    builder.placeLabel(scopeState->continueLabel);
-
-    CodeGenFrame frame = codeGen.frame();
-    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Scope);
-    frame.setCurrentLoopContinueLabel(scopeState->continueLabel);
-    frame.setCurrentLoopBreakLabel(scopeState->doneLabel);
-    codeGen.pushFrame(frame);
+    // The scope owns a defer scope so that 'break to <name>' unwinds it, and so that a bare
+    // 'break' or 'continue' aimed at an enclosing loop unwinds it on the way out. It leaves the
+    // break and continue contexts alone: only the named form targets a '#scope'.
     codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
 }
@@ -490,7 +480,6 @@ Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
         return Result::Continue;
 
     SWC_RESULT(codeGen.popDeferScope());
-    codeGen.popFrame();
     return Result::Continue;
 }
 

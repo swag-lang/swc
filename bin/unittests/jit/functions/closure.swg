@@ -16,7 +16,7 @@ func addOne(value: s32)->s32 => value + 1
 func makeCounter(start: s32)->func||()->s32
 {
     var counter = start
-    return func|counter|()->s32
+    return func|var counter|()->s32
     {
         counter += 1
         return counter
@@ -56,7 +56,7 @@ func makeNested(base: s32)->func||()->s32
     let outer: func||()->func||()->s32 = func|base|()->func||()->s32
     {
         let initial = base + 1
-        return func|base, initial|()->s32
+        return func|base, var initial|()->s32
         {
             initial += base
             return initial

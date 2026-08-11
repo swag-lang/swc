@@ -6,7 +6,10 @@
 'any' is a dynamically typed reference that can point to a value of any concrete type.
 
 > WARNING:
-> 'any' is **not** a variant. It holds a reference to an existing value plus its runtime type info.
+> 'any' is **not** a variant. It holds a reference to an existing value plus its runtime type
+> info. Assigning to an 'any' never copies the value, so an 'any' is a view for the purposes
+> of the borrow rules, and must not outlive the storage it refers to. See the 'Borrowing'
+> section.
 */
 
 #test

@@ -1294,11 +1294,23 @@ namespace
             const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, captureArg.nodeIdentifierRef));
 
-            const bool captureByRef = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);
+            const bool captureByRef  = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);
+            const bool captureIsVar  = captureArg.hasFlag(AstClosureArgumentFlagsE::Var);
             if (captureByRef && sourceVar && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Let))
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_let_by_ref, captureArg.nodeIdentifierRef);
                 diag.addArgument(Diagnostic::ARG_SYM, sourceVar->name(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            // '&' already names the source variable as the storage the closure writes, and that
+            // source is a 'var' by the rule above. 'var' only marks the closure's own copy.
+            if (captureByRef && captureIsVar)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_var_by_ref, captureArg.nodeIdentifierRef);
+                if (sourceVar)
+                    diag.addArgument(Diagnostic::ARG_SYM, sourceVar->name(sema.ctx()));
                 diag.report(sema.ctx());
                 return Result::Error;
             }
@@ -1370,6 +1382,10 @@ namespace
             }
 
             auto* captureSym = Symbol::make<SymbolVariable>(ctx, &captureArg, captureArg.tokRef(), captureIdRef, SymbolFlagsE::Zero);
+            // The by-value copy is a cell of the closure's own, so its mutability is the capture
+            // list's to state: without 'var' it stays read-only, whatever the source was declared.
+            if (!captureByRef && !captureIsVar)
+                captureSym->addExtraFlag(SymbolVariableFlagsE::Let);
             captureSym->setTypeRef(typeRef);
             captureSym->setClosureCapturedSource(sourceVar);
             captureSym->setClosureCaptureOffset(static_cast<uint32_t>(captureOffset));

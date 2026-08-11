@@ -20,17 +20,23 @@
     @assert(count == 3)
 }
 
-// Continue in scope loop
+// A scope inside a loop leaves 'continue' pointing at the loop
 #test
 {
-    var sum = 0
-    #scope(Loop)
+    var sum  = 0
+    var tail = 0
+    for 10
     {
-        sum += 1
-        if sum < 10 do
+        #scope(Grouped)
+        {
+            sum += 1
             continue
+        }
+
+        tail += 1     // Not reached: 'continue' restarted the 'for'
     }
     @assert(sum == 10)
+    @assert(tail == 0)
 }
 
 // Break to scope skipping intermediate code
@@ -60,14 +66,14 @@
     #scope(First)
     {
         a = 1
-        break
+        break to First
     }
 
     var b = 0
     #scope(Second)
     {
         b = 2
-        break
+        break to Second
     }
 
     @assert(a == 1)
@@ -93,20 +99,32 @@
     @assert(count == 5)
 }
 
-// Scope continue counting up
+// 'break to' reaches an outer scope from inside a nested scope and a loop
 #test
 {
-    var i   = 0
-    var sum = 0
-    #scope(Loop)
+    var i    = 0
+    var sum  = 0
+    var tail = 0
+    #scope(Done)
     {
-        i   += 1
-        sum += i
-        if i < 5 do
-            continue
+        var guard = 0
+        while guard < 100
+        {
+            guard += 1
+            #scope(Step)
+            {
+                i   += 1
+                sum += i
+                if i == 5 do
+                    break to Done
+            }
+        }
+
+        tail += 1     // Not reached: 'break to Done' left the whole scope
     }
     @assert(sum == 15)     // 1+2+3+4+5
     @assert(i == 5)
+    @assert(tail == 0)
 }
 
 // Nested scopes with same name - inner takes precedence
@@ -168,4 +186,73 @@
         hit = 3     // unreachable if case 2
     }
     @assert(hit == 1)
+}
+
+// A bare break leaving through a scope still runs the defers the scope registered
+#test
+{
+    var trace = 0
+    for 10
+    {
+        #scope(Grouped)
+        {
+            defer trace += 1
+            break
+        }
+    }
+    @assert(trace == 1)
+}
+
+// Two nested scopes unwind in order on the way to the loop
+#test
+{
+    var trace = 0
+    for 10
+    {
+        #scope(A)
+        {
+            defer trace += 1
+            #scope(B)
+            {
+                defer trace += 10
+                break
+            }
+        }
+    }
+    @assert(trace == 11)
+}
+
+// 'continue' runs the scope defers on every iteration
+#test
+{
+    var trace = 0
+    for 3
+    {
+        #scope(Grouped)
+        {
+            defer trace += 1
+            continue
+        }
+    }
+    @assert(trace == 3)
+}
+
+// A bare break inside a scope inside a switch case leaves the case
+#test
+{
+    var trace = 0
+    var value = 2
+
+    switch value
+    {
+    case 2:
+        #scope(Grouped)
+        {
+            defer trace += 10
+            break
+        }
+        trace += 100     // Not reached: 'break' left the case
+    }
+
+    @assert(trace == 10)
 }

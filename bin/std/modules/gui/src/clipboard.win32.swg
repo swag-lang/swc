@@ -181,14 +181,14 @@ func addImage(image: Image)
     }
 
     // PNG
-    #scope
+    #scope(Png)
     {
         var opt: Png.EncodeOptions
 
         opt.compressionLevel = .NoCompression     // We want best speed
         var buffer = catch image.encode("clipboard.png", opt) as encodeError
         if encodeError != null do
-            break
+            break to Png
 
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, buffer.count())
         let buf   = cast([*] u8) GlobalLock(hglob)!

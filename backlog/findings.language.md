@@ -9,11 +9,7 @@ should say it.
 
 Design questions already open *by choice* — exhaustive switches, tagged unions, generic contracts,
 concurrency — are the roadmap in [todo.language.md](todo.language.md) and are not repeated here.
-Compiler defects are in [findings.compiler.md](findings.compiler.md). Two entries break the "the
-compiler does what the reference says" premise and are kept here anyway, because for both the fix is
-a sentence in the reference rather than a change to `swc`: F-097, where the safety page states the
-opposite of what the guard does, and F-098, where two pages describe the same conversion in
-incompatible terms.
+Compiler defects are in [findings.compiler.md](findings.compiler.md).
 
 Every entry carries an `Elsewhere` line: what the neighbouring languages do about the same
 question. A wart no one else has and a convention half the industry shares are different problems,
@@ -85,30 +81,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   grouped declaration applies to the last name only, or is rejected outright — both are mechanical
   migrations. Decide it before the surface grows further.
 
-### F-047 — `#scope` swallows `break`, and `continue` turns a plain block into a loop
-
-- Area: language
-- Found while: the same pass
-- Observation: `break` "exits the nearest enclosing control structure"
-  ([005_006_break.swg:4-8](../bin/reference/modules/language/src/005_006_break.swg#L4-L8)), and a
-  `#scope` block counts as one. Wrapping a piece of a loop body in a `#scope` — to name a jump
-  target, or just to group — therefore retargets every `break` already inside it, with no
-  diagnostic. The reverse surprise is `continue`: inside a `#scope` that is not a loop, it jumps
-  back to the start of the block, so a brace block silently *is* a loop.
-- Evidence: a `for 3` whose body opens a `#scope { break }` runs all three iterations and executes
-  everything after the scope each time. A bare `#scope { n += 1; if n == 4 do break; continue }`
-  runs four times. Both confirmed under the JIT and the forged binary.
-- Elsewhere: every language that can exit a plain block makes the label mandatory, and for this
-  exact reason. Java's `label: { ... break label; }` is legal, a *bare* `break` never targets a
-  block, and `continue` on a non-loop label is a compile error. Rust's `'a: { break 'a v }` and
-  Zig's `blk: { break :blk v; }` both require the label in the `break`. So the retargeting Swag
-  performs silently is the one case those designs went out of their way to make impossible — and
-  no language turns a brace block into a loop.
-- Next step: the retargeting is the dangerous half. Consider requiring `break to <Name>` inside a
-  *named* scope and rejecting a bare `break` whose nearest enclosing structure is an unnamed
-  `#scope` that sits inside a loop — the ambiguous case is exactly that one. Check first how many
-  `#scope` uses in `bin/` rely on the current reading.
-
 ## Value and conversion semantics
 
 ### F-048 — Mixing a signed and an unsigned operand of the same width converts the signed one
@@ -165,31 +137,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   through the binding, or whether that is deliberately out of scope.
 - Related: the borrow rules already reject *structural* mutation during iteration
   ([013_004_borrowing.swg:186-196](../bin/reference/modules/language/src/013_004_borrowing.swg#L186-L196)).
-
-### F-050 — A by-value closure capture erases `let` immutability
-
-- Area: language
-- Found while: the same pass
-- Observation: a capture is "a plain byte copy into the closure"
-  ([007_003_closure.swg:9-14](../bin/reference/modules/language/src/007_003_closure.swg#L9-L14)),
-  and the copy is mutable regardless of how the source was declared. Capturing a `let` therefore
-  produces a mutable, persistent cell that outlives the binding it was copied from and shares its
-  name. The reference's own example does exactly this and presents it as the way to build stateful
-  behaviour
-  ([007_003_closure.swg:131-154](../bin/reference/modules/language/src/007_003_closure.swg#L131-L154)).
-- Evidence: `let base = 10` captured as `func|base|()->s32 { base += 1; return base }` returns 11
-  then 12 across calls, while the outer `base` stays 10.
-- Elsewhere: three languages with the same capture-by-copy model all make the writable copy a
-  separate spelling. C++ copies into a `const` member unless the lambda is declared `mutable`.
-  Rust requires the closure to be `FnMut` and the binding `mut`. Swift's capture list produces a
-  `let`, and the stateful-counter idiom is written by shadowing with a `var` outside the closure.
-  C# takes the other road entirely — captures are by reference, so mutating one changes the
-  original — but there too the two behaviours are never spelled the same. The proposed
-  `func|var base|` is C++'s `mutable`, moved to the capture it applies to.
-- Next step: the capacity is wanted; the spelling is the question. Consider requiring `var` on a
-  capture the closure body writes (`func|var base|`), which keeps the stateful-counter idiom, keeps
-  a read-only capture read-only, and makes the name-shadowing visible at the capture list rather
-  than at the assignment.
 
 ## Failure handling
 
@@ -714,91 +661,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   interface methods, where the reference says a single `#move` function is what makes both styles
   work at all — those call sites are the ones a warning must not drown.
 
-## Where a page and the compiler disagree
-
-### F-097 — The `.Switch` runtime guard covers only `switch #complete`, and the safety page says the opposite
-
-- Area: language
-- Found while: the same pass, reconciling the safety chapter with
-  [T-009](todo.language.md#t-009--enum-switches-are-silently-non-exhaustive)
-- Observation: the safety page states that "without `switch #complete`, an unmatched value reaches
-  no case and Swag panics"
-  ([013_002_safety.swg:248-273](../bin/reference/modules/language/src/013_002_safety.swg#L248-L273)).
-  The guard is installed under the exact opposite condition: `setupSwitchRuntimeSafety` returns
-  immediately unless the switch *is* `#complete`. A plain enum switch missing a case therefore falls
-  through to nothing, in every configuration, which is what T-009 says and what the roadmap is
-  measured against — while a reader of the safety page believes debug builds already report it. The
-  guard that does exist is the useful one and should be described: on a `#complete` switch every
-  declared value has an arm, so the only value that can reach no case is one outside the declared
-  set, and that is what panics.
-- Evidence: `if (!payload.isComplete) return Result::Continue;`
-  ([Sema.Switch.cpp:31-37](../src/Compiler/Sema/Ast/Sema.Switch.cpp#L31-L37)), where `isComplete`
-  is set from `AstModifierFlagsE::Complete`
-  ([Sema.Switch.cpp:499-510](../src/Compiler/Sema/Ast/Sema.Switch.cpp#L499-L510)). An isolated
-  probe, `swc test -d <dir>` in `fast-debug`, returns `-1` rather than panicking:
-
-  ```swag
-  enum Color { Red, Green, Blue }
-
-  func colorRank(color: Color)->s32
-  {
-      switch color
-      {
-      case .Red:   return 1
-      case .Green: return 2
-      }
-
-      return -1
-  }
-
-  #test { @assert(colorRank(Color.Blue) == -1) }
-  ```
-
-  The guard that *does* exist was observed firing while probing F-101: a `#complete` switch handed a
-  value outside its enum's declared set reports "complete switch received a value not covered by its
-  cases". So the mechanism works and only its documented trigger is wrong.
-- Elsewhere: not applicable to the contradiction, which is a documentation defect. On the underlying
-  rule, the field splits cleanly and T-009 already holds the decision: Rust, Swift and Kotlin require
-  exhaustiveness at compile time, Zig requires an `else` on a switch that does not cover its tag,
-  and C, C++, C#, Java and Go let an unmatched value fall through — which is what Swag does today.
-- Next step: fix the page, in the direction the code chose: describe the guard as the one that
-  catches a value outside an enum's declared set on a `#complete` switch. Whether a plain switch
-  should also be guarded is T-009's decision and must not be settled by a sentence in the safety
-  chapter. Add the probe above to the `sanity` or `native` suite as a positive so the two statements
-  cannot drift apart again.
-- Related: [T-009](todo.language.md#t-009--enum-switches-are-silently-non-exhaustive)
-
-### F-098 — `any` is a box on one page and a reference on another
-
-- Area: language
-- Found while: the same pass, checking which of the two readings the compiler implements
-- Observation: the `any` chapter opens with a warning that it is "**not** a variant. It holds a
-  reference to an existing value plus its runtime type info"
-  ([004_009_any.swg:3-10](../bin/reference/modules/language/src/004_009_any.swg#L3-L10)), and the
-  intrinsics chapter says "ordinary assignment **boxes** a value as `any`"
-  ([008_003_value_and_type_intrinsics.swg:37-42](../bin/reference/modules/language/src/008_003_value_and_type_intrinsics.swg#L37-L42)).
-  The two words carry opposite lifetime contracts, and the difference is the whole question a reader
-  has when they store an `any` in a field: a box owns a copy and outlives its source, a reference
-  dies with it. The compiler implements the reference reading — and, per F-105, does not yet judge
-  it, so the wrong belief is not caught by the build either. The same page also groups `@mkslice`
-  and `@mkstring` under "constructing non-owning views" with an explicit warning that the result
-  must not outlive its backing memory; `@mkany` sits under the next heading with no such line,
-  although it takes an address exactly the same way.
-- Evidence: the two sentences, two chapters apart. `@mkany(&value, s32)` on the intrinsics page takes
-  an address, which settles which reading is the implemented one.
-- Elsewhere: every neighbour with a dynamic any-type copies. Go's `any` stores a copy of the value in
-  the interface, C# and Java box onto the heap, Swift's `Any` holds a value. Rust is the one that
-  offers both and keeps them apart in the type: `Box<dyn Any>` owns, `&dyn Any` borrows and carries a
-  lifetime. So Swag's `any` behaves like Rust's `&dyn Any` while being spelled like Go's `any` — the
-  name a reader arrives with is the one that promises a copy.
-- Next step: pick the word and use it on both pages; "boxes" is the one to drop, since it is the one
-  the implementation contradicts. Then give the `@mkany` paragraph the same non-owning warning its
-  `@mkslice` neighbour already carries, and say on the `any` page that an `any` is a view for the
-  purposes of the borrow rules — which is what
-  [013_004_borrowing.swg:5-8](../bin/reference/modules/language/src/013_004_borrowing.swg#L5-L8)
-  already lists, without the `any` page ever pointing at it.
-- Related: F-105 in [findings.safety.md](findings.safety.md), the escape the rule currently misses.
-
 ## Declining and leaking
 
 ### F-100 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
@@ -867,8 +729,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
   > error: complete switch received a value not covered by its cases
 
-  That is the `.Switch` guard of F-097, which `release` turns off. There, the same call falls off
-  the end of a function with a declared return type.
+  That is the `.Switch` guard, which covers `#complete` switches only and which `release` turns
+  off. There, the same call falls off the end of a function with a declared return type.
 - Elsewhere: no language lets one enum absorb another's members, so the comparison is with what is
   offered instead. C++20's `using enum` brings the names into a scope for unqualified use, and it is
   explicitly a lookup convenience: the members keep their own type, and the importing entity is a

@@ -33,17 +33,15 @@
     }
 }
 
-#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 #test
 {
-    #scope(Loop)
-    {
-        continue
-        break
-    }
+    break to Missing     // swc-expected-error {{sema_err_unknown_scope_name}}
 }
 
 #test
 {
-    break to Missing     // swc-expected-error {{sema_err_unknown_scope_name}}
+    for 10
+    {
+        break to Missing     // swc-expected-error {{sema_err_unknown_scope_name}}
+    }
 }

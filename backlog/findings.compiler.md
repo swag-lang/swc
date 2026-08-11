@@ -265,31 +265,3 @@ Entries are sorted by identifier, ascending; position carries no priority.
   stress parallel type generation while tracing mutation and traversal of struct impl-function
   lists. Check that every publication read by `declaredMethods` is immutable or protected for the
   full lifetime of candidate probing before reducing the race to two concurrently completed impls.
-
-### F-116 — A generic struct declared inside a function gets no generated method
-
-- Area: compiler
-- Found while: giving a struct whose members do not compare as bytes a member-wise `opEquals`
-  (F-107), which is the first generated method that has to name the struct it belongs to
-- Observation: a struct declared inside a function body lands in the local scope instead of a
-  symbol map, so `ownerSymMap()` is null for it. The generated-source pass for a non-generic one
-  still resolves the name, because it runs inside the declaring scope and parses `impl Local` from
-  there. A generic *instance* is completed from a rebuilt scope
-  (`SemaGeneric::prepareGenericInstantiationContext` clears the scope stack and restarts from the
-  impl's symbol map), and the name is no longer reachable: the generated `opEquals(other: const
-  &Local)` fails with `unknown symbol 'Local'`. Nothing had ever needed the name from that context
-  before, because the language rejects an `impl` block inside a function body, so such a struct has
-  never had a method a user could write either.
-- Evidence: `bin/unittests/native/generics/partial_calls.swg` and
-  `.../generics/local_context.swg` both declare `struct(T, U = string, V) Local` inside a function,
-  and both failed to compile the moment the generated method was emitted for the instance.
-  `shouldGenerateEqualityOperator` in
-  [SemaSpecOp.Generated.cpp](../src/Compiler/Sema/Helpers/SemaSpecOp.Generated.cpp) now skips those
-  instances through `isLocalScopeStruct`, so `Local'bool` holding a `string` keeps comparing its
-  storage while the same struct at file scope compares member by member.
-- Next step: decide which end to fix. Either a generated method stops needing the type name — there
-  is no self-type spelling today, `#typeof(me)` is rejected in a type position — or a generic
-  instance keeps a way back to its declaring scope for name resolution. The second is the one that
-  also unblocks an `impl` block on a function-local struct, so check first whether
-  `prepareGenericInstantiationContext` can restore the declaring scope chain instead of only the
-  namespace path.

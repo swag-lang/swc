@@ -130,6 +130,7 @@ namespace SemaSpecOp
     std::string_view specOpFunctionName(SpecOpKind kind);
     std::string_view generatedLifecycleWrapperName(SpecOpKind kind);
     std::string_view generatedInitWrapperName();
+    std::string_view generatedSelfTypeName();
     bool             isGeneratedLifecycleWrapperName(std::string_view name);
     SpecOpKind       computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     void             addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);

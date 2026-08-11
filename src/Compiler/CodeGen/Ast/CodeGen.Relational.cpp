@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
@@ -530,24 +531,94 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    // Compare two address-backed aggregate operands (structs/arrays) for equality by
-    // comparing their full byte content, chunk by chunk. The scalar compare path only
-    // looks at a single register-sized load, which silently ignores every field past
-    // the first machine word for aggregates larger than a register.
-    Result emitAggregateEqualsBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, uint64_t sizeBytes)
+    // One run of bytes a value actually occupies, as an offset from the start of the value.
+    struct ComparedRange
     {
-        MicroBuilder&       builder       = codeGen.builder();
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
-
-        const bool          isEqual       = tokId == TokenId::SymEqualEqual;
-        const MicroLabelRef notEqualLabel = builder.createLabel();
-        const MicroLabelRef doneLabel     = builder.createLabel();
-
         uint64_t offset = 0;
-        while (offset < sizeBytes)
+        uint64_t size   = 0;
+    };
+
+    void appendComparedRange(SmallVector<ComparedRange>& out, uint64_t offset, uint64_t size)
+    {
+        if (!size)
+            return;
+
+        // Members follow each other in offset order, so a run that starts where the previous one
+        // ended extends it instead of adding a second compare for the same contiguous bytes.
+        if (!out.empty() && out.back().offset + out.back().size == offset)
         {
-            const uint64_t remain = sizeBytes - offset;
+            out.back().size += size;
+            return;
+        }
+
+        out.push_back({.offset = offset, .size = size});
+    }
+
+    // Fill 'out' with the byte runs a value of this type occupies. The padding a layout inserts
+    // between and after members is not one of them: two values whose every member is equal must
+    // compare equal, and the bytes between the members are not members. A union is the exception
+    // — its members share one storage, so all of it is compared.
+    void appendComparedRanges(TaskContext& ctx, SmallVector<ComparedRange>& out, TypeRef typeRef, uint64_t base)
+    {
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        const uint64_t  size = type.sizeOf(ctx);
+
+        if (type.isStruct())
+        {
+            const SymbolStruct& ownerStruct = type.payloadSymStruct();
+            if (ownerStruct.isUnion() || ownerStruct.fields().empty())
+            {
+                appendComparedRange(out, base, size);
+                return;
+            }
+
+            for (const SymbolVariable* field : ownerStruct.fields())
+            {
+                if (field)
+                    appendComparedRanges(ctx, out, field->typeRef(), base + field->offset());
+            }
+
+            return;
+        }
+
+        if (type.isArray())
+        {
+            const TypeRef  elemTypeRef = type.payloadArrayElemTypeRef();
+            const uint64_t elemSize    = ctx.typeMgr().get(elemTypeRef).sizeOf(ctx);
+            if (!elemSize)
+                return;
+
+            SmallVector<ComparedRange> elemRanges;
+            appendComparedRanges(ctx, elemRanges, elemTypeRef, 0);
+
+            // An element that occupies all of its own storage leaves the whole array contiguous,
+            // which is one compare instead of one per element.
+            if (elemRanges.size() == 1 && elemRanges[0].offset == 0 && elemRanges[0].size == elemSize)
+            {
+                appendComparedRange(out, base, size);
+                return;
+            }
+
+            for (uint64_t elem = 0; elem < size / elemSize; ++elem)
+            {
+                for (const ComparedRange& range : elemRanges)
+                    appendComparedRange(out, base + elem * elemSize + range.offset, range.size);
+            }
+
+            return;
+        }
+
+        appendComparedRange(out, base, size);
+    }
+
+    void emitComparedRange(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparedRange& range, MicroLabelRef notEqualLabel)
+    {
+        MicroBuilder& builder = codeGen.builder();
+
+        uint64_t offset = range.offset;
+        while (offset < range.offset + range.size)
+        {
+            const uint64_t remain = range.offset + range.size - offset;
 
             MicroOpBits chunkBits;
             uint64_t    chunkSize;
@@ -581,6 +652,26 @@ namespace
 
             offset += chunkSize;
         }
+    }
+
+    // Compare two address-backed aggregate operands (structs/arrays) for equality over the bytes
+    // their members occupy, chunk by chunk. The scalar compare path only looks at a single
+    // register-sized load, which silently ignores every field past the first machine word for
+    // aggregates larger than a register.
+    Result emitAggregateEqualsBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, TypeRef compareTypeRef)
+    {
+        MicroBuilder&       builder       = codeGen.builder();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
+
+        const bool          isEqual       = tokId == TokenId::SymEqualEqual;
+        const MicroLabelRef notEqualLabel = builder.createLabel();
+        const MicroLabelRef doneLabel     = builder.createLabel();
+
+        SmallVector<ComparedRange> ranges;
+        appendComparedRanges(codeGen.ctx(), ranges, compareTypeRef, 0);
+        for (const ComparedRange& range : ranges)
+            emitComparedRange(codeGen, leftPayload, rightPayload, range, notEqualLabel);
 
         builder.emitLoadRegImm(resultPayload.reg, ApInt(isEqual ? 1 : 0, 32), MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
@@ -642,7 +733,7 @@ namespace
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             (compareType.isStruct() || compareType.isArray() || compareType.isAggregate()) &&
             compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t))
-            return emitAggregateEqualsBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareType.sizeOf(codeGen.ctx()));
+            return emitAggregateEqualsBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareTypeRef);
 
         MicroOpBits opBits = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);

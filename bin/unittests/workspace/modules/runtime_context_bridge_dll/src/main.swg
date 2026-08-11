@@ -42,6 +42,13 @@ public enum CtxAbiEnum: u16
     B = 123
 }
 
+private func ctxAbiEnumScore(value: CtxAbiEnum)->s32 => value == .A ? 7 : 11
+
+public impl CtxAbiEnum
+{
+    mtd const score()->s32 => ctxAbiEnumScore(me)
+}
+
 public struct CtxAbiPair
 {
     public

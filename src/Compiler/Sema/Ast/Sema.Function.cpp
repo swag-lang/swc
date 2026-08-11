@@ -1434,14 +1434,7 @@ namespace
             return TypeRef::invalid();
 
         if (symImpl.isForEnum())
-        {
-            if (!isConstReceiver)
-                return ownerType;
-
-            TypeInfo typeInfo = sema.typeMgr().get(ownerType);
-            typeInfo.addFlag(TypeInfoFlagsE::Const);
-            return sema.typeMgr().addType(typeInfo);
-        }
+            return ownerType;
 
         TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
         if (isConstReceiver)

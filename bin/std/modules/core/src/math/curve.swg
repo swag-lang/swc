@@ -57,12 +57,7 @@ impl CurvePreset
     //
     // This reads the shared curve of the preset and allocates nothing, so plotting a preview and
     // running an animation go through one evaluator and cannot drift apart.
-    //
-    // The method reads the preset and changes nothing. It is not declared `const` because a
-    // `const` receiver over an enum currently compiles at neither end; see `F-090`. It names every
-    // symbol it uses in full because a method declared over an enum is published to other modules
-    // with its source rather than as an import; see `F-091`.
-    mtd evaluate(x: f32)->f32
+    mtd const evaluate(x: f32)->f32
     {
         return Math.Curve.shared(me).evaluateNormalized(x)
     }

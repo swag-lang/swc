@@ -283,6 +283,8 @@ func verifyDllAbiCalls()
     @assert(ctxSharedPassAliasEnum(1, cast(CtxAbiAlias) 2, CtxAbiEnum.A, 3) == 23)
     @assert(ctxSharedPassAliasEnum(10, cast(CtxAbiAlias) 20, CtxAbiEnum.B, 30) == 183)
     @assert(ctxSharedPassAliasEnum(-10, cast(CtxAbiAlias) 20, CtxAbiEnum.A, -30) == -3)
+    @assert(CtxAbiEnum.A.score() == 7)
+    @assert(CtxAbiEnum.B.score() == 11)
 
     const values0: [4] s32 = [11, 22, 33, 44]
     const values1: [4] s32 = [101, 202, 303, 404]

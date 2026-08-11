@@ -1,5 +1,7 @@
 #global private
 
+const ForRangeUpperBound = 5
+
 func semaTest001()
 {
     for 3
@@ -256,5 +258,19 @@ func semaTest030()
     case false:
         let x = 0
         var y = x
+    }
+}
+
+func semaTest031()
+{
+    for i in 1 to ForRangeUpperBound
+    {
+        var x = i
+    }
+
+    const LocalUpperBound = 7
+    for i in 2 until LocalUpperBound
+    {
+        var x = i
     }
 }

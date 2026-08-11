@@ -12,7 +12,7 @@ func sameCryptoBytes(left, right: const [..] u8)->bool
 func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     var result: retval
-    for [i] in Crypto.MasterKeySize do
+    for i in Crypto.MasterKeySize do
         result[i] = cast(u8) ((i * 7 + seed) & 0xFF)
     return result
 }

@@ -38,7 +38,7 @@ impl ActionCapture
     // Returns the monitor `id` captures, or `Swag.U64.Max` when it captures no monitor.
     func screenIndex(id: WndId)->u64
     {
-        for &minted, [index] in screenIds where minted == id do
+        for &minted, index in screenIds where minted == id do
             return index
         return Swag.U64.Max
     }

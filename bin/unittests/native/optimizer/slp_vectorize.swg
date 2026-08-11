@@ -52,7 +52,7 @@ func chachaRounds(state: *[16] u32)
 func chachaRoundsLocal()->u32
 {
     var state: [16] u32
-    for [i] in 16 do
+    for i in 16 do
         state[i] = cast(u32) (i * 0x01010101)
 
     for 10
@@ -68,7 +68,7 @@ func chachaRoundsLocal()->u32
     }
 
     var acc = 0'u32
-    for [i] in 16 do
+    for i in 16 do
         acc ^= state[i]
     return acc
 }
@@ -99,7 +99,7 @@ func threeLanes(values: *[8] u32)
 #test
 {
     var state: [16] u32
-    for [i] in 16 do
+    for i in 16 do
         state[i] = cast(u32) (i * 0x01010101)
     chachaRounds(&state)
 
@@ -110,7 +110,7 @@ func threeLanes(values: *[8] u32)
         0x3D381414, 0x7C02A81A, 0x67490CA5, 0xEC264FC3,
         0x2A598CB0, 0xBCDF0F50, 0xA0FF67B6, 0x1E1813E1,
         0x6E6F2414, 0x3611BE53, 0x90B57CBF, 0x885F04F2]
-    for [i] in 16 do
+    for i in 16 do
         @assert(state[i] == Expected[i])
 }
 

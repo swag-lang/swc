@@ -180,7 +180,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 - Next step: find where the `for` header parses its range and how it resolves each bound, and check
   whether the bound is looked up in a restricted scope or resolved in a pass that runs before
-  constants are published. Compare with the counted form `for [i] in Samples`, which resolves the
+  constants are published. Compare with the counted form `for i in Samples`, which resolves the
   same symbol correctly from the same header — the difference between those two paths is where the
   answer is. Add the case to the `parser` or `sema` suite depending on which side it lands on.
 

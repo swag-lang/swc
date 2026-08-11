@@ -154,7 +154,7 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 {
     let rowBytes = cast(u64) width * 4
     let data     = cast([*] u8) pixels.buffer!
-    for [y] in height / 2
+    for y in height / 2
     {
         var upper = cast(u64) y * rowBytes
         var lower = cast(u64) (height - y - 1) * rowBytes
@@ -235,7 +235,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         alpha.resize(pixelCount)
         let alphaData = cast([*] u8) alpha.buffer!
         let rgbaData  = cast([*] u8) rgba.buffer!
-        for [i] in pixelCount do
+        for i in pixelCount do
             alphaData[i] = rgbaData[4 * i + 1]
 
     default:
@@ -247,16 +247,16 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     if filter == 0 do
         return
 
-    for [x] in width - 1 do
+    for x in width - 1 do
         data[x + 1] = losslessWrap8(data[x + 1] + data[x])
 
     if filter == 1
     {
-        for [y] in height - 1
+        for y in height - 1
         {
             let row = cast(u64) (y + 1) * width
             data[row] = losslessWrap8(data[row] + data[row - width])
-            for [x] in width - 1 do
+            for x in width - 1 do
                 data[row + x + 1] = losslessWrap8(data[row + x + 1] + data[row + x])
         }
     }
@@ -271,11 +271,11 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     }
     else
     {
-        for [y] in height - 1
+        for y in height - 1
         {
             let row = cast(u64) (y + 1) * width
             data[row] = losslessWrap8(data[row] + data[row - width])
-            for [x] in width - 1
+            for x in width - 1
             {
                 let offset     = row + x + 1
                 let prediction = vp8Clip(cast(s32) data[offset - 1] + data[offset - width] - data[offset - width - 1], 0, 255)
@@ -296,13 +296,13 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
     let width   = decoder.header.width
     let height  = decoder.header.height
 
-    for [y] in height
+    for y in height
     {
         let sourceRow   = y * decoder.yStride
         let chromaRow   = (y >> 1) * decoder.cStride
         var destination = cast(u64) y * width * 4
         let alphaRow    = cast(u64) y * width
-        for [x] in width
+        for x in width
         {
             let luma = cast(s32) yData[sourceRow + x]
             let cb   = cast(s32) cbData[chromaRow + (x >> 1)]
@@ -335,10 +335,10 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 
     vp8ParseHeaders(&decoder)
     vp8AllocatePlanes(&decoder)
-    for [mbY] in decoder.mbHeight
+    for mbY in decoder.mbHeight
     {
         decoder.leftMb = {}
-        for [mbX] in decoder.mbWidth
+        for mbX in decoder.mbWidth
         {
             let skip      = vp8Reconstruct(&decoder, mbX, mbY)
             var parameter = decoder.filterParams[decoder.segment][decoder.usePredY16 ? 0 : 1]
@@ -349,7 +349,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 
     if decoder.firstPart.unexpectedEnd do
         fail InvalidFormatError{"WebP data ends inside the VP8 control partition"}
-    for [i] in decoder.otherPartCount do
+    for i in decoder.otherPartCount do
         if decoder.otherParts[i].unexpectedEnd do
             fail InvalidFormatError{"WebP data ends inside a VP8 coefficient partition"}
     vp8ApplyFilter(&decoder)

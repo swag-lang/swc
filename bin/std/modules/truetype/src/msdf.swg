@@ -157,7 +157,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     let ebuf = elements.buffer!
     var pdx  = ebuf[first + count - 1].edx1
     var pdy  = ebuf[first + count - 1].edy1
-    for [i] in count
+    for i in count
     {
         let e = &ebuf[first + i]
         if msdfIsCorner(pdx, pdy, e.sdx0, e.sdy0, crossThreshold) do
@@ -170,7 +170,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     // then matches a plain single-channel SDF, which is correct for such shapes.
     if corners.isEmpty()
     {
-        for [i] in count do
+        for i in count do
             ebuf[first + i].color = MSDF_WHITE
         return
     }
@@ -181,7 +181,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     {
         var color = MSDF_WHITE
         msdfSwitchColor(&color, seed)
-        for [i] in count do
+        for i in count do
             ebuf[first + i].color = color
         return
     }
@@ -193,7 +193,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     msdfSwitchColor(&color, seed)
     let initialColor = color
 
-    for [i] in count
+    for i in count
     {
         let index = (start + i) % count
         if spline + 1 < cornerCount and corners[spline + 1] == index
@@ -288,7 +288,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
     contourElemStart.add(cast(u32) elements.count)
 
     var seed = 0'u64
-    for [c] in contourElemStart.count - 1
+    for c in contourElemStart.count - 1
     {
         let first = contourElemStart[c]
         let count = contourElemStart[c + 1] - first
@@ -304,19 +304,19 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
     // Propagate element colors down to their segments.
     for el in elements
     {
-        for [i] in el.segCount do
+        for i in el.segCount do
             sbuf[el.firstSeg + i].color = el.color
     }
 
     // Guarantee every channel is carried by at least one segment, otherwise that
     // channel's distance would be undefined and the median would be meaningless.
     var unionColor = 0'u8
-    for [i] in segs.count do
+    for i in segs.count do
         unionColor |= sbuf[i].color
     let missing = (~unionColor) & MSDF_WHITE
     if missing
     {
-        for [i] in segs.count do
+        for i in segs.count do
             sbuf[i].color |= missing
     }
 }
@@ -458,7 +458,7 @@ impl MsdfBest
         .signed[0], .signed[1], .signed[2] = -Swag.F64.Max
         .dot[0], .dot[1], .dot[2]          = Swag.F64.Max
         .idx[0], .idx[1], .idx[2], .allIdx = -1
-        for [i] in 8 do
+        for i in 8 do
             .reach2[i] = Swag.F64.Max
     }
 
@@ -475,7 +475,7 @@ impl MsdfBest
         reach[6] = Math.max(.abs[1], .abs[2])
         reach[7] = Math.max(reach[3], .abs[2])
 
-        for [i] in 8 do
+        for i in 8 do
             .reach2[i] = reach[i] * reach[i] * MsdfReachSlack
     }
 
@@ -493,7 +493,7 @@ impl MsdfBest
             won     = true
         }
 
-        for [ch] in 3
+        for ch in 3
         {
             if !(s.color & cast(u8) (1 << ch)) do
                 continue
@@ -529,14 +529,14 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
     var best: MsdfBest
     best.start()
 
-    for [k] in 4
+    for k in 4
     {
         let index = k < 3 ? seed.channel[k] : seed.nearest
         if index >= 0 do
             best.fold(&segs[index], index, px, py)
     }
 
-    for &s, [i] in segs
+    for &s, i in segs
     {
         // The distance to the segment's bounding box bounds its real distance from below,
         // for a handful of comparisons and no square root. A segment that cannot reach the
@@ -556,7 +556,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
     seed.nearest    = best.allIdx
 
     var d: [3] f64
-    for [ch] in 3
+    for ch in 3
     {
         d[ch] = best.signed[ch]
         if best.idx[ch] >= 0 do
@@ -634,7 +634,7 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
     let crossCount = msdfRowCrossings(segsS, crossings, sampleY)
 
     var winding = 0's32
-    for [i] in crossCount do
+    for i in crossCount do
         winding += crossings[i].dir
 
     var seed: MsdfSeed
@@ -642,7 +642,7 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
 
     var passed    = 0'u32
     var localVote = 0's64
-    for [px] in c.width
+    for px in c.width
     {
         let sampleX = cast(f64) c.left + cast(f64) px + 0.5
         while passed < crossCount and crossings[passed].x <= sampleX
@@ -759,12 +759,12 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     }
     else
     {
-        for [py] in rows do
+        for py in rows do
             msdfProcessRow(&ctx, cast(u32) py)
     }
 
     var vote = 0's64
-    for [i] in rows do
+    for i in rows do
         vote += rowVotes[i]
 
     let flip: f64 = vote < 0 ? -1 : 1
@@ -772,12 +772,12 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     let count = cast(u64) width * rows
     faceData.bitmapPixels.resize(count * 4)
     var dst = faceData.bitmapPixels.buffer!
-    for [i] in count
+    for i in count
     {
         let src = i * 4
 
         // RGB: multi-channel field, corrected by the global sign vote.
-        for [c] in 3
+        for c in 3
         {
             let value = 128.0'f64 + flip * cast(f64) channelsBuffer[src + c] * scale
             dst[src + c] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value)))

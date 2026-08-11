@@ -92,11 +92,11 @@ impl Encoder
     func fillOpaqueQuantizedPalette(data: *PaletteData)
     {
         data.count = 128
-        for [r] in 4
+        for r in 4
         {
-            for [g] in 8
+            for g in 8
             {
-                for [b] in 4
+                for b in 4
                 {
                     let idx = r * 32 + g * 4 + b
                     data.colors[idx].r = quantLevel(cast(u32) r, 3)
@@ -113,11 +113,11 @@ impl Encoder
         data.count            = 126
         data.colors[0]        = {}
 
-        for [r] in 5
+        for r in 5
         {
-            for [g] in 5
+            for g in 5
             {
-                for [b] in 5
+                for b in 5
                 {
                     let idx = 1 + r * 25 + g * 5 + b
                     data.colors[idx].r = quantLevel(cast(u32) r, 4)
@@ -159,7 +159,7 @@ impl Encoder
         }
 
         var dstIndex = 0'u64
-        for [y] in image.height
+        for y in image.height
         {
             var pix = cast([*] u8) image.pixels.buffer! + cast(u64) (image.height - y - 1) * image.rowStride
             for image.width
@@ -212,7 +212,7 @@ impl Encoder
             fillOpaqueQuantizedPalette(data)
 
         var dstIndex = 0'u64
-        for [y] in image.height
+        for y in image.height
         {
             var pix = cast([*] u8) image.pixels.buffer! + cast(u64) (image.height - y - 1) * image.rowStride
             for image.width
@@ -245,7 +245,7 @@ impl Encoder
     func writeColorTable(result: *ConcatBuffer, palette: PaletteData)
     {
         let tableSize = 1'u32 << palette.tableBits
-        for [i] in tableSize
+        for i in tableSize
         {
             if i < palette.count
             {

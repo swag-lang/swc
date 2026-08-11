@@ -312,7 +312,7 @@ impl IWnd for Tab
         if !.items.isEmpty()
         {
             clientRect = .itemBarRect()
-            for [idx] in .firstVisibleIndex until cast(u32) .items.count
+            for idx in .firstVisibleIndex until cast(u32) .items.count
             {
                 if idx == .selectedIndex do
                     continue
@@ -477,7 +477,7 @@ private impl Tab
             return Swag.U32.Max
 
         let rect = .itemBarRect()
-        for [idx] in .firstVisibleIndex until cast(u32) .items.count
+        for idx in .firstVisibleIndex until cast(u32) .items.count
         {
             let v = .items[idx]!
             if v.pos + v.width > rect.right() do
@@ -566,7 +566,7 @@ private impl Tab
 
         var x = rect.x
         .mostRightPos = Math.round(rect.x)
-        for [idx] in .firstVisibleIndex until cast(u32) .items.count
+        for idx in .firstVisibleIndex until cast(u32) .items.count
         {
             let v    = .items[idx]!
             let left = Math.round(x)

@@ -250,7 +250,7 @@ impl Decoder
         .bitsLeft = 16
         .getBits1(16)
         .getBits1(16)
-        for [i] in MaxBlocksPerRow do
+        for i in MaxBlocksPerRow do
             .blockMaxZagSet[i] = 64
 
         .locateSofMarker()

@@ -28,7 +28,7 @@ func intersect(ox, oy, oz, dx, dy, dz, tmin: f64)
     var best = 1.0e30'f64
     var hit  = -1's32
 
-    for [i] in NS
+    for i in NS
     {
         let ex   = ox - SCX[i]
         let ey   = oy - SCY[i]
@@ -123,9 +123,9 @@ func trace(ox, oy, oz, dx, dy, dz: f64, depth: s32)
     let aspect = cast(f64) W / cast(f64) H
     var check  = 0'u64
 
-    for [py] in H
+    for py in H
     {
-        for [px] in W
+        for px in W
         {
             let dx = ((cast(f64) px + 0.5'f64) / cast(f64) W * 2.0'f64 - 1.0'f64) * aspect
             let dy = 1.0'f64 - (cast(f64) py + 0.5'f64) / cast(f64) H * 2.0'f64

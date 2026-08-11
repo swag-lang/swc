@@ -347,7 +347,7 @@ private func buildContainers(flow: *Flow)
     list.setFrameForm(.Square)
     list.updateFlags(.HotTrack)
     list.setIconSize(16)
-    for name, [i] in ["Selected row", "Plain row", "Another row", "A longer row label"] do
+    for name, i in ["Selected row", "Plain row", "Another row", "A longer row label"] do
         list.createLine(name, app.theme.icon(.OpenFile, 16))
     list.computeLayout()
     list.selectLine(0)

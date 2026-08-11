@@ -11,7 +11,7 @@ impl Visits
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
         where !ptr and !back
     {
-        for [idx] in @countof(.values)
+        for idx in @countof(.values)
         {
             #inject(stmt, item = me.values[idx])
         }

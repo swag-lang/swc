@@ -24,7 +24,7 @@ var g_HashTypeFace: HashTable'(String, *TypeFace)
 
 #drop
 {
-    for k, [v] in g_HashTypeFace
+    for k, v in g_HashTypeFace
     {
         let allocator = v.allocationAllocator
         Memory.delete(v, allocator)
@@ -211,7 +211,7 @@ public impl TypeFace
 
         if prevIdx != result.outline.paths.count
         {
-            for [i] in prevIdx until result.outline.paths.count do
+            for i in prevIdx until result.outline.paths.count do
                 result.outline.paths[i].assumeClosed()
         }
 
@@ -242,7 +242,7 @@ public impl TypeFace
 
             if prevIdx != result.paths.count
             {
-                for [i] in prevIdx until result.paths.count
+                for i in prevIdx until result.paths.count
                 {
                     result.paths[i].assumeClosed()
                     result.paths[i].serial = serial

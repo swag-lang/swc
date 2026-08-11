@@ -30,7 +30,7 @@ using Swag, Core
     // a non-empty result; the output then contains only the fill color.
     let paddedOnly = src.expanded(-3, 0, 4, 0, bgColor)
     assertImage(paddedOnly, 3, 2, .RGBA8)
-    for [x] in paddedOnly.width
+    for x in paddedOnly.width
     {
         assertPixel(paddedOnly, x, 0, bgColor)
         assertPixel(paddedOnly, x, 1, bgColor)

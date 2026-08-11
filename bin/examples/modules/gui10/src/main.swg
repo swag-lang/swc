@@ -191,13 +191,13 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
 // its own accent: the selector then also reports what the accent of the palette it names is.
 func updateSelectors()
 {
-    for btn, [idx] in g_ThemeButtons
+    for btn, idx in g_ThemeButtons
     {
         btn.setForm(cast(s32) idx == cast(s32) g_Variant ? .Default : .Flat)
         btn.invalidate()
     }
 
-    for btn, [idx] in g_PageButtons
+    for btn, idx in g_PageButtons
     {
         btn.setForm(cast(s32) idx == g_Page ? .Default : .Flat)
         btn.invalidate()
@@ -371,7 +371,7 @@ func createRootView()
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
-    for [i] in ThemeVariantCount
+    for i in ThemeVariantCount
     {
         let variant = cast(ThemeVariant) cast(s32) i
         let btn     = PushButton.create(view, variantName(variant), {})
@@ -379,7 +379,7 @@ func createRootView()
         g_ThemeButtons.add(btn)
     }
 
-    for [i] in MaxPages
+    for i in MaxPages
     {
         let page = cast(s32) i
         let btn  = PushButton.create(view, pageTitle(page), {})

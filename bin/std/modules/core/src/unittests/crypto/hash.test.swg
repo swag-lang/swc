@@ -108,12 +108,12 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     const Lengths = [0'u64, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64]
 
     var source: [80] u8 = undefined
-    for [i] in 80'u64 do
+    for i in 80'u64 do
         source[i] = cast(u8) ((i * 7 + 13) & 0xFF)
 
     var seen: [@countof(Lengths)] u32 = undefined
 
-    for [slot] in @countof(Lengths)
+    for slot in @countof(Lengths)
     {
         let length = Lengths[slot]
         let view   = @mkslice(&source[0], length)
@@ -140,9 +140,9 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     }
 
     // Distinct prefixes give distinct hashes
-    for [i] in @countof(Lengths)
+    for i in @countof(Lengths)
     {
-        for [j] in @countof(Lengths)
+        for j in @countof(Lengths)
         {
             if j > i do
                 @assert(seen[i] != seen[j])

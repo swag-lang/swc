@@ -227,7 +227,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
         return
 
     let descriptors = cast(const [*] FILEDESCRIPTORW) (block.buffer! + #sizeof(UINT))
-    for [i] in count
+    for i in count
     {
         let name = cast(const [*] u16) &descriptors[i].cFileName[0]
 
@@ -263,7 +263,7 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData, withCont
         let count = DragQueryFileW(hDrop, Swag.U32.Max, null, 0)
 
         var buf: Array'u16
-        for [i] in count
+        for i in count
         {
             let len = DragQueryFileW(hDrop, i, null, 0)
             if !len do
@@ -447,7 +447,7 @@ private func offeredFormats(data: *DragData)->Array'FORMATETC
     if data.hasContents() and g_FileDescriptorFormat and g_FileContentsFormat
     {
         result.add(offeredFormat(g_FileDescriptorFormat, TYMED_HGLOBAL))
-        for [i] in data.contents.count do
+        for i in data.contents.count do
             result.add(offeredFormat(g_FileContentsFormat, TYMED_ISTREAM | TYMED_HGLOBAL, cast(s32) i))
     }
 
@@ -586,7 +586,7 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
     dref cast(*UINT) base! = cast(UINT) count
 
     let descriptors = cast([*] FILEDESCRIPTORW) (base! + #sizeof(UINT))
-    for [i] in count
+    for i in count
     {
         let item = &data.contents[i]
         let wide = Utf16.fromUtf8(item.name.toString())
@@ -747,7 +747,7 @@ private func srcOfferedIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
     if fmt.dwAspect != DVASPECT_CONTENT do
         return -1
 
-    for &f, [i] in obj.formats
+    for &f, i in obj.formats
     {
         if f.cfFormat != fmt.cfFormat or !(fmt.tymed & f.tymed) do
             continue
@@ -762,7 +762,7 @@ private func srcOfferedIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 // Which of the formats handed over through `SetData` answers `fmt`, or `-1` when none does.
 private func srcStoredIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 {
-    for &s, [i] in obj.stored
+    for &s, i in obj.stored
     {
         if s.format.cfFormat != fmt.cfFormat or s.format.lindex != fmt.lindex do
             continue
@@ -1122,9 +1122,9 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
         return result
 
     let dest = cast([*] u8) raw!
-    for [y] in img.height
+    for y in img.height
     {
-        for [x] in img.width
+        for x in img.width
         {
             let col = img.pixelColor(x, y)
             let at  = cast(u64) (y * img.width + x) * 4

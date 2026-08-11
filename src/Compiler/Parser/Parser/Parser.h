@@ -203,7 +203,6 @@ private:
     AstNodeRef parseFile();
     AstNodeRef parseFor();
     AstNodeRef parseForLoop();
-    TokenRef   parseForIndexBinding();
     AstNodeRef parseForCpp();
     AstNodeRef parseForInfinite();
     AstNodeRef parseFunctionDecl(bool isInterfaceDefinition = false);

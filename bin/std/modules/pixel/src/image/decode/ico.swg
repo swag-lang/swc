@@ -130,10 +130,10 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     var useAndMaskFor32 = dib.bitCount == 32 and hasAndMask
     if useAndMaskFor32
     {
-        for [y] in height
+        for y in height
         {
             let xorRow = xorData + xorStride * cast(u64) y
-            for [x] in width
+            for x in width
             {
                 if xorRow[cast(u64) x * 4 + 3] != 0
                 {
@@ -148,13 +148,13 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     }
 
     // Icon pixel data is bottom-up, matching the internal buffer convention
-    for [y] in height
+    for y in height
     {
         let xorRow = xorData + xorStride * cast(u64) y
         let andRow = andData + andStride * cast(u64) y
         var dst    = cast([*] u8) result.pixels.buffer! + cast(u64) y * result.rowStride
 
-        for [x] in width
+        for x in width
         {
             var b, g, r, a: u8
 
@@ -222,7 +222,7 @@ internal impl IImageDecoder for Decoder
         var bestEntry: IconDirEntry
         var bestScore: u64
         var found:     bool
-        for [i] in dir.count
+        for i in dir.count
         {
             let entry = dref cast(const *IconDirEntry) (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))
             let area  = cast(u64) dimFromByte(entry.width) * cast(u64) dimFromByte(entry.height)

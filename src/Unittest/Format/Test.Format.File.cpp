@@ -30,8 +30,8 @@ SWC_TEST_BEGIN(FormatFile_InlineBodyOwnsNestedBraceIndent)
     static constexpr std::string_view SOURCE =
         "func run(flag: bool)\n"
         "{\n"
-        " for [y] in 2 do\n"
-        "  for [x] in 2\n"
+        " for y in 2 do\n"
+        "  for x in 2\n"
         " {\n"
         "  if flag\n"
         "  {\n"
@@ -43,8 +43,8 @@ SWC_TEST_BEGIN(FormatFile_InlineBodyOwnsNestedBraceIndent)
     static constexpr std::string_view EXPECTED =
         "func run(flag: bool)\n"
         "{\n"
-        "    for [y] in 2 do\n"
-        "        for [x] in 2\n"
+        "    for y in 2 do\n"
+        "        for x in 2\n"
         "        {\n"
         "            if flag\n"
         "            {\n"

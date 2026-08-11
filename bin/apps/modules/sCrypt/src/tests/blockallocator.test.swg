@@ -16,7 +16,7 @@ using Core
     var seen: BitArray
     seen.resize(BlockCount)
     var differsFromSequential: bool
-    for [expected] in BlockCount
+    for expected in BlockCount
     {
         let block = expect allocator.allocate()
         @assert(block < BlockCount)

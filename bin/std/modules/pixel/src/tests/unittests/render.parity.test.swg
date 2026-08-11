@@ -84,7 +84,7 @@ private func renderBlendParityScene(renderer: IRenderer)->Image
         painter.setBlendingMode(.Copy)
         painter.clear(Color.fromArgb(Argb.Zero))
 
-        for mode, [idx] in ArtisticBlendModes
+        for mode, idx in ArtisticBlendModes
         {
             let x = cast(f32) idx * 12.0
 
@@ -131,9 +131,9 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
                              Color.fromArgb(Argb.DodgerBlue),
                              Color.fromArgb(Argb.LimeGreen)]
 
-    for [y] in image.height
+    for y in image.height
     {
-        for [x] in image.width
+        for x in image.width
         {
             let color = colors[cast(u64) ((x + y) & 3)]
             let row   = image.height - y - 1
@@ -219,7 +219,7 @@ private func renderParityScene(renderer: IRenderer)->Image
     painter.setColorMaskFull()
 
     let modes: [7] BlendingMode = [.Copy, .Alpha, .Add, .Sub, .SubDst, .Min, .Max]
-    for mode, [idx] in modes
+    for mode, idx in modes
     {
         let x = 114 + cast(f32) idx * 11
         painter.setBlendingMode(.Copy)

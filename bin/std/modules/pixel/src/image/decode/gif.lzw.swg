@@ -13,7 +13,7 @@ impl Decoder
         .table.bulk     = Math.max(1 << (keySize + 1), 0x100's32)
         .table.nentries = (1 << keySize) + 2
         .table.entries.resize(.table.bulk)
-        for [key] in 1 << keySize do
+        for key in 1 << keySize do
             .table.entries[key] = {1, 0xFFF, cast(u8) key}
     }
 
@@ -140,7 +140,7 @@ impl Decoder
                 keySize += 1
             entry  = .table.entries.buffer![key]
             strLen = entry.length
-            for [i] in strLen
+            for i in strLen
             {
                 let p = frmOff + entry.length - 1
                 let x = p % .fw

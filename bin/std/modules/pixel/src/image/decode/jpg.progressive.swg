@@ -208,7 +208,7 @@ impl Decoder
                 if .restartInterval and (.restartsLeft == 0) do
                     .restartProcess()
 
-                for [mcuBlock] in .blocksPerMcu
+                for mcuBlock in .blocksPerMcu
                 {
                     let componentId = .mcuOrg[mcuBlock]
                     let blkX        = blockMcutX[componentId] + blockMcuOfsX
@@ -253,7 +253,7 @@ impl Decoder
                 blockMcutY[.compList[0]] += 1
             else
             {
-                for [n] in .compsInScan
+                for n in .compsInScan
                 {
                     let componentId = .compList[n]
                     blockMcutY[componentId] += .compSampV[componentId]
@@ -267,7 +267,7 @@ impl Decoder
         if .compsInFrame == 4 do
             fail UnsupportedFormatError{"unsupported color space"}
 
-        for [i] in .compsInFrame
+        for i in .compsInFrame
         {
             .dcCoeffs[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i], 1, 1)
             .acCoeffs[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i], 8, 8)
@@ -307,7 +307,7 @@ impl Decoder
         }
 
         .compsInScan = .compsInFrame
-        for [i] in .compsInFrame do
+        for i in .compsInFrame do
             .compList[i] = i
         .calcMcuBlockOrder()
     }

@@ -101,7 +101,7 @@ func vp8Filter246(pixels: [*] u8, count, level, iLevel, hLevel, index, iStep, jS
 
 func vp8ComputeFilterParams(decoder: *Vp8Decoder)
 {
-    for [segment] in VP8_SEGMENTS
+    for segment in VP8_SEGMENTS
     {
         var baseLevel = cast(s32) decoder.filterHeader.level
         if decoder.segmentHeader.useSegment
@@ -111,7 +111,7 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
                 baseLevel += decoder.filterHeader.level
         }
 
-        for [mode] in 2
+        for mode in 2
         {
             let parameter = &decoder.filterParams[segment][mode]
             parameter.inner = mode != 0
@@ -148,9 +148,9 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
 func vp8SimpleFilter(decoder: *Vp8Decoder)
 {
     let yData = cast([*] u8) decoder.y.buffer!
-    for [mbY] in decoder.mbHeight
+    for mbY in decoder.mbHeight
     {
-        for [mbX] in decoder.mbWidth
+        for mbX in decoder.mbWidth
         {
             let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
             if !parameter.level do
@@ -183,9 +183,9 @@ func vp8NormalFilter(decoder: *Vp8Decoder)
     let yData  = cast([*] u8) decoder.y.buffer!
     let cbData = cast([*] u8) decoder.cb.buffer!
     let crData = cast([*] u8) decoder.cr.buffer!
-    for [mbY] in decoder.mbHeight
+    for mbY in decoder.mbHeight
     {
-        for [mbX] in decoder.mbWidth
+        for mbX in decoder.mbWidth
         {
             let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
             if !parameter.level do

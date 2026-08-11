@@ -168,7 +168,7 @@ public impl Sha1
         let buf = @dataof(buffer)
         let len = @countof(buffer)
 
-        for [i] in len
+        for i in len
         {
             .data[.dataLength] = buf[i]
             .dataLength        += 1

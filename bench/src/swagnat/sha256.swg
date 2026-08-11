@@ -17,7 +17,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 {
     // ---- data generation (not timed) ----
     let msg = cast([*] u8) @alloc(SIZE)!
-    for [i] in SIZE do
+    for i in SIZE do
         msg[i] = cast(u8)(rnd() % 256)
 
     // ---- timed work ----
@@ -34,7 +34,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
         buf[nb] = 0
         nb += 1
     }
-    for [s] in 8'u64
+    for s in 8'u64
     {
         buf[nb] = cast(u8)((totalBits >> (56 - 8 * s)) & 0xFF)
         nb += 1
@@ -52,10 +52,10 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
     var w: [64] u64 = undefined
     let nblocks     = nb / 64
 
-    for [b] in nblocks
+    for b in nblocks
     {
         let o = b * 64
-        for [t] in 16'u64
+        for t in 16'u64
         {
             let p = o + t * 4
             w[t] = (cast(u64) buf[p] << 24) | (cast(u64) buf[p + 1] << 16) | (cast(u64) buf[p + 2] << 8) | cast(u64) buf[p + 3]
@@ -81,7 +81,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
         var g  = h6
         var h  = h7
 
-        for [i] in 64'u64
+        for i in 64'u64
         {
             let s1  = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)
             let ch  = (e & f) ^ ((~e & M32) & g)

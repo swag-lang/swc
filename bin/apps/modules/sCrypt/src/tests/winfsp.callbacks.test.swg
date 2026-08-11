@@ -78,7 +78,7 @@ func statusForError(kind: ErrorKind)->s32
     @assert(WinFsp.callbackLookup(context, @dataof("\\missing"), &lookupId, &info) == WinFsp.StatusObjectNameNotFound)
 
     var source: [5000] u8
-    for value, [i] in source do
+    for value, i in source do
         source[i] = cast(u8) ((i * 13 + 5) & 0xFF)
     var transferred: u32
     @assert(WinFsp.callbackWrite(context, fileId, &source[0], 0, #sizeof(source), 0, 0, &transferred, &info) == WinFsp.StatusSuccess)

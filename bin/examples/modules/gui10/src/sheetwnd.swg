@@ -172,7 +172,7 @@ impl SheetView
     private mtd buildPalettes()
     {
         var palettes: [5] ThemeColors
-        for [i] in ThemeVariantCount
+        for i in ThemeVariantCount
         {
             palettes[i] = variantColors(cast(ThemeVariant) cast(s32) i)
             .grounds[i] = palettes[i].bk
@@ -187,7 +187,7 @@ impl SheetView
 
             var row: SheetRow
             row.name = name
-            for [i] in ThemeVariantCount do
+            for i in ThemeVariantCount do
                 row.colors[i] = dref cast(const *Color) (cast([*] u8) &palettes[i] + field.offset)
 
             let swagDark  = row.colors[cast(s32) ThemeVariant.SwagDark]
@@ -299,7 +299,7 @@ impl IWnd for SheetView
                 if .kind == .Palettes
                 {
                     var captionX = rect.x + NameWidth
-                    for [i] in ThemeVariantCount
+                    for i in ThemeVariantCount
                     {
                         drawCell(painter, {captionX + 2, head.y, SwatchWidth, head.height}, variantName(cast(ThemeVariant) cast(s32) i), .fontName!, colors.label_TextFaint)
                         captionX += SwatchWidth + SwatchGap
@@ -323,7 +323,7 @@ impl IWnd for SheetView
                 drawCell(painter, {x, rect.y, HexWidth, height}, row.text.toString(), .fontMono!, colors.label_TextLight)
 
             case .Palettes:
-                for [i] in ThemeVariantCount
+                for i in ThemeVariantCount
                 {
                     let swatch = Math.Rectangle{x, rect.y + SwatchInset, SwatchWidth, height - 2 * SwatchInset}
                     .drawSwatch(painter, swatch, row.colors[i], .grounds[i])

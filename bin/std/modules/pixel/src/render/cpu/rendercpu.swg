@@ -123,7 +123,7 @@ private impl RenderCpu
 
     mtd removeTextureStorage(handle: TextureHandle)
     {
-        for texture, [idx] in .textures where texture.handle == handle
+        for texture, idx in .textures where texture.handle == handle
         {
             .textures.removeAt(idx)
             return
@@ -1528,7 +1528,7 @@ impl RenderCpu
     {
         .resetDrawState()
         .contentScale = painter.contentScale()
-        for &cmd, [idx] in painter.commandBuffer do
+        for &cmd, idx in painter.commandBuffer do
             .executeCommand(painter, &cmd, cast(u64) idx)
     }
 
@@ -1713,7 +1713,7 @@ impl RenderCpu
         let w2 = Math.roundUpToPowerOf2(cast(u32) width)
         let h2 = Math.roundUpToPowerOf2(cast(u32) height)
 
-        for rt, [idx] in .stackReleasedRT
+        for rt, idx in .stackReleasedRT
         {
             let candidate = rt!
             if candidate.colorBuffer.width >= w2 and candidate.colorBuffer.height >= h2

@@ -83,7 +83,7 @@ impl TemporaryVisits
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item: s32, index: u64))
     {
-        for [idx] in 2
+        for idx in 2
         {
             #inject(stmt, item = cast(s32) @index, index = @index)
         }

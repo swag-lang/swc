@@ -30,7 +30,7 @@ impl Image
         var dstPix = dstImage.pixels.buffer + dstY * dstImage.rowStride
         dstPix += dstX * .bytesPerPixel
 
-        for [cy] in srcH
+        for cy in srcH
         {
             var srcPix = .pixels.buffer + (srcY + cy) * .rowStride
             srcPix += cast(u64) (srcX * .bytesPerPixel)

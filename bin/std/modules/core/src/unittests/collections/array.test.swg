@@ -48,7 +48,7 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
     if values.count != @countof(expected) do
         return false
 
-    for [i] in values.count
+    for i in values.count
     {
         if values[i] != expected[i] do
             return false
@@ -62,7 +62,7 @@ func assertStringArray(values: const &Array'String, expected: const [..] string)
     if values.count != @countof(expected) do
         return false
 
-    for [i] in values.count
+    for i in values.count
     {
         if values[i] != expected[i] do
             return false
@@ -76,7 +76,7 @@ func assertStringSlice(values: const [..] String, expected: const [..] string)->
     if @countof(values) != @countof(expected) do
         return false
 
-    for [i] in @countof(values)
+    for i in @countof(values)
     {
         if values[i] != expected[i] do
             return false
@@ -90,7 +90,7 @@ func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expecte
     if values.count != @countof(expected) do
         return false
 
-    for [i] in values.count
+    for i in values.count
     {
         if values[i] != expected[i] do
             return false
@@ -101,7 +101,7 @@ func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expecte
 
 func visitStructArray(values: &Array'ArrayVisitProbe)->s32
 {
-    for value, [index] in values where value.value != 12
+    for value, index in values where value.value != 12
     {
         if index == 0 do
             continue
@@ -115,7 +115,7 @@ func visitStructArray(values: &Array'ArrayVisitProbe)->s32
 func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 {
     var score = 0
-    for #reverse value, [index] in values
+    for #reverse value, index in values
     {
         score += value.value + cast(s32) index
         if value.value == 12 do
@@ -164,6 +164,23 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     @assert(values.count == 0)
 }
 
+// The collection protocol follows the language rule for scalar bindings: copy the value.
+#test
+{
+    var values: Array's32
+    values.add([10, 20, 30])
+
+    var sum = 0
+    for value, index in values
+    {
+        #assert(#typeof(value) == s32)
+        values[index] = 100
+        sum += value
+    }
+
+    @assert(sum == 60)
+}
+
 #test
 {
     var values: Array's32
@@ -185,14 +202,14 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     @assert(assertIntArray(values, expectedGrid))
 
     var weightedSum: s32 = 0
-    for value, [ordinal] in values
+    for value, ordinal in values
     {
         weightedSum += value * cast(s32) (ordinal + 1)
     }
 
     @assert(weightedSum == 48)
 
-    for &value, [ordinal] in values
+    for &value, ordinal in values
     {
         value -= cast(s32) ordinal
     }
@@ -378,7 +395,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     values.add(seed)
 
     var reverseIndex = Swag.U64.Max
-    for #reverse value, [index] in values
+    for #reverse value, index in values
     {
         if value == 30 do
             reverseIndex = index
@@ -487,7 +504,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     @assert(values.count == 6)
     @assert(values.capacity >= 6)
 
-    for [i] in values.count do
+    for i in values.count do
         @assert(values[i] == 0)
 
     values.fill(7)
@@ -579,12 +596,12 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 
     var source: Array'u16
     defer source.free()
-    for [i] in 21 do
+    for i in 21 do
         source.add(cast(u16) (i + 1))
 
     var copy = source
     defer copy.free()
     @assert(copy.count == 21)
-    for [i] in 21 do
+    for i in 21 do
         @assert(copy[i] == cast(u16) (i + 1))
 }

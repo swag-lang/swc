@@ -110,7 +110,7 @@ impl CurveWall
 
         var path: LinePath
         path.start(plot.x, plotY(plot, easing.evaluate(0)))
-        for [step] in CurveSamples
+        for step in CurveSamples
         {
             let t = cast(f32) (step + 1) / cast(f32) CurveSamples
             path.lineTo(plot.x + t * plot.width, plotY(plot, easing.evaluate(t)))
@@ -151,7 +151,7 @@ impl IWnd for CurveWall
         if cardW < 60 or cardH < 60 do
             return
 
-        for [index] in count
+        for index in count
         {
             let column = cast(f32) (index % columns)
             let row    = cast(f32) (index / columns)

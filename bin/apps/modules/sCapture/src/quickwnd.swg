@@ -652,7 +652,7 @@ impl QuickWnd
 
         // Form buttons are always the leading children (only the trailing model
         // button is ever hidden), so form 'i' maps directly to child 'i'.
-        for it, [i] in .currentStyle.forms
+        for it, i in .currentStyle.forms
         {
             let btn = cast(*IconButton) .layout.children[i]
             let mdl = .main.modelFor(@kindof(it))

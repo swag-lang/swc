@@ -61,7 +61,7 @@ func initContent() fail
     g_SourceFont   = g_Renderer.fonts.createFont(g_TypeFace!, 12, .Auto)
     g_MathFont     = g_Renderer.fonts.createFont(g_TypeFace!, 34, .Auto)
 
-    for source, [idx] in Sources do
+    for source, idx in Sources do
         g_Formulas[idx] = try MathExpression.parse(source)
 }
 
@@ -120,7 +120,7 @@ func drawScene(painter: *Pixel.Painter)
     let gap   = 18.0
     let cardW = (cast(f32) W - Margin * 2 - gap) * 0.5
     let cardH = (cast(f32) H - top - Margin - gap * 2) / 3
-    for [idx] in FormulaCount
+    for idx in FormulaCount
     {
         let column = cast(f32) (idx % 2)
         let row    = cast(f32) (idx / 2)

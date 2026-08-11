@@ -32,7 +32,7 @@ func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
 
 func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
 {
-    for [i] in @countof(bytes) - 1
+    for i in @countof(bytes) - 1
     {
         if bytes[i] == 0xFF and bytes[i + 1] == marker do
             return

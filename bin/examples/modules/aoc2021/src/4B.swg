@@ -68,15 +68,15 @@ func day4B()
 
     var bestScore: u64
     var bestCard:  Array'u64
-    for [cardIndex] in (lines.count - 2 + 5) / 6
+    for cardIndex in (lines.count - 2 + 5) / 6
     {
         let line = 2 + cardIndex * 6
         var card:            Array'u64
         var maxCol, maxLine: [5] u64
 
-        for [y] in line to line + 4
+        for y in line to line + 4
         {
-            for v, [x] in Tokenize.split(lines[y], ' 'u8)
+            for v, x in Tokenize.split(lines[y], ' 'u8)
             {
                 let n = expect StrConv.toS32(v)
                 let i = Slice.findLinear(numbers.toSlice(), n)
@@ -88,7 +88,7 @@ func day4B()
         }
 
         var score = Swag.U64.Max
-        for [i] in 5 do
+        for i in 5 do
             score = Math.min(score, maxCol[i], maxLine[i])
 
         if score > bestScore

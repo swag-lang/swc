@@ -54,7 +54,7 @@ var g_Functions: Array'OneFunc
         builderVars.appendString("public func ")
         builderVars.appendString(e.name)
         builderVars.appendString("(")
-        for p, [i] in etype.parameters
+        for p, i in etype.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")
@@ -80,7 +80,7 @@ var g_Functions: Array'OneFunc
         }
 
         builderVars.appendString("(")
-        for p, [i] in etype.parameters
+        for p, i in etype.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")

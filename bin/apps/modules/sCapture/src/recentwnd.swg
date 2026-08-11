@@ -101,7 +101,7 @@ impl IWnd for RecentView
 
         // Hit test
         var ht = Swag.U64.Max
-        for i, [idx] in .items
+        for i, idx in .items
         {
             if i!.rect.contains(pos)
             {
@@ -244,7 +244,7 @@ impl IWnd for RecentView
         let clientRect = .paddedClientRect()
 
         var x = clientRect.x
-        for item, [idx] in .items
+        for item, idx in .items
         {
             let it = item!
             let w  = clientRect.height * 4.0 / 3
@@ -377,7 +377,7 @@ impl RecentWnd
             g_Library.fill()
         g_Library.onDeleteFile += func|self = me|(file)
         {
-            for it, [i] in self.recentView.items
+            for it, i in self.recentView.items
             {
                 if it!.file == file
                 {
@@ -505,7 +505,7 @@ impl RecentWnd
     mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: string = "")
     {
         // Already there ?
-        for it, [i] in .recentView.items
+        for it, i in .recentView.items
         {
             let itn = it!
             if itn.file == file

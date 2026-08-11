@@ -19,7 +19,7 @@ struct(T) IsSet
     const Powers: [4] s32 = #run
     {
         var table: [4] s32
-        for [i] in @countof(table) do
+        for i in @countof(table) do
             table[i] = 1 << cast(u32) i
         return table
     }

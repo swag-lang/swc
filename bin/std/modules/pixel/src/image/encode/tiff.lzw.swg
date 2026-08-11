@@ -54,7 +54,7 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
     var nextCode = LZW_FIRST_CODE
     var prefix   = cast(u32) src[0]
 
-    for [i] in count - 1
+    for i in count - 1
     {
         let value = cast(u32) src[i + 1]
         let key   = (prefix << 8) | value
@@ -93,7 +93,7 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
 
 func applyHorizontalPredictor(data: [*] u8, rowBytes, rows, samples: u64)
 {
-    for [y] in rows
+    for y in rows
     {
         let row    = data + y * rowBytes
         var offset = rowBytes

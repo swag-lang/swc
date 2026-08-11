@@ -19,7 +19,7 @@ impl Encoder
         let chl = cast(s32) .encodeFlags.filterChoice
         if !(chl & (chl - 1))
         {
-            for [i] in 5
+            for i in 5
             {
                 if chl == 1 << (i + 3) do
                     return cast() i
@@ -31,7 +31,7 @@ impl Encoder
         var filterScores = [Swag.S32.Max, Swag.S32.Max, Swag.S32.Max, Swag.S32.Max, Swag.S32.Max]
 
         var sum: s32
-        for [i] in 5
+        for i in 5
         {
             let flag = 1 << (i + 3)
             if !(chl & flag) do
@@ -73,7 +73,7 @@ impl Encoder
 
         let scanline     = .scanline!
         let prevScanline = .prevScanline!
-        for [i] in size
+        for i in size
         {
             if i >= .bytesPerPixel
             {
@@ -119,7 +119,7 @@ impl Encoder
     {
         let scanline     = .scanline!
         let prevScanline = .prevScanline!
-        for [i] in size
+        for i in size
         {
             var a, b, c: s32
             if i >= .bytesPerPixel

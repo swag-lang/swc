@@ -128,7 +128,7 @@ impl MountedDrives
             line.setItem(cast(u32) MountedColumn.Vault, Path.fileName(one.path.toString()) orelse one.path.toString())
         }
 
-        for &one, [index] in .drives where one.atStartup do
+        for &one, index in .drives where one.atStartup do
             .list.setLineChecked(cast(u32) index, true, notify: false)
 
         let filled = !.drives.isEmpty()
@@ -166,7 +166,7 @@ impl MountedDrives
         let line = .list.selectedLine()
         if !line do
             return Swag.U64.Max
-        for &one, [index] in .drives
+        for &one, index in .drives
         {
             discard one
             if .list.lineAt(cast(u32) index) == line do

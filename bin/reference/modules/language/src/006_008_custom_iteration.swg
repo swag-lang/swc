@@ -37,7 +37,7 @@ impl MyStruct
         where !ptr and !back
     {
         // Visit fields x, y, z in declaration order
-        for [idx] in 3
+        for idx in 3
         {
             var visitItem: s32 = undefined
             switch idx
@@ -56,15 +56,15 @@ impl MyStruct
 # Iterating Over Struct Fields
 
 Example usage of 'opVisit' to traverse fields of a struct. A plain name binds
-the first block parameter, and a bracketed name binds the second one. As with
-built-in collections, `for [i] in value` binds only that second parameter.
+the first block parameter, and a second name binds the second parameter. As with
+built-in collections, `for ?, i in value` discards the first and binds only the second.
 */
 #test
 {
     var myStruct = MyStruct{}
     var cpt      = 0
 
-    for v, [i] in myStruct
+    for v, i in myStruct
     {
         switch i
         {
@@ -84,7 +84,7 @@ built-in collections, `for [i] in value` binds only that second parameter.
     var myStruct = MyStruct{}
     var sum: u64
 
-    for [i] in myStruct do
+    for ?, i in myStruct do
         sum += i
 
     @assert(sum == 3)
@@ -100,7 +100,7 @@ impl MyStruct
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisitReverse(stmt: #code(item: s32, index: u64))
     {
-        for [idx] in 3
+        for idx in 3
         {
             var visitItem: s32 = undefined
             switch idx
@@ -125,7 +125,7 @@ Using 'opVisitReverse' to iterate fields from last to first.
     var myStruct = MyStruct{}
     var cpt      = 0
 
-    for #Reverse v, [i] in myStruct
+    for #Reverse v, i in myStruct
     {
         switch i
         {
@@ -163,7 +163,7 @@ impl SliceStruct
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
         where !back
     {
-        for [idx] in @countof(me.buffer)
+        for idx in @countof(me.buffer)
         {
             #static if ptr do
                 #inject(stmt, item = cast(&s32) &me.buffer[idx], index = @index)
@@ -183,7 +183,7 @@ Sum elements of a slice via 'opVisit'.
     var arrStruct = SliceStruct{}
     var sum       = 0
 
-    for v, [i] in arrStruct do
+    for v, i in arrStruct do
         sum += v
 
     @assert(sum == 1 + 2 + 3 + 4 + 5)
@@ -199,7 +199,7 @@ can update the underlying storage.
 {
     var arrStruct = SliceStruct{}
 
-    for &v, [i] in arrStruct do
+    for &v, i in arrStruct do
         v += cast(s32) i
 
     @assert(arrStruct.buffer[0] == 1)
@@ -226,7 +226,7 @@ impl WindowStruct
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
         where !ptr
     {
-        for [idx] in 3
+        for idx in 3
         {
             #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
         }
@@ -245,7 +245,7 @@ tracks the iteration ordinal.
     var code    = 0
     var ordinals: u64
 
-    for #Pairs left, [right] in windows
+    for #Pairs left, right in windows
     {
         code     = code * 100 + left * 10 + right
         ordinals += @index

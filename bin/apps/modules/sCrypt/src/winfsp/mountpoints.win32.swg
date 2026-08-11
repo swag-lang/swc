@@ -27,7 +27,7 @@ namespace WinFsp
         defer discard RegCloseKey(currentUser)
 
         var result = 0'u32
-        for [index] in 26
+        for index in 26
         {
             let subkey        = Utf16.toZeroTerminated(Format.toString("Network\\%", cast(rune) ('A' + index)))
             var mapping: HKEY = null
@@ -56,7 +56,7 @@ namespace WinFsp
             return result
         let unavailable = logical | rememberedNetworkDriveMask()
         result.reserve(26)
-        for [index] in 26 where (unavailable & (1'u32 << index)) == 0 do
+        for index in 26 where (unavailable & (1'u32 << index)) == 0 do
             result.add(cast(rune) ('A' + index))
         return result
     }

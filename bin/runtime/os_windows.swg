@@ -444,10 +444,10 @@ func __hostDebugSection(base: *void)->#null [*] u8
     var section = ntOff + 24 + cast(u64) optSize
 
     let wanted = ".swagdbg"
-    for [index] in count
+    for index in count
     {
         var matches = true
-        for [byte] in 8 where image[section + cast(u64) byte] != cast(u8) wanted[byte]
+        for byte in 8 where image[section + cast(u64) byte] != cast(u8) wanted[byte]
         {
             matches = false
             break

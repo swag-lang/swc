@@ -26,7 +26,7 @@ func isValidPathName(fullname: string)->bool
         return false
 
     let extendedSyntax = TargetHasWindowsPathSyntax and @countof(fullname) >= 4 and isDirectorySeparator(fullname[0]) and isDirectorySeparator(fullname[1]) and fullname[2] == '?' and isDirectorySeparator(fullname[3])
-    for c, [index] in fullname
+    for c, index in fullname
     {
         if c == 0 do
             return false
@@ -69,7 +69,7 @@ func rootLength(fullname: string)->u32
     {
         if @countof(source) < @countof(value) do
             return false
-        for [i] in @countof(value) where value[i] != source[i] do
+        for i in @countof(value) where value[i] != source[i] do
             return false
         return true
     }

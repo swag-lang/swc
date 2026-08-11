@@ -233,7 +233,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             let values = cast(*Array'u8) data!
             let rawPtr = cast([*] u8) raw!
             values.clear()
-            for [i] in 4 do
+            for i in 4 do
                 values.add(rawPtr[3 - i])
             return true
         }
@@ -317,7 +317,7 @@ func makeTagBinPayload()->TagBinPayload
     result.finalPoint = TagBinFinalPoint{x: -2, y: 5}
     result.transient  = 123
 
-    for [i] in 512
+    for i in 512
     {
         result.blob.add(cast(u8) (i % 4))
     }
@@ -372,10 +372,10 @@ func findTagBinV2Field(bytes: const [..] u8, fieldName: string)->TagBinV2Field
     @assert(shapeId < shapeCount)
 
     let fieldCrc = Hash.Crc32.compute(fieldName)
-    for [s] in shapeCount
+    for s in shapeCount
     {
         let fieldCount = expect stream.readVarint()
-        for [i] in fieldCount
+        for i in fieldCount
         {
             let crcName  = expect stream.readNative'u32()
             let typeSeek = stream.position()

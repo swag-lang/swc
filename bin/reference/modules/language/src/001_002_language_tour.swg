@@ -56,8 +56,8 @@ impl TourPoint
 # Collections and Iteration
 
 Arrays own a fixed number of elements. Slices are non-owning views. The same
-'for value in collection' form visits both, and '[index]' binds the logical
-index when it is needed.
+'for value in collection' form visits both. Add a second ordinary binding when
+the logical index is needed: 'for value, index in collection'.
 */
 #test
 {
@@ -65,7 +65,7 @@ index when it is needed.
     let middle = values[1 until 3]
     var total  = 0
 
-    for value, [index] in middle
+    for value, index in middle
     {
         @assert(value == values[index + 1])
         total += value

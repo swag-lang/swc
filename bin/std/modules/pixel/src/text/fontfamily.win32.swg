@@ -154,7 +154,7 @@ impl FontFamily
 
         if logFont.name.isEmpty()
         {
-            for [i] in @countof(FontFamilyStyle)
+            for i in @countof(FontFamilyStyle)
             {
                 logFont = fontFamily.faces[i]
                 if !logFont.name.isEmpty() do

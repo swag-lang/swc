@@ -60,7 +60,7 @@ impl Image
 
         case .HueHorz:
             var pix = .pixels.buffer!
-            for [x] in .width
+            for x in .width
             {
                 let factor0 = x / cast(f32) .width
                 let col     = Color.fromHsl(factor0, 1, 0.5)
@@ -114,7 +114,7 @@ impl Image
 
         case .SaturationHorz:
             var pix = .pixels.buffer!
-            for [x] in .width
+            for x in .width
             {
                 let factor0 = x / cast(f32) .width
                 let col     = Color.fromHsl(hsl.h, factor0, 0.5)
@@ -168,7 +168,7 @@ impl Image
 
         case .LightnessHorz:
             var pix = .pixels.buffer!
-            for [x] in .width
+            for x in .width
             {
                 let factor0 = x / cast(f32) .width
                 let col     = Color.fromHsl(hsl.h, hsl.s, factor0)

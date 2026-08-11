@@ -8,7 +8,7 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
     if @countof(values) != @countof(expected) do
         return false
 
-    for value, [index] in values
+    for value, index in values
     {
         if value != expected[index] do
             return false
@@ -94,7 +94,7 @@ func countedSortCompares(values: [..] s32)->u64
     var ascending: Core.Array's32
     var reversed:  Core.Array's32
     var equal:     Core.Array's32
-    for [i] in Count
+    for i in Count
     {
         ascending.add(cast(s32) i)
         reversed.add(cast(s32) (Count - i))

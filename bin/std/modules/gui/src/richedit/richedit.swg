@@ -126,7 +126,7 @@ private impl RichEditCtrl
     mtd setDefaultStyles()
     {
         let colors = .themeColors()
-        for [i] in @countof(.styles) do
+        for i in @countof(.styles) do
             .styles[i].colFg = colors.richEdit_Text
         .setForm(.RichEditCtrl)
     }
@@ -140,7 +140,7 @@ private impl RichEditCtrl
         var y           = 0'f32
         var firstHidden = true
         .countVisibleLines = 0
-        for [i] in @countof(.lines)
+        for i in @countof(.lines)
         {
             let ln = .lines[i]!
             ln.drawingRect.clear()
@@ -216,7 +216,7 @@ private impl RichEditCtrl
 
     mtd firstVisibleLine()->u64
     {
-        for [i] in .lines.count where .lines[i]!.isVisible() do
+        for i in .lines.count where .lines[i]!.isVisible() do
             return i
         return 0
     }
@@ -437,7 +437,7 @@ impl RichEditCtrl
             return
 
         var prev, cur, next: #null *RichEditLine
-        for [i] in @countof(.lines)
+        for i in @countof(.lines)
         {
             cur  = .lines[i]!
             next = i == .lines.count - 1 ? null : .lines[i + 1]

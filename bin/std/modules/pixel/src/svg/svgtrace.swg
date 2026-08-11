@@ -64,9 +64,9 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
     // Collect the distinct colors of sufficiently opaque pixels, most frequent
     // first so large fills are written before the details drawn over them.
     var colorCount: HashTable'(u32, u64)
-    for [y] in h
+    for y in h
     {
-        for [x] in w
+        for x in w
         {
             let {color, alpha} = sample(image, bpp, rOffset, bOffset, x, y)
             if alpha <= options.threshold do
@@ -81,7 +81,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
     }
 
     var colors: Array'{ key: u32, count: u64 }
-    for key, [count] in colorCount do
+    for key, count in colorCount do
         colors.add({key, count})
     colors.sort(func||(a, b) => b.count <=> a.count)
 
@@ -94,9 +94,9 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 
         // Average the class alpha so a uniformly translucent layer keeps its opacity.
         var alphaSum, alphaCount: u64
-        for [y] in h
+        for y in h
         {
-            for [x] in w
+            for x in w
             {
                 let {color, alpha} = sample(image, bpp, rOffset, bOffset, x, y)
                 if alpha > options.threshold and (color.argb & 0x00FFFFFF) == entry.key
@@ -156,9 +156,9 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
     let gh = h + 2
     var grid: Array'f32
     grid.resize(cast(u64) gw * cast(u64) gh)
-    for [y] in gh
+    for y in gh
     {
-        for [x] in gw do
+        for x in gw do
             grid[cast(u64) y * cast(u64) gw + cast(u64) x] = coverage(image, bpp, rOffset, bOffset, key, options.threshold, x - 1, y - 1)
     }
 
@@ -172,9 +172,9 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
     // Walk the segment grid: standard marching squares with linear interpolation.
     // For each cell whose top edge crosses the contour and was not consumed yet,
     // follow the boundary until it returns to the start.
-    for [cy] in gh - 1
+    for cy in gh - 1
     {
-        for [cx] in gw - 1
+        for cx in gw - 1
         {
             let a = at(&grid, gw, cx, cy)
             let b = at(&grid, gw, cx + 1, cy)
@@ -425,7 +425,7 @@ private func simplifyPath(path: *LinePath, tolerance: f32)
 
     // Rebuild the path with the kept points.
     var kept: Array'Vector2
-    for [i] in points.count where keep[i] do
+    for i in points.count where keep[i] do
         kept.add(points[i])
 
     path.clear()

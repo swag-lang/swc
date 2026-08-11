@@ -82,7 +82,7 @@ impl Encoder
         enc.init(minCodeSize)
         enc.writeCode(enc.clearCode)
 
-        for [i] in @countof(indexes)
+        for i in @countof(indexes)
         {
             if i do
                 enc.writeCode(enc.clearCode)

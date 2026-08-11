@@ -628,7 +628,7 @@ impl Surface
         let baseCorner = .cornerRadius()
 
         var reached = 0.0'f32
-        for [i] in rings
+        for i in rings
         {
             // `depth` runs 0 at the outermost ring to 1 at the body. Smoothstep gives the shadow
             // a long faint tail where it meets the desktop and a flat shoulder against the body,

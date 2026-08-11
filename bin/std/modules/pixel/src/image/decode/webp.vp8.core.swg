@@ -277,7 +277,7 @@ func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
     decoder.mbHeight = (decoder.header.height + 15) >> 4
     decoder.segmentHeader.probability = [0xFF, 0xFF, 0xFF]
     decoder.segment  = 0
-    for [i] in VP8_TOKEN_PROB_COUNT do
+    for i in VP8_TOKEN_PROB_COUNT do
         decoder.tokenProb[i] = VP8_DEFAULT_TOKEN_PROB[i]
 }
 
@@ -295,15 +295,15 @@ func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
     if part.readBit(VP8_UNIFORM_PROB)
     {
         decoder.segmentHeader.relativeDelta = !part.readBit(VP8_UNIFORM_PROB)
-        for [i] in VP8_SEGMENTS do
+        for i in VP8_SEGMENTS do
             decoder.segmentHeader.quantizer[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 7)
-        for [i] in VP8_SEGMENTS do
+        for i in VP8_SEGMENTS do
             decoder.segmentHeader.filterStrength[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 6)
     }
 
     if !decoder.segmentHeader.updateMap do
         return
-    for [i] in 3
+    for i in 3
     {
         decoder.segmentHeader.probability[i] = part.readBit(VP8_UNIFORM_PROB)
                                                ? cast(u8) part.readUint(VP8_UNIFORM_PROB, 8)
@@ -320,9 +320,9 @@ func vp8ParseFilterHeader(decoder: *Vp8Decoder)
     decoder.filterHeader.useDelta  = part.readBit(VP8_UNIFORM_PROB)
     if decoder.filterHeader.useDelta and part.readBit(VP8_UNIFORM_PROB)
     {
-        for [i] in 4 do
+        for i in 4 do
             decoder.filterHeader.referenceDelta[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 6)
-        for [i] in 4 do
+        for i in 4 do
             decoder.filterHeader.modeDelta[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 6)
     }
 }
@@ -337,7 +337,7 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
     var lengths: [8] u32
     var remaining  = decoder.size - offset - lengthBytes
     let lengthData = decoder.source + offset
-    for [i] in decoder.otherPartCount - 1
+    for i in decoder.otherPartCount - 1
     {
         let length = readU24(lengthData + 3 * i)
         if length > remaining do
@@ -351,7 +351,7 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
         fail UnsupportedFormatError{"WebP VP8 coefficient partition is too large"}
 
     var data = lengthData + lengthBytes
-    for [i] in decoder.otherPartCount
+    for i in decoder.otherPartCount
     {
         decoder.otherParts[i].init(data, lengths[i])
         data += lengths[i]
@@ -368,7 +368,7 @@ func vp8ParseQuant(decoder: *Vp8Decoder)
     let dUvDc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
     let dUvAc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
 
-    for [i] in VP8_SEGMENTS
+    for i in VP8_SEGMENTS
     {
         var q = baseQ0
         if decoder.segmentHeader.useSegment
@@ -395,7 +395,7 @@ func vp8ParseQuant(decoder: *Vp8Decoder)
 
 func vp8ParseTokenProbabilities(decoder: *Vp8Decoder)
 {
-    for [i] in VP8_TOKEN_PROB_COUNT
+    for i in VP8_TOKEN_PROB_COUNT
     {
         if decoder.firstPart.readBit(VP8_TOKEN_UPDATE_PROB[i]) do
             decoder.tokenProb[i] = cast(u8) decoder.firstPart.readUint(VP8_UNIFORM_PROB, 8)

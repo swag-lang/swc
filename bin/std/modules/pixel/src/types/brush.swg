@@ -124,7 +124,7 @@ impl Brush
     {
         let clamped       = Math.saturate(offset)
         var insertAt: u64 = .gradientStops.count
-        for [i] in .gradientStops.count
+        for i in .gradientStops.count
         {
             if clamped < .gradientStops[i].offset
             {

@@ -146,7 +146,7 @@ func sumVec4(v: Vec4)->f32
 #[Swag.NoInline]
 func firstAbove(limit: f32)->Vec4
 {
-    for [i] in 10
+    for i in 10
     {
         let f = cast(f32) i
         if f > limit do
@@ -343,7 +343,7 @@ func aliasedReceiver()->Vec4
 #test
 {
     var total: f32 = 0
-    for [i] in 4
+    for i in 4
     {
         let v = makeVec4(cast(f32) i).inlinedScaled(2)
         total += v.x + v.y + v.z + v.w

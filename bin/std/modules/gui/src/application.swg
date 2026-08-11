@@ -293,7 +293,7 @@ private impl Application
             return
 
         // Detect changes
-        for [i] in @countof(.mouse.previousState.pressed)
+        for i in @countof(.mouse.previousState.pressed)
         {
             let lastP = .mouse.previousState.pressed[i]
             let curP  = .mouse.currentState.pressed[i]
@@ -362,7 +362,7 @@ private impl Application
         let modifiers = .keyboard.pressedModifiers()
 
         // Detect changes
-        for [i] in @countof(.keyboard.previousState.pressed)
+        for i in @countof(.keyboard.previousState.pressed)
         {
             let lastP = .keyboard.previousState.pressed[i]
             let curP  = .keyboard.currentState.pressed[i]
@@ -1419,7 +1419,7 @@ impl Application
     // Unregisters a system-wide keyboard shortcut and returns whether it existed.
     mtd unregisterHotKey(modifiers: Input.KeyModifiers, key: Input.Key)->bool
     {
-        for shortcut, [idx] in .hotKeys
+        for shortcut, idx in .hotKeys
         {
             if shortcut.modifiers == modifiers and shortcut.key == key
             {

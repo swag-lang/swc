@@ -12,7 +12,7 @@ func sameChaChaBytes(left, right: const [..] u8)->bool
 func testKey()->[Crypto.ChaCha20KeySize] u8
 {
     var result: retval
-    for [i] in Crypto.ChaCha20KeySize do
+    for i in Crypto.ChaCha20KeySize do
         result[i] = cast(u8) i
     return result
 }
@@ -51,7 +51,7 @@ func testNonce()->[Crypto.ChaCha20NonceSize] u8
 
     const Count = 137
     var data: [Count] u8
-    for [i] in Count do
+    for i in Count do
         data[i] = cast(u8) ((i * 29 + 7) & 0xFF)
 
     let original = data
@@ -60,12 +60,12 @@ func testNonce()->[Crypto.ChaCha20NonceSize] u8
 
     // Each block of the result is the matching key-stream block folded into the input, so the
     // counter advances by exactly one block and never repeats one.
-    for [index] in 3
+    for index in 3
     {
         let block = expect Crypto.chacha20Block(key, cast(u32) (1 + index), nonce)
         let start = index * Crypto.ChaCha20BlockSize
         let count = Math.min(Count - start, Crypto.ChaCha20BlockSize)
-        for [i] in count do
+        for i in count do
             @assert(data[start + i] == original[start + i] ^ block[i])
     }
 

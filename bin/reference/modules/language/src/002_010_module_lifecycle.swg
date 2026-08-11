@@ -43,7 +43,7 @@ An executable has one '#main'. Command-line arguments are available through
 ```swag
 #main
 {
-    for argument, [index] in @args
+    for argument, index in @args
         @print(index, ": ", argument, "\n")
 }
 ```

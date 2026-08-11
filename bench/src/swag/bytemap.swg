@@ -37,7 +37,7 @@ func mapFree(m: *ByteMap)
 func mapProbe(m: *ByteMap, off, len: u64)->u64
 {
     var h = 2166136261'u64
-    for [i] in len
+    for i in len
     {
         h ^= cast(u64) m.base[off + i]
         h = (h * 16777619) & 0xFFFFFFFF

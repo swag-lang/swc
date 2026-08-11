@@ -47,7 +47,7 @@ impl ICodec for CodecPcmToPcm16
             var src = cast(const [*] u8) source
 
             var bytesWritten, bytesRead = 0
-            for [i] in sourceSize / TS
+            for i in sourceSize / TS
             {
                 if bytesWritten + #sizeof(s16) > destinationSize do
                     break

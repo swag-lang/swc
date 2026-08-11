@@ -96,9 +96,9 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
     rectBack.inflate(layout.margin)
     painter.fillRoundRect(rectBack, layout.corner, layout.corner, Color.fromRgb(187, 173, 160))
 
-    for [x] in CellCount
+    for x in CellCount
     {
-        for [y] in CellCount
+        for y in CellCount
         {
             let xi = layout.grid.x + (x * layout.cell) + layout.margin
             let yi = layout.grid.y + (y * layout.cell) + layout.margin
@@ -203,7 +203,7 @@ func animate(wnd: *Wnd)
     if wasMoving and !g_IsMoving do
         randValue()
 
-    for #reverse [i] in g_Cells.count where g_Cells[i].remove do
+    for #reverse i in g_Cells.count where g_Cells[i].remove do
         g_Cells.removeAt(i)
 }
 
@@ -264,7 +264,7 @@ func keyboard(wnd: *Wnd)
             if c.val == 0 do
                 continue
 
-            for [i] in 1 to CellCount
+            for i in 1 to CellCount
             {
                 if g_MoveDirX != 0
                 {

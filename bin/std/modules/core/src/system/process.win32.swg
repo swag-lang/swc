@@ -117,7 +117,7 @@ func joinArguments(arguments: const [..] string)->String
 private func appendQuoted(commandLine: *String, argument: string)
 {
     var mustQuote = @countof(argument) == 0
-    for [i] in @countof(argument)
+    for i in @countof(argument)
     {
         let c = argument[i]
         if c == ' ' or c == '\t' or c == '"' do
@@ -133,7 +133,7 @@ private func appendQuoted(commandLine: *String, argument: string)
     commandLine.append("\"")
 
     var slashes = 0'u64
-    for [i] in @countof(argument)
+    for i in @countof(argument)
     {
         let c = argument[i]
         if c == '\\'
@@ -268,7 +268,7 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
 private func buildEnvironmentBlock(environment: const *ProcessEnvironment)->Array'u16
 {
     var entries: Array'String
-    for name, [value] in environment.variables do
+    for name, value in environment.variables do
         entries.add(Format.toString("%=%", name.toString(), value.toString()))
     entries.sort(func||(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
 

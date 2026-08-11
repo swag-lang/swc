@@ -5,7 +5,7 @@ func filledBytes(count: u64, value: u8)->Array'u8
 {
     var result: retval
     result.resize(count)
-    for [i] in count do
+    for i in count do
         result[i] = value
     return result
 }

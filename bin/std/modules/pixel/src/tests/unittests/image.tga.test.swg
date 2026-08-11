@@ -530,7 +530,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 {
     var src    = Image.create(8, 1, .BGR8)
     let srcBuf = src.pixels.buffer!
-    for [x] in 4
+    for x in 4
     {
         let offset = cast(u64) x * 3
         srcBuf[offset]     = 10'u8
@@ -538,7 +538,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         srcBuf[offset + 2] = 30'u8
     }
 
-    for [x] in 4 until 8
+    for x in 4 until 8
     {
         let offset = cast(u64) x * 3
         srcBuf[offset]     = cast(u8) x
@@ -565,7 +565,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 {
     var src    = Image.create(3, 1, .RGBA8)
     let srcBuf = src.pixels.buffer!
-    for [x] in src.width
+    for x in src.width
     {
         let offset = cast(u64) x * 4
         srcBuf[offset]     = 1'u8

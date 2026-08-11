@@ -19,7 +19,7 @@ impl NumericArray
 
     mtd const opEquals(other: NumericArray)->bool
     {
-        for [i] in N
+        for i in N
         {
             if .buf[i] != other.buf[i] do
                 return false
@@ -33,7 +33,7 @@ impl NumericArray
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         var result: retval
-        for [i] in N
+        for i in N
         {
             #static switch op
             {
@@ -51,7 +51,7 @@ impl NumericArray
     mtd(op: Swag.Operator) opAssign(value: T)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
-        for [i] in N
+        for i in N
         {
             #static switch op
             {
@@ -67,7 +67,7 @@ impl NumericArray
     func(op: Swag.Operator) opAssign(me, value: NumericArray)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
-        for [i] in N
+        for i in N
         {
             #static switch op
             {
@@ -82,7 +82,7 @@ impl NumericArray
     #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: T)
     {
-        for [i] in N do
+        for i in N do
             .buf[i] = what
     }
 
@@ -90,7 +90,7 @@ impl NumericArray
     mtd opSet(what: const [..] T)
     {
         Debug.assert(@countof(what) == N)
-        for [i] in N do
+        for i in N do
             .buf[i] = what[i]
     }
 
@@ -109,7 +109,7 @@ impl NumericArray
     mtd set(values: T...)
     {
         Debug.assert(@countof(values) == N)
-        for [i] in N do
+        for i in N do
             .buf[i] = values[i]
     }
 
@@ -117,7 +117,7 @@ impl NumericArray
     #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: T)
     {
-        for [i] in N do
+        for i in N do
             .buf[i] = (.buf[i] * value1) + value2
     }
 
@@ -125,7 +125,7 @@ impl NumericArray
     #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: NumericArray)
     {
-        for [i] in N do
+        for i in N do
             .buf[i] = (.buf[i] * value1[i]) + value2.buf[i]
     }
 }

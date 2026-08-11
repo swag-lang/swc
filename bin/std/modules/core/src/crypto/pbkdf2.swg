@@ -24,7 +24,7 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
     input.resize(@countof(salt) + 4)
 
     var outputOffset = 0'u64
-    for [block] in 1 to blockCount
+    for block in 1 to blockCount
     {
         let blockIndex = cast(u32) block
         let suffix     = input.count - 4
@@ -35,11 +35,11 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
 
         var current = HmacSha256.compute(password, input.toSlice())
         var result  = current
-        for [iteration] in 1 until iterations
+        for iteration in 1 until iterations
         {
             discard iteration
             current = HmacSha256.compute(password, current)
-            for [i] in digestSize do
+            for i in digestSize do
                 result[i] ^= current[i]
         }
 

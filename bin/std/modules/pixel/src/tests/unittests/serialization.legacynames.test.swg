@@ -39,7 +39,7 @@ func makeLegacyImage()->LegacyImage
 
     // A recognizable ramp, so a stride or format mistake shows up as wrong bytes rather
     // than as a plausible-looking image.
-    for [i] in result.size do
+    for i in result.size do
         result.pixels.add(cast(u8) (i * 7))
 
     var meta: LegacyImageMetaData
@@ -75,7 +75,7 @@ func makeLegacyImage()->LegacyImage
     @assert(decoded.byteCount == 24)
     @assert(decoded.isValid())
 
-    for [i] in decoded.byteCount do
+    for i in decoded.byteCount do
         @assert(decoded.pixels.buffer![i] == cast(u8) (i * 7))
 
     @assert(decoded.metadata.count == 1)

@@ -234,7 +234,7 @@ impl IWnd for ContentCatcher
         {
             .names.clear()
             .blobs.clear()
-            for [i] in evt.data.contents.count
+            for i in evt.data.contents.count
             {
                 .names.add(evt.data.contents[i].name)
 

@@ -7,5 +7,5 @@
 
 #test
 {
-    for to "a" {}     // swc-expected-error {{sema_err_invalid_range_type}}
+    for 0 to "a" {}     // swc-expected-error {{sema_err_invalid_range_type}}
 }

@@ -217,7 +217,7 @@ using Swag, Core, File
     // Mirror the handler LibraryWnd.fill() installs: drop the matching view item.
     g_Library.onDeleteFile += func|libWnd = lib|(file)
     {
-        for it, [i] in libWnd.view.items
+        for it, i in libWnd.view.items
         {
             if it.fi.fullname == file
             {
@@ -230,7 +230,7 @@ using Swag, Core, File
 
     // Three real capture files, registered in the library and the view.
     var paths: Array'String
-    for [idx] in 3
+    for idx in 3
     {
         let capture = Memory.new'Capture()
         capture.width, capture.widthOrg   = 8
@@ -263,7 +263,7 @@ using Swag, Core, File
     @assert(view.items.count == 3)
     @assert(g_Library.files.count == 3)
 
-    for [idx] in view.items.count do
+    for idx in view.items.count do
         view.selModel.select(cast() idx)
 
     lib.removeSelected()
@@ -460,7 +460,7 @@ using Swag, Core, File
     view.sort()
     @assert(view.items[0] == chrome)
 
-    for item, [i] in view.items where item == slack do
+    for item, i in view.items where item == slack do
         view.setFocusItem(cast(u32) i)
     lib.sortMethod = .Dimensions
     view.sort()
@@ -603,7 +603,7 @@ using Swag, Core, File
     @assert(lib.sidebarApplications[0].count == 1)
     @assert(lib.sidebarTags.count == 2)
 
-    for [i] in lib.listCtrl.lineCount()
+    for i in lib.listCtrl.lineCount()
     {
         let line = lib.listCtrl.lineAt(cast(u32) i)!
         if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Application do
@@ -621,7 +621,7 @@ using Swag, Core, File
     @assert(lib.view.items.count == 1)
     @assert(lib.view.items[0] == chrome)
 
-    for [i] in lib.listCtrl.lineCount()
+    for i in lib.listCtrl.lineCount()
     {
         let line = lib.listCtrl.lineAt(cast(u32) i)!
         if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Tag do

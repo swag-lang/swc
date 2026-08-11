@@ -48,7 +48,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 
     // One command per connected monitor, minted on demand: the sixth is reachable
     // exactly like the first, and each carries a distinct id and an enabled state.
-    for [idx] in @countof(f.main.monitors)
+    for idx in @countof(f.main.monitors)
     {
         let id = ActionCapture.screenId(idx)
 

@@ -148,7 +148,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     {
         var named     = preset
         let tolerance = presetTolerance(preset)
-        for [step] in Samples + 1
+        for step in Samples + 1
         {
             let p = cast(f32) step / cast(f32) Samples
             @assert(Math.isEqualEpsilon(named.evaluate(p), referencePreset(preset, p), tolerance))
@@ -179,7 +179,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     @assert(anticipate.evaluate(0.3) < 0)
 
     var bounce = Math.CurvePreset.EaseOutBounce
-    for [step] in 101
+    for step in 101
     {
         let value = bounce.evaluate(cast(f32) step / 100)
         @assert(value >= 0 and value <= 1.0001)
@@ -300,7 +300,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     var bezier = hermite
     bezier.keys[0].interpolation = .Bezier
 
-    for [step] in 65
+    for step in 65
     {
         let x = cast(f32) step / 64
         @assert(Math.isEqualEpsilon(bezier.evaluateNormalized(x), hermite.evaluateNormalized(x), 0.0005))
@@ -317,7 +317,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32
 #test
 {
     let straight = Math.Curve.createBezier(1 / 3.0, 1 / 3.0, 2 / 3.0, 2 / 3.0)
-    for [step] in 33
+    for step in 33
     {
         let x = cast(f32) step / 32
         @assert(Math.isEqualEpsilon(straight.evaluateNormalized(x), x, 0.001))
@@ -330,7 +330,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     @assert(ease.evaluateNormalized(0.5) > 0.5)
 
     var previous = 0'f32
-    for [step] in 65
+    for step in 65
     {
         let value = ease.evaluateNormalized(cast(f32) step / 64)
         @assert(value >= previous - 0.0001)
@@ -394,7 +394,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     @assert(Math.isEqualEpsilon(decoded.keys[1].inWeight, 0.2, 0.0001))
     @assert(Math.isEqualEpsilon(decoded.keys[1].outWeight, 0.8, 0.0001))
 
-    for [step] in 33
+    for step in 33
     {
         let x = -1 + cast(f32) step / 8
         @assert(Math.isEqualEpsilon(decoded.evaluate(x), curve.evaluate(x), 0.0001))

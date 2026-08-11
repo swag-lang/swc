@@ -429,7 +429,7 @@ public impl LinePath
         .endPosBuffer = .startPoint
         .polygon.points.add(.endPosBuffer)
 
-        for elem, [i] in .elements
+        for elem, i in .elements
         {
             let pos = elem.position
 
@@ -545,7 +545,7 @@ impl LinePath
         let stepSize = 1.0 / numSegments
 
         // Generate all points in one pass using optimized polynomial evaluation
-        for [i] in 1 to numSegments
+        for i in 1 to numSegments
         {
             let t     = stepSize * i
             let point = Math.Curve.evaluatePolynomial(p0, p1, p2, p3, t)
@@ -608,7 +608,7 @@ impl LinePath
         let stepSize = 1.0 / numSegments
 
         // Generate all points in one pass using optimized quadratic Bézier evaluation
-        for [i] in 1 to numSegments
+        for i in 1 to numSegments
         {
             let t     = stepSize * i
             let point = Math.Curve.evaluateBezier(startPt, pos, p1, t)
@@ -654,7 +654,7 @@ impl LinePath
         let stepSize = 1.0 / numSegments
 
         // Generate all points in one pass using optimized Bézier evaluation
-        for [i] in 1 to numSegments
+        for i in 1 to numSegments
         {
             let t     = stepSize * i
             let point = Math.Curve.evaluateBezier(startPt, pos, p1, p2, t)
@@ -718,7 +718,7 @@ impl LinePath
         let angleStep = angleSpan / numSegments
 
         // Generate all points in one pass
-        for [i] in 1 to numSegments
+        for i in 1 to numSegments
         {
             let angle = p1.x + (angleStep * i)
             let point = Vector2{x: pos.x + (Math.sin(angle) * p2.x), y: pos.y - (Math.cos(angle) * p2.y)}

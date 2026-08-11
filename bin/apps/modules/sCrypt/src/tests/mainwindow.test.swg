@@ -62,7 +62,7 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
 {
     if !@countof(needle) or @countof(needle) > @countof(bytes) do
         return false
-    for [offset] in @countof(bytes) - @countof(needle) + 1
+    for offset in @countof(bytes) - @countof(needle) + 1
     {
         if @memcmp(@dataof(bytes) + offset, @dataof(needle), @countof(needle)) == 0 do
             return true

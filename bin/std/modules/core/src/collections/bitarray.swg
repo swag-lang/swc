@@ -129,7 +129,7 @@ public impl BitArray
         if !len do
             return
 
-        for value, [index] in what do
+        for value, index in what do
             .set(index, value)
     }
 
@@ -167,10 +167,10 @@ public impl BitArray
         let buffer    = .buffer!
 
         #scope(Up)
-            for [idx] in totalWords
+            for idx in totalWords
         {
             let bitsInWord = Math.min(.count - countBits, 32'u64)
-            for [bitIndex] in bitsInWord
+            for bitIndex in bitsInWord
             {
                 #scope(Down)
                 {

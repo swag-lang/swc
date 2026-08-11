@@ -66,7 +66,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(alloc.firstQuarantine == header)
 
     let freed = alloc.userAddress(header)
-    for [i] in 144 do
+    for i in 144 do
         @assert(freed[i] == Allocator.FreeByte)
 
     alloc.releaseAll()
@@ -105,7 +105,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     let itf = makeDebugModeAllocator(&alloc, trackAllocations: true, fillMemory: false)
 
     var reqs: [8] AllocatorRequest
-    for [i] in 8
+    for i in 8
     {
         reqs[i].size = 32 + cast(u64) i * 23
         itf.alloc(&reqs[i])
@@ -116,7 +116,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(alloc.firstAlloc != null)
     alloc.checkAllMemory()
 
-    for [i] in 8
+    for i in 8
     {
         itf.free(&reqs[i])
         @assert(reqs[i].address == null)
@@ -139,7 +139,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(req.address != null)
 
     let ptr = cast([*] u8) req.address!
-    for [i] in 96 do
+    for i in 96 do
         @assert(ptr[i] == Allocator.AllocByte)
 
     itf.free(&req)

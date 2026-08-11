@@ -386,7 +386,7 @@ impl MainWnd
         var maxX = 0'f32
         var maxY = 0'f32
 
-        for f, [idx] in capture.forms
+        for f, idx in capture.forms
         {
             let r = f.boundRect()
             if r.x > 0 do
@@ -409,11 +409,11 @@ impl MainWnd
         }
 
         #scope(Left)
-            for [x] in capture.backImg.width
+            for x in capture.backImg.width
         {
             if x + capture.backImagePos.x < 0 do
                 continue
-            for [y] in capture.backImg.height
+            for y in capture.backImg.height
             {
                 let col = capture.backImg.pixelColor(x, y)
                 if col.a
@@ -425,11 +425,11 @@ impl MainWnd
         }
 
         #scope(Right)
-            for #reverse [x] in capture.backImg.width
+            for #reverse x in capture.backImg.width
         {
             if x + capture.backImagePos.x >= capture.width do
                 continue
-            for [y] in capture.backImg.height
+            for y in capture.backImg.height
             {
                 let col = capture.backImg.pixelColor(x, y)
                 if col.a
@@ -441,11 +441,11 @@ impl MainWnd
         }
 
         #scope(Up)
-            for [y] in capture.backImg.height
+            for y in capture.backImg.height
         {
             if y + capture.backImagePos.y < 0 do
                 continue
-            for [x] in capture.backImg.width
+            for x in capture.backImg.width
             {
                 let col = capture.backImg.pixelColor(x, y)
                 if col.a
@@ -457,11 +457,11 @@ impl MainWnd
         }
 
         #scope(Down)
-            for #reverse [y] in capture.backImg.height
+            for #reverse y in capture.backImg.height
         {
             if y + capture.backImagePos.y >= capture.height do
                 continue
-            for [x] in capture.backImg.width
+            for x in capture.backImg.width
             {
                 let col = capture.backImg.pixelColor(x, y)
                 if col.a

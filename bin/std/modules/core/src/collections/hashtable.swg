@@ -107,7 +107,7 @@ impl HashTable
         Memory.clear(newTable, .capacity * #sizeof(HashTableEntry'(K, V)))
         #static if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
         {
-            for [i] in .capacity
+            for i in .capacity
             {
                 let hashVal = oldTable[i].hash
                 if hashVal < HashTable.HASH_DELETED do
@@ -214,7 +214,7 @@ impl HashTable
         // Need to drop every structs
         #static if Reflection.hasDrop(#typeof(K)) or Reflection.hasDrop(#typeof(V))
         {
-            for [i] in .capacity where table[i].hash >= HashTable.HASH_DELETED
+            for i in .capacity where table[i].hash >= HashTable.HASH_DELETED
             {
                 @drop(&table[i].key)
                 @drop(&table[i].value)
@@ -263,7 +263,7 @@ impl HashTable
         .capacity      = reqCapacity
         .growThreshold = reqCapacity / 2
         let oldTablePtr = oldTable orelse cast([*] HashTableEntry'(K, V)) 1'u64
-        for [i] in oldCapacity
+        for i in oldCapacity
         {
             let h = oldTablePtr[i].hash
             if h >= HashTable.HASH_FIRST
@@ -578,7 +578,7 @@ impl HashTable
         if .count or .deleted
         {
             let table = .tablePtr()
-            for [i] in .capacity
+            for i in .capacity
             {
                 let hashval = table[i].hash
 
@@ -607,7 +607,7 @@ impl StrConv.IConvert for HashTable
     mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes("[")
-        for k, [v] in me
+        for k, v in me
         {
             if @index do
                 buf.addBytes(", ")

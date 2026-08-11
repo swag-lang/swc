@@ -138,7 +138,7 @@ func(T) isSorted(values: const [..] T, compare: func||(T, T)->s32)->bool
     if countof <= 1 do
         return true
 
-    for [i] in countof - 1
+    for i in countof - 1
     {
         if compare(values[i], values[i + 1]) > 0 do
             return false

@@ -59,7 +59,7 @@ func __symbolize(addr: *void)->__SwagSym
 
     let rva = cast(u32) (cast(u64) addr - cast(u64) imageBase)
     let sec = __dbgCacheSection!
-    for [i] in __dbgCacheCount
+    for i in __dbgCacheCount
     {
         let entry = 16 + cast(u64) i * 20
         let start = __dbgU32(sec, entry)
@@ -87,7 +87,7 @@ func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation 
 {
     var hasStarted = false
 
-    for [i] in @countof(wh)
+    for i in @countof(wh)
     {
         let info = __symbolize(wh[i])
         if !info.hasLine and !printNoLine do
@@ -106,7 +106,7 @@ func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation 
             var samePath = true
             if afterName != null
             {
-                for [it] in @countof(info.file)
+                for it in @countof(info.file)
                 {
                     if info.file[it] == afterName[it] do
                         continue

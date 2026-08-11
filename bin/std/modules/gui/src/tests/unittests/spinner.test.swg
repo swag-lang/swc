@@ -9,9 +9,9 @@ func inkCount(image: const *Image)->s32
     let background = image.pixelColor(0, 0).argb
 
     var result = 0
-    for [y] in cast(s32) image.height
+    for y in cast(s32) image.height
     {
-        for [x] in cast(s32) image.width
+        for x in cast(s32) image.width
         {
             if image.pixelColor(x, y).argb != background do
                 result += 1

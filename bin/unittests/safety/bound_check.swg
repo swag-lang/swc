@@ -302,7 +302,7 @@ func opaqueIdx(v: u64)->u64
     func loopInvertedSignedRange(low: s32, high: s32)->s32
     {
         var result: s32 = 0
-        for [i] in low to high do
+        for i in low to high do
             result += i + 1
         return result
     }
@@ -318,7 +318,7 @@ func opaqueIdx(v: u64)->u64
     func loopInvertedUnsignedRange(low: u32, high: u32)->u32
     {
         var result: u32 = 0
-        for [i] in low until high do
+        for i in low until high do
             result += i + 1
         return result
     }
@@ -364,7 +364,7 @@ func opaqueIdx(v: u64)->u64
     func loopEmptyUnsignedRange(low: u32, high: u32)->u32
     {
         var result: u32 = 0
-        for [i] in low until high do
+        for i in low until high do
             result += i + 1
         return result
     }
@@ -382,7 +382,7 @@ func opaqueIdx(v: u64)->u64
     func loopEmptySignedRange(low: s32, high: s32)->s32
     {
         var result: s32 = 0
-        for [i] in low until high do
+        for i in low until high do
             result += i + 1
         return result
     }

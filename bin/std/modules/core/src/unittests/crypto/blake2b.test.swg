@@ -85,7 +85,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
 
     // RFC 7693 appendix E keyed vector: key 00..3f, input 00, 64-byte digest.
     var fullKey: [64] u8
-    for [i] in 64 do
+    for i in 64 do
         fullKey[i] = cast(u8) i
     let input:  [1] u8 = [0]
     var digest: [64] u8

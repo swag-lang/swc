@@ -78,7 +78,7 @@ impl RichEditCtrl
                 var rankBeg, rankEnd: u64
                 if .selectionRectRange(li, &rankBeg, &rankEnd)
                 {
-                    for [i] in rankEnd - rankBeg
+                    for i in rankEnd - rankBeg
                     {
                         result.text.add(.lines[li]!.chars[rankBeg + i])
                         result.styles.add(.lines[li]!.styles[rankBeg + i])
@@ -249,7 +249,7 @@ impl RichEditCtrl
 
         if !selRect
         {
-            for [i] in @countof(runes)
+            for i in @countof(runes)
             {
                 let c = runes[i]
                 let s = nstyles[i]
@@ -624,7 +624,7 @@ public impl RichEditCtrl
         {
             let sb = .selectionStart()
             let se = .selectionEnd()
-            for [caretI] in sb.lineIndex to se.lineIndex
+            for caretI in sb.lineIndex to se.lineIndex
             {
                 var cp = se
                 cp.lineIndex = caretI

@@ -191,7 +191,7 @@ impl IWnd for SplitterCtrl
         let colors  = .themeColors()
 
         var visibleIndex = 0
-        for item, [idx] in .items
+        for item, idx in .items
         {
             let it = item!
             if !it.visible do
@@ -242,7 +242,7 @@ private impl SplitterCtrl
             // Compute the current total sizes of panes
             var countNotPreserve, countPreserve = 0
             var totalSize = 0'f32
-            for item, [idx] in .items
+            for item, idx in .items
             {
                 let it = item!
                 if !it.visible do
@@ -265,7 +265,7 @@ private impl SplitterCtrl
             if countNotPreserve
             {
                 let diff = cast(f32) Math.round(dispatch / countNotPreserve)
-                for item, [idx] in .items
+                for item, idx in .items
                 {
                     let it = item!
                     if it.preserveSize do
@@ -290,7 +290,7 @@ private impl SplitterCtrl
             if countPreserve
             {
                 let diff = cast(f32) Math.round(dispatch / countPreserve)
-                for item, [idx] in .items
+                for item, idx in .items
                 {
                     let it = item!
                     if !it.preserveSize do
@@ -312,7 +312,7 @@ private impl SplitterCtrl
             }
         }
 
-        for item, [idx] in .items
+        for item, idx in .items
         {
             let it = item!
             if !it.visible do
@@ -332,7 +332,7 @@ private impl SplitterCtrl
         let barSize = .themeMetrics().splitView_BarSize
 
         var visibleIndex = 0
-        for item, [idx] in .items
+        for item, idx in .items
         {
             let it = item!
             if !it.visible do
@@ -367,7 +367,7 @@ private impl SplitterCtrl
         var result: retval = .paddedClientRect()
 
         let barSize = .themeMetrics().splitView_BarSize
-        for item, [i] in .items
+        for item, i in .items
         {
             let pane = item!
             if !pane.visible do

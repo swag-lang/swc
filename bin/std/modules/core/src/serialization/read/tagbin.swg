@@ -529,7 +529,7 @@ private impl TagBin
         let shape     = sec.shape!
         let savedSeek = .stream.position()
         .stream.setPosition(sec.fatSeek)
-        for [i] in shape.fields.count
+        for i in shape.fields.count
         {
             let off = cast(u64) .stream.readNative'u32()
             sec.mapSeek.add(shape.fields[i].crcName, {sec.payloadStart + off, cast(u32) i, false})
@@ -544,7 +544,7 @@ private impl TagBin
     {
         if shape.fields.count != plan.fields.count do
             return false
-        for [i] in shape.fields.count
+        for i in shape.fields.count
         {
             if shape.fields[i].crcName != plan.fields[i].crcName do
                 return false

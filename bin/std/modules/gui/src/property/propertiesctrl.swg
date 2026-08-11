@@ -117,7 +117,7 @@ impl PropertiesCtrl
         }
 
         var parentLine: #null *ListLine
-        for &it, [idx] in .properties.sections
+        for &it, idx in .properties.sections
         {
             let str   = it.item!.label.text()
             let naked = RichString.plainText(str)

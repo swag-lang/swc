@@ -191,10 +191,10 @@ private impl FileBrowserCtrl
         .comboPathStr.clear()
 
         let all = Tokenize.split(.currentFolder.toString(), '/'rune)
-        for #reverse [i] in @countof(all)
+        for #reverse i in @countof(all)
         {
             var str: String
-            for [j] in i + 1
+            for j in i + 1
             {
                 str += all[j]
                 str += '/'u8
@@ -608,7 +608,7 @@ impl FileBrowserCtrl
             if fileBrowser.options.mode == .SelectFolder do
                 .addItem(strings().browser_Folders)
             else do
-                for f, [idx] in fileBrowser.options.filters do
+                for f, idx in fileBrowser.options.filters do
                     .addItem(f.name, userData0: cast(#null *void) idx)
             .setSelectedIndex(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
@@ -655,7 +655,7 @@ impl FileBrowserCtrl
         if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl
         {
             let tree = fileBrowser.treeCtrl!
-            for line, [idx] in tree.lines where line and !line.separator
+            for line, idx in tree.lines where line and !line.separator
             {
                 tree.selectLine(cast(u32) idx)
                 break
@@ -883,7 +883,7 @@ impl FileBrowserCtrl
 
         var normalized = String.from(folder)
         Path.normalize(&normalized)
-        for &existing, [idx] in state.recentFolders
+        for &existing, idx in state.recentFolders
         {
             if Utf8.compare(existing.toSlice(), normalized.toSlice(), .Latin1NoCase) == 0
             {

@@ -15,7 +15,7 @@
 #test
 {
     var count = 0
-    for [i] in 0
+    for i in 0
     {
         count += 1
     }
@@ -37,7 +37,7 @@
 #test
 {
     var count = 0
-    for [i] in 10
+    for i in 10
     {
         count += 1
         break
@@ -50,7 +50,7 @@
 #test
 {
     var sum = 0
-    for [i] in 5
+    for i in 5
     {
         continue
         sum += 1     // unreachable
@@ -62,7 +62,7 @@
 #test
 {
     var count = 0
-    for [i] in 10 where i > 100
+    for i in 10 where i > 100
     {
         count += 1
     }
@@ -73,7 +73,7 @@
 #test
 {
     var count = 0
-    for [i] in 5 where i < 100
+    for i in 5 where i < 100
     {
         count += 1
     }
@@ -107,10 +107,10 @@
 {
     var outerCount = 0
     var innerTotal = 0
-    for [i] in 4
+    for i in 4
     {
         outerCount += 1
-        for [j] in 10
+        for j in 10
         {
             innerTotal += 1
             if j == 2 do
@@ -127,7 +127,7 @@
     var arr: [1]s32 = [42]
     var count       = 0
     var sum         = 0
-    for [v] in @countof(arr)
+    for v in @countof(arr)
     {
         count += 1
         sum   += cast(s32) v
@@ -138,7 +138,7 @@
 // For with early return
 func forEarlyReturn()->s32
 {
-    for [i] in 10
+    for i in 10
     {
         if i == 3 do
             return cast(s32) i
@@ -172,7 +172,7 @@ func forEarlyReturn()->s32
 #test
 {
     var count = 0
-    for [i] in 5
+    for i in 5
     {
         if i == 3 do
             break
@@ -186,7 +186,7 @@ func forEarlyReturn()->s32
 {
     var count = 0
     var val   = -1
-    for [i] in 5 to 5
+    for i in 5 to 5
     {
         val   = cast(s32) i
         count += 1
@@ -200,7 +200,7 @@ func forEarlyReturn()->s32
 {
     var count = 0
     var val   = -1
-    for [i] in 5 until 6
+    for i in 5 until 6
     {
         val   = cast(s32) i
         count += 1
@@ -213,7 +213,7 @@ func forEarlyReturn()->s32
 #test
 {
     var sum = 0
-    for [i] in 20
+    for i in 20
     {
         if i % 2 == 0 do
             continue
@@ -229,7 +229,7 @@ func forEarlyReturn()->s32
 #test
 {
     var lastI = -1
-    for [i] in 5
+    for i in 5
     {
         lastI = cast(s32) i
     }
@@ -240,9 +240,9 @@ func forEarlyReturn()->s32
 #test
 {
     var count = 0
-    for [i] in 10 where i % 2 == 0
+    for i in 10 where i % 2 == 0
     {
-        for [j] in 10 where j % 3 == 0
+        for j in 10 where j % 3 == 0
         {
             count += 1
         }

@@ -1765,7 +1765,7 @@ struct PropHeadlessUsingDerived
 
     func indexOf(prop: *Properties, name: string)->u64
     {
-        for item, [idx] in prop.items
+        for item, idx in prop.items
         {
             if item!.typeValue.name == name do
                 return idx

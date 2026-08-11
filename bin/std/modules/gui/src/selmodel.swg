@@ -29,7 +29,7 @@ impl SelModel
     // Returns the index of the range containing `index`, or `Swag.U32.Max` when unselected.
     mtd const rangeIndexContaining(index: u32)->u32
     {
-        for &range, [rangeIndex] in .rangesStorage
+        for &range, rangeIndex in .rangesStorage
         {
             if index < range.start do
                 break
@@ -173,7 +173,7 @@ impl SelModel
         #scope(Up)
             for &range in .rangesStorage
         {
-            for [itemIndex] in range.start to range.end
+            for itemIndex in range.start to range.end
             {
                 #inject(stmt, item = itemIndex, index = @index, break = break to Up)
             }

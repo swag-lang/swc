@@ -28,7 +28,7 @@ enum ForeachIndexedSlot: u8
         var arr: ForeachStrictArray = cast(ForeachStrictArray) raw
         var acc: s32                = 0
 
-        for v, [i] in arr
+        for v, i in arr
         {
             acc += v * cast(s32) (i + 1)
         }
@@ -49,7 +49,7 @@ enum ForeachIndexedSlot: u8
         var sl:  ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
         var acc: s32                = 0
 
-        for v, [i] in sl
+        for v, i in sl
         {
             acc += v + cast(s32) i
         }
@@ -68,7 +68,7 @@ enum ForeachIndexedSlot: u8
         var arr: [5] s32 = [1, 2, 3, 4, 5]
         var acc: s32     = 0
 
-        for v, [i] in arr
+        for v, i in arr
         {
             acc += v + cast(s32) i
         }
@@ -114,7 +114,7 @@ enum ForeachIndexedSlot: u8
         var arr: [4] s32 = [1, 2, 3, 4]
         var sum: s32     = 0
 
-        for &v, [i] in arr
+        for &v, i in arr
         {
             sum += v + cast(s32) i
         }
@@ -152,7 +152,7 @@ enum ForeachIndexedSlot: u8
         var text: string = "ABC"
         var acc:  u32    = 0
 
-        for v, [i] in text
+        for v, i in text
         {
             acc += cast(u32) v + cast(u32) i
         }
@@ -188,7 +188,7 @@ enum ForeachIndexedSlot: u8
         var sl           = cast([..] s32) arr
         var acc: s32     = 0
 
-        for v, [i] in sl
+        for v, i in sl
         {
             acc += v + cast(s32) i
         }
@@ -207,7 +207,7 @@ enum ForeachIndexedSlot: u8
         var arr: [4] s32 = [5, 6, 7, 8]
         var sl           = cast([..] s32) arr
         var acc: s32     = 0
-        for v, [i] in sl
+        for v, i in sl
         {
             acc += v * cast(s32) (i + 1)
         }
@@ -225,7 +225,7 @@ enum ForeachIndexedSlot: u8
     {
         var acc: s32 = 0
 
-        for v, [i] in values
+        for v, i in values
         {
             let p = cast(*s32) @dataof(v)
             acc += dref p + cast(s32) i
@@ -244,7 +244,7 @@ enum ForeachIndexedSlot: u8
     {
         var acc: s32 = 0
 
-        for v, [i] in values
+        for v, i in values
         {
             acc += v * cast(s32) (i + 1)
         }
@@ -262,7 +262,7 @@ enum ForeachIndexedSlot: u8
     {
         var acc: u64 = 0
 
-        for v, [i] in values
+        for v, i in values
         {
             acc += cast(u64) v.arr[0] + cast(u64) v.arr[2] + cast(u64) v.flag + cast(u64) v.tag + i
         }
@@ -282,9 +282,9 @@ enum ForeachIndexedSlot: u8
     {
         var acc: s32 = 0
 
-        for v, [i] in values where (v & 1) == 1
+        for v, i in values where (v & 1) == 1
         {
-            for w, [j] in values
+            for w, j in values
             {
                 if j == i do
                     continue
@@ -305,7 +305,7 @@ enum ForeachIndexedSlot: u8
     {
         var acc: s32 = 0
 
-        for v, [i] in values
+        for v, i in values
         {
             if @kindof(v) == s32
             {
@@ -341,7 +341,7 @@ enum ForeachIndexedSlot: u8
     {
         var acc: s32 = 0
 
-        for v, [i] in values
+        for v, i in values
         {
             if (i & 1) == 0
             {
@@ -367,7 +367,7 @@ enum ForeachIndexedSlot: u8
         let values = [10, 20, 30]
         var signature: u64
 
-        for [index] in values
+        for ?, index in values
         {
             #assert(#typeof(index) == u64)
             signature = signature * 10 + index
@@ -388,13 +388,13 @@ enum ForeachIndexedSlot: u8
         var byIndex: s32
         var byValue: s32
 
-        for [slot] in values
+        for ?, slot in values
         {
             #assert(#typeof(slot) == ForeachIndexedSlot)
             byIndex = byIndex * 100 + values[slot]
         }
 
-        for value, [slot] in values
+        for value, slot in values
         {
             #assert(#typeof(value) == s32)
             #assert(#typeof(slot) == ForeachIndexedSlot)

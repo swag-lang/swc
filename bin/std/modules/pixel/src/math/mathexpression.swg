@@ -1225,7 +1225,7 @@ public impl MathExpression
         for nodeRef in .nodes
         {
             let node = nodeRef!
-            for [idx] in node.children.count
+            for idx in node.children.count
             {
                 let childId = node.children[idx].id
                 node.children[idx] = .nodes[childId]!

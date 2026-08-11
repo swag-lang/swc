@@ -17,6 +17,11 @@ a compile-time error and is reported where it occurs.
 
 A literal suffix stays a string ('opSetLiteral'), because the set of suffixes is open-ended
 and chosen by the user rather than by the language.
+
+'#[Swag.Operators]' asks the compiler to write 'opEquals' and 'opCompare' from the members,
+and '#[Swag.OperatorIgnore]' keeps one member out of them. A struct that asks for neither
+still receives a member-wise 'opEquals' when one of its members compares its content rather
+than its bytes, so a struct and its members never disagree about equality.
 */
 
 struct Struct

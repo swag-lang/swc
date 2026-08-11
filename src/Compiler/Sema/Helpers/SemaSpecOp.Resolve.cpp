@@ -457,12 +457,8 @@ namespace
         return Result::Continue;
     }
 
-    Result collectSpecOpCandidatesRec(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, std::unordered_set<const SymbolStruct*>& visited, bool requireDeclaredGenericRoots)
+    Result collectDeclaredSpecOps(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, bool requireDeclaredGenericRoots)
     {
-        if (!visited.insert(&ownerStruct).second)
-            return Result::Continue;
-
-        // First search operators declared directly by this struct's impls.
         for (const SymbolImpl* symImpl : ownerStruct.impls())
         {
             if (!symImpl || symImpl->isIgnored())
@@ -506,8 +502,13 @@ namespace
             }
         }
 
-        // Then follow value using-fields. They extend the owner's operator surface,
-        // while pointer using-fields do not own the target storage and are skipped.
+        return Result::Continue;
+    }
+
+    // Value using-fields extend the owner's operator surface, while pointer using-fields do not
+    // own the target storage and are skipped.
+    Result collectUsingTargets(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<const SymbolStruct*>& outTargets)
+    {
         for (const Symbol* field : ownerStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();
@@ -520,18 +521,54 @@ namespace
                 continue;
 
             SWC_RESULT(sema.waitSemaCompleted(target, sema.curNode().codeRef()));
-            SWC_RESULT(collectSpecOpCandidatesRec(sema, *target, idRef, genericArgNodes, outCandidates, visited, requireDeclaredGenericRoots));
+            outTargets.push_back(target);
         }
 
         return Result::Continue;
+    }
+
+    // Comparison is the one operator family an embedded struct must not compete for. Every other
+    // family widens what the embedder can do — an embedded 'opCast' or 'opBinary' adds a target
+    // type or an operand type the embedder does not handle itself — but two structs comparing
+    // equal is a question only one of them can answer, so an embedded 'opEquals' taking over for
+    // the whole embedder is never what was meant. It ties with the embedder's own, which is
+    // reported as an ambiguity rather than resolved.
+    bool specOpHidesUsingCandidates(Sema& sema, IdentifierRef idRef)
+    {
+        return idRef == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals) ||
+               idRef == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCompare);
     }
 
     Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, bool requireDeclaredGenericRoots = false)
     {
         outCandidates.clear();
 
-        std::unordered_set<const SymbolStruct*> visited;
-        SWC_RESULT(collectSpecOpCandidatesRec(sema, ownerStruct, idRef, genericArgNodes, outCandidates, visited, requireDeclaredGenericRoots));
+        // The search widens one using-level at a time, so a comparison can stop as soon as a level
+        // answers instead of merging every level into one overload set.
+        const bool                              stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
+        std::unordered_set<const SymbolStruct*> visited{&ownerStruct};
+        SmallVector<const SymbolStruct*>        level{&ownerStruct};
+
+        while (!level.empty())
+        {
+            SmallVector<const SymbolStruct*> nextLevel;
+            for (const SymbolStruct* current : level)
+            {
+                SWC_RESULT(collectDeclaredSpecOps(sema, *current, idRef, genericArgNodes, outCandidates, requireDeclaredGenericRoots));
+                SWC_RESULT(collectUsingTargets(sema, *current, nextLevel));
+            }
+
+            if (stopAtAnsweringLevel && !outCandidates.empty())
+                return Result::Continue;
+
+            level.clear();
+            for (const SymbolStruct* target : nextLevel)
+            {
+                if (visited.insert(target).second)
+                    level.push_back(target);
+            }
+        }
+
         return Result::Continue;
     }
 

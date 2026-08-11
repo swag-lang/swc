@@ -86,33 +86,9 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
-    bool isSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        if (type.isReference())
-            typeRef = type.payloadTypeRef();
-
-        const TypeRef receiverTypeRef = unwrapAlias(ctx, typeRef);
-        if (receiverTypeRef == unwrapAlias(ctx, owner.typeRef()))
-            return true;
-
-        if (!receiverTypeRef.isValid())
-            return false;
-
-        const TypeInfo& receiverType = ctx.typeMgr().get(receiverTypeRef);
-        if (!receiverType.isStruct())
-            return false;
-
-        const SymbolStruct& receiverStruct = receiverType.payloadSymStruct();
-        return receiverStruct.sameGenericFamily(owner);
-    }
-
     bool isConstSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
     {
-        if (!isSpecOpReceiver(ctx, owner, typeRef))
+        if (!SemaSpecOp::isOwnerStructType(ctx, owner, typeRef))
             return false;
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
@@ -310,7 +286,7 @@ namespace
         if (params.empty())
             return reportSpecOpError(sema, sym, kind);
 
-        if (!isSpecOpReceiver(ctx, owner, params[0]->typeRef()))
+        if (!SemaSpecOp::isOwnerStructType(ctx, owner, params[0]->typeRef()))
             return reportSpecOpError(sema, sym, kind);
 
         const TypeRef returnTypeRef = unwrapAlias(ctx, sym.returnTypeRef());
@@ -441,6 +417,32 @@ namespace
         }
     }
 
+}
+
+// A special operator names its own struct in its receiver, and often in the value it takes as
+// well. Both spellings reach here: the reference the receiver always is, and the alias or the
+// sibling generic instance a hand-written parameter may name instead.
+bool SemaSpecOp::isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
+{
+    if (!typeRef.isValid())
+        return false;
+
+    const TypeInfo& type = ctx.typeMgr().get(typeRef);
+    if (type.isReference())
+        typeRef = type.payloadTypeRef();
+
+    const TypeRef candidateTypeRef = unwrapAlias(ctx, typeRef);
+    if (candidateTypeRef == unwrapAlias(ctx, owner.typeRef()))
+        return true;
+
+    if (!candidateTypeRef.isValid())
+        return false;
+
+    const TypeInfo& candidateType = ctx.typeMgr().get(candidateTypeRef);
+    if (!candidateType.isStruct())
+        return false;
+
+    return candidateType.payloadSymStruct().sameGenericFamily(owner);
 }
 
 std::string_view SemaSpecOp::specOpFunctionName(const SpecOpKind kind)

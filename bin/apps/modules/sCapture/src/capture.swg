@@ -368,6 +368,8 @@ impl Capture
 
     mtd opDrop()
     {
+        if .backTexture.isValid() do
+            g_App.renderer.removeTexture(&.backTexture)
         freeForms(.forms)
     }
 

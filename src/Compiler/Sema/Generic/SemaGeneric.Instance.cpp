@@ -414,6 +414,7 @@ namespace SemaGeneric
             SWC_RESULT(instanceStruct.canBeCompleted(sema));
             SWC_RESULT(instanceStruct.computeLayout(sema.ctx()));
             SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, instanceStruct));
+            SWC_RESULT(SemaSpecOp::ensureGeneratedEquality(sema, instanceStruct));
             SWC_RESULT(instanceStruct.registerSpecOps(sema));
             instanceStruct.setSemaCompleted(sema.ctx());
             return Result::Continue;

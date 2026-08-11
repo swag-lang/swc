@@ -433,12 +433,8 @@ namespace
         return Result::Continue;
     }
 
-    Result collectSpecOpCandidatesRec(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, std::unordered_set<const SymbolStruct*>& visited, bool requireDeclaredGenericRoots)
+    Result collectDeclaredSpecOps(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, bool requireDeclaredGenericRoots)
     {
-        if (!visited.insert(&ownerStruct).second)
-            return Result::Continue;
-
-        // First search operators declared directly by this struct's impls.
         for (const SymbolImpl* symImpl : ownerStruct.impls())
         {
             if (!symImpl || symImpl->isIgnored())
@@ -482,8 +478,13 @@ namespace
             }
         }
 
-        // Then follow value using-fields. They extend the owner's operator surface,
-        // while pointer using-fields do not own the target storage and are skipped.
+        return Result::Continue;
+    }
+
+    // Value using-fields extend the owner's operator surface, while pointer using-fields do not
+    // own the target storage and are skipped.
+    Result collectUsingTargets(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<const SymbolStruct*>& outTargets)
+    {
         for (const Symbol* field : ownerStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();
@@ -496,9 +497,53 @@ namespace
                 continue;
 
             SWC_RESULT(sema.waitSemaCompleted(target, sema.curNode().codeRef()));
-            SWC_RESULT(collectSpecOpCandidatesRec(sema, *target, idRef, genericArgNodes, outCandidates, visited, requireDeclaredGenericRoots));
+            outTargets.push_back(target);
         }
 
+        return Result::Continue;
+    }
+
+    // Comparison is the one operator family an embedded struct must not compete for. Every other
+    // family widens what the embedder can do — an embedded 'opCast' or 'opBinary' adds a target
+    // type or an operand type the embedder does not handle itself — but two structs comparing
+    // equal is a question only one of them can answer, so an embedded 'opEquals' taking over for
+    // the whole embedder is never what was meant. It ties with the embedder's own, which is
+    // reported as an ambiguity rather than resolved.
+    bool specOpHidesUsingCandidates(Sema& sema, IdentifierRef idRef)
+    {
+        return idRef == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals) ||
+               idRef == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCompare);
+    }
+
+    // The type a relational operand compares as: a reference compares as what it refers to, and an
+    // alias as what it names.
+    TypeRef relationalOperandTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const TypeInfo& valueType = sema.typeMgr().get(typeRef);
+        if (valueType.isReference())
+            typeRef = valueType.payloadTypeRef();
+
+        const TypeRef unwrappedTypeRef = unwrapAlias(sema.ctx(), typeRef);
+        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    }
+
+    // Whether one of the collected operators can actually take the right operand. Asking the
+    // matcher is what keeps a comparison promoted through a 'using' member — which no signature
+    // test would recognize as taking the embedder — from being mistaken for no answer at all.
+    Result hasViableRelationalCandidate(bool& outViable, Sema& sema, const AstRelationalExpr& node, std::span<Symbol* const> candidates)
+    {
+        outViable = false;
+
+        SmallVector<AstNodeRef> args;
+        args.push_back(node.nodeRightRef);
+
+        const SemaNodeView            calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
+        Match::FunctionCandidateProbe probe;
+        SWC_RESULT(Match::probeFunctionCandidates(sema, calleeView, candidates, args.span(), node.nodeLeftRef, probe, true));
+        outViable = probe.matched && probe.fn != nullptr;
         return Result::Continue;
     }
 
@@ -506,8 +551,32 @@ namespace
     {
         outCandidates.clear();
 
-        std::unordered_set<const SymbolStruct*> visited;
-        SWC_RESULT(collectSpecOpCandidatesRec(sema, ownerStruct, idRef, genericArgNodes, outCandidates, visited, requireDeclaredGenericRoots));
+        // The search widens one using-level at a time, so a comparison can stop as soon as a level
+        // answers instead of merging every level into one overload set.
+        const bool                              stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
+        std::unordered_set<const SymbolStruct*> visited{&ownerStruct};
+        SmallVector<const SymbolStruct*>        level{&ownerStruct};
+
+        while (!level.empty())
+        {
+            SmallVector<const SymbolStruct*> nextLevel;
+            for (const SymbolStruct* current : level)
+            {
+                SWC_RESULT(collectDeclaredSpecOps(sema, *current, idRef, genericArgNodes, outCandidates, requireDeclaredGenericRoots));
+                SWC_RESULT(collectUsingTargets(sema, *current, nextLevel));
+            }
+
+            if (stopAtAnsweringLevel && !outCandidates.empty())
+                return Result::Continue;
+
+            level.clear();
+            for (const SymbolStruct* target : nextLevel)
+            {
+                if (visited.insert(target).second)
+                    level.push_back(target);
+            }
+        }
+
         return Result::Continue;
     }
 
@@ -1857,16 +1926,8 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     if (!leftView.type())
         return Result::Continue;
 
-    TypeRef         unwrappedTypeRef = leftView.typeRef();
-    const TypeInfo& leftValueType    = sema.typeMgr().get(unwrappedTypeRef);
-    if (leftValueType.isReference())
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), leftValueType.payloadTypeRef());
-    else
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
-    if (!unwrappedTypeRef.isValid())
-        unwrappedTypeRef = leftView.typeRef();
-
-    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
+    const TypeRef   unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
+    const TypeInfo& leftType         = sema.typeMgr().get(unwrappedTypeRef);
     if (!leftType.isStruct())
         return Result::Continue;
 
@@ -1877,6 +1938,20 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opIdRef, std::span<const AstNodeRef>{}, candidates));
     if (candidates.empty())
         return Result::Continue;
+
+    // Declaring 'opEquals' adds a comparison; it never takes away the one the struct already had.
+    // So when none of the overloads can take the other operand, and that operand is this same
+    // struct, the built-in comparison answers instead of a bad-argument error at every call site.
+    // Any other operand type keeps reporting, which is where the overload is what the author
+    // meant, and ordering keeps reporting throughout because it has no built-in answer.
+    if (Token::isOpEquality(tok.id) &&
+        SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, relationalOperandTypeRef(sema, sema.viewType(node.nodeRightRef).typeRef())))
+    {
+        bool viable = false;
+        SWC_RESULT(hasViableRelationalCandidate(viable, sema, node, candidates.span()));
+        if (!viable)
+            return Result::Continue;
+    }
 
     const AstNodeRef relRef = sema.curNodeRef();
 

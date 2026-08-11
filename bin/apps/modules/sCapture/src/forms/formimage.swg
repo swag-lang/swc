@@ -45,6 +45,12 @@ struct FormImage
 
 impl FormImage
 {
+    mtd opDrop()
+    {
+        if .texture.isValid() do
+            g_App.renderer.removeTexture(&.texture)
+    }
+
     mtd opPostCopy()
     {
         @init(&.texture, 1)

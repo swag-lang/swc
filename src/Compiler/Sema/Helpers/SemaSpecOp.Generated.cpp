@@ -485,17 +485,138 @@ namespace
         source += "\n";
     }
 
-    void appendGeneratedEqualsOperator(Sema& sema, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields)
+    void appendGeneratedEqualsOperator(Sema& sema, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, std::string_view selfTypeName)
     {
         appendGeneratedAccess(source, ownerStruct);
         source += "mtd const ";
         source += predefinedName(sema, IdentifierManager::PredefinedName::OpEquals);
         source += "(other: const &";
-        source += ownerStruct.name(sema.ctx());
+        source += selfTypeName;
         source += ")->bool\n";
         source += "    {\n";
         appendGeneratedEqualsFieldComparison(source, fields);
         source += "    }\n";
+    }
+
+    // Only an overload accepting the struct itself answers 'a == b' between two of its values. An
+    // 'opEquals' declared against another type — a '#null string' the struct compares itself
+    // against, say — adds a comparison beside the built-in one instead of replacing it, so it
+    // neither stands in for a generated overload nor stops the struct from receiving one.
+    bool structHasSelfEqualityOverload(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        if (ownerStruct.attributes().generatedOperators.has(GeneratedOperatorFlagsE::OpEquals))
+            return true;
+
+        const IdentifierRef idRef = specOpIdFromKind(sema, SpecOpKind::OpEquals);
+        for (const SymbolImpl* impl : ownerStruct.impls())
+        {
+            if (!impl)
+                continue;
+
+            for (const SymbolFunction* function : impl->specOps())
+            {
+                if (!function || function->idRef() != idRef || function->parameters().size() < 2)
+                    continue;
+                if (SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, function->parameters()[1]->typeRef()))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool typeComparesAsBytes(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
+
+    // A struct answers '==' member by member. Comparing its storage instead is only the same
+    // question when every member itself compares as bytes, which is what this decides. It never
+    // filters '#[Swag.OperatorIgnore]' fields: an ignored field still makes the struct generate
+    // an 'opEquals', and the generated body is where the field drops out.
+    bool structComparesAsBytes(Sema& sema, const SymbolStruct& ownerStruct, std::unordered_set<TypeRef>& visiting)
+    {
+        if (structHasSelfEqualityOverload(sema, ownerStruct))
+            return false;
+
+        // Union members share one storage, so there is no member-wise answer to give.
+        if (ownerStruct.isUnion())
+            return true;
+
+        for (const SymbolVariable* field : ownerStruct.fields())
+        {
+            if (field && !typeComparesAsBytes(sema, field->typeRef(), visiting))
+                return false;
+        }
+
+        return true;
+    }
+
+    // A 'string' or a slice compares the content it views rather than the view itself, and a
+    // struct carrying an 'opEquals' compares whatever that method decides. An array is left
+    // out on purpose: its own '==' is a byte comparison whatever it holds, so a member-wise
+    // struct comparison and a byte comparison give it the same answer.
+    bool typeComparesAsBytes(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    {
+        typeRef = unwrapAlias(sema.ctx(), typeRef);
+        if (typeRef.isInvalid())
+            return true;
+        if (!visiting.insert(typeRef).second)
+            return true;
+
+        const TypeInfo& type   = sema.typeMgr().get(typeRef);
+        bool            result = true;
+        if (type.isString() || type.isSlice())
+            result = false;
+        else if (type.isStruct())
+            result = structComparesAsBytes(sema, type.payloadSymStruct(), visiting);
+        else if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef memberTypeRef : type.payloadAggregate().types)
+            {
+                if (!typeComparesAsBytes(sema, memberTypeRef, visiting))
+                {
+                    result = false;
+                    break;
+                }
+            }
+        }
+
+        visiting.erase(typeRef);
+        return result;
+    }
+
+    bool shouldGenerateEqualityOperator(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        if (ownerStruct.isUnion() || ownerStruct.fields().empty())
+            return false;
+
+        // A struct already answering '==' with an overload of its own needs nothing generated,
+        // which is the other reason 'structComparesAsBytes' says no.
+        if (structHasSelfEqualityOverload(sema, ownerStruct))
+            return false;
+
+        std::unordered_set<TypeRef> visiting;
+        return !structComparesAsBytes(sema, ownerStruct, visiting);
+    }
+
+    Utf8 makeGeneratedEqualityMethodSource(Sema& sema, const SymbolStruct& ownerStruct, std::string_view selfTypeName)
+    {
+        SmallVector<Utf8> fields;
+        collectGeneratedOperatorFieldNames(sema, ownerStruct, fields);
+
+        Utf8 source;
+        source += "// Generated member-wise equality.\n";
+        appendGeneratedEqualsOperator(sema, source, ownerStruct, fields.span(), selfTypeName);
+        return source;
+    }
+
+    Utf8 makeGeneratedEqualitySource(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        Utf8 source;
+        source += "impl ";
+        source += ownerStruct.typeInfo(sema.ctx()).toName(sema.ctx());
+        source += "\n{\n";
+        source += makeGeneratedEqualityMethodSource(sema, ownerStruct, ownerStruct.name(sema.ctx()));
+        source += "}\n";
+        return source;
     }
 
     Utf8 makeGeneratedOperatorsSource(Sema& sema, const SymbolStruct& ownerStruct, GeneratedOperatorFlags flags)
@@ -519,7 +640,7 @@ namespace
         }
 
         if (flags.has(GeneratedOperatorFlagsE::OpEquals))
-            appendGeneratedEqualsOperator(sema, source, ownerStruct, fields.span());
+            appendGeneratedEqualsOperator(sema, source, ownerStruct, fields.span(), ownerStruct.name(sema.ctx()));
 
         source += "}\n";
         return source;
@@ -835,7 +956,27 @@ namespace
         return Result::Continue;
     }
 
-    Result declareGeneratedImplBlockSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source)
+    // A generated impl block is built from a symbol rather than from an 'impl <Name>' line, so the
+    // struct's name is not in scope inside it — and for a struct declared in a function body there
+    // is no scope where it would be. A transparent alias registered in the block gives the
+    // generated source one name for the type it belongs to, which is what lets a method there
+    // declare a parameter of that type at all. Only the block that needs it registers one: every
+    // generated block of a struct shares one lookup, so a second alias of the same name would be
+    // found beside the first and reported as ambiguous.
+    void addGeneratedSelfTypeAlias(TaskContext& ctx, SymbolImpl& symImpl, const SymbolStruct& ownerStruct)
+    {
+        const IdentifierRef idRef    = ctx.idMgr().addIdentifier(SemaSpecOp::generatedSelfTypeName());
+        auto*               symAlias = Symbol::make<SymbolAlias>(ctx, ownerStruct.decl(), ownerStruct.tokRef(), idRef, SymbolFlagsE::Zero);
+        symAlias->setAliasedSymbol(&ownerStruct);
+        symAlias->setUnderlyingTypeRef(ownerStruct.typeRef());
+        symAlias->setTypeRef(ownerStruct.typeRef());
+        symImpl.addSymbol(ctx, symAlias, false);
+        symAlias->setDeclared(ctx);
+        symAlias->setTyped(ctx);
+        symAlias->setSemaCompleted(ctx);
+    }
+
+    Result declareGeneratedImplBlockSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source, bool withSelfTypeAlias)
     {
         if (source.empty())
             return Result::Continue;
@@ -858,6 +999,8 @@ namespace
         symImpl->setOwnerSymMap(ownerStruct.ownerSymMap());
         symImpl->setSymStruct(&ownerStruct);
         ownerStruct.addImpl(sema, *symImpl);
+        if (withSelfTypeAlias)
+            addGeneratedSelfTypeAlias(ctx, *symImpl, ownerStruct);
 
         SWC_RESULT(runGeneratedImplPass(ctx, sema, generatedRoot, *symImpl, ownerStruct.attributes(), true));
         SWC_RESULT(runGeneratedImplPass(ctx, sema, generatedRoot, *symImpl, ownerStruct.attributes(), false));
@@ -886,6 +1029,13 @@ std::string_view SemaSpecOp::generatedLifecycleWrapperName(const SpecOpKind kind
 std::string_view SemaSpecOp::generatedInitWrapperName()
 {
     return "swagLifecycleInitWrapper";
+}
+
+// The name a generated impl block gives the type it belongs to. Nothing a user writes can collide
+// with it, and it is the only spelling a generated method has for its own struct.
+std::string_view SemaSpecOp::generatedSelfTypeName()
+{
+    return "swagSelfType";
 }
 
 bool SemaSpecOp::isGeneratedLifecycleWrapperName(const std::string_view name)
@@ -935,7 +1085,7 @@ Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& o
     if (ownerStruct.isGenericInstance())
     {
         const Utf8 source = makeGeneratedLifecycleMethodsSource(sema, ownerStruct, plan);
-        SWC_RESULT(declareGeneratedImplBlockSource(sema, ownerStruct, source.view()));
+        SWC_RESULT(declareGeneratedImplBlockSource(sema, ownerStruct, source.view(), false));
         ownerStruct.publishGeneratedLifecycle();
         return Result::Continue;
     }
@@ -943,6 +1093,39 @@ Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& o
     const Utf8 source = makeGeneratedLifecycleSource(sema, ownerStruct, plan);
     SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view()));
     ownerStruct.publishGeneratedLifecycle();
+    return Result::Continue;
+}
+
+// '==' on a struct that declares no 'opEquals' is lowered to a comparison of its storage, which
+// answers a different question than its members do as soon as one of them compares its content
+// instead of its bytes. Give that struct the member-wise 'opEquals' it needs, the same way a
+// field owning an 'opDrop' gives its holder a drop wrapper, so the two answers cannot disagree.
+Result SemaSpecOp::ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct)
+{
+    if (ownerStruct.generatedEqualityPublished())
+        return Result::Continue;
+
+    const std::scoped_lock lock(ownerStruct.generatedEqualityMutex());
+    if (ownerStruct.generatedEqualityPublished())
+        return Result::Continue;
+
+    if (!ownerStruct.tryMarkGeneratedEquality() || !shouldGenerateEqualityOperator(sema, ownerStruct))
+    {
+        ownerStruct.publishGeneratedEquality();
+        return Result::Continue;
+    }
+
+    if (ownerStruct.isGenericInstance())
+    {
+        const Utf8 source = makeGeneratedEqualityMethodSource(sema, ownerStruct, SemaSpecOp::generatedSelfTypeName());
+        SWC_RESULT(declareGeneratedImplBlockSource(sema, ownerStruct, source.view(), true));
+        ownerStruct.publishGeneratedEquality();
+        return Result::Continue;
+    }
+
+    const Utf8 source = makeGeneratedEqualitySource(sema, ownerStruct);
+    SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view()));
+    ownerStruct.publishGeneratedEquality();
     return Result::Continue;
 }
 

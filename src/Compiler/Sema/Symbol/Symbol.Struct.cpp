@@ -1506,4 +1506,10 @@ bool SymbolStruct::tryMarkGeneratedOperators() const noexcept
     return generatedOperatorsDone_.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire);
 }
 
+bool SymbolStruct::tryMarkGeneratedEquality() const noexcept
+{
+    bool expected = false;
+    return generatedEqualityDone_.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire);
+}
+
 SWC_END_NAMESPACE();

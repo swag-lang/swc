@@ -117,6 +117,57 @@ equality, inequality, and relational comparisons.
 }
 
 /**
+# Struct Comparison
+
+'==' on a struct compares it member by member, and each member compares the way its own type
+does. A 'string' or a slice member therefore compares the content it views rather than the
+view itself, and a member owning an 'opEquals' has that method called.
+
+The compiler compares the bytes in one go whenever every member gives the same answer its bytes
+give, which is what a struct of numbers, pointers and enums does. It compares the bytes the
+members occupy and no others: the padding a layout inserts between them is not a member, so two
+values whose every member is equal are equal whatever those bytes hold. A union is the exception
+and compares all of its storage, because its members share it and there is no member-wise answer
+to give.
+
+Declare an 'opEquals' to decide the comparison yourself, or ask for a generated one with
+'#[Swag.Operators(opEquals)]'. Declaring one against *another* type — a struct that answers
+'count == "text"' — adds that comparison beside the built-in one rather than replacing it, so two
+values of the struct still compare the way they did.
+*/
+
+struct Tolerance
+{
+    value: s32
+}
+
+impl Tolerance
+{
+    // Two readings one unit apart count as the same reading.
+    mtd const opEquals(other: const &Tolerance)->bool
+    {
+        return .value == other.value or .value + 1 == other.value or .value == other.value + 1
+    }
+}
+
+struct Measure
+{
+    reading: Tolerance
+    label:   s32
+}
+
+#test
+{
+    let a = Measure{reading: {value: 10}, label: 7}
+    let b = Measure{reading: {value: 11}, label: 7}
+    let c = Measure{reading: {value: 10}, label: 8}
+
+    @assert(a.reading == b.reading)     // the member decides these readings are equal
+    @assert(a == b)                     // so the two measures are equal too
+    @assert(a != c)                     // 'label' still compares as the number it is
+}
+
+/**
 # Logical Operators
 
 Logical operators evaluate expressions and return a boolean result. Swag uses

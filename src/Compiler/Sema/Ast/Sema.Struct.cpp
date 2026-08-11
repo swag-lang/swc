@@ -141,6 +141,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     if (!sym.isGenericInstance())
         SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, sym));
     SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, sym));
+    SWC_RESULT(SemaSpecOp::ensureGeneratedEquality(sema, sym));
     SWC_RESULT(sym.registerSpecOps(sema));
 
     // Runtime struct

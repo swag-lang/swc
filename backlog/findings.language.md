@@ -816,42 +816,67 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## What equality compares
 
-### F-107 — A struct compares its bytes, so a string or slice member compares as a view
+### F-115 — An array compares its bytes, whatever its elements compare
 
 - Area: language
-- Found while: F-087, checking where else content equality stops
-- Observation: `==` between two structs without an `opEquals` compares their storage byte for byte,
-  so a member whose own `==` compares content does not. Two structs holding equal text over
-  different buffers answer `false` while the two members answer `true`, and nothing says so at the
-  call site. This is not new for `string` — it is what byte comparison has always meant — but it is
-  now the only place a slice still compares as the view it is, which makes the split visible:
-  `a.text == b.text` and `a == b` disagree about the same bytes.
+- Found while: F-107, deciding which members force a struct to compare member by member
+- Observation: `==` between two arrays compares their storage byte for byte, so an array of
+  `string`, of slices, or of structs owning an `opEquals` answers a different question than its
+  elements do. This is the same defect a struct had until a struct without an `opEquals` started
+  comparing member by member, and it is now the reason an array member deliberately does *not*
+  force that: an array's own `==` is a byte comparison, so member-wise and byte-wise agree about
+  it, and both are wrong. A struct therefore compares its `text: string` member by content and its
+  `names: [2] string` member by storage. Padding is no longer part of this: a struct now compares
+  the bytes its members occupy, and an array of a padded element type follows the same runs, so
+  what is left here is only the element's own comparison.
 - Evidence: isolated probe, `swc test -d <dir>`, identical under the JIT and from the binary:
 
   ```swag
-  struct Holder { text: string, tag: s64 }
-  var g_holders: [2] Holder = undefined
-  var g_left, g_right: [3] u8
+  #[Swag.Optimize(false)]
+  func viewText(buffer: const [*] u8)->string => cast(string) @mkslice(buffer, 3'u64)
 
   #[Swag.Optimize(false)]
-  func eqHolder(a, b: Holder)->bool => a == b
+  func eqNames(x, y: [2] string)->bool => x == y
 
-  g_left  = ['a', 'b', 'c']
-  g_right = ['a', 'b', 'c']
-  g_holders[0].text = cast(string) @mkslice(cast(const [*] u8) &g_left[0], 3'u64)
-  g_holders[1].text = cast(string) @mkslice(cast(const [*] u8) &g_right[0], 3'u64)
-
-  @assert(g_holders[0].text == g_holders[1].text)     // passes
-  @assert(eqHolder(g_holders[0], g_holders[1]))       // fails
+  var left, right: [3] u8 = ['a', 'b', 'c']
+  var n0, n1: [2] string  = ["", ""]
+  n0[0] = viewText(cast(const [*] u8) &left[0])
+  n1[0] = viewText(cast(const [*] u8) &right[0])
+  @assert(n0[0] == n1[0])       // passes
+  @assert(eqNames(n0, n1))      // fails
   ```
 
-  A `const [..] u8` member behaves the same way. `emitAggregateEqualsBool` in
-  [CodeGen.Relational.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Relational.cpp) is the byte compare
-  in question.
-- Next step: measure the blast radius before choosing. Count the structs under `bin/` that hold a
-  `string` or a slice and are compared with `==`; a member-wise compare is only worth its cost if
-  that set is small and the current answer is wrong for it. Padding is the other half of the
-  question: the byte compare already reads padding bytes, so a member-wise rule would change more
-  answers than the string ones. Whatever is decided, say it in
-  [003_006_operators.swg](../bin/reference/modules/language/src/003_006_operators.swg) — today the
-  reference states neither rule.
+  A struct holding that array answers `false` the same way. The byte compare is
+  `emitAggregateEqualsBool` in
+  [CodeGen.Relational.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Relational.cpp).
+- Elsewhere: Go compares an array element by element with the element's own `==`; Rust's
+  `PartialEq` for `[T; N]` forwards to `T`; C# `SequenceEqual` and C++ `std::array::operator==`
+  both compare elements. None of them reinterprets the array as storage.
+- Next step: the loop itself is proven and the plumbing is what remains. This body compiles today
+  and answers correctly for `string` elements and for struct elements owning an `opEquals`, with an
+  array converting to the slice parameter on its own:
+
+  ```swag
+  func(T) elementsEqual(a, b: const [..] T)->bool
+  {
+      if @countof(a) != @countof(b) do
+          return false
+      for i in @countof(a)
+      {
+          if !(a[i] == b[i]) do
+              return false
+      }
+
+      return true
+  }
+  ```
+
+  So the shape to build is a generic runtime helper beside `__sliceCmp` in
+  [print.swg](../bin/runtime/print.swg), attached to the comparison node the way
+  `SemaHelpers::attachRuntimeSliceCmpFunctionToNode` attaches that one, and lowered by
+  `emitSliceCompareBool`'s sibling. Two things have to be solved before it works: Sema has to
+  instantiate the generic for the element type without an AST node to carry the type argument —
+  `SemaGeneric::instantiateFunctionExplicit` takes generic *argument nodes* — and a multi-dimensional
+  `[X, Y] T` does not convert to `const [..] T` at all (it infers `const [..] [X] T` and then
+  rejects the argument), so that shape needs the flat element pointer and total count instead of a
+  slice. Settle both on a probe before touching the compiler.

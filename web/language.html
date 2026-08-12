@@ -429,6 +429,7 @@ swc help test
 </thead>
 <tbody>
 <tr><td><span class="code-inline">new</span></td><td>Create a runnable script or an executable workspace module</td></tr>
+<tr><td><span class="code-inline">clean</span></td><td>Remove what a build produced, and the caches kept between runs</td></tr>
 <tr><td><span class="code-inline">build</span></td><td>Compile and emit native artifacts without running them</td></tr>
 <tr><td><span class="code-inline">run</span></td><td>Build, then run emitted executables</td></tr>
 <tr><td><span class="code-inline">test</span></td><td>Run source-driven tests and <span class="code-inline">#test</span> functions</td></tr>
@@ -468,7 +469,7 @@ swc new module app --workspace my-project
 <tr><td>'--file PATH', '-f PATH'</td><td>Add an individual source file</td></tr>
 </tbody>
 </table>
-<p><span class="code-inline">--workspace</span> is available to <span class="code-inline">new</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">test</span>, <span class="code-inline">sema</span>, and <span class="code-inline">doc</span>. <span class="code-inline">--workspace-module</span> is available to the five compilation commands. The <span class="code-inline">format</span>, <span class="code-inline">syntax</span>, and compiler-internal <span class="code-inline">unittest</span> commands use the direct module, module-file, directory, or file modes instead.</p>
+<p><span class="code-inline">--workspace</span> is available to <span class="code-inline">new</span>, <span class="code-inline">clean</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">test</span>, <span class="code-inline">sema</span>, and <span class="code-inline">doc</span>. <span class="code-inline">--workspace-module</span> is available to the five compilation commands and to <span class="code-inline">clean</span>. The <span class="code-inline">format</span>, <span class="code-inline">syntax</span>, and compiler-internal <span class="code-inline">unittest</span> commands use the direct module, module-file, directory, or file modes instead.</p>
 <p>Where workspace mode is accepted, it excludes the direct module, directory, and file input modes. <span class="code-inline">--workspace-module</span> is meaningful only with <span class="code-inline">--workspace</span>. For 'new module', <span class="code-inline">--workspace</span> names the workspace to create or extend.</p>
 <h3 id="_001_004_swc_command_line_swg_Build_Configurations">Build Configurations</h3>
 <p><span class="code-inline">--build-cfg</span> (or <span class="code-inline">-bc</span>) accepts:</p>
@@ -494,6 +495,29 @@ swc syntax -mf &lt;workspace&gt;/modules/app
 swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <p><span class="code-inline">--dry-run</span> previews planned stages without executing compile-time code, native tools, tests, or emitted programs. <span class="code-inline">--show-config</span> prints the resolved command, environment, toolchain, and artifact configuration, then exits.</p>
+<h3 id="_001_004_swc_command_line_swg_Cleaning">Cleaning</h3>
+<p>'swc clean' removes what a build wrote, and nothing else. It compiles nothing, so it still answers on a tree that no longer builds.</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Option</th><th>Removes</th></tr>
+</thead>
+<tbody>
+<tr><td>'--workspace PATH'</td><td>The <span class="code-inline">.output</span>, <span class="code-inline">.tmp</span>, and <span class="code-inline">.dep</span> directories of that workspace</td></tr>
+<tr><td>'--workspace-module NAME'</td><td>That module's artifacts alone, keeping the <span class="code-inline">.dep</span> directory the workspace shares</td></tr>
+<tr><td>'--module PATH'</td><td>The <span class="code-inline">.output</span> directory under that module root, and <span class="code-inline">--out-dir</span> and <span class="code-inline">--work-dir</span> when they are set</td></tr>
+<tr><td><span class="code-inline">--cache</span></td><td>Every dependency copy a script filled outside a workspace</td></tr>
+<tr><td>'--cache-days N'</td><td>With <span class="code-inline">--cache</span>, only the copies unused for at least N days</td></tr>
+</tbody>
+</table>
+<div class="code-block"><span class="SCde">swc clean -w &lt;workspace&gt;
+swc clean -w &lt;workspace&gt; -m app
+swc clean --cache
+swc clean --cache --cache-days 7
+swc clean -w &lt;workspace&gt; --dry-run
+</span></div>
+<p>The command needs at least one of those targets, and never chooses one on its own. A directory that is not there counts as already clean, and <span class="code-inline">--dry-run</span> reports what each target holds while removing nothing.</p>
+<p>A script reads its dependencies from a copy rather than from where they were built, because the compiler loads their shared libraries into its own process: 'swc tools/std.swgs' rebuilds the very library it is running on, and could not replace a file the run has locked. Each copy is named after what it holds, so every script importing the same build shares one, a rebuilt dependency lands beside the copy a running script is reading instead of replacing it, and no run can observe a copy while it is being filled.</p>
+<p>Nothing invalidates a copy, because nothing can make one wrong: a dependency built again is different bytes, and different bytes are a different copy. What the old ones cost is disk. Publishing a copy removes the ones no run has used for a week, and <span class="code-inline">--cache</span> gives back the rest on demand.</p>
 <h3 id="_001_004_swc_command_line_swg_Formatting">Formatting</h3>
 <p>'swc format' rewrites sources in the canonical Swag style, which is built into the compiler. A Swag tree needs no configuration file to be formatted the way every other Swag tree is.</p>
 <table class="table-markdown">
@@ -821,9 +845,8 @@ indent-style = spaces
 <span class="SItr">@rol</span>  <span class="SItr">@ror</span>  <span class="SItr">@round</span>  <span class="SItr">@sin</span>  <span class="SItr">@sinh</span>  <span class="SItr">@sqrt</span>  <span class="SItr">@tan</span>  <span class="SItr">@tanh</span>  <span class="SItr">@trunc</span>
 </span></div>
 <p>Memory, atomic, and C variadic intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SItr">@alloc</span>  <span class="SItr">@atomadd</span>  <span class="SItr">@atomand</span>  <span class="SItr">@atomcmpxchg</span>  <span class="SItr">@atomor</span>  <span class="SItr">@atomxchg</span>
-<span class="SItr">@atomxor</span>  <span class="SItr">@free</span>  <span class="SItr">@memcmp</span>
-<span class="SItr">@memcpy</span>  <span class="SItr">@memmove</span>  <span class="SItr">@memset</span>  <span class="SItr">@realloc</span>
+<div class="code-block"><span class="SCde"><span class="SItr">@atomadd</span>  <span class="SItr">@atomand</span>  <span class="SItr">@atomcmpxchg</span>  <span class="SItr">@atomor</span>  <span class="SItr">@atomxchg</span>  <span class="SItr">@atomxor</span>
+<span class="SItr">@memcmp</span>  <span class="SItr">@memcpy</span>  <span class="SItr">@memmove</span>  <span class="SItr">@memset</span>
 </span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
@@ -1949,6 +1972,43 @@ indent-style = spaces
         <span class="SItr">@assert</span>(x &gt;= <span class="SNum">5</span>)
         <span class="SItr">@assert</span>(x &gt; <span class="SNum">0</span>)
     }
+}
+
+</span></div>
+<h3 id="_003_006_operators_swg_Struct_Comparison">Struct Comparison</h3>
+<p><span class="code-inline">==</span> on a struct compares it member by member, and each member compares the way its own type does. A <span class="code-inline">string</span> or a slice member therefore compares the content it views rather than the view itself, and a member owning an <span class="code-inline">opEquals</span> has that method called.</p>
+<p>The compiler compares the bytes in one go whenever every member gives the same answer its bytes give, which is what a struct of numbers, pointers and enums does. It compares the bytes the members occupy and no others: the padding a layout inserts between them is not a member, so two values whose every member is equal are equal whatever those bytes hold. A union is the exception and compares all of its storage, because its members share it and there is no member-wise answer to give.</p>
+<p>Declare an <span class="code-inline">opEquals</span> to decide the comparison yourself, or ask for a generated one with <span class="code-inline">#[Swag.Operators(opEquals)]</span>. Declaring one against <i>another</i> type — a struct that answers 'count == "text"' — adds that comparison beside the built-in one rather than replacing it, so two values of the struct still compare the way they did.</p>
+<div class="code-block"><span class="SCde">
+<span class="SKwd">struct</span> <span class="SCst">Tolerance</span>
+{
+    value: <span class="STpe">s32</span>
+}
+
+<span class="SKwd">impl</span> <span class="SCst">Tolerance</span>
+{
+    <span class="SCmt">// Two readings one unit apart count as the same reading.</span>
+    <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opEquals</span>(other: <span class="SKwd">const</span> &amp;<span class="SCst">Tolerance</span>)-&gt;<span class="STpe">bool</span>
+    {
+        <span class="SLgc">return</span> .value == other.value <span class="SLgc">or</span> .value + <span class="SNum">1</span> == other.value <span class="SLgc">or</span> .value == other.value + <span class="SNum">1</span>
+    }
+}
+
+<span class="SKwd">struct</span> <span class="SCst">Measure</span>
+{
+    reading: <span class="SCst">Tolerance</span>
+    label:   <span class="STpe">s32</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> a = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">10</span>}, label: <span class="SNum">7</span>}
+    <span class="SKwd">let</span> b = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">11</span>}, label: <span class="SNum">7</span>}
+    <span class="SKwd">let</span> c = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">10</span>}, label: <span class="SNum">8</span>}
+
+    <span class="SItr">@assert</span>(a.reading == b.reading)     <span class="SCmt">// the member decides these readings are equal</span>
+    <span class="SItr">@assert</span>(a == b)                     <span class="SCmt">// so the two measures are equal too</span>
+    <span class="SItr">@assert</span>(a != c)                     <span class="SCmt">// 'label' still compares as the number it is</span>
 }
 
 </span></div>
@@ -5400,6 +5460,7 @@ indent-style = spaces
 <p><span class="code-inline">opBinary</span>, <span class="code-inline">opBinaryRight</span>, <span class="code-inline">opUnary</span>, <span class="code-inline">opAssign</span> and <span class="code-inline">opIndexAssign</span> take the operator as a compile-time <span class="code-inline">Swag.Operator</span> value, so one hook covers a whole family and a misspelled member is reported instead of being a comparison that silently never matches. Each spelling has its own member: unary <span class="code-inline">-</span> arrives as <span class="code-inline">Neg</span>, binary <span class="code-inline">-</span> as <span class="code-inline">Sub</span>. <span class="code-inline">op.symbol()</span> returns the source spelling when generated code or a diagnostic needs it.</p>
 <p>Use a <span class="code-inline">where</span> clause on <span class="code-inline">op</span> to state which operators a hook handles. A failing constraint removes that specialization from overload resolution; a <span class="code-inline">#error</span> reached in the body remains a compile-time error and is reported where it occurs.</p>
 <p>A literal suffix stays a string (<span class="code-inline">opSetLiteral</span>), because the set of suffixes is open-ended and chosen by the user rather than by the language.</p>
+<p><span class="code-inline">#[Swag.Operators]</span> asks the compiler to write <span class="code-inline">opEquals</span> and <span class="code-inline">opCompare</span> from the members, and <span class="code-inline">#[Swag.OperatorIgnore]</span> keeps one member out of them. A struct that asks for neither still receives a member-wise <span class="code-inline">opEquals</span> when one of its members compares its content rather than its bytes, so a struct and its members never disagree about equality.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">struct</span> <span class="SCst">Struct</span>
 {
@@ -6948,7 +7009,7 @@ indent-style = spaces
 <p><span class="code-inline">@assert</span> and <span class="code-inline">@panic</span> stop execution. Compiler-facing code can report diagnostics with <span class="code-inline">@compilererror</span> and <span class="code-inline">@compilerwarning</span>. Memory and math intrinsics are also subject to the safety and sanity policies described later in this reference.</p>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
-<p>Intrinsics do not imply ownership. <span class="code-inline">@mkslice</span> and <span class="code-inline">@mkstring</span> create views; <span class="code-inline">@alloc</span> returns raw storage; <span class="code-inline">@memcpy</span> ignores value lifecycle hooks. The caller remains responsible for lifetime, bounds, alignment, and element semantics.</p>
+<p>Intrinsics do not imply ownership. <span class="code-inline">@mkslice</span> and <span class="code-inline">@mkstring</span> create views, while <span class="code-inline">@memcpy</span> ignores value lifecycle hooks. The caller remains responsible for lifetime, bounds, alignment, and element semantics.</p>
 </div>
 <h3 id="_008_001_init_swg">Init</h3>
 <h3 id="_008_001_init_swg___init__Intrinsic"><span class="code-inline">@init</span> Intrinsic</h3>
@@ -7203,23 +7264,6 @@ indent-style = spaces
     <span class="SItr">@memset</span>(&amp;destination[<span class="SNum">0</span>], <span class="SNum">0</span>'<span class="STpe">u8</span>, <span class="SItr">@countof</span>(destination))
     <span class="SItr">@assert</span>(destination[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> destination[<span class="SNum">1</span>] == <span class="SNum">0</span>)
     <span class="SItr">@assert</span>(destination[<span class="SNum">2</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> destination[<span class="SNum">3</span>] == <span class="SNum">0</span>)
-}
-
-</span></div>
-<h3 id="_008_005_memory_and_atomic_intrinsics_swg_Allocation">Allocation</h3>
-<p><span class="code-inline">@alloc</span> returns nullable raw storage, <span class="code-inline">@realloc</span> resizes an allocation, and <span class="code-inline">@free</span> releases it. Cast the result to the intended pointer type, prove it non-null before use, and pair every successful allocation with <span class="code-inline">@free</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> data = <span class="SKwd">cast</span>(<span class="SItr">#null</span> [*] <span class="STpe">u32</span>) <span class="SItr">@alloc</span>(<span class="SNum">4</span> * <span class="SItr">#sizeof</span>(<span class="STpe">u32</span>))
-    <span class="SLgc">if</span> data == <span class="SKwd">null</span> <span class="SLgc">do</span>
-        <span class="SLgc">unreachable</span>
-
-    <span class="SKwd">let</span> usable = data!
-    <span class="SLgc">defer</span> <span class="SItr">@free</span>(usable)
-
-    usable[<span class="SNum">0</span>] = <span class="SNum">10</span>
-    usable[<span class="SNum">3</span>] = <span class="SNum">40</span>
-    <span class="SItr">@assert</span>(usable[<span class="SNum">0</span>] + usable[<span class="SNum">3</span>] == <span class="SNum">50</span>)
 }
 
 </span></div>
@@ -10110,7 +10154,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.4</div>
 </footer>
 </section>
 </main>
@@ -10391,6 +10435,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Selecting Input|_001_004_swc_command_line_swg_Selecting_Input|",
 "h|Build Configurations|_001_004_swc_command_line_swg_Build_Configurations|",
 "h|Common Workflows|_001_004_swc_command_line_swg_Common_Workflows|",
+"h|Cleaning|_001_004_swc_command_line_swg_Cleaning|",
 "h|Formatting|_001_004_swc_command_line_swg_Formatting|",
 "h|Documentation Generation|_001_004_swc_command_line_swg_Documentation_Generation|",
 "h|Test Controls|_001_004_swc_command_line_swg_Test_Controls|",
@@ -10507,6 +10552,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Assignment Operators|_003_006_operators_swg_Assignment_Operators|",
 "h|Unary Operators|_003_006_operators_swg_Unary_Operators|",
 "h|Comparison Operators|_003_006_operators_swg_Comparison_Operators|",
+"h|Struct Comparison|_003_006_operators_swg_Struct_Comparison|",
 "h|Logical Operators|_003_006_operators_swg_Logical_Operators|",
 "h|Ternary Operator|_003_006_operators_swg_Ternary_Operator|",
 "h|Spaceship Operator|_003_006_operators_swg_Spaceship_Operator|",
@@ -10828,7 +10874,6 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Floating-Point Math|_008_004_math_and_bit_intrinsics_swg_Floating-Point_Math|",
 "h|Memory and Atomic Intrinsics|_008_005_memory_and_atomic_intrinsics_swg|",
 "h|Raw Memory|_008_005_memory_and_atomic_intrinsics_swg_Raw_Memory|",
-"h|Allocation|_008_005_memory_and_atomic_intrinsics_swg_Allocation|",
 "h|Atomic Read-Modify-Write|_008_005_memory_and_atomic_intrinsics_swg_Atomic_Read-Modify-Write|",
 "h|Generics|_009_000_generics_swg|",
 "h|Functions|_009_001_functions_swg|",

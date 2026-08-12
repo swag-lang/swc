@@ -160,9 +160,18 @@ namespace Unittest
         bool                         hasFailure             = false;
         uint64_t                     setupDurationNs        = 0;
         size_t                       skippedFilesystemTests = 0;
+        size_t                       selectedTestCount      = 0;
+        size_t                       executedTestCount      = 0;
+        size_t                       failedTestCount        = 0;
         std::vector<TimedTestResult> timedTests;
         const bool                   verboseUnittest = ctx.cmdLine().verboseUnittest;
         timedTests.reserve(testRegistry().size());
+
+        for (const TestCase& test : testRegistry())
+        {
+            if (shouldRunTest(ctx.cmdLine(), test))
+                selectedTestCount++;
+        }
 
         for (const SetupFn setupFn : setupRegistry())
         {
@@ -183,10 +192,15 @@ namespace Unittest
                 continue;
             }
 
+            stage.setProgressStat(ScopedTimedLog::formatTestProgress(testCtx, executedTestCount, selectedTestCount, failedTestCount, test.name));
             const Timer::Tick startTick  = Timer::Clock::now();
             const Result      result     = test.fn(testCtx);
             const uint64_t    durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
             const bool        ok         = result == Result::Continue;
+            executedTestCount++;
+            if (!ok)
+                failedTestCount++;
+            stage.setProgressStat(ScopedTimedLog::formatTestProgress(testCtx, executedTestCount, selectedTestCount, failedTestCount, test.name));
 
             timedTests.push_back({test.name, durationNs});
             if (ok)
@@ -206,6 +220,10 @@ namespace Unittest
 
         if (verboseUnittest)
             logUnittestSummary(testCtx, timedTests, setupDurationNs, skippedFilesystemTests);
+
+        std::vector<Utf8> statParts;
+        ScopedTimedLog::appendTestStats(testCtx, statParts, executedTestCount, failedTestCount);
+        stage.setStat(ScopedTimedLog::joinStatItems(testCtx, statParts));
 
         return hasFailure ? Result::Error : Result::Continue;
     }

@@ -37,10 +37,13 @@ func __isTestRun()->bool
 // Optimizations stay off: recovery re-enters this function with the registers captured before the
 // test ran, so every local must live on the stack rather than in a register the call could reuse.
 #[Swag.Optimize(false)]
-func __runTest(fn: *void)
+func __runTest(fn: *void, name: const [*] u8)
 {
     if !__isTestRun() do
         return
+
+    let testName = @mkstring(name, @countof(cast(const cstring) name))
+    @print("[swag.test] event=start executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
 
     g_TestsExecuted += 1
     g_TestFailed    = false
@@ -60,6 +63,8 @@ func __runTest(fn: *void)
 
     if g_TestFailed do
         g_TestsFailedCnt += 1
+
+    @print("[swag.test] event=", g_TestFailed ? "fail" : "pass", " executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
 }
 
 func __testsDone()

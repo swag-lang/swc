@@ -1,11 +1,15 @@
 #include "pch.h"
 #include "Support/Report/ScopedTimedLog.h"
+#include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/LogSymbol.h"
@@ -44,8 +48,7 @@ namespace
     }
 
     // A stage names itself with a verb: what it is doing while it runs, what it has done once it
-    // is over. The two scope stages are the exception, because they report a whole workspace or
-    // module rather than one kind of work.
+    // is over. Scope stages keep their noun for the permanent result, but animate with a verb too.
     struct StageLabels
     {
         std::string_view active;
@@ -56,8 +59,8 @@ namespace
     {
         switch (stage)
         {
-            case Stage::Workspace: return {"workspace", "workspace"};
-            case Stage::Module: return {"module", "module"};
+            case Stage::Workspace: return {"building", "workspace"};
+            case Stage::Module: return {"compiling", "module"};
             case Stage::Format: return {"formatting", "formatted"};
             case Stage::Syntax: return {"reading", "read"};
             case Stage::Sema: return {"checking", "checked"};
@@ -140,19 +143,14 @@ namespace
         return "sources";
     }
 
-    // The one and only line printer: <margin><glyph>  <label> part • part • part
-    void printLine(const TaskContext& ctx, const LinePrefix& prefix, const std::string_view label, const std::vector<Utf8>& parts)
+    // Every stage line has the same shape: <margin><glyph>  <label> part • part • part
+    Utf8 formatLine(const TaskContext& ctx, const LinePrefix& prefix, const std::string_view label, const std::vector<Utf8>& parts)
     {
-        if (ctx.cmdLine().silent)
-            return;
-
-        const Logger::ScopedLock lock(ctx.global().logger());
-
         Utf8 line;
         line.append(2, ' ');
         line += colorize(ctx, prefix.glyphColor, LogSymbolHelper::toString(ctx, prefix.glyph));
         line += "  ";
-        
+
         // Wide enough that the longest label ("documenting") still leaves a gap before the
         // value; a column that exactly fits a label glues the two words together.
         constexpr size_t labelColumn = 12;
@@ -172,8 +170,39 @@ namespace
         }
 
         line += LogColorHelper::toAnsi(ctx, LogColor::Reset);
+        return line;
+    }
+
+    void printLine(const TaskContext& ctx, const LinePrefix& prefix, const std::string_view label, const std::vector<Utf8>& parts)
+    {
+        if (ctx.cmdLine().silent)
+            return;
+
+        Utf8 line = formatLine(ctx, prefix, label, parts);
         line += "\n";
+        const Logger::ScopedLock lock(ctx.global().logger());
         std::cout << line << std::flush;
+    }
+
+    Logger::ProgressFrames formatProgressFrames(const TaskContext& ctx, const Stage stage, const Utf8& detail, const Utf8& stat)
+    {
+        static constexpr LogColor PULSE_COLORS[] = {
+            LogColor::Gray,
+            LogColor::Blue,
+            LogColor::BrightBlue,
+            LogColor::Blue,
+        };
+
+        Logger::ProgressFrames result;
+        for (size_t i = 0; i < result.size(); ++i)
+        {
+            const LinePrefix prefix{.glyphColor = PULSE_COLORS[i], .glyph = LogSymbol::CommandMark, .labelColor = LogColor::Gray};
+            result[i] = formatLine(ctx, prefix, stageActiveLabel(stage), {detail, stat});
+            if (!detail.empty() || !stat.empty())
+                result[i] += " " + colorize(ctx, LogColor::Gray, LogSymbolHelper::toString(ctx, LogSymbol::DotList)) + " ";
+            result[i] += LogColorHelper::toAnsi(ctx, LogColor::Gray);
+        }
+        return result;
     }
 }
 
@@ -193,13 +222,41 @@ StatsSnapshot StatsSnapshot::capture()
     return result;
 }
 
-// "N tests [• M did not pass]" parts of a test-command stage line. The executed count is
-// always shown, even when zero: in test mode, "no test ran" is a result in itself.
+// "N passed [• M did not pass]" parts of a test-command stage line. A zero total stays
+// "0 tests": in test mode, "no test ran" is a result in itself.
 void ScopedTimedLog::appendTestStats(const TaskContext& ctx, std::vector<Utf8>& parts, const size_t executed, const size_t failed)
 {
-    parts.push_back(formatStatCount(ctx, executed, "test"));
+    if (!executed)
+        parts.push_back(formatStatCount(ctx, 0, "test"));
+    else
+        parts.push_back(colorize(ctx, LogColor::Gray, Utf8Helper::toNiceBigNumber(executed - std::min(executed, failed)) + " passed"));
     if (failed)
         parts.push_back(colorize(ctx, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(failed) + " did not pass"));
+}
+
+Utf8 ScopedTimedLog::formatTestLocation(const TaskContext& ctx, const SymbolFunction& function)
+{
+    if (!function.decl() || function.tokRef().isInvalid())
+        return "test";
+
+    const SourceView& srcView = ctx.compiler().srcView(function.srcViewRef());
+    if (function.tokRef().get() >= srcView.numTokens())
+        return "test";
+
+    const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, function.tokRef());
+    const SourceFile*     file      = srcView.file();
+    return std::format("{}:{}", file ? file->name() : Utf8{"test"}, codeRange.line);
+}
+
+Utf8 ScopedTimedLog::formatTestProgress(const TaskContext& ctx, const size_t executed, const size_t total, const size_t failed, const std::string_view current)
+{
+    std::vector<Utf8> parts;
+    parts.push_back(colorize(ctx, LogColor::Gray, std::format("{}/{} passed", Utf8Helper::toNiceBigNumber(executed - std::min(executed, failed)), Utf8Helper::toNiceBigNumber(total))));
+    if (failed)
+        parts.push_back(colorize(ctx, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(failed) + " did not pass"));
+    if (!current.empty())
+        parts.push_back(formatStatName(ctx, current));
+    return joinStatItems(ctx, parts);
 }
 
 Utf8 ScopedTimedLog::formatStatCount(const TaskContext& ctx, const size_t value, const std::string_view singular, const char* pluralForm)
@@ -258,6 +315,12 @@ ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 d
         detail_ = colorize(ctx, LogColor::Yellow, scopeName(ctx.cmdLine()));
     else if (stage == Stage::Module)
         detail_ = colorize(ctx, LogColor::Yellow, moduleLog ? moduleLog->name : scopeName(ctx.cmdLine()));
+
+    if (stage == Stage::Module && moduleLog && moduleLog->total)
+        progressStat_ = formatStatRatio(ctx, moduleLog->index + 1, moduleLog->total, "module");
+
+    if (printEnabled_ && ctx.cmdLine().logProgress && Os::stdoutSupportsAnimation())
+        progressId_ = ctx.global().logger().beginProgress(formatProgressFrames(ctx, stage_, detail_, progressStat_));
 }
 
 ScopedTimedLog::~ScopedTimedLog()
@@ -292,7 +355,12 @@ ScopedTimedLog::~ScopedTimedLog()
     // A stage that failed did not do what its past tense claims: it names the work it was busy
     // with instead, so the line reads as the point where the run stopped.
     const std::string_view label = outcome == StageOutcome::Error ? stageActiveLabel(stage_) : stageDoneLabel(stage_);
-    printLine(*ctx_, stageOutcomePrefix(outcome, upToDate_), label, {detail_, stat_, testStat, time});
+    Utf8                   line  = formatLine(*ctx_, stageOutcomePrefix(outcome, upToDate_), label, {detail_, stat_, testStat, time});
+    line += "\n";
+    if (progressId_)
+        ctx_->global().logger().endProgress(progressId_, line);
+    else
+        printLine(*ctx_, stageOutcomePrefix(outcome, upToDate_), label, {detail_, stat_, testStat, time});
 }
 
 StatsSnapshot ScopedTimedLog::delta() const
@@ -323,6 +391,13 @@ void ScopedTimedLog::markUpToDate()
 void ScopedTimedLog::setStat(Utf8 stat)
 {
     stat_ = std::move(stat);
+}
+
+void ScopedTimedLog::setProgressStat(Utf8 stat)
+{
+    progressStat_ = std::move(stat);
+    if (progressId_)
+        ctx_->global().logger().updateProgress(progressId_, formatProgressFrames(*ctx_, stage_, detail_, progressStat_));
 }
 
 ScopedCommandLog::ScopedCommandLog(const TaskContext& ctx) :

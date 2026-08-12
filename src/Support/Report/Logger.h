@@ -11,6 +11,9 @@ class TaskContext;
 class Logger
 {
 public:
+    static constexpr size_t PROGRESS_FRAME_COUNT = 4;
+    using ProgressFrames                         = std::array<Utf8, PROGRESS_FRAME_COUNT>;
+
     struct FieldValuePart
     {
         Utf8     text;
@@ -41,8 +44,8 @@ public:
         bool     blankLineAfter    = false;
     };
 
-    Logger()  = default;
-    ~Logger() = default;
+    Logger() = default;
+    ~Logger();
 
     class ScopedStageMute
     {
@@ -112,12 +115,15 @@ public:
         Logger* logger_ = nullptr;
     };
 
-    void lock();
-    void unlock();
-    void resetStageClaims();
-    bool claimStageOnce(std::string_view key);
-    void pushStageMute() { stageMuteDepth_++; }
-    void popStageMute()
+    void   lock();
+    void   unlock();
+    size_t beginProgress(ProgressFrames frames);
+    void   updateProgress(size_t progressId, ProgressFrames frames);
+    void   endProgress(size_t progressId, std::string_view finalLine);
+    void   resetStageClaims();
+    bool   claimStageOnce(std::string_view key);
+    void   pushStageMute() { stageMuteDepth_++; }
+    void   popStageMute()
     {
         SWC_ASSERT(stageMuteDepth_ != 0);
         stageMuteDepth_--;
@@ -141,10 +147,33 @@ public:
     static void printAction(const TaskContext& ctx, std::string_view left, std::string_view right);
 
 private:
-    std::recursive_mutex mutexAccess_;
-    std::vector<Utf8>    claimedStageKeys_;
-    size_t               stageMuteDepth_ = 0;
-    bool                 stagesDetailed_ = false;
+    struct ActiveProgress
+    {
+        size_t                                id = 0;
+        ProgressFrames                        frames;
+        std::chrono::steady_clock::time_point startTick;
+        size_t                                frameIndex = 0;
+    };
+
+    void animateLoop();
+    void clearProgressNoLock();
+    void renderProgressNoLock();
+    void showCursorNoLock();
+
+    std::recursive_mutex        mutexAccess_;
+    std::mutex                  animatorWakeMutex_;
+    std::condition_variable     animatorWake_;
+    std::vector<ActiveProgress> activeProgress_;
+    std::thread                 animator_;
+    std::vector<Utf8>           claimedStageKeys_;
+    std::atomic<bool>           stopAnimator_      = false;
+    size_t                      outputBlockDepth_  = 0;
+    size_t                      stageMuteDepth_    = 0;
+    size_t                      nextProgressId_    = 0;
+    bool                        progressRendered_  = false;
+    bool                        cursorHidden_      = false;
+    bool                        permanentLineOpen_ = false;
+    bool                        stagesDetailed_    = false;
 };
 
 SWC_END_NAMESPACE();

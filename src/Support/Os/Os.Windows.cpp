@@ -23,16 +23,42 @@ namespace
 
     struct TerminalSupportState
     {
-        std::once_flag once;
-        bool           stdoutSupportsAnsi      = false;
-        bool           stdoutSupportsAnimation = false;
-        bool           stderrSupportsAnsi      = false;
+        std::once_flag   once;
+        std::once_flag   cursorHandlerOnce;
+        std::atomic_bool stdoutCursorHidden      = false;
+        bool             stdoutSupportsAnsi      = false;
+        bool             stdoutSupportsAnimation = false;
+        bool             stderrSupportsAnsi      = false;
     };
 
     TerminalSupportState& terminalSupportState()
     {
         static TerminalSupportState state;
         return state;
+    }
+
+    void setConsoleCursorVisible(const bool visible)
+    {
+        const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (!handle || handle == INVALID_HANDLE_VALUE)
+            return;
+
+        CONSOLE_CURSOR_INFO cursorInfo{};
+        if (!GetConsoleCursorInfo(handle, &cursorInfo))
+            return;
+        cursorInfo.bVisible = visible;
+        SetConsoleCursorInfo(handle, &cursorInfo);
+    }
+
+    BOOL WINAPI restoreCursorOnConsoleControl(const DWORD controlType)
+    {
+        if (controlType != CTRL_C_EVENT && controlType != CTRL_BREAK_EVENT && controlType != CTRL_CLOSE_EVENT && controlType != CTRL_LOGOFF_EVENT && controlType != CTRL_SHUTDOWN_EVENT)
+            return FALSE;
+
+        auto& state = terminalSupportState();
+        if (state.stdoutCursorHidden.exchange(false, std::memory_order_acq_rel))
+            setConsoleCursorVisible(true);
+        return FALSE;
     }
 
     bool tryEnableAnsiOnHandle(const DWORD stdHandleId, bool* outIsConsole = nullptr)
@@ -307,6 +333,9 @@ namespace
 
     void forwardProcessOutputLine(const Os::ProcessRunOptions* options, std::string_view lineWithEnding)
     {
+        if (options && options->outputLineCallback)
+            options->outputLineCallback(options->outputLineUserData, lineWithEnding);
+
         if (options && !options->suppressForwardLinePrefix.empty() && lineWithEnding.starts_with(options->suppressForwardLinePrefix))
             return;
 
@@ -888,6 +917,32 @@ namespace Os
     {
         ensureTerminalSupportInitialized();
         return terminalSupportState().stdoutSupportsAnimation;
+    }
+
+    uint32_t stdoutColumnCount()
+    {
+        const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (!handle || handle == INVALID_HANDLE_VALUE)
+            return 0;
+
+        CONSOLE_SCREEN_BUFFER_INFO info{};
+        if (!GetConsoleScreenBufferInfo(handle, &info))
+            return 0;
+        return static_cast<uint32_t>(info.srWindow.Right - info.srWindow.Left + 1);
+    }
+
+    void setStdoutCursorVisible(const bool visible)
+    {
+        ensureTerminalSupportInitialized();
+        auto& state = terminalSupportState();
+        if (!state.stdoutSupportsAnimation)
+            return;
+
+        std::call_once(state.cursorHandlerOnce, [] {
+            SetConsoleCtrlHandler(restoreCursorOnConsoleControl, TRUE);
+        });
+        state.stdoutCursorHidden.store(!visible, std::memory_order_release);
+        setConsoleCursorVisible(visible);
     }
 
     void panicBox(const std::string_view expr)

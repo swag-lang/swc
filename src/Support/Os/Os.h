@@ -50,6 +50,8 @@ namespace Os
         bool                      forwardOutput  = true;
         const TaskContext*        logCtx         = nullptr;
         std::span<const fs::path> additionalPathDirectories;
+        void (*outputLineCallback)(void* userData, std::string_view line) = nullptr;
+        void* outputLineUserData                                          = nullptr;
 
         // Lines starting with this prefix are captured but not forwarded (used for
         // machine-readable marker lines like the native test tally).
@@ -61,10 +63,12 @@ namespace Os
         uint32_t timeoutMs = 0;
     };
 
-    void initialize();
-    bool stdoutSupportsAnsi();
-    bool stderrSupportsAnsi();
-    bool stdoutSupportsAnimation();
+    void     initialize();
+    bool     stdoutSupportsAnsi();
+    bool     stderrSupportsAnsi();
+    bool     stdoutSupportsAnimation();
+    uint32_t stdoutColumnCount();
+    void     setStdoutCursorVisible(bool visible);
 
     void panicBox(std::string_view expr);
     Utf8 systemError();

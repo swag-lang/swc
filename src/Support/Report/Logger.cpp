@@ -3,6 +3,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/DiagnosticDef.h"
@@ -12,6 +13,49 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr auto PROGRESS_REFRESH_INTERVAL = std::chrono::milliseconds(120);
+    constexpr auto PROGRESS_APPEAR_DELAY     = std::chrono::milliseconds(150);
+
+    Utf8 clipAnsiLine(const std::string_view line, const uint32_t maxColumns)
+    {
+        if (!maxColumns)
+            return Utf8{line};
+
+        Utf8     result;
+        uint32_t columns = 0;
+        size_t   pos     = 0;
+        while (pos < line.size() && columns < maxColumns)
+        {
+            if (line[pos] == '\x1b' && pos + 1 < line.size() && line[pos + 1] == '[')
+            {
+                const size_t start = pos;
+                pos += 2;
+                while (pos < line.size())
+                {
+                    const unsigned char c = static_cast<unsigned char>(line[pos++]);
+                    if (c >= 0x40 && c <= 0x7e)
+                        break;
+                }
+                result.append(line.substr(start, pos - start));
+                continue;
+            }
+
+            const unsigned char lead = static_cast<unsigned char>(line[pos]);
+            size_t              size = 1;
+            if ((lead & 0xe0) == 0xc0)
+                size = 2;
+            else if ((lead & 0xf0) == 0xe0)
+                size = 3;
+            else if ((lead & 0xf8) == 0xf0)
+                size = 4;
+            size = std::min(size, line.size() - pos);
+            result.append(line.substr(pos, size));
+            pos += size;
+            columns++;
+        }
+        return result;
+    }
+
     std::mutex& stdErrMutex()
     {
         static std::mutex mutex;
@@ -67,14 +111,84 @@ namespace
     }
 }
 
+Logger::~Logger()
+{
+    stopAnimator_.store(true, std::memory_order_release);
+    animatorWake_.notify_all();
+    if (animator_.joinable())
+        animator_.join();
+
+    const std::scoped_lock lock(mutexAccess_);
+    clearProgressNoLock();
+    showCursorNoLock();
+    std::cout << std::flush;
+}
+
 void Logger::lock()
 {
     mutexAccess_.lock();
+    if (outputBlockDepth_++ == 0)
+        clearProgressNoLock();
 }
 
 void Logger::unlock()
 {
+    SWC_ASSERT(outputBlockDepth_ != 0);
+    outputBlockDepth_--;
+    if (outputBlockDepth_ == 0)
+        renderProgressNoLock();
     mutexAccess_.unlock();
+}
+
+size_t Logger::beginProgress(ProgressFrames frames)
+{
+    const std::scoped_lock lock(mutexAccess_);
+    if (!animator_.joinable())
+        animator_ = std::thread([this] { animateLoop(); });
+    const size_t progressId = ++nextProgressId_;
+    activeProgress_.push_back({.id = progressId, .frames = std::move(frames), .startTick = std::chrono::steady_clock::now()});
+    animatorWake_.notify_all();
+    return progressId;
+}
+
+void Logger::updateProgress(const size_t progressId, ProgressFrames frames)
+{
+    if (!progressId)
+        return;
+
+    const std::scoped_lock lock(mutexAccess_);
+    for (ActiveProgress& progress : activeProgress_)
+    {
+        if (progress.id != progressId)
+            continue;
+        progress.frames = std::move(frames);
+        return;
+    }
+}
+
+void Logger::endProgress(const size_t progressId, const std::string_view finalLine)
+{
+    const std::scoped_lock lock(mutexAccess_);
+    clearProgressNoLock();
+    if (progressId)
+    {
+        std::erase_if(activeProgress_, [progressId](const ActiveProgress& progress) {
+            return progress.id == progressId;
+        });
+    }
+
+    if (permanentLineOpen_)
+    {
+        std::cout << "\n";
+        permanentLineOpen_ = false;
+    }
+
+    std::cout << finalLine;
+    if (finalLine.empty() || finalLine.back() != '\n')
+        std::cout << "\n";
+    if (activeProgress_.empty())
+        showCursorNoLock();
+    std::cout << std::flush;
 }
 
 void Logger::resetStageClaims()
@@ -103,6 +217,8 @@ void Logger::print(const TaskContext& ctx, std::string_view message)
 
     const ScopedLock lock(ctx.global().logger());
     std::cout << message;
+    if (!message.empty())
+        ctx.global().logger().permanentLineOpen_ = message.back() != '\n';
 }
 
 void Logger::printDim(const TaskContext& ctx, std::string_view message)
@@ -114,6 +230,8 @@ void Logger::printDim(const TaskContext& ctx, std::string_view message)
     std::cout << LogColorHelper::toAnsi(ctx, LogColor::Dim);
     std::cout << message;
     std::cout << LogColorHelper::toAnsi(ctx, LogColor::Reset);
+    if (!message.empty())
+        ctx.global().logger().permanentLineOpen_ = message.back() != '\n';
 }
 
 void Logger::printStdErr(const LogColor color, const std::string_view message, const bool resetColor)
@@ -278,6 +396,82 @@ void Logger::printAction(const TaskContext& ctx, std::string_view left, std::str
         rightColor = LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning);
 
     printHeaderCentered(ctx, LogColor::Green, left, rightColor, right);
+}
+
+void Logger::animateLoop()
+{
+    while (!stopAnimator_.load(std::memory_order_acquire))
+    {
+        {
+            std::unique_lock wakeLock(animatorWakeMutex_);
+            animatorWake_.wait_for(wakeLock, PROGRESS_REFRESH_INTERVAL, [this] {
+                return stopAnimator_.load(std::memory_order_acquire);
+            });
+        }
+
+        if (stopAnimator_.load(std::memory_order_acquire))
+            return;
+        if (!mutexAccess_.try_lock())
+            continue;
+
+        if (outputBlockDepth_ == 0 && !activeProgress_.empty())
+        {
+            ActiveProgress& progress = activeProgress_.back();
+            progress.frameIndex      = (progress.frameIndex + 1) % progress.frames.size();
+            renderProgressNoLock();
+        }
+
+        mutexAccess_.unlock();
+    }
+}
+
+void Logger::clearProgressNoLock()
+{
+    if (!progressRendered_)
+        return;
+
+    std::cout << "\r\x1b[K";
+    progressRendered_ = false;
+}
+
+void Logger::showCursorNoLock()
+{
+    if (!cursorHidden_)
+        return;
+    Os::setStdoutCursorVisible(true);
+    cursorHidden_ = false;
+}
+
+void Logger::renderProgressNoLock()
+{
+    if (outputBlockDepth_ != 0 || permanentLineOpen_ || activeProgress_.empty())
+        return;
+
+    ActiveProgress& progress = activeProgress_.back();
+    const auto      now      = std::chrono::steady_clock::now();
+    if (now - progress.startTick < PROGRESS_APPEAR_DELAY)
+        return;
+
+    const uint64_t durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(now - progress.startTick).count();
+    Utf8           line       = progress.frames[progress.frameIndex];
+    line += Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
+    line += "\x1b[0m";
+    const uint32_t columns = Os::stdoutColumnCount();
+    if (columns > 1)
+        line = clipAnsiLine(line, columns - 1);
+
+    Utf8 frame;
+    if (!cursorHidden_)
+    {
+        Os::setStdoutCursorVisible(false);
+        cursorHidden_ = true;
+    }
+    frame += "\r";
+    frame += line;
+    frame += "\x1b[0m\x1b[K";
+    std::cout.write(frame.data(), static_cast<std::streamsize>(frame.size()));
+    std::cout << std::flush;
+    progressRendered_ = true;
 }
 
 SWC_END_NAMESPACE();

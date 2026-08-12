@@ -49,6 +49,7 @@ namespace
         entries.clear();
         addBoolEntry(entries, "Log colors", cmdLine.logColor);
         addBoolEntry(entries, "ASCII logs", cmdLine.logAscii);
+        addBoolEntry(entries, "Log progress", cmdLine.logProgress);
         addBoolEntry(entries, "Syntax colors", cmdLine.syntaxColor);
         addBoolEntry(entries, "One-line diagnostics", cmdLine.diagOneLine);
         addBoolEntry(entries, "Diagnostic IDs", cmdLine.errorId);

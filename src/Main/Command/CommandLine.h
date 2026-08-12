@@ -165,6 +165,7 @@ struct CommandLine
 
     bool logColor                = true;
     bool logAscii                = false;
+    bool logProgress             = true;
     bool syntaxColor             = true;
     bool diagOneLine             = false;
     bool errorId                 = false;

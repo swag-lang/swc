@@ -1013,6 +1013,23 @@ impl Buffer
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_TestProgressProtocolIsStrict)
+{
+    NativeBackendBuilder::NativeTestProgressEvent event;
+    if (!NativeBackendBuilder::parseNativeTestProgressEvent(event, "[swag.test] event=pass executed=12 failed=2 name=Core.Map.grow\r\n"))
+        return Result::Error;
+    if (event.executed != 12 || event.failed != 2 || event.name != "Core.Map.grow")
+        return Result::Error;
+
+    if (NativeBackendBuilder::parseNativeTestProgressEvent(event, "[swag.test] event=unknown executed=12 failed=2 name=Core.Map.grow\n"))
+        return Result::Error;
+    if (NativeBackendBuilder::parseNativeTestProgressEvent(event, "[swag.test] event=pass executed=12x failed=2 name=Core.Map.grow\n"))
+        return Result::Error;
+    if (NativeBackendBuilder::parseNativeTestProgressEvent(event, "ordinary program output\n"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

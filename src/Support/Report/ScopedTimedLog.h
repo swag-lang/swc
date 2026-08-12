@@ -6,6 +6,8 @@ struct TaskContext;
 
 SWC_BEGIN_NAMESPACE();
 
+class SymbolFunction;
+
 // A scoped stage times the work done in its lifetime and prints one summary line on destruction.
 class ScopedTimedLog
 {
@@ -60,9 +62,12 @@ public:
     void          markFailure();
     void          markUpToDate();
     void          setStat(Utf8 stat);
+    void          setProgressStat(Utf8 stat);
 
     // Small helpers callers use to assemble the parts of a stage line.
     static void appendTestStats(const TaskContext& ctx, std::vector<Utf8>& parts, size_t executed, size_t failed);
+    static Utf8 formatTestLocation(const TaskContext& ctx, const SymbolFunction& function);
+    static Utf8 formatTestProgress(const TaskContext& ctx, size_t executed, size_t total, size_t failed, std::string_view current = {});
     static Utf8 formatStatCount(const TaskContext& ctx, size_t value, std::string_view singular, const char* pluralForm = nullptr);
     static Utf8 formatStatRatio(const TaskContext& ctx, size_t value, size_t total, std::string_view singular);
     static Utf8 formatStatName(const TaskContext& ctx, std::string_view name);
@@ -77,6 +82,8 @@ private:
     std::optional<StageOutcome> forcedOutcome_;
     Utf8                        detail_;
     Utf8                        stat_;
+    Utf8                        progressStat_;
+    size_t                      progressId_   = 0;
     bool                        printEnabled_ = true;
     bool                        upToDate_     = false;
 };

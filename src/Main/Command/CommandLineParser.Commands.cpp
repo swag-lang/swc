@@ -203,6 +203,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Logging, "all", "--log-color", "-lc",
         &cmdLine_->logColor,
         "Colorize log output");
+    add(HelpOptionGroup::Logging, "all", "--log-progress", "-lp",
+        &cmdLine_->logProgress,
+        "Animate active work when standard output is an interactive terminal");
     add(HelpOptionGroup::Logging, "all", "--silent", "-s",
         &cmdLine_->silent,
         "Suppress all log output");

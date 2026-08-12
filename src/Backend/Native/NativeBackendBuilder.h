@@ -16,6 +16,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct MicroRelocation;
 class Linker;
+class ScopedTimedLog;
 
 inline constexpr auto K_R_DATA_BASE_SYMBOL = "__swc_rdata_base";
 inline constexpr auto K_DATA_BASE_SYMBOL   = "__swc_data_base";
@@ -141,6 +142,13 @@ struct NativeObjDescription
 class NativeBackendBuilder
 {
 public:
+    struct NativeTestProgressEvent
+    {
+        Utf8     name;
+        uint32_t executed = 0;
+        uint32_t failed   = 0;
+    };
+
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
     ~NativeBackendBuilder();
 
@@ -221,12 +229,18 @@ public:
     uint32_t nativeTestsExecuted  = 0;
     uint32_t nativeTestsFailed    = 0;
 
+    static bool parseNativeTestProgressEvent(NativeTestProgressEvent& outEvent, std::string_view line);
+
 private:
-    void   parseNativeTestSummary(const std::string& output);
-    Result validateTarget();
-    Result buildObjects();
-    Result runGeneratedArtifact();
-    Result runAfterLink();
+    struct NativeTestProgressContext;
+
+    static void forwardNativeTestProgress(void* userData, std::string_view line);
+    void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
+    void        parseNativeTestSummary(const std::string& output);
+    Result      validateTarget();
+    Result      buildObjects();
+    Result      runGeneratedArtifact();
+    Result      runAfterLink();
 
     TaskContext             ctx_;
     CompilerInstance*       compiler_    = nullptr;

@@ -10,6 +10,7 @@
 #include "Main/Global.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
+#include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 #if SWC_HAS_VALIDATE_NATIVE
 #include "Backend/Native/NativeValidate.h"
@@ -774,13 +775,25 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             const MicroReg testFnReg = nextVirtualIntReg(nextVirtualIntRegIndex);
             builder.emitLoadRegPtrReloc(testFnReg, 0, ConstantRef::invalid(), symbol);
 
+            const Utf8           testName    = ScopedTimedLog::formatTestLocation(ctx, *symbol);
+            const ConstantRef    testNameRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, testName));
+            const ConstantValue& testNameCst = ctx.cstMgr().get(testNameRef);
+            const MicroReg       testNameReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+            builder.emitLoadRegPtrReloc(testNameReg, reinterpret_cast<uint64_t>(testNameCst.getString().data()), testNameRef);
+
             ABICall::PreparedArg testFnArg;
             testFnArg.srcReg  = testFnReg;
             testFnArg.kind    = ABICall::PreparedArgKind::Direct;
             testFnArg.numBits = 64;
 
+            ABICall::PreparedArg testNameArg;
+            testNameArg.srcReg  = testNameReg;
+            testNameArg.kind    = ABICall::PreparedArgKind::Direct;
+            testNameArg.numBits = 64;
+
             SmallVector<ABICall::PreparedArg> runTestArgs;
             runTestArgs.push_back(testFnArg);
+            runTestArgs.push_back(testNameArg);
 
             const ABICall::PreparedCall preparedRunTest = ABICall::prepareArgs(builder, runTestFn->callConvKind(), runTestArgs);
             ABICall::callLocal(builder, runTestFn->callConvKind(), runTestFn, preparedRunTest);

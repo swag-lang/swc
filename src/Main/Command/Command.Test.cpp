@@ -601,9 +601,14 @@ namespace
         uint32_t failedTestCount   = 0;
         for (const SymbolFunction* function : testFunctions)
         {
+            const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
+            if (stage)
+                stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
             if (!runJitTestFunction(ctx, *function))
                 failedTestCount++;
             executedTestCount++;
+            if (stage)
+                stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
         }
 
         if (stage)

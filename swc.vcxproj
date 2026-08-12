@@ -213,6 +213,7 @@
         <ClCompile Include="src\Unittest\Support\Test.Support.JobManager.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.AppendOnlyLookupTable.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.PagedStore.cpp"/>
+        <ClCompile Include="src\Unittest\Support\Test.Support.Logger.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.Utf8.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.WarningPolicy.cpp"/>
         <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>

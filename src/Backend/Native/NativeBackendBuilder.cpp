@@ -957,7 +957,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
                 ec.clear();
                 fs::remove(dstPath, ec);
                 if (ec)
-                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), dstPath));
 
                 continue;
             }
@@ -967,7 +967,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
 
             fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
             if (ec)
-                return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+                return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), dstPath));
 
             ec.clear();
             const auto srcTime = fs::last_write_time(it->path(), ec);

@@ -176,6 +176,17 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
+    // A forced standard-library rebuild loads the new DLLs while the test command is still
+    // compiling. Their one-time initialization must already see the sandbox arguments that the
+    // ensuing JIT test run inherits.
+    var sandboxed = workspaceModuleCommand("test", workspace.toString(), "sandbox_consumer", buildCfg)
+    sandboxed.add(["--rebuild", "--no-test-native"])
+    options.appendExtra(&sandboxed)
+
+    let sandboxCode = try context.runCompiler(sandboxed)
+    if sandboxCode != 0 do
+        return sandboxCode
+
     var tested = workspaceModuleCommand("test", workspace.toString(), "consumer_exe", buildCfg)
     tested.add(["--no-test-jit"])
     options.appendExtra(&tested)

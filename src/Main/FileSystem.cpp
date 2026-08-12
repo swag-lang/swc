@@ -469,6 +469,42 @@ Utf8 FileSystem::describeIoFailure(const IoErrorInfo& error)
     return result;
 }
 
+// Completes a failure message with the processes holding the file. An access-denied on a shared
+// library names the symptom; the process mapping it names what to close. Asked on failure paths
+// only, and best effort: when nobody is found, the message stays as it was.
+Utf8 FileSystem::appendFileUsers(Utf8 because, const fs::path& path)
+{
+    std::vector<Os::FileLockOwner> owners;
+    Os::queryFileLockOwners(owners, path);
+    if (owners.empty())
+        return because;
+
+    because += "; the file is in use by ";
+    bool first = true;
+    for (const Os::FileLockOwner& owner : owners)
+    {
+        if (!first)
+            because += ", ";
+        first = false;
+
+        if (owner.processId == Os::currentProcessId())
+        {
+            because += "this compiler process";
+            continue;
+        }
+
+        if (owner.processName.empty())
+        {
+            because += std::format("process {}", owner.processId);
+            continue;
+        }
+
+        because += std::format("'{}' (process {})", owner.processName.c_str(), owner.processId);
+    }
+
+    return because;
+}
+
 Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)
 {
     const FilePathDisplayMode displayMode = ctx ? ctx->cmdLine().filePathDisplay : FilePathDisplayMode::AsIs;

@@ -148,9 +148,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `Pass.InstructionCombine.LoadFold`; the second is worth more but needs the aliasing question the
   post-RA hoist above already answers conservatively.
 
-### F-121 
-—
- Text shading and bilinear texture lerps still dominate a CPU-rendered widget frame
+### F-121 — Text shading and bilinear texture lerps still dominate a CPU-rendered widget frame
 
 - Area: std/pixel (RenderCpu)
 - Found while: cutting headless-test frame times with the batch rasterizer fast paths

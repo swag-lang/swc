@@ -95,9 +95,14 @@ namespace Command
             if (!ctx.compiler().externalModuleMgr().getFunctionAddress(hookAddress, dependency.linkModuleName.view(), hookSymbolName.view()))
                 return reportMissingRuntimeHook(ctx, dependency, hookSymbolName);
 
+            // A script and every shared module it initializes are one hosted run. The DLL keeps
+            // its lifecycle state for the rest of the compiler process, so initializing it
+            // without the script's effective arguments cannot be repaired by a later importer.
+            ctx.compiler().ensureProcessInfosRunArgs();
+            const Runtime::String* processArgs = &ctx.compiler().processInfos().args;
             const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
             const auto     hookInvoker  = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
-            hookInvoker(static_cast<uint64_t>(stage), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::Zero), nullptr);
+            hookInvoker(static_cast<uint64_t>(stage), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::Zero), processArgs);
             return Result::Continue;
         }
 

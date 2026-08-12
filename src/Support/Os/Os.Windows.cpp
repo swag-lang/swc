@@ -12,8 +12,10 @@
 #include <cwctype>
 #include <dbghelp.h>
 #include <psapi.h>
+#include <RestartManager.h>
 
 #pragma comment(lib, "Psapi.lib")
+#pragma comment(lib, "Rstrtmgr.lib")
 
 SWC_BEGIN_NAMESPACE();
 
@@ -1051,6 +1053,87 @@ namespace Os
         result.resize(utf8Size);
         WideCharToMultiByte(CP_UTF8, 0, commandLine.c_str(), static_cast<int>(commandLine.size()), result.data(), utf8Size, nullptr, nullptr);
         return result;
+    }
+
+    namespace
+    {
+        Utf8 utf8FromWide(const std::wstring_view text)
+        {
+            if (text.empty())
+                return {};
+
+            const int lenBytes = WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+            if (lenBytes <= 0)
+                return {};
+
+            Utf8 result;
+            result.resize(lenBytes);
+            WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), result.data(), lenBytes, nullptr, nullptr);
+            return result;
+        }
+
+        // The executable file name, not the friendly application name the Restart Manager
+        // reports: 'sCrypt.test.exe' says what to close where 'sCrypt' only says what it was.
+        Utf8 processImageBaseName(const DWORD processId)
+        {
+            const HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
+            if (!process)
+                return {};
+
+            wchar_t imagePath[MAX_PATH];
+            DWORD   imagePathLen = MAX_PATH;
+            Utf8    result;
+            if (QueryFullProcessImageNameW(process, 0, imagePath, &imagePathLen))
+                result = utf8FromWide(fs::path(std::wstring_view{imagePath, imagePathLen}).filename().wstring());
+            CloseHandle(process);
+            return result;
+        }
+    }
+
+    void queryFileLockOwners(std::vector<FileLockOwner>& outOwners, const fs::path& path)
+    {
+        outOwners.clear();
+        if (path.empty())
+            return;
+
+        DWORD   session                            = 0;
+        wchar_t sessionKey[CCH_RM_SESSION_KEY + 1] = {};
+        if (RmStartSession(&session, 0, sessionKey) != ERROR_SUCCESS)
+            return;
+
+        const std::wstring pathText = path.wstring();
+        LPCWSTR            resource = pathText.c_str();
+        if (RmRegisterResources(session, 1, &resource, 0, nullptr, 0, nullptr) == ERROR_SUCCESS)
+        {
+            UINT  numInfoNeeded = 0;
+            UINT  numInfo       = 0;
+            DWORD rebootReasons = RmRebootReasonNone;
+            DWORD queryResult   = RmGetList(session, &numInfoNeeded, &numInfo, nullptr, &rebootReasons);
+
+            std::vector<RM_PROCESS_INFO> infos;
+            while (queryResult == ERROR_MORE_DATA)
+            {
+                infos.resize(numInfoNeeded);
+                numInfo     = numInfoNeeded;
+                queryResult = RmGetList(session, &numInfoNeeded, &numInfo, infos.data(), &rebootReasons);
+            }
+
+            if (queryResult == ERROR_SUCCESS)
+            {
+                infos.resize(numInfo);
+                for (const RM_PROCESS_INFO& info : infos)
+                {
+                    FileLockOwner owner;
+                    owner.processId   = info.Process.dwProcessId;
+                    owner.processName = processImageBaseName(info.Process.dwProcessId);
+                    if (owner.processName.empty())
+                        owner.processName = utf8FromWide(info.strAppName);
+                    outOwners.push_back(std::move(owner));
+                }
+            }
+        }
+
+        RmEndSession(session);
     }
 
     ProcessRunResult runProcess(uint32_t& outExitCode, const fs::path& exePath, const std::span<const Utf8> args, const fs::path& workingDirectory, const ProcessRunOptions* options)

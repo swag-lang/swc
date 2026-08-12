@@ -74,6 +74,7 @@ namespace FileSystem
     Utf8        sanitizeFileName(Utf8 value);
     Utf8        normalizeSystemMessage(const Utf8& msg);
     Utf8        normalizeSystemMessage(std::error_code ec);
+    Utf8        appendFileUsers(Utf8 because, const fs::path& path);
 }
 
 SWC_END_NAMESPACE();

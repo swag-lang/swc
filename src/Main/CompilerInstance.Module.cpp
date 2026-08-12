@@ -226,7 +226,7 @@ namespace
     Result reportWorkspaceDependencySyncFailure(TaskContext& ctx, const fs::path& path, const Utf8& because)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_sync_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::appendFileUsers(because, path));
         diag.report(ctx);
         return Result::Error;
     }
@@ -1865,8 +1865,10 @@ Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const
     stdCmdLine.workDirExplicit = false;
     stdCmdLine.name.clear();
     stdCmdLine.artifactNameExplicit = false;
-    // Runtime arguments belong to the requested program, never to the library it needs.
-    stdCmdLine.runArgs.clear();
+    // This nested build can be the first code to load and initialize a standard-library DLL.
+    // Those lifecycle hooks are process-wide, so they must inherit the effective arguments of
+    // the program that requested the build before their one-time guards close over the state.
+    stdCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(instance().cmdLine());
     CommandLineParser::refreshBuildCfg(stdCmdLine);
 
     CompilerInstance stdCompiler(instance().global(), stdCmdLine);

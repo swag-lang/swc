@@ -63,6 +63,12 @@ namespace Os
         uint32_t timeoutMs = 0;
     };
 
+    struct FileLockOwner
+    {
+        Utf8     processName;
+        uint32_t processId = 0;
+    };
+
     void     initialize();
     bool     stdoutSupportsAnsi();
     bool     stderrSupportsAnsi();
@@ -85,6 +91,11 @@ namespace Os
     Utf8                            formatProcessCommandLine(const fs::path& exePath, std::span<const Utf8> args);
     ProcessRunResult                runProcess(uint32_t& outExitCode, const fs::path& exePath, std::span<const Utf8> args, const fs::path& workingDirectory, const ProcessRunOptions* options = nullptr);
     WindowsToolchainDiscoveryResult discoverWindowsToolchainPaths(WindowsToolchainPaths& outToolchain);
+
+    // Names the processes that hold a file open, mapped, or running — the answer behind an
+    // access-denied on a shared library or an executable. Best effort: an empty result means
+    // nobody was found, not that nobody holds the file.
+    void queryFileLockOwners(std::vector<FileLockOwner>& outOwners, const fs::path& path);
 
     bool isDebuggerAttached();
 

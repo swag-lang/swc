@@ -615,6 +615,21 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(!parseCapacity("18446744073709551615", 1).error.isEmpty())
 }
 
+// The creation dialog preserves the exact filename; a vault has no required extension.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    let path = Testing.tempFilePath("scrypt-vault-", "")
+    host.acceptModalFileDialog(path)
+    window.chooseContainer(window.createPath, true)
+
+    @assert(host.autoHandled)
+    @assert(window.createPath.text() == path.toString())
+}
+
 // A container dropped on the path field of a card fills it, exactly as browsing to it would.
 #test
 {
@@ -659,7 +674,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     // Two files name no single vault to open.
     window.showTab(0)
-    window.mountPath.clear()
+    window.mountPath.setText("")
     @assert(host.dropFilesOnWnd(window, ["c:/vaults/a.scrypt", "c:/vaults/b.scrypt"]) == DropEffect.None)
     @assert(window.tabs.selectedIndex == 0)
 }

@@ -89,6 +89,13 @@ impl HeadlessHost
         .app.renderer.setCurrentContext(.surface.rc)
         .app.renderer.init()
 
+        // Spin up the shared worker pool, the way `Application.createSurface` does for a real
+        // window. A host builds its surface by hand and never goes through that path, so without
+        // this every rasterization a test performs — the theme atlas below first, then every
+        // painted frame — bands itself across a pool that does not exist and stays serial.
+        if Jobs.isSynchronous() do
+            discard catch Jobs.initialize()
+
         .theme = Memory.new'Theme()
         .theme.colors.setDark()
         registerDefaultThemeResources(&.app.resources)

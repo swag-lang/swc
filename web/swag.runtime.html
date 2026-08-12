@@ -3635,17 +3635,17 @@
 <span class="SKwd">attr</span> <span class="SFct">Align</span>(value: <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorAcquireSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorAcquireSegment</span> <a class="api-item-permalink" href="#Swag_allocatorAcquireSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L561">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorAcquireSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorAcquireSegment</span> <a class="api-item-permalink" href="#Swag_allocatorAcquireSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L563">src</a></div>
 <p>Hands the caller a segment shaped for <span class="code-inline">unitShift</span>, reusing an emptied one when possible.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorAcquireSegment</span>(owner: *<span class="STpe">void</span>, unitShift: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorAddArena" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorAddArena</span> <a class="api-item-permalink" href="#Swag_allocatorAddArena" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L495">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorAddArena" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorAddArena</span> <a class="api-item-permalink" href="#Swag_allocatorAddArena" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L497">src</a></div>
 <p>Adds one address-space reservation. The caller holds the arena mutex.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">allocatorAddArena</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorCreateSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorCreateSegment</span> <a class="api-item-permalink" href="#Swag_allocatorCreateSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L521">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorCreateSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorCreateSegment</span> <a class="api-item-permalink" href="#Swag_allocatorCreateSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L523">src</a></div>
 <p>Carves a fresh segment out of the reservations and commits its header.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">allocatorCreateSegment</span>(unitShift: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span></span></div>
 </section>
@@ -3664,18 +3664,18 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorOsDecommit</span>(address: <span class="STpe">u64</span>, size: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorPageOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorPageOf</span> <a class="api-item-permalink" href="#Swag_allocatorPageOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L613">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorPageOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorPageOf</span> <a class="api-item-permalink" href="#Swag_allocatorPageOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L615">src</a></div>
 <p>Recovers the page owning an address, or null when the address did not come from a segment. Two range tests and a shift replace every per-block header the old layout needed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
 <span class="SKwd">func</span> <span class="SFct">allocatorPageOf</span>(address: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Swag_AllocatorPage">AllocatorPage</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorReleaseSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorReleaseSegment</span> <a class="api-item-permalink" href="#Swag_allocatorReleaseSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L597">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorReleaseSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorReleaseSegment</span> <a class="api-item-permalink" href="#Swag_allocatorReleaseSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L599">src</a></div>
 <p>Returns an emptied segment to the shared pool. Its header stays committed and its address stays reserved for the process lifetime, which is what keeps an address-to-page lookup always safe.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorReleaseSegment</span>(segment: *<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorSegmentOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorSegmentOf</span> <a class="api-item-permalink" href="#Swag_allocatorSegmentOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L635">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_allocatorSegmentOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorSegmentOf</span> <a class="api-item-permalink" href="#Swag_allocatorSegmentOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L637">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
 <span class="SKwd">func</span> <span class="SFct">allocatorSegmentOf</span>(page: *<span class="SCst"><a href="#Swag_AllocatorPage">AllocatorPage</a></span>)-&gt;*<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span></span></div>
 </section>
@@ -4031,7 +4031,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.5</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.24</div>
 </footer>
 </section>
 </main>

@@ -13297,7 +13297,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Env_SystemMutation" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.SystemMutation</span> <a class="api-item-permalink" href="#Core_Env_SystemMutation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L115">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Env_SystemMutation" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.SystemMutation</span> <a class="api-item-permalink" href="#Core_Env_SystemMutation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L192">src</a></div>
 <p>Names a category of machine state an application mutates outside its own files.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_SystemMutation">SystemMutation</a></span></span></div>
 </section>
@@ -16817,7 +16817,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">claimFileExtension</span>(extension, progId, description, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_corpusRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.corpusRoot</span> <a class="api-item-permalink" href="#Core_Env_corpusRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L226">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_corpusRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.corpusRoot</span> <a class="api-item-permalink" href="#Core_Env_corpusRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L303">src</a></div>
 <p>Returns the corpus root, or an empty string when the run was granted none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">corpusRoot</span>()-&gt;<span class="STpe">string</span> =&gt; g_CorpusRoot.toString</span></div>
 </section>
@@ -16834,7 +16834,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentEnvironment</span>()-&gt;<span class="SCst"><a href="#Core_Env_ProcessEnvironment">ProcessEnvironment</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_deniedSystemMutations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.deniedSystemMutations</span> <a class="api-item-permalink" href="#Core_Env_deniedSystemMutations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L232">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_deniedSystemMutations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.deniedSystemMutations</span> <a class="api-item-permalink" href="#Core_Env_deniedSystemMutations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L309">src</a></div>
 <p>Returns how many system mutations have been refused so far.</p>
 <p>A smoke run reports this: an application that still reaches for the registry or the shell on startup is not yet isolated, even though nothing failed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">deniedSystemMutations</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
@@ -16846,7 +16846,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enableDpiAwareness</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_enterSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enterSandbox</span> <a class="api-item-permalink" href="#Core_Env_enterSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L128">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_enterSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enterSandbox</span> <a class="api-item-permalink" href="#Core_Env_enterSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L205">src</a></div>
 <p>Arms the sandbox at <span class="code-inline">root</span>, which becomes the answer to every special-directory query.</p>
 <p><span class="code-inline">root</span> is created when missing. Arming twice with the same root is accepted; changing an armed root is not, because code may already hold paths derived from the previous one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enterSandbox</span>(root: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
@@ -16886,7 +16886,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSystemMetric</span>(what: <span class="SCst"><a href="#Core_Env_SystemMetric">SystemMetric</a></span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_grantCorpus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.grantCorpus</span> <a class="api-item-permalink" href="#Core_Env_grantCorpus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L174">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_grantCorpus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.grantCorpus</span> <a class="api-item-permalink" href="#Core_Env_grantCorpus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L251">src</a></div>
 <p>Grants <span class="code-inline">root</span> as the corpus: the one directory outside the sandbox a run may still write.</p>
 <p>A test keeps its reference data next to its own source, so recording one — creating a snapshot that does not exist yet, or leaving the produced one beside the reference it diverged from — means writing into the sources under test. The sandbox refuses that, and it is right to: the escape belongs to whoever launched the run, not to the test asking for it. <span class="code-inline">swc test</span> grants the module or workspace it is testing, and nothing else; the machine stays out of reach.</p>
 <p><span class="code-inline">root</span> must already exist. Granting twice with the same root is accepted; changing a granted root is not, because code may already hold paths derived from the previous one.</p>
@@ -16898,28 +16898,28 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasArgument</span>(argument: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isInsideCorpus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideCorpus</span> <a class="api-item-permalink" href="#Core_Env_isInsideCorpus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L282">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isInsideCorpus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideCorpus</span> <a class="api-item-permalink" href="#Core_Env_isInsideCorpus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L359">src</a></div>
 <p>Reports whether <span class="code-inline">path</span> is inside the granted corpus. Answers false when there is none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideCorpus</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span> =&gt; isInsideDirectory</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isInsideDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideDirectory</span> <a class="api-item-permalink" href="#Core_Env_isInsideDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L252">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isInsideDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideDirectory</span> <a class="api-item-permalink" href="#Core_Env_isInsideDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L329">src</a></div>
 <p>Reports whether <span class="code-inline">path</span> names <span class="code-inline">root</span> itself or something below it.</p>
 <p>Both sides are resolved and normalized first, so a relative path, a mixed separator style or a difference in case cannot smuggle a location past the check.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideDirectory</span>(root: <span class="STpe">string</span>, path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isInsideSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideSandbox</span> <a class="api-item-permalink" href="#Core_Env_isInsideSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L274">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isInsideSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideSandbox</span> <a class="api-item-permalink" href="#Core_Env_isInsideSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L351">src</a></div>
 <p>Reports whether <span class="code-inline">path</span> is inside the sandbox. Answers true when nothing is armed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideSandbox</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isSandboxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSandboxed</span> <a class="api-item-permalink" href="#Core_Env_isSandboxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L197">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isSandboxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSandboxed</span> <a class="api-item-permalink" href="#Core_Env_isSandboxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L274">src</a></div>
 <p>Reports whether the process is isolated from real machine state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSandboxed</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isSmokeRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSmokeRun</span> <a class="api-item-permalink" href="#Core_Env_isSmokeRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L204">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isSmokeRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSmokeRun</span> <a class="api-item-permalink" href="#Core_Env_isSmokeRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L281">src</a></div>
 <p>Reports whether the process is a smoke run: the real program, bounded by its launcher.</p>
 <p>Code driving its own loop instead of <a href="std.gui.html#Gui_Application_run">Gui.Application.run</a> asks this to know when to stop. Nothing else should branch on it: a smoke run must exercise the same paths as a real one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSmokeRun</span>()-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">smokeFrames</span>()</span></div>
@@ -16990,7 +16990,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runProcess</span>(info: <span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_sandboxRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.sandboxRoot</span> <a class="api-item-permalink" href="#Core_Env_sandboxRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L223">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_sandboxRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.sandboxRoot</span> <a class="api-item-permalink" href="#Core_Env_sandboxRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L300">src</a></div>
 <p>Returns the sandbox root, or an empty string when the process is not sandboxed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sandboxRoot</span>()-&gt;<span class="STpe">string</span> =&gt; g_SandboxRoot.toString</span></div>
 </section>
@@ -17001,7 +17001,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">showInFileExplorer</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_smokeFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.smokeFrames</span> <a class="api-item-permalink" href="#Core_Env_smokeFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L210">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_smokeFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.smokeFrames</span> <a class="api-item-permalink" href="#Core_Env_smokeFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L287">src</a></div>
 <p>Returns how many frames a smoke run renders before stopping, or zero outside one.</p>
 <p>A smoke run proves the real program starts and keeps running; the bound belongs to whoever launched it, so an application never has to recognize that it is being exercised.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">smokeFrames</span>()-&gt;<span class="STpe">u32</span></span></div>
@@ -23624,7 +23624,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.5</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.24</div>
 </footer>
 </section>
 </main>

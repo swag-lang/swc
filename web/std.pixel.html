@@ -7258,7 +7258,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_evaluateCropScore" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.evaluateCropScore</span> <a class="api-item-permalink" href="#Pixel_Image_evaluateCropScore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/smartcrop.swg#L836">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_evaluateCropScore" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.evaluateCropScore</span> <a class="api-item-permalink" href="#Pixel_Image_evaluateCropScore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/smartcrop.swg#L846">src</a></div>
 <p>Evaluates how well a candidate rectangle preserves visually salient content.</p>
 <p>Higher scores are preferred. <span class="code-inline">rect</span> uses image pixel coordinates. When <span class="code-inline">opts.maxSize</span> is positive, scoring may use a reduced working copy while preserving the rectangle's proportions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">evaluateCropScore</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, opts: <span class="SCst"><a href="#Pixel_Image_SmartCropSearchOpts">SmartCropSearchOpts</a></span> = {})-&gt;<span class="STpe">f32</span></span></div>
@@ -7472,7 +7472,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTransparentColor</span>(color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_smartCrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.smartCrop</span> <a class="api-item-permalink" href="#Pixel_Image_smartCrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/smartcrop.swg#L877">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_smartCrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.smartCrop</span> <a class="api-item-permalink" href="#Pixel_Image_smartCrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/smartcrop.swg#L887">src</a></div>
 <p>Reframes and crops the image to the size of <span class="code-inline">rect</span>.</p>
 <p>The position in <span class="code-inline">rect</span> is ignored: Pixel searches the source for the highest-scoring placement with the requested width and height. The final crop always uses the original pixels, even when search downscaling is enabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">smartCrop</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, opts: <span class="SCst"><a href="#Pixel_Image_SmartCropSearchOpts">SmartCropSearchOpts</a></span> = {})</span></div>
@@ -8991,7 +8991,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.5</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.24</div>
 </footer>
 </section>
 </main>

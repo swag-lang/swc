@@ -391,6 +391,15 @@ namespace
         {
             std::error_code removeEc;
             fs::remove(tempPath, removeEc);
+
+            // The replace can lose a race it did not need to win. This process maps the previous
+            // copy for JIT execution while a background link still reads beside it, and the copy
+            // being installed may carry the very bytes the destination already holds. A mirror
+            // whose destination matches the source is correct however the rename fared, so only
+            // a real difference is worth an error.
+            if (!shouldCopyWorkspaceDependencyFile(srcPath, dstPath))
+                return Result::Continue;
+
             return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
         }
 

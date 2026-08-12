@@ -139,3 +139,27 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: have `Context.runCompiler` time each invocation and accumulate `(label, seconds)`,
   then print a table ordered by cost at the end of `runTests`. The labels already exist — the rung,
   the configuration, and the workspace or suite name are all known at the call site.
+
+### F-123 — A dependency mirror copy fired for a file that already matched its source
+
+- Area: build
+- Found while: `swc test -w bin/apps -m sCrypt --rebuild`, one run out of three, failing with
+  "cannot synchronize workspace dependency '…\std\.dep\…\core.dll': access is denied; the file is
+  in use by this compiler process"
+- Observation: during a nested standard-library build, the `truetype` compile setup tried to
+  replace `.dep/…/core.dll` while this process held it — the `ogl` compile before it had loaded
+  that very file for JIT execution, and ogl's deferred link was still running in the background.
+  The copy should never have been attempted: `shouldCopyWorkspaceDependencyFile` copies only on a
+  size or timestamp difference, yet post-mortem the destination matched the source to the exact
+  100 ns tick. Either a transient stat failure took the "cannot compare, so copy" path, or the
+  compare raced the deferred link finishing `core.dll` and the manifest beside it.
+- Evidence: run of 2026-08-12 09:52 — `.dep` core.dll, core.lib, core.pdb and `.swc-artifacts`
+  all carried the source's exact ticks after the failure, so the last write of the destination was
+  a successful copy of the current source, and the failed rename had nothing left to install. Two
+  sibling runs with the same command did not reproduce. The failed replace now self-heals
+  (`copyWorkspaceDependencyFile` re-checks the pair when the rename fails and succeeds when the
+  destination already matches), so the race no longer aborts a build; the trigger remains
+  unexplained.
+- Next step: when the rename fails and the re-check says the pair matches, log or capture which
+  of the earlier stats made `shouldCopyWorkspaceDependencyFile` answer "copy" — the error codes
+  of both stat sequences are the fact the post-mortem cannot recover.

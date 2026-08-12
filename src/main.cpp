@@ -16,6 +16,20 @@
 
 namespace
 {
+    // A hosted run — a script, a JIT test — arms its sandbox inside this very process, so its
+    // default root carries this process id, and the runtime's own drop hook leaves it in place:
+    // the same process may host another run right after, and that run expects the armed root to
+    // still be there. Once the command is over nothing hosted remains, which makes this the one
+    // point that can retire the root. The name is the contract with the runtime sandbox in
+    // bin/std/modules/core/src/system/sandbox.swg, and only this process's own directory is ever
+    // considered — never a sweep over its siblings.
+    void removeOwnDefaultSandboxRoot()
+    {
+        std::error_code ec;
+        const fs::path root = swc::Os::getTemporaryPath() / "swag-sandbox" / std::format("run-{}", swc::Os::currentProcessId());
+        fs::remove_all(root, ec);
+    }
+
 #ifdef _WIN32
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
     LONG WINAPI reportUnhandledHostException(EXCEPTION_POINTERS* exceptionPointers)
@@ -82,6 +96,7 @@ int main(int argc, char* argv[])
     swc::CompilerInstance compiler(global, cmdLine);
 
     const auto result = static_cast<int>(compiler.run());
+    removeOwnDefaultSandboxRoot();
     std::cout.flush();
     std::cerr.flush();
     (void) std::fflush(stdout);

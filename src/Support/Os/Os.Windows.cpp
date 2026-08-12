@@ -1206,7 +1206,7 @@ namespace Os
         std::wstring       mutableCommandLine = commandLine;
         const std::wstring workingDirW        = workingDirectory.empty() ? std::wstring() : workingDirectory.wstring();
         void*              environment        = environmentBlock.empty() ? nullptr : environmentBlock.data();
-        const DWORD        creationFlags      = environmentBlock.empty() ? 0 : CREATE_UNICODE_ENVIRONMENT;
+        const DWORD        creationFlags      = CREATE_SUSPENDED | (environmentBlock.empty() ? 0 : CREATE_UNICODE_ENVIRONMENT);
         if (!CreateProcessW(exePath.wstring().c_str(), mutableCommandLine.data(), nullptr, nullptr, childOutputWrite != nullptr, creationFlags, environment, workingDirW.empty() ? nullptr : workingDirW.c_str(), &startupInfo, &processInfo))
         {
             if (childOutputRead)
@@ -1218,6 +1218,26 @@ namespace Os
 
         if (childOutputWrite)
             CloseHandle(childOutputWrite);
+
+        // The child must not outlive this process: a survivor keeps running in its own sandbox
+        // and holds a lock on its executable, which makes the next build of the same artifact
+        // fail for an unrelated reason. Tying it to a kill-on-close job covers every exit path
+        // of this function as well as this process dying without reaching one, since the system
+        // then closes the last handle and terminates everything in the job. The child is created
+        // suspended so the job covers it before it can run or spawn anything; when the job cannot
+        // be set up, the child simply runs unconfined, as it always did.
+        HANDLE job = CreateJobObjectW(nullptr, nullptr);
+        if (job)
+        {
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobLimits{};
+            jobLimits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &jobLimits, sizeof(jobLimits)) || !AssignProcessToJobObject(job, processInfo.hProcess))
+            {
+                CloseHandle(job);
+                job = nullptr;
+            }
+        }
+        ResumeThread(processInfo.hThread);
 
         // The deadline has to cover the output pumping, not just the wait that follows it.
         // Reading a pipe blocks until the child writes or exits, so a child that simply keeps
@@ -1283,9 +1303,12 @@ namespace Os
         {
             // The child is still alive and nothing else will reap it, so it has to be taken
             // down here; leaving it behind keeps its artifact locked and makes the next build
-            // fail for an unrelated reason.
+            // fail for an unrelated reason. Closing the job then reaps whatever the child
+            // spawned, which a TerminateProcess on the direct child alone would leave behind.
             TerminateProcess(processInfo.hProcess, 1);
             WaitForSingleObject(processInfo.hProcess, 5000);
+            if (job)
+                CloseHandle(job);
             CloseHandle(processInfo.hThread);
             CloseHandle(processInfo.hProcess);
             return ProcessRunResult::TimedOut;
@@ -1293,6 +1316,10 @@ namespace Os
 
         if (waitResult != WAIT_OBJECT_0)
         {
+            // The wait's failure leaves the child's state unknown, and an unwatched child is a
+            // survivor in the making: closing the job takes it down with this return.
+            if (job)
+                CloseHandle(job);
             CloseHandle(processInfo.hThread);
             CloseHandle(processInfo.hProcess);
             return ProcessRunResult::WaitFailed;
@@ -1301,11 +1328,15 @@ namespace Os
         DWORD exitCode = 0;
         if (!GetExitCodeProcess(processInfo.hProcess, &exitCode))
         {
+            if (job)
+                CloseHandle(job);
             CloseHandle(processInfo.hThread);
             CloseHandle(processInfo.hProcess);
             return ProcessRunResult::ExitCodeFailed;
         }
 
+        if (job)
+            CloseHandle(job);
         CloseHandle(processInfo.hThread);
         CloseHandle(processInfo.hProcess);
         outExitCode = exitCode;

@@ -132,6 +132,29 @@ using Swag
     @assert(!Env.isInsideDirectory(standIn.toString(), root.toString()))
 }
 
+// A leftover root is removed whole, files and sub-directories included, and a name nothing owns
+// is accepted silently. The operating system reuses process ids, so both states are normal when
+// the sandbox adopts its default name.
+#test
+{
+    if !Env.isSandboxed() do
+        return
+
+    let root   = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "leftover-run")
+    let nested = Path.combine(root.toString(), "nested")
+    expect Directory.create(root.toString())
+    expect Directory.create(nested.toString())
+
+    let payload: [4] u8 = [1, 2, 3, 4]
+    let stale   = Path.combine(nested.toString(), "stale.bin")
+    discard expect File.writeAllBytes(stale.toString(), payload)
+
+    expect Env.clearLeftoverDefaultRoot(root.toString())
+    @assert(!Directory.exists(root.toString()))
+
+    expect Env.clearLeftoverDefaultRoot(root.toString())
+}
+
 // A real write lands in the sandbox and a real write outside is refused, through the public
 // file API rather than the guard alone.
 #test

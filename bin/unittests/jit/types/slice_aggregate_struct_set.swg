@@ -32,6 +32,16 @@ func totalLength(values: const [..] Wrapped)->u64
     return total
 }
 
+// Answers what a wrong total should write, which is nothing at all when the total is right.
+// The comparison is ordinary code rather than an assertion alone, so the call still runs in a
+// configuration that drops assertions.
+func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
+{
+    let total = totalLength(values)
+    @assert(total == expected)
+    return total == expected ? "" : "unexpected total length\n"
+}
+
 // All-literal aggregate as a call argument.
 #test
 {
@@ -45,10 +55,12 @@ func totalLength(values: const [..] Wrapped)->u64
 }
 
 // The same call as an argument of another call: the aggregate must not be treated as
-// a constant-call argument.
+// a constant-call argument. '@print' stays the outer call because an intrinsic is what keeps
+// the inner one at run time, and what it writes is empty unless the total is wrong, so a
+// passing suite says nothing.
 #test
 {
-    @print(totalLength(["ab", "c"]), "")
+    @print(totalLengthReport(["ab", "c"], 3), "")
 }
 
 // All-literal aggregate initializing a slice binding.

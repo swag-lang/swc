@@ -207,9 +207,22 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
+    // The script's marker is data the suite reads, not a line for the person watching, so its
+    // output is captured and only a run that failed to reach the entry point has anything to show.
     var script: Arguments
     script.add(["--build-cfg", buildCfg])
     options.appendExtra(&script)
     script.add([Path.combine(workspace.toString(), "import_core_without_using.swgs").toString()])
-    return try context.runCompiler(script)
+
+    let scripted = try context.captureProgram(context.compiler.toString(), script)
+    if !scripted.contains("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN")
+    {
+        // A capture drops what the compiler wrote to its error stream, which is exactly what a
+        // failure needs to say, so the run is repeated in the open before the suite reports.
+        discard try context.runCompiler(script)
+        Console.println("Script importing 'core' without a 'using' did not reach its entry point.")
+        return 1
+    }
+
+    return 0
 }

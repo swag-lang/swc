@@ -1,5 +1,7 @@
 #import("core", location: "swag@std")
 
+// The workspace suite reads this marker back from the script's captured output: importing
+// 'core' without a 'using' has to compile, start, and reach the entry point.
 #main
 {
     @print("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN\n")

@@ -110,6 +110,51 @@ private
     const CpuProgram_Msdf:    u8 = 3
     const CpuProgram_Blur:    u8 = 4
     const CpuProgram_Resolve: u8 = 5
+
+    // Alpha factor of the bitmap font shader per atlas byte: pow(byte / 255, FontGamma).
+    //
+    // Filled at run time with the exact expression the per-pixel path evaluated, so a lookup
+    // returns bit-identical factors. Initialization happens on the serial command path; two
+    // renderers on two threads can only race to store the same values.
+    var g_FontGammaLut:      [256] f32
+    var g_FontGammaLutReady: bool
+}
+
+private func ensureFontGammaLut()
+{
+    if g_FontGammaLutReady do
+        return
+    for i in 256 do
+        g_FontGammaLut[i] = Math.pow(cast(f32) i / 255.0, FontGamma)
+    g_FontGammaLutReady = true
+}
+
+// Everything a triangle range resolves once, so the pixel loops read plain locals instead of
+// re-deriving transforms, clips, formats, paint textures, and font atlases per pixel.
+private struct RasterBatch
+{
+    image:     #null *Image
+    painter:   #null *Painter
+    start:     u32
+    count:     u32
+    transform: Transform2
+
+    pixels:    [*] u8     // Target pixel base; rows are stored bottom-up.
+    rowStride: s32
+    width:     s32
+    height:    s32
+
+    // Device clip, target bounds and scissor folded into one inclusive pixel rectangle.
+    clipMinX: s32
+    clipMinY: s32
+    clipMaxX: s32
+    clipMaxY: s32
+
+    stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
+
+    solidPaint: bool                       // The paint multiplies by opaque white, which is the identity.
+    paintImage: #null *Image               // Storage of a bound texture paint, resolved once.
+    atlas:      #null const *GlyphAtlas    // Glyph atlas of the bound font, resolved once.
 }
 
 private impl RenderCpu
@@ -274,6 +319,23 @@ private impl RenderCpu
         return image.pixelColor(x, y)
     }
 
+    // Reads one clamped BGRA8 pixel: the exact bytes [[readPixel]] returns for that format,
+    // without the per-pixel format dispatch. The sampling helpers call this on every fetch of
+    // a texture paint, which is most of what a themed frame rasterizes.
+    func fetchBgra8(image: *Image, x, y: s32)->Color
+    {
+        let cx  = Math.clamp(x, 0, image.width - 1)
+        let cy  = image.height - Math.clamp(y, 0, image.height - 1) - 1
+        let pix = image.pixels.buffer! + cast(u64) (cx * 4) + cast(u64) cy * cast(u64) image.width * 4
+
+        var result: Color = undefined
+        result.b = pix[0]
+        result.g = pix[1]
+        result.r = pix[2]
+        result.a = pix[3]
+        return result
+    }
+
     func writePixel(image: *Image, x, y: s32, color: Color)
     {
         let storageY = image.height - y - 1
@@ -432,6 +494,32 @@ private impl RenderCpu
         return src
     }
 
+    // Alpha-blends one BGRA8 pixel under the default color mask.
+    //
+    // The arithmetic mirrors [[Pixel.RenderCpu.blendPixel]] for the 'Alpha' mode operation by
+    // operation, so the stored bytes are identical; only the format dispatch, the mode switch,
+    // and the mask branches are resolved away. The alpha byte stays in place, which is exactly
+    // what the disabled alpha mask means, and an opaque source stores its own bytes because the
+    // u8 to f32 round trip of the general path is exact.
+    func blendAlphaBgra8(pixel: [*] u8, src: Color)
+    {
+        if src.a == 255
+        {
+            pixel[0] = src.b
+            pixel[1] = src.g
+            pixel[2] = src.r
+            return
+        }
+
+        let sa   = cast(f32) src.a / 255.0
+        let outR = Math.saturate((cast(f32) src.r / 255.0) * sa + (cast(f32) pixel[2] / 255.0) * (1.0 - sa))
+        let outG = Math.saturate((cast(f32) src.g / 255.0) * sa + (cast(f32) pixel[1] / 255.0) * (1.0 - sa))
+        let outB = Math.saturate((cast(f32) src.b / 255.0) * sa + (cast(f32) pixel[0] / 255.0) * (1.0 - sa))
+        pixel[0] = cast(u8) (outB * 255)
+        pixel[1] = cast(u8) (outG * 255)
+        pixel[2] = cast(u8) (outR * 255)
+    }
+
     mtd blendPixel(image: *Image, x, y: s32, src: Color)
     {
         // A zero-alpha source is coverage, not ink: the OpenGL shader discards it under
@@ -530,6 +618,8 @@ private impl RenderCpu
 
         let x = Math.clamp(cast(s32) Math.floor(uu * image.width), 0, image.width - 1)
         let y = Math.clamp(cast(s32) Math.floor((1.0 - vv) * image.height), 0, image.height - 1)
+        if image.pixelFormat == .BGRA8 do
+            return fetchBgra8(image, x, y)
         return readPixel(image, x, y)
     }
 
@@ -566,6 +656,15 @@ private impl RenderCpu
             return Math.clamp(value, 0, size - 1)
         }
 
+        if image.pixelFormat == .BGRA8
+        {
+            let f00 = fetchBgra8(image, coord(x0, image.width, repeat), coord(y0, image.height, repeat))
+            let f10 = fetchBgra8(image, coord(x0 + 1, image.width, repeat), coord(y0, image.height, repeat))
+            let f01 = fetchBgra8(image, coord(x0, image.width, repeat), coord(y0 + 1, image.height, repeat))
+            let f11 = fetchBgra8(image, coord(x0 + 1, image.width, repeat), coord(y0 + 1, image.height, repeat))
+            return lerpColor(lerpColor(f00, f10, tx), lerpColor(f01, f11, tx), ty)
+        }
+
         let c00 = readPixel(image, coord(x0, image.width, repeat), coord(y0, image.height, repeat))
         let c10 = readPixel(image, coord(x0 + 1, image.width, repeat), coord(y0, image.height, repeat))
         let c01 = readPixel(image, coord(x0, image.width, repeat), coord(y0 + 1, image.height, repeat))
@@ -591,6 +690,10 @@ private impl RenderCpu
         {
             let x = Math.clamp(cast(s32) Math.floor(px + 0.5), minX, maxX)
             let y = Math.clamp(cast(s32) Math.floor(py + 0.5), minY, maxY)
+
+            // The presentation blit runs through here for every surface pixel.
+            if image.pixelFormat == .BGRA8 do
+                return fetchBgra8(image, x, y)
             return readPixel(image, x, y)
         }
 
@@ -614,6 +717,15 @@ private impl RenderCpu
             let wy             = Math.clamp(texelsPerUnitY / contentScale, 0.0001, 1.0)
             fx = Math.saturate((fx - 0.5) / wx + 0.5)
             fy = Math.saturate((fy - 0.5) / wy + 0.5)
+        }
+
+        if image.pixelFormat == .BGRA8
+        {
+            let f00 = fetchBgra8(image, x0, y0)
+            let f10 = fetchBgra8(image, x1, y0)
+            let f01 = fetchBgra8(image, x0, y1)
+            let f11 = fetchBgra8(image, x1, y1)
+            return lerpColor(lerpColor(f00, f10, fx), lerpColor(f01, f11, fx), fy)
         }
 
         let c00 = readPixel(image, x0, y0)
@@ -745,11 +857,11 @@ private impl RenderCpu
         return stops[p.gradientStopCount - 1].color
     }
 
-    mtd samplePaint(paintPos: Vector2)->Color
+    // Samples the bound paint like the general path did, with the texture storage resolved once
+    // per batch instead of once per pixel. Solid paints never reach this: the shader short-circuits
+    // them through [[RasterBatch.solidPaint]], because multiplying by opaque white is the identity.
+    mtd samplePaintBatch(batch: *RasterBatch, paintPos: Vector2)->Color
     {
-        if !.paintOn do
-            return Color.fromArgb(Argb.White)
-
         let p = &.paintCommand.texture0
         switch p.type
         {
@@ -757,12 +869,12 @@ private impl RenderCpu
             return Color.fromArgb(Argb.White)
 
         case .Texture:
-            let storage = .findTexture(p.texture.handle)
-            if !storage do
+            let image = batch.paintImage
+            if !image do
                 return Color.fromArgb(Argb.Zero)
 
             if p.uvMode == .FillSubRect and .program != CpuProgram_Blur and .program != CpuProgram_Resolve do
-                return sampleSubRect(&storage.image, paintPos, &.paintCommand, .contentScale)
+                return sampleSubRect(image, paintPos, &.paintCommand, .contentScale)
 
             let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
             let h      = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
@@ -782,13 +894,13 @@ private impl RenderCpu
             }
 
             if .program == CpuProgram_Blur do
-                return .sampleBlur(&storage.image, u, v)
+                return .sampleBlur(image, u, v)
             if .program == CpuProgram_Resolve do
-                return .sampleResolve(&storage.image, u, v)
+                return .sampleResolve(image, u, v)
 
             if p.interpolationMode == .Linear do
-                return sampleLinear(&storage.image, u, v, repeat)
-            return sampleNearest(&storage.image, u, v, repeat)
+                return sampleLinear(image, u, v, repeat)
+            return sampleNearest(image, u, v, repeat)
 
         case .Hatch:
             let x = modFloor(cast(s32) Math.floor(paintPos.x - p.boundRect.x), 8)
@@ -901,14 +1013,38 @@ private impl RenderCpu
             return readFontAtlas(atlas, x, y)
         }
 
-        let px  = Math.saturate(uv.x) * width - 0.5
-        let py  = Math.saturate(uv.y) * height - 0.5
-        let x0  = cast(s32) Math.floor(px)
-        let y0  = cast(s32) Math.floor(py)
-        let x1  = Math.min(x0 + 1, width - 1)
-        let y1  = Math.min(y0 + 1, height - 1)
-        let tx  = px - Math.floor(px)
-        let ty  = py - Math.floor(py)
+        let px = Math.saturate(uv.x) * width - 0.5
+        let py = Math.saturate(uv.y) * height - 0.5
+        let x0 = cast(s32) Math.floor(px)
+        let y0 = cast(s32) Math.floor(py)
+        let x1 = Math.min(x0 + 1, width - 1)
+        let y1 = Math.min(y0 + 1, height - 1)
+        let tx = px - Math.floor(px)
+        let ty = py - Math.floor(py)
+
+        // The MSDF shader takes four of these per shaded pixel; branching on the atlas layout
+        // once, the four fetches then read the exact values [[readFontAtlas]] returns.
+        if atlas.bytesPerPixel == 4
+        {
+            func fetch(atlas: const *GlyphAtlas, width, height, x, y: s32)->Vector4
+            {
+                let xx  = Math.clamp(x, 0, width - 1)
+                let yy  = Math.clamp(y, 0, height - 1)
+                let row = height - yy - 1
+                let ptr = atlas.data.buffer! + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
+                return {cast(f32) ptr[0] / 255.0,
+                        cast(f32) ptr[1] / 255.0,
+                        cast(f32) ptr[2] / 255.0,
+                        cast(f32) ptr[3] / 255.0}
+            }
+
+            let f00 = fetch(atlas, width, height, x0, y0)
+            let f10 = fetch(atlas, width, height, x1, y0)
+            let f01 = fetch(atlas, width, height, x0, y1)
+            let f11 = fetch(atlas, width, height, x1, y1)
+            return Vector4.lerp(Vector4.lerp(f00, f10, tx), Vector4.lerp(f01, f11, tx), ty)
+        }
+
         let c00 = readFontAtlas(atlas, x0, y0)
         let c10 = readFontAtlas(atlas, x1, y0)
         let c01 = readFontAtlas(atlas, x0, y1)
@@ -923,13 +1059,8 @@ private impl RenderCpu
         return Math.saturate((sd - edge) * screenPxRange / aa + 0.5)
     }
 
-    mtd shadeMsdf(faceColor: Color, uv, uvDx, uvDy: Vector2)->Color
+    mtd shadeMsdf(faceColor: Color, uv, uvDx, uvDy: Vector2, safeAtlas: const *GlyphAtlas)->Color
     {
-        let atlas = .fontAtlas()
-        if !atlas do
-            return Color.fromArgb(Argb.Zero)
-
-        let safeAtlas     = atlas!
         let width         = cast(f32) (safeAtlas.width / safeAtlas.bytesPerPixel)
         let height        = cast(f32) safeAtlas.height
         let fwX           = Math.abs(uvDx.x) + Math.abs(uvDy.x)
@@ -1016,20 +1147,34 @@ private impl RenderCpu
         return Color.fromArgbF32(resultAlpha, resultR, resultG, resultB)
     }
 
-    mtd shade(paintPos, fontUv, fontUvDx, fontUvDy: Vector2, vertexColor: Color, coverage: f32)->Color
+    // Shades one fragment like the general path did, with the paint, the atlas, and the font
+    // gamma resolved per batch. Every arithmetic step keeps the general path's exact expression,
+    // so the shaded color is bit-identical.
+    mtd shadeBatch(batch: *RasterBatch, paintPos, fontUv, fontUvDx, fontUvDy: Vector2, vertexColor: Color, coverage: f32)->Color
     {
-        var result = Color.multiply(vertexColor, .samplePaint(paintPos))
+        var result = batch.solidPaint ? vertexColor : Color.multiply(vertexColor, .samplePaintBatch(batch, paintPos))
         if .program == CpuProgram_Font
         {
-            let atlas = .fontAtlas()
+            let atlas = batch.atlas
             if !atlas do
                 return Color.fromArgb(Argb.Zero)
-            let sample = sampleFontAtlas(atlas!, fontUv, false)
-            result.a = cast(u8) Math.clamp(Math.round(cast(f32) result.a * Math.pow(sample.x, FontGamma)), 0.0, 255.0)
+
+            // Nearest atlas fetch, inlined: the sample value only feeds the gamma power, so the
+            // lookup table replaces the per-pixel pow with the factor it would have computed.
+            let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
+            let height = cast(s32) atlas.height
+            let x      = Math.clamp(cast(s32) Math.floor(fontUv.x * width), 0, width - 1)
+            let y      = Math.clamp(cast(s32) Math.floor(fontUv.y * height), 0, height - 1)
+            let row    = cast(s32) atlas.height - y - 1
+            let value  = atlas.data.buffer![cast(u64) row * atlas.width + cast(u64) x * atlas.bytesPerPixel]
+            result.a = cast(u8) Math.clamp(Math.round(cast(f32) result.a * g_FontGammaLut[value]), 0.0, 255.0)
         }
         elif .program == CpuProgram_Msdf
         {
-            result = .shadeMsdf(result, fontUv, fontUvDx, fontUvDy)
+            let atlas = batch.atlas
+            if !atlas do
+                return Color.fromArgb(Argb.Zero)
+            result = .shadeMsdf(result, fontUv, fontUvDx, fontUvDy, atlas)
         }
         elif .program == CpuProgram_Default
         {
@@ -1043,17 +1188,16 @@ private impl RenderCpu
     //
     // A band is a row range of the target, never a clip: it selects which worker owns the
     // pixel, so a band-restricted sweep of the whole range produces exactly the pixels the
-    // unrestricted sweep would.
-    mtd drawTriangle(image: *Image, input0, input1, input2: VertexLayout, bandMinY, bandMaxY: s32)
+    // unrestricted sweep would. The scissor is folded into the loop bounds, and the loops pick
+    // the cheapest body that still stores the exact bytes the general path stored.
+    mtd drawTriangleBatch(batch: *RasterBatch, vertices: const [*] VertexLayout, bandMinY, bandMaxY: s32)
     {
-        let transform = .deviceTransform()
-
-        var v0 = input0
-        var v1 = input1
-        var v2 = input2
-        var p0 = transform.transformPoint(v0.pos)
-        var p1 = transform.transformPoint(v1.pos)
-        var p2 = transform.transformPoint(v2.pos)
+        var v0 = vertices[0]
+        var v1 = vertices[1]
+        var v2 = vertices[2]
+        var p0 = batch.transform.transformPoint(v0.pos)
+        var p1 = batch.transform.transformPoint(v1.pos)
+        var p2 = batch.transform.transformPoint(v2.pos)
 
         var area = edge(p0, p1, p2)
         if area == 0 do
@@ -1065,10 +1209,10 @@ private impl RenderCpu
             area = -area
         }
 
-        let minX = Math.clamp(cast(s32) Math.floor(Math.min(p0.x, Math.min(p1.x, p2.x))), 0, image.width - 1)
-        let minY = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, Math.min(p1.y, p2.y))), 0, image.height - 1), bandMinY)
-        let maxX = Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, Math.max(p1.x, p2.x))) - 1, 0, image.width - 1)
-        let maxY = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, Math.max(p1.y, p2.y))) - 1, 0, image.height - 1), bandMaxY)
+        let minX = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.x, Math.min(p1.x, p2.x))), 0, batch.width - 1), batch.clipMinX)
+        let minY = Math.max(Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, Math.min(p1.y, p2.y))), 0, batch.height - 1), bandMinY), batch.clipMinY)
+        let maxX = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, Math.max(p1.x, p2.x))) - 1, 0, batch.width - 1), batch.clipMaxX)
+        let maxY = Math.min(Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, Math.max(p1.y, p2.y))) - 1, 0, batch.height - 1), bandMaxY), batch.clipMaxY)
         if minX > maxX or minY > maxY do
             return
 
@@ -1076,6 +1220,41 @@ private impl RenderCpu
         let edge1TopLeft = isTopLeft(p2, p0)
         let edge2TopLeft = isTopLeft(p0, p1)
         let invArea      = 1.0 / area
+
+        // Per-pixel edge deltas, hoisted: each edge function stays the exact expression of
+        // [[edge]], with its row term computed once per row.
+        let dx0 = p2.x - p1.x
+        let dy0 = p2.y - p1.y
+        let dx1 = p0.x - p2.x
+        let dy1 = p0.y - p2.y
+        let dx2 = p1.x - p0.x
+        let dy2 = p1.y - p0.y
+
+        // A stencil write shades nothing: the loop only stamps the mask over the covered pixels.
+        if .stencilWrite
+        {
+            let stencilValue: u8 = .stencilMode == .Set ? 1 : 0
+            for var y = minY; y <= maxY; y += 1
+            {
+                let sy         = cast(f32) y + 0.5
+                let rowDy0     = sy - p1.y
+                let rowDy1     = sy - p2.y
+                let rowDy2     = sy - p0.y
+                let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
+                for var x = minX; x <= maxX; x += 1
+                {
+                    let sx = cast(f32) x + 0.5
+                    let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
+                    let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
+                    let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                    if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
+                        continue
+                    rowStencil[x] = stencilValue
+                }
+            }
+
+            return
+        }
 
         let dcDx     = (v0.cov * (p1.y - p2.y) + v1.cov * (p2.y - p0.y) + v2.cov * (p0.y - p1.y)) * invArea
         let dcDy     = (v0.cov * (p2.x - p1.x) + v1.cov * (p0.x - p2.x) + v2.cov * (p1.x - p0.x)) * invArea
@@ -1090,55 +1269,158 @@ private impl RenderCpu
         let c2            = Color.fromArgb(v2.color)
         let constantColor = c0 == c1 and c1 == c2
 
-        let stencil = .currentStencil()
+        let image       = batch.image!
+        let stencilTest = .stencilOn
+        let maskColor   = .colorMask.r and .colorMask.g and .colorMask.b and !.colorMask.a
+        let maskFull    = .colorMask.r and .colorMask.g and .colorMask.b and .colorMask.a
+        let maskAlpha   = !.colorMask.r and !.colorMask.g and !.colorMask.b and .colorMask.a
+        let plainBgra8  = !.alphaResolve and .overlapPass == 0 and image.pixelFormat == .BGRA8
+        let fastAlpha   = plainBgra8 and .blendingMode == .Alpha and maskColor
+        let fastCopy    = plainBgra8 and .blendingMode == .Copy and (maskColor or maskFull)
+
+        // A triangle whose vertices agree on color and coverage shades one constant fragment
+        // under a solid paint, and the frequent blend states then collapse per pixel.
+        var constShade = constantColor and batch.solidPaint and (.program == CpuProgram_Simple or .program == CpuProgram_Default)
+        var constColor = c0
+        if constShade and .program == CpuProgram_Default
+        {
+            // Away from the 0.5 threshold a uniform coverage saturates to exactly zero or one
+            // for every pixel, whatever noise the barycentric interpolation adds; near it, the
+            // general loop below keeps the per-pixel decision.
+            if v0.cov == v1.cov and v1.cov == v2.cov and (v0.cov < 0.49 or v0.cov > 0.51)
+            {
+                if v0.cov < 0.5 do
+                    constColor.a = 0
+            }
+            else do
+                constShade = false
+        }
+
+        if constShade and plainBgra8
+        {
+            // Multiplying the destination by an opaque coverage returns every channel's own
+            // byte, masked or not, so the whole triangle leaves the target untouched.
+            if .blendingMode == .DstIn and constColor.a == 255 do
+                return
+
+            // 'Alpha' blending never writes a transparent source.
+            if .blendingMode == .Alpha and (maskColor or maskAlpha) and constColor.a == 0 do
+                return
+
+            let alphaMaskStore = .blendingMode == .Alpha and maskAlpha and constColor.a == 255
+            if fastAlpha or fastCopy or alphaMaskStore
+            {
+                let copyAll = fastCopy and maskFull
+                for var y = minY; y <= maxY; y += 1
+                {
+                    let sy         = cast(f32) y + 0.5
+                    let rowDy0     = sy - p1.y
+                    let rowDy1     = sy - p2.y
+                    let rowDy2     = sy - p0.y
+                    let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
+                    let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
+                    for var x = minX; x <= maxX; x += 1
+                    {
+                        let sx = cast(f32) x + 0.5
+                        let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
+                        let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
+                        let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                        if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
+                            continue
+                        if stencilTest and rowStencil[x] != 1 do
+                            continue
+
+                        let pixel = rowPixels + cast(u64) x * 4
+                        if fastAlpha
+                        {
+                            blendAlphaBgra8(pixel, constColor)
+                        }
+                        elif alphaMaskStore
+                        {
+                            pixel[3] = 255
+                        }
+                        else
+                        {
+                            pixel[0] = constColor.b
+                            pixel[1] = constColor.g
+                            pixel[2] = constColor.r
+                            if copyAll do
+                                pixel[3] = constColor.a
+                        }
+                    }
+                }
+
+                return
+            }
+        }
+
+        let needPaintPos = !batch.solidPaint
+        let needFontUv   = .program == CpuProgram_Font or .program == CpuProgram_Msdf
+        let needCoverage = .program == CpuProgram_Default
+        let copyAll      = fastCopy and maskFull
+
         for var y = minY; y <= maxY; y += 1
         {
-            if .scissorOn and (y < .scissorRect.y or y >= .scissorRect.bottom()) do
-                continue
-
+            let sy         = cast(f32) y + 0.5
+            let rowDy0     = sy - p1.y
+            let rowDy1     = sy - p2.y
+            let rowDy2     = sy - p0.y
+            let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
+            let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
             for var x = minX; x <= maxX; x += 1
             {
-                if .scissorOn and (x < .scissorRect.x or x >= .scissorRect.right()) do
-                    continue
-
-                let sample = Vector2{cast(f32) x + 0.5, cast(f32) y + 0.5}
-                let e0     = edge(p1, p2, sample)
-                let e1     = edge(p2, p0, sample)
-                let e2     = edge(p0, p1, sample)
+                let sx = cast(f32) x + 0.5
+                let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
+                let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
+                let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
                 if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
                     continue
-
-                let stencilIdx = cast(u64) y * cast(u64) image.width + cast(u64) x
-                if .stencilOn and !.stencilWrite and (dref stencil)[stencilIdx] != 1 do
+                if stencilTest and rowStencil[x] != 1 do
                     continue
-                if .stencilWrite
-                {
-                    (dref stencil)[stencilIdx] = .stencilMode == .Set ? 1 : 0
-                    continue
-                }
 
                 let w0          = e0 * invArea
                 let w1          = e1 * invArea
                 let w2          = e2 * invArea
-                let paintPos    = v0.pos * w0 + v1.pos * w1 + v2.pos * w2
-                let fontUv      = v0.uv * w0 + v1.uv * w1 + v2.uv * w2
+                let paintPos    = needPaintPos ? v0.pos * w0 + v1.pos * w1 + v2.pos * w2 : Vector2{}
+                let fontUv      = needFontUv ? v0.uv * w0 + v1.uv * w1 + v2.uv * w2 : Vector2{}
                 let vertexColor = constantColor ? c0 : Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
                                                                          (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
                                                                          (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
                                                                          (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
-                let cov = Math.saturate(((v0.cov * w0 + v1.cov * w1 + v2.cov * w2) - 0.5) / covWidth + 0.5)
-                .blendPixel(image, x, y, .shade(paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov))
+                let cov = needCoverage ? Math.saturate(((v0.cov * w0 + v1.cov * w1 + v2.cov * w2) - 0.5) / covWidth + 0.5) : 0.0
+                let src = .shadeBatch(batch, paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov)
+                if fastAlpha
+                {
+                    // The zero-alpha skip mirrors the general blend's coverage early-out.
+                    if src.a == 0 do
+                        continue
+                    blendAlphaBgra8(rowPixels + cast(u64) x * 4, src)
+                }
+                elif fastCopy
+                {
+                    // 'Copy' writes transparent sources too, which is the erase operation.
+                    let pixel = rowPixels + cast(u64) x * 4
+                    pixel[0] = src.b
+                    pixel[1] = src.g
+                    pixel[2] = src.r
+                    if copyAll do
+                        pixel[3] = src.a
+                    continue
+                }
+                else do
+                    .blendPixel(image, x, y, src)
             }
         }
     }
 
-    mtd drawTriangleRange(image: *Image, painter: *Painter, start, count: u32, bandMinY, bandMaxY: s32)
+    mtd drawTriangleRange(batch: *RasterBatch, bandMinY, bandMaxY: s32)
     {
-        var i   = start
-        let end = start + count
+        let vertices = batch.painter!.vertexBuffer.buffer!
+        var i        = batch.start
+        let end      = batch.start + batch.count
         while i + 2 < end
         {
-            .drawTriangle(image, painter.vertexBuffer[i], painter.vertexBuffer[i + 1], painter.vertexBuffer[i + 2], bandMinY, bandMaxY)
+            .drawTriangleBatch(batch, vertices + i, bandMinY, bandMaxY)
             i += 3
         }
     }
@@ -1148,25 +1430,70 @@ private impl RenderCpu
     // Bands partition the rows, so each pixel — color, stencil, and overlap scratch alike — is
     // owned by exactly one worker and the triangles of a pixel keep their submission order. The
     // rasterized image is therefore identical to the serial one, band split or not.
-    mtd rasterizeRange(image: *Image, painter: *Painter, start, count: u32, bounds: PixelBounds)
+    mtd rasterizeRange(batch: *RasterBatch, bounds: PixelBounds)
     {
         let bandCount = Math.min(cast(s32) Jobs.workerCount(), bounds.rows() / CpuBandMinRows)
         if bounds.area() < CpuBandPixelThreshold or bandCount <= 1
         {
-            .drawTriangleRange(image, painter, start, count, bounds.minY, bounds.maxY)
+            .drawTriangleRange(batch, bounds.minY, bounds.maxY)
             return
         }
 
         let bandRows = (bounds.rows() + bandCount - 1) / bandCount
-        var f        = {renderer: &me, image: image, painter: painter, start: start, count: count, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
+        var f        = {renderer: &me, batch: batch, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
         Jobs.parallelFor(cast(u32) bandCount, &f)
         {
             if !data do
                 return
             let params = cast(*#decltype(f)) (data)
             let bandY  = params.minY + cast(s32) index * params.bandRows
-            params.renderer.drawTriangleRange(params.image, params.painter, params.start, params.count, bandY, Math.min(bandY + params.bandRows - 1, params.maxY))
+            params.renderer.drawTriangleRange(params.batch, bandY, Math.min(bandY + params.bandRows - 1, params.maxY))
         }
+    }
+
+    // Resolves everything a triangle range needs exactly once: transform, clip, target bytes,
+    // stencil plane, paint texture, and font atlas. Command state cannot change inside a range,
+    // so per-pixel work then reads plain locals.
+    mtd setupBatch(batch: *RasterBatch, image: *Image, painter: *Painter, start, count: u32)
+    {
+        batch.image     = image
+        batch.painter   = painter
+        batch.start     = start
+        batch.count     = count
+        batch.transform = .deviceTransform()
+        batch.pixels    = image.pixels.buffer!
+        batch.rowStride = image.rowStride
+        batch.width     = image.width
+        batch.height    = image.height
+
+        // The general path skipped a pixel whose integer coordinate fell outside the float
+        // scissor; folding the scissor with a ceiling keeps exactly that pixel set.
+        batch.clipMinX = 0
+        batch.clipMinY = 0
+        batch.clipMaxX = image.width - 1
+        batch.clipMaxY = image.height - 1
+        if .scissorOn
+        {
+            batch.clipMinX = Math.max(batch.clipMinX, cast(s32) Math.ceil(.scissorRect.x))
+            batch.clipMinY = Math.max(batch.clipMinY, cast(s32) Math.ceil(.scissorRect.y))
+            batch.clipMaxX = Math.min(batch.clipMaxX, cast(s32) Math.ceil(.scissorRect.right()) - 1)
+            batch.clipMaxY = Math.min(batch.clipMaxY, cast(s32) Math.ceil(.scissorRect.bottom()) - 1)
+        }
+
+        batch.stencil = .currentStencil().buffer!
+
+        batch.solidPaint = !.paintOn or .paintCommand.texture0.type == .SolidColor
+        batch.paintImage = null
+        if .paintOn and .paintCommand.texture0.type == .Texture
+        {
+            let storage = .findTexture(.paintCommand.texture0.texture.handle)
+            if storage do
+                batch.paintImage = &storage.image
+        }
+
+        batch.atlas = .fontAtlas()
+        if .program == CpuProgram_Font do
+            ensureFontGammaLut()
     }
 
     mtd drawTriangles(painter: *Painter, start, count: u32)
@@ -1179,9 +1506,12 @@ private impl RenderCpu
         if bounds.isEmpty() do
             return
 
+        var batch: RasterBatch = undefined
+        .setupBatch(&batch, image, painter, start, count)
+
         if !.overlapMode or .alphaResolve
         {
-            .rasterizeRange(image, painter, start, count, bounds)
+            .rasterizeRange(&batch, bounds)
             return
         }
 
@@ -1198,9 +1528,9 @@ private impl RenderCpu
         // Destination alpha is the scratch channel in the OpenGL overlap path.
         .clearAlpha(image)
         .overlapPass = 1
-        .rasterizeRange(image, painter, start, count, bounds)
+        .rasterizeRange(&batch, bounds)
         .overlapPass = 2
-        .rasterizeRange(image, painter, start, count, bounds)
+        .rasterizeRange(&batch, bounds)
         .overlapPass = 0
     }
 
@@ -1221,11 +1551,16 @@ private impl RenderCpu
 
         // Every format carrying alpha stores it in the fourth byte, and rows are stored bottom-up.
         let pixels = image.pixels.buffer!
+        let stride = cast(u64) image.bytesPerPixel
         for var y = minY; y < maxY; y += 1
         {
             let row = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel)
-            for var x = minX; x < maxX; x += 1 do
-                row[cast(u64) ((x - minX) * image.bytesPerPixel) + 3] = 0
+            var offset = 3'u64
+            for var x = minX; x < maxX; x += 1
+            {
+                row[offset] = 0
+                offset += stride
+            }
         }
     }
 
@@ -1235,18 +1570,50 @@ private impl RenderCpu
         if !image do
             return
 
-        let minX    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
-        let minY    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.y, 0, image.height) : 0
-        let maxX    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.right(), 0, image.width) : image.width
-        let maxY    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.bottom(), 0, image.height) : image.height
-        let stencil = .currentStencil()
+        let minX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
+        let minY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.y, 0, image.height) : 0
+        let maxX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.right(), 0, image.width) : image.width
+        let maxY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.bottom(), 0, image.height) : image.height
+        if minX >= maxX or minY >= maxY do
+            return
+
+        // The stencil plane is row-contiguous, so the reset runs per row instead of per pixel.
+        let stencil    = .currentStencil()
+        let stencilBuf = stencil.buffer!
+        let runWidth   = cast(u64) (maxX - minX)
+        for var y = minY; y < maxY; y += 1 do
+            Memory.clear(stencilBuf + cast(u64) y * cast(u64) image.width + cast(u64) minX, runWidth)
+
+        // The masked general write reduces to raw byte stores for the BGRA8 targets every frame
+        // clears: all channels under a forced or full mask, or the three color bytes under the
+        // default mask, whose disabled alpha simply keeps the fourth byte in place.
+        let writeAll = forceColorMask or (.colorMask.r and .colorMask.g and .colorMask.b and .colorMask.a)
+        let writeRgb = !writeAll and .colorMask.r and .colorMask.g and .colorMask.b and !.colorMask.a
+        if image.pixelFormat == .BGRA8 and (writeAll or writeRgb)
+        {
+            let pixels = image.pixels.buffer!
+            for var y = minY; y < maxY; y += 1
+            {
+                let row    = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
+                var offset = 0'u64
+                for var x = minX; x < maxX; x += 1
+                {
+                    row[offset]     = color.b
+                    row[offset + 1] = color.g
+                    row[offset + 2] = color.r
+                    if writeAll do
+                        row[offset + 3] = color.a
+                    offset += 4
+                }
+            }
+
+            return
+        }
+
         for var y = minY; y < maxY; y += 1
         {
             for var x = minX; x < maxX; x += 1
             {
-                let idx = cast(u64) y * cast(u64) image.width + cast(u64) x
-                (dref stencil)[idx] = 0
-
                 if forceColorMask
                 {
                     writePixel(image, x, y, color)

@@ -231,3 +231,7 @@ namespace WinFsp
             failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%", cast(u32) startStatus, winFspLogDetail()))
     }
 }
+
+func isMountHostInvocationNative()->bool => WinFsp.isPortableGuardianInvocation()
+
+func runMountHostNative()->s32 => WinFsp.runPortableGuardian()

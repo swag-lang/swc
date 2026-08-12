@@ -75,9 +75,9 @@ struct StoneMap
 func mapInit()->StoneMap
 {
     var result: retval
-    result.keys   = cast(#null [*] u64) @alloc(cast(u64) MapCap * #sizeof(u64))
-    result.counts = cast(#null [*] u64) @alloc(cast(u64) MapCap * #sizeof(u64))
-    result.alive  = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
+    result.keys   = cast(#null [*] u64) testAlloc(cast(u64) MapCap * #sizeof(u64))
+    result.counts = cast(#null [*] u64) testAlloc(cast(u64) MapCap * #sizeof(u64))
+    result.alive  = cast(#null [*] bool) testAlloc(cast(u64) MapCap * #sizeof(bool))
     result.used   = 0
     let alive  = result.alive!
     let counts = result.counts!
@@ -91,9 +91,9 @@ func mapInit()->StoneMap
 
 func mapFree(m: *StoneMap)
 {
-    if m.keys do @free(m.keys)
-    if m.counts do @free(m.counts)
-    if m.alive do @free(m.alive)
+    if m.keys do testFree(m.keys)
+    if m.counts do testFree(m.counts)
+    if m.alive do testFree(m.alive)
 }
 
 func mapIsEmpty(m: *StoneMap)->bool

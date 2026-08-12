@@ -4,7 +4,7 @@
 private func __releaseTlsVar(value: #null *void)
 {
     if value do
-        @free(cast(#null [*] void) value)
+        __bootstrapFree(cast(#null [*] void) value)
 }
 
 // Allocates one host thread-storage slot for a runtime thread-local global.
@@ -26,13 +26,13 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
     var ptr = __tlsGetValue(id)
     if ptr do
         return ptr
-    ptr = @alloc(size)
+    ptr = __bootstrapAlloc(size)
     if !ptr do
         return null
     @memcpy(ptr, init, size)
     if !__tlsSetValue(id, ptr)
     {
-        @free(cast(#null [*] void) ptr)
+        __bootstrapFree(cast(#null [*] void) ptr)
         return null
     }
 
@@ -70,14 +70,14 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->#null *void
     if known do
         return known
 
-    let created = @alloc(size)
+    let created = __bootstrapAlloc(size)
     if !created do
         return null
 
     @memcpy(created, init, size)
     if !__hostThreadStorageSet(id, created)
     {
-        @free(cast(#null [*] void) created)
+        __bootstrapFree(cast(#null [*] void) created)
         return null
     }
 

@@ -47,8 +47,8 @@ struct Grid
 func gridInit()->Grid
 {
     var g: Grid
-    g.cells = cast(#null [*] u8) @alloc(cast(u64) MaxCells)
-    g.dist  = cast(#null [*] u32) @alloc(cast(u64) MaxCells * #sizeof(u32))
+    g.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxCells)
+    g.dist  = cast(#null [*] u32) testAlloc(cast(u64) MaxCells * #sizeof(u32))
     let cells = g.cells!
     let dist  = g.dist!
     for MaxCells
@@ -61,8 +61,8 @@ func gridInit()->Grid
 
 func gridFree(g: *Grid)
 {
-    if g.cells do @free(g.cells)
-    if g.dist do @free(g.dist)
+    if g.cells do testFree(g.cells)
+    if g.dist do testFree(g.dist)
 }
 
 impl Grid
@@ -211,8 +211,8 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32)->u64
 
     // Collect path cells into array for efficient pairwise iteration
     let pathSize = g.pathLen + 1
-    let pathBuf  = cast([*] Pos) (@alloc(cast(u64) pathSize * #sizeof(Pos)))!
-    defer @free(pathBuf)
+    let pathBuf  = cast([*] Pos) (testAlloc(cast(u64) pathSize * #sizeof(Pos)))!
+    defer testFree(pathBuf)
 
     // Fill path buffer in distance order
     for r in g.h

@@ -25,8 +25,8 @@ struct(K, V) HashTable
 
 func(K, V) allocateStorage(table: *HashTable'(K, V), capacity: u64)
 {
-    table.entries  = cast(#null [*] HashEntry'(K, V)) @alloc(capacity * #sizeof(HashEntry'(K, V)))
-    table.states   = cast(#null [*] u8) @alloc(capacity * #sizeof(u8))
+    table.entries  = cast(#null [*] HashEntry'(K, V)) testAlloc(capacity * #sizeof(HashEntry'(K, V)))
+    table.states   = cast(#null [*] u8) testAlloc(capacity * #sizeof(u8))
     table.capacity = capacity
     table.count    = 0
 
@@ -47,9 +47,9 @@ func(K, V) create(hashFn: func(K)->u64, eqFn: func(K, K)->bool)->HashTable'(K, V
 func(K, V) destroy(table: *HashTable'(K, V))
 {
     if table.entries do
-        @free(table.entries)
+        testFree(table.entries)
     if table.states do
-        @free(table.states)
+        testFree(table.states)
 
     table.entries  = null
     table.states   = null
@@ -103,9 +103,9 @@ func(K, V) rehash(table: *HashTable'(K, V), newCapacity: u64)
     }
 
     if oldEntries do
-        @free(oldEntries)
+        testFree(oldEntries)
     if oldStates do
-        @free(oldStates)
+        testFree(oldStates)
 }
 
 func(K, V) ensureOneMoreSlot(table: *HashTable'(K, V))

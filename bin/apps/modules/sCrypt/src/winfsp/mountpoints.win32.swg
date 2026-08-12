@@ -61,3 +61,27 @@ namespace WinFsp
         return result
     }
 }
+
+// Maps the available Windows drive letters to the host-neutral destination contract.
+func availableMountDestinationsNative()->Array'MountDestination
+{
+    var result: retval
+    let available = WinFsp.availableDriveLetters()
+    result.reserve(available.count)
+
+    // Windows keeps A and B for floppies and C for the system disk, so the letters a user
+    // normally expects come first and the unusual ones remain available at the end.
+    for letter in available where letter >= 'D'
+    {
+        let name = Format.toString("%:", letter)
+        result.add({name, name})
+    }
+
+    for letter in available where letter < 'D'
+    {
+        let name = Format.toString("%:", letter)
+        result.add({name, name})
+    }
+
+    return result
+}

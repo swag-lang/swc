@@ -78,14 +78,14 @@ struct JitLateDirty
 
 func jitLateDirtyMemoryInit()->bool
 {
-    let raw = @alloc(#sizeof(JitLateDirty))!
+    let raw = testAlloc(#sizeof(JitLateDirty))!
     @memset(raw, 0xD0, #sizeof(JitLateDirty))
 
     let box = cast(*JitLateDirty) raw
     @init(box, 1)
 
     let ok = box.tag == 5 and box.ratio == 1.5 and !@isset(box.item)
-    @free(raw)
+    testFree(raw)
     return ok
 }
 

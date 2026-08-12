@@ -88,7 +88,7 @@ func initEquationList(initialCapacity: u32)->EquationList
 {
     var result: EquationList
     result.capacity = initialCapacity
-    result.data     = cast(#null [*] Equation) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
+    result.data     = cast(#null [*] Equation) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
     @assert(result.data != null)
     return result
 }
@@ -96,7 +96,7 @@ func initEquationList(initialCapacity: u32)->EquationList
 func freeEquationList(list: EquationList)
 {
     if list.data do
-        @free(list.data)
+        testFree(list.data)
 }
 
 func appendEquation(list: EquationList, eq: Equation)->EquationList
@@ -106,7 +106,7 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
     if result.count == result.capacity
     {
         let newCapacity = result.capacity * 2'u32
-        result.data = cast(#null [*] Equation) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(Equation))
+        result.data = cast(#null [*] Equation) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(Equation))
         @assert(result.data != null)
         result.capacity  = newCapacity
         result.growCount += 1'u32

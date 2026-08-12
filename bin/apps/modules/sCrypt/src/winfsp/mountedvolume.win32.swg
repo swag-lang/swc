@@ -53,3 +53,27 @@ namespace WinFsp
         mtd opDrop() { discard catch .close() }
     }
 }
+
+// Creates the Windows mount behind the platform-neutral application handle.
+func mountVaultNative(path: string, password: const [..] u8, destination: string, readOnly: bool)->*void fail
+{
+    let mounted = Memory.new'WinFsp.MountedVolume()
+    discard catch mounted.open(path, password, destination, readOnly) as mountError
+    if mountError != null
+    {
+        Memory.delete(mounted)
+        fail mountError
+    }
+
+    return mounted
+}
+
+// Stops and releases the Windows mount even when flushing it reports a failure.
+func unmountVaultNative(handle: *void) fail
+{
+    let mounted = cast(*WinFsp.MountedVolume) handle
+    discard catch mounted.close() as unmountError
+    Memory.delete(mounted)
+    if unmountError != null do
+        fail unmountError
+}

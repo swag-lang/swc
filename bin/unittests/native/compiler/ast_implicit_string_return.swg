@@ -31,7 +31,7 @@ impl AstGeneratedBuilder
 
         for i in .length do
             .buffer[i] = 0
-        @free(.buffer)
+        testFree(.buffer)
     }
 
     mtd append(value: string)
@@ -39,7 +39,7 @@ impl AstGeneratedBuilder
         if !.buffer
         {
             .capacity = 128
-            .buffer   = cast(#null [*] u8) @alloc(.capacity)
+            .buffer   = cast(#null [*] u8) testAlloc(.capacity)
         }
 
         @assert(.length + cast(u64) @countof(value) <= .capacity)

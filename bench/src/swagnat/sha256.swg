@@ -16,7 +16,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 #main
 {
     // ---- data generation (not timed) ----
-    let msg = cast([*] u8) @alloc(SIZE)!
+    let msg = cast([*] u8) benchAlloc(SIZE)!
     for i in SIZE do
         msg[i] = cast(u8)(rnd() % 256)
 
@@ -25,7 +25,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 
     let totalBits = SIZE * 8
     var nb        = SIZE
-    let buf       = cast([*] u8) (@alloc(SIZE + 128))!
+    let buf       = cast([*] u8) (benchAlloc(SIZE + 128))!
     @memcpy(buf, msg, SIZE)
     buf[nb] = 0x80
     nb += 1
@@ -114,6 +114,6 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
     let t1 = now()
     report(check, t0, t1)
 
-    @free(buf)
-    @free(msg)
+    benchFree(buf)
+    benchFree(msg)
 }

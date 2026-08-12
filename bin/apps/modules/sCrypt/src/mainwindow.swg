@@ -97,7 +97,7 @@ internal struct ContainerSize
 struct StartupVault
 {
     path:          String     // Container file to mount.
-    drive:         String     // Drive letter it was last mounted on.
+    drive:         String     // Stable backend destination identifier; the name preserves saved-state compatibility.
     needsPassword: bool       // Whether opening it needs a password.
     readOnly:      bool       // Whether it was mounted read only, which the next start repeats.
 }
@@ -110,7 +110,7 @@ struct StartupVault
 struct MountSettings
 {
     path:     String     // Container file that was mounted.
-    drive:    String     // Drive letter it was mounted on.
+    drive:    String     // Stable backend destination identifier; the name preserves saved-state compatibility.
     readOnly: bool       // Whether the mount was for reading alone.
 }
 
@@ -123,11 +123,12 @@ struct VaultOperation
     timer:       #null *Timer                    // Polls the job while it runs.
     error:       #null any                       // Failure captured by the job, or null when it succeeded.
     path:        String                          // Container file the operation acts on.
-    mount:       String                          // Drive letter requested by a mount operation.
+    mount:       String                          // Stable backend destination identifier requested by a mount operation.
+    mountLabel:  String                          // Host-facing destination name reported when the operation completes.
     size:        u64                             // Container size requested by a create or a grow.
     password:    Array'u8                        // Password copy owned by the operation and wiped when it ends.
     replacement: Array'u8                        // New password of a change, empty when the change removes it.
-    volume:      #null *WinFsp.MountedVolume     // Mount a mount operation produced, or the one an unmount closes.
+    volume:      #null *MountedVault             // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
     readOnly:        bool     // Whether a mount operation exposes the drive read only.
@@ -214,7 +215,8 @@ struct MainWindow
     startupTimer:  #null *Timer
 
     // Last successful choices restored into the open-vault form. Passwords are never settings.
-    mountSettings: MountSettings
+    mountSettings:     MountSettings
+    mountDestinations: Array'MountDestination
 
     // What the status line says, plus the two values its wording interpolates: the drive
     // letter of the mounted message and the percentage of the randomizing one.
@@ -1051,7 +1053,7 @@ impl MainWindow
         return card.panel
     }
 
-    // Fills the drive picker with the letters Windows still has free.
+    // Fills the picker with the destinations the active filesystem backend still has free.
     //
     // Mounting takes one and unmounting gives it back, so the list is said again after both:
     // a letter that is no longer free must not stay on offer.
@@ -1060,13 +1062,9 @@ impl MainWindow
         let previous = .selectedMountPoint()
         .drive.clear()
 
-        // Windows keeps A and B for floppies and C for the system disk, so the letters a
-        // user expects come first and the unusual ones stay available further down.
-        let available = WinFsp.availableDriveLetters()
-        for letter in available where letter >= 'D' do
-            .drive.addItem(Format.toString("%:", letter))
-        for letter in available where letter < 'D' do
-            .drive.addItem(Format.toString("%:", letter))
+        .mountDestinations = availableMountDestinations()
+        for &destination in .mountDestinations do
+            .drive.addItem(destination.label)
 
         if !.drive.items.count do
             return
@@ -1077,10 +1075,10 @@ impl MainWindow
         .drive.setSelectedIndex(0, notify: false)
     }
 
-    // Selects `mountPoint` when that letter is still available.
+    // Selects `mountPoint` when that backend destination is still available.
     mtd selectMountPoint(mountPoint: string)->bool
     {
-        for item, index in .drive.items where item!.name.raw == mountPoint
+        for &destination, index in .mountDestinations where destination.id == mountPoint
         {
             .drive.setSelectedIndex(cast(u32) index, notify: false)
             return true
@@ -1249,8 +1247,16 @@ impl MainWindow
 
     mtd selectedMountPoint()->String
     {
-        let item = .drive.selectedItem()
-        return item ? String.from(item!.name.raw) : String.from("")
+        let index = .drive.selectedIndex
+        return index < .mountDestinations.count ? String.from(.mountDestinations[index].id) : String.from("")
+    }
+
+    // Returns the host-facing name for a backend destination identifier.
+    mtd mountPointLabel(mountPoint: string)->String
+    {
+        for &destination in .mountDestinations where destination.id == mountPoint do
+            return String.from(destination.label)
+        return String.from(mountPoint)
     }
 
     // Whether a drive is already exposing this container.
@@ -1369,6 +1375,7 @@ impl MainWindow
     {
         .operation.path         = path
         .operation.mount        = mountPoint
+        .operation.mountLabel   = .mountPointLabel(.operation.mount.toString())
         .operation.fromStartup  = fromStartup
         .operation.readOnly     = readOnly
         .operation.usedPassword = .operation.password.count != 0
@@ -1387,6 +1394,7 @@ impl MainWindow
 
         .operation.path   = .mountedDrives.drives[index].path
         .operation.mount  = .mountedDrives.drives[index].drive
+        .operation.mountLabel = .mountedDrives.drives[index].mountLabel
         .operation.volume = .mountedDrives.detach(index)
         .setStatus(.Unmounting)
         .setState(.Unmounting)
@@ -1504,7 +1512,7 @@ impl MainWindow
                 volume.close()
 
         case .Mount:
-            let mounted = Memory.new'WinFsp.MountedVolume()
+            let mounted = Memory.new'MountedVault()
             discard catch mounted.open(.operation.path.toString(), .operation.password.toSlice(), .operation.mount.toString(), .operation.readOnly) as mountError
             .operation.error = mountError
             if mountError != null
@@ -1613,7 +1621,7 @@ impl MainWindow
             else
             {
                 .rememberMountedDrive()
-                .statusDrive = .operation.mount
+                .statusDrive = .operation.mountLabel
                 .setStatus(.operation.readOnly ? .MountedReadOnly : .Mounted)
             }
 
@@ -1662,6 +1670,7 @@ impl MainWindow
         .operation.fromStartup     = false
         .operation.path.clear()
         .operation.mount.clear()
+        .operation.mountLabel.clear()
         .operation.size = 0
 
         if .startupQueue.count do
@@ -1682,6 +1691,7 @@ impl MainWindow
             .volume        = me.operation.volume
             .path          = me.operation.path
             .drive         = me.operation.mount
+            .mountLabel    = me.operation.mountLabel
             .needsPassword = me.operation.usedPassword
             .readOnly      = me.operation.readOnly
             .atStartup     = known != Swag.U64.Max

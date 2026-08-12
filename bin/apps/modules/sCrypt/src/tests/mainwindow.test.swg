@@ -540,8 +540,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
     @assert(!window.mountedDrives.unmountButton.isEnabled())
 
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("X:"), true, false, false})
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("Y:"), false, false, true})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("mount-y"), String.from("Y:"), false, false, true})
     window.mountedDrives.refresh()
 
     @assert(window.mountedDrives.list.isLocallyVisible())
@@ -576,19 +576,19 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, false, false})
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false})
     window.mountedDrives.refresh()
 
     window.mountedDrives.list.setLineChecked(0, true)
     @assert(window.startupVaults.count == 1)
     @assert(window.startupVaults[0].path == "C:\\one.scrypt")
-    @assert(window.startupVaults[0].drive == "X:")
+    @assert(window.startupVaults[0].drive == "mount-x")
     @assert(window.startupVaults[0].needsPassword)
 
     discard window.mountedDrives.detach(0)
     @assert(window.startupVaults.count == 1)
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, false, true})
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, true})
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
     @assert(window.startupVaults.isEmpty())

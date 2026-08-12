@@ -107,7 +107,7 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     result.width  = width
     result.height = height
     let size = cast(u64) width * cast(u64) height
-    result.cells = cast(#null [*] u8) @alloc(size)
+    result.cells = cast(#null [*] u8) testAlloc(size)
     @assert(result.cells != null)
     let cells = result.cells!
     for width * height
@@ -120,7 +120,7 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
 func freeAntinodeGrid(grid: AntinodeGrid)
 {
     if grid.cells do
-        @free(grid.cells)
+        testFree(grid.cells)
 }
 
 func markAntinode(grid: &AntinodeGrid, x, y: s32)->bool

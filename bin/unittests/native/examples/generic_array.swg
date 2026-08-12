@@ -1,6 +1,6 @@
 #global private
 
-// Real-life example: a generic dynamic array backed by @alloc, @free, @realloc.
+// Real-life example: a generic dynamic array backed by the default runtime allocator.
 
 const DefaultCapacity = 4'u64
 
@@ -15,14 +15,14 @@ func(T) create()->DynArray'T
 {
     var result: DynArray'T
     result.capacity = DefaultCapacity
-    result.data     = cast(#null [*] T) @alloc(DefaultCapacity * #sizeof(T))
+    result.data     = cast(#null [*] T) testAlloc(DefaultCapacity * #sizeof(T))
     return result
 }
 
 func(T) destroy(arr: *DynArray'T)
 {
     if arr.data do
-        @free(arr.data)
+        testFree(arr.data)
     arr.data     = null
     arr.count    = 0
     arr.capacity = 0
@@ -33,7 +33,7 @@ func(T) push(arr: *DynArray'T, value: T)
     if arr.count == arr.capacity
     {
         let newCapacity = arr.capacity * 2
-        arr.data     = cast(#null [*] T) @realloc(arr.data, newCapacity * #sizeof(T))
+        arr.data     = cast(#null [*] T) testRealloc(arr.data, newCapacity * #sizeof(T))
         arr.capacity = newCapacity
     }
 
@@ -108,7 +108,7 @@ func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
     if arr.count == arr.capacity
     {
         let newCapacity = arr.capacity * 2
-        arr.data     = cast(#null [*] T) @realloc(arr.data, newCapacity * #sizeof(T))
+        arr.data     = cast(#null [*] T) testRealloc(arr.data, newCapacity * #sizeof(T))
         arr.capacity = newCapacity
     }
 

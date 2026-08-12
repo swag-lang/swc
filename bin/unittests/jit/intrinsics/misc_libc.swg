@@ -5,7 +5,7 @@
     #[Swag.NoInline]
     func allocWriteRead()->bool
     {
-        let ptr = cast(#null [*] u8) @alloc(4)
+        let ptr = cast(#null [*] u8) testAlloc(4)
         if !ptr do
             return false
 
@@ -15,7 +15,7 @@
         ptr[3] = 40'u8
 
         let ok = ptr[0] == 10'u8 and ptr[1] == 20'u8 and ptr[2] == 30'u8 and ptr[3] == 40'u8
-        @free(ptr)
+        testFree(ptr)
         return ok
     }
 
@@ -27,7 +27,7 @@
     #[Swag.NoInline]
     func reallocGrow()->bool
     {
-        var ptr = cast(#null [*] u8) @alloc(4)
+        var ptr = cast(#null [*] u8) testAlloc(4)
         if !ptr do
             return false
 
@@ -36,12 +36,12 @@
         ptr[2] = 3'u8
         ptr[3] = 4'u8
 
-        ptr = cast(#null [*] u8) @realloc(ptr, 8)
+        ptr = cast(#null [*] u8) testRealloc(ptr, 8)
         if !ptr do
             return false
 
         let ok = ptr[0] == 1'u8 and ptr[1] == 2'u8 and ptr[2] == 3'u8 and ptr[3] == 4'u8
-        @free(ptr)
+        testFree(ptr)
         return ok
     }
 

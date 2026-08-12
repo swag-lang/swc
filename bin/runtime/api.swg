@@ -1384,16 +1384,6 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @round(value: f64)->f64
 }
 
-// Returns a system allocated memory block of 'size' bytes.
-// Use [[@free]] to release the allocated memory.
-func @alloc(size: u64)->#null [*] void
-
-// Realloc a system memory block allocated with [[@alloc]]
-func @realloc(ptr: #null [*] void, size: u64)->#null [*] void
-
-// Free a system memory block allocated with [[@alloc]]
-func @free(ptr: #null [*] void)
-
 #[Swag.ConstExpr]
 {
     // Trigonometric functions.

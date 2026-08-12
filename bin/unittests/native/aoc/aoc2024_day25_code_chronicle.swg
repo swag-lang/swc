@@ -104,15 +104,15 @@ struct ParseResult
 func parseInit()->ParseResult
 {
     var r: ParseResult
-    r.locks = cast(#null [*] Heights) @alloc(cast(u64) MaxSchematics * #sizeof(Heights))
-    r.keys  = cast(#null [*] Heights) @alloc(cast(u64) MaxSchematics * #sizeof(Heights))
+    r.locks = cast(#null [*] Heights) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
+    r.keys  = cast(#null [*] Heights) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
     return r
 }
 
 func parseFree(r: *ParseResult)
 {
-    if r.locks do @free(r.locks)
-    if r.keys do @free(r.keys)
+    if r.locks do testFree(r.locks)
+    if r.keys do testFree(r.keys)
 }
 
 // Parse a single 7-row schematic starting at `startPos`.

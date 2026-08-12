@@ -1,6 +1,6 @@
 #global private
 
-// Real-life example: a generic dynamic array backed by @alloc, @free, @realloc.
+// Real-life example: a generic dynamic array backed by the default runtime allocator.
 // Same as dynamic_generic_array.swg but using methods instead of global functions.
 
 const DefaultCapacity = 4'u64
@@ -18,14 +18,14 @@ impl DynArray
     {
         var result: DynArray'T
         result.capacity = DefaultCapacity
-        result.data     = cast(#null [*] T) @alloc(DefaultCapacity * #sizeof(T))
+        result.data     = cast(#null [*] T) testAlloc(DefaultCapacity * #sizeof(T))
         return result
     }
 
     mtd destroy()
     {
         if .data do
-            @free(.data)
+            testFree(.data)
         .data     = null
         .count    = 0
         .capacity = 0
@@ -36,7 +36,7 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data     = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
+            me.data     = cast(#null [*] T) testRealloc(me.data, newCapacity * #sizeof(T))
             me.capacity = newCapacity
         }
 
@@ -109,7 +109,7 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data     = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
+            me.data     = cast(#null [*] T) testRealloc(me.data, newCapacity * #sizeof(T))
             me.capacity = newCapacity
         }
 

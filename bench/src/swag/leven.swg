@@ -13,9 +13,9 @@ var g_QLen:    [*] u64 = undefined
 #run
 {
     // ---- data generation (not timed) ----
-    g_Bytes   = cast([*] u8) (@alloc(DICT * 16))!
-    g_WordOff = cast([*] u64) (@alloc(DICT * #sizeof(u64)))!
-    g_WordLen = cast([*] u64) (@alloc(DICT * #sizeof(u64)))!
+    g_Bytes   = cast([*] u8) (benchAlloc(DICT * 16))!
+    g_WordOff = cast([*] u64) (benchAlloc(DICT * #sizeof(u64)))!
+    g_WordLen = cast([*] u64) (benchAlloc(DICT * #sizeof(u64)))!
 
     var wp = 0'u64
     for i in DICT
@@ -32,9 +32,9 @@ var g_QLen:    [*] u64 = undefined
         }
     }
 
-    g_QBytes = cast([*] u8) (@alloc(QUERIES * 32))!
-    g_QOff   = cast([*] u64) (@alloc(QUERIES * #sizeof(u64)))!
-    g_QLen   = cast([*] u64) (@alloc(QUERIES * #sizeof(u64)))!
+    g_QBytes = cast([*] u8) (benchAlloc(QUERIES * 32))!
+    g_QOff   = cast([*] u64) (benchAlloc(QUERIES * #sizeof(u64)))!
+    g_QLen   = cast([*] u64) (benchAlloc(QUERIES * #sizeof(u64)))!
 
     var qp = 0'u64
     for q in QUERIES

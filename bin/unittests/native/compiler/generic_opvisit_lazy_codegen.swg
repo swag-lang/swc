@@ -147,7 +147,7 @@ namespace GenericForeachLazyCodegen
 
     func allocS32(value: s32)->*s32
     {
-        let ptr = cast(*s32) @alloc(#sizeof(s32))!
+        let ptr = cast(*s32) testAlloc(#sizeof(s32))!
         dref ptr = value
         return ptr
     }
@@ -199,7 +199,7 @@ namespace GenericForeachLazyCodegen
         var ptrs   = makePtrBox()
         let ptrsOk = ptrs.nonNullIndexSum() == 4
         for ptr in ptrs.values.toSlice() where ptr != null do
-            @free(ptr)
+            testFree(ptr)
         ptrs.free()
 
         return intsOk and boolsOk and ptrsOk

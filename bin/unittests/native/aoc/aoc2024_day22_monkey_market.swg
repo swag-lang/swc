@@ -152,13 +152,13 @@ func makeSeqResult(val: u64)->SeqResult
 func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
 {
     // Global totals for each possible 4-change sequence
-    let totals = cast([*] u64) (@alloc(cast(u64) SeqCount * #sizeof(u64)))!
-    defer @free(totals)
+    let totals = cast([*] u64) (testAlloc(cast(u64) SeqCount * #sizeof(u64)))!
+    defer testFree(totals)
     for SeqCount { totals[@index] = 0 }
 
     // Per-buyer seen flags
-    let seen = cast([*] bool) (@alloc(cast(u64) SeqCount * #sizeof(bool)))!
-    defer @free(seen)
+    let seen = cast([*] bool) (testAlloc(cast(u64) SeqCount * #sizeof(bool)))!
+    defer testFree(seen)
 
     for bi in buyers.count
     {

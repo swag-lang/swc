@@ -15,10 +15,10 @@ struct ByteMap
 
 func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)
 {
-    m.keyOff = cast([*] u64) (@alloc(capacity * #sizeof(u64)))!
-    m.keyLen = cast([*] u64) (@alloc(capacity * #sizeof(u64)))!
-    m.val    = cast([*] u64) (@alloc(capacity * #sizeof(u64)))!
-    m.used   = cast([*] u8) @alloc(capacity)!
+    m.keyOff = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
+    m.keyLen = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
+    m.val    = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
+    m.used   = cast([*] u8) benchAlloc(capacity)!
     @memset(m.used, 0'u8, capacity)
     m.base  = base
     m.mask  = capacity - 1
@@ -27,10 +27,10 @@ func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)
 
 func mapFree(m: *ByteMap)
 {
-    @free(m.used)
-    @free(m.val)
-    @free(m.keyLen)
-    @free(m.keyOff)
+    benchFree(m.used)
+    benchFree(m.val)
+    benchFree(m.keyLen)
+    benchFree(m.keyOff)
 }
 
 // Returns the table index holding the key, or the free slot it should occupy.

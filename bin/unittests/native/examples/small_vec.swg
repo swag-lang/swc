@@ -46,13 +46,13 @@ impl SmallVec
         while newCap < want do
             newCap *= 2
 
-        let newBuf = cast([*] s32) (@alloc(newCap * #sizeof(s32)))!
+        let newBuf = cast([*] s32) (testAlloc(newCap * #sizeof(s32)))!
         let oldPtr = .ptr!
         for i in .count do
             newBuf[i] = oldPtr[i]
 
         if !.isInline() do
-            @free(oldPtr)
+            testFree(oldPtr)
 
         .ptr      = newBuf
         .capacity = newCap
@@ -80,7 +80,7 @@ impl SmallVec
     {
         // Only free when data lives on the heap.
         if !.isInline() do
-            @free(.ptr)
+            testFree(.ptr)
         .ptr      = null
         .count    = 0
         .capacity = 0
@@ -99,7 +99,7 @@ impl SmallVec
         {
             // Heap path: allocate a fresh buffer and copy the elements.
             let oldPtr = .ptr!
-            let newPtr = cast([*] s32) (@alloc(.capacity * #sizeof(s32)))!
+            let newPtr = cast([*] s32) (testAlloc(.capacity * #sizeof(s32)))!
             for i in .count do
                 newPtr[i] = oldPtr[i]
             .ptr = newPtr

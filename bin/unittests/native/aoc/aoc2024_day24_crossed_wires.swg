@@ -145,7 +145,7 @@ struct Circuit
 func circuitInit()->Circuit
 {
     var c: Circuit
-    c.wireVal = cast(#null [*] u8) @alloc(cast(u64) MaxWireIdx * #sizeof(u8))
+    c.wireVal = cast(#null [*] u8) testAlloc(cast(u64) MaxWireIdx * #sizeof(u8))
     let total   = MaxWireIdx
     let wireVal = c.wireVal!
     for total { wireVal[@index] = 255 }
@@ -155,7 +155,7 @@ func circuitInit()->Circuit
 
 func circuitFree(c: *Circuit)
 {
-    if c.wireVal do @free(c.wireVal)
+    if c.wireVal do testFree(c.wireVal)
 }
 
 impl Circuit

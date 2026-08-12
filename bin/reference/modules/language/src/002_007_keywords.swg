@@ -132,9 +132,8 @@ Math and bit intrinsics:
 Memory, atomic, and C variadic intrinsics:
 
 ```swag
-@alloc  @atomadd  @atomand  @atomcmpxchg  @atomor  @atomxchg
-@atomxor  @free  @memcmp
-@memcpy  @memmove  @memset  @realloc
+@atomadd  @atomand  @atomcmpxchg  @atomor  @atomxchg  @atomxor
+@memcmp  @memcpy  @memmove  @memset
 ```
 
 > NOTE:

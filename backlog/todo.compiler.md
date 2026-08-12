@@ -262,6 +262,15 @@ As of 2026-08-09, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** T-001, T-002, T-006, T-102.
 
+### T-385 — Release linker optimizations are disabled for iteration speed
+
+**Intent.** Restore whole-program optimization in the Release configuration of `swc.vcxproj` — `/GL` with full LTCG, `/OPT:REF`, and `/OPT:ICF` — once Release link time is acceptable again or when producing a shipping binary. They were switched off because full LTCG made every Release link far too long for day-to-day iteration.
+
+**Complete when.**
+
+- `WholeProgramOptimization` is back to `true` and the Release `Link` block uses `UseLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again.
+- The resulting Release build passes `swc tools/tests.swgs`.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

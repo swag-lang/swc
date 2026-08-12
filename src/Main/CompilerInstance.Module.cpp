@@ -1789,15 +1789,11 @@ Result ModuleSetupInputApplier::mirrorScriptDependencyDir(fs::path& ioDir, const
     return Result::Continue;
 }
 
-// Builds one standard-library module in place, so a script that imports it runs on a checkout
-// where the library has never been built for this configuration, or was last built by a compiler
-// this one has replaced.
-//
-// This is what makes a script a substitute for a shell script: `swc script.swgs` has to work the
-// way `python script.py` does, with no install step in front of it, and no build step either the
-// day the compiler moves under it. Only a script gets it. A module or a workspace names its own
-// inputs and is built by whoever asked for it, so a missing or outdated dependency there is a
-// mistake worth reporting instead of a build worth starting.
+// Builds one standard-library module in place, so every compilation that imports it works on a
+// checkout where the library has never been built for this configuration, or was last built by a
+// compiler this one has replaced. The import names the dependency and its source; requiring a
+// separate command to materialize that dependency would make workspace correctness depend on an
+// orchestration layer outside the compiler.
 //
 // `outBuilt` says whether a build actually ran, which is the caller's cue to look again. The
 // build is an ordinary workspace command on the standard library, narrowed to the wanted module
@@ -1805,7 +1801,7 @@ Result ModuleSetupInputApplier::mirrorScriptDependencyDir(fs::path& ioDir, const
 // here, so this cannot recurse.
 bool ModuleSetupInputApplier::canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const
 {
-    return instance().cmdLine().scriptMode && importRequest.location == "swag@std";
+    return importRequest.location == "swag@std";
 }
 
 Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest)
@@ -1857,7 +1853,7 @@ Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const
     stdCmdLine.workDirExplicit = false;
     stdCmdLine.name.clear();
     stdCmdLine.artifactNameExplicit = false;
-    // The arguments after the script belong to the script, never to the library it needs.
+    // Runtime arguments belong to the requested program, never to the library it needs.
     stdCmdLine.runArgs.clear();
     CommandLineParser::refreshBuildCfg(stdCmdLine);
 
@@ -1887,9 +1883,9 @@ Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportP
         bool resolved = tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest);
 
         // A dependency that no longer matches what it was built from is as unusable as an absent
-        // one, so it is rebuilt on the same terms — which only a script gets. '--rebuild' asks for
-        // the same thing without consulting a date: it is how a build is forced when every
-        // timestamp says otherwise. Neither question is worth asking where nothing can act on it.
+        // one, so it is rebuilt on the same terms. '--rebuild' asks for the same thing without
+        // consulting a date: it is how a build is forced when every timestamp says otherwise.
+        // Neither question is worth asking where nothing can act on it.
         const bool onDemand = canBuildSwagStdModuleOnDemand(importRequest);
         if (!resolved || (onDemand && (instance().cmdLine().rebuild || dependencyBuildIsOutdated(outPaths.apiDir, instance().exeFullName_))))
         {

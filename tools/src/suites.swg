@@ -147,12 +147,34 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
 {
     let workspace = Path.combine(context.binDir.toString(), "unittests", "workspace")
 
+    // A user workspace owns only its imports. Start without prebuilt standard modules so this
+    // suite proves that the compiler resolves and builds them, while leaving unrelated modules
+    // absent instead of preparing the whole standard workspace.
+    var cleaned: Arguments
+    cleaned.add(["clean", "--workspace", context.workspacePath("std").toString()])
+    let cleanCode = try context.runCompiler(cleaned)
+    if cleanCode != 0 do
+        return cleanCode
+
     var built = workspaceModuleCommand("build", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&built)
 
     let buildCode = try context.runCompiler(built)
     if buildCode != 0 do
         return buildCode
+
+    let stdOutput = context.workspaceOutput("std")
+    if !Directory.exists(Path.combine(stdOutput.toString(), "core"))
+    {
+        Console.println("Workspace import did not build its standard dependency.")
+        return 1
+    }
+
+    for unrelated in ["audio", "gdiplus", "gui"] where Directory.exists(Path.combine(stdOutput.toString(), unrelated))
+    {
+        Console.println("Workspace import built unrelated standard module \"", unrelated, "\".")
+        return 1
+    }
 
     var tested = workspaceModuleCommand("test", workspace.toString(), "consumer_exe", buildCfg)
     tested.add(["--no-test-jit"])
@@ -189,6 +211,12 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     // be reused, and naming the module keeps that from reading as the failure.
     let verifiedAgain = try context.captureProgram(context.compiler.toString(), verified)
     Console.print(verifiedAgain.toString())
+    if verifiedAgain.contains("std [core]")
+    {
+        Console.println("Workspace modules rebuilt a shared standard dependency.")
+        return 1
+    }
+
     if verifiedAgain.contains("verify_expectations • up-to-date")
     {
         Console.println("Workspace test reused a module with source-driven Verify directives.")

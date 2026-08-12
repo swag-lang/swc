@@ -93,27 +93,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: kill the generated artifact on every exit path of `runGeneratedArtifact`, not only on
   the timeout one, and report a survivor rather than leaving it to be found by hand.
 
-### F-119 — Nothing records where a campaign's time goes
-
-- Area: tooling
-- Found while: asking why `tests.swgs dm --all-cfg` takes about fifty minutes
-- Observation: `swc` already times every stage and prints one line per module
-  (`ScopedTimedLog`), but `tests.swgs` launches a hundred of those processes per configuration and
-  keeps none of the numbers. There is no per-step total, no ranking, and no record at the end of a
-  run, so the only way to learn which rung costs what is to reconstruct it from the modification
-  times of the artifacts in `.output` while a campaign is running.
-- Evidence: one measured run, 2026-08-11, `dm --all-cfg`, 48 min 57 s wall — rungs 1+2 3 min 25,
-  rung 3 (std) 6 min 46, rung 4 (apps + reference) 18 min 33, rung 5 (smoke) 20 min 13. Reaching
-  those four numbers took an hour of observation that a five-line summary would have printed for
-  free.
-- Also: wall time on a developer machine is not a usable A/B signal at this granularity. The same
-  sCapture suite, same binary, measured 2 min 00, 2 min 43, 3 min 11 and 3 min 34 across four
-  consecutive runs with an IDE open. Anything measuring a campaign change needs either a
-  deterministic counter or many alternated rounds.
-- Next step: have `Context.runCompiler` time each invocation and accumulate `(label, seconds)`,
-  then print a table ordered by cost at the end of `runTests`. The labels already exist — the rung,
-  the configuration, and the workspace or suite name are all known at the call site.
-
 ### F-123 — A dependency mirror copy fired for a file that already matched its source
 
 - Area: build

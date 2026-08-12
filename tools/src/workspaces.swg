@@ -87,14 +87,9 @@ private func testStdModule(context: *Context, options: *Options, name: string, m
     options.appendRunArguments(&arguments)
     return try context.runCompiler(arguments)
 }
-
 // Builds, runs, tests, or smokes the examples workspace, whole or one module.
 public func runExamples(context: *Context, options: *Options)->s32 fail
 {
-    let prepared = try buildStandardLibrary(context, options)
-    if prepared != 0 do
-        return prepared
-
     var command = options.command
     if command.isEmpty() do
         command = String.from("build")
@@ -102,7 +97,6 @@ public func runExamples(context: *Context, options: *Options)->s32 fail
     var arguments: Arguments
     arguments.add([command.toString(), "--workspace", context.workspacePath("examples").toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString()])
-    arguments.add(["--import-api-dir", context.workspaceOutput("std").toString()])
     if !options.module.isEmpty() do
         arguments.add(["--workspace-module", options.module.toString()])
 
@@ -129,17 +123,13 @@ public func runApps(context: *Context, options: *Options)->s32 fail
         return 1
     }
 
-    let prepared = try buildStandardLibrary(context, options)
-    if prepared != 0 do
-        return prepared
-
     if command == "run" do
         return try launchApplication(context, options)
 
     var arguments: Arguments
     arguments.add([command.toString(), "--workspace", context.workspacePath("apps").toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString()])
-    arguments.add(["--import-api-dir", context.workspaceOutput("std").toString(), "--publish"])
+    arguments.add(["--publish"])
     if !options.module.isEmpty() do
         arguments.add(["--workspace-module", options.module.toString()])
 
@@ -182,7 +172,7 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
     var arguments: Arguments
     arguments.add(["build", "--workspace", context.workspacePath("apps").toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString()])
-    arguments.add(["--import-api-dir", context.workspaceOutput("std").toString(), "--publish"])
+    arguments.add(["--publish"])
     arguments.add(["--workspace-module", options.module.toString()])
     options.appendExtra(&arguments)
 
@@ -264,14 +254,9 @@ public func runReference(context: *Context, options: *Options)->s32 fail
         return 1
     }
 
-    let prepared = try buildStandardLibrary(context, options)
-    if prepared != 0 do
-        return prepared
-
     var arguments: Arguments
     arguments.add(["test", "--workspace", context.workspacePath("reference").toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString()])
-    arguments.add(["--import-api-dir", context.workspaceOutput("std").toString()])
 
     // The language suites compare JIT and native behavior; the reference checks the documented
     // programs once in their shipped native form.
@@ -315,10 +300,6 @@ public func runScripts(context: *Context, options: *Options)->s32 fail
             return 1
         }
     }
-
-    let prepared = try buildStandardLibrary(context, options)
-    if prepared != 0 do
-        return prepared
 
     if !named.isEmpty() do
         return try runOneScript(context, options, command.toString(), named.toString())
@@ -370,17 +351,5 @@ private func runOneScript(context: *Context, options: *Options, command: string,
     for value in options.runArguments do
         arguments.add([value.toString()])
 
-    return try context.runCompiler(arguments)
-}
-
-// Builds the standard library the way every workspace above depends on it.
-//
-// The flags a run or a smoke understands are deliberately left out: this build would refuse them.
-public func buildStandardLibrary(context: *Context, options: *Options)->s32 fail
-{
-    var arguments: Arguments
-    arguments.add(["build", "--workspace", context.workspacePath("std").toString()])
-    arguments.add(["--build-cfg", options.buildCfg.toString()])
-    options.appendExtra(&arguments)
     return try context.runCompiler(arguments)
 }

@@ -63,6 +63,7 @@ public:
     void          markUpToDate();
     void          setStat(Utf8 stat);
     void          setProgressStat(Utf8 stat);
+    void          stopProgress();
 
     // Small helpers callers use to assemble the parts of a stage line.
     static void appendTestStats(const TaskContext& ctx, std::vector<Utf8>& parts, size_t executed, size_t failed);

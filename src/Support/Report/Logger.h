@@ -147,6 +147,7 @@ public:
     size_t beginProgress(ProgressFrames frames);
     void   updateProgress(size_t progressId, ProgressFrames frames);
     void   endProgress(size_t progressId, std::string_view finalLine);
+    void   cancelProgress(size_t progressId);
     void   resetStageClaims();
     bool   claimStageOnce(std::string_view key);
     void   pushStageMute() { stageMuteDepth_++; }

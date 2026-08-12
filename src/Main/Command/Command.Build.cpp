@@ -221,6 +221,12 @@ namespace Command
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return SymbolFunction::jitBatch(ctx, allFunctions); }));
 
+            // From here on the script's own code runs and owns the console: it prints directly
+            // and spawns children with inherited streams, none of which this process's logger can
+            // coordinate with. An animated line would fight them for the last row.
+            if (stage)
+                stage->stopProgress();
+
             SWC_RESULT(runScriptRuntimeSetup(ctx));
             SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::Init));
             SWC_RESULT(runJitScriptFunctions(ctx, initFunctions, JITRuntimeSetupMode::None));

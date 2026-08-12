@@ -187,8 +187,6 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
     let directory  = applicationDirectory(context, options, options.module.toString())
     let executable = Path.combine(directory.toString(), Format.toString("%.exe", options.module.toString()).toString())
 
-    Console.println("Launching ", options.module.toString(), "...")
-
     let applicationArguments = joinArguments(options.runArguments.toSlice())
 
     var info    = Env.StartInfo{fileName: executable.toString(), arguments: applicationArguments.toString(), workingDirectory: directory.toString(), environment: &context.childEnv}

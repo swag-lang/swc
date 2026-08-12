@@ -388,6 +388,16 @@ void ScopedTimedLog::markUpToDate()
     upToDate_ = true;
 }
 
+// Ends the animated progress early while keeping the stage: the summary line still prints at
+// scope end. Called before the console is handed to code the logger cannot see.
+void ScopedTimedLog::stopProgress()
+{
+    if (!progressId_)
+        return;
+    ctx_->global().logger().cancelProgress(progressId_);
+    progressId_ = 0;
+}
+
 void ScopedTimedLog::setStat(Utf8 stat)
 {
     stat_ = std::move(stat);

@@ -191,6 +191,25 @@ void Logger::endProgress(const size_t progressId, const std::string_view finalLi
     std::cout << std::flush;
 }
 
+// Abandons an animated progress line without printing anything in its place. Used before the
+// console is handed to code the logger cannot coordinate with — a script's own functions, or a
+// child process with inherited streams — so the animation does not fight it for the last row.
+void Logger::cancelProgress(const size_t progressId)
+{
+    if (!progressId)
+        return;
+
+    const std::scoped_lock lock(mutexAccess_);
+    clearProgressNoLock();
+    std::erase_if(activeProgress_, [progressId](const ActiveProgress& progress) {
+        return progress.id == progressId;
+    });
+
+    if (activeProgress_.empty())
+        showCursorNoLock();
+    std::cout << std::flush;
+}
+
 void Logger::resetStageClaims()
 {
     const ScopedLock lock(*this);

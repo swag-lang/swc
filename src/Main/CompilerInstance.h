@@ -517,7 +517,6 @@ private:
     std::once_flag                                                                                               nativeProcessInfosOffsetOnce_;
     uint32_t                                                                                                     nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     uint32_t                                                                                                     nativeProcessInfosOffset_        = UINT32_MAX;
-    Utf8                                                                                                         processInfosArgsStorage_;
     bool                                                                                                         processInfosRunArgsReady_ = false;
     std::vector<SymbolFunction*>                                                                                 nativeCodeSegment_;
     std::unordered_set<SymbolFunction*>                                                                          nativeCodeSegmentSet_;

@@ -604,8 +604,17 @@ namespace
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
             if (stage)
                 stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
-            if (!runJitTestFunction(ctx, *function))
+            const bool testPassed = runJitTestFunction(ctx, *function);
+            if (!testPassed)
+            {
                 failedTestCount++;
+
+                // The panic or exception that reported the failure runs below the JIT boundary,
+                // where the '#test' being executed is unknown; name it here.
+                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_note_jit_test_did_not_pass);
+                diag.addArgument(Diagnostic::ARG_VALUE, testLocation);
+                diag.report(ctx);
+            }
             executedTestCount++;
             if (stage)
                 stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));

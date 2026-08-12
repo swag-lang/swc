@@ -84,32 +84,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   A cheaper answer may be to park only while at least one candidate type has an `impl` block whose
   body has not run.
 
-### F-108 — A typed struct can intermittently reach default-value materialization before its size
-
-- Area: compiler
-- Found while: running `tools/tests.swgs dm changed --all-cfg` after a GUI theme and dialog pass.
-- Observation: semantic parsing intermittently asserts that a struct size is nonzero while
-  materializing the default value of `var cpu: RenderCpu`. The reported `RenderCpu` symbol is typed
-  and declared but has not completed semantic analysis. An immediate focused rerun of the same GUI
-  tests in Debug succeeds without source or compiler changes, which points to dependency scheduling
-  rather than an invalid declaration or a deterministic configuration error.
-- Evidence: the failure occurred in `bin/std/modules/gui/src/tests/unittests/headless.render.test.swg:10`
-  during the Debug leg, after the Release GUI tests had passed 368/368. The assertion is
-  `sizeInBytes != 0` in `src/Compiler/Sema/Symbol/Symbol.Struct.cpp:50`; its stack reaches
-  `resolveStaticPayloadRequiredShardIndex`, `materializeStaticPayloadConstant`, and
-  `SymbolStruct::computeDefaultValue`. The symbol state reported
-  `semaCompleted=false typed=true declared=true`. Running
-  `tools/std.swgs dm test gui -bc debug` immediately afterward passed 368/368.
-  A second occurrence during F-106 had the same source, assertion, stack and symbol state in the
-  Fast-Debug leg; `tools/std.swgs dm test gui -bc fast-debug` then passed 368/368 immediately.
-  A third occurrence on 2026-08-12: the first full `tools/tests.swgs dm` pass in a fresh worktree,
-  same source line, assertion, stack and symbol state, again fast-debug; the immediate focused
-  rerun `swc test -w bin/std -m gui -bc fast-debug` passed 1 329/1 329.
-- Next step: stress the Debug GUI semantic pass while tracing jobs that publish `RenderCpu`'s
-  concrete layout and jobs that compute local default values. Confirm whether default-value
-  materialization is missing a wait on the struct's semantic-completion dependency, then reduce the
-  case to two imported structs before adding a compiler suite regression.
-
 ### F-111 — Concurrent type generation can corrupt declared-method traversal
 
 - Area: compiler
@@ -127,7 +101,71 @@ Entries are sorted by identifier, ascending; position carries no priority.
   command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
   leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
   three configurations.
-- Next step: persist the complete failing module and source context on the next occurrence, then
-  stress parallel type generation while tracing mutation and traversal of struct impl-function
-  lists. Check that every publication read by `declaredMethods` is immutable or protected for the
-  full lifetime of candidate probing before reducing the race to two concurrently completed impls.
+- Next step: re-evaluate on the next occurrence only. The 2026-08-12 sanification pass eliminated
+  three writers able to corrupt or misread memory underneath a stack like this one: a struct
+  layout republished through transient zero and partially accumulated sizes on every post-node
+  resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
+  imported native modules keeping `@pinfos.args` slices into a destroyed compiler instance's
+  storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
+  matcher reading the signature type of a selected candidate before that type was published
+  (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
+  a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
+  wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
+  report now appends the reporting thread's stack (`MemoryProfile.cpp`), so a recurrence names its
+  culprit directly; if one does recur, persist the failing module and stress parallel type
+  generation as originally planned.
+
+## JIT-hosted runs
+
+### F-124 — A dangling reference into a destroyed compiler instance has no deterministic detector
+
+- Area: compiler
+- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m sCapture
+  --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
+  per process) keeping `@pinfos.args` slices into the run-argument storage of a dependency-build
+  compiler instance that had already been destroyed. That defect is fixed by interning the handed
+  storage for the lifetime of the process, but the *class* — long-lived imported modules holding a
+  pointer into per-instance state — was only caught because a heap block happened to be reused with
+  bytes that failed a `Debug.assert` inside `Path.extension`, in the Release compiler binary only,
+  roughly once per run.
+- Observation: nothing makes such a stale reference fail deterministically, so a suite regression
+  cannot be written that reliably turns red without the fix: the dead storage usually still holds
+  its old bytes, and every read through it then looks healthy. The DevMode binary never tripped at
+  all because its allocator reused the freed block differently.
+- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m sCapture --rebuild` loop on the
+  Release binary failed in `library.test.swg` (the one test that funnels `Env.executablePath()`
+  into a validated path API), while the same command on the DevMode binary passed 10/10; post-fix
+  the Release loop passed 8/8. A probe comparing the live instance against what JIT code reads
+  showed five compiler instances writing five run-argument storages in one process, the test
+  instance healthy, and the imported module reading a sixth, dead one.
+- Next step: poison the global segments and other instance-owned storage handed across the JIT
+  boundary when a `CompilerInstance` is destroyed, under `SWC_DEV_MODE` — a stale cross-instance
+  reference then reads the poison pattern instead of plausible stale bytes, which makes this whole
+  class reproduce on the first run. Then add a `bin/unittests/workspace` case that rebuilds a
+  dependency and asserts `Env.executablePath()` is a valid, existing path from the tested module.
+
+### F-125 — A JIT '#test' can call through a function slot that was never patched
+
+- Area: compiler
+- Found while: the 2026-08-12 sanification pass, looping the apps workspace in debug. This is the
+  strongest reproduction so far of the intermittent sCrypt JIT failures the pass set out to track.
+- Observation: in `swc_devmode test -w bin/apps -bc debug --rebuild`, six sCrypt `#test` functions
+  in `mainwindow.test.swg` (109, 133, 163, 363, 384, 494) die on the same hardware exception:
+  execution lands at `rip=0x0000000080019060` (memory state FREE, "jit offset: unresolved"), which
+  is a jump through a function-pointer slot holding a value no live code owns. The failure hits
+  roughly two runs out of three at the first iteration, always with that same rip, and an A/B
+  build bisected it as independent of the concurrent matcher fix added the same day. sCapture's
+  151 tests pass in the same runs; the release and fast-debug legs of the same workspace pass far
+  more often.
+- Evidence: the run reports `state: Run JIT`, `__test_14` at `mainwindow.test.swg:109:1`,
+  `0xC0000005` at `0x0000000080019060`, `memory: state=FREE`. The constant-side patcher leaves a
+  slot untouched when its relocation carries `allowUnresolvedFunction` and the target is not ready
+  (`shouldLeaveOptionalFunctionRelocationUnresolved`, [JIT.cpp](../src/Backend/JIT/JIT.cpp)), and
+  the `LazyGenericBodyRunning` case explicitly defers; nothing re-patches such a slot when the
+  target becomes ready afterward, so a test that reaches one through an interface table or stored
+  callback jumps into the placeholder bytes. The rip being identical across six tests and several
+  runs says the slot content is deterministic, not heap garbage.
+- Next step: reproduce with the command above (two runs usually suffice), then dump the pointed-to
+  slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
+  relocation names. Decide between re-running the constant patcher when a deferred target publishes
+  its JIT address, and refusing to defer relocations that are reachable from an interface table.

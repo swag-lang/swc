@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 
 #if SWC_HAS_STATS
@@ -184,6 +185,42 @@ namespace
 #endif
 }
 
+namespace
+{
+    // A mimalloc assertion or error report names the corrupted block, never the code that
+    // reached it, and the intermittent heap corruptions this compiler has chased were exactly
+    // that: a report with no culprit. Appending the reporting thread's own stack turns the next
+    // occurrence into a direct lead. The capture avoids allocating (the allocator is the thing
+    // complaining), and the guard keeps a fault inside the capture from recursing.
+    void mimallocOutputWithStack(const char* msg, void*)
+    {
+        if (msg)
+            fputs(msg, stderr);
+
+        static thread_local bool inStackDump = false;
+        if (inStackDump || !msg)
+            return;
+        if (!strstr(msg, "assertion failed") && !strstr(msg, "mimalloc: error"))
+            return;
+
+        inStackDump = true;
+        std::array<uintptr_t, 32> frames{};
+        const uint32_t            numFrames = Os::captureCallStack(frames, 1);
+        fputs("mimalloc report stack trace:\n", stderr);
+        for (uint32_t i = 0; i < numFrames; ++i)
+        {
+            Os::ResolvedAddress resolved;
+            if (Os::resolveAddress(resolved, frames[i], nullptr))
+                (void) fprintf(stderr, "  [%02u] 0x%016llX %s | %s | %s\n", i, static_cast<unsigned long long>(frames[i]), resolved.moduleName.c_str(), resolved.symbolName.c_str(), resolved.sourceLocation.c_str());
+            else
+                (void) fprintf(stderr, "  [%02u] 0x%016llX\n", i, static_cast<unsigned long long>(frames[i]));
+        }
+
+        (void) fflush(stderr);
+        inStackDump = false;
+    }
+}
+
 namespace MemoryProfile
 {
     // mimalloc commits a page in full as soon as it hands it out. A compilation run spreads its
@@ -194,6 +231,7 @@ namespace MemoryProfile
     void configureAllocator()
     {
         mi_option_set(mi_option_page_commit_on_demand, 2);
+        mi_register_output(&mimallocOutputWithStack, nullptr);
     }
 
     void setTrackingEnabled(const bool enabled)

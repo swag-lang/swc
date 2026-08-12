@@ -2998,7 +2998,12 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // Finalize the selection by applying required casts and conversions to the arguments
     const AstNodeRef      appliedUfcsArg = selectedAttempt->candidate.ufcsUsed ? ufcsArg : AstNodeRef::invalid();
     const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
-    CallArgMapping        mapping;
+
+    // A candidate becomes matchable through its published parameters before its own signature
+    // type is published, and everything below reads that type. Park until the winner carries it.
+    SWC_RESULT(sema.waitTyped(selectedFn, sema.node(nodeCallee.nodeRef()).codeRef()));
+
+    CallArgMapping mapping;
     MatchFailure          mappingFail;
     if (!buildCallArgMapping(sema, *selectedFn, args, appliedUfcsArg, mapping, mappingFail))
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);

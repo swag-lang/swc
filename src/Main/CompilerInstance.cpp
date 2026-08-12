@@ -665,11 +665,33 @@ void CompilerInstance::ensureProcessInfosRunArgs()
         appendQuoted(arg.view());
     }
 
-    processInfosArgsStorage_ = std::move(cmdLineStr);
+    // The arguments are handed to imported native modules, which parse them once, keep slices
+    // into the buffer for the rest of the process, and routinely outlive this compiler instance
+    // (a workspace run builds each dependency with its own short-lived instance while core.dll
+    // and its siblings stay loaded). The storage they point into must therefore never move and
+    // never die with an instance: intern it for the lifetime of the process.
+    static std::mutex              processInfosArgsMutex;
+    static std::deque<std::string> processInfosArgsStorage;
+
+    std::string_view stableArgs;
+    {
+        std::scoped_lock lock(processInfosArgsMutex);
+        for (const std::string& existing : processInfosArgsStorage)
+        {
+            if (existing == cmdLineStr.view())
+            {
+                stableArgs = existing;
+                break;
+            }
+        }
+
+        if (stableArgs.empty())
+            stableArgs = processInfosArgsStorage.emplace_back(cmdLineStr.view());
+    }
 
     auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfos>(nativeProcessInfosOffset());
     SWC_ASSERT(infos != nullptr);
-    infos->args = {processInfosArgsStorage_.data(), processInfosArgsStorage_.length()};
+    infos->args = {stableArgs.data(), stableArgs.length()};
 }
 
 // The process infos JIT-compiled code sees through '@pinfos'.

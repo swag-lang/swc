@@ -227,11 +227,18 @@ namespace
             if (payload.size() != sizeof(Runtime::Slice<std::byte>))
                 return false;
 
-            const auto*     runtimeSlice   = reinterpret_cast<const Runtime::Slice<std::byte>*>(payload.data());
+            // The empty test comes first: a slice element type never had to be laid out for the
+            // enclosing payload to exist (a slice is two pointers whatever it points to), so its
+            // size may legitimately not be computed yet — and must not be read — when the slice
+            // carries nothing.
+            const auto* runtimeSlice = reinterpret_cast<const Runtime::Slice<std::byte>*>(payload.data());
+            if (runtimeSlice->count == 0)
+                return true;
+
             const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
             const TypeInfo& elementType    = ctx.typeMgr().get(elementTypeRef);
             const uint64_t  elementSize    = elementType.sizeOf(ctx);
-            if (runtimeSlice->count == 0 || elementSize == 0)
+            if (elementSize == 0)
                 return true;
             if (!runtimeSlice->ptr)
                 return false;

@@ -796,6 +796,51 @@ namespace
         return true;
     }
 
+#if SWC_DEV_MODE
+    // The buffers below are written by JIT-executed user code during compile-time folding. A fold
+    // that writes past its receiver corrupts whatever the allocator placed next, and that defect
+    // has so far surfaced only as allocator assertions on innocent threads. The redzone turns the
+    // overflow into a report that names the fold that wrote it.
+    constexpr uint64_t K_JIT_FOLD_REDZONE      = 64;
+    constexpr uint8_t  K_JIT_FOLD_REDZONE_BYTE = 0xAB;
+#endif
+
+    std::byte* reserveJitFoldStorage(SmallVector<std::byte>& storage, const uint64_t size)
+    {
+#if SWC_DEV_MODE
+        storage.resize(size + K_JIT_FOLD_REDZONE);
+        std::memset(storage.data() + size, K_JIT_FOLD_REDZONE_BYTE, K_JIT_FOLD_REDZONE);
+#else
+        storage.resize(size);
+#endif
+        std::memset(storage.data(), 0, size);
+        return storage.data();
+    }
+
+    void verifyJitFoldRedzones(Sema& sema, const SymbolFunction& calledFn, const SmallVector<SmallVector<std::byte>>& argStorage)
+    {
+#if SWC_DEV_MODE
+        for (const SmallVector<std::byte>& storage : argStorage)
+        {
+            SWC_ASSERT(storage.size() >= K_JIT_FOLD_REDZONE);
+            const uint64_t   size = storage.size() - K_JIT_FOLD_REDZONE;
+            const std::byte* zone = storage.data() + size;
+            for (uint64_t i = 0; i < K_JIT_FOLD_REDZONE; ++i)
+            {
+                if (zone[i] == std::byte{K_JIT_FOLD_REDZONE_BYTE})
+                    continue;
+
+                const Utf8 detail = std::format("  called function: {}\n  buffer size: {}\n  first corrupted redzone byte: +{}\n", calledFn.getFullScopedName(sema.ctx()), size, i);
+                swcAssertDetail("JIT compile-time fold stayed within its buffers", __FILE__, __LINE__, detail.view());
+            }
+        }
+#else
+        SWC_UNUSED(sema);
+        SWC_UNUSED(calledFn);
+        SWC_UNUSED(argStorage);
+#endif
+    }
+
     Result buildConstCallArguments(Sema& sema, bool& outBuilt, const SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         outBuilt = false;
@@ -868,13 +913,11 @@ namespace
                     return Result::Continue;
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
-                pointeeStorage.resize(pointeeByteSize);
-                std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
+                reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
-                argStorage.resize(argStorageSize);
-                std::memset(argStorage.data(), 0, argStorage.size());
+                reserveJitFoldStorage(argStorage, argStorageSize);
                 const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
                 std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
 
@@ -895,9 +938,8 @@ namespace
                 return Result::Continue;
 
             auto& argStorage = outArgStorage.emplace_back();
-            argStorage.resize(argStorageSize);
-            std::memset(argStorage.data(), 0, argStorage.size());
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
+            reserveJitFoldStorage(argStorage, argStorageSize);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueTypeRef) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;
@@ -958,14 +1000,12 @@ namespace
                     return Result::Continue;
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
-                pointeeStorage.resize(pointeeByteSize);
-                std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
+                reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
                 if (receiverInitCstRef.isValid())
-                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeStorage.size()}, receiverInitCstRef, receiverTypeRef) == Result::Continue);
+                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, receiverInitCstRef, receiverTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
-                argStorage.resize(argStorageSize);
-                std::memset(argStorage.data(), 0, argStorage.size());
+                reserveJitFoldStorage(argStorage, argStorageSize);
                 const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
                 std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
 
@@ -1015,13 +1055,11 @@ namespace
                     return Result::Continue;
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
-                pointeeStorage.resize(pointeeByteSize);
-                std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
+                reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
-                argStorage.resize(argStorageSize);
-                std::memset(argStorage.data(), 0, argStorage.size());
+                reserveJitFoldStorage(argStorage, argStorageSize);
                 const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
                 std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
 
@@ -1039,9 +1077,8 @@ namespace
                 return Result::Continue;
 
             auto& argStorage = outArgStorage.emplace_back();
-            argStorage.resize(argStorageSize);
-            std::memset(argStorage.data(), 0, argStorage.size());
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
+            reserveJitFoldStorage(argStorage, argStorageSize);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueTypeRef) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;
@@ -1244,6 +1281,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     {
         const JITReturn jitReturn = {.typeRef = exprTypeRef, .valuePtr = payload->resultStorage.data()};
         SWC_RESULT(emitForeignConstExprCall(sema, calledFn, payload->jitArgs.span(), jitReturn));
+        verifyJitFoldRedzones(sema, calledFn, payload->argStorage);
 
         const ConstantRef resultCstRef = makeJitCallResultConstantRef(sema, resultMeta, payload->resultStorage.data());
         if (payload->constCallCacheKey)
@@ -1299,6 +1337,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
     if (calledFn.isForeign())
     {
         SWC_RESULT(emitForeignConstExprCall(sema, calledFn, jitArgs.span(), {.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr}));
+        verifyJitFoldRedzones(sema, calledFn, argStorage);
 
         const uint64_t    structSize   = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
         const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, std::span{receiverStorage, structSize});
@@ -1319,6 +1358,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
     request.runImmediate = true;
 
     const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
+    verifyJitFoldRedzones(sema, calledFn, argStorage);
     if (jitResult != Result::Continue)
         return reportJitEvaluationFailure(sema, calledFn);
 

@@ -155,6 +155,39 @@ using Swag
     expect Env.clearLeftoverDefaultRoot(root.toString())
 }
 
+// A leftover a third party still holds inside refuses to clear, and reports it rather than
+// adopting the root half-emptied; the same clear succeeds once the hold is gone. This is the
+// premise behind the arming hook's fallback siblings.
+#test
+{
+    if !Env.isSandboxed() do
+        return
+
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "leftover-held")
+    expect Directory.create(root.toString())
+
+    let heldPath = Path.combine(root.toString(), "held.bin")
+    var held     = expect File.open(heldPath.toString(), .Create, .Write, .Read)
+    catch Env.clearLeftoverDefaultRoot(root.toString()) as err
+    @assert(err != null)
+
+    held.close()
+    expect Env.clearLeftoverDefaultRoot(root.toString())
+    @assert(!Directory.exists(root.toString()))
+}
+
+// A fallback sibling stays beside the name it replaces — same parent, the plain name as its
+// prefix — so the leftover and its adopter both stay matchable to the process id that owns them.
+#test
+{
+    let base = Env.defaultSandboxRoot()
+    let alt  = Env.defaultSandboxRoot(2)
+
+    var expected = String.from(base.toString())
+    expected += "-2"
+    @assert(alt.toString() == expected.toString())
+}
+
 // A real write lands in the sandbox and a real write outside is refused, through the public
 // file API rather than the guard alone.
 #test

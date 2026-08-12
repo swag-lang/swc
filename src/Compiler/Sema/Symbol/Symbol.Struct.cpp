@@ -81,6 +81,13 @@ namespace
         // table entries or signatures that cannot be reflected safely.
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
             return false;
+
+        // Half-declared methods are excluded by the signature checks below anyway; testing the
+        // atomic flags first also keeps this from reading an attribute list a concurrent sema
+        // pass may still be growing.
+        if (!symFunc.isDeclared() || !symFunc.isTyped())
+            return false;
+
         if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
             return false;
 
@@ -156,9 +163,11 @@ namespace
         {
             if (!symFunc)
                 continue;
-            if (!symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
-                continue;
+            // The completion flags are atomic and gate the rest: a method whose sema is still
+            // running may have its attribute list mutated concurrently, so it must not be read.
             if (!symFunc->isDeclared() || !symFunc->isTyped() || !symFunc->isSemaCompleted())
+                continue;
+            if (!symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                 continue;
             if (symFunc->name(ctx) == expectedName)
                 return symFunc;
@@ -859,8 +868,10 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 
 void SymbolStruct::removeIgnoredFields()
 {
-    std::erase_if(fields_, std::mem_fn(&Symbol::isIgnored));
-    rebuildFieldIndexMap();
+    // Re-entered on every post-node resume while readers may walk the published fields of a
+    // typed struct: stay mutation-free when there is nothing to remove.
+    if (std::erase_if(fields_, std::mem_fn(&Symbol::isIgnored)) != 0)
+        rebuildFieldIndexMap();
 }
 
 bool SymbolStruct::tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym) const noexcept
@@ -1062,7 +1073,7 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
 
 uint64_t SymbolStruct::sizeOf() const
 {
-    return checkedStructLayoutSize(*this, sizeInBytes_);
+    return checkedStructLayoutSize(*this, sizeInBytes_.load(std::memory_order_acquire));
 }
 
 bool SymbolStruct::hasConcreteLayout() const noexcept
@@ -1070,12 +1081,12 @@ bool SymbolStruct::hasConcreteLayout() const noexcept
     if (!isConcreteStructLayoutPending(*this))
         return true;
 
-    return sizeInBytes_ != 0 && alignment_ != 0;
+    return sizeInBytes_.load(std::memory_order_acquire) != 0 && alignment_.load(std::memory_order_acquire) != 0;
 }
 
 uint32_t SymbolStruct::alignment() const
 {
-    return checkedStructLayoutAlignment(*this, alignment_);
+    return checkedStructLayoutAlignment(*this, alignment_.load(std::memory_order_acquire));
 }
 
 bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const
@@ -1185,12 +1196,19 @@ void SymbolStruct::rebuildFieldIndexMap() noexcept
 
 Result SymbolStruct::computeLayout(TaskContext& ctx)
 {
-    sizeInBytes_         = 0;
-    alignment_           = 1;
+    // A struct's post-node sema can park after this ran (impl registrations) and re-runs it on
+    // resume, while other jobs already read the published numbers through field walks. Compute
+    // into locals and publish once at the end: a reader must never observe a transient zero or
+    // a partially accumulated size.
+    uint64_t sizeInBytes = 0;
+    uint32_t alignment   = 1;
     uint32_t structPack  = 0;
     uint32_t structAlign = 0;
     tryGetSwagLayoutAttributeValue(structPack, ctx, attributes(), "Pack");
     tryGetSwagLayoutAttributeValue(structAlign, ctx, attributes(), "Align");
+
+    SmallVector<uint64_t> fieldOffsets;
+    fieldOffsets.reserve(fields_.size());
 
     for (SymbolVariable* field : fields_)
     {
@@ -1199,46 +1217,54 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
 
         const uint64_t sizeOf  = type.sizeOf(ctx);
         const uint32_t alignOf = effectiveFieldAlignment(ctx, *this, symVar, structPack);
-        alignment_             = std::max(alignment_, alignOf);
+        alignment              = std::max(alignment, alignOf);
 
         if (isUnion())
         {
-            symVar.setOffset(0);
-            sizeInBytes_ = std::max(sizeInBytes_, sizeOf);
+            fieldOffsets.push_back(0);
+            sizeInBytes = std::max(sizeInBytes, sizeOf);
         }
         else
         {
             std::string_view      offsetTargetName;
             const SymbolVariable* offsetTarget = nullptr;
-            uint64_t              fieldOffset  = sizeInBytes_;
+            uint64_t              fieldOffset  = sizeInBytes;
             if (tryGetFieldOffsetAttributeValue(offsetTargetName, ctx, *this, symVar))
             {
                 offsetTarget = findOffsetTargetField(ctx, *this, symVar, offsetTargetName);
                 SWC_ASSERT(offsetTarget != nullptr);
                 if (offsetTarget)
-                    fieldOffset = offsetTarget->offset();
+                {
+                    size_t targetIndex = 0;
+                    if (tryGetFieldIndex(targetIndex, *offsetTarget) && targetIndex < fieldOffsets.size())
+                        fieldOffset = fieldOffsets[targetIndex];
+                    else
+                        fieldOffset = offsetTarget->offset();
+                }
             }
             else
             {
-                const uint64_t padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
-                fieldOffset            = sizeInBytes_ + padding;
+                const uint64_t padding = (alignOf - (sizeInBytes % alignOf)) % alignOf;
+                fieldOffset            = sizeInBytes + padding;
             }
 
-            symVar.setOffset(static_cast<uint32_t>(fieldOffset));
-            sizeInBytes_ = std::max(sizeInBytes_, fieldOffset + sizeOf);
+            fieldOffsets.push_back(fieldOffset);
+            sizeInBytes = std::max(sizeInBytes, fieldOffset + sizeOf);
         }
     }
 
     if (structAlign != 0)
-        alignment_ = std::max(alignment_, structAlign);
+        alignment = std::max(alignment, structAlign);
 
-    if (alignment_ > 0)
-    {
-        const uint64_t padding = (alignment_ - (sizeInBytes_ % alignment_)) % alignment_;
-        sizeInBytes_ += padding;
-    }
+    const uint64_t padding = (alignment - (sizeInBytes % alignment)) % alignment;
+    sizeInBytes            = std::max(sizeInBytes + padding, 1ULL);
 
-    sizeInBytes_ = std::max(sizeInBytes_, 1ULL);
+    for (size_t i = 0; i < fields_.size(); ++i)
+        fields_[i]->setOffset(static_cast<uint32_t>(fieldOffsets[i]));
+
+    // Size is what hasConcreteLayout() gates on, so it goes last.
+    alignment_.store(alignment, std::memory_order_release);
+    sizeInBytes_.store(sizeInBytes, std::memory_order_release);
 
     return Result::Continue;
 }

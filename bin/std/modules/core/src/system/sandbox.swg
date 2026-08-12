@@ -42,6 +42,10 @@ private const SmokeArg = "swag.smoke"
 // Frames a smoke run renders when the argument carries no usable count.
 private const DefaultSmokeFrames = 50'u32
 
+// Default-root names the arming hook tries before giving up: the plain process-id name first,
+// then the fallback siblings for when a leftover under a name refuses to clear.
+private const MaxDefaultRootNames = 4'u32
+
 // Builds a private sandbox root for this process under the real temporary directory.
 //
 // The starting point is read from the machine rather than through [[Env.getSpecialDirectory]],
@@ -53,12 +57,19 @@ private const DefaultSmokeFrames = 50'u32
 //
 // The name comes from the process id rather than a random value: this runs as the first init
 // hook of the program, ahead of whatever seeds a generator, and it makes the folder easy to
-// match to a run that failed.
-internal func defaultSandboxRoot()->String
+// match to a run that failed. A nonzero `ordinal` names a sibling of that root: the fallback
+// the arming hook adopts when the leftover under the plain name refuses to clear.
+internal func defaultSandboxRoot(ordinal: u32 = 0)->String
 {
     var result = Path.combine(realSpecialDirectory(.Temp).toString(), "swag-sandbox")
     var name   = String.from("run-")
-    name   += Format.toString("%", currentProcessId())
+    name += Format.toString("%", currentProcessId())
+    if ordinal != 0
+    {
+        name += "-"
+        name += Format.toString("%", ordinal)
+    }
+
     result = Path.combine(result.toString(), name.toString())
     return result
 }
@@ -84,20 +95,41 @@ internal func clearLeftoverDefaultRoot(root: string) fail
         let isDefault = root.isEmpty()
         if isDefault
         {
-            root = defaultSandboxRoot()
-
-            // The operating system reuses process ids and the default root is named after this
-            // one, so a dead run whose id came around again may have left files here. Adopting
-            // them would hand this run that run's state — the opposite of what the sandbox
-            // promises — so the root has to start empty. Only the default root is ever cleared:
-            // no live process can hold this id, while an explicit root belongs to the launcher.
-            // The guard on the armed state keeps a second arming pass in the same process from
-            // clearing the root the first pass is using.
-            if !g_Sandboxed
+            if g_Sandboxed
             {
-                catch clearLeftoverDefaultRoot(root.toString()) else
+                // A second arming pass adopts whatever the first pass picked: the default name
+                // may have fallen back to a sibling, and recomputing it here would read as a
+                // change of root.
+                root = g_SandboxRoot
+            }
+            else
+            {
+                // The operating system reuses process ids and the default root is named after
+                // this one, so a dead run whose id came around again may have left files here.
+                // Adopting them would hand this run that run's state — the opposite of what the
+                // sandbox promises — so the root has to start empty. Only the default root is
+                // ever cleared: no live process can hold this id, while an explicit root belongs
+                // to the launcher. The clear itself can still fail while a third party — an
+                // indexer, a cleaner walking the temporary directory — holds handles inside the
+                // leftover, and that hold says nothing about this run: fall back to a fresh
+                // sibling instead of dying, leaving the leftover findable for the run it names.
+                var adopted = false
+                for attempt in MaxDefaultRootNames
                 {
-                    @print("[swag.sandbox] cannot clear the leftover sandbox root at '", root.toString(), "'\n")
+                    root    = defaultSandboxRoot(cast(u32) attempt)
+                    adopted = true
+                    catch clearLeftoverDefaultRoot(root.toString()) else
+                    {
+                        adopted = false
+                    }
+
+                    if adopted do
+                        break
+                }
+
+                if !adopted
+                {
+                    @print("[swag.sandbox] cannot clear the leftover sandbox root at '", root.toString(), "', nor adopt a sibling\n")
                     abortUnsandboxed()
                 }
             }

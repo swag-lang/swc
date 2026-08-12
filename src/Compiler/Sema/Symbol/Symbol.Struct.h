@@ -177,9 +177,9 @@ private:
     mutable std::atomic_bool                          generatedLifecyclePublished_ = false;
     mutable std::atomic_bool                          generatedOperatorsPublished_ = false;
     mutable std::atomic_bool                          generatedEqualityPublished_  = false;
-    uint64_t                                          sizeInBytes_                 = 0;
+    std::atomic<uint64_t>                             sizeInBytes_                 = 0;
     ConstantRef                                       defaultStructCst_            = ConstantRef::invalid();
-    uint32_t                                          alignment_                   = 0;
+    std::atomic<uint32_t>                             alignment_                   = 0;
     AstNodeRef                                        declNodeRef_                 = AstNodeRef::invalid();
 };
 

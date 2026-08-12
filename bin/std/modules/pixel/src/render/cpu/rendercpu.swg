@@ -155,6 +155,9 @@ private struct RasterBatch
     solidPaint: bool                        // The paint multiplies by opaque white, which is the identity.
     paintImage: #null *Image                // Storage of a bound texture paint, resolved once.
     atlas:      #null const *GlyphAtlas     // Glyph atlas of the bound font, resolved once.
+
+    blurWeights:     #null const [*] f32     // Gaussian tap weights owned by the active draw call.
+    blurWeightCount: u64
 }
 
 private impl RenderCpu
@@ -735,22 +738,20 @@ private impl RenderCpu
         return lerpColor(lerpColor(c00, c10, fx), lerpColor(c01, c11, fx), fy)
     }
 
-    mtd sampleBlur(image: *Image, u, v: f32)->Color
+    mtd sampleBlur(batch: *RasterBatch, image: *Image, u, v: f32)->Color
     {
         let radius = Math.max(.blurRadius, 0.0)
         if radius <= 0.000001 do
             return sampleLinear(image, u, v, false)
 
-        let rr     = radius * radius
-        let w0     = 0.5135 / Math.pow(radius, 0.96)
         var a, r, g, b: f32
         var offset = -radius
-        while offset <= radius
+        for i in batch.blurWeightCount
         {
             let su     = .blurAxis == 0 ? u + offset / image.width : u
             let sv     = .blurAxis == 0 ? v : v + offset / image.height
             let sample = sampleLinear(image, su, sv, false)
-            let weight = w0 * Math.exp((-offset * offset) / (2.0 * rr))
+            let weight = batch.blurWeights![i]
             a      += cast(f32) sample.a / 255.0 * weight
             r      += cast(f32) sample.r / 255.0 * weight
             g      += cast(f32) sample.g / 255.0 * weight
@@ -894,7 +895,7 @@ private impl RenderCpu
             }
 
             if .program == CpuProgram_Blur do
-                return .sampleBlur(image, u, v)
+                return .sampleBlur(batch, image, u, v)
             if .program == CpuProgram_Resolve do
                 return .sampleResolve(image, u, v)
 
@@ -1484,6 +1485,8 @@ private impl RenderCpu
 
         batch.solidPaint = !.paintOn or .paintCommand.texture0.type == .SolidColor
         batch.paintImage = null
+        batch.blurWeights = null
+        batch.blurWeightCount = 0
         if .paintOn and .paintCommand.texture0.type == .Texture
         {
             let storage = .findTexture(.paintCommand.texture0.texture.handle)
@@ -1508,6 +1511,28 @@ private impl RenderCpu
 
         var batch: RasterBatch = undefined
         .setupBatch(&batch, image, painter, start, count)
+
+        // The blur kernel depends only on the active shader radius. Building it once here
+        // removes pow/exp from every tap of every pixel while preserving the exact tap order.
+        var blurWeights: Array'f32
+        if .program == CpuProgram_Blur
+        {
+            let radius = Math.max(.blurRadius, 0.0)
+            if radius > 0.000001
+            {
+                let rr = radius * radius
+                let w0 = 0.5135 / Math.pow(radius, 0.96)
+                var offset = -radius
+                while offset <= radius
+                {
+                    blurWeights.add(w0 * Math.exp((-offset * offset) / (2.0 * rr)))
+                    offset += 1.0
+                }
+
+                batch.blurWeights     = blurWeights.buffer!
+                batch.blurWeightCount = blurWeights.count
+            }
+        }
 
         if !.overlapMode or .alphaResolve
         {
@@ -1592,6 +1617,20 @@ private impl RenderCpu
         if image.pixelFormat == .BGRA8 and (writeAll or writeRgb)
         {
             let pixels = image.pixels.buffer!
+
+            // Transparent target clears are the common layer setup. Clear each contiguous
+            // BGRA row in one operation instead of issuing four stores per pixel.
+            if writeAll and !color.a and !color.r and !color.g and !color.b
+            {
+                let byteCount = runWidth * 4
+                for var y = minY; y < maxY; y += 1
+                {
+                    let row = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
+                    Memory.clear(row, byteCount)
+                }
+                return
+            }
+
             for var y = minY; y < maxY; y += 1
             {
                 let row    = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
@@ -1768,7 +1807,7 @@ private impl RenderCpu
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
             let target = .curRT!
             target.paintAlpha    = cmd.renderTgt.paintAlpha
-            target.paintAlphaIdx = 0
+            target.paintAlphaIdx = cmdIdx
 
         case .UnbindRenderTarget:
             let target = .curRT!
@@ -2079,6 +2118,19 @@ impl RenderCpu
         Debug.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
         let w2 = Math.roundUpToPowerOf2(cast(u32) width)
         let h2 = Math.roundUpToPowerOf2(cast(u32) height)
+
+        // Prefer the same-size bucket before consuming a larger target. Besides retaining
+        // the expensive large allocations for draws that need them, this mirrors RenderOgl
+        // and keeps the sampled texture extent aligned with the requested layer whenever possible.
+        for rt, idx in .stackReleasedRT
+        {
+            let candidate = rt!
+            if candidate.colorBuffer.width == w2 and candidate.colorBuffer.height == h2
+            {
+                .stackReleasedRT.removeAt(idx)
+                return candidate
+            }
+        }
 
         for rt, idx in .stackReleasedRT
         {

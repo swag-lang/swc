@@ -9,10 +9,6 @@ const MaxFontSize       = 150.0
 const MinBoldSize       = 0.0
 const MaxBoldSize       = 20.0
 
-// Screen-space margin around a form bound covering everything painted outside it:
-// stroke width, line caps, arrow heads and shadows.
-const FormPaintOverdraw = 200.0
-
 // The same margin for a preset sample, which is drawn at a fraction of that size.
 //
 // Everything a sample paints outside its own rectangle is scaled down with it, so the

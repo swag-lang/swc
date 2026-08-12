@@ -51,6 +51,23 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(Math.abs(base.tr.ty - scaled.tr.ty / scale) < 0.01)
 }
 
+// Off-screen form layers reserve only the geometry that can escape the tight bound.
+#test
+{
+    var shape: FormShape
+    shape.borderSize = 5
+    let shapeItf: IForm = &shape
+    @assert(BaseForm.paintOverdraw(shapeItf, false) == 10)
+    @assert(BaseForm.paintOverdraw(shapeItf, true) == QuickPaintOverdraw)
+
+    var line: FormLine
+    line.borderSize = 5
+    line.startSize  = 4
+    line.endSize    = 20
+    let lineItf: IForm = &line
+    @assert(BaseForm.paintOverdraw(lineItf, false) == 52)
+}
+
 // Rectangle-like forms normalize negative sizes and keep their base geometry coherent.
 #test
 {

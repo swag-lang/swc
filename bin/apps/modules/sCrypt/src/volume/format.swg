@@ -22,7 +22,7 @@ const BlockRecordSize = BlockSize + Crypto.NonceSize + Crypto.TagSize
 
 // The header now holds only the volume scalars and the index of the metadata
 // pages, so it no longer has to grow with the number of files.
-const HeaderSlotSize         = #command == Swag.CompilerCommand.Test ? 64'u64 * 1024 : 1'u64 * 1024 * 1024
+const HeaderSlotSize         = #command == Swag.CompilerCommand.Test ? 16'u64 * 1024 : 1'u64 * 1024 * 1024
 const HeaderLocatorCheckSize = 12'u64
 const HeaderRecordPrefixSize = Crypto.RecordLocatorSize + Crypto.NonceSize
 const HeaderPlainSize        = HeaderSlotSize - HeaderRecordPrefixSize - Crypto.TagSize

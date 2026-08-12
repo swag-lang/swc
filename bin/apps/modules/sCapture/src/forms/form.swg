@@ -102,6 +102,26 @@ struct BaseForm
 
 impl BaseForm
 {
+    // Returns the form-space margin geometry can paint beyond [[IForm.boundRect]].
+    // Shadows reserve their own margin in [[Pixel.Layer]], so this covers only strokes,
+    // joins, caps, and the antialiasing fringe of the form itself.
+    func paintOverdraw(itf: IForm, quickMode: bool)->f32
+    {
+        if quickMode do
+            return QuickPaintOverdraw
+
+        let base = cast(*BaseForm) @dataof(itf)
+        var extent = base.borderSize * 1.5
+        if @kindof(itf) == FormLine
+        {
+            let line     = cast(*FormLine) base
+            let capScale = Math.max(2.0, Math.max(line.startSize, line.endSize))
+            extent = Math.max(extent, base.borderSize * 0.5 * capScale)
+        }
+
+        return Math.ceil(extent + 2)
+    }
+
     func adaptSize(size: f32, minSize, maxSize: f32, cxt: FormPaintContext, dstMin: f32 = 2, dstMax: f32 = 5)->f32
     {
         if !cxt.quickMode do
@@ -224,9 +244,9 @@ impl BaseForm
         }
 
         // Cheap rejection before tessellating the whole form: nothing is painted
-        // beyond the overdraw pad around the bound (strokes, caps, shadows).
+        // beyond the form's actual stroke/cap extent around the bound.
         var bound = itf.boundRect() * z
-        bound.inflate(FormPaintOverdraw)
+        bound.inflate(BaseForm.paintOverdraw(itf, false) * z)
         if !bound.contains(pos.x, pos.y) do
             return false
 

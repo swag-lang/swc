@@ -931,7 +931,7 @@ impl Capture
         var boundRect = f.boundRect()
         boundRect.width  = Math.max(boundRect.width, 1)
         boundRect.height = Math.max(boundRect.height, 1)
-        boundRect.inflate(quickMode ? QuickPaintOverdraw : FormPaintOverdraw)
+        boundRect.inflate(BaseForm.paintOverdraw(f, quickMode))
 
         var clipOffset:    Math.Vector2
         var savePaintPos:  Math.Rectangle
@@ -1151,14 +1151,14 @@ impl Capture
         for f in .forms
         {
             // Cull against the form's actual painted extent. 'paintForm' inflates the
-            // bound by 200 (the rendered geometry - arrow caps, thick strokes, shadow -
-            // can reach well beyond the tight 'boundRect') and draws it offset by 'rect'.
+            // bound by its rendered geometry (arrow caps and thick strokes can reach
+            // beyond the tight 'boundRect') and draws it offset by 'rect'.
             // Testing the raw, un-offset bound wrongly hid forms whose tight bound fell
             // just outside the clip (e.g. a thin arrow).
             var cull = f.boundRect()
             cull.width  = Math.max(cull.width, 1)
             cull.height = Math.max(cull.height, 1)
-            cull.inflate(FormPaintOverdraw)
+            cull.inflate(BaseForm.paintOverdraw(f, false))
             cull = cull * zoom
             cull.offset(rect.x, rect.y)
             if !cull.intersects(cullClip) do

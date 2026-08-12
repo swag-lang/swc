@@ -68,38 +68,3 @@ Entries are sorted by identifier, ascending; position carries no priority.
      (`CaptureFileMagic`), so a preview offset (or a sidecar) would let the library read a few
      kilobytes per capture instead of megabytes. This is the move that makes the library scale
      regardless of what the pixels cost.
-
-## Paint cost
-
-### F-120 — A form's shadow blurs a layer 200 px larger than the form on every side
-
-- Area: apps/sCapture, std/pixel (`RenderCpu`, `Layer.buildShadow`)
-- Found while: asking why `swc tools/apps.swgs test sCapture` took minutes. Starting the shared
-  worker pool in `Gui.Testing.HeadlessHost`, which a host had never done because it bypasses
-  `Application.createSurface`, took the suite from 1 min 43 s to 25 s. That is the same work
-  spread over 22 cores; everything below is still being computed.
-- Observation: `Capture.paintForm` inflates a form's bound rectangle by `FormPaintOverdraw` (200)
-  on every side before allocating the layer it paints into, so a 30x25 shape is drawn through a
-  420x420 layer. `LayerDrawInfo.shadow` is then enabled for it, and `Layer.buildShadow` blurs that
-  whole layer twice. On the GPU backend those passes are a fragment shader nobody notices; on
-  `RenderCpu`, which is the backend every headless test runs on, each blurred pixel walks 17 taps
-  of `sampleBlur`, and each tap is a bilinear fetch plus a `Math.exp` call.
-- Evidence: measured 2026-08-12 in `fast-debug`, serial, with a temporary probe in the module and
-  a per-test timer in `bin/runtime/tests.swg`:
-  - `Capture.toImage` on an empty 400x300 capture: 47 ms. With one rectangle whose shadow is on:
-    1606 ms. Same shape with `paintShadow = false`: 117 ms. Adding one text form: 1901 ms with
-    its shadow, 394 ms without. So one shadow costs ~1.5 s.
-  - The instrumented `buildShadow` reports `layer 420x420 dev 436x436` for that 30x25 shape, and a
-    counter in the blur path reports 380_192 blurred pixels for the one shadow — 4.7 us each.
-  - It is the whole shape of the suite: the six slowest tests held 81 s of the 97 s of test time,
-    and every one of them paints forms. The fixture itself is free — `HeadlessFixture.setup` plus
-    `shutdown` measures 1 ms, and the theme atlases are rasterized once per process.
-- Next step: three independent moves, in decreasing value.
-  1. Size the layer to what the form actually needs. 200 px on every side is 200x the area of a
-     small form; the overdraw a form really needs is its stroke, its caps, and its shadow radius
-     plus offset. `FormPaintOverdraw` is one constant in `tweak.swg` used by both the painter and
-     the cull test, so the two have to move together.
-  2. Bound the blur to the content. `buildShadow` blurs `shadowWidth x shadowHeight` whatever the
-     content covers, so the padding an oversized layer carries is blurred as well as the form.
-  3. Make a CPU blur tap cheaper: the Gaussian weights depend only on the radius, so the kernel
-     can be built once per pass instead of calling `Math.exp` per tap per pixel.

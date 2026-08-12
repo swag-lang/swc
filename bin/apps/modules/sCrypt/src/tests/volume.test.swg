@@ -504,7 +504,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("paging")
     defer discard catch File.delete(path)
 
-    const FileCount = 1200'u64
+    // The test format uses a 16 KiB header slot, so 300 ordinary nodes cross the same
+    // metadata-paging boundary without performing thousands of durable commits.
+    const FileCount = 300'u64
 
     var volume = expect Volume.create(path, testPassword(), pagingContainerSize())
     for i in FileCount do

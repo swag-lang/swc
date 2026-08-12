@@ -253,6 +253,10 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     var painter: Painter
     painter.begin()
+
+    // Geometry recorded before the target bind belongs to the parent surface. Replaying it
+    // into the target's alpha pass would turn untouched transparent pixels opaque.
+    painter.fillRect(0, 0, 32, 32, Color.fromArgb(Argb.White))
     painter.bindRenderTarget(&target, true)
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))

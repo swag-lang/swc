@@ -100,7 +100,7 @@ impl ConcatBuffer
         if !.firstBucket do
             return
         let lastBucket = .lastBucket!
-        var b = .firstBucket
+        var b          = .firstBucket
         while b != lastBucket.next
         {
             let bucket = b!

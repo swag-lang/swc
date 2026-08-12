@@ -54,7 +54,7 @@ impl ReversedList
                     #inject(stmt, item = current.value, node = current, index = index, break = break to Up, continue = break to Down)
             }
 
-            node = current.prev
+            node  = current.prev
             index += 1
         }
     }
@@ -103,7 +103,7 @@ impl List
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, node, index: u64))
     {
-        var n = .head
+        var n            = .head
         var ordinal: u64 = 0
         #scope(Up)
             while n
@@ -119,7 +119,7 @@ impl List
                     #inject(stmt, item = node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
             }
 
-            n = node.next
+            n       = node.next
             ordinal += 1
         }
     }

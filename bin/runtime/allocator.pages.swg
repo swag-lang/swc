@@ -302,10 +302,10 @@ impl AllocatorPage
             return
         }
 
-        var list    = .remoteFree
+        var list = .remoteFree
         .remoteFree = 0
         .unlockRemote()
-        var taken   = 0'u32
+        var taken = 0'u32
 
         while list != 0
         {
@@ -389,8 +389,10 @@ impl AllocatorPage
                 .unlockRemote()
                 return true
             }
+
             scan = dref cast(*u64) .decode(scan)
         }
+
         .unlockRemote()
 
         return false

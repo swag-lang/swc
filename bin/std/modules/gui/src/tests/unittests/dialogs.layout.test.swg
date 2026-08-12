@@ -78,13 +78,12 @@ using Swag, Core
     let params = AboutDlgParams{
         surfaceTitle: "About",
         contentTitle: "Swag",
-        message:      "A systems programming language.",
-        surfaceIcon:  {},
-        contentIcon:  {},
-    }
+        message: "A systems programming language.",
+        surfaceIcon: {},
+        contentIcon: {}}
     let dlg = AboutDlg.create(&host.surface, params)
 
-    let metrics = dlg.themeMetrics()
+    let metrics       = dlg.themeMetrics()
     var contentHeight = dlg.labelMessageTitle.measure({dlg.labelMessageTitle.position.width, 0}).preferred.y
     contentHeight += dlg.labelMessage.measure({dlg.labelMessage.position.width, 0}).preferred.y
     contentHeight += metrics.dialog_BtnPadding * 2

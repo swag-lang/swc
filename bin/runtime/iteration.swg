@@ -82,13 +82,13 @@ impl IterationRange
             }
         }
     }
-
 }
 
 // Returns the same interval with descending traversal.
 #[Swag.Inline]
 func(T) reversed(value: IterationRange'T)->ReversedRange'T
-    => {lower: value.lower, upper: value.upper, inclusive: value.inclusive}
+    =>
+{lower: value.lower, upper: value.upper, inclusive: value.inclusive}
 
 impl ReversedRange
 {
@@ -241,4 +241,5 @@ impl ReversedCString
 
 // Returns an immutable zero-allocation view over a null-terminated byte string.
 func reversed(value: const cstring)->ReversedCString
-    => {value: value}
+    =>
+{value: value}

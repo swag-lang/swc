@@ -609,6 +609,7 @@ impl FileBrowserCtrl
         formOptions.labelWidth     = 95
         formOptions.fieldHeight    = 30
         formOptions.rowSpacing     = 5
+
         // No authored height: the rows and the spacing between them are what the band is worth,
         // and a number beside them is a number to re-tune the day a row changes.
         let form = FormLayoutCtrl.create(fileBrowser, formOptions)

@@ -3,13 +3,13 @@ using Core, Gui
 // One drive sCrypt currently exposes, and the container behind it.
 struct MountedDrive
 {
-    volume:        #null *MountedVault             // Live mount, owned by this entry until it is unmounted.
-    path:          String                          // Container file the drive reads and writes.
-    drive:         String                          // Stable backend destination identifier persisted by sCrypt.
-    mountLabel:    String                          // Host-facing destination name shown in the mounted list.
-    needsPassword: bool                            // Whether a password was needed to open the container.
-    readOnly:      bool                            // Whether the drive was mounted for reading alone.
-    atStartup:     bool                            // Whether sCrypt mounts this container again the next time it starts.
+    volume:        #null *MountedVault     // Live mount, owned by this entry until it is unmounted.
+    path:          String                  // Container file the drive reads and writes.
+    drive:         String                  // Stable backend destination identifier persisted by sCrypt.
+    mountLabel:    String                  // Host-facing destination name shown in the mounted list.
+    needsPassword: bool                    // Whether a password was needed to open the container.
+    readOnly:      bool                    // Whether the drive was mounted for reading alone.
+    atStartup:     bool                    // Whether sCrypt mounts this container again the next time it starts.
 }
 
 // Columns of the mounted-drives list, in the order `MountedDrives.create` adds them.

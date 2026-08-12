@@ -104,6 +104,7 @@ public impl AboutDlg
             dlg.fitHeightToContent(contentHeight)
             srf.center(from)
         }
+
         return dlg
     }
 }

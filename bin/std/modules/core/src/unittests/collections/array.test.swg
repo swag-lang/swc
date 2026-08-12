@@ -175,7 +175,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     {
         #assert(#typeof(value) == s32)
         values[index] = 100
-        sum += value
+        sum           += value
     }
 
     @assert(sum == 60)

@@ -35,7 +35,7 @@ internal func __bootstrapAlloc(size: u64)->#null [*] void
         return null
     }
 
-    let header          = cast(*BootstrapAllocationHeader) base
+    let header = cast(*BootstrapAllocationHeader) base
     header.reservedSize = reservedSize
     header._padding     = 0
     return cast([*] void) (base + BootstrapAllocationHeaderSize)

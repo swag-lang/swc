@@ -39,20 +39,20 @@ impl JitBufferVisits
     #[Swag.Macro]
     func(ptr: bool) opVisit(me, stmt: #code(item, index: u64))
     {
-            #static if ptr
+        #static if ptr
+        {
+            for idx in 3
             {
-                for idx in 3
-                {
-                    #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
-                }
+                #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
             }
-            else
+        }
+        else
+        {
+            for idx in 3
             {
-                for idx in 3
-                {
-                    #inject(stmt, item = me.values[idx], index = @index)
-                }
+                #inject(stmt, item = me.values[idx], index = @index)
             }
+        }
     }
 }
 

@@ -414,10 +414,9 @@ private func showAboutDialog(_button: *Button)
     let params = AboutDlgParams{
         surfaceTitle: "About GUI10",
         contentTitle: "Theme inspector",
-        message:      "The reference surface for every palette and standard widget.",
-        surfaceIcon:  {},
-        contentIcon:  app.theme.icon(.About, 64),
-    }
+        message: "The reference surface for every palette and standard widget.",
+        surfaceIcon: {},
+        contentIcon: app.theme.icon(.About, 64)}
     discard AboutDlg.create(g_Surface!, params).doModal()
 }
 

@@ -13,8 +13,8 @@ enum ComboBoxMode
 #[Swag.EnumFlags]
 enum ComboBoxFlags
 {
-    None = 0        // Always paints the field background and border.
-    Flat            // Paints the field only while hovered or open.
+    None = 0                  // Always paints the field background and border.
+    Flat                      // Paints the field only while hovered or open.
     TransparentBackground     // Keeps the parent background visible behind the field border.
 }
 

@@ -107,7 +107,7 @@ public impl EditDlg
     {
         .applyLayout()
 
-        let edit = .edit
+        let edit          = .edit
         var contentHeight = edit ? edit.position.height : .richEdit!.position.height
         if @isset(.label)
         {

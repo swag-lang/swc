@@ -152,9 +152,9 @@ private struct RasterBatch
 
     stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
 
-    solidPaint: bool                       // The paint multiplies by opaque white, which is the identity.
-    paintImage: #null *Image               // Storage of a bound texture paint, resolved once.
-    atlas:      #null const *GlyphAtlas    // Glyph atlas of the bound font, resolved once.
+    solidPaint: bool                        // The paint multiplies by opaque white, which is the identity.
+    paintImage: #null *Image                // Storage of a bound texture paint, resolved once.
+    atlas:      #null const *GlyphAtlas     // Glyph atlas of the bound font, resolved once.
 }
 
 private impl RenderCpu
@@ -1554,12 +1554,12 @@ private impl RenderCpu
         let stride = cast(u64) image.bytesPerPixel
         for var y = minY; y < maxY; y += 1
         {
-            let row = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel)
+            let row    = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel)
             var offset = 3'u64
             for var x = minX; x < maxX; x += 1
             {
                 row[offset] = 0
-                offset += stride
+                offset      += stride
             }
         }
     }

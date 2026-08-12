@@ -118,17 +118,17 @@ struct MountSettings
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:         Jobs.Job                        // Worker scheduled for `kind`.
-    kind:        OperationKind                   // Work the job performs, or `None` while the window is idle.
-    timer:       #null *Timer                    // Polls the job while it runs.
-    error:       #null any                       // Failure captured by the job, or null when it succeeded.
-    path:        String                          // Container file the operation acts on.
-    mount:       String                          // Stable backend destination identifier requested by a mount operation.
-    mountLabel:  String                          // Host-facing destination name reported when the operation completes.
-    size:        u64                             // Container size requested by a create or a grow.
-    password:    Array'u8                        // Password copy owned by the operation and wiped when it ends.
-    replacement: Array'u8                        // New password of a change, empty when the change removes it.
-    volume:      #null *MountedVault             // Mount a mount operation produced, or the one an unmount closes.
+    job:         Jobs.Job                // Worker scheduled for `kind`.
+    kind:        OperationKind           // Work the job performs, or `None` while the window is idle.
+    timer:       #null *Timer            // Polls the job while it runs.
+    error:       #null any               // Failure captured by the job, or null when it succeeded.
+    path:        String                  // Container file the operation acts on.
+    mount:       String                  // Stable backend destination identifier requested by a mount operation.
+    mountLabel:  String                  // Host-facing destination name reported when the operation completes.
+    size:        u64                     // Container size requested by a create or a grow.
+    password:    Array'u8                // Password copy owned by the operation and wiped when it ends.
+    replacement: Array'u8                // New password of a change, empty when the change removes it.
+    volume:      #null *MountedVault     // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
     readOnly:        bool     // Whether a mount operation exposes the drive read only.
@@ -182,10 +182,10 @@ struct MainWindow
     // only through `setStatus`, the spinner only through `showBusy`.
     #[Swag.Late]
     {
-        statusView:     *Wnd
-        status:         *Label
-        statusIcon:     *Label
-        statusBusy:     *Spinner
+        statusView: *Wnd
+        status:     *Label
+        statusIcon: *Label
+        statusBusy: *Spinner
     }
 
     // The three cards are pages of one tab strip rather than columns of one grid: a vault is
@@ -1390,10 +1390,10 @@ impl MainWindow
         if index == Swag.U64.Max do
             return
 
-        .operation.path   = .mountedDrives.drives[index].path
-        .operation.mount  = .mountedDrives.drives[index].drive
+        .operation.path       = .mountedDrives.drives[index].path
+        .operation.mount      = .mountedDrives.drives[index].drive
         .operation.mountLabel = .mountedDrives.drives[index].mountLabel
-        .operation.volume = .mountedDrives.detach(index)
+        .operation.volume     = .mountedDrives.detach(index)
         .setStatus(.Unmounting)
         .setState(.Unmounting)
         .beginOperation(.Unmount)

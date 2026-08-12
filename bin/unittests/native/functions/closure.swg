@@ -193,8 +193,8 @@ impl LifecycleCounter
 // 'var' makes the copy writable and leaves the source alone, whether it was 'let' or 'var'.
 #test
 {
-    let fromLet             = 10
-    var fromVar             = 20
+    let fromLet                = 10
+    var fromVar                = 20
     let bumpLet: func||()->s32 = func|var fromLet|()->s32 { fromLet += 1; return fromLet }
     let bumpVar: func||()->s32 = func|var fromVar|()->s32 { fromVar += 1; return fromVar }
 
@@ -208,8 +208,8 @@ impl LifecycleCounter
 // Two 'var' captures of the same source own separate cells.
 #test
 {
-    var seed                = 5
-    let first: func||()->s32  = func|var seed|()->s32 { seed += 1; return seed }
+    var seed = 5
+    let first:  func||()->s32 = func|var seed|()->s32 { seed += 1; return seed }
     let second: func||()->s32 = func|var seed|()->s32 { seed += 10; return seed }
 
     @assert(first() == 6)

@@ -93,10 +93,9 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     let about = AboutDlg.create(&host.surface, {
         surfaceTitle: "About",
         contentTitle: "Swag",
-        message:      "A systems programming language.",
-        surfaceIcon:  {},
-        contentIcon:  {},
-    })
+        message: "A systems programming language.",
+        surfaceIcon: {},
+        contentIcon: {}})
     assertDialogCharter(&about.dialog, host.theme.metrics.dialog_Padding)
 
     // The file browser carries its own grounds and its own edges, so the box keeps no inset

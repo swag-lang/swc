@@ -146,7 +146,7 @@ using Swag
     expect Directory.create(nested.toString())
 
     let payload: [4] u8 = [1, 2, 3, 4]
-    let stale   = Path.combine(nested.toString(), "stale.bin")
+    let stale           = Path.combine(nested.toString(), "stale.bin")
     discard expect File.writeAllBytes(stale.toString(), payload)
 
     expect Env.clearLeftoverDefaultRoot(root.toString())

@@ -19,7 +19,7 @@ impl InlineBug10VisitBytes
     {
         for .count
         {
-                let idx = @index
+            let idx = @index
 
             #inject(stmt, item = me.values[idx], index = idx)
         }

@@ -10,7 +10,8 @@ struct Library
 
     // Resolved default folder, kept because the documents folder is a shell lookup and the
     // library grid asks for the folder once per item. See 'getDefaultFolder'.
-    internal defaultFolder: String
+    internal
+    defaultFolder: String
 }
 
 impl Library

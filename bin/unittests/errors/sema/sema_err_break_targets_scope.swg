@@ -20,9 +20,7 @@
 // The scope hides no enclosing loop either: the loop ended before the scope started.
 #test
 {
-    for 10
-    {
-    }
+    for 10 {}
 
     #scope(Named)
     {

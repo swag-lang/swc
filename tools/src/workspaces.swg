@@ -87,6 +87,7 @@ private func testStdModule(context: *Context, options: *Options, name: string, m
     options.appendRunArguments(&arguments)
     return try context.runCompiler(arguments)
 }
+
 // Builds, runs, tests, or smokes the examples workspace, whole or one module.
 public func runExamples(context: *Context, options: *Options)->s32 fail
 {

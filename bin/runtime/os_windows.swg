@@ -185,7 +185,6 @@ impl MutexRW
     func atan2f(val1, val2: f32)->f32
     func pow(val1, val2: f64)->f64
     func atan2(val1, val2: f64)->f64
-
 }
 
 ////////////////////////////////////////////////////////////

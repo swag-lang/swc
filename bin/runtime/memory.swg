@@ -8,7 +8,7 @@ const MemoryVectorSize = #sizeof(MemoryVector)
 
 func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
 {
-    var offset = 0'u64
+    var offset        = 0'u64
     let targetAddress = cast(u64) target
     let sourceAddress = cast(u64) source
     if !((targetAddress ^ sourceAddress) & MemoryWordMask)
@@ -27,24 +27,24 @@ func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
             let source1       = sourceVectors[1]
             let source2       = sourceVectors[2]
             let source3       = sourceVectors[3]
-            targetVectors[0]  = source0
-            targetVectors[1]  = source1
-            targetVectors[2]  = source2
-            targetVectors[3]  = source3
-            offset            += 4 * MemoryVectorSize
+            targetVectors[0] = source0
+            targetVectors[1] = source1
+            targetVectors[2] = source2
+            targetVectors[3] = source3
+            offset           += 4 * MemoryVectorSize
         }
 
         while size - offset >= MemoryVectorSize
         {
             let sourceVector = dref cast(const *MemoryVector) (source + offset)
             dref cast(*MemoryVector) (target + offset) = sourceVector
-            offset                                    += MemoryVectorSize
+            offset += MemoryVectorSize
         }
 
         while size - offset >= MemoryWordSize
         {
             dref cast(*u64) (target + offset) = dref cast(const *u64) (source + offset)
-            offset                           += MemoryWordSize
+            offset += MemoryWordSize
         }
     }
 
@@ -57,7 +57,7 @@ func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
 
 func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
 {
-    var offset = size
+    var offset        = size
     let targetAddress = cast(u64) target
     let sourceAddress = cast(u64) source
     if !((targetAddress ^ sourceAddress) & MemoryWordMask)
@@ -70,17 +70,17 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
 
         while offset >= 4 * MemoryVectorSize
         {
-            offset             -= 4 * MemoryVectorSize
-            let targetVectors   = cast([*] MemoryVector) (target + offset)
-            let sourceVectors   = cast(const [*] MemoryVector) (source + offset)
-            let source0         = sourceVectors[0]
-            let source1         = sourceVectors[1]
-            let source2         = sourceVectors[2]
-            let source3         = sourceVectors[3]
-            targetVectors[3]    = source3
-            targetVectors[2]    = source2
-            targetVectors[1]    = source1
-            targetVectors[0]    = source0
+            offset -= 4 * MemoryVectorSize
+            let targetVectors = cast([*] MemoryVector) (target + offset)
+            let sourceVectors = cast(const [*] MemoryVector) (source + offset)
+            let source0       = sourceVectors[0]
+            let source1       = sourceVectors[1]
+            let source2       = sourceVectors[2]
+            let source3       = sourceVectors[3]
+            targetVectors[3] = source3
+            targetVectors[2] = source2
+            targetVectors[1] = source1
+            targetVectors[0] = source0
         }
 
         while offset >= MemoryVectorSize
@@ -118,28 +118,28 @@ func @memset(dst: #null [*] void, value: u8, size: u64)
         offset         += 1
     }
 
-    let word = cast(u64) value * 0x0101_0101_0101_0101
+    let word                 = cast(u64) value * 0x0101_0101_0101_0101
     let vector: MemoryVector = [word, word]
     while size - offset >= 4 * MemoryVectorSize
     {
         let targetVectors = cast([*] MemoryVector) (target + offset)
-        targetVectors[0]  = vector
-        targetVectors[1]  = vector
-        targetVectors[2]  = vector
-        targetVectors[3]  = vector
-        offset            += 4 * MemoryVectorSize
+        targetVectors[0] = vector
+        targetVectors[1] = vector
+        targetVectors[2] = vector
+        targetVectors[3] = vector
+        offset           += 4 * MemoryVectorSize
     }
 
     while size - offset >= MemoryVectorSize
     {
         dref cast(*MemoryVector) (target + offset) = vector
-        offset                                    += MemoryVectorSize
+        offset += MemoryVectorSize
     }
 
     while size - offset >= MemoryWordSize
     {
         dref cast(*u64) (target + offset) = word
-        offset                           += MemoryWordSize
+        offset += MemoryWordSize
     }
 
     while offset < size
@@ -201,6 +201,7 @@ func @memcmp(left, right: #null const [*] void, size: u64)->s32
                         return cast(s32) leftBytes[offset + index] - cast(s32) rightBytes[offset + index]
                 }
             }
+
             offset += MemoryWordSize
         }
     }

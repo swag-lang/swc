@@ -153,7 +153,7 @@ Both return constant-size, zero-allocation views.
 #test
 {
     let values: [4] s32 = [2, 4, 6, 8]
-    var code: s32
+    var code:   s32
 
     for left, right in values.pairs() do
         code = code * 100 + left * 10 + right

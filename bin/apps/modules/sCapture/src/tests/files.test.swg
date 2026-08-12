@@ -671,8 +671,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let other = Memory.new'Capture()
     other.width, other.widthOrg   = 37
     other.height, other.heightOrg = 23
-    other.backImg = Gui.Testing.indexedImage(37, 23)
-    other.preview = Gui.Testing.indexedImage(32, 20)
+    other.backImg                 = Gui.Testing.indexedImage(37, 23)
+    other.preview                 = Gui.Testing.indexedImage(32, 20)
     let otherPath = testPrepareSavedCapture(other)
     defer
     {
@@ -705,8 +705,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let first = Memory.new'Capture()
     first.width, first.widthOrg   = 41
     first.height, first.heightOrg = 29
-    first.backImg = Gui.Testing.indexedImage(41, 29)
-    first.preview = Gui.Testing.indexedImage(32, 20)
+    first.backImg                 = Gui.Testing.indexedImage(41, 29)
+    first.preview                 = Gui.Testing.indexedImage(32, 20)
     let firstPath = testPrepareSavedCapture(first)
     defer
     {
@@ -717,8 +717,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let second = Memory.new'Capture()
     second.width, second.widthOrg   = 43
     second.height, second.heightOrg = 31
-    second.backImg = Gui.Testing.indexedImage(43, 31)
-    second.preview = Gui.Testing.indexedImage(32, 20)
+    second.backImg                  = Gui.Testing.indexedImage(43, 31)
+    second.preview                  = Gui.Testing.indexedImage(32, 20)
     let secondPath = testPrepareSavedCapture(second)
     defer
     {

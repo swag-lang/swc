@@ -35,7 +35,7 @@ impl MountedVault
             return
 
         let handle = .handle!
-        .handle     = null
+        .handle = null
         unmountVaultNative(handle)
     }
 

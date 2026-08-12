@@ -323,8 +323,7 @@ could read.
 ```
 You are running a code-quality campaign on the swc C++ sources. Read AGENTS.md and the skills it
 points to first - especially .agents/skills/modify-swag-codebase/references/cpp-coding-rules.md -
-then backlog/findings.tooling.md (F-037) and the focused Sema tests in
-src/Unittest/Sema/Test.Sema.DecisionProcedures.cpp.
+then the focused Sema tests in src/Unittest/Sema/Test.Sema.DecisionProcedures.cpp.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -375,12 +374,22 @@ Explicitly NOT allowed, however tempting:
 
   - Any change to what the compiler accepts, rejects, emits, or reports.
   - "While I am here" bug fixes. Those are separate commits, or findings.
-  - Templating families of near-identical functions to make them look shorter. F-037 measured
-    this: every instantiation gets its own body, /OPT:ICF only folds the ones that come out
+  - Templating families of near-identical functions to make them look shorter. Measured on this
+    repository: every instantiation gets its own body, /OPT:ICF only folds the ones that come out
     identical, and the interesting ones - differing by a constant - never do. Round two of that
     sweep removed 210 lines and GREW the executable by 3 072 bytes.
   - Sharing a small helper that was being inlined. The same measurement found 1 536 bytes came
     back purely from having to put two helpers back inline in their headers.
+
+Source deletion is nearly free in the image, which is why the size proof below is a tolerance and
+not a target: /OPT:ICF on top of LTCG already folds byte-identical bodies, so a full round of
+1 398 removed lines moved bin/swc.exe by only 10 240 bytes, 0.2%. Should the image itself ever
+become the goal, measure where it actually goes first - dump the section sizes and the largest
+COMDATs (link /dump /headers, a /MAP file) and separate code from the read-only data the
+diagnostic, token and instruction tables contribute. Only two levers are likely to matter, and
+both must be weighed against the rule that the compiler may never get slower: cutting template
+instantiation in the hot headers, and trimming inlining pressure (/Ob1 on the cold
+command/report/doc translation units only, never on sema, codegen, or the micro passes).
 
 THE PROOF, EVERY ROUND
 

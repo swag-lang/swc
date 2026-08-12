@@ -102,6 +102,9 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `tools/std.swgs dm test gui -bc debug` immediately afterward passed 368/368.
   A second occurrence during F-106 had the same source, assertion, stack and symbol state in the
   Fast-Debug leg; `tools/std.swgs dm test gui -bc fast-debug` then passed 368/368 immediately.
+  A third occurrence on 2026-08-12: the first full `tools/tests.swgs dm` pass in a fresh worktree,
+  same source line, assertion, stack and symbol state, again fast-debug; the immediate focused
+  rerun `swc test -w bin/std -m gui -bc fast-debug` passed 1 329/1 329.
 - Next step: stress the Debug GUI semantic pass while tracing jobs that publish `RenderCpu`'s
   concrete layout and jobs that compute local default values. Confirm whether default-value
   materialization is missing a wait on the struct's semantic-completion dependency, then reduce the

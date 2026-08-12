@@ -236,42 +236,94 @@ namespace
         return path == "." || path == "..";
     }
 
-    bool shouldCopyWorkspaceDependencyFile(const fs::path& srcPath, const fs::path& dstPath)
+    Utf8 describeStatAnswer(const std::string_view what, const std::error_code& ec)
     {
+        return std::format("{} answered '{}' (code {})", what, FileSystem::normalizeSystemMessage(ec).c_str(), ec.value());
+    }
+
+    // Answers whether the mirror at `dstPath` has to be refreshed from `srcPath`, and fills
+    // `outReason` with the check that asked for the copy. The reason is kept because a copy can
+    // later prove needless — the replace in copyWorkspaceDependencyFile loses its race while the
+    // destination matches the source anyway — and by then these stats cannot be replayed.
+    bool shouldCopyWorkspaceDependencyFile(Utf8& outReason, const fs::path& srcPath, const fs::path& dstPath)
+    {
+        outReason.clear();
+
         std::error_code ec;
         const bool      dstExists = fs::exists(dstPath, ec);
-        if (ec || !dstExists)
+        if (ec)
+        {
+            outReason = describeStatAnswer("testing the destination presence", ec);
             return true;
+        }
+
+        if (!dstExists)
+        {
+            outReason = "the destination does not exist";
+            return true;
+        }
 
         ec.clear();
-        if (!fs::is_regular_file(dstPath, ec) || ec)
+        const bool dstRegular = fs::is_regular_file(dstPath, ec);
+        if (ec)
+        {
+            outReason = describeStatAnswer("testing the destination kind", ec);
             return true;
+        }
+
+        if (!dstRegular)
+        {
+            outReason = "the destination is not a regular file";
+            return true;
+        }
 
         ec.clear();
         const uintmax_t srcSize = fs::file_size(srcPath, ec);
         if (ec)
+        {
+            outReason = describeStatAnswer("reading the source size", ec);
             return true;
+        }
 
         ec.clear();
         const uintmax_t dstSize = fs::file_size(dstPath, ec);
-        if (ec || srcSize != dstSize)
+        if (ec)
+        {
+            outReason = describeStatAnswer("reading the destination size", ec);
             return true;
+        }
+
+        if (srcSize != dstSize)
+        {
+            outReason = std::format("sizes differ (source {}, destination {})", srcSize, dstSize);
+            return true;
+        }
 
         ec.clear();
         const auto srcTime = fs::last_write_time(srcPath, ec);
         if (ec)
+        {
+            outReason = describeStatAnswer("reading the source time", ec);
             return true;
+        }
 
         ec.clear();
         const auto dstTime = fs::last_write_time(dstPath, ec);
         if (ec)
+        {
+            outReason = describeStatAnswer("reading the destination time", ec);
             return true;
+        }
 
         // Matching size and modification time is a strong, cheap signal that the file is unchanged
         // (the sync copies preserve the source mtime, so an unchanged dependency reproduces it
         // exactly). Reading both files in full just to byte-compare them on every run defeats the
         // purpose of the timestamp check and dominated script-mode setup time, so trust it here.
-        return srcTime != dstTime;
+        if (srcTime == dstTime)
+            return false;
+
+        outReason = std::format("modification times differ (source {}, destination {})", srcTime.time_since_epoch().count(), dstTime.time_since_epoch().count());
+        return true;
     }
 
     Result ensureWorkspaceDependencyDirectory(TaskContext& ctx, std::unordered_set<fs::path>& ensuredDirs, const fs::path& dir)
@@ -363,7 +415,7 @@ namespace
     // copy lands beside its destination under a name only this process uses, takes the source
     // modification time there (it is what the next run compares), and is moved into place by a
     // rename, which either happened or did not.
-    Result copyWorkspaceDependencyFile(TaskContext& ctx, const fs::path& srcPath, const fs::path& dstPath)
+    Result copyWorkspaceDependencyFile(TaskContext& ctx, const fs::path& srcPath, const fs::path& dstPath, const Utf8& copyReason)
     {
         fs::path tempPath = dstPath;
         tempPath += std::format(".{}{}", Os::currentProcessId(), K_WORKSPACE_DEPENDENCY_TEMP_EXTENSION);
@@ -397,8 +449,16 @@ namespace
             // being installed may carry the very bytes the destination already holds. A mirror
             // whose destination matches the source is correct however the rename fared, so only
             // a real difference is worth an error.
-            if (!shouldCopyWorkspaceDependencyFile(srcPath, dstPath))
+            Utf8 recheckReason;
+            if (!shouldCopyWorkspaceDependencyFile(recheckReason, srcPath, dstPath))
+            {
+                // The needless copy is harmless, but it is also the whole mystery: the compare
+                // had matched this very pair moments before it asked for the copy, and neither
+                // answer can be replayed post-mortem. So the trace is written now, where the
+                // race actually happened.
+                Logger::printDim(ctx, std::format("[sync] '{}' was mirrored while it already matched its source; the copy fired because {}; the replace answered '{}'\n", Utf8(dstPath).c_str(), copyReason.c_str(), FileSystem::normalizeSystemMessage(ec).c_str()));
                 return Result::Continue;
+            }
 
             return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
         }
@@ -453,14 +513,15 @@ namespace
                 continue;
             }
 
-            if (!shouldCopyWorkspaceDependencyFile(it->path(), dstPath))
+            Utf8 copyReason;
+            if (!shouldCopyWorkspaceDependencyFile(copyReason, it->path(), dstPath))
                 continue;
 
             const fs::path dstParent = dstPath.parent_path();
             if (!dstParent.empty())
                 SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, dstParent));
 
-            SWC_RESULT(copyWorkspaceDependencyFile(ctx, it->path(), dstPath));
+            SWC_RESULT(copyWorkspaceDependencyFile(ctx, it->path(), dstPath, copyReason));
         }
 
         std::vector<fs::path> stalePaths;

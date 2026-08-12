@@ -20,7 +20,10 @@ namespace
         {
             job.error = Diagnostic::get(DiagnosticId::cmd_err_link_artifact_write_failed);
             job.error.addArgument(Diagnostic::ARG_PATH, Utf8(path));
-            job.error.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(ioError));
+
+            // Windows locks a running image, so the usual cause here is a previous run of this
+            // very artifact still alive; naming the process is what makes the failure actionable.
+            job.error.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::describeIoFailure(ioError), path));
             return false;
         }
         return true;

@@ -25,6 +25,7 @@ test whose reference data lives with its source. See [[Env.grantCorpus]].
 private var g_SandboxRoot: String
 private var g_CorpusRoot: String
 private var g_Sandboxed: bool
+private var g_DefaultRoot: bool
 private var g_DeniedCount: u64
 
 // Run argument the compiler passes to a generated executable to isolate it. Either on its
@@ -62,6 +63,13 @@ internal func defaultSandboxRoot()->String
     return result
 }
 
+// Removes what a dead run left at `root`, so the run adopting that name starts on an empty one.
+internal func clearLeftoverDefaultRoot(root: string) fail
+{
+    if Directory.exists(root) do
+        try Directory.delete(root, recurse: true)
+}
+
 // Arms the sandbox before any application code runs, when the launcher asked for it.
 //
 // 'swc test' and 'swc smoke' hand the root down as a run argument, so isolation is a property
@@ -72,9 +80,28 @@ internal func defaultSandboxRoot()->String
     let request = findRunArgument(SandboxArg)
     if request.found
     {
-        var root = request.value
-        if root.isEmpty() do
+        var root      = request.value
+        let isDefault = root.isEmpty()
+        if isDefault
+        {
             root = defaultSandboxRoot()
+
+            // The operating system reuses process ids and the default root is named after this
+            // one, so a dead run whose id came around again may have left files here. Adopting
+            // them would hand this run that run's state — the opposite of what the sandbox
+            // promises — so the root has to start empty. Only the default root is ever cleared:
+            // no live process can hold this id, while an explicit root belongs to the launcher.
+            // The guard on the armed state keeps a second arming pass in the same process from
+            // clearing the root the first pass is using.
+            if !g_Sandboxed
+            {
+                catch clearLeftoverDefaultRoot(root.toString()) else
+                {
+                    @print("[swag.sandbox] cannot clear the leftover sandbox root at '", root.toString(), "'\n")
+                    abortUnsandboxed()
+                }
+            }
+        }
 
         catch enterSandbox(root.toString()) else
         {
@@ -88,6 +115,8 @@ internal func defaultSandboxRoot()->String
             @print("\n")
             abortUnsandboxed()
         }
+
+        g_DefaultRoot = isDefault
     }
 
     let corpus = findRunArgument(CorpusArg)
@@ -102,6 +131,22 @@ internal func defaultSandboxRoot()->String
             abortUnsandboxed()
         }
     }
+}
+
+// Removes the private root once the run that picked it is over.
+//
+// This runs as a drop hook of the program's deepest dependency, after every other module's
+// '#drop', so nothing can still write inside the root. Only the default root is removed — an
+// explicit one belongs to the launcher — and only in a generated executable: hosted by the
+// compiler, the module set may arm again later and expects the root it left. Best effort by
+// design: a file still held open must not turn the run that owns it into a failure, and a root
+// left behind is cleared by the next run that draws the same process id. A run that dies before
+// its drop hooks keeps its root, which is what makes a failure findable afterwards.
+#drop
+{
+    if !g_Sandboxed or !g_DefaultRoot or (@rtflags & .FromCompiler) do
+        return
+    discard catch Directory.delete(g_SandboxRoot.toString(), recurse: true)
 }
 
 // Stops a run that asked to be isolated and could not be.

@@ -274,6 +274,11 @@ private func buildFields(flow: *Flow)
     editable.addItem("Editable entry")
     editable.setSelectedIndex(0, false)
 
+    flow.caption("transparent")
+    let transparent = ComboBox.create(flow.view, flow.next(190, 32), flags: .TransparentBackground)
+    transparent.addItem("Parent ground")
+    transparent.setSelectedIndex(0, false)
+
     flow.caption("disabled")
     let offCombo = ComboBox.create(flow.view, flow.next(190, 32))
     offCombo.addItem("Unavailable")

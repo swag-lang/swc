@@ -2,7 +2,6 @@
 
 ui_WindowTitle         sCrypt — Disques virtuels privés
 
-ui_Badge               PORTABLE  |  PROTÉGÉ PAR MOT DE PASSE  |  SANS INSTALLATION
 ui_Subtitle            Un stockage chiffré qui se présente et se comporte comme un disque Windows ordinaire.
 ui_CreateCardTitle     Créer un nouveau coffre
 ui_CreateCardHelp      Choisissez une capacité fixe. Le conteneur complet est randomisé avant d'être prêt.

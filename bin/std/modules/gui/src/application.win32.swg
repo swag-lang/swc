@@ -88,8 +88,19 @@ impl Application
         return cast(s32) (crc32.value() & 0x7FFFFFFF)
     }
 
+    // A system-wide hot key belongs to the desktop of the person running the process, and only one
+    // process on the machine can hold a given one. A sandboxed run therefore takes none: the
+    // shortcut still enters [[Application.hotKeys]] and [[Application.dispatchHotKey]] still routes
+    // it, exactly as the fake clipboard keeps clipboard semantics without touching the system one.
+    //
+    // Failing instead of substituting would defeat the purpose: an application that reports an
+    // unavailable shortcut in its own window would paint that report during its own tests, which is
+    // the flaky picture this avoids.
     internal func registerNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key) fail
     {
+        if Env.isSandboxed() do
+            return
+
         let hotKeyId = hotKeyNativeId(modifiers, key)
         let winKey   = Input.Keyboard.keyToVirtualKey(key)
 
@@ -105,8 +116,12 @@ impl Application
         RegisterHotKey(null, hotKeyId, mod, winKey)
     }
 
+    // Symmetrical to [[registerNativeHotKey]]: a sandboxed run holds no system hot key to release.
     internal func unregisterNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
     {
+        if Env.isSandboxed() do
+            return
+
         catch UnregisterHotKey(null, hotKeyNativeId(modifiers, key))
     }
 

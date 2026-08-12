@@ -97,28 +97,27 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the files to a path with no dot segment, copy `bin/.swc-format` beside them, format there, and
   copy the result back.
 
-### F-118 — A test executable that outlives its run changes the next run's result
+### F-118 — A test executable can outlive the run that started it
 
 - Area: tooling
 - Found while: A/B measuring the sCapture suite, where `scapture.surface` failed on one run and
   passed on the next with no source change in between
-- Observation: `sCapture.test.exe` from an earlier run was still alive, and it still held the
-  global `PrintScreen` hotkey. The next run's application therefore failed to register it, put an
-  error bar across the top of its window — "Cannot register global shortcut 'PrintScreen'" — and
-  the golden comparison saw 27 560 pixels outside tolerance. Nothing in the failure names the
-  cause: it reads as a rendering regression in whatever change is being tested.
-- Evidence: `Get-Process sCapture.test` showed pid 9604 from the previous run; killing it and
-  re-running turned the same working tree from `1 did not pass` to `149 tests` green. The two
-  golden images differ by the error bar alone.
-- Why it matters: this is a false failure that points at the change under test, and it is
-  self-perpetuating — the run that leaks the process is usually the run that was interrupted, so
-  the next one fails for a reason that no longer exists in the sources.
-- Next step: two halves. The runner should not leave a bounded run behind: `runGeneratedArtifact`
-  already kills on `--run-timeout`, but a run stopped by a failing test, or by the tool being
-  interrupted, can leave the child alive — it should be killed on every exit path. And a headless
-  test that needs an exclusive machine-wide resource should either not take it or not fail the
-  picture when it cannot; the sandbox already isolates the filesystem, and a global hotkey is
-  exactly the kind of thing it does not cover.
+- Observation: `sCapture.test.exe` from an earlier run was still alive. `runGeneratedArtifact`
+  kills a bounded run on `--run-timeout`, but a run stopped by a failing test, or by the tool being
+  interrupted, can leave the child behind.
+- Evidence: `Get-Process sCapture.test` showed pid 9604 from a previous run, hours after the
+  command that started it had returned.
+- Why it matters: the survivor holds its own sandbox directory, keeps consuming CPU, and — because
+  Windows locks a running image — makes the next build of the same artifact unable to overwrite its
+  own executable. The leak also accumulates: the run that leaks is usually the interrupted one, and
+  nothing reports the survivor.
+- Note: the *symptom* that originally made this findable is closed. The leftover process held the
+  global `PrintScreen` hotkey, the next run's application failed to register it, painted "Cannot
+  register global shortcut 'PrintScreen'" across its window, and the golden comparison saw 27 560
+  pixels outside tolerance. `registerNativeHotKey` now takes no system hot key under a sandbox, so a
+  survivor no longer corrupts a later picture — which makes the leak quieter, not rarer.
+- Next step: kill the generated artifact on every exit path of `runGeneratedArtifact`, not only on
+  the timeout one, and report a survivor rather than leaving it to be found by hand.
 
 ### F-119 — Nothing records where a campaign's time goes
 

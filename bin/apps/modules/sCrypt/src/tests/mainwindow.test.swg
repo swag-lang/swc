@@ -222,10 +222,9 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 // The page on show is reachable from the keyboard, in the order it reads, and it is the only
 // page in the ring.
 //
-// The strip comes first, because moving between the three pages is the first thing the keyboard
-// can do here. A card is built with its action bar docked under a form that fills the space left
-// over, so this also pins that the traversal follows the arranged rectangles rather than the
-// order the windows were created in.
+// The language picker reads first in the header, followed by the strip and the active page. A
+// card is built with its action bar docked under a form that fills the space left over, so this
+// also pins that traversal follows the arranged rectangles rather than creation order.
 #test
 {
     var host: Testing.HeadlessHost
@@ -244,9 +243,9 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // nothing filled in, the action of the create page is out of the ring. So is every control
     // of the two pages that are not on show.
     @assert(order.stops.count == 8)
-    @assert(order.stops[0] == cast(*Wnd) window.tabs)
-    @assert(order.stops[1] == cast(*Wnd) window.createPath)
-    @assert(order.stops[7] == cast(*Wnd) window.languageChoice)
+    @assert(order.stops[0] == cast(*Wnd) window.languageChoice)
+    @assert(order.stops[1] == cast(*Wnd) window.tabs)
+    @assert(order.stops[2] == cast(*Wnd) window.createPath)
 
     // Live, each action takes its place after the card it answers for, and the dominant one
     // comes last on its card because the bar stacks from its right edge.
@@ -257,31 +256,31 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     let full = Gui.FocusOrder.collect(window)
     @assert(full.stops.count == 9)
-    @assert(full.stops[0] == cast(*Wnd) window.tabs)
-    @assert(full.stops[1] == cast(*Wnd) window.createPath)
-    @assert(full.stops[2] == cast(*Wnd) window.browseCreate)
-    @assert(full.stops[3] == cast(*Wnd) window.createSize)
-    @assert(full.stops[4] == cast(*Wnd) window.createUnit)
-    @assert(full.stops[5] == cast(*Wnd) window.createPassword)
-    @assert(full.stops[6] == cast(*Wnd) window.confirmPassword)
-    @assert(full.stops[7] == cast(*Wnd) window.createButton)
-    @assert(full.stops[8] == cast(*Wnd) window.languageChoice)
+    @assert(full.stops[0] == cast(*Wnd) window.languageChoice)
+    @assert(full.stops[1] == cast(*Wnd) window.tabs)
+    @assert(full.stops[2] == cast(*Wnd) window.createPath)
+    @assert(full.stops[3] == cast(*Wnd) window.browseCreate)
+    @assert(full.stops[4] == cast(*Wnd) window.createSize)
+    @assert(full.stops[5] == cast(*Wnd) window.createUnit)
+    @assert(full.stops[6] == cast(*Wnd) window.createPassword)
+    @assert(full.stops[7] == cast(*Wnd) window.confirmPassword)
+    @assert(full.stops[8] == cast(*Wnd) window.createButton)
 
     // Bringing up another page swaps the whole middle of the ring for that page's controls, and
     // the dominant action still comes last on its card because the bar stacks from its right edge.
     window.showTab(1)
     let opened = Gui.FocusOrder.collect(window)
     @assert(opened.stops.count == 10)
-    @assert(opened.stops[0] == cast(*Wnd) window.tabs)
-    @assert(opened.stops[1] == cast(*Wnd) window.mountPath)
-    @assert(opened.stops[2] == cast(*Wnd) window.browseMount)
-    @assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
-    @assert(opened.stops[4] == cast(*Wnd) window.drive)
-    @assert(opened.stops[5] == cast(*Wnd) window.readOnly)
-    @assert(opened.stops[6] == cast(*Wnd) window.passwordButton)
-    @assert(opened.stops[7] == cast(*Wnd) window.resizeButton)
-    @assert(opened.stops[8] == cast(*Wnd) window.mountButton)
-    @assert(opened.stops[9] == cast(*Wnd) window.languageChoice)
+    @assert(opened.stops[0] == cast(*Wnd) window.languageChoice)
+    @assert(opened.stops[1] == cast(*Wnd) window.tabs)
+    @assert(opened.stops[2] == cast(*Wnd) window.mountPath)
+    @assert(opened.stops[3] == cast(*Wnd) window.browseMount)
+    @assert(opened.stops[4] == cast(*Wnd) window.mountPassword)
+    @assert(opened.stops[5] == cast(*Wnd) window.drive)
+    @assert(opened.stops[6] == cast(*Wnd) window.readOnly)
+    @assert(opened.stops[7] == cast(*Wnd) window.passwordButton)
+    @assert(opened.stops[8] == cast(*Wnd) window.resizeButton)
+    @assert(opened.stops[9] == cast(*Wnd) window.mountButton)
 
     window.showTab(0)
 }

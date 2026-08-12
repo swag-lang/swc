@@ -68,3 +68,49 @@ Entries are sorted by identifier, ascending; position carries no priority.
      (`CaptureFileMagic`), so a preview offset (or a sidecar) would let the library read a few
      kilobytes per capture instead of megabytes. This is the move that makes the library scale
      regardless of what the pixels cost.
+
+## Paint cost
+
+### F-120 — One form's shadow blurs a 420x420 layer, and the sCapture suite spends minutes in it
+
+- Area: apps/sCapture, std/pixel (`RenderCpu`, `Layer.buildShadow`), std/gui (`Testing.HeadlessHost`)
+- Found while: asking why `swc tools/apps.swgs test sCapture` takes minutes. Compilation is 2.6 s
+  of it; the 151 tests run for 1 min 43 s.
+- Observation: `Capture.paintForm` inflates a form's bound rectangle by `FormPaintOverdraw` (200)
+  on every side before allocating the layer it paints into, so a 30x25 shape is drawn through a
+  420x420 layer. `LayerDrawInfo.shadow` is then enabled for it, and `Layer.buildShadow` blurs that
+  whole layer twice. On the GPU backend those passes are a fragment shader nobody notices; on
+  `RenderCpu`, which is the backend every headless test runs on, each blurred pixel walks 17 taps
+  of `sampleBlur`, and each tap is a bilinear fetch plus a `Math.exp` call.
+- Evidence, measured 2026-08-12 in `fast-debug` with a temporary probe in the module and a
+  per-test timer in `bin/runtime/tests.swg`:
+  - `Capture.toImage` on an empty 400x300 capture: 47 ms. With one rectangle whose shadow is on:
+    1606 ms. Same shape with `paintShadow = false`: 117 ms. Adding one text form: 1901 ms with
+    its shadow, 394 ms without. So one shadow costs ~1.5 s.
+  - The instrumented `buildShadow` reports `layer 420x420 dev 436x436` for that 30x25 shape, and a
+    counter in the blur path reports 380_192 blurred pixels for the one shadow — 4.7 us each.
+  - The whole suite is that cost repeated: the six slowest tests hold 81 s of the 97 s of test
+    time, and every one of them paints forms — `surface.test.swg:54` alone renders 32 documents
+    for 58 s, `undo.test.swg:75` (FlattenAll) 8 s, `actions.test.swg:536` 4.1 s. The fixture
+    itself is free: `HeadlessFixture.setup` plus `shutdown` measures 1 ms, and the theme atlases
+    are already rasterized once per process.
+  - The banded rasterizer never runs here. `RenderCpu.rasterizeRange` splits a range across
+    `Jobs.parallelFor` only when `Jobs.workerCount()` is above one, and the pool is started by
+    `Application.createSurface` — which `Gui.Testing.HeadlessHost.setup` bypasses, building its
+    surface by hand. Measured inside one test process: `Jobs.isSynchronous()` is true and the two
+    shadowed forms cost 4132 ms; calling `Jobs.initialize()` (22 workers) drops the same call to
+    1008 ms. The blur bounds clear both gates (190 kpx against a 64 kpx threshold, 436 rows
+    against 16 per band), so the work is banded as soon as a pool exists.
+- Next step: four independent moves, in decreasing value per unit of effort.
+  1. Start the worker pool in the headless host, the way `Application.createSurface` starts it for
+     a real window. It is the cheapest of the four and it pays for every headless suite, not only
+     this one. The banded path is proven to produce identical pixels (`render.cpu.test.swg`), so
+     goldens should not move — confirm that across `gui`, `pixel`, and the applications.
+  2. Size the layer to what the form actually needs. 200 px on every side is 200x the area of a
+     small form; the overdraw a form really needs is its stroke, its caps, and its shadow radius
+     plus offset. `FormPaintOverdraw` is one constant in `tweak.swg` used by both the painter and
+     the cull test, so the two have to move together.
+  3. Bound the blur to the content. `buildShadow` blurs `shadowWidth x shadowHeight` whatever the
+     content covers, so the padding an oversized layer carries is blurred as well as the form.
+  4. Make a CPU blur tap cheaper: the Gaussian weights depend only on the radius, so the kernel
+     can be built once per pass instead of calling `Math.exp` per tap per pixel.

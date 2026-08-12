@@ -13,8 +13,9 @@ enum ComboBoxMode
 #[Swag.EnumFlags]
 enum ComboBoxFlags
 {
-    None = 0     // Always paints the field background and border.
-    Flat         // Paints the background and border only while hovered or open.
+    None = 0        // Always paints the field background and border.
+    Flat            // Paints the field only while hovered or open.
+    TransparentBackground     // Keeps the parent background visible behind the field border.
 }
 
 // Stores one selectable item or separator in a combo box.
@@ -127,13 +128,18 @@ impl IWnd for ComboBox
 
         let clientRect = .clientRect()
 
-        // In flat (cell) mode the background and border are only painted when the
-        // control is hot or its popup is open, so at rest it blends into the cell.
+        // In flat (cell) mode the field is only painted while active. A transparent field keeps
+        // the ground it sits on while retaining the border that identifies it as a control.
         if !.flags.has(.Flat) or .isHot or .popup
         {
-            theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
+            if !.flags.has(.TransparentBackground)
+            {
+                theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
+                .focusRingGround = .aniBk.cur()
+            }
+            else do
+                .focusRingGround = {}
             theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
-            .focusRingGround = .aniBk.cur()
         }
         else do
             .focusRingGround = {}

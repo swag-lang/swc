@@ -11,7 +11,6 @@ using Core, Gui
 struct AppStrings
 {
     ui_WindowTitle:      string = "sCrypt — Private virtual drives"
-    ui_Badge:            string = "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP"
     ui_Subtitle:         string = "Encrypted storage that looks and behaves like a regular Windows drive."
     ui_CreateCardTitle:  string = "Create a new vault"
     ui_CreateCardHelp:   string = "Choose a fixed capacity. The complete container is randomized before it is ready."

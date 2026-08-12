@@ -144,11 +144,11 @@ struct MainWindow
 {
     using wnd: Wnd
 
-    // Text of the header, kept so a language switch can say it again.
+    // Text and control of the header, kept so a language switch can say it again.
     #[Swag.Late]
     {
-        badge:    *Label
-        subtitle: *Label
+        subtitle:       *Label
+        languageChoice: *ComboBox
     }
 
     // Controls of the "create a new vault" card.
@@ -185,7 +185,6 @@ struct MainWindow
         status:         *Label
         statusIcon:     *Label
         statusBusy:     *Spinner
-        languageChoice: *ComboBox
     }
 
     // The three cards are pages of one tab strip rather than columns of one grid: a vault is
@@ -495,7 +494,7 @@ impl MainWindow
         {
             .dockStyle = .Center
             .margin    = {32, 16, 32, 16}
-            .setForm(.Button)
+            .setForm(.Flat)
             .setPageTransitions(true)
             .addItem(appStrings().ui_CreateTab, view: result.createNewVaultCard(tabs))
             .addItem(appStrings().ui_OpenTab, view: result.createOpenVaultCard(tabs))
@@ -672,17 +671,18 @@ impl MainWindow
         header.margin    = {32, 20, 32, 0}
         header.spacing   = 4
 
-        // The badge shares the line of the product name rather than floating between the name
-        // and its explanation, so the header reads as two rows instead of three.
+        // The language picker shares the line of the product name rather than claiming a row of
+        // its own. Its border identifies the field without raising it off the header ground.
         let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
         titleRow.dockStyle = .Top
 
-        // The badge is a compact claim about the product, and it is measured rather than
-        // set: a hand-tuned width clips it as soon as the theme font or the language changes.
-        .badge           = Label.create(titleRow, appStrings().ui_Badge, {}, null, .SecondaryText)
-        .badge.dockStyle = .Right
-        .badge.setTextAlignment(.Right, .Center)
-        .badge.style.setFont(.theme().createDefaultFontFS(12, .Bold), .Regular)
+        .languageChoice            = ComboBox.create(titleRow, flags: .TransparentBackground)
+        .languageChoice.dockStyle  = .Right
+        .languageChoice.sigChanged += func|window = me|(combo, index)
+        {
+            discard combo
+            window.chooseLanguage(index)
+        }
 
         let titleFont = .theme().createDefaultFont(34, .Bold)
         let title     = Label.create(titleRow, "sCrypt")
@@ -700,25 +700,14 @@ impl MainWindow
         .subtitle.setTextAlignment(.Left, .Top)
         titleRow.applyLayout()
         header.computeLayout()
+        .fillLanguageChoice()
     }
 
     mtd createFooter()
     {
-        // The language picker rides the credit line rather than claiming a row of its own:
-        // on a surface this compact, a row costs more than the setting is worth. The row is
-        // as tall as the picker it carries, so the field keeps the size every other field of
-        // the window has instead of being squeezed into a line of prose.
-        let footerRow = Wnd.create'Wnd(me, {0, 0, 0, .themeMetrics().comboBox_Height})
+        let footerRow = Wnd.create'Wnd(me, {0, 0, 0, 24})
         footerRow.dockStyle = .Bottom
         footerRow.margin    = {32, 0, 32, 12}
-
-        .languageChoice            = ComboBox.create(footerRow, {}, flags: .Flat)
-        .languageChoice.dockStyle  = .Right
-        .languageChoice.sigChanged += func|window = me|(combo, index)
-        {
-            discard combo
-            window.chooseLanguage(index)
-        }
 
         // The attribution keeps what it owes: the product, the holder, and where it comes from.
         // Expanding the acronym as well made the line the widest thing on the surface, and the
@@ -726,7 +715,6 @@ impl MainWindow
         let credit = Label.create(footerRow, "WinFsp — Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {}, null, .SecondaryText)
         credit.dockStyle = .Center
         credit.setTextAlignment(.Left, .Center)
-        .fillLanguageChoice()
         footerRow.applyLayout()
 
         // The status line is raised off the ground by its own fill. A border around it would
@@ -1199,7 +1187,6 @@ impl MainWindow
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
 
-        .badge.setText(texts.ui_Badge)
         .subtitle.setText(texts.ui_Subtitle)
 
         .tabs.setItemName(0, texts.ui_CreateTab)

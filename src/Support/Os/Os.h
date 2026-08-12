@@ -126,6 +126,7 @@ namespace Os
     const char* hostOsName();
     const char* hostCpuName();
     const char* hostExceptionBackendName();
+    bool        isFatalHostException(uint32_t exceptionCode);
     uint32_t    currentProcessId();
     uint32_t    currentThreadId();
     uint32_t    captureCallStack(std::span<uintptr_t> outFrames, uint32_t skipFrames = 0);
@@ -142,6 +143,7 @@ namespace Os
 #define SWC_EXCEPT                       __except
 #define SWC_EXCEPTION_EXECUTE_HANDLER    EXCEPTION_EXECUTE_HANDLER
 #define SWC_EXCEPTION_CONTINUE_EXECUTION EXCEPTION_CONTINUE_EXECUTION
+#define SWC_EXCEPTION_CONTINUE_SEARCH    EXCEPTION_CONTINUE_SEARCH
 #define SWC_LP_EXCEPTION_POINTERS        LPEXCEPTION_POINTERS
 #define SWC_GET_EXCEPTION_INFOS()        GetExceptionInformation()
 #endif

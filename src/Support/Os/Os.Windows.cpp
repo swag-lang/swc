@@ -848,6 +848,34 @@ namespace Os
         return "windows seh";
     }
 
+    bool isFatalHostException(const uint32_t exceptionCode)
+    {
+        switch (exceptionCode)
+        {
+            case EXCEPTION_ACCESS_VIOLATION:
+            case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+            case EXCEPTION_DATATYPE_MISALIGNMENT:
+            case EXCEPTION_FLT_DENORMAL_OPERAND:
+            case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+            case EXCEPTION_FLT_INEXACT_RESULT:
+            case EXCEPTION_FLT_INVALID_OPERATION:
+            case EXCEPTION_FLT_OVERFLOW:
+            case EXCEPTION_FLT_STACK_CHECK:
+            case EXCEPTION_FLT_UNDERFLOW:
+            case EXCEPTION_ILLEGAL_INSTRUCTION:
+            case EXCEPTION_IN_PAGE_ERROR:
+            case EXCEPTION_INT_DIVIDE_BY_ZERO:
+            case EXCEPTION_INT_OVERFLOW:
+            case EXCEPTION_PRIV_INSTRUCTION:
+            case EXCEPTION_STACK_OVERFLOW:
+            case 0xC0000374: // STATUS_HEAP_CORRUPTION
+            case 0xC0000409: // STATUS_STACK_BUFFER_OVERRUN
+                return true;
+            default:
+                return false;
+        }
+    }
+
     uint32_t currentProcessId()
     {
         return static_cast<uint32_t>(GetCurrentProcessId());

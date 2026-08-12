@@ -8,6 +8,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(Os_FatalHostExceptionClassificationExcludesCppExceptions)
+{
+    if (!Os::isFatalHostException(EXCEPTION_ACCESS_VIOLATION))
+        return Result::Error;
+    if (Os::isFatalHostException(0xE06D7363)) // MSVC C++ exception
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Os_FileLockOwnersNameTheProcessMappingAnImage)
 {
     // The compiler's own executable is the one file whose lock owner is known in advance: it

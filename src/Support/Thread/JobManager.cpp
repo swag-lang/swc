@@ -511,6 +511,13 @@ namespace
 {
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
+        uint32_t    exceptionCode    = 0;
+        const void* exceptionAddress = nullptr;
+        Os::decodeHostException(exceptionCode, exceptionAddress, args);
+        SWC_UNUSED(exceptionAddress);
+        if (!Os::isFatalHostException(exceptionCode))
+            return SWC_EXCEPTION_CONTINUE_SEARCH;
+
         HardwareException::log(job.ctx(), "hardware exception during job execution", args);
         Stats::addError();
         Os::panicBox("hardware exception during job execution");

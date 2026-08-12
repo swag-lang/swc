@@ -17,40 +17,12 @@
 namespace
 {
 #ifdef _WIN32
-    bool isFatalHostException(const DWORD code)
-    {
-        switch (code)
-        {
-            case EXCEPTION_ACCESS_VIOLATION:
-            case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-            case EXCEPTION_DATATYPE_MISALIGNMENT:
-            case EXCEPTION_FLT_DENORMAL_OPERAND:
-            case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-            case EXCEPTION_FLT_INEXACT_RESULT:
-            case EXCEPTION_FLT_INVALID_OPERATION:
-            case EXCEPTION_FLT_OVERFLOW:
-            case EXCEPTION_FLT_STACK_CHECK:
-            case EXCEPTION_FLT_UNDERFLOW:
-            case EXCEPTION_ILLEGAL_INSTRUCTION:
-            case EXCEPTION_IN_PAGE_ERROR:
-            case EXCEPTION_INT_DIVIDE_BY_ZERO:
-            case EXCEPTION_INT_OVERFLOW:
-            case EXCEPTION_PRIV_INSTRUCTION:
-            case EXCEPTION_STACK_OVERFLOW:
-            case 0xC0000374: // STATUS_HEAP_CORRUPTION
-            case 0xC0000409: // STATUS_STACK_BUFFER_OVERRUN
-                return true;
-            default:
-                return false;
-        }
-    }
-
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
     LONG WINAPI reportUnhandledHostException(EXCEPTION_POINTERS* exceptionPointers)
     {
         static std::atomic_bool reported = false;
         const auto*             record   = exceptionPointers ? exceptionPointers->ExceptionRecord : nullptr;
-        if (!record || !isFatalHostException(record->ExceptionCode))
+        if (!record || !swc::Os::isFatalHostException(record->ExceptionCode))
             return EXCEPTION_CONTINUE_SEARCH;
         if (reported.exchange(true, std::memory_order_acq_rel))
             return EXCEPTION_CONTINUE_SEARCH;

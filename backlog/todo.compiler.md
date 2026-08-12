@@ -262,14 +262,16 @@ As of 2026-08-09, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** T-001, T-002, T-006, T-102.
 
-### T-385 — Release linker optimizations are disabled for iteration speed
+### T-385 — Compiler linker optimizations are disabled for iteration speed
 
-**Intent.** Restore whole-program optimization in the Release configuration of `swc.vcxproj` — `/GL` with full LTCG, `/OPT:REF`, and `/OPT:ICF` — once Release link time is acceptable again or when producing a shipping binary. They were switched off because full LTCG made every Release link far too long for day-to-day iteration.
+**Intent.** Restore whole-program optimization in the Release and DevMode configurations of `swc.vcxproj` once link time is acceptable again or when producing a shipping binary: `/GL` with full LTCG in Release, incremental LTCG in DevMode, and `/OPT:REF` plus `/OPT:ICF` in both. They were switched off because LTCG made links far too long for day-to-day iteration; DevMode uses conventional incremental linking in the meantime.
 
 **Complete when.**
 
-- `WholeProgramOptimization` is back to `true` and the Release `Link` block uses `UseLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again.
-- The resulting Release build passes `swc tools/tests.swgs`.
+- `WholeProgramOptimization` is back to `true` in Release and DevMode.
+- The Release `Link` block uses `UseLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again.
+- The DevMode `Link` block uses `UseFastLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again, with conventional incremental linking disabled.
+- The resulting DevMode and Release builds pass their compiler validation workflows.
 
 ## Deliberately out of scope
 

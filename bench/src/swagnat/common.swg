@@ -1,6 +1,44 @@
 // Shared prelude for the pure-Swag benchmarks.
-// No dependency on any pre-compiled Swag module: only compiler intrinsics and
-// the two kernel32 clock entry points every runtime here uses for timing.
+// No dependency on any pre-compiled Swag module: only the default runtime allocator,
+// compiler intrinsics, and the two kernel32 clock entry points used for timing.
+
+struct BenchAllocationHeader
+{
+    totalSize: u64
+    _padding:  u64
+}
+
+func benchAlloc(size: u64)->#null [*] void
+{
+    if size > Swag.U64.Max - #sizeof(BenchAllocationHeader) do
+        return null
+
+    var request: Swag.AllocatorRequest
+    request.size      = size + #sizeof(BenchAllocationHeader)
+    request.alignment = 16
+    let allocator = @getcontext().allocator!
+    allocator.alloc(&request)
+    if !request.address do
+        return null
+
+    let header       = cast(*BenchAllocationHeader) request.address
+    header.totalSize = request.size
+    header._padding  = 0
+    return cast([*] void) (cast([*] u8) header + #sizeof(BenchAllocationHeader))
+}
+
+func benchFree(ptr: #null [*] void)
+{
+    if !ptr do
+        return
+
+    let header = cast(*BenchAllocationHeader) (cast([*] u8) ptr! - #sizeof(BenchAllocationHeader))
+    var request: Swag.AllocatorRequest
+    request.address = header
+    request.size    = header.totalSize
+    let allocator   = @getcontext().allocator!
+    allocator.free(&request)
+}
 
 #[Swag.Foreign("kernel32", "QueryPerformanceCounter")]
 func qpc(v: *u64)->s32

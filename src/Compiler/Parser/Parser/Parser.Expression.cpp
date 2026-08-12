@@ -844,8 +844,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicGetContext:
             return parseIntrinsicCallExpr(0);
 
-        case TokenId::IntrinsicAlloc:
-        case TokenId::IntrinsicFree:
         case TokenId::IntrinsicAbs:
         case TokenId::IntrinsicSqrt:
         case TokenId::IntrinsicSin:
@@ -872,7 +870,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicBitCountLz:
             return parseIntrinsicCallExpr(1);
 
-        case TokenId::IntrinsicRealloc:
         case TokenId::IntrinsicStringCmp:
         case TokenId::IntrinsicMin:
         case TokenId::IntrinsicMax:

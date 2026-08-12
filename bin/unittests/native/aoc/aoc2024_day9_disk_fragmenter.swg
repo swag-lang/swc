@@ -35,7 +35,7 @@ namespace DiskLayout
     func initDiskMap(capacity: u32 = MaxBlocks)->DiskMap
     {
         var result: DiskMap
-        result.blocks = cast(#null [*] u16) @alloc(cast(u64) capacity * cast(u64) #sizeof(u16))
+        result.blocks = cast(#null [*] u16) testAlloc(cast(u64) capacity * cast(u64) #sizeof(u16))
         @assert(result.blocks != null)
         result.blockCount = 0
         result.fileCount  = 0
@@ -45,7 +45,7 @@ namespace DiskLayout
     func freeDiskMap(dm: DiskMap)
     {
         if dm.blocks do
-            @free(dm.blocks)
+            testFree(dm.blocks)
     }
 
     func copyDiskMap(src: const &DiskMap, capacity: u32 = MaxBlocks)->DiskMap

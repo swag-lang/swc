@@ -83,53 +83,12 @@ Give startup a host ABI that can accept an argument vector directly. Windows may
 
 - Related: T-104, T-106, T-279
 
-### T-105 — Basic math intrinsics retain redundant UCRT wrappers
-
-The Windows runtime explicitly links `ucrt` and `vcruntime`. Its declared UCRT surface is limited
-to `malloc`/`realloc`/`free`, the four memory block operations, and the scalar `f32`/`f64` math
-family. No other production `bin/` module directly imports a C standard library. Treat those three
-groups differently:
-
-`@sqrt` already lowers to `FloatSqrt`, and `@floor`, `@ceil`, `@trunc`, and `@round` already lower
-  through the backend's floating-round operations. Verify native and JIT import tables, function
-  references, reflection, safety modes, and non-optimized builds, then remove their redundant UCRT
-  declarations and wrappers when no emitted path reaches them.
-
-- Related: T-272, T-273, T-274, T-275, T-276, T-114
-
-### T-272 — Dynamic memory block intrinsics depend directly on UCRT
-
-Constant-sized `@memcpy`, `@memmove`, `@memset`, and `@memcmp` are already emitted inline;
-  dynamic sizes still call UCRT. Provide runtime-owned, target-neutral implementations for the
-  dynamic path, with correct overlap and `memcmp` ordering. Benchmark small and large blocks before
-  replacing the tuned system implementation unconditionally; a size-tiered inline/runtime path is
-  acceptable. Ensure compiling those implementations cannot recursively lower back to themselves.
-
-- Related: T-105
-
 ### T-273 — `Crypto.secureClear` has no no-elide primitive
 
 Make `Crypto.secureClear` a no-elide runtime/compiler primitive or a narrow host primitive. A
   plain Swag loop is not a security guarantee if dead-store elimination may erase it.
 
-- Related: T-105, T-089
-
-### T-274 — Bootstrap allocation has no documented system boundary
-
-Keep `@alloc`, `@realloc`, and `@free` as an explicit bootstrap/system-allocation boundary until
-  T-104 supplies complete page primitives. The Swag allocator itself uses these fallbacks and TLS
-  creation uses them before normal allocator state is necessarily available, so routing them
-  naively back through the Swag allocator would recurse.
-
-- Related: T-104, T-269
-
-### T-275 — The runtime links `vcruntime` without an identified imported symbol
-
-Audit why `#foreignlib("vcruntime")` is present: no Swag foreign declaration names one of its
-  functions, and stack probing is generated internally. Remove it only after inspecting the actual
-  imports of representative executables, shared libraries, tests, and JIT artifacts.
-
-- Related: T-105
+- Related: T-089
 
 ### T-276 — Hosted runtime library dependencies have no target matrix
 
@@ -137,7 +96,7 @@ Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm whe
   any future freestanding runtime. A Linux port is not improved by replacing a stable libc call
   with direct kernel syscalls and thereby coupling the runtime to one kernel and architecture.
 
-- Related: T-105, T-114
+- Related: T-114
 
 ## Tier A — Process launch and orchestration
 
@@ -326,20 +285,12 @@ Implement lifecycle, periodic rescheduling, callback/context dispatch, and cance
 
 ## Tier B — Application portability enforcement
 
-### T-307 — sCrypt exposes a Windows drive-letter mount destination
-
-The available-drive-letter query now belongs to the WinFsp backend, but the application still
-chooses a drive letter directly. Give it an abstract mount destination and mount-status contract;
-Linux and macOS backends map that contract to their native mount points.
-
-- Related: T-100, T-265, T-284
-
 ### T-308 — Shipped applications have no native-import boundary check
 
 Reject raw OS imports and native-constant comparisons outside named application backends and
 platform integration tests.
 
-- Related: T-113, T-306, T-307
+- Related: T-113, T-306
 
 ---
 

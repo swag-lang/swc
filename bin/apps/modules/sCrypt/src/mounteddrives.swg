@@ -3,9 +3,10 @@ using Core, Gui
 // One drive sCrypt currently exposes, and the container behind it.
 struct MountedDrive
 {
-    volume:        #null *WinFsp.MountedVolume     // Live mount, owned by this entry until it is unmounted.
+    volume:        #null *MountedVault             // Live mount, owned by this entry until it is unmounted.
     path:          String                          // Container file the drive reads and writes.
-    drive:         String                          // Drive letter Windows shows it on.
+    drive:         String                          // Stable backend destination identifier persisted by sCrypt.
+    mountLabel:    String                          // Host-facing destination name shown in the mounted list.
     needsPassword: bool                            // Whether a password was needed to open the container.
     readOnly:      bool                            // Whether the drive was mounted for reading alone.
     atStartup:     bool                            // Whether sCrypt mounts this container again the next time it starts.
@@ -124,7 +125,7 @@ impl MountedDrives
             var driveIcon: Icon
             if one.readOnly do
                 driveIcon = .list.theme().icon(ThemeIcons.Lock, LockIconSize)
-            line.setItem(cast(u32) MountedColumn.Drive, one.drive.toString(), driveIcon)
+            line.setItem(cast(u32) MountedColumn.Drive, one.mountLabel.toString(), driveIcon)
             line.setItem(cast(u32) MountedColumn.Vault, Path.fileName(one.path.toString()) orelse one.path.toString())
         }
 
@@ -180,7 +181,7 @@ impl MountedDrives
     //
     // The caller becomes responsible for closing and releasing what it gets back: this card
     // holds a mount only while it shows it.
-    mtd detach(index: u64)->#null *WinFsp.MountedVolume
+    mtd detach(index: u64)->#null *MountedVault
     {
         Debug.assert(index < .drives.count)
         let result = .drives[index].volume

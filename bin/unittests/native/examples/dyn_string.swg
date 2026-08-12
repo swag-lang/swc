@@ -32,9 +32,9 @@ func reserve(s: *DynString, want: u64)
         newCap *= 2
 
     if s.data do
-        s.data = cast(#null [*] u8) @realloc(s.data, newCap)
+        s.data = cast(#null [*] u8) testRealloc(s.data, newCap)
     else do
-        s.data = cast(#null [*] u8) @alloc(newCap)
+        s.data = cast(#null [*] u8) testAlloc(newCap)
     s.capacity = newCap
 }
 
@@ -70,7 +70,7 @@ impl DynString
     {
         if .data
         {
-            @free(.data)
+            testFree(.data)
             .data = null
         }
         .count    = 0

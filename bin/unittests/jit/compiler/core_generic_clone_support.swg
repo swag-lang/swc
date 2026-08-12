@@ -76,7 +76,7 @@ namespace GenericCloneCodegenSupport
     {
         mtd addNew(value: T)
         {
-            let ptr = cast(*T) @alloc(#sizeof(T))!
+            let ptr = cast(*T) testAlloc(#sizeof(T))!
             dref ptr = value
             .values.add(ptr)
         }
@@ -84,7 +84,7 @@ namespace GenericCloneCodegenSupport
         mtd clear()
         {
             for item in .values.toSlice() do
-                @free(item)
+                testFree(item)
             .values.count = 0
         }
     }

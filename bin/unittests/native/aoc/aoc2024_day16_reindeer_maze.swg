@@ -55,7 +55,7 @@ struct Maze
 func mazeInit()->Maze
 {
     var m: Maze
-    m.cells = cast(#null [*] u8) @alloc(cast(u64) MaxCells)
+    m.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxCells)
     let cells = m.cells!
     for MaxCells { cells[@index] = 0 }
     return m
@@ -64,7 +64,7 @@ func mazeInit()->Maze
 func mazeFree(m: *Maze)
 {
     if m.cells do
-        @free(m.cells)
+        testFree(m.cells)
 }
 
 // Inline accessor + comparison with char literal: exercises the fix
@@ -157,12 +157,12 @@ func solve(text: string)->u64
     defer mazeFree(&m)
 
     let stateCount = MaxCells * 4
-    let best       = cast([*] u64) (@alloc(cast(u64) stateCount * #sizeof(u64)))!
-    defer @free(best)
+    let best       = cast([*] u64) (testAlloc(cast(u64) stateCount * #sizeof(u64)))!
+    defer testFree(best)
     for stateCount { best[@index] = Infinity }
 
-    let queue = cast([*] QEntry) (@alloc(cast(u64) MaxQueue * #sizeof(QEntry)))!
-    defer @free(queue)
+    let queue = cast([*] QEntry) (testAlloc(cast(u64) MaxQueue * #sizeof(QEntry)))!
+    defer testFree(queue)
     var head: u32
     var tail: u32
 

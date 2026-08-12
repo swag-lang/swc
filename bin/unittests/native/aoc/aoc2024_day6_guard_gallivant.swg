@@ -69,7 +69,7 @@ func cellIndex(x, y, width: u32)->u32
 
 func allocBytes(size: u32)->[*] u8
 {
-    let ptr = cast(#null [*] u8) @alloc(cast(u64) size)
+    let ptr = cast(#null [*] u8) testAlloc(cast(u64) size)
     @assert(ptr != null)
     return ptr!
 }
@@ -85,20 +85,20 @@ func zeroBytes(ptr: [*] u8, count: u32)
 func freeGrid(grid: GridMap)
 {
     if grid.cells do
-        @free(grid.cells)
+        testFree(grid.cells)
 }
 
 func freeIndexBuffer(buffer: IndexBuffer)
 {
     if buffer.data do
-        @free(buffer.data)
+        testFree(buffer.data)
 }
 
 func initIndexBuffer(initialCapacity: u32)->IndexBuffer
 {
     var result: IndexBuffer
     result.capacity = initialCapacity
-    result.data     = cast(#null [*] u32) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
+    result.data     = cast(#null [*] u32) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
     @assert(result.data != null)
     return result
 }
@@ -110,7 +110,7 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
     if result.count == result.capacity
     {
         let newCapacity = result.capacity * 2'u32
-        result.data = cast(#null [*] u32) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
+        result.data = cast(#null [*] u32) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
         @assert(result.data != null)
         result.capacity  = newCapacity
         result.growCount += 1'u32
@@ -242,11 +242,11 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 {
     let cellCount = grid.width * grid.height
     let visited   = allocBytes(cellCount)
-    defer @free(visited)
+    defer testFree(visited)
     zeroBytes(visited, cellCount)
 
     let seenStates = allocBytes(cellCount * 4'u32)
-    defer @free(seenStates)
+    defer testFree(seenStates)
     zeroBytes(seenStates, cellCount * 4'u32)
 
     var trace = initIndexBuffer(InitialTraceCapacity)
@@ -299,7 +299,7 @@ func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
 {
     let cellCount  = grid.width * grid.height
     let seenStates = allocBytes(cellCount * 4'u32)
-    defer @free(seenStates)
+    defer testFree(seenStates)
     zeroBytes(seenStates, cellCount * 4'u32)
 
     var x   = cast(s32) grid.startX

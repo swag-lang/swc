@@ -27,7 +27,7 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
 #run
 {
     // ---- data generation (not timed) ----
-    let data = cast([*] u32) @alloc(SIZE * 4)!
+    let data = cast([*] u32) benchAlloc(SIZE * 4)!
     for i in SIZE do
         data[i] = cast(u32) (rnd() & M32)
 

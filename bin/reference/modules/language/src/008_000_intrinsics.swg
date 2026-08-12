@@ -42,8 +42,7 @@ intrinsics are also subject to the safety and sanity policies described later in
 this reference.
 
 > WARNING:
-> Intrinsics do not imply ownership. '@mkslice' and '@mkstring' create views;
-> '@alloc' returns raw storage; '@memcpy' ignores value lifecycle hooks. The
-> caller remains responsible for lifetime, bounds, alignment, and element
-> semantics.
+> Intrinsics do not imply ownership. '@mkslice' and '@mkstring' create views,
+> while '@memcpy' ignores value lifecycle hooks. The caller remains responsible
+> for lifetime, bounds, alignment, and element semantics.
 */

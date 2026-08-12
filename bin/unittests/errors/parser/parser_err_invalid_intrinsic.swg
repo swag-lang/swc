@@ -8,3 +8,6 @@ var d = @zzz()                           // swc-expected-error {{parser_err_inva
 var e = @cvastart(1)                     // swc-expected-error {{parser_err_invalid_intrinsic}}
 var f = @cvaend(1)                       // swc-expected-error {{parser_err_invalid_intrinsic}}
 var g = @cvaarg(1, u32)                  // swc-expected-error {{parser_err_invalid_intrinsic}}
+var h = @alloc(16)                       // swc-expected-error {{parser_err_invalid_intrinsic}}
+var i = @realloc(null, 16)               // swc-expected-error {{parser_err_invalid_intrinsic}}
+var j = @free(null)                      // swc-expected-error {{parser_err_invalid_intrinsic}}

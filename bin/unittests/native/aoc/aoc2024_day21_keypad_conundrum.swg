@@ -94,9 +94,9 @@ struct Memo
 func memoInit()->Memo
 {
     var m: Memo
-    m.keys  = cast(#null [*] u64) @alloc(cast(u64) MapCap * #sizeof(u64))
-    m.vals  = cast(#null [*] u64) @alloc(cast(u64) MapCap * #sizeof(u64))
-    m.alive = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
+    m.keys  = cast(#null [*] u64) testAlloc(cast(u64) MapCap * #sizeof(u64))
+    m.vals  = cast(#null [*] u64) testAlloc(cast(u64) MapCap * #sizeof(u64))
+    m.alive = cast(#null [*] bool) testAlloc(cast(u64) MapCap * #sizeof(bool))
     let alive = m.alive!
     for MapCap { alive[@index] = false }
     return m
@@ -104,9 +104,9 @@ func memoInit()->Memo
 
 func memoFree(m: *Memo)
 {
-    if m.keys do @free(m.keys)
-    if m.vals do @free(m.vals)
-    if m.alive do @free(m.alive)
+    if m.keys do testFree(m.keys)
+    if m.vals do testFree(m.vals)
+    if m.alive do testFree(m.alive)
 }
 
 func memoProbe(m: *Memo, key: u64)->u32

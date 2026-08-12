@@ -73,7 +73,7 @@ impl Grid
 func parseGrid(text: string)->Grid
 {
     var g: Grid
-    g.cells = cast(#null [*] u8) @alloc(cast(u64) MaxDim * MaxDim)
+    g.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxDim * MaxDim)
     let cells = g.cells!
     for MaxDim * MaxDim
     {
@@ -113,7 +113,7 @@ func parseGrid(text: string)->Grid
 func freeGrid(g: *Grid)
 {
     if g.cells do
-        @free(g.cells)
+        testFree(g.cells)
 }
 
 // ---------------------------------------------------------------------------
@@ -207,8 +207,8 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
     let plant = g.at(startR, startC)
 
     // Heap-allocated BFS queue with defer cleanup
-    let queue = cast([*] u32) (@alloc(cast(u64) MaxQueue * #sizeof(u32)))!
-    defer @free(queue)
+    let queue = cast([*] u32) (testAlloc(cast(u64) MaxQueue * #sizeof(u32)))!
+    defer testFree(queue)
     var head: u32
     var tail: u32
 
@@ -265,8 +265,8 @@ struct FenceCost
 // Solve from a parsed grid (takes pointer, no ownership)
 func solveGrid(g: *Grid)->FenceCost
 {
-    let visited = cast([*] bool) (@alloc(cast(u64) MaxDim * MaxDim * #sizeof(bool)))!
-    defer @free(visited)
+    let visited = cast([*] bool) (testAlloc(cast(u64) MaxDim * MaxDim * #sizeof(bool)))!
+    defer testFree(visited)
     for MaxDim * MaxDim
     {
         visited[@index] = false

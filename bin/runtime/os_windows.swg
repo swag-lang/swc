@@ -3,7 +3,6 @@
 #foreignlib("kernel32")
 #foreignlib("user32")
 #foreignlib("ucrt")
-#foreignlib("vcruntime")
 
 ////////////////////////////////////////////////////////////
 namespace __Win32RT
@@ -164,13 +163,8 @@ impl MutexRW
     func logf(val: f32)->f32
     func log2f(val: f32)->f32
     func log10f(val: f32)->f32
-    func floorf(val: f32)->f32
-    func ceilf(val: f32)->f32
-    func truncf(val: f32)->f32
-    func roundf(val: f32)->f32
     func expf(val: f32)->f32
     func exp2f(val: f32)->f32
-    func sqrtf(val: f32)->f32
 
     func sin(val: f64)->f64
     func cos(val: f64)->f64
@@ -184,66 +178,19 @@ impl MutexRW
     func log(val: f64)->f64
     func log2(val: f64)->f64
     func log10(val: f64)->f64
-    func floor(val: f64)->f64
-    func ceil(val: f64)->f64
-    func trunc(val: f64)->f64
-    func round(val: f64)->f64
     func exp(val: f64)->f64
     func exp2(val: f64)->f64
-    func sqrt(val: f64)->f64
 
     func powf(val1, val2: f32)->f32
     func atan2f(val1, val2: f32)->f32
     func pow(val1, val2: f64)->f64
     func atan2(val1, val2: f64)->f64
 
-    func malloc(s: s64)->#null [*] void
-    func realloc(ptr: #null [*] void, s: s64)->#null [*] void
-    func free(ptr: #null [*] void)
-    func memcpy(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void
-    func memmove(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void
-    func memset(dst: #null [*] void, value: s32, size: s64)->#null [*] void
-    func memcmp(dst: #null const [*] void, src: #null const [*] void, size: s64)->s32
 }
 
 ////////////////////////////////////////////////////////////
 // INTRINSIC WRAPPERS
 ////////////////////////////////////////////////////////////
-
-func @alloc(size: u64)->#null [*] void
-{
-    return malloc(cast(s64) size)
-}
-
-func @realloc(ptr: #null [*] void, size: u64)->#null [*] void
-{
-    return realloc(ptr, cast(s64) size)
-}
-
-func @free(ptr: #null [*] void)
-{
-    free(ptr)
-}
-
-func @memset(dst: #null [*] void, value: u8, size: u64)
-{
-    discard memset(dst, cast(s32) value, cast(s64) size)
-}
-
-func @memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
-{
-    discard memcpy(dst, src, cast(s64) size)
-}
-
-func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
-{
-    discard memmove(dst, src, cast(s64) size)
-}
-
-func @memcmp(dst, src: #null const [*] void, size: u64)->s32
-{
-    return memcmp(dst, src, cast(s64) size)
-}
 
 {
     func @sin(value: f32)->f32 => sinf(value)
@@ -273,17 +220,6 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @log2(value: f64)->f64  => log2(value)
     func @log10(value: f32)->f32 => log10f(value)
     func @log10(value: f64)->f64 => log10(value)
-
-    func @floor(value: f32)->f32 => floorf(value)
-    func @floor(value: f64)->f64 => floor(value)
-    func @ceil(value: f32)->f32  => ceilf(value)
-    func @ceil(value: f64)->f64  => ceil(value)
-    func @trunc(value: f32)->f32 => truncf(value)
-    func @trunc(value: f64)->f64 => trunc(value)
-    func @round(value: f32)->f32 => roundf(value)
-    func @round(value: f64)->f64 => round(value)
-    func @sqrt(value: f32)->f32  => sqrtf(value)
-    func @sqrt(value: f64)->f64  => sqrt(value)
 
     func @exp(value: f32)->f32  => expf(value)
     func @exp(value: f64)->f64  => exp(value)

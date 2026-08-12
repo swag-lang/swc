@@ -6,8 +6,8 @@ var g_App: Application
 
 #main
 {
-    if WinFsp.isPortableGuardianInvocation() do
-        Env.exit(WinFsp.runPortableGuardian())
+    if isMountHostInvocation() do
+        Env.exit(runMountHost())
 
     #static if #hastag("SCrypt.Integration")
     {

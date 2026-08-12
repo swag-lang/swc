@@ -25,27 +25,6 @@ are expressed in bytes.
 }
 
 /**
-# Allocation
-
-'@alloc' returns nullable raw storage, '@realloc' resizes an allocation, and
-'@free' releases it. Cast the result to the intended pointer type, prove it
-non-null before use, and pair every successful allocation with '@free'.
-*/
-#test
-{
-    let data = cast(#null [*] u32) @alloc(4 * #sizeof(u32))
-    if data == null do
-        unreachable
-
-    let usable = data!
-    defer @free(usable)
-
-    usable[0] = 10
-    usable[3] = 40
-    @assert(usable[0] + usable[3] == 50)
-}
-
-/**
 # Atomic Read-Modify-Write
 
 Atomic intrinsics update an integer through a pointer and return its **previous**

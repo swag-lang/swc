@@ -79,7 +79,7 @@ func warehouseInit()->Warehouse
 {
     var wh: Warehouse
     let size = cast(u64) MaxDim * MaxDim * #sizeof(Tile)
-    wh.cells = cast(#null [*] Tile) @alloc(size)
+    wh.cells = cast(#null [*] Tile) testAlloc(size)
     let cells = wh.cells!
     for MaxDim * MaxDim
     {
@@ -91,7 +91,7 @@ func warehouseInit()->Warehouse
 func warehouseFree(wh: *Warehouse)
 {
     if wh.cells do
-        @free(wh.cells)
+        testFree(wh.cells)
 }
 
 func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => wh.cells![r * MaxDim + c]
@@ -117,7 +117,7 @@ func parsedFree(p: *Parsed)
 {
     warehouseFree(&p.wh)
     if p.moves do
-        @free(p.moves)
+        testFree(p.moves)
 }
 
 func parseInput(text: string)->Parsed
@@ -194,7 +194,7 @@ func parseInput(text: string)->Parsed
             moveCount += 1
     }
 
-    result.moves  = cast(#null [*] u8) @alloc(cast(u64) moveCount)
+    result.moves  = cast(#null [*] u8) testAlloc(cast(u64) moveCount)
     result.nMoves = moveCount
 
     // @mkslice: create a slice view over the allocated move buffer

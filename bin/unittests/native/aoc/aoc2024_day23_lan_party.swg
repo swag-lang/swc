@@ -53,13 +53,13 @@ struct Graph
 func graphInit()->Graph
 {
     var g: Graph
-    g.adj = cast(#null [*] bool) @alloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
+    g.adj = cast(#null [*] bool) testAlloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
     let adj = g.adj!
     for MaxNodes * MaxNodes { adj[@index] = false }
     return g
 }
 
-func graphFree(g: *Graph) { if g.adj do @free(g.adj) }
+func graphFree(g: *Graph) { if g.adj do testFree(g.adj) }
 
 // Encode a 2-char name as an index: (ch0 - 'a') * 26 + (ch1 - 'a')
 #[Swag.Inline]
@@ -218,8 +218,8 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
     if candCount == 0 do return
 
     // Copy candidates for iteration (we modify the set)
-    let iterBuf = cast([*] u32) (@alloc(cast(u64) candCount * #sizeof(u32)))!
-    defer @free(iterBuf)
+    let iterBuf = cast([*] u32) (testAlloc(cast(u64) candCount * #sizeof(u32)))!
+    defer testFree(iterBuf)
     for i in candCount { iterBuf[i] = candidates[i] }
 
     for ci in candCount
@@ -231,7 +231,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         state.curSize                += 1
 
         // New candidates = candidates ∩ neighbors(v)
-        let newCand = cast([*] u32) (@alloc(cast(u64) candCount * #sizeof(u32)))!
+        let newCand = cast([*] u32) (testAlloc(cast(u64) candCount * #sizeof(u32)))!
         var newCandCount: u32
         for i in candCount
         {
@@ -243,7 +243,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         }
 
         // New excluded = excluded ∩ neighbors(v)
-        let newExcl = cast([*] u32) (@alloc(cast(u64) (exclCount + 1) * #sizeof(u32)))!
+        let newExcl = cast([*] u32) (testAlloc(cast(u64) (exclCount + 1) * #sizeof(u32)))!
         var newExclCount: u32
         for i in exclCount
         {
@@ -256,8 +256,8 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
 
         bronKerbosch(g, state, newCand, newCandCount, newExcl, newExclCount)
 
-        @free(newCand)
-        @free(newExcl)
+        testFree(newCand)
+        testFree(newExcl)
 
         // Remove v from current clique
         state.curSize -= 1

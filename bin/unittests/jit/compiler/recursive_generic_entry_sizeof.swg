@@ -54,7 +54,7 @@ impl RecursiveAssocTable
 
         let oldTable    = .table
         let oldCapacity = .capacity
-        let newTable    = cast([*] RecursiveAssocEntry'(K, V)) (@alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
+        let newTable    = cast([*] RecursiveAssocEntry'(K, V)) (testAlloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
         .table = newTable
 
         for i in oldCapacity
@@ -71,7 +71,7 @@ impl RecursiveAssocTable
     mtd opDrop()
     {
         if .table do
-            @free(.table)
+            testFree(.table)
         .table    = null
         .count    = 0
         .capacity = 0
@@ -95,7 +95,7 @@ impl RecursiveAssocTable
         let oldTable    = .table
         let oldCapacity = .capacity
 
-        let newTable = cast([*] RecursiveAssocEntry'(K, V)) (@alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
+        let newTable = cast([*] RecursiveAssocEntry'(K, V)) (testAlloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
         .table    = newTable
         .count    = 0
         .deleted  = 0
@@ -115,7 +115,7 @@ impl RecursiveAssocTable
             .emplaceInternal(oldTable[i].hash, &oldTable[i].key, &oldTable[i].value)
         }
 
-        @free(oldTable)
+        testFree(oldTable)
     }
 
     #[Discardable]

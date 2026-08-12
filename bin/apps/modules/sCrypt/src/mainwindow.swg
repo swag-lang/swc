@@ -469,9 +469,8 @@ impl MainWindow
     const WindowWidth  = 720's32
     const WindowHeight = 890's32
 
-    // The one file extension this application opens, and the page that opens it.
-    const VaultExtension = ".scrypt"
-    const OpenTabIndex   = 1'u32
+    // The page that opens a vault.
+    const OpenTabIndex = 1'u32
 
     func create(parent: *Wnd)->*MainWindow
     {
@@ -938,7 +937,7 @@ impl MainWindow
         let form = card.form
         .createCard = card
 
-        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private.scrypt", icon: .theme().icon(ThemeIcons.OpenFile, 17))
+        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private", icon: .theme().icon(ThemeIcons.OpenFile, 17))
         .createPath.updateFlags(.AcceptFileDrop)
         setMachineFont(.createPath)
         .browseCreate            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
@@ -1235,8 +1234,7 @@ impl MainWindow
         options.mode              = create ? .CreateFile : .SelectFile
         options.title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
         options.confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
-        options.initialName       = create ? "volume.scrypt" : ""
-        options.filters.add({"sCrypt encrypted container (*.scrypt)", VaultExtension})
+        options.initialName       = create ? "volume" : ""
         options.shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
         options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
 
@@ -1865,14 +1863,14 @@ impl IWnd for MainWindow
 {
     // Takes a container dropped anywhere on the window that no field claimed first.
     //
-    // A vault is the one file this application opens, so dropping one says "open this" and
-    // nothing else: the window brings up the page that mounts a container, fills its path and
-    // puts the keyboard on it, which leaves the reader one password away from a drive. A drop
-    // that lands on a path field is that field's own business and never reaches here.
+    // Dropping one file says "open this" regardless of its name: the container format, not a
+    // filename extension, identifies a vault. The window brings up the page that mounts it, fills
+    // its path and puts the keyboard on it, which leaves the reader one password away from a
+    // drive. A drop that lands on a path field is that field's own business and never reaches here.
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
         let path = evt.data.singleFile()
-        if !path or !Path.hasExtension(path!, VaultExtension)
+        if !path
         {
             evt.accepted = false
             return

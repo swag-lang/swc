@@ -623,8 +623,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     defer host.shutdown()
 
     window.showTab(MainWindow.OpenTabIndex)
-    @assert(host.dropFilesOnWnd(window.mountPath, ["c:/vaults/private.scrypt"]) == DropEffect.Copy)
-    @assert(window.mountPath.text() == "c:/vaults/private.scrypt")
+    @assert(host.dropFilesOnWnd(window.mountPath, ["c:/vaults/private"]) == DropEffect.Copy)
+    @assert(window.mountPath.text() == "c:/vaults/private")
 
     // Filling the field is what makes the action live, whether a dialog or a drop wrote it.
     @assert(window.mountButton.isEnabled())
@@ -638,14 +638,14 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     defer host.shutdown()
 
     window.showTab(0)
-    @assert(host.dropFilesOnWnd(window, ["c:/vaults/private.scrypt"]) == DropEffect.Copy)
+    @assert(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
 
     @assert(window.tabs.selectedIndex == MainWindow.OpenTabIndex)
-    @assert(window.mountPath.text() == "c:/vaults/private.scrypt")
+    @assert(window.mountPath.text() == "c:/vaults/private")
     @assert(window.mountPath.hasFocus())
 }
 
-// Anything that is not a container is refused, and leaves the window where it was.
+// A filename extension never decides whether a dropped file is a container.
 #test
 {
     var host: Testing.HeadlessHost
@@ -653,11 +653,13 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     defer host.shutdown()
 
     window.showTab(0)
-    @assert(host.dropFilesOnWnd(window, ["c:/photos/holiday.png"]) == DropEffect.None)
-    @assert(window.tabs.selectedIndex == 0)
-    @assert(window.mountPath.text() == "")
+    @assert(host.dropFilesOnWnd(window, ["c:/vaults/private.anything"]) == DropEffect.Copy)
+    @assert(window.tabs.selectedIndex == MainWindow.OpenTabIndex)
+    @assert(window.mountPath.text() == "c:/vaults/private.anything")
 
-    // Two containers name no single vault to open.
+    // Two files name no single vault to open.
+    window.showTab(0)
+    window.mountPath.clear()
     @assert(host.dropFilesOnWnd(window, ["c:/vaults/a.scrypt", "c:/vaults/b.scrypt"]) == DropEffect.None)
     @assert(window.tabs.selectedIndex == 0)
 }

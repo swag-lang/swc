@@ -317,7 +317,7 @@ ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 d
         detail_ = colorize(ctx, LogColor::Yellow, moduleLog ? moduleLog->name : scopeName(ctx.cmdLine()));
 
     if (stage == Stage::Module && moduleLog && moduleLog->total)
-        progressStat_ = formatStatRatio(ctx, moduleLog->index + 1, moduleLog->total, "module");
+        progressStat_ = formatStatRatio(ctx, moduleLog->ordinal, moduleLog->total, "module");
 
     if (printEnabled_ && ctx.cmdLine().logProgress && Os::stdoutSupportsAnimation())
         progressId_ = ctx.global().logger().beginProgress(formatProgressFrames(ctx, stage_, detail_, progressStat_));

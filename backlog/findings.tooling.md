@@ -139,3 +139,30 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: have `Context.runCompiler` time each invocation and accumulate `(label, seconds)`,
   then print a table ordered by cost at the end of `runTests`. The labels already exist — the rung,
   the configuration, and the workspace or suite name are all known at the call site.
+
+### F-122 — The workspace dependency mirror is replaced in place under whoever loaded it
+
+- Area: build
+- Found while: `swc test -w bin/apps -m sCrypt --rebuild` failing with "cannot synchronize
+  workspace dependency '…\bin\std\.dep\…\core.dll': access is denied"
+- Observation: a workspace vendors dependency artifacts into its `.dep` directory and refreshes
+  them by copy-plus-rename over the previous file. Windows refuses to replace a DLL any process
+  has mapped, so a refresh only succeeds while nothing runs against the mirror. The intra-process
+  shape — the compiler replacing a DLL it had itself loaded for JIT execution, because `--rebuild`
+  restarted the same on-demand standard-library build once per compilation phase — is fixed by
+  `claimOnDemandStdModuleBuild`, which builds a module on demand at most once per process. What
+  remains is every cross-process shape of the same collision: a second compiler rebuilding a
+  dependency while another compilation still runs on the mirror, or while an application launched
+  from the workspace keeps its libraries loaded.
+- Evidence: the fixed shape reproduced deterministically — the first nested `std [gui]` build
+  succeeds, JIT execution loads `bin/std/.dep/…/core.dll`, and the second nested build dies on the
+  rename in `copyWorkspaceDependencyFile`. The cross-process shape is the same rename against the
+  same mapped file, only with the mapping owned by another process. The script flow is immune by
+  design: `resolveDependencyCacheEntry` gives a rebuilt dependency a fresh content-addressed entry
+  beside the one a running script still reads. The fixed shape does not reduce to a suite test: it
+  needs a real standard-library rebuild plus JIT-loaded shared libraries in one process, which a
+  standalone suite source cannot afford.
+- Next step: decide whether the workspace mirror should move onto the same content-addressed cache
+  as scripts — a rebuilt dependency lands in a new entry, and the `.dep` path becomes a name
+  resolved per run — or whether the sync should detect a locked destination and report which
+  process holds it instead of failing with a bare access-denied.

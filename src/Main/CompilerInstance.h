@@ -107,8 +107,8 @@ public:
     struct WorkspaceModuleLogState
     {
         Utf8     name;
-        uint32_t index = 0;
-        uint32_t total = 0;
+        uint32_t ordinal = 0; // 1-based position in the workspace build order, ready to print
+        uint32_t total   = 0;
     };
 
     CompilerInstance(const Global& global, const CommandLine& cmdLine);
@@ -398,7 +398,7 @@ private:
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
     ExitCode          runWorkspace();
-    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount, bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
+    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleOrdinal, uint32_t moduleCount, bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);
     const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;
     const SourceView* findSourceViewByNormalizedPathAndRuntimeLine(const Utf8& normalizedPath, uint32_t runtimeLine) const;

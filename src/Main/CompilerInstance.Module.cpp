@@ -1580,6 +1580,22 @@ namespace
         outMirroredDir = (entryDir / relativePath).lexically_normal();
         return Result::Continue;
     }
+
+    // One standard-library module is built on demand at most once per compiler process. The asks
+    // keep coming — every importer, every dependency-closure walk, and every compilation phase: a
+    // test command alone resolves its imports once for the JIT pass and once more for the native
+    // artifact. The answer cannot change within one process, and under '--rebuild' a repeat would
+    // not merely be wasted work: the earlier pass loaded the freshly built shared libraries into
+    // this very process for JIT execution, so rebuilding asks Windows to replace a DLL it has
+    // mapped, which fails with an access-denied error.
+    bool claimOnDemandStdModuleBuild(const Utf8& moduleName)
+    {
+        static std::mutex               mutex;
+        static std::unordered_set<Utf8> claimedModules;
+
+        const std::scoped_lock lock(mutex);
+        return claimedModules.insert(moduleName).second;
+    }
 }
 
 struct ModuleSetupInputApplier
@@ -1630,7 +1646,6 @@ struct ModuleSetupInputApplier
     CompilerInstance*                                                          compiler = nullptr;
     TaskContext*                                                               ctx      = nullptr;
     fs::path                                                                   workspaceDependencyRoot;
-    std::unordered_set<Utf8>                                                   onDemandBuiltModules;
     std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
     std::unordered_map<Utf8, fs::path>                                         scriptDependencyEntries;
     std::unordered_map<Utf8, std::vector<Utf8>>                                dependencyClosureCache;
@@ -1810,10 +1825,7 @@ Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const
     if (!canBuildSwagStdModuleOnDemand(importRequest))
         return Result::Continue;
 
-    // One module is asked for as many times as it is imported — once per importer, and once more
-    // by each dependency-closure walk. The answer cannot change within one setup, and under
-    // '--rebuild' every one of those asks would otherwise start the same build again.
-    if (!onDemandBuiltModules.insert(importRequest.moduleName).second)
+    if (!claimOnDemandStdModuleBuild(importRequest.moduleName))
         return Result::Continue;
 
     fs::path workspacePath;
@@ -2395,8 +2407,11 @@ ExitCode CompilerInstance::runWorkspace()
     workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
 
     // A workspace narrowed down to a single module reads like a plain build, so it gets the same
-    // phase-by-phase report. Any wider selection keeps one summary line per module.
-    global().logger().setStagesDetailed(activeModuleCount == 1);
+    // phase-by-phase report. Any wider selection keeps one summary line per module. The choice is
+    // scoped because this function nests: a standard-library dependency built on demand runs a
+    // whole workspace build in the middle of an enclosing command, and its verbosity must not
+    // leak into the run that triggered it.
+    const Logger::ScopedStagesDetailed stagesDetailedScope(global().logger(), activeModuleCount == 1);
 
     std::vector<size_t> buildOrder;
     buildOrder.reserve(activeModuleCount);
@@ -2491,7 +2506,7 @@ ExitCode CompilerInstance::runWorkspace()
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
-Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount, const bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleOrdinal, const uint32_t moduleCount, const bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const
 {
     outPending.reset();
 
@@ -2514,9 +2529,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     CommandLineParser::refreshBuildCfg(moduleCmdLine);
 
     const WorkspaceModuleLogState workspaceLogState = {
-        .name  = moduleBuild.name,
-        .index = moduleIndex,
-        .total = moduleCount,
+        .name    = moduleBuild.name,
+        .ordinal = moduleOrdinal,
+        .total   = moduleCount,
     };
 
     if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine))

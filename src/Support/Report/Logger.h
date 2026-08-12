@@ -93,6 +93,33 @@ public:
         size_t  savedStageMuteDepth_ = 0;
     };
 
+    // Detail is a per-run choice, and runs nest: a dependency built on demand starts a whole
+    // workspace build inside an enclosing command. The nested run decides its own verbosity, and
+    // this scope is what keeps that decision from silencing the run that triggered it.
+    class ScopedStagesDetailed
+    {
+    public:
+        ScopedStagesDetailed(Logger& logger, const bool detailed) :
+            logger_(&logger),
+            savedStagesDetailed_(logger.stagesDetailed_)
+        {
+            logger_->stagesDetailed_ = detailed;
+        }
+
+        ~ScopedStagesDetailed()
+        {
+            if (logger_)
+                logger_->stagesDetailed_ = savedStagesDetailed_;
+        }
+
+        ScopedStagesDetailed(const ScopedStagesDetailed&)            = delete;
+        ScopedStagesDetailed& operator=(const ScopedStagesDetailed&) = delete;
+
+    private:
+        Logger* logger_              = nullptr;
+        bool    savedStagesDetailed_ = false;
+    };
+
     class ScopedLock
     {
     public:

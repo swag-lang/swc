@@ -68,6 +68,28 @@ SWC_TEST_BEGIN(Logger_TestTalliesNameSuccessfulWork)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Logger_NestedStagesDetailedChoiceDoesNotLeak)
+{
+    Logger&    logger = ctx.global().logger();
+    const bool saved  = logger.stagesDetailed();
+
+    logger.setStagesDetailed(true);
+    {
+        const Logger::ScopedStagesDetailed nested(logger, false);
+        if (logger.stagesDetailed())
+        {
+            logger.setStagesDetailed(saved);
+            return Result::Error;
+        }
+    }
+
+    const bool restored = logger.stagesDetailed();
+    logger.setStagesDetailed(saved);
+    if (!restored)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Logger_ProgressCanBeDisabledFromCommandLine)
 {
     CommandLine cmdLine;

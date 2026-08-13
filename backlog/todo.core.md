@@ -391,22 +391,6 @@ Add a heap-backed priority queue with explicit comparator and ownership behavior
 
 - Related: T-157
 
-## Tier C — Filesystem integration
-
-### T-035 — No memory-mapped files
-
-Add portable mapped-file and mapped-region APIs with flush, resize interaction, lifetime, and
-failure contracts suitable for large files such as an sCrypt container.
-
-- Related: T-159
-
-### T-159 — No filesystem watching
-
-Add a filesystem change stream for tools that react to edits, with overflow, rename pairing,
-recursive scope, and cancellation behavior stated per platform.
-
-- Related: T-035, T-008
-
 ## Tier C — Concurrency and asynchronous I/O
 
 ### T-036 — No future or task abstraction

@@ -5,7 +5,9 @@ const ERROR_NO_MORE_FILES        = 18
 const ERROR_INSUFFICIENT_BUFFER  = 122
 const ERROR_INVALID_NAME         = 123
 const ERROR_NO_DATA              = 232
+const ERROR_OPERATION_ABORTED    = 995
 const ERROR_IO_PENDING           = 997
 const ERROR_DEVICE_NOT_CONNECTED = 1167
+const ERROR_NOT_FOUND            = 1168
 
 const ERROR_SUCCESS = 0

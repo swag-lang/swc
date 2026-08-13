@@ -448,17 +448,13 @@ impl RecentWnd
 
         let idx = .pendingRecentIndex
         let capture: #null *Capture = catch .addRecent(.pendingRecentFiles[idx], front: false) as err
-        defer #fail Memory.delete(capture)
-        if err == null
-        {
-            if idx == 0 and !.main.editWnd.editView.capture
-            {
-                .recentView.selected = 0
-                .main.editWnd.editView.setCapture(capture!)
-            }
-            else do
-                Memory.delete(capture)
-        }
+        Memory.delete(capture)
+
+        // The capture above is a preview: the strip never needs more. On a fresh
+        // start the first item still becomes the edited capture, through the
+        // selection path, which performs the one full load of the strip.
+        if err == null and idx == 0 and !.main.editWnd.editView.capture do
+            .recentView.select(0, force: true)
 
         .pendingRecentIndex += 1
         .scheduleLoadNextRecent()
@@ -501,7 +497,10 @@ impl RecentWnd
 
     mtd addRecent(file: String, front = true, sel = false)->#null *Capture fail
     {
-        let capture = try Capture.load(file)
+        // The strip shows thumbnails: a preview load reads the SCC header and the
+        // preview chunk alone, never the image payloads. The full capture is loaded
+        // by RecentView.select only, when an item actually becomes the edited one.
+        let capture = try Capture.load(file, preview: true)
         let loaded  = capture!
         .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
 

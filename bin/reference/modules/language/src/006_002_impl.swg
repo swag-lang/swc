@@ -40,7 +40,7 @@ Swag allows multiple 'impl' blocks for the same struct. Inside methods,
 
 impl MyStruct
 {
-    // 'me' is implicitly 'var me: MyStruct'
+    // 'me' is the receiver's address: an implicit non-null '*MyStruct'
     func returnX(me) => me.x
     func returnY(me) => me.y
 
@@ -81,7 +81,7 @@ To enable reflection on methods in an 'impl' block, annotate the struct with
 a 'methods' slice. Each 'Swag.TypeValue' supplies the method name, function
 type, attributes, and—when callable at runtime—the function pointer.
 */
-alias ReflectedMyStructMethod = func(&MyStruct)->s32
+alias ReflectedMyStructMethod = func(*MyStruct)->s32
 
 #test
 {
@@ -93,7 +93,7 @@ alias ReflectedMyStructMethod = func(&MyStruct)->s32
     {
         if method.name == "returnX"
         {
-            returnX = &method
+            returnX = method
             break
         }
     }

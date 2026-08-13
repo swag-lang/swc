@@ -166,8 +166,11 @@ at compile time. This ensures immutability throughout program execution.
 /**
 # Structs as Function Arguments
 
-Functions can take a struct as an argument. This is done by reference,
-with no copy made — equivalent to passing a const reference in C++.
+Functions take a struct argument as an immutable **value**. Under the hood the
+compiler passes the struct's address rather than copying it, but the callee
+cannot write through the parameter, so the code behaves as if a private copy had
+been made — at zero copy cost. To let a function modify the caller's struct,
+pass its address explicitly through a pointer parameter ('*Struct3').
 */
 
 struct Struct3

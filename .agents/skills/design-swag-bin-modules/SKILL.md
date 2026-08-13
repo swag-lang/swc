@@ -86,7 +86,9 @@ For each public type or subsystem, write down the meaningful operation matrix.
 Review both axes before adding individual conveniences:
 
 - construction, validation, copying, moving, resetting, and destruction;
-- mutable and read-only access;
+- mutable and read-only access, including pointer-returning place counterparts when a
+  container exposes element storage (`opIndexPtr` beside `opIndex`, in const and mutable
+  forms; `frontPtr`/`backPtr`/`peekPtr` beside `front`/`back`/`peek`);
 - single-item and bulk operations;
 - owned and borrowed inputs or results;
 - synchronous variants and callbacks only where both are genuinely useful;

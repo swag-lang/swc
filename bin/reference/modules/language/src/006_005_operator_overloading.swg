@@ -15,6 +15,13 @@ Use a 'where' clause on 'op' to state which operators a hook handles. A failing 
 removes that specialization from overload resolution; a '#error' reached in the body remains
 a compile-time error and is reported where it occurs.
 
+A container hands out element addresses with 'opIndexPtr', the place-forming twin of the
+value-returning 'opIndex'. The compiler selects 'opIndexPtr' in place contexts â€” a member
+access or method call on 'v[i]', the address '&v[i]', a nested index, or an assignment when
+no dedicated write operator matches â€” and 'opIndex' for plain value reads. Declare a 'const'
+overload returning 'const *T' so read-only receivers get a read-only element address.
+'opIndexPtr' is never evaluated at compile time.
+
 A literal suffix stays a string ('opSetLiteral'), because the set of suffixes is open-ended
 and chosen by the user rather than by the language.
 
@@ -86,6 +93,20 @@ impl Struct
         return true
     }
 
+    // Return the address of an element instead of its value. Selected in place contexts:
+    // a member access or method call on 'v[i]', the address '&v[i]', a nested index, or
+    // an assignment when no dedicated write operator matches.
+    func opIndexPtr(me, index: OneType)->*AnotherType
+    {
+        return &me.x
+    }
+
+    // The 'const' overload serves read-only receivers with a read-only element address.
+    func opIndexPtr(const me, index: OneType)->const *AnotherType
+    {
+        return &me.x
+    }
+
     // Called when @countof is used (typically in a 'for' block) to return the count of elements
     func opCount(me)->u64
     {
@@ -153,7 +174,7 @@ impl Struct
     func(suffix: string) opSetLiteral(me, value: AnotherType) {}
 
     // Assign to an indexed position via '[?] ='. All index parameters must have the same type.
-    // When both opIndexSet and opIndex can write, opIndexSet is selected.
+    // 'opIndexSet' keeps priority over writing through the 'opIndexPtr' element address.
     func opIndexSet(me, index: OneType, value: OneType) {}
     func opIndexSet(me, row: OneType, column: OneType, value: OneType) {}
     func opIndexSet(me, index: OneType, value: AnotherType) {}
@@ -212,7 +233,7 @@ impl Struct
     func(op: Swag.Operator) opAssign(me, other: AnotherType) {}
 
     // Indexed assignment with operator 'op'. All index parameters must have the same type.
-    // When both opIndexAssign and opIndex can write, opIndexAssign is selected.
+    // 'opIndexAssign' keeps priority over writing through the 'opIndexPtr' element address.
     func(op: Swag.Operator) opIndexAssign(me, index: OneType, value: OneType) {}
     func(op: Swag.Operator) opIndexAssign(me, row: OneType, column: OneType, value: OneType) {}
     func(op: Swag.Operator) opIndexAssign(me, index: OneType, value: AnotherType) {}

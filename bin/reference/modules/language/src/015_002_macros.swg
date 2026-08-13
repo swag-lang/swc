@@ -178,7 +178,7 @@ argument.
 /**
 # Mutable Block Parameters
 A 'var' parameter gives the injected code a mutable binding. A typed parameter
-also types (and checks) the binding, which is required for references.
+also types (and checks) the binding.
 */
 #test
 {

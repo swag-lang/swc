@@ -566,8 +566,10 @@ namespace
         else
             codeGen.sema().unsetIsLValue(codeGen.curNodeRef());
 
+        // A reference-returning 'opIndex' and a pointer-returning 'opIndexPtr' both hand back
+        // the element's address: the call result register IS the address of the semantic value.
         const TypeInfo& returnType = codeGen.typeMgr().get(calledFn.returnTypeRef());
-        if (returnType.isReference())
+        if (returnType.isReference() || calledFn.specOpKind() == SpecOpKind::OpIndexPtr)
         {
             const CodeGenNodePayload& callPayload = codeGen.payload(codeGen.curNodeRef());
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), callPayload.reg, semanticTypeRef);

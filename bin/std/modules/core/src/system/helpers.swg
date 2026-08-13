@@ -20,32 +20,32 @@ func(T) equals(flags, value: T)->bool
 
 // Adds value to a flag set.
 #[Inline]
-func(T) add(flags: &T, value: T)
+func(T) add(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    flags |= value
+    dref flags |= value
 }
 
 // Removes value from a flag set.
 #[Inline]
-func(T) remove(flags: &T, value: T)
+func(T) remove(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    flags &= ~value
+    dref flags &= ~value
 }
 
 // Replaces a flag set with value.
 #[Inline]
-func(T) set(flags: &T, value: T)
+func(T) set(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    flags = value
+    dref flags = value
 }
 
 // Toggles value in a flag set.
 #[Inline]
-func(T) toggle(flags: &T, value: T)
+func(T) toggle(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    flags ^= value
+    dref flags ^= value
 }

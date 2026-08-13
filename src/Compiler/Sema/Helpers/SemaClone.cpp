@@ -630,6 +630,7 @@ namespace
             clonedPayload.runtimeArrayFillCstRef = sourcePayload->runtimeArrayFillCstRef;
         clonedPayload.runtimeSafetyMask |= sourcePayload->runtimeSafetyMask;
         clonedPayload.notNullUnwrap |= sourcePayload->notNullUnwrap;
+        clonedPayload.ufcsReceiverAddress |= sourcePayload->ufcsReceiverAddress;
     }
 
     // Implicit casts (created by Cast::createCast) store part of their semantic

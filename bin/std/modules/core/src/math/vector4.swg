@@ -106,7 +106,7 @@ impl Vector4
     // Binary operators for vector-vector operations (+, -, *, /).
     // Performs component-wise operations between two vectors and returns the result.
     #[Swag.Inline]
-    mtd(op: Swag.Operator) const opBinary(other: const &Vector4)->Vector4
+    mtd(op: Swag.Operator) const opBinary(other: Vector4)->Vector4
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
@@ -509,7 +509,7 @@ impl Vector4
     // Perform smooth damping interpolation towards 'target'.
     // Uses 'smoothTime' and 'deltaTime' for frame-rate independent smooth movement.
     // 'currentVelocity' is modified to track the current rate of change.
-    func smoothDamp(current, target: Vector4, currentVelocity: &Vector4, smoothTime, deltaTime: f32)->Vector4
+    func smoothDamp(current, target: Vector4, currentVelocity: *Vector4, smoothTime, deltaTime: f32)->Vector4
     {
         var result: retval = undefined
         result.x = Math.smoothDamp(current.x, target.x, &currentVelocity.x, smoothTime, deltaTime)

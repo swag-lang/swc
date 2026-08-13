@@ -79,6 +79,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::OpSlice, .str = "opSlice"},
         {.name = PredefinedName::OpIndex, .str = "opIndex"},
         {.name = PredefinedName::OpIndexSet, .str = "opIndexSet"},
+        {.name = PredefinedName::OpIndexPtr, .str = "opIndexPtr"},
         {.name = PredefinedName::OpVisit, .str = "opVisit"},
         {.name = PredefinedName::TypeInfo, .str = "TypeInfo"},
         {.name = PredefinedName::TypeInfoNative, .str = "TypeInfoNative"},

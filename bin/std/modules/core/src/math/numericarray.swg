@@ -29,7 +29,7 @@ impl NumericArray
     }
 
     // Applies addition, subtraction, multiplication, or division component by component.
-    mtd(op: Swag.Operator) const opBinary(other: const &NumericArray)->NumericArray
+    mtd(op: Swag.Operator) const opBinary(other: NumericArray)->NumericArray
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         var result: retval

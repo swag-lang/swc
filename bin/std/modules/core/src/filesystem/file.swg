@@ -131,9 +131,9 @@ func readAllLines(fullname: string, encoding = TextEncoding.Utf8)->Array'String 
 }
 
 // Executes user code for each line read from a file
-// Block parameter: 'line' is a reference to the current line.
+// Block parameter: 'line' is the address of the current line buffer.
 #[Swag.Macro]
-func readEachLines(fullname: string, encoding = TextEncoding.Utf8, stmt: #code(var line: &String)) fail
+func readEachLines(fullname: string, encoding = TextEncoding.Utf8, stmt: #code(var line: *String)) fail
 {
     var textReader: TextReader
     textReader.open(fullname, encoding)

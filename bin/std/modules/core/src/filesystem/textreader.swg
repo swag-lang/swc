@@ -79,7 +79,7 @@ public impl TextReader
     //
     // Line-ending bytes are consumed but not included in the result.
     #[Swag.Safety(.BoundCheck | .Overflow, false)]
-    mtd readLine(result: &String)->bool fail
+    mtd readLine(result: *String)->bool fail
     {
         result.clear()
 
@@ -111,7 +111,7 @@ public impl TextReader
                 ptr += 1
 
             let range = cast(u64) (ptr - ptrB)
-            result += @mkstring(ptrB, range)
+            dref result += @mkstring(ptrB, range)
 
             // We have reached the end of the buffer without finding an eol
             // Restart

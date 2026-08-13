@@ -33,7 +33,7 @@ func resetStaticArrayDropTrace()
     StaticArrayDropCount = 0
 }
 
-func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: const [..] s32)->bool
+func assertStaticIntArray(values: StaticArray'(s32, 4'u64), expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -47,9 +47,9 @@ func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: con
     return true
 }
 
-func visitStructStaticArray(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
+func visitStructStaticArray(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
 {
-    for value, index in values where value.value != 12
+    for value, index in dref values where value.value != 12
     {
         if index == 0 do
             continue
@@ -60,7 +60,7 @@ func visitStructStaticArray(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))
     return 0
 }
 
-func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
+func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
 {
     var score = 0
     for value, index in values.reversed()

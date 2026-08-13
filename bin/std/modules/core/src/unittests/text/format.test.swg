@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertFormatString(value: const &String, expected: string)->bool
+func assertFormatString(value: String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and
@@ -12,7 +12,7 @@ func assertFormatString(value: const &String, expected: string)->bool
            Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
-func formatReferencedString(value: const &String)->String
+func formatReferencedString(value: String)->String
 {
     return Format.toString("%", value)
 }

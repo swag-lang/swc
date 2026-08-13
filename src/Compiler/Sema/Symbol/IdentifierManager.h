@@ -109,6 +109,7 @@ public:
         OpSlice,
         OpIndex,
         OpIndexSet,
+        OpIndexPtr,
         OpVisit,
         TypeInfo,
         TypeInfoNative,

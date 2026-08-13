@@ -21,6 +21,9 @@ struct CodeGenLoweringPayload
     TokenId         fallibleWrapperTokenId             = TokenId::Invalid;
     bool            ifVarDeclWhereUsesConditionBinding = false;
     bool            notNullUnwrap                      = false;
+    // A UFCS receiver cast to a pointer parameter: the receiver's ADDRESS becomes the
+    // pointer value, never a numeric conversion of the receiver's bits.
+    bool ufcsReceiverAddress = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {

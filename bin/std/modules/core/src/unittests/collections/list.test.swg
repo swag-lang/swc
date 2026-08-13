@@ -3,13 +3,13 @@
 
 using Swag
 
-func assertIntList(values: &List's32, expected: const [..] s32)->bool
+func assertIntList(values: *List's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
 
     var idx: u64 = 0
-    for value in values
+    for value in dref values
     {
         if value != expected[idx] do
             return false
@@ -24,7 +24,7 @@ struct ListStructProbe
     value: s32
 }
 
-func visitStructList(values: &List'ListStructProbe)->s32
+func visitStructList(values: *List'ListStructProbe)->s32
 {
     var code = 0
     for value, node in values
@@ -41,7 +41,7 @@ func visitStructList(values: &List'ListStructProbe)->s32
     return code
 }
 
-func visitStructListReverse(values: &List'ListStructProbe)->s32
+func visitStructListReverse(values: *List'ListStructProbe)->s32
 {
     var code = 0
     for value, node in values.reversed()

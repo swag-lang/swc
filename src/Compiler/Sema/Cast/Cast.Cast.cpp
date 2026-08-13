@@ -750,7 +750,7 @@ namespace
         castRequest.failure.optTypeRef = underlyingTypeRef;
     }
 
-    bool shouldRouteEnumViaUnderlying(const CastRequest& castRequest, const TypeInfo& srcType, const TypeInfo& dstType)
+    bool shouldRouteEnumViaUnderlying(const CastRequest& castRequest, TypeRef srcTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
     {
         if (!srcType.isEnum())
             return false;
@@ -759,6 +759,10 @@ namespace
         if (dstType.isEnum() && castRequest.kind != CastKind::Explicit)
             return false;
         if (dstType.isReference())
+            return false;
+        // A pointer to the enum itself binds the enum object — the UFCS receiver shape —
+        // never a conversion through the underlying scalar.
+        if (dstType.isAnyPointer() && dstType.payloadTypeRef() == srcTypeRef)
             return false;
         if (dstType.isAny())
             return false;
@@ -1523,7 +1527,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castAggregateStructToAggregateStruct(sema, castRequest, srcTypeRef, dstTypeRef, srcType, dstType);
     else if (castRequest.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
-    else if (shouldRouteEnumViaUnderlying(castRequest, srcType, dstType))
+    else if (shouldRouteEnumViaUnderlying(castRequest, srcTypeRef, srcType, dstType))
         res = castFromEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
         res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);

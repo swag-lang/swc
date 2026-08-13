@@ -390,7 +390,7 @@ private var g_PropertyKeys: AppStrings
 private const PropertyKeyPrefix = "prop_"
 
 // Returns the visible strings of sCapture in the active language.
-func appStrings()->const &AppStrings => &g_AppStrings
+func appStrings()->const *AppStrings => &g_AppStrings
 
 // Returns the active wording of a string declared by a property attribute.
 //

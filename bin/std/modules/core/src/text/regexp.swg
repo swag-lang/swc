@@ -1871,10 +1871,10 @@ impl RegExp
         return pz + 1
     }
 
-    func addParenthesis(uni32: &Array'rune)
+    func addParenthesis(uni32: *Array'rune)
     {
         #[Swag.Discardable]
-        func isEscaped(uni32: &Array'rune, idx: s32)->bool
+        func isEscaped(uni32: *Array'rune, idx: s32)->bool
         {
             var count = 0
             var i     = idx - 1

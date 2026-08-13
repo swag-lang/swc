@@ -126,7 +126,7 @@ private const FrenchStrings = #include("../datas/lang/fr/scrypt.tweak")
 private var g_AppStrings: AppStrings
 
 // Returns the visible strings of sCrypt in the active language.
-func appStrings()->const &AppStrings => &g_AppStrings
+func appStrings()->const *AppStrings => &g_AppStrings
 
 // Registers the sCrypt string table and its embedded translations.
 func registerAppStrings(bundle: *Core.Resources.Bundle)

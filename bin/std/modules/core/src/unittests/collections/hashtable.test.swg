@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
+func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 {
     var forwardKeys:   Array's32
     var forwardValues: Array's32
@@ -128,7 +128,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
     @assert(!table.contains(2))
 }
 
-func assertTableStringValue(table: const &HashTable'(string, String), key: string, expected: string)->bool
+func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool
 {
     let entry = table.tryFind(key)
     return entry != null and entry.value == expected and @countof(entry.value) == @countof(expected)

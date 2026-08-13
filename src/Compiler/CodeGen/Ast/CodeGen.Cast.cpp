@@ -1386,6 +1386,16 @@ namespace
             return Result::Continue;
         }
 
+        // A UFCS receiver cast passes the receiver's address as the pointer value; it must
+        // never fall into the numeric int-to-pointer conversion below.
+        if (castPayload && castPayload->ufcsReceiverAddress && resolvedDstType.isAnyPointer())
+        {
+            if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
+                return Result::Continue;
+            if (tryEmitValueBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef, castPayload))
+                return Result::Continue;
+        }
+
         if (srcIntLikeType && resolvedDstType.isAnyPointer())
         {
             const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedSrcType);

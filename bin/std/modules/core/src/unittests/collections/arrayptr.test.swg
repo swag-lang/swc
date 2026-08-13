@@ -3,12 +3,12 @@
 
 using Swag
 
-func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
+func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
 
-    for value, index in values
+    for value, index in dref values
     {
         if value == null do
             return false
@@ -29,7 +29,7 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
     var copy = values
     @assert(assertIntArrayPtr(&copy, [1, 2, 3]))
 
-    for value, index in values
+    for value, index in dref values
     {
         let src = value!
         let dup = copy[index]!

@@ -62,6 +62,8 @@ namespace
                 return "mtd(op: Swag.Operator) opIndexAssign(index: <type>[, index: <same type>...], value: <type>) -> void";
             case SpecOpKind::OpIndexSet:
                 return "mtd opIndexSet(index: <type>[, index: <same type>...], value: <type>) -> void";
+            case SpecOpKind::OpIndexPtr:
+                return "mtd opIndexPtr(index: <type>[, index: <same type>...]) -> *<type>";
             case SpecOpKind::OpVisit:
                 return "mtd(ptr: bool) opVisit(stmt: #code) -> void";
             case SpecOpKind::None:
@@ -381,6 +383,13 @@ namespace
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
+            // The returned pointer is the element's address, so the indexed expression can be an
+            // lvalue: a non-null single-value pointer is the whole contract.
+            case SpecOpKind::OpIndexPtr:
+                if (params.size() < 2 || !returnType.isValuePointer() || returnType.isNullable() || !indexParametersHaveSameType(ctx, params, 1, params.size()))
+                    return reportSpecOpError(sema, sym, kind);
+                break;
+
             case SpecOpKind::OpIndexAssign:
             case SpecOpKind::OpIndexSet:
                 if (params.size() < 3 || !returnIsVoid || !indexParametersHaveSameType(ctx, params, 1, params.size() - 1))
@@ -411,6 +420,7 @@ namespace
             case SpecOpKind::OpIndex:
             case SpecOpKind::OpIndexAssign:
             case SpecOpKind::OpIndexSet:
+            case SpecOpKind::OpIndexPtr:
                 return true;
             default:
                 return false;
@@ -485,6 +495,8 @@ std::string_view SemaSpecOp::specOpFunctionName(const SpecOpKind kind)
             return "opIndexAssign";
         case SpecOpKind::OpIndexSet:
             return "opIndexSet";
+        case SpecOpKind::OpIndexPtr:
+            return "opIndexPtr";
         case SpecOpKind::OpVisit:
             return "opVisit";
         case SpecOpKind::None:
@@ -604,6 +616,7 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
         {Pn::OpSlice, SpecOpKind::OpSlice},
         {Pn::OpIndex, SpecOpKind::OpIndex},
         {Pn::OpIndexSet, SpecOpKind::OpIndexSet},
+        {Pn::OpIndexPtr, SpecOpKind::OpIndexPtr},
     };
 
     for (const auto& e : K_MAP)

@@ -374,7 +374,7 @@ impl HashSet
 
     // Internal helper to add a new element with a pre-computed hash.
     #[Discardable, Swag.NoDoc]
-    mtd emplaceInternal(hashVal: u32, key: &K)->*HashSetEntry
+    mtd emplaceInternal(hashVal: u32, key: *K)->*HashSetEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()
@@ -382,20 +382,20 @@ impl HashSet
         var index = cast(u64) hashVal & (.capacity - 1)
         let table = .tablePtr()
 
-        index = .getNewIndex(key, index, hashVal)
+        index = .getNewIndex(dref key, index, hashVal)
         if table[index].hash >= HashSet.HASH_FIRST do
             return table + index
 
         if table[index].hash == HashSet.HASH_FREE
         {
-            table[index].key = #relocate key
+            table[index].key = #relocate dref key
         }
         else
         {
             if table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
             @drop(&table[index].key)
-            table[index].key = #relocate key
+            table[index].key = #relocate dref key
         }
 
         table[index].hash = hashVal

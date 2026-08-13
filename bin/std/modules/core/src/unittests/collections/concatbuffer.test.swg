@@ -18,7 +18,7 @@ func buildConcatBuffer()->ConcatBuffer
     return result
 }
 
-func frontBucketCount(buffer: const &ConcatBuffer)->u64
+func frontBucketCount(buffer: ConcatBuffer)->u64
 {
     for bucket in buffer do
         return bucket.count
@@ -26,7 +26,7 @@ func frontBucketCount(buffer: const &ConcatBuffer)->u64
     return 0
 }
 
-func backBucketCount(buffer: const &ConcatBuffer)->u64
+func backBucketCount(buffer: ConcatBuffer)->u64
 {
     for bucket in buffer.reversed() do
         return bucket.count

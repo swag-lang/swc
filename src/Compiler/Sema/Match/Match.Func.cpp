@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
@@ -2452,8 +2453,23 @@ namespace
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
+            const TypeRef             preCastSrcTypeRef = argView.typeRef();
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
                 SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
+
+            // A UFCS receiver bound to a pointer parameter hands over its address. Mark the
+            // cast so codegen never lowers it as a numeric conversion, and give an rvalue
+            // receiver a call-site home the address can point into.
+            if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
+            {
+                const TypeInfo& preCastSrcType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef));
+                if (!preCastSrcType.isPointerOrReference() && !preCastSrcType.isNull())
+                {
+                    SemaHelpers::ensureCodeGenLoweringPayload(sema, argView.nodeRef()).ufcsReceiverAddress = true;
+                    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, argView.nodeRef(), sema.node(argView.nodeRef()), sema.typeMgr().get(castTypeRef).payloadTypeRef(), "__call_arg_ptr_storage"));
+                }
+            }
+
             entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
         }
@@ -2797,6 +2813,18 @@ namespace
 
             if (resolvedArg.bindsReferenceToValue)
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
+            if (resolvedArg.passUfcsAddressAsPointer)
+            {
+                // The receiver's address escapes into the pointer parameter, so a
+                // register-allocated scalar or enum source must land in memory first.
+                const SemaNodeView sourceView = sema.viewNodeTypeSymbol(SemaHelpers::resolveTransparentExprSourceRef(sema, finalArgRef));
+                if (sourceView.sym() && sourceView.sym()->isVariable())
+                {
+                    auto& symVar = sourceView.sym()->cast<SymbolVariable>();
+                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                        symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+                }
+            }
             if (resolvedArg.movesValueToParam)
             {
                 SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, entry.argRef, selectedFn.parameters()[i]->typeRef(), AstModifierFlagsE::Move));

@@ -17,7 +17,7 @@ internal impl NativeRenderOgl
     }
 
     // Creates a rendering context for an environment window.
-    mtd createContext(window: &Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail
+    mtd createContext(window: *Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail
     {
         return try .createWindowContext(window.nativeRenderHandle(), width, height, cast(#null const *void) mainRC)
     }

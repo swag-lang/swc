@@ -98,7 +98,7 @@ private const FrenchStrings = #include(FrenchStringsName)
 private var g_Strings: Strings
 
 // Returns the visible strings of the GUI module in the active language.
-func strings()->const &Strings => &g_Strings
+func strings()->const *Strings => &g_Strings
 
 // One language the interface can present.
 //

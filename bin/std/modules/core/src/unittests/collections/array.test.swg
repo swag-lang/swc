@@ -43,7 +43,7 @@ func resetArrayDropTrace()
     ArrayDropMask  = 0
 }
 
-func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
+func assertIntArray(values: Array's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -57,7 +57,7 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
     return true
 }
 
-func assertStringArray(values: const &Array'String, expected: const [..] string)->bool
+func assertStringArray(values: Array'String, expected: const [..] string)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -85,7 +85,7 @@ func assertStringSlice(values: const [..] String, expected: const [..] string)->
     return true
 }
 
-func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expected: const [..] string)->bool
+func assertStaticStringArray(values: StaticArray'(String, 4'u64), expected: const [..] string)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -99,9 +99,9 @@ func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expecte
     return true
 }
 
-func visitStructArray(values: &Array'ArrayVisitProbe)->s32
+func visitStructArray(values: *Array'ArrayVisitProbe)->s32
 {
-    for value, index in values where value.value != 12
+    for value, index in dref values where value.value != 12
     {
         if index == 0 do
             continue
@@ -112,7 +112,7 @@ func visitStructArray(values: &Array'ArrayVisitProbe)->s32
     return 0
 }
 
-func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
+func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 {
     var score = 0
     for value, index in values.reversed()
@@ -192,11 +192,11 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     @assert(asSlice[0] == 4)
     @assert(asSlice[3] == 2)
 
-    let first = values.ref1(0)
-    first = 9
+    let first = values.ptr1(0)
+    dref first = 9
 
-    let bottomRight = values.ref2(1, 1, 2)
-    bottomRight = 7
+    let bottomRight = values.ptr2(1, 1, 2)
+    dref bottomRight = 7
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]
     @assert(assertIntArray(values, expectedGrid))

@@ -544,13 +544,51 @@ namespace
         return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
     }
 
+    // The pointer-world receiver: a non-null value-pointer parameter binding a value
+    // source takes the value's ADDRESS, exactly like a castless UFCS receiver. Without
+    // it the call would load the value's first bytes as the receiver pointer.
+    bool structOpCastPassesAddressAsPointer(Sema& sema, const SymbolFunction& calledFn, AstNodeRef sourceArgRef)
+    {
+        if (sourceArgRef.isInvalid() || calledFn.parameters().empty())
+            return false;
+
+        const TypeRef receiverTypeRef = calledFn.parameters().front()->typeRef();
+        if (!receiverTypeRef.isValid())
+            return false;
+
+        const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
+        if (!receiverType.isValuePointer() || receiverType.isNullable())
+            return false;
+
+        const TypeRef sourceTypeRef = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type).typeRef();
+        if (!sourceTypeRef.isValid())
+            return true;
+
+        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+        return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
+    }
+
     Result buildStructOpCastResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, AstNodeRef sourceArgRef, const SymbolFunction& calledFn)
     {
         ResolvedCallArgument resolvedArg;
-        resolvedArg.argRef                = sourceArgRef;
-        resolvedArg.bindsReferenceToValue = structOpCastBindsReferenceToValue(sema, calledFn, sourceArgRef);
+        resolvedArg.argRef                   = sourceArgRef;
+        resolvedArg.bindsReferenceToValue    = structOpCastBindsReferenceToValue(sema, calledFn, sourceArgRef);
+        resolvedArg.passUfcsAddressAsPointer = structOpCastPassesAddressAsPointer(sema, calledFn, sourceArgRef);
         if (!calledFn.parameters().empty())
             SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters().front()->typeRef(), sourceArgRef));
+        if (resolvedArg.passUfcsAddressAsPointer)
+        {
+            // The receiver's address escapes into the pointer parameter, so a
+            // register-allocated scalar or enum source must land in memory first.
+            const SemaNodeView sourceView = sema.viewNodeTypeSymbol(SemaHelpers::resolveTransparentExprSourceRef(sema, sourceArgRef));
+            if (sourceView.sym() && sourceView.sym()->isVariable())
+            {
+                auto& symVar = sourceView.sym()->cast<SymbolVariable>();
+                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                    symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            }
+        }
 
         outResolvedArgs.push_back(resolvedArg);
         return Result::Continue;

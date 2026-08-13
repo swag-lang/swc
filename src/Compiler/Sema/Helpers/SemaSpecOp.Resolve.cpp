@@ -928,6 +928,9 @@ namespace
     {
         auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
         payload->calledFn = &calledFn;
+        // A re-resolved clone (a detached binding expression carried its source's
+        // selection) legitimately replaces the previous selection.
+        sema.clearSemaPayload(indexExprRef);
         sema.setSemaPayload(indexExprRef, payload);
 
         const TypeRef   returnTypeRef = calledFn.returnTypeRef();
@@ -979,21 +982,30 @@ namespace
             ResolvedCallArgument              resolvedArg;
             resolvedArg.argRef = exprRef;
 
-            const SymbolVariable* receiver = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
-            if (receiver && sema.typeMgr().get(receiver->typeRef()).isReference())
+            const SymbolVariable* receiver     = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
+            const TypeInfo*       receiverType = receiver ? &sema.typeMgr().get(receiver->typeRef()) : nullptr;
+            if (receiverType && (receiverType->isReference() || (receiverType->isValuePointer() && !receiverType->isNullable())))
             {
-                resolvedArg.bindsReferenceToValue = true;
+                // A reference receiver bound the operand's value by materializing it and
+                // taking its address; the pointer-world receiver binds the same way, so a
+                // non-pointer operand passes its ADDRESS (loading its first bytes as the
+                // receiver pointer would index through the operand's leading field).
+                const SemaNodeView operandView       = sema.viewNodeTypeSymbol(exprRef);
+                const bool         operandIsPointee = !operandView.type() ||
+                                              (!operandView.type()->isReference() && !operandView.type()->isAnyPointer());
+                if (receiverType->isReference())
+                    resolvedArg.bindsReferenceToValue = true;
+                else if (operandIsPointee)
+                    resolvedArg.passUfcsAddressAsPointer = true;
 
-                bool               needsRuntimeStorage = !sema.isGlobalScope();
-                const SemaNodeView operandView         = sema.viewNodeTypeSymbol(exprRef);
+                bool needsRuntimeStorage = !sema.isGlobalScope() && (receiverType->isReference() || (operandIsPointee && !sema.isLValue(exprRef)));
                 if (operandView.sym() &&
                     operandView.sym()->isVariable() &&
-                    operandView.type() &&
-                    !operandView.type()->isReference() &&
-                    !operandView.type()->isAnyPointer())
+                    operandIsPointee &&
+                    operandView.type())
                 {
                     auto& symVar = operandView.sym()->cast<SymbolVariable>();
-                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
                     {
                         symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
                         needsRuntimeStorage = false;
@@ -1002,7 +1014,7 @@ namespace
 
                 if (needsRuntimeStorage)
                 {
-                    const TypeRef storageTypeRef = sema.typeMgr().get(receiver->typeRef()).payloadTypeRef();
+                    const TypeRef storageTypeRef = receiverType->payloadTypeRef();
                     SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, exprRef, sema.node(exprRef), storageTypeRef, "__call_arg_ref_storage"));
                 }
             }

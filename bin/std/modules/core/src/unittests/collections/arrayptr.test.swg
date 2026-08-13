@@ -130,3 +130,63 @@ impl ApTracked
 
 // The 3 remaining elements are deallocated when 'arr' drops at scope end.
 }
+
+var g_ApTotal: u64
+
+struct ApFlagged
+{
+    hidden: u8
+    tag:    u64
+}
+
+impl ApFlagged
+{
+    #[Swag.Inline]
+    mtd isShown() => .hidden == 0
+}
+
+// An indexed element with a bang as the receiver of a SHORT, non-const inline method:
+// the direct-substitution clone of the receiver must carry the index's spec-op
+// selection, or codegen lowers the resolved clone through the raw-index fallback.
+#test
+{
+    var arr: ArrayPtr'ApFlagged
+    let a = arr.addNew()
+    a.tag = 7
+
+    var shown = 0
+    var i     = 0'u64
+    while i < arr.count
+    {
+        if arr[i]!.isShown() do
+            shown += 1
+        i += 1
+    }
+
+    @assert(shown == 1)
+}
+
+func apCountByValue(values: Array'rune)->u64
+{
+    var total = 0'u64
+    for i in @countof(values) do
+        total += cast(u64) values[i]
+    return total
+}
+
+// '@countof' on a by-value Array parameter goes through the receiver-only spec-op
+// fallback: the pointer-world receiver must pass the operand's ADDRESS, not load its
+// first field bytes as the receiver pointer.
+#test
+{
+    var runes: Array'rune
+    runes.add('X')
+    @assert(apCountByValue(runes) == cast(u64) 'X')
+
+    var holder: ArrayPtr'ApFlagged
+    discard holder.addNew()
+    let first = holder[0]!
+    first.tag = 2
+    g_ApTotal = apCountByValue(runes) + first.tag
+    @assert(g_ApTotal == cast(u64) 'X' + 2)
+}

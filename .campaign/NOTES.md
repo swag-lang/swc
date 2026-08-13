@@ -278,22 +278,36 @@ NB: binaire DevMode à jour (rebuild fait après tous les edits C++).
   (dref sur bindings scalaires, bindings passés tels quels, assert null retiré),
   gui localization/filebrowser/formlayout (idem + auto-scope explicité dans une closure).
 
-## BLOCAGE COURANT gui (reprendre ICI)
-- `tools\std.swgs dm test gui` compile TOUT (sema OK) mais crashe en CODEGEN:
-  assert CodeGen.Index.cpp:321 (fallback raw-index) sur richeditview.swg:217
-  `edn.lines[i]!.isVisible()` — l'IndexExpr atteint codegen SANS payload spec-op ni
-  substitut, type indexé = ArrayPtr'(RichEditLine) brut. DÉTERMINISTE (même à
-  --num-cores 1). L'assert est maintenant enrichi (dump du type, DEV_MODE).
-- Sonde p26 scratchpad (réplique fidèle: mtd, `.ed!`, ArrayPtr, même condition
-  logique) PASSE → l'ingrédient manquant est ailleurs (soupçons: mtd IMPL d'interface
-  (IWnd.onPaint), taille/ordre du module gui, RichEditLine défini APRÈS usage,
-  re-sema après pause dans tryResolveIndexWithArgs, chemin DeferredIndexAssign).
-- PISTE: instrumenter tryResolveIndexWithArgs/applyIndexReadSpecOpResult pour tracer
-  ce que sema pose sur CE nœud (le node ref du crash est stable), ou faire cracher
-  sema quand outHandled=false et le type indexé est un struct à opIndex.
-- Après gui: `tools\tests.swgs dm` (suites complètes), puis D (suppression du kind
-  Reference), E (unittests refs), F (doc).
-- BUILD NUM: 52 = binaire courant. RE-BUMPER à 53 au prochain rebuild.
+## RÉGLÉ (session suivante): gui VERT — 379 passed (core 578, pixel 361)
+- Le crash CodeGen.Index.cpp:321: l'ingrédient manquant de la réplique était le corps
+  COURT + mtd NON-CONST de isVisible (`mtd isVisible() => .hidden == 0`). Deux défauts:
+  10. CLONE DÉTACHÉ SANS SIDE-MAPS: copyDetachedBindingExprState (SemaClone) copiait
+      l'état du nœud (type/symbole/substituts récursifs) mais PAS les semaPayloads
+      (IndexSpecOpSemaPayload...) ni les resolved-call-arguments, qui vivent dans des
+      side-maps par nœud. Le clone hérite d'un TYPE → sema le croit résolu → pas de
+      re-résolution → codegen retombe sur l'index brut. Fix: porter le semaPayload
+      (partagé, gardé si le clone en a déjà un) + copyResolvedCallArguments; et
+      applyIndexReadSpecOpResult clear-avant-set (une re-résolution de clone remplace
+      légitimement la sélection portée). Trace décisive: le nœud du crash ≠ le nœud
+      résolu par sema (chaîne parents: le clone de substitution directe du receveur
+      dans le corps court inline).
+  11. FALLBACK SPEC-OP RECEVEUR-SEUL (porte monde-références morte): dans
+      tryResolveReceiverOnlySpecOp, quand le match sonde échoue (candidat unique),
+      le resolvedArg ne posait bindsReferenceToValue QUE pour un receveur RÉFÉRENCE
+      → me *Array recevait les 8 premiers octets de l'opérande (le buffer!) comme
+      pointeur (`@countof(param Array par valeur)` → count poubelle → dépassement).
+      Fix: la branche pointeur-valeur non-null pose passUfcsAddressAsPointer +
+      NeedsAddressableStorage/__call_arg_ref_storage comme la branche référence.
+- Tests de régression (nécessitent core, donc tests bin/std):
+  unittests/collections/arrayptr.test.swg — l'élément indexé+bang receveur d'un
+  mtd inline COURT non-const, et @countof d'un Array paramètre par valeur.
+- L'assert du fallback raw-index garde son dump enrichi (type + nœud + parents,
+  DEV_MODE) — c'est lui qui a permis le diagnostic.
+
+## REPRENDRE ICI
+- `tools\tests.swgs dm` (suites complètes), fallout itératif, puis D (suppression du
+  kind Reference), E (unittests refs), F (doc).
+- BUILD NUM: 63 = binaire courant. RE-BUMPER à 64 au prochain rebuild.
 - ÉTAT: core COMPILE et FORGE (320 fichiers, core.test.exe) ✓. Les tools TOURNENT
   (std.swgs parse ses args, compile le workspace, lance le test) ✓. Le crash
   restant est au RUNTIME NATIF de core.test.exe, dans __init_8 (sandbox):

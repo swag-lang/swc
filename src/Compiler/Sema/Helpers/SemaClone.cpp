@@ -922,6 +922,17 @@ namespace
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
         else if (!shouldReexpand && sourceHasImplicitCastSubstitute && !sema.hasSubstitute(clonedRef))
             inheritStoredPayload(sema, clonedRef, sourceRef);
+
+        // The clone is an exact resolved replica, and its inherited type state makes sema
+        // treat it as already resolved. The spec-op selection (an index or cast payload)
+        // and the resolved call arguments live in side maps keyed by the node: without
+        // carrying them, codegen would lower the resolved clone through the raw fallback.
+        if (!shouldReexpand)
+        {
+            if (void* semaPayload = sema.semaPayload<void>(sourceRef); semaPayload && !sema.semaPayload<void>(clonedRef))
+                sema.setSemaPayload(clonedRef, semaPayload);
+            sema.copyResolvedCallArguments(clonedRef, sourceRef);
+        }
         if (sema.node(sourceRef).is(AstNodeId::Identifier) &&
             sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
             sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);

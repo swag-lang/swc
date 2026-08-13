@@ -32,7 +32,7 @@ impl ReversedOrderedSet
     mtd(ptr: bool) const opVisit(stmt: #code(key, index: u64))
     {
         #scope(Up)
-        for offset in .source.count
+            for offset in .source.count
         {
             let keyIndex = .source.count - offset - 1
             #scope(Down)
@@ -198,7 +198,7 @@ impl OrderedSet
     mtd(ptr: bool) opVisit(stmt: #code(key, index: u64))
     {
         #scope(Up)
-        for keyIndex in .count
+            for keyIndex in .count
         {
             #scope(Down)
             {

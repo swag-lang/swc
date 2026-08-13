@@ -1898,7 +1898,7 @@ impl RegExp
                 var iminus = i - 1
 
                 #scope(Loop)
-                while iminus != -1
+                    while iminus != -1
                 {
                     switch uni32[iminus]
                     {
@@ -1956,7 +1956,7 @@ impl RegExp
                 var iplus = i + 4
 
                 #scope(Loop)
-                while iplus != uni32.count
+                    while iplus != uni32.count
                 {
                     switch uni32[iplus]
                     {

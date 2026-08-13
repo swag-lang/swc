@@ -41,7 +41,7 @@ impl ReversedList
         var node = .source.tail
         var index: u64
         #scope(Up)
-        while node
+            while node
         {
             let current = node orelse cast(*ListEntry'T) 1'u64
             #scope(Down)
@@ -106,7 +106,7 @@ impl List
         var n            = .head
         var ordinal: u64 = 0
         #scope(Up)
-        while n
+            while n
         {
             let node = n orelse cast(*ListEntry'(T)) 1'u64
             #scope(Down)

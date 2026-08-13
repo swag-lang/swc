@@ -183,7 +183,7 @@ impl JitReturnVisits
 
         var remain = @countof(.values)
         #scope(Up)
-        for idx in @countof(.values)
+            for idx in @countof(.values)
         {
             #scope(Down)
             {

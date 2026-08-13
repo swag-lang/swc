@@ -185,7 +185,7 @@ impl ReturnVisits
 
         var remain = @countof(.values)
         #scope(Up)
-        for idx in @countof(.values)
+            for idx in @countof(.values)
         {
             #scope(Down)
             {
@@ -257,7 +257,7 @@ impl GenericScopedVisits
         where !ptr
     {
         #scope(Outer)
-        for 3
+            for 3
         {
             if @index < GenericScopedVisits.FIRST do
                 continue

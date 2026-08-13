@@ -214,7 +214,7 @@ impl Deque
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #scope(Up)
-        for itemIndex in .count
+            for itemIndex in .count
         {
             var itemPtr: [*] T = undefined
             if itemIndex < .frontItems.count do

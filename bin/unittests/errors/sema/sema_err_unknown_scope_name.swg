@@ -14,7 +14,7 @@
 #test
 {
     #scope(Outer)
-    for 10
+        for 10
     {
         break to Outer
     }

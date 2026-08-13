@@ -28,7 +28,7 @@ namespace InjectExprCloneSupport
             var cursor: u64 = 0
 
             #scope(Up)
-            while true
+                while true
             {
                 if cursor >= .count do
                     break

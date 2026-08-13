@@ -58,7 +58,7 @@ impl ReversedHashSet
         let table  = .source.constTablePtr()
         var remain = .source.count
         #scope(Up)
-        for offset in .source.capacity
+            for offset in .source.capacity
         {
             let tableIndex = .source.capacity - offset - 1
             if table[tableIndex].hash < 2'u32 do
@@ -171,7 +171,7 @@ impl HashSet
         let table  = .constTablePtr()
         var remain = .count
         #scope(Up)
-        for .capacity
+            for .capacity
         {
             let tableIndex = @index
             if table[tableIndex].hash < HashSet.HASH_FIRST do

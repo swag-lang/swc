@@ -171,7 +171,7 @@ impl SelModel
     mtd(ptr: bool) const opVisit(stmt: #code(item, index))
     {
         #scope(Up)
-        for &range in .rangesStorage
+            for &range in .rangesStorage
         {
             for itemIndex in range.start to range.end
             {

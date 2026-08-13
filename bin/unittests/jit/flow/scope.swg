@@ -23,7 +23,7 @@ func breakToLabeledStatement()->s32
     var count: s32 = 0
 
     #scope(Up)
-    for 10
+        for 10
     {
         count += 1
         break to Up

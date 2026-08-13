@@ -460,7 +460,7 @@ impl Window
 
     internal mtd rebindNative()
     {
-        SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) &me)
+        SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) me)
     }
 }
 

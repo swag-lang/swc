@@ -197,7 +197,7 @@ impl Watcher
         state.pending = false
         if err != null
         {
-            let systemError = cast(const &Swag.SystemError) err
+            let systemError = cast(const *Swag.SystemError) err
             if systemError.errorID == ERROR_OPERATION_ABORTED and Atomic.get(&state.cancelled)
             {
                 var cancelled: retval

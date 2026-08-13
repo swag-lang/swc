@@ -1441,7 +1441,7 @@ private impl RenderCpu
         }
 
         let bandRows = (bounds.rows() + bandCount - 1) / bandCount
-        var f        = {renderer: &me, batch: batch, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
+        var f        = {renderer: me, batch: batch, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
         Jobs.parallelFor(cast(u32) bandCount, &f)
         {
             if !data do

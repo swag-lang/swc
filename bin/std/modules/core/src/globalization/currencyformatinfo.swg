@@ -58,7 +58,7 @@ public impl CurrencyFormatInfo
     }
 
     // Formats an amount with this currency convention and the supplied numeric convention.
-    mtd const format(value: f64, numberFormat: const &NumberFormatInfo)->String
+    mtd const format(value: f64, numberFormat: NumberFormatInfo)->String
     {
         let negative = value < 0
         let number   = numberFormat.format(Math.abs(value), decimals: .decimalDigits, grouped: true)

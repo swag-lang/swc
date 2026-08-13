@@ -785,7 +785,7 @@ impl Wnd
     // Reports whether this window and every structural ancestor are visible.
     mtd isVisible()->bool
     {
-        var toCheck: #null *Wnd = &me
+        var toCheck: #null *Wnd = me
         while toCheck
         {
             if toCheck.wndFlags.has(.Hidden) do
@@ -805,7 +805,7 @@ impl Wnd
     // Reports whether this window and every structural ancestor are enabled.
     mtd isEnabled()->bool
     {
-        var toCheck: #null *Wnd = &me
+        var toCheck: #null *Wnd = me
         while toCheck
         {
             if toCheck.wndFlags.has(.Disabled) do
@@ -1896,7 +1896,7 @@ impl Wnd
     // focus, rather than the one a caller happens to be holding.
     mtd focusTarget()->*Wnd
     {
-        var result = &me
+        var result = me
         while result.focusDelegate do
             result = result.focusDelegate!
         return result
@@ -2030,7 +2030,7 @@ impl Wnd
     // Returns the topmost structural ancestor of this window, or itself when it has no parent.
     mtd rootWnd()->*Wnd
     {
-        var result = &me
+        var result = me
         while result.parent do
             result = result.parent!
         return result

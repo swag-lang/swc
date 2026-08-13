@@ -574,7 +574,7 @@ impl MenuCtrl
 
     mtd setEndModal(result: #null WndId)
     {
-        var p = &me
+        var p = me
         while p.ownerMenu
         {
             p.hide()

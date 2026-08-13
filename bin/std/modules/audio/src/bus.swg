@@ -61,7 +61,7 @@ public impl Bus
         Sync.scopedLock(&g_Driver.mutexBuses)
         g_Driver.buses.remove(me)
         let allocator = .allocationAllocator
-        Memory.delete(&me, allocator)
+        Memory.delete(me, allocator)
     }
 
     // Sets the bus gain in decibels.

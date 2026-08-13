@@ -49,7 +49,7 @@ public impl DateTimeFormatInfo
         return Utf8.compare(@mkslice(@dataof(pattern) + index, @countof(token)), @mkslice(@dataof(token), @countof(token)), .Latin1) == 0
     }
 
-    internal mtd const formatPattern(value: const &Time.DateTime, pattern: string)->String
+    internal mtd const formatPattern(value: Time.DateTime, pattern: string)->String
     {
         var result: retval
         var index = 0'u64
@@ -143,7 +143,7 @@ public impl DateTimeFormatInfo
     }
 
     // Formats a date using [[shortDatePattern]] or [[longDatePattern]].
-    mtd const formatDate(value: const &Time.DateTime, long = false)->String
+    mtd const formatDate(value: Time.DateTime, long = false)->String
     {
         Debug.assert(value.isValid(), "cannot format an invalid date")
         let pattern = long ? .longDatePattern : .shortDatePattern
@@ -151,7 +151,7 @@ public impl DateTimeFormatInfo
     }
 
     // Formats a clock value using [[shortTimePattern]] or [[longTimePattern]].
-    mtd const formatTime(value: const &Time.DateTime, withSeconds = true)->String
+    mtd const formatTime(value: Time.DateTime, withSeconds = true)->String
     {
         Debug.assert(value.isValid(), "cannot format an invalid time")
         let pattern = withSeconds ? .longTimePattern : .shortTimePattern
@@ -159,7 +159,7 @@ public impl DateTimeFormatInfo
     }
 
     // Formats a date and time separated by one space.
-    mtd const formatDateTime(value: const &Time.DateTime, longDate = false, withSeconds = true)->String
+    mtd const formatDateTime(value: Time.DateTime, longDate = false, withSeconds = true)->String
     {
         return Format.toString("% %", .formatDate(value, longDate), .formatTime(value, withSeconds))
     }

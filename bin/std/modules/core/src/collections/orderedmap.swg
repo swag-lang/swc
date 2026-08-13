@@ -15,7 +15,7 @@ struct(K, V) OrderedMapEntry
 // Maps unique keys to values while keeping entries in ascending key order.
 //
 // Lookup and range boundaries use binary search. Insertion and removal can move entries and
-// therefore invalidate every pointer, reference, slice, and iterator borrowed from the map.
+// therefore invalidate every pointer, slice, and iterator borrowed from the map.
 // Call [[OrderedMap.initialize]] before the first operation to select the ordering explicitly.
 struct(K, V) OrderedMap
 {
@@ -48,13 +48,13 @@ impl ReversedOrderedMap
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &entry.key, value = cast(&V) &entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &entry.key, value = cast(*V) &entry.value, index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const &K) &entry.key, value = cast(const &V) &entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &entry.key, value = cast(const *V) &entry.value, index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &entry.key, value = entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &entry.key, value = entry.value, index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = entry.key, value = cast(const &V) &entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = entry.key, value = cast(const *V) &entry.value, index = offset, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = entry.key, value = entry.value, index = offset, break = break to Up, continue = break to Down)
             }
@@ -100,7 +100,7 @@ impl OrderedMap
     }
 
     #[Swag.NoDoc]
-    mtd const compareKeys(left, right: const &K)->s32
+    mtd const compareKeys(left, right: K)->s32
     {
         if .comparator do
             return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)
@@ -204,11 +204,11 @@ impl OrderedMap
         return result!
     }
 
-    // Returns a mutable reference to the value for `key` and asserts if the key is absent.
-    mtd opIndex(key: K)->&V => &.find(key).value
+    // Returns the mutable address of the value for `key` and asserts if the key is absent.
+    mtd opIndexPtr(key: K)->*V => &.find(key).value
 
-    // Returns an immutable reference to the value for `key` and asserts if the key is absent.
-    mtd const opIndex(key: K)->const &V => &.find(key).value
+    // Returns the address of the value for `key` and asserts if the key is absent.
+    mtd const opIndexPtr(key: K)->const *V => &.find(key).value
 
     // Adds a key-value pair in sorted position, replacing the value of an existing key.
     // The key and value are copied; pass either with `#move` to transfer it.
@@ -269,13 +269,13 @@ impl OrderedMap
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &entry.key, value = cast(&V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &entry.key, value = cast(*V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const &K) &entry.key, value = cast(const &V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &entry.key, value = cast(const *V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &entry.key, value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &entry.key, value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = entry.key, value = cast(const &V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = entry.key, value = cast(const *V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = entry.key, value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
             }
@@ -283,5 +283,5 @@ impl OrderedMap
     }
 
     // Returns an immutable zero-allocation view that traverses entries in descending key order.
-    mtd const reversed()->ReversedOrderedMap'(K, V) => {source: &me}
+    mtd const reversed()->ReversedOrderedMap'(K, V) => {source: me}
 }

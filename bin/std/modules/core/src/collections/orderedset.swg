@@ -5,7 +5,7 @@ using Swag
 // Stores unique keys in ascending order.
 //
 // Lookup and range boundaries use binary search. Insertion and removal can move keys and
-// therefore invalidate every pointer, reference, slice, and iterator borrowed from the set.
+// therefore invalidate every pointer, slice, and iterator borrowed from the set.
 // Call [[OrderedSet.initialize]] before the first operation to select the ordering explicitly.
 struct(K) OrderedSet
 {
@@ -37,9 +37,9 @@ impl ReversedOrderedSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &.source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &.source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &.source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &.source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = .source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
             }
@@ -85,7 +85,7 @@ impl OrderedSet
     }
 
     #[Swag.NoDoc]
-    mtd const compareKeys(left, right: const &K)->s32
+    mtd const compareKeys(left, right: K)->s32
     {
         if .comparator do
             return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)
@@ -202,9 +202,9 @@ impl OrderedSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &.keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &.keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &.keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &.keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = .keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
             }
@@ -212,5 +212,5 @@ impl OrderedSet
     }
 
     // Returns an immutable zero-allocation view that traverses keys in descending order.
-    mtd const reversed()->ReversedOrderedSet'K => {source: &me}
+    mtd const reversed()->ReversedOrderedSet'K => {source: me}
 }

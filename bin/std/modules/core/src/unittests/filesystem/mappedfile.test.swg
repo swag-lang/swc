@@ -20,7 +20,7 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 
     var source: [96 * 1024] u8
     for &value in source do
-        value = cast(u8) (@index % 251)
+        dref value = cast(u8) (@index % 251)
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)

@@ -4,7 +4,7 @@ using Swag
 
 // A double-ended queue with amortized constant-time insertion and removal at both ends.
 //
-// The queue owns its elements. Growth or rebalancing can invalidate every pointer, reference,
+// The queue owns its elements. Growth or rebalancing can invalidate every pointer
 // and iterator borrowed from it. Indexed access is constant time but is intended for inspection;
 // use [[Deque.pushFront]], [[Deque.pushBack]], [[Deque.popFront]], and [[Deque.popBack]] for queue work.
 struct(T) Deque
@@ -40,8 +40,8 @@ impl Deque
         .backItems.reserve(newCapacity - frontCapacity)
     }
 
-    // Returns a mutable reference to the element at logical `index` from the front.
-    mtd opIndex(index: u64)->&T
+    // Returns the mutable address of the element at logical `index` from the front.
+    mtd opIndexPtr(index: u64)->*T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         if index < .frontItems.count do
@@ -49,8 +49,8 @@ impl Deque
         return &.backItems[index - .frontItems.count]
     }
 
-    // Returns an immutable reference to the element at logical `index` from the front.
-    mtd const opIndex(index: u64)->const &T
+    // Returns the address of the element at logical `index` from the front.
+    mtd const opIndexPtr(index: u64)->const *T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         if index < .frontItems.count do
@@ -62,7 +62,7 @@ impl Deque
     mtd opIndexSet(index: u64, value: T)
         where Reflection.canCopy(T)
     {
-        .opIndex(index) = value
+        dref .opIndexPtr(index) = value
     }
 
     // Adds `value` at the front of the queue.
@@ -144,34 +144,36 @@ impl Deque
         .backItems  = #move newBack
     }
 
-    // Returns a mutable reference to the front element and asserts if the queue is empty.
-    mtd front()->&T
+    // Returns a pointer to the front element and asserts if the queue is empty.
+    mtd frontPtr()->*T
     {
         Debug.assert(.count > 0, "deque is empty")
         .ensureFrontSegment()
         return &.frontItems[.frontItems.count - 1]
     }
 
-    // Returns an immutable reference to the front element and asserts if the queue is empty.
-    mtd const front()->const &T
+    // Returns a copy of the front element and asserts if the queue is empty.
+    mtd const front()->T
     {
         Debug.assert(.count > 0, "deque is empty")
-        return .opIndex(0)
+        let result: retval = dref .opIndexPtr(0)
+        return result
     }
 
-    // Returns a mutable reference to the back element and asserts if the queue is empty.
-    mtd back()->&T
+    // Returns a pointer to the back element and asserts if the queue is empty.
+    mtd backPtr()->*T
     {
         Debug.assert(.count > 0, "deque is empty")
         .ensureBackSegment()
         return &.backItems[.backItems.count - 1]
     }
 
-    // Returns an immutable reference to the back element and asserts if the queue is empty.
-    mtd const back()->const &T
+    // Returns a copy of the back element and asserts if the queue is empty.
+    mtd const back()->T
     {
         Debug.assert(.count > 0, "deque is empty")
-        return .opIndex(.count - 1)
+        let result: retval = dref .opIndexPtr(.count - 1)
+        return result
     }
 
     // Removes and returns the front element and asserts if the queue is empty.
@@ -224,9 +226,9 @@ impl Deque
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, item = cast(&T) itemPtr, index = itemIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*T) itemPtr, index = itemIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(T) do
-                    #inject(stmt, item = cast(const &T) itemPtr, index = itemIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(const *T) itemPtr, index = itemIndex, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, item = itemPtr[0], index = itemIndex, break = break to Up, continue = break to Down)
             }

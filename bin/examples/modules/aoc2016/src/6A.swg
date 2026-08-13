@@ -53,7 +53,7 @@ func day6A0()
             v                += 1
             freq[i, c - 'a'] = v
 
-            if dref v > best[i].freq
+            if v > best[i].freq
             {
                 best[i].freq = v
                 best[i].val  = c

@@ -1640,6 +1640,10 @@ enum class AstForeachStmtFlagsE : AstNode::ParserFlags
     Zero      = 0,
     ByAddress = 1 << 0,
     IndexOnly = 1 << 1,
+    // Set by sema when the by-value binding aliases a struct element through its
+    // const address (a synthesized pointer type): codegen must store the element
+    // address, exactly like the '&name' form, never copy the element.
+    BindsValueAddress = 1 << 2,
 };
 
 struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>

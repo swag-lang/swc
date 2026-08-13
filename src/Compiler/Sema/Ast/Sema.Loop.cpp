@@ -334,8 +334,9 @@ namespace
         return Result::Continue;
     }
 
-    Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
+    Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef, bool& outBindsValueAddress)
     {
+        outBindsValueAddress = false;
         bool sourceIsConst = false;
         bool sourceIsEnum  = false;
 
@@ -412,7 +413,10 @@ namespace
             if (!rawValueTypeRef.isValid())
                 rawValueTypeRef = valueTypeRef;
             if (sema.typeMgr().get(rawValueTypeRef).isStruct())
-                valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, TypeInfoFlagsE::Const));
+            {
+                valueTypeRef         = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, TypeInfoFlagsE::Const));
+                outBindsValueAddress = true;
+            }
         }
 
         return Result::Continue;
@@ -480,12 +484,15 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     {
         SWC_RESULT(validateForeachAliasCount(sema, *this));
 
-        const SemaNodeView exprView     = sema.viewTypeConstant(nodeExprRef);
-        TypeRef            valueTypeRef = TypeRef::invalid();
-        TypeRef            indexTypeRef = TypeRef::invalid();
-        auto&              pl           = ensureLoopSemaPayload(sema, sema.curNodeRef());
-        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+        const SemaNodeView exprView          = sema.viewTypeConstant(nodeExprRef);
+        TypeRef            valueTypeRef      = TypeRef::invalid();
+        TypeRef            indexTypeRef      = TypeRef::invalid();
+        bool               bindsValueAddress = false;
+        auto&              pl                = ensureLoopSemaPayload(sema, sema.curNodeRef());
+        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef, bindsValueAddress));
         pl.indexTypeRef = indexTypeRef;
+        if (bindsValueAddress)
+            sema.node(sema.curNodeRef()).cast<AstForeachStmt>().addFlag(AstForeachStmtFlagsE::BindsValueAddress);
 
         // Track the iterated storage so a structural mutation of it inside the body is
         // flagged (iterator invalidation). Null for ranges/temporaries with no storage root.
@@ -501,7 +508,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         if (!hasFlag(AstForeachStmtFlagsE::IndexOnly) && !symbols.empty() && symbols.front()->isVariable())
         {
             const auto& valueVar = symbols.front()->cast<SymbolVariable>();
-            if (hasFlag(AstForeachStmtFlagsE::ByAddress) || sema.typeMgr().get(valueVar.typeRef()).isReference())
+            if (hasFlag(AstForeachStmtFlagsE::ByAddress) || bindsValueAddress || sema.typeMgr().get(valueVar.typeRef()).isReference())
                 SemaEscape::bindForeachAddressAlias(sema, valueVar, nodeExprRef);
         }
 
@@ -561,9 +568,10 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
         SWC_RESULT(validateForeachAliasCount(sema, *this));
 
-        TypeRef valueTypeRef = TypeRef::invalid();
-        TypeRef indexTypeRef = TypeRef::invalid();
-        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+        TypeRef valueTypeRef      = TypeRef::invalid();
+        TypeRef indexTypeRef      = TypeRef::invalid();
+        bool    bindsValueAddress = false;
+        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef, bindsValueAddress));
     }
 
     if (childRef == nodeWhereRef)

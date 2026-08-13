@@ -699,7 +699,9 @@ namespace
     Result buildStructSetResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SymbolFunction& calledFn, TypeRef dstTypeRef, AstNodeRef sourceArgRef, SymbolVariable* storageSym, ConstantRef receiverInitCstRef)
     {
         const AstNodeRef receiverRef = makeStructSetReceiverRef(sema, dstTypeRef, sourceArgRef, storageSym, receiverInitCstRef);
-        outResolvedArgs.push_back({.argRef = receiverRef, .bindsReferenceToValue = true});
+        outResolvedArgs.push_back({.argRef                   = receiverRef,
+                                   .bindsReferenceToValue    = true,
+                                   .passUfcsAddressAsPointer = structOpCastPassesAddressAsPointer(sema, calledFn, receiverRef)});
         outResolvedArgs.push_back({.argRef = sourceArgRef});
         if (calledFn.parameters().size() > 1)
             SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters()[1]->typeRef(), sourceArgRef));

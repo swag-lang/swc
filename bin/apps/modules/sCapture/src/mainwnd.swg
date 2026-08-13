@@ -939,6 +939,15 @@ impl MainWnd
         else do
             .app().theme.setSwagLight()
         .app().notifyThemeChanged()
+
+        // Pixel-selection forms borrow a theme color, so their retained renderings
+        // follow the switch.
+        if @isset(.editWnd)
+        {
+            let capture = .editWnd.getCapture()
+            if capture do
+                capture.invalidateAllFormCaches()
+        }
     }
 
     // Applies the language selected in the options to every string table.

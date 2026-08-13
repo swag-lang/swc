@@ -334,4 +334,31 @@ impl Layer
         .active        = false
         .resolved      = false
     }
+
+    // Returns every owned render target straight to the renderer pool and resets the layer.
+    //
+    // [[Pixel.Layer.release]] records the release into the painter command stream, which is
+    // right in the middle of a frame but wrong for a layer retained across frames:
+    // [[Pixel.Painter.begin]] discards pending commands, so a release recorded between two
+    // frames would be lost with them. Call this form instead when releasing a retained layer,
+    // once no recorded frame still draws from its targets.
+    mtd releaseImmediate()
+    {
+        if .renderer
+        {
+            let paintTarget   = .paintTarget
+            let contentTarget = .contentTarget
+            .renderer.releaseRenderTarget(.paintTarget)
+            if contentTarget != paintTarget do
+                .renderer.releaseRenderTarget(.contentTarget)
+            if .shadowTarget do
+                .renderer.releaseRenderTarget(.shadowTarget)
+        }
+
+        .paintTarget   = null
+        .contentTarget = null
+        .shadowTarget  = null
+        .active        = false
+        .resolved      = false
+    }
 }

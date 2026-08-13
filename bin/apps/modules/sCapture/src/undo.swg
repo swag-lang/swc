@@ -147,6 +147,37 @@ impl IUndoCommand for Undo
 
 impl Undo
 {
+    // Marks the retained form renderings this command's replay changed (see FormCache).
+    //
+    // Pure translations, reorderings, and grouping keep their pixels. Everything that
+    // changes what a form paints re-renders it — and the image forms bake the capture
+    // pixels under them, so a move or a background change re-renders those too.
+    mtd invalidateFormCaches()
+    {
+        let capture = .capture!
+        switch .kind
+        {
+        case .MoveBaseForm:
+            if .newSizeX != 0 or .newSizeY != 0 or @kindof(.baseForm!) == FormImage do
+                capture.invalidateFormCache(.baseForm!)
+
+        case .MovePoint:
+            capture.invalidateFormCache(.baseForm!)
+
+        case .OffsetSelection, .AlignLeft, .AlignCenter, .AlignRight, .AlignTop, .AlignMiddle, .AlignBottom:
+            capture.invalidateImageFormCaches()
+
+        case .SetTypedValue, .SetFormFromModel, .SetText, .SetFont, .SetFontStyle, .SetImageInside, .ResetRotation:
+            foreachSelected'BaseForm(capture, .selection)
+            {
+                capture.invalidateFormCache(itf)
+            }
+
+        case .SetImage, .RestoreOrg, .Flatten, .FlattenAll:
+            capture.invalidateImageFormCaches()
+        }
+    }
+
     mtd opDrop()
     {
         Capture.freeForms(.toFreeForms)
@@ -595,6 +626,7 @@ impl Undo
                 capture.forms.add(f)
         }
 
+        .invalidateFormCaches()
         capture.hasChanged()
     }
 
@@ -778,6 +810,7 @@ impl Undo
             capture.selectionHasChanged()
         }
 
+        .invalidateFormCaches()
         capture.hasChanged()
     }
 }

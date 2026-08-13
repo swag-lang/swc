@@ -13,6 +13,39 @@ enum MouseMode
 
 const TextFormSuperSample = 3
 
+// Ceiling of one retained form rendering, in device texels per axis, supersampling
+// included; a form drawn larger falls back to the direct, view-clipped path so a
+// pathological extent can never pin a giant texture.
+const MaxFormCacheDim = 4096
+
+// Zoom-stale retained renderings refreshed per repaint. The rest draw scaled from
+// their retained texture and sharpen over the following frames.
+const MaxFormCacheRefresh = 3
+
+// One retained off-screen rendering of a form. The layer keeps the resolved content
+// and its baked shadow alive across frames, so a repaint that did not change the
+// form composites two textured quads instead of re-rendering, supersampling, and
+// blurring it. Owned by [Capture.formCaches], keyed by the form, pruned by
+// [Capture.pruneFormCaches] before the form's memory can be recycled.
+struct FormCache
+{
+    form:  #null IForm   // The rendered form; the key of this entry. Set at creation.
+    layer: Layer         // Retained targets: resolved content, plus the shadow once built.
+    zoom:  f32           // View zoom the content was rendered at.
+    scale: f32           // Painter content scale the content was rendered at.
+    dirty: bool = true   // The content changed; re-render before the next draw.
+}
+
+impl FormCache
+{
+    mtd opDrop()
+    {
+        // Entries die outside a recording scope, where a painter-recorded release
+        // would be discarded with the next frame's commands.
+        .layer.releaseImmediate()
+    }
+}
+
 // The '.scapture' container: a magic word and a format version in front of the
 // serialized capture. The version is what a future load dispatches its migrations on;
 // a file without the header predates it and reads as version 0. The serialized layout
@@ -127,6 +160,12 @@ struct Capture
         backTexture: Texture
         snapX:       f32 = -1
         snapY:       f32 = -1
+
+        // Retained per-form renderings (see FormCache) and the per-repaint budget for
+        // sharpening the ones a zoom left behind.
+        formCaches:       ArrayPtr'FormCache
+        cacheRefreshLeft: s32
+        cacheNeedsRefine: bool
 
         serialBackTexture: u32
         movingStart:       Math.Point
@@ -478,6 +517,10 @@ impl Capture
         // when the drag ends (see Capture.mouse / endInteractiveMove).
         if .interactiveMove do
             return
+
+        // A form that just left the capture loses its retained rendering here, before
+        // its memory can be recycled by a later allocation.
+        .pruneFormCaches()
 
         let editView = .editView
         if !editView do
@@ -926,6 +969,228 @@ impl Capture
     // PAINT
     //////////////////////////////
 
+    // Finds the retained rendering of `f`, or null when it has none yet.
+    mtd findFormCache(f: IForm)->#null *FormCache
+    {
+        for c in .formCaches
+        {
+            let entry = c!
+            if @dataof(entry.form) == @dataof(f) do
+                return entry
+        }
+
+        return null
+    }
+
+    // Marks the retained rendering of `f` for a re-render (no-op without one).
+    mtd invalidateFormCache(f: IForm)
+    {
+        let c = .findFormCache(f)
+        if c do
+            c.dirty = true
+    }
+
+    // The pixels an image form shows can come from the capture background under it,
+    // so a move or a background change re-renders every image form.
+    mtd invalidateImageFormCaches()
+    {
+        for c in .formCaches
+        {
+            let entry = c!
+            if @kindof(entry.form!) == FormImage do
+                entry.dirty = true
+        }
+    }
+
+    // Marks every retained form rendering for a re-render (theme switch).
+    mtd invalidateAllFormCaches()
+    {
+        for c in .formCaches do
+            c!.dirty = true
+    }
+
+    // Drops the cache entries whose form left the capture, before that form's memory
+    // is recycled: an entry can then never match a recycled allocation. Runs on every
+    // non-interactive hasChanged(), which follows every form addition and removal.
+    mtd pruneFormCaches()
+    {
+        var i = 0'u64
+        while i < .formCaches.count
+        {
+            let c    = .formCaches[i]!
+            var live = false
+            for f in .forms
+            {
+                if @dataof(f) == @dataof(c.form)
+                {
+                    live = true
+                    break
+                }
+            }
+
+            if live
+            {
+                i += 1
+                continue
+            }
+
+            .formCaches.deleteAt(i)
+        }
+    }
+
+    // Reports whether the self-managed pixels of `f` are still the ones a retained
+    // rendering baked. Image forms rebuild their texture from their own trigger
+    // fields (a moved effect crops new background pixels, a pasted image arrives
+    // through `dirty`); the cache honors those triggers without an undo.
+    func formContentFresh(f: IForm)->bool
+    {
+        if @kindof(f) != FormImage do
+            return true
+
+        let fi = cast(*FormImage) @dataof(f)
+        switch fi.kind
+        {
+        case .Image:
+            return !fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty)
+        case .Capture:
+            return fi.texture.isValid() and fi.textureKind == fi.kind
+        }
+
+        return fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty and
+               fi.xc == fi.x and fi.yc == fi.y and fi.wc == fi.w and fi.hc == fi.h and
+               fi.stc == fi.strength and fi.serial == fi.capture!.serialBackTexture
+    }
+
+    // Paints one form through its retained rendering, or returns false to use the
+    // direct path.
+    //
+    // The direct path re-renders the form into a fresh layer on every repaint — with
+    // its supersampling and its shadow blur — so a full repaint scaled with the number
+    // of forms. Here the layer lives across frames: an unchanged form composites its
+    // retained texture, a zoom in flight draws it scaled (and [MaxFormCacheRefresh]
+    // forms per repaint re-render sharp until none is stale), and only a content
+    // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
+    mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
+    {
+        let base = cast(*BaseForm) @dataof(f)
+
+        // The geometry of the direct path, without its view clip: the cache keeps the
+        // whole form, so scrolling never invalidates it.
+        var boundRect = f.boundRect()
+        boundRect.width  = Math.max(boundRect.width, 1)
+        boundRect.height = Math.max(boundRect.height, 1)
+        boundRect.inflate(BaseForm.paintOverdraw(f, false))
+
+        var pos: Math.Rectangle
+        pos.x      = rect.x + (boundRect.x * zoom)
+        pos.y      = rect.y + (boundRect.y * zoom)
+        pos.width  = boundRect.width * zoom
+        pos.height = boundRect.height * zoom
+
+        let noClipPos = pos
+        pos.width  += pos.x - Math.round(pos.x)
+        pos.height += pos.y - Math.round(pos.y)
+        pos.round()
+
+        let wt2 = cast(s32) pos.width
+        let ht2 = cast(s32) pos.height
+        if wt2 <= 0 or ht2 <= 0 do
+            return false
+
+        let textSuperSample = @kindof(f) == FormText ? TextFormSuperSample : 1
+        let scale           = painter.contentScale()
+        let maxDim          = cast(s32) (MaxFormCacheDim / (scale * textSuperSample))
+        if wt2 > maxDim or ht2 > maxDim do
+            return false
+
+        var found = .findFormCache(f)
+        if !found
+        {
+            let created = .formCaches.addNew()
+            created.form = f
+            found = created
+        }
+
+        let entry = found!
+        let fresh = !entry.dirty and
+                    entry.scale == scale and
+                    entry.layer.contentTarget != null and
+                    formContentFresh(f)
+        var sharp = fresh and entry.zoom == zoom and entry.layer.width == wt2 and entry.layer.height == ht2
+
+        var renderNow = !fresh
+        if fresh and !sharp
+        {
+            // The content is right but baked at another zoom: re-render a few forms
+            // per repaint, and draw the rest scaled until their turn comes.
+            if .cacheRefreshLeft > 0
+            {
+                .cacheRefreshLeft -= 1
+                renderNow = true
+            }
+            else do
+                .cacheNeedsRefine = true
+        }
+
+        if renderNow
+        {
+            entry.layer.releaseImmediate()
+            entry.layer.begin(painter, {width: wt2, height: ht2, renderScale: textSuperSample})
+            with painter
+            {
+                .pushTransform()
+                .translateTransform(-boundRect.x * zoom * textSuperSample, -boundRect.y * zoom * textSuperSample)
+                var cxt: FormPaintContext
+                cxt.z           = zoom
+                cxt.renderScale = cast() textSuperSample
+                f.paint(painter, cxt)
+                .popTransform()
+            }
+
+            entry.layer.end()
+            entry.zoom  = zoom
+            entry.scale = scale
+            entry.dirty = false
+            sharp       = true
+        }
+
+        let colForm   = Color.fromArgb(cast(u8) Math.map(cast(f32) base.alpha, 0, 100, 0, 255), Argb.White)
+        var paintRect = pos
+
+        painter.pushTransform()
+        if base.subKind != .Highlight and base.subKind != .PixSel and !Math.isZeroEpsilon(base.rotate)
+        {
+            painter.translateTransform(noClipPos.horzCenter(), noClipPos.vertCenter())
+            paintRect.offset(-noClipPos.horzCenter(), -noClipPos.vertCenter())
+
+            let angle = Math.map(base.rotate, -180, 180, -Math.ConstF32.Pi, Math.ConstF32.Pi)
+            painter.rotateTransformInPlace(angle)
+        }
+
+        var drawInfo: LayerDrawInfo
+        drawInfo.dstRect           = paintRect
+        drawInfo.color             = colForm
+        drawInfo.interpolationMode = (base.paintShadow or !sharp) ? .Linear : .Pixel
+        drawInfo.releaseAfterDraw  = false
+        drawInfo.shadow.enabled    = base.paintShadow
+        drawInfo.shadow.radius     = 8.0
+        drawInfo.shadow.offsetX    = base.shadowOffsetX
+        drawInfo.shadow.offsetY    = base.shadowOffsetY
+        entry.layer.draw(drawInfo)
+        painter.popTransform()
+
+        with painter
+        {
+            .setColorMaskColor()
+            .setBlendingMode(.Alpha)
+            .setInterpolationMode(.Linear)
+            .setAntialiased(true)
+        }
+
+        base.paintPos = pos
+        return true
+    }
+
     func paintForm(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false)
     {
         var boundRect = f.boundRect()
@@ -1133,7 +1398,9 @@ impl Capture
         painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
         painter.setParams(.Antialiased)
 
-        .paintRect = rect
+        .paintRect        = rect
+        .cacheRefreshLeft = MaxFormCacheRefresh
+        .cacheNeedsRefine = false
         let zoom = rect.width / .width
 
         // Cull forms against the real invalidated region, not just the full view clip.
@@ -1177,12 +1444,14 @@ impl Capture
                 var pp = f.boundRect() * zoom
                 pp.offset(rect.x, rect.y)
                 painter.pushClippingRect(pp)
-                paintForm(painter, clip, rect, f, zoom)
+                if !.paintFormCached(painter, rect, f, zoom) do
+                    paintForm(painter, clip, rect, f, zoom)
                 painter.popClippingRect()
             }
             else
             {
-                paintForm(painter, clip, rect, f, zoom)
+                if !.paintFormCached(painter, rect, f, zoom) do
+                    paintForm(painter, clip, rect, f, zoom)
             }
         }
 
@@ -1256,6 +1525,11 @@ impl Capture
             painter.drawLine(rect.x + .snapX * zoom, rect.y, rect.x + .snapX * zoom, rect.bottom(), Argb.Purple, 2)
         if .snapY != -1 do
             painter.drawLine(rect.x, rect.y + .snapY * zoom, rect.right(), rect.y + .snapY * zoom, Argb.Purple, 2)
+
+        // Forms drawn scaled while the zoom-refresh budget was spent sharpen over the
+        // following frames: keep repainting until none is left stale.
+        if .cacheNeedsRefine do
+            .editView?.invalidate()
     }
 
     //////////////////////////////
@@ -1878,6 +2152,8 @@ impl Capture
                 .mouseMode = .None
             }
 
+            // Every edit step reshapes the new form's content.
+            .invalidateFormCache(f)
             .hasChanged()
             if createdNow do
                 oldCreateBound = f.boundRect()

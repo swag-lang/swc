@@ -27,6 +27,17 @@ struct JsonStringPayload
     text: String
 }
 
+struct JsonFloatPayload
+{
+    value: f64
+}
+
+struct JsonAliasPayload
+{
+    #[Serialization.Alias("oldName")]
+    newName: u32
+}
+
 func makeJsonPayload()->JsonPayload
 {
     var result: retval
@@ -92,6 +103,15 @@ func assertJsonPayload(value: const &JsonPayload)->bool
 
 #test
 {
+    let source:  String = "{\"oldName\":42}"
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    let decoded         = expect decoder.readAll'JsonAliasPayload(source.toSlice())!
+    @assert(decoded.newName == 42)
+    Memory.delete(decoded)
+}
+
+#test
+{
     let payload = makeJsonPayload()
 
     var encoder: Serialization.Encoder'Serialization.Write.Json
@@ -126,12 +146,29 @@ func assertJsonPayload(value: const &JsonPayload)->bool
 
 #test
 {
-    let invalid: String = "{\"id\":7,\"active\":true,\"wrong\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}"
+    let interoperable: String = "{\"unknown\":{\"nested\":[true,null,{\"x\":1}]},\"fixed\":[1,2,3],\"name\":\"core\",\"pair\":{\"y\":-2,\"ignored\":9,\"x\":3},\"id\":7,\"active\":true,\"counts\":[-1,0,4]}"
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = catch decoder.readAll'JsonPayload(invalid.toSlice()) as errjson
-    @assert(decoded == null)
-    @assert(errjson != null)
+    let decoded = expect decoder.readAll'JsonPayload(interoperable.toSlice())!
+    @assert(assertJsonPayload(dref decoded))
+    Memory.delete(decoded)
+
+    let missing: String = "{\"id\":12}"
+    let partial         = expect decoder.readAll'JsonPayload(missing.toSlice())!
+    @assert(partial.id == 12)
+    @assert(!partial.active)
+    @assert(partial.name.isNullOrEmpty())
+    @assert(partial.counts.count == 0)
+    Memory.delete(partial)
+}
+
+#test
+{
+    var payload = JsonFloatPayload{value: cast #bit (f64) 0x7FF8000000000000'u64}
+    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var buffer:  ConcatBuffer
+    expect encoder.writeAll(&buffer, payload)
+    @assert(buffer.toString() == "{\"value\":null}")
 }
 
 #test
@@ -158,4 +195,24 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     let rejected = catch decoder.readAll'JsonStringPayload(invalidEscape.toSlice()) as errInvalidEscape
     @assert(rejected == null)
     @assert(errInvalidEscape != null)
+}
+
+#test
+{
+    const InvalidJson = [
+        "{\"id\":1,\"id\":2}",
+        "{\"id\":01}",
+        "{\"id\":1,}",
+        "{\"id\":1} trailing",
+        "{\"counts\":[1 2]}",
+        "{\"counts\":[1,]}",
+        "{\"active\":truth}"]
+
+    for input in InvalidJson
+    {
+        var decoder: Serialization.Decoder'Serialization.Read.Json
+        let decoded = catch decoder.readAll'JsonPayload(@mkslice(@dataof(input), @countof(input))) as err
+        @assert(decoded == null)
+        @assert(err != null)
+    }
 }

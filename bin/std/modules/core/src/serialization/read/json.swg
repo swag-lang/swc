@@ -3,42 +3,70 @@
 
 using Swag, Core.Errors
 
-// Reads JSON objects whose property order matches the serialized Swag type.
+// Reads declaration-driven JSON objects independently of property order.
 //
-// Strings support the complete JSON escape set, including UTF-16 surrogate
-// pairs in `\uXXXX` escapes. Unknown, missing, and reordered properties fail.
+// Missing fields retain their initialized value and unknown properties are ignored.
+// Duplicate properties, malformed numbers, trailing commas, and trailing root data fail.
+// Strings support every JSON escape, including UTF-16 surrogate pairs in `\uXXXX` escapes.
 public struct Json
 {
     internal
     {
-        stream:    ByteStream     // Input cursor.
-        line, col: u64 = 1        // One-based source position.
-        propName:  String         // Reusable decoded property name.
+        stream:         ByteStream     // Input cursor.
+        propName:       String         // Reusable decoded property name.
+        containerKinds: [64] u8        // Zero for arrays and one for objects.
+        contentStarts:  [64] u64       // First byte inside each active object.
+        endPositions:   [64] u64       // First byte after each active object.
+        firstValues:    [64] bool      // Whether an active array has read no value yet.
+        containerDepth: u64            // Number of active array and object scopes.
     }
 }
 
 public impl Json
 {
-    // Returns version.
-    mtd version()->u32
+    // Returns zero because JSON has no stream-level schema version.
+    mtd version()->u32 => 0
+
+    // Returns true because JSON is textual.
+    mtd isTextual()->bool => true
+
+    internal mtd getError(message: string)->SyntaxError
     {
-        return 0
+        var result: retval
+        result.message = message
+        result.seek    = .stream.position()
+        result.line    = 1
+        result.col     = 1
+
+        let data = .stream.data()
+        for i in result.seek
+        {
+            if data[i] == '\n'
+            {
+                result.line += 1
+                result.col  = 1
+            }
+            else do
+                result.col += 1
+        }
+
+        return result
     }
 
-    // Returns whether textual.
-    mtd isTextual()->bool
+    internal mtd expectByte(expected: u8, message: string) fail
     {
-        return true
+        if .stream.readU8() != expected do
+            fail .getError(message)
     }
 
-    internal mtd getError(val: string)->SyntaxError
+    internal mtd zapBlanks()
     {
-        var err: retval
-        err.message = val
-        err.line    = .line
-        err.col     = .col
-        err.seek    = .stream.seek
-        return err
+        var c = .stream.peekU8()
+        while c and Latin1.isSpace(c)
+        {
+            .stream.advance()
+            c = .stream.peekU8()
+        }
     }
 
     internal mtd readHexQuad()->u32 fail
@@ -72,7 +100,6 @@ public impl Json
 
         if .stream.readU8() != '\\' or .stream.readU8() != 'u' do
             fail .getError("JSON Unicode escape is missing the low surrogate")
-
         let second = .readHexQuad()
         if second < 0xDC00 or second > 0xDFFF do
             fail .getError("JSON Unicode escape contains an invalid low surrogate")
@@ -81,9 +108,7 @@ public impl Json
 
     internal mtd readString(result: *String) fail
     {
-        if .stream.readU8() != '"' do
-            fail .getError("JSON string is missing its opening quote")
-
+        .expectByte('"', "JSON string is missing its opening quote")
         result.clear()
         while true
         {
@@ -94,15 +119,13 @@ public impl Json
                 return
             if c < 0x20 do
                 fail .getError("JSON string contains an unescaped control character")
-
             if c != '\\'
             {
                 result.append(c)
                 continue
             }
 
-            let escaped = .stream.readU8()
-            switch escaped
+            switch .stream.readU8()
             {
             case '"':  result.append('"'u8)
             case '\\': result.append('\\'u8)
@@ -116,135 +139,320 @@ public impl Json
             default:   fail .getError("JSON string contains an unknown escape sequence")
             }
         }
-
-        unreachable
     }
 
-    internal mtd zapBlanks()
+    internal mtd readLiteral(literal: string) fail
     {
-        var c = .stream.peekU8()
-        while c and Latin1.isSpace(c)
+        for c in literal
         {
-            .stream.advance()
-            if c == '\n'
-            {
-                .line += 1
-                .col  = 1
-            }
-            else do
-                .col += 1
-            c = .stream.peekU8()
+            if .stream.readU8() != c do
+                fail .getError("JSON literal is malformed")
         }
     }
 
-    // Defines start read.
-    mtd startRead(input: const [..] u8)
+    internal mtd skipNumber() fail
     {
-        .stream = ByteStream.openRead(input)
-        .line   = 1
-        .col    = 1
-        .propName.clear()
+        if .stream.peekU8() == '-' do
+            .stream.advance()
+
+        let first = .stream.peekU8()
+        if first == '0'
+        {
+            .stream.advance()
+            if Latin1.isDigit(.stream.peekU8()) do
+                fail .getError("JSON number has a leading zero")
+        }
+        elif first >= '1' and first <= '9'
+        {
+            while Latin1.isDigit(.stream.peekU8()) do
+                .stream.advance()
+        }
+        else do
+            fail .getError("JSON number is missing its integer part")
+
+        if .stream.peekU8() == '.'
+        {
+            .stream.advance()
+            if !Latin1.isDigit(.stream.peekU8()) do
+                fail .getError("JSON number is missing digits after its decimal point")
+            while Latin1.isDigit(.stream.peekU8()) do
+                .stream.advance()
+        }
+
+        let exponent = .stream.peekU8()
+        if exponent == 'e' or exponent == 'E'
+        {
+            .stream.advance()
+            let sign = .stream.peekU8()
+            if sign == '+' or sign == '-' do
+                .stream.advance()
+            if !Latin1.isDigit(.stream.peekU8()) do
+                fail .getError("JSON number is missing exponent digits")
+            while Latin1.isDigit(.stream.peekU8()) do
+                .stream.advance()
+        }
     }
 
-    // Begins sequence.
+    internal mtd skipValue(depth = 0'u32) fail
+    {
+        if depth >= 64 do
+            fail .getError("JSON nesting is too deep")
+        .zapBlanks()
+        switch .stream.peekU8()
+        {
+        case '"':
+            var ignored: String
+            .readString(&ignored)
+
+        case '{':
+            .stream.advance()
+            .skipObjectContent(depth + 1)
+
+        case '[':
+            .stream.advance()
+            .zapBlanks()
+            if .stream.peekU8() == ']'
+            {
+                .stream.advance()
+                return
+            }
+
+            while true
+            {
+                .skipValue(depth + 1)
+                .zapBlanks()
+                let separator = .stream.readU8()
+                if separator == ']' do
+                    return
+                if separator != ',' do
+                    fail .getError("JSON array needs a comma between values")
+                .zapBlanks()
+                if .stream.peekU8() == ']' do
+                    fail .getError("JSON array has a trailing comma")
+            }
+
+        case 't':
+            .readLiteral("true")
+
+        case 'f':
+            .readLiteral("false")
+
+        case 'n':
+            .readLiteral("null")
+
+        default:
+            .skipNumber()
+        }
+    }
+
+    internal mtd skipObjectContent(depth = 0'u32) fail
+    {
+        .zapBlanks()
+        if .stream.peekU8() == '}'
+        {
+            .stream.advance()
+            return
+        }
+
+        var names:   HashSet'String
+        var ignored: String
+        while true
+        {
+            .readString(&ignored)
+            if names.contains(ignored) do
+                fail .getError("JSON object contains a duplicate property")
+            names.add(ignored)
+            .zapBlanks()
+            .expectByte(':', "JSON property is missing a colon after its name")
+            .skipValue(depth)
+            .zapBlanks()
+            let separator = .stream.readU8()
+            if separator == '}' do
+                return
+            if separator != ',' do
+                fail .getError("JSON object needs a comma between properties")
+            .zapBlanks()
+            if .stream.peekU8() == '}' do
+                fail .getError("JSON object has a trailing comma")
+        }
+    }
+
+    internal mtd beginObject() fail
+    {
+        if .containerDepth == @countof(.containerKinds) do
+            fail .getError("JSON nesting is too deep")
+        .zapBlanks()
+        .expectByte('{', "JSON object is missing its opening brace")
+
+        let index = .containerDepth
+        .containerKinds[index] = 1
+        .contentStarts[index]  = .stream.position()
+        .skipObjectContent(1)
+        .endPositions[index] = .stream.position()
+        .stream.setPosition(.contentStarts[index])
+        .containerDepth += 1
+    }
+
+    internal mtd propertyMatches(val: TypeValue)->bool
+    {
+        if .propName == val.name do
+            return true
+        for aliasAttr in Reflection.attributes(val, Serialization.Alias)
+        {
+            let name = Reflection.attributeValue(aliasAttr, "name")
+            if name != null and .propName == cast(string) name! do
+                return true
+        }
+
+        return false
+    }
+
+    // Starts reading a borrowed JSON buffer.
+    mtd startRead(input: const [..] u8) fail
+    {
+        .stream = ByteStream.openRead(input)
+        if !Utf8.isValid(input) do
+            fail .getError("JSON document is not valid UTF-8")
+        .propName.clear()
+        .containerDepth = 0
+    }
+
+    // Begins an array.
     mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: *u64)->bool fail
     {
         .zapBlanks()
-        let c = .stream.readU8()
-        if c != '[' do
-            fail .getError("malformed array, missing opening [[[?]]")
+        .expectByte('[', "JSON array is missing its opening bracket")
+        if .containerDepth == @countof(.containerKinds) do
+            fail .getError("JSON nesting is too deep")
+        let index = .containerDepth
+        .containerKinds[index] = 0
+        .firstValues[index]    = true
+        .containerDepth        += 1
         return false
     }
 
-    // Performs the end sequence operation.
+    // Ends an array and rejects extra or trailing values.
     mtd endSequence() fail
     {
         .zapBlanks()
-        let c = .stream.readU8()
-        if c != ']' do
-            fail .getError("malformed array; missing closing [[?]]]")
+        .expectByte(']', "JSON array is missing its closing bracket")
+        .containerDepth -= 1
     }
 
-    // Converts this value to next sequence element.
+    // Returns whether another array element remains.
     mtd toNextSequenceElement(_countElem: *u64)->bool
     {
         .zapBlanks()
-        let c = .stream.peekU8()
-        return c != ']'
+        return .stream.peekU8() != ']'
     }
 
-    // Begins root.
+    // Begins the JSON document.
     mtd beginRoot() fail {}
 
-    // Performs the end root operation.
-    mtd endRoot() fail {}
-
-    // Begins section.
-    mtd beginSection(_kind: SectionKind) fail
+    // Ends the JSON document and rejects non-whitespace trailing data.
+    mtd endRoot() fail
     {
         .zapBlanks()
-        let c = .stream.readU8()
-        if c != '{' do
-            fail .getError("malformed struct, missing opening [[{]]")
+        if .stream.position() != .stream.length() do
+            fail .getError("JSON document has trailing data")
     }
 
-    // Performs the end section operation.
+    // Begins an object section.
+    mtd beginSection(_kind: SectionKind) fail => .beginObject()
+
+    // Ends an object section.
     mtd endSection() fail
     {
-        .zapBlanks()
-        let c = .stream.readU8()
-        if c != '}' do
-            fail .getError("malformed struct, missing closing [[}]]")
+        .stream.setPosition(.endPositions[.containerDepth - 1])
+        .containerDepth -= 1
     }
 
-    // Begins struct.
+    // Begins a reflected struct object.
     mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool fail
     {
-        .beginSection(.Ordered)
+        .beginObject()
         return false
     }
 
-    // Performs the end struct operation.
-    mtd endStruct() fail
-    {
-        .endSection()
-    }
+    // Ends a reflected struct object.
+    mtd endStruct() fail => .endSection()
 
-    // Begins element.
+    // Finds a property by name in the current object.
     mtd beginElement(val: TypeValue)->bool fail
     {
+        if !.containerDepth do
+            fail .getError("JSON property is outside an object")
+        let index = .containerDepth - 1
+        if .containerKinds[index] != 1 do
+            fail .getError("JSON named property is inside an array")
+
+        .stream.setPosition(.contentStarts[index])
         .zapBlanks()
-        .readString(&.propName)
+        if .stream.peekU8() == '}' do
+            return false
 
-        if .propName != val.name do
-            fail .getError("JSON property name does not match the serialized field")
+        var foundPosition = Swag.U64.Max
+        while true
+        {
+            .readString(&.propName)
+            .zapBlanks()
+            .expectByte(':', "JSON property is missing a colon after its name")
+            .zapBlanks()
+            let valuePosition = .stream.position()
+            if .propertyMatches(val)
+            {
+                if foundPosition != Swag.U64.Max do
+                    fail .getError("JSON object contains a duplicate property")
+                foundPosition = valuePosition
+            }
 
-        .zapBlanks()
-        let c = .stream.readU8()
-        if c != ':' do
-            fail .getError("malformed property, missing [[:]] after name")
+            .skipValue()
+            .zapBlanks()
+            let separator = .stream.readU8()
+            if separator == '}' do
+                break
+            if separator != ',' do
+                fail .getError("JSON object needs a comma between properties")
+            .zapBlanks()
+        }
 
+        if foundPosition == Swag.U64.Max
+        {
+            .stream.setPosition(.endPositions[index])
+            return false
+        }
+
+        .stream.setPosition(foundPosition)
         return true
     }
 
-    // Performs the end element operation.
+    // Completes a property.
     mtd endElement(_val: TypeValue) fail {}
 
-    // Begins value.
-    mtd beginValue() fail {}
-
-    // Performs the end value operation.
-    mtd endValue() fail
+    // Begins a value, consuming the separator required by an enclosing array.
+    mtd beginValue() fail
     {
+        if !.containerDepth do
+            return
+        let index = .containerDepth - 1
+        if .containerKinds[index] != 0 do
+            return
+
         .zapBlanks()
-        let c = .stream.peekU8()
-        if c == ',' do
-            .stream.advance()
+        if .firstValues[index]
+        {
+            .firstValues[index] = false
+            return
+        }
+
+        .expectByte(',', "JSON array needs a comma between values")
+        .zapBlanks()
+        if .stream.peekU8() == ']' do
+            fail .getError("JSON array has a trailing comma")
     }
 
-    /////////////////////////////////
-    // VALUES
-    /////////////////////////////////
+    // Completes a value.
+    mtd endValue() fail {}
 
     // Reads a native value at the current JSON position.
     mtd(NT) readNative()->NT fail
@@ -253,66 +461,24 @@ public impl Json
         #static switch NT
         {
         case bool:
-            let val = StrConv.parseBool(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
+            if .stream.peekU8() == 't'
+            {
+                .readLiteral("true")
+                return true
+            }
 
-        case f32:
-            let val = StrConv.parseF32(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
+            if .stream.peekU8() == 'f'
+            {
+                .readLiteral("false")
+                return false
+            }
 
-        case f64:
-            let val = StrConv.parseF64(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s8:
-            let val = StrConv.parseS8(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s16:
-            let val = StrConv.parseS16(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s32:
-            let val = StrConv.parseS32(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s64:
-            let val = StrConv.parseS64(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u8:
-            let val = StrConv.parseU8(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u16:
-            let val = StrConv.parseU16(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u32:
-            let val = StrConv.parseU32(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u64:
-            let val = StrConv.parseU64(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
+            fail .getError("JSON Boolean value must be true or false")
 
         case Core.String:
-            .zapBlanks()
             if .stream.peekU8() == 'n'
             {
-                if .stream.readU8() != 'n' or .stream.readU8() != 'u' or .stream.readU8() != 'l' or .stream.readU8() != 'l' do
-                    fail .getError("JSON null literal is incomplete")
+                .readLiteral("null")
                 var result: retval
                 return result
             }
@@ -322,7 +488,72 @@ public impl Json
             return result
 
         default:
-            #error("invalid type")
+            let start = .stream.position()
+            .skipNumber()
+            let length = .stream.position() - start
+            let token  = @mkstring(.stream.data() + start, length)
+            #static switch NT
+            {
+            case f32:
+                let val = StrConv.parseF32(token)
+                if val.eat != length do
+                    fail .getError("JSON number cannot be represented as f32")
+                return val.value
+
+            case f64:
+                let val = StrConv.parseF64(token)
+                if val.eat != length do
+                    fail .getError("JSON number cannot be represented as f64")
+                return val.value
+
+            case s8:
+                let val = StrConv.parseS8(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as s8")
+                return val.value
+
+            case s16:
+                let val = StrConv.parseS16(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as s16")
+                return val.value
+
+            case s32:
+                let val = StrConv.parseS32(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as s32")
+                return val.value
+
+            case s64:
+                let val = StrConv.parseS64(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as s64")
+                return val.value
+
+            case u8:
+                let val = StrConv.parseU8(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as u8")
+                return val.value
+
+            case u16:
+                let val = StrConv.parseU16(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as u16")
+                return val.value
+
+            case u32:
+                let val = StrConv.parseU32(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as u32")
+                return val.value
+
+            case u64:
+                let val = StrConv.parseU64(token)
+                if val.eat != length or val.ovf do
+                    fail .getError("JSON number cannot be represented as u64")
+                return val.value
+            }
         }
     }
 }

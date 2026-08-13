@@ -169,3 +169,11 @@ Entries are sorted by identifier, ascending; position carries no priority.
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
+
+### F-128 — A fallible rune return can fail during backend lowering
+
+- Area: compiler
+- Found while: implementing the JSON Unicode escape decoder for T-029
+- Observation: a function returning `rune fail` reaches an internal compiler error when a branch executes `fail`; returning `u32 fail` and casting the successful value at the caller compiles.
+- Evidence: `Json.readUnicodeEscape()->rune fail` in `bin/std/modules/core/src/serialization/read/json.swg` failed with `cannot materialize the synthesized zero fallible result payload` at its first `fail` expression in DevMode; changing only its result type to `u32` made the same body compile.
+- Next step: reduce this to a native compiler-suite case with a standalone fallible function returning `rune`, then repair synthesized result initialization in backend lowering.

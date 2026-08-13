@@ -23,9 +23,10 @@ file is available.
 ## Structured data
 
 [[Core.Serialization]] provides a shared traversal model with JSON, XML, and
-tagged-binary readers and writers. The read side reports malformed input through
-`fail`; the write side serializes values according to their reflected fields and
-serialization attributes.
+tagged-binary readers and writers. JSON is declaration-driven and accepts reordered,
+missing, and unknown properties for forward-compatible interchange. The read side
+reports malformed input through `fail`; the write side serializes values according
+to their reflected fields and serialization attributes.
 
 Treat external input as untrusted. Keep parsing errors at the boundary, add the
 filename or protocol context there, and only pass validated values into the rest

@@ -177,3 +177,24 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: a function returning `rune fail` reaches an internal compiler error when a branch executes `fail`; returning `u32 fail` and casting the successful value at the caller compiles.
 - Evidence: `Json.readUnicodeEscape()->rune fail` in `bin/std/modules/core/src/serialization/read/json.swg` failed with `cannot materialize the synthesized zero fallible result payload` at its first `fail` expression in DevMode; changing only its result type to `u32` made the same body compile.
 - Next step: reduce this to a native compiler-suite case with a standalone fallible function returning `rune`, then repair synthesized result initialization in backend lowering.
+
+### F-129 — A constant source through a non-ConstExpr implicit opSet in an aggregate literal is lost
+
+- Area: compiler
+- Found while: the noref campaign's core native run, reducing the angle literal failure.
+- Observation: an aggregate-literal field converted through an `#[Implicit]` `opSet` that is NOT
+  `#[ConstExpr]` reads the wrong value when the source is a constant. The compile-time fold
+  rightly declines, and the runtime Set-cast lowering then reads the source from uninitialized
+  storage instead of materializing the constant. A runtime source through the same shape works,
+  and a `#[ConstExpr]` `opSet` folds correctly.
+- Evidence: `struct Angle { radians: f32 }` with `#[Swag.Implicit, Swag.Inline] mtd opSet(v: f32)`
+  and `let holder = Holder{angle: 1.5}` asserts `radians == 1.5` false in fast-debug, JIT and
+  native alike; the unoptimized micro shows the inlined-set body reading `[frame+0]`, a slot
+  nothing wrote, while the 1.5 constant is loaded into a float register and dropped. The MASTER
+  reference compiler (build of 2026-08-13) fails the identical probe, so this predates the noref
+  campaign and is not a pointer-receiver regression.
+- Next step: in `emitStructSetCast` (CodeGen.Cast.cpp), trace the source argument's payload when
+  it is a constant: `appendResolvedCallArguments` hands `codeGenCallExprCommon` the literal node,
+  and its constant payload appears to be consumed by the aggregate-literal storage machinery
+  before the set call reads it. Reduce with the probe above, fix on master, and let the campaign
+  branch inherit the fix.

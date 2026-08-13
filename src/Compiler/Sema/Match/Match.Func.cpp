@@ -405,7 +405,7 @@ namespace
             return true;
 
         // Binary operator overloads conceptually consume two operands. Keep the right operand
-        // addressable as well so invalid-but-diagnosed signatures like `other: &T` still
+        // addressable as well so signatures with removed reference syntax still
         // behave consistently with operator syntax while remaining reported to the user.
         const SpecOpKind kind = fn.specOpKind();
         return (kind == SpecOpKind::OpBinary || kind == SpecOpKind::OpBinaryRight) && paramIndex == 1;

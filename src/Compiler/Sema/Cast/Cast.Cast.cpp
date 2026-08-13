@@ -1399,10 +1399,10 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             return Result::Continue;
     }
 
-    // Pointer to ref
+    // Pointer to internal move reference
     if (srcType.isAnyPointer())
     {
-        // A nullable pointer cannot silently bind to a non-null reference (e.g. `var q: &T = nullableP`).
+        // A nullable pointer cannot silently bind to an internal non-null move reference.
         // The only exception is a UFCS receiver: calling a method on a `#null` pointer just dereferences it
         // (C-like, may fault at runtime if actually null), so it is allowed without a guard.
         if (srcType.isNullable() && !castRequest.flags.has(CastFlagsE::UfcsArgument))

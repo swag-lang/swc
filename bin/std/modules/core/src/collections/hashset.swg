@@ -198,7 +198,7 @@ impl HashSet
     // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
     mtd const reversed()->ReversedHashSet'K
     {
-        return {source: &me}
+        return {source: me}
     }
 
     // Computes the hash for a given key.

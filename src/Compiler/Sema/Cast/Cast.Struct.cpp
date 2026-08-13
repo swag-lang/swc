@@ -411,7 +411,7 @@ namespace
             return OpCastRank::Bad;
 
         const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
-        if (!receiverType.isReference())
+        if (!receiverType.isReference() && !(receiverType.isValuePointer() && !receiverType.isNullable()))
             return OpCastRank::Bad;
         if (!receiverType.isConst())
         {

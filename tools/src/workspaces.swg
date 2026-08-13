@@ -28,7 +28,7 @@ public func runStd(context: *Context, options: *Options)->s32 fail
     // A module is tested from its own module file, against the API the workspace build published.
     for name in context.workspaceModules("std")
     {
-        if !options.module.isEmpty() and options.module != name do
+        if !options.module.isEmpty() and options.module != dref name do
             continue
 
         let moduleDir = Path.combine(context.workspacePath("std").toString(), "modules", name.toString())
@@ -156,7 +156,7 @@ private func packageApplications(context: *Context, options: *Options)->s32 fail
 {
     for name in context.workspaceModules("apps")
     {
-        if !options.module.isEmpty() and options.module != name do
+        if !options.module.isEmpty() and options.module != dref name do
             continue
 
         let code = try packageApplication(context, options, name.toString())

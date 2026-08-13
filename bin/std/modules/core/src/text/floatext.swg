@@ -430,7 +430,7 @@ impl FloatExt
             return true
         }
 
-        if .exp == 0 and dref lower == dref &me and dref lower == dref upper
+        if .exp == 0 and dref lower == dref me and dref lower == dref upper
         {
             // an exact integer.
             var buf: [24] u8

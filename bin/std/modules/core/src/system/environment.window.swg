@@ -157,7 +157,7 @@ impl Window
         {
             let {width, height} = try .clientSizeNative()
             let onResize        = .callbacks.onResize!
-            onResize(&me, width, height)
+            onResize(me, width, height)
         }
 
         try .showNative()

@@ -219,16 +219,22 @@ namespace
         if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
             return false;
 
-        MicroReg pointeeAddressReg = srcPayload.reg;
-        if (dstType.isReference() || dstType.isMoveReference())
-        {
-            const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
-            const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
-            if (!dstPointeeTypeRef.isValid())
-                return false;
+        const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
+        const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
+        if (!dstPointeeTypeRef.isValid())
+            return false;
 
-            if (sourceTypeToCheck != dstPointeeTypeRef)
+        MicroReg pointeeAddressReg = srcPayload.reg;
+        if (sourceTypeToCheck != dstPointeeTypeRef)
+        {
+            if (dstType.isAnyPointer() && dstPointeeTypeRef == typeMgr.typeVoid())
             {
+                // A pointer to anything narrows to '*void' without an offset.
+            }
+            else
+            {
+                // A 'using' field chain reaches the pointee subobject for pointers and
+                // references alike.
                 SmallVector<SymbolStructUsingPathStep> usingPath;
                 if (!resolveUsingStructCastPath(codeGen, sourceTypeRef, dstType.payloadTypeRef(), usingPath))
                     return false;
@@ -240,16 +246,6 @@ namespace
                     pointeeAddressReg = codeGen.offsetAddressReg(pointeeAddressReg, step.field->offset());
                 }
             }
-        }
-        else
-        {
-            const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
-            const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
-            if (!dstPointeeTypeRef.isValid())
-                return false;
-
-            if (sourceTypeToCheck != dstPointeeTypeRef && dstPointeeTypeRef != typeMgr.typeVoid())
-                return false;
         }
 
         // Addressable values cast to references/pointers must become the pointer value itself.
@@ -286,15 +282,11 @@ namespace
             return false;
 
         SmallVector<SymbolStructUsingPathStep> usingPath;
-        if (dstType.isReference() || dstType.isMoveReference())
+        if (sourceTypeToCheck != dstPointeeTypeRef)
         {
-            if (sourceTypeToCheck != dstPointeeTypeRef &&
-                !resolveUsingStructCastPath(codeGen, sourceTypeRef, dstType.payloadTypeRef(), usingPath))
+            const bool narrowsToVoidPtr = dstType.isAnyPointer() && dstPointeeTypeRef == typeMgr.typeVoid();
+            if (!narrowsToVoidPtr && !resolveUsingStructCastPath(codeGen, sourceTypeRef, dstType.payloadTypeRef(), usingPath))
                 return false;
-        }
-        else if (sourceTypeToCheck != dstPointeeTypeRef && dstPointeeTypeRef != typeMgr.typeVoid())
-        {
-            return false;
         }
 
         const uint64_t sourceSize = sourceType.sizeOf(codeGen.ctx());

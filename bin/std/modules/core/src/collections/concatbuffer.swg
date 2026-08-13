@@ -113,7 +113,7 @@ impl ConcatBuffer
     // Returns an immutable zero-allocation view that traverses buckets from last to first.
     mtd const reversed()->ReversedConcatBuffer
     {
-        return {source: &me}
+        return {source: me}
     }
 
     // Returns the total number of bytes currently stored in the buffer.

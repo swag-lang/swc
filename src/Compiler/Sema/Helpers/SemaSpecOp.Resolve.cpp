@@ -2006,8 +2006,20 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     if (!leftView.type())
         return Result::Continue;
 
-    const TypeRef   unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
-    const TypeInfo& leftType         = sema.typeMgr().get(unwrappedTypeRef);
+    TypeRef unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
+    {
+        // A receiver cast left in place by a paused resolution retries with a pointer-typed
+        // left operand: when the other side is not pointer-like, the comparison is a value
+        // question about the pointee. Two pointers keep comparing as addresses.
+        const TypeInfo& retryLeftType = sema.typeMgr().get(unwrappedTypeRef);
+        if (retryLeftType.isValuePointer() && !retryLeftType.isNullable())
+        {
+            const SemaNodeView rhsView = sema.viewType(node.nodeRightRef);
+            if (rhsView.type() && !rhsView.type()->isPointerLikeAliasAware(sema.ctx()) && !rhsView.type()->isType())
+                unwrappedTypeRef = relationalOperandTypeRef(sema, retryLeftType.payloadTypeRef());
+        }
+    }
+    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
     if (!leftType.isStruct())
         return Result::Continue;
 

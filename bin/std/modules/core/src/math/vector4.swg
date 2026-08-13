@@ -490,9 +490,9 @@ impl Vector4
         let dir  = target - me
         let dist = dir.length()
         if dist <= maxDistance do
-            me = target
+            dref me = target
         else do
-            me += dir * (maxDistance / dist)
+            dref me += dir * (maxDistance / dist)
     }
 
     // Returns a vector moved towards 'target' by a maximum distance of 'maxDistance'.
@@ -503,7 +503,7 @@ impl Vector4
         let dist = dir.length()
         if dist <= maxDistance do
             return target
-        return me + (dir * (maxDistance / dist))
+        return dref me + (dir * (maxDistance / dist))
     }
 
     // Perform smooth damping interpolation towards 'target'.

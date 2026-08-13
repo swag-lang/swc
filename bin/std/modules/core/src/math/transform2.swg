@@ -26,7 +26,7 @@ impl Transform2
     // Set transform to identity
     mtd setIdentity()
     {
-        me = Identity
+        dref me = Identity
     }
 
     // Checks if the transform is the identity matrix

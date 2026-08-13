@@ -439,7 +439,7 @@ namespace
         appendGeneratedAccess(source, ownerStruct);
         source += "mtd const ";
         source += predefinedName(sema, IdentifierManager::PredefinedName::OpCompare);
-        source += "(other: const &";
+        source += "(other: ";
         source += ownerStruct.name(sema.ctx());
         source += ")->s32\n";
         source += "    {\n";
@@ -490,7 +490,7 @@ namespace
         appendGeneratedAccess(source, ownerStruct);
         source += "mtd const ";
         source += predefinedName(sema, IdentifierManager::PredefinedName::OpEquals);
-        source += "(other: const &";
+        source += "(other: ";
         source += selfTypeName;
         source += ")->bool\n";
         source += "    {\n";

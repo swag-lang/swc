@@ -430,7 +430,7 @@ namespace
 }
 
 // A special operator names its own struct in its receiver, and often in the value it takes as
-// well. Both spellings reach here: the reference the receiver always is, and the alias or the
+// well. Both spellings reach here: the pointer the receiver always is, and the alias or the
 // sibling generic instance a hand-written parameter may name instead.
 bool SemaSpecOp::isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
 {
@@ -438,7 +438,7 @@ bool SemaSpecOp::isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, 
         return false;
 
     const TypeInfo& type = ctx.typeMgr().get(typeRef);
-    if (type.isReference())
+    if (type.isReference() || (type.isValuePointer() && !type.isNullable()))
         typeRef = type.payloadTypeRef();
 
     const TypeRef candidateTypeRef = unwrapAlias(ctx, typeRef);

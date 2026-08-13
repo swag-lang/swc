@@ -1703,7 +1703,8 @@ namespace
             else if (!paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || forceNarrowFactMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
             {
                 AstNodeRef materializedTypeRef = AstNodeRef::invalid();
-                if (const auto* paramDecl = param->decl()->safeCast<AstSingleVarDecl>())
+                // A synthesized receiver has no declaration to clone a type node from.
+                if (const auto* paramDecl = param->decl() ? param->decl()->safeCast<AstSingleVarDecl>() : nullptr)
                 {
                     const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, &sourceAst};
                     materializedTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);

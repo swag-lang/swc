@@ -286,7 +286,7 @@ impl String
         for index in .length
         {
             #static if ptr do
-                #inject(stmt, item = cast(&u8) (buffer + index), index = index)
+                #inject(stmt, item = cast(*u8) (buffer + index), index = index)
             else do
                 #inject(stmt, item = buffer[index], index = index)
         }

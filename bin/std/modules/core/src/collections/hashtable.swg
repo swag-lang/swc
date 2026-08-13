@@ -71,13 +71,13 @@ impl ReversedHashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, value = cast(&V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, value = cast(*V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
             }
@@ -212,13 +212,13 @@ impl HashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, value = cast(&V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, value = cast(*V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
             }

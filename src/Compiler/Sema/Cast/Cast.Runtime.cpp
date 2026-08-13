@@ -253,7 +253,7 @@ namespace
         TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
         if (func.isConst())
             typeFlags.add(TypeInfoFlagsE::Const);
-        return sema.typeMgr().addType(TypeInfo::makeReference(ownerTypeRef, typeFlags));
+        return sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerTypeRef, typeFlags));
     }
 
     bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)

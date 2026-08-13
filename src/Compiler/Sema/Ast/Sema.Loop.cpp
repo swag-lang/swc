@@ -398,21 +398,21 @@ namespace
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))
         {
-            // '&name' binds a mutable reference to the element (const when the source is).
+            // '&name' binds the element's address (const when the source is).
             TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
             if (sourceIsConst || sourceIsEnum)
                 typeFlags.add(TypeInfoFlagsE::Const);
-            valueTypeRef = sema.typeMgr().addType(TypeInfo::makeReference(valueTypeRef, typeFlags));
+            valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, typeFlags));
         }
         else if (valueTypeRef.isValid())
         {
             // A struct element never binds by copy: the by-value form aliases the
-            // element through a const reference (mutation goes through '&name').
+            // element through its const address (mutation goes through '&name').
             TypeRef rawValueTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), valueTypeRef);
             if (!rawValueTypeRef.isValid())
                 rawValueTypeRef = valueTypeRef;
             if (sema.typeMgr().get(rawValueTypeRef).isStruct())
-                valueTypeRef = sema.typeMgr().addType(TypeInfo::makeReference(valueTypeRef, TypeInfoFlagsE::Const));
+                valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, TypeInfoFlagsE::Const));
         }
 
         return Result::Continue;

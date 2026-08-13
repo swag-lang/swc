@@ -187,9 +187,9 @@ impl Array
             let visitIdx = @index
 
             #static if ptr do
-                #inject(stmt, item = cast(&T) scan, index = visitIdx)
+                #inject(stmt, item = cast(*T) scan, index = visitIdx)
             elif Reflection.isStruct(T) do
-                #inject(stmt, item = cast(const &T) scan, index = visitIdx)
+                #inject(stmt, item = cast(const *T) scan, index = visitIdx)
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }

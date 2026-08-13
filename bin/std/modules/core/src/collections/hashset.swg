@@ -69,9 +69,9 @@ impl ReversedHashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
@@ -182,9 +182,9 @@ impl HashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }

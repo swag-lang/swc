@@ -132,9 +132,9 @@ impl ReversedSlice
             scan -= 1
             let index = @countof(.values) - offset - 1
             #static if ptr do
-                #inject(stmt, item = cast(&T) scan, index = index)
+                #inject(stmt, item = cast(*T) scan, index = index)
             elif #typeof(#type T).kind == .Struct do
-                #inject(stmt, item = cast(const &T) scan, index = index)
+                #inject(stmt, item = cast(const *T) scan, index = index)
             else do
                 #inject(stmt, item = scan[0], index = index)
         }
@@ -159,7 +159,7 @@ impl ConstReversedSlice
             scan -= 1
             let index = @countof(.values) - offset - 1
             #static if #typeof(#type T).kind == .Struct do
-                #inject(stmt, item = cast(const &T) scan, index = index)
+                #inject(stmt, item = cast(const *T) scan, index = index)
             else do
                 #inject(stmt, item = scan[0], index = index)
         }
@@ -203,7 +203,7 @@ impl Pairs
         for index in count - 1
         {
             #static if #typeof(#type T).kind == .Struct do
-                #inject(stmt, left = cast(const &T) (data + index), right = cast(const &T) (data + index + 1))
+                #inject(stmt, left = cast(const *T) (data + index), right = cast(const *T) (data + index + 1))
             else do
                 #inject(stmt, left = data[index], right = data[index + 1])
         }

@@ -1436,10 +1436,12 @@ namespace
         if (symImpl.isForEnum())
             return ownerType;
 
+        // The receiver is the object's address: a non-null value pointer, const for
+        // 'mtd const'. References no longer exist as a surface type.
         TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
         if (isConstReceiver)
             typeFlags.add(TypeInfoFlagsE::Const);
-        return sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags));
+        return sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
     }
 
     void addMeParameter(Sema& sema, SymbolFunction& sym)

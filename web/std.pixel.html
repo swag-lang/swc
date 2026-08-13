@@ -214,7 +214,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">420</span></summary>
+<summary>Functions<span class="toc-count">421</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -428,6 +428,7 @@
 <li><a href="#Pixel_Layer_draw">Layer.draw</a></li>
 <li><a href="#Pixel_Layer_end">Layer.end</a></li>
 <li><a href="#Pixel_Layer_release">Layer.release</a></li>
+<li><a href="#Pixel_Layer_releaseImmediate">Layer.releaseImmediate</a></li>
 <li><a href="#Pixel_Layer_resolve">Layer.resolve</a></li>
 <li><a href="#Pixel_Layer_sourceRect">Layer.sourceRect</a></li>
 <li><a href="#Pixel_Layer_texture">Layer.texture</a></li>
@@ -1633,6 +1634,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <tr><td class="code-type"><a href="#Pixel_Layer_end">Layer.end</a></td><td><p>Ends the active off-screen recording scope.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Layer_release">Layer.release</a></td><td><p>Queues every owned render target for release and resets the layer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Layer_releaseImmediate">Layer.releaseImmediate</a></td><td><p>Returns every owned render target straight to the renderer pool and resets the layer.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Layer_resolve">Layer.resolve</a></td><td><p>Downsamples supersampled content to the layer's device resolution.</p>
 </td></tr>
@@ -3681,6 +3684,8 @@ canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst">
 <tr><td class="code-type"><a href="#Pixel_Layer_end">end</a></td><td><p>Ends the active off-screen recording scope.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Layer_release">release</a></td><td><p>Queues every owned render target for release and resets the layer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Layer_releaseImmediate">releaseImmediate</a></td><td><p>Returns every owned render target straight to the renderer pool and resets the layer.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Layer_resolve">resolve</a></td><td><p>Downsamples supersampled content to the layer's device resolution.</p>
 </td></tr>
@@ -7774,6 +7779,12 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_Layer_releaseImmediate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.releaseImmediate</span> <a class="api-item-permalink" href="#Pixel_Layer_releaseImmediate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L346">src</a></div>
+<p>Returns every owned render target straight to the renderer pool and resets the layer.</p>
+<p><a href="#Pixel_Layer_release">Pixel.Layer.release</a> records the release into the painter command stream, which is right in the middle of a frame but wrong for a layer retained across frames: <a href="#Pixel_Painter_begin">Pixel.Painter.begin</a> discards pending commands, so a release recorded between two frames would be lost with them. Call this form instead when releasing a retained layer, once no recorded frame still draws from its targets.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseImmediate</span>()</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Layer_resolve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.resolve</span> <a class="api-item-permalink" href="#Pixel_Layer_resolve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L137">src</a></div>
 <p>Downsamples supersampled content to the layer's device resolution.</p>
 <p>Calling this more than once is harmless.</p>
@@ -8991,7 +9002,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.24</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.26</div>
 </footer>
 </section>
 </main>
@@ -10284,6 +10295,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 "f|Pixel.Layer.draw|Pixel_Layer_draw|Composites the resolved layer into the painter.",
 "f|Pixel.Layer.end|Pixel_Layer_end|Ends the active off-screen recording scope.",
 "f|Pixel.Layer.release|Pixel_Layer_release|Queues every owned render target for release and resets the layer.",
+"f|Pixel.Layer.releaseImmediate|Pixel_Layer_releaseImmediate|Returns every owned render target straight to the renderer pool and resets the layer.",
 "f|Pixel.Layer.resolve|Pixel_Layer_resolve|Downsamples supersampled content to the layer's device resolution.",
 "f|Pixel.Layer.sourceRect|Pixel_Layer_sourceRect|Returns the logical layer rectangle with origin (0, 0).",
 "f|Pixel.Layer.texture|Pixel_Layer_texture|Returns the resolved layer texture.",

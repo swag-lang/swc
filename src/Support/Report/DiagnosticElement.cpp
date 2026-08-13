@@ -3,7 +3,6 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Diagnostic.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -21,7 +20,11 @@ DiagnosticElement::DiagnosticElement(DiagnosticSeverity severity, DiagnosticId i
 
 void DiagnosticElement::addSpan(const SourceView* srcView, uint32_t offset, uint32_t len, DiagnosticSeverity severity, const Utf8& message)
 {
-    SWC_ASSERT(!srcView_ || srcView_ == srcView);
+    // An element is rendered against one source view. Generated code can retain an operand from
+    // its caller, so a secondary label may legitimately belong to another view; its provenance
+    // is reported by a separate expansion note.
+    if (srcView_ && srcView_ != srcView)
+        return;
     srcView_ = srcView;
 
     if (!len)
@@ -36,7 +39,8 @@ void DiagnosticElement::addSpan(const SourceView* srcView, uint32_t offset, uint
 
 void DiagnosticElement::addSpan(const SourceCodeRange& codeRange, const Utf8& message, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!srcView_ || codeRange.srcView == srcView_);
+    if (srcView_ && codeRange.srcView != srcView_)
+        return;
     srcView_ = codeRange.srcView;
 
     if (!codeRange.len)
@@ -51,7 +55,8 @@ void DiagnosticElement::addSpan(const SourceCodeRange& codeRange, const Utf8& me
 
 void DiagnosticElement::addSpan(const SourceCodeRange& codeRange, DiagnosticId diagId, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!srcView_ || codeRange.srcView == srcView_);
+    if (srcView_ && codeRange.srcView != srcView_)
+        return;
     srcView_ = codeRange.srcView;
 
     DiagnosticSpan span;

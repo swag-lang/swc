@@ -2452,14 +2452,27 @@ namespace
                 flags.add(CastFlagsE::UfcsArgument);
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
+            // A UFCS receiver binding an addressable value to a pointer parameter needs no
+            // cast node: the call passes the receiver's address (passUfcsAddressAsPointer),
+            // and a cast substitute would survive a pause and re-type the receiver.
+            const TypeRef preCastSrcTypeRef = argView.typeRef();
+            if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid() && sema.isLValue(argView.nodeRef()))
+            {
+                const TypeInfo& preCastSrcType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef));
+                if (!preCastSrcType.isPointerOrReference() && !preCastSrcType.isNull())
+                {
+                    entry.valueRef = argView.nodeRef();
+                    refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
+                    continue;
+                }
+            }
+
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
-            const TypeRef             preCastSrcTypeRef = argView.typeRef();
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
                 SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
 
-            // A UFCS receiver bound to a pointer parameter hands over its address. Mark the
-            // cast so codegen never lowers it as a numeric conversion, and give an rvalue
-            // receiver a call-site home the address can point into.
+            // An rvalue receiver still routes through the cast: mark it so codegen never
+            // lowers it as a numeric conversion, and give it a call-site home.
             if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
             {
                 const TypeInfo& preCastSrcType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef));
@@ -2636,8 +2649,22 @@ namespace
         const SemaNodeView argView = sema.viewType(outResolvedArg.argRef);
         SWC_ASSERT(argView.typeRef().isValid());
 
+        // A const non-null value pointer boxes as its pointee (the codegen packer hands over
+        // the pointee's address), except the implicit receiver, which keeps address identity.
+        TypeRef         boxTypeRef  = argView.typeRef();
+        const TypeRef   unwrapped   = sema.typeMgr().unwrapAliasEnum(sema.ctx(), boxTypeRef);
+        const TypeInfo& unwrappedTy = sema.typeMgr().get(unwrapped.isValid() ? unwrapped : boxTypeRef);
+        if (unwrappedTy.isValuePointer() && !unwrappedTy.isNullable() && unwrappedTy.isConst())
+        {
+            const AstNodeRef   sourceRef  = SemaHelpers::resolveTransparentExprSourceRef(sema, outResolvedArg.argRef);
+            const SemaNodeView sourceView = sema.viewSymbol(sourceRef);
+            const bool         isReceiver = sourceView.sym() && sourceView.sym()->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+            if (!isReceiver)
+                boxTypeRef = unwrappedTy.payloadTypeRef();
+        }
+
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, argView.typeRef(), outResolvedArg.argRef));
+        SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, boxTypeRef, outResolvedArg.argRef));
         outResolvedArg.typeInfoCstRef = typeInfoCstRef;
         return Result::Continue;
     }

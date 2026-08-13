@@ -224,14 +224,34 @@ namespace
         const TypeRef   referenceTypeRef = argType.unwrap(codeGen.ctx(), ioTypeRef, TypeExpandE::Alias);
         const TypeInfo& referenceType    = codeGen.typeMgr().get(referenceTypeRef);
 
-        // The implicit receiver is reference-shaped but variadic APIs use its address identity.
-        // Other const references represent borrowed values and must be boxed as their pointees.
-        if (!referenceType.isReference() || !referenceType.isConst() || isImplicitMethodReceiverArgument(codeGen, argRef))
+        // The implicit receiver keeps its address identity for variadic APIs. Other const
+        // references and const non-null value pointers represent borrowed values and are
+        // boxed as their pointees.
+        const bool borrowsValue = referenceType.isReference() || (referenceType.isValuePointer() && !referenceType.isNullable());
+        if (!borrowsValue || !referenceType.isConst() || isImplicitMethodReceiverArgument(codeGen, argRef))
             return;
 
-        TypeRef payloadTypeRef = ioTypeRef;
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, ioPayload, payloadTypeRef);
-        ioTypeRef         = payloadTypeRef;
+        if (referenceType.isReference())
+        {
+            TypeRef payloadTypeRef = ioTypeRef;
+            CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, ioPayload, payloadTypeRef);
+            ioTypeRef         = payloadTypeRef;
+            ioPayload.typeRef = ioTypeRef;
+            return;
+        }
+
+        // The pointer VALUE is the pointee's address: load it when the payload still holds
+        // the pointer's own storage, then continue as an address payload of the pointee.
+        MicroReg pointeeAddressReg = ioPayload.reg;
+        if (ioPayload.isAddress())
+        {
+            pointeeAddressReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(pointeeAddressReg, ioPayload.reg, 0, MicroOpBits::B64);
+        }
+
+        ioTypeRef = referenceType.payloadTypeRef();
+        ioPayload.setIsAddress();
+        ioPayload.reg     = pointeeAddressReg;
         ioPayload.typeRef = ioTypeRef;
     }
 

@@ -185,7 +185,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd computeTrackSizes(tracks: [..] GridTrack, content: [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array'f32
+    mtd computeTrackSizes(tracks: const [..] GridTrack, content: const [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array'f32
     {
         var result: retval
         let count = @countof(tracks)
@@ -271,7 +271,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd trackOffset(sizes: [..] f32, idx: s32, spacing: f32)->f32
+    mtd trackOffset(sizes: const [..] f32, idx: s32, spacing: f32)->f32
     {
         var result: retval
         for i in idx
@@ -283,7 +283,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd trackSpanSize(sizes: [..] f32, idx, span: s32, spacing: f32)->f32
+    mtd trackSpanSize(sizes: const [..] f32, idx, span: s32, spacing: f32)->f32
     {
         var result: retval
         for i in span

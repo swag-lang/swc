@@ -70,7 +70,7 @@ struct(T) ApiPatch
     }
 }
 
-func(T) clearPatch(patch: &ApiPatch'T)
+func(T) clearPatch(patch: *ApiPatch'T)
 {
     #ast
     {
@@ -89,7 +89,7 @@ func(T) clearPatch(patch: &ApiPatch'T)
     }
 }
 
-func(T) capturePatch(patch: &ApiPatch'T, value: const &T)
+func(T) capturePatch(patch: *ApiPatch'T, value: T)
 {
     #ast
     {
@@ -113,7 +113,7 @@ func(T) capturePatch(patch: &ApiPatch'T, value: const &T)
     }
 }
 
-func(T) patchChangedCount(patch: const &ApiPatch'T)->s32
+func(T) patchChangedCount(patch: ApiPatch'T)->s32
 {
     var count: s32
     #ast
@@ -135,7 +135,7 @@ func(T) patchChangedCount(patch: const &ApiPatch'T)->s32
     return count
 }
 
-func(T) patchChangedMask(patch: const &ApiPatch'T)->u64
+func(T) patchChangedMask(patch: ApiPatch'T)->u64
 {
     var mask = 0'u64
     var bit  = 1'u64
@@ -159,7 +159,7 @@ func(T) patchChangedMask(patch: const &ApiPatch'T)->u64
     return mask
 }
 
-func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
+func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 {
     var result = base
     #ast

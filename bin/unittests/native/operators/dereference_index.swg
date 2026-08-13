@@ -78,20 +78,20 @@ alias IndexStrictU8 = u8
 #test
 {
     var text             = "hello"
-    var textRef: &string = &text
-    @assert(textRef[1] == cast(u8) 'e'rune)
+    var textRef: *string = &text
+    @assert((dref textRef)[1] == cast(u8) 'e'rune)
 
     var grid: [2, 3] s32
     grid[1, 2] = 42
-    var gridRef: &[2, 3] s32 = &grid
-    @assert(@countof(gridRef[0]) == 3)
-    @assert(gridRef[1, 2] == 42)
+    var gridRef: *[2, 3] s32 = &grid
+    @assert(@countof((dref gridRef)[0]) == 3)
+    @assert((dref gridRef)[1, 2] == 42)
 
     var backing:  [2] s32   = [11, 22]
     var slice:    [..] s32  = backing
-    var sliceRef: &[..] s32 = &slice
-    @assert(sliceRef[0] == 11)
-    sliceRef[1] = 99
+    var sliceRef: *[..] s32 = &slice
+    @assert((dref sliceRef)[0] == 11)
+    (dref sliceRef)[1] = 99
     @assert(backing[1] == 99)
 }
 

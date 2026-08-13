@@ -974,16 +974,6 @@ struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType, AstQualifiedTypeFla
 };
 
 // -----------------------------------------------------------------------------
-struct AstReferenceType : AstNodeT<AstNodeId::ReferenceType>
-{
-    AstNodeRef nodePointeeTypeRef;
-
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
-    Result     semaPostNode(Sema& sema) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
 struct AstMoveRefType : AstNodeT<AstNodeId::MoveRefType>
 {
     AstNodeRef nodePointeeTypeRef;

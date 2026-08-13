@@ -112,7 +112,7 @@ struct OuterAnonymousUnion
     let basePtr: const *Inner = &out
     @assert(basePtr.x == 11)
 
-    let baseRef: const &Inner = &out
+    let baseRef: const *Inner = &out
     @assert(baseRef.x == 11)
 }
 

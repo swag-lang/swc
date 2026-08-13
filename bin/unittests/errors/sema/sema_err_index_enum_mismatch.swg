@@ -12,7 +12,7 @@ enum ColumnIndex
     Second
 }
 
-func readWrongIndex(values: const &[RowIndex] s32)->s32
+func readWrongIndex(values: [RowIndex] s32)->s32
 {
     return values[ColumnIndex.First]     // swc-expected-error {{sema_err_index_enum_mismatch}}
 }

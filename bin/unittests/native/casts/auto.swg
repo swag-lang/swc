@@ -67,8 +67,8 @@ func takes_f64(v: f64) { gAutoF64 = v }
     }
 
     var x: A
-    var r: &A = &x
-    var p: *A = &r
+    var r: *A = &x
+    var p: *A = r
     #assert(#typeof(p) == *A)
     @assert(#typeof(p) == *A)
 }
@@ -81,8 +81,8 @@ func takes_f64(v: f64) { gAutoF64 = v }
     }
 
     var x: A
-    var r: const &A = &x
-    var p: const *A = &r
+    var r: const *A = &x
+    var p: const *A = r
     @assert(#typeof(p) == const *A)
 }
 
@@ -94,8 +94,8 @@ func takes_f64(v: f64) { gAutoF64 = v }
     }
 
     var x: A
-    var r: const &A = &x
-    @assert(#typeof(r) == const &A)
+    var r: const *A = &x
+    @assert(#typeof(r) == const *A)
 }
 
 #[Swag.Inline]

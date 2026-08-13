@@ -41,7 +41,7 @@ public struct(T) Slab
 impl Slab
 {
     #[Swag.Inline]
-    mtd opIndex(i: u64)->&T
+    mtd opIndexPtr(i: u64)->*T
     {
         return &.cells[i]
     }

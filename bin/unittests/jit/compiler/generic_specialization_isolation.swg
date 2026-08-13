@@ -67,13 +67,13 @@ impl GenericIsolationStore
 }
 
 #[Swag.NoInline]
-func(T, const Pad: s32) cloneEntry(store: const &GenericIsolationStore'(T, Pad), index: s32)->GenericIsolationEntry'(T, Pad)
+func(T, const Pad: s32) cloneEntry(store: const *GenericIsolationStore'(T, Pad), index: s32)->GenericIsolationEntry'(T, Pad)
 {
     return store.snapshot(index)
 }
 
 #[Swag.NoInline]
-func(T, const Pad: s32) readValue(store: const &GenericIsolationStore'(T, Pad), index: s32)->T
+func(T, const Pad: s32) readValue(store: const *GenericIsolationStore'(T, Pad), index: s32)->T
 {
     let entry = store.snapshot(index)
     return entry.value

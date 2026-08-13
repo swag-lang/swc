@@ -398,7 +398,6 @@ uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeIn
             return h;
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
-        case TypeInfoKind::Reference:
         case TypeInfoKind::MoveReference:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:

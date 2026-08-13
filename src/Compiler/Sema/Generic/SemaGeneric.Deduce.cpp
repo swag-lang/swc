@@ -127,8 +127,6 @@ namespace
                 continue;
             }
 
-            if (const auto* refType = patternNode.safeCast<AstReferenceType>())
-                return refType->nodePointeeTypeRef;
             if (const auto* moveRefType = patternNode.safeCast<AstMoveRefType>())
                 return moveRefType->nodePointeeTypeRef;
             if (const auto* valuePtrType = patternNode.safeCast<AstValuePointerType>())
@@ -1067,13 +1065,6 @@ namespace
             if (!argType.isSlice())
                 return Result::Continue;
             return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
-        }
-
-        if (const auto* refType = patternNode.safeCast<AstReferenceType>())
-        {
-            if (!argType.isReference())
-                return Result::Continue;
-            return deduceFromTypePattern(sema, params, resolvedArgs, refType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
         }
 
         if (const auto* moveRefType = patternNode.safeCast<AstMoveRefType>())

@@ -64,7 +64,7 @@ impl S
 }
 
 struct NullableRefNode {}
-func takesNonNullRef(r: &NullableRefNode) {}
+func takesNonNullRef(r: *NullableRefNode) {}
 
 #test
 {

@@ -141,9 +141,9 @@ func touch(flag: bool, delta: s32)->bool
     let otherPtr:       *CompareIdentityBase = &other
     let derivedBasePtr: *CompareIdentityBase = &derived.base
 
-    var baseRef:    &CompareIdentityBase       = &base
-    let otherRef:   const &CompareIdentityBase = &other
-    var derivedRef: &CompareIdentityDerived    = &derived
+    var baseRef:    *CompareIdentityBase       = &base
+    let otherRef:   const *CompareIdentityBase = &other
+    var derivedRef: *CompareIdentityDerived    = &derived
 
     @assert(basePtr == baseRef)
     @assert(baseRef == basePtr)
@@ -155,7 +155,7 @@ func touch(flag: bool, delta: s32)->bool
     @assert(derivedBasePtr != baseRef)
 }
 
-func matchReferenceValue(value: const &s32)->bool
+func matchReferenceValue(value: s32)->bool
 {
     return value == 4 and value != 5 and value < 5 and value <= 4 and value > 3 and value >= 4 and
            (value <=> 4) == 0 and (value <=> 5) == -1 and (value <=> 3) == 1
@@ -168,50 +168,50 @@ func matchReferenceValue(value: const &s32)->bool
     var y: s32 = 42
     var z: s32 = 7
 
-    var refX: &s32       = &x
-    let refY: const &s32 = &y
-    let refZ: const &s32 = &z
+    var refX: *s32       = &x
+    let refY: const *s32 = &y
+    let refZ: const *s32 = &z
 
-    @assert(refX == 42)
-    @assert(42 == refX)
-    @assert(refX != 7)
-    @assert(7 != refX)
-    @assert(refX < 50)
-    @assert(41 < refX)
-    @assert(refX <= 42)
-    @assert(42 <= refX)
-    @assert(refX > 10)
-    @assert(50 > refX)
-    @assert(refX >= 42)
-    @assert(42 >= refX)
-    @assert((refX <=> 42) == 0)
-    @assert((refX <=> 50) == -1)
-    @assert((50 <=> refX) == 1)
-    @assert(refX == refY)
-    @assert(refX != refZ)
+    @assert(dref refX == 42)
+    @assert(42 == dref refX)
+    @assert(dref refX != 7)
+    @assert(7 != dref refX)
+    @assert(dref refX < 50)
+    @assert(41 < dref refX)
+    @assert(dref refX <= 42)
+    @assert(42 <= dref refX)
+    @assert(dref refX > 10)
+    @assert(50 > dref refX)
+    @assert(dref refX >= 42)
+    @assert(42 >= dref refX)
+    @assert((dref refX <=> 42) == 0)
+    @assert((dref refX <=> 50) == -1)
+    @assert((50 <=> dref refX) == 1)
+    @assert(dref refX == dref refY)
+    @assert(dref refX != dref refZ)
 }
 
 // Const-reference parameters keep value-style comparisons
 #test
 {
     var value:    s32        = 4
-    let valueRef: const &s32 = &value
-    @assert(matchReferenceValue(valueRef))
+    let valueRef: const *s32 = &value
+    @assert(matchReferenceValue(dref valueRef))
 }
 
 // Float references use the same comparison pipeline
 #test
 {
     var value:    f32        = 1.5
-    let valueRef: const &f32 = &value
+    let valueRef: const *f32 = &value
 
-    @assert(valueRef == 1.5)
-    @assert(valueRef != 2.5)
-    @assert(valueRef < 2.5)
-    @assert(valueRef <= 1.5)
-    @assert(valueRef > 1.0)
-    @assert(valueRef >= 1.5)
-    @assert((valueRef <=> 1.5) == 0)
+    @assert(dref valueRef == 1.5)
+    @assert(dref valueRef != 2.5)
+    @assert(dref valueRef < 2.5)
+    @assert(dref valueRef <= 1.5)
+    @assert(dref valueRef > 1.0)
+    @assert(dref valueRef >= 1.5)
+    @assert((dref valueRef <=> 1.5) == 0)
 }
 
 // Short-circuit evaluation with side effects

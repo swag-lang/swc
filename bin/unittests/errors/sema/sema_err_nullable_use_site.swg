@@ -62,9 +62,8 @@ func nullableUseSiteCall(f: #null func()->s32)->s32
     return f()     // swc-expected-error {{sema_err_nullable_call}}
 }
 
-// A REFERENCE to a nullable slot is as unproven as the slot it names: the reference
-// layer must not smuggle the value past the use-site rules. This is what a const
-// 'opIndex' hands back, so the hole was reachable from any indexed container.
+// A pointer to a nullable slot is as unproven as the slot it names: the outer pointer
+// must not smuggle the inner value past the use-site rules.
 alias NullableUseSiteSlot      = #null *NullableUseSiteItem
 alias NullableUseSiteBlockSlot = #null [*] s32
 alias NullableUseSiteFnSlot    = #null func()->s32
@@ -78,33 +77,33 @@ struct NullableUseSiteBox
 
 impl NullableUseSiteBox
 {
-    mtd const at()->const &NullableUseSiteSlot           => &.slot
-    mtd const atBlock()->const &NullableUseSiteBlockSlot => &.block
-    mtd const atFn()->const &NullableUseSiteFnSlot       => &.fn
+    mtd const at()->const *NullableUseSiteSlot           => &.slot
+    mtd const atBlock()->const *NullableUseSiteBlockSlot => &.block
+    mtd const atFn()->const *NullableUseSiteFnSlot       => &.fn
 }
 
 func nullableUseSiteThroughRef(box: *NullableUseSiteBox)->s32
 {
     let bound = box.at()
-    return bound.value     // swc-expected-error {{sema_err_nullable_member_access}}
+    return (dref bound).value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
 func nullableUseSiteDerefThroughRef(box: *NullableUseSiteBox)->NullableUseSiteItem
 {
     let bound = box.at()
-    return dref bound     // swc-expected-error {{sema_err_nullable_deref}}
+    return dref dref bound     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
 func nullableUseSiteIndexThroughRef(box: *NullableUseSiteBox)->s32
 {
     let bound = box.atBlock()
-    return bound[0]     // swc-expected-error {{sema_err_nullable_index}}
+    return (dref bound)[0]     // swc-expected-error {{sema_err_nullable_index}}
 }
 
 func nullableUseSiteCallThroughRef(box: *NullableUseSiteBox)->s32
 {
     let bound = box.atFn()
-    return bound()     // swc-expected-error {{sema_err_nullable_call}}
+    return (dref bound)()     // swc-expected-error {{sema_err_nullable_call}}
 }
 
 // A guard kills the fact after reassignment: the second access is unproven again.

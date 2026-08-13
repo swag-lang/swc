@@ -30,7 +30,7 @@ impl Vector3
     }
 
     // Binary operators: vector op vector
-    func(op: Swag.Operator) opBinary(const me, other: const &Vector3'T)->Vector3'T
+    func(op: Swag.Operator) opBinary(const me, other: Vector3'T)->Vector3'T
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
@@ -88,7 +88,7 @@ impl Vector3
     }
 
     // Dot product helper
-    func dot(a: const &Vector3'T, b: const &Vector3'T)->T
+    func dot(a: Vector3'T, b: Vector3'T)->T
     {
         return a.x * b.x + a.y * b.y + a.z * b.z
     }

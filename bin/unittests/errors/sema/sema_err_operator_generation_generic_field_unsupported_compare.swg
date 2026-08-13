@@ -7,7 +7,7 @@ struct GeneratedGenericEqualsOnlyField
 
 impl GeneratedGenericEqualsOnlyField
 {
-    mtd const opEquals(other: const &GeneratedGenericEqualsOnlyField)->bool
+    mtd const opEquals(other: GeneratedGenericEqualsOnlyField)->bool
     {
         return .value == other.value
     }

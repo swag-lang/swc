@@ -14,7 +14,7 @@ struct RefRangeStorage
 
 impl RefRangeStorage
 {
-    mtd opIndex(index: u32)->&RefRange
+    mtd opIndexPtr(index: u32)->*RefRange
     {
         return &.values[index]
     }
@@ -35,8 +35,8 @@ impl RefRangeModel
 {
     mtd split(idx: u32)
     {
-        let range: &RefRange = &.selection[0]
-        #assert(#typeof(range) == #type &RefRange)
+        let range: *RefRange = &.selection[0]
+        #assert(#typeof(range) == #type *RefRange)
         let end = range.end
 
         range.end = idx - 1

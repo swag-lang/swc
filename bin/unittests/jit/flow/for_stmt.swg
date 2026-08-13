@@ -24,12 +24,12 @@ impl FixedCountedLoop
 
 impl StringRefIndexBox
 {
-    mtd opIndex(index: s32)->&string
+    mtd opIndex(index: s32)->*string
     {
         return &.rows[index]
     }
 
-    mtd const opIndex(index: s32)->const &string
+    mtd const opIndex(index: s32)->const *string
     {
         return &.rows[index]
     }
@@ -180,7 +180,7 @@ impl StringRefIndexBox
     {
         var box = StringRefIndexBox{rows: ["10110", "00100"]}
         var sum = 0
-        for i in @countof(box[0]) do
+        for i in @countof(dref box[0]) do
             sum += cast(s32) i
         return sum
     }

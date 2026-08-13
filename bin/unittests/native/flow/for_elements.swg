@@ -143,10 +143,10 @@ alias StrictForeachF32           = f32
     @assert(order[2] == 'A'u8)
 }
 
-func foreachCStringRefSum(value: &cstring)->s32
+func foreachCStringRefSum(value: *cstring)->s32
 {
     var sum = 0
-    for v in value do
+    for v in dref value do
         sum += cast(s32) v
     return sum
 }

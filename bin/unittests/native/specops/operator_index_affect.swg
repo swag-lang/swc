@@ -60,7 +60,7 @@ struct RuntimeRefIndexBox
 impl RuntimeRefIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32)->&s32
+    mtd opIndexPtr(index: s32)->*s32
     {
         .reads += 1
         return &.values[index]

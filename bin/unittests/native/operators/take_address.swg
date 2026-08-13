@@ -2,9 +2,9 @@
 
 func nativeFunctionAddressAsPointer()->s32 => 1
 
-func nativeFunctionAddressReturnedReference(value: &s32)->&s32
+func nativeFunctionAddressReturnedReference(value: *s32)->*s32
 {
-    return &value
+    return value
 }
 
 #[Swag.Strict]
@@ -165,17 +165,15 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
-    func mutateThroughRefPtr(x: &s32)
+    func mutateThroughRefPtr(x: *s32)
+    {
+        dref x = 55
+    }
+
+    func inspectConstRefPtr(x: s32, expected: s32)
     {
         let p = &x
         #assert(#typeof(p) == *s32)
-        dref p = 55
-    }
-
-    func inspectConstRefPtr(x: const &s32, expected: s32)
-    {
-        let p = &x
-        #assert(#typeof(p) == const *s32)
         @assert(dref p == expected)
     }
 
@@ -188,15 +186,15 @@ alias StrictAddressArray = [3] s32
     inspectConstRefPtr(2 + 5, 7)
 
     var y: s32  = 91
-    var r: &s32 = &y
-    let rebound = &r
+    var r: *s32 = &y
+    let rebound = r
     #assert(#typeof(rebound) == *s32)
     dref rebound = 123
     @assert(x == 55)
     @assert(y == 123)
 
-    var cr: const &s32 = &x
-    let constRefPtr    = &cr
+    var cr: const *s32 = &x
+    let constRefPtr    = cr
     #assert(#typeof(constRefPtr) == const *s32)
     @assert(dref constRefPtr == 55)
 }
@@ -248,7 +246,7 @@ alias StrictAddressArray = [3] s32
     @assert(p != null)
 
     var value = 77
-    let rp    = &nativeFunctionAddressReturnedReference(&value)
+    let rp    = nativeFunctionAddressReturnedReference(&value)
     #assert(#typeof(rp) == *s32)
     @assert(rp == &value)
 }

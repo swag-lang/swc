@@ -33,7 +33,7 @@ struct Metadata
 
 // Compute a simple checksum over s32 fields of Config by reading field
 // offsets from typeinfo and accessing memory through a raw pointer.
-func checksumConfig(cfg: const &Config)->s32
+func checksumConfig(cfg: Config)->s32
 {
     let info     = cast(const *Swag.TypeInfoStruct) #typeof(Config)
     let base     = cast(const [*] u8) &cfg

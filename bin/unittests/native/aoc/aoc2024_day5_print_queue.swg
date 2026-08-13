@@ -21,13 +21,13 @@ struct Update
 
 impl Update
 {
-    mtd opIndex(index: u32)->&s32
+    mtd opIndexPtr(index: u32)->*s32
     {
         @assert(index < .count)
         return &.pages[index]
     }
 
-    mtd const opIndex(index: u32)->const &s32
+    mtd const opIndexPtr(index: u32)->const *s32
     {
         @assert(index < .count)
         return &.pages[index]
@@ -112,7 +112,7 @@ const TieBreakScenario: PrintQueueScenario =
     ]
     }
 
-func clearUpdate(result: &Update)
+func clearUpdate(result: *Update)
 {
     result.count = 0'u32
     for MaxUpdatePages
@@ -121,12 +121,12 @@ func clearUpdate(result: &Update)
     }
 }
 
-func writePage(result: &s32, value: s32)
+func writePage(result: *s32, value: s32)
 {
-    result = value
+    dref result = value
 }
 
-func copyUpdate(result: &Update, source: const &Update)
+func copyUpdate(result: *Update, source: Update)
 {
     clearUpdate(result)
     result.count = source.count
@@ -138,16 +138,16 @@ func copyUpdate(result: &Update, source: const &Update)
     }
 }
 
-func findPageIndex(result: &u32, update: const &Update, page: s32)->bool
+func findPageIndex(result: *u32, update: Update, page: s32)->bool
 {
-    result = 0'u32
+    dref result = 0'u32
 
     for update.count
     {
         let index = cast(u32) @index
         if update[index] == page
         {
-            result = index
+            dref result = index
             return true
         }
     }
@@ -155,7 +155,7 @@ func findPageIndex(result: &u32, update: const &Update, page: s32)->bool
     return false
 }
 
-func hasRule(scenario: const &PrintQueueScenario, before, after: s32)->bool
+func hasRule(scenario: PrintQueueScenario, before, after: s32)->bool
 {
     for scenario.ruleCount
     {
@@ -167,7 +167,7 @@ func hasRule(scenario: const &PrintQueueScenario, before, after: s32)->bool
     return false
 }
 
-func isOrderedUpdate(scenario: const &PrintQueueScenario, update: const &Update)->bool
+func isOrderedUpdate(scenario: PrintQueueScenario, update: Update)->bool
 {
     for scenario.ruleCount
     {
@@ -185,7 +185,7 @@ func isOrderedUpdate(scenario: const &PrintQueueScenario, update: const &Update)
     return true
 }
 
-func hasIncomingRule(scenario: const &PrintQueueScenario, source: const &Update, used: [MaxUpdatePages] bool, candidateIndex: u32)->bool
+func hasIncomingRule(scenario: PrintQueueScenario, source: Update, used: [MaxUpdatePages] bool, candidateIndex: u32)->bool
 {
     let candidatePage = source[candidateIndex]
 
@@ -203,7 +203,7 @@ func hasIncomingRule(scenario: const &PrintQueueScenario, source: const &Update,
     return false
 }
 
-func repairUpdate(result: &Update, scenario: const &PrintQueueScenario, source: const &Update)
+func repairUpdate(result: *Update, scenario: PrintQueueScenario, source: Update)
 {
     clearUpdate(result)
     result.count = source.count
@@ -233,7 +233,7 @@ func repairUpdate(result: &Update, scenario: const &PrintQueueScenario, source: 
     }
 }
 
-func sameUpdate(lhs, rhs: const &Update)->bool
+func sameUpdate(lhs, rhs: Update)->bool
 {
     if lhs.count != rhs.count do
         return false
@@ -248,7 +248,7 @@ func sameUpdate(lhs, rhs: const &Update)->bool
     return true
 }
 
-func auditQueue(result: &QueueAudit, scenario: const &PrintQueueScenario)
+func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 {
     result.updateCount = scenario.updateCount
 

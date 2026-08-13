@@ -7,7 +7,7 @@ struct BinaryIntBox
 
 impl BinaryIntBox
 {
-    mtd(op: Swag.Operator) const opBinary(other: const &BinaryIntBox)->BinaryIntBox
+    mtd(op: Swag.Operator) const opBinary(other: BinaryIntBox)->BinaryIntBox
     {
         return {value: .value + other.value}
     }

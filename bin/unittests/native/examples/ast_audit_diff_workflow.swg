@@ -75,7 +75,7 @@ struct(T) AuditDiff
     }
 }
 
-func(T) buildAuditDiff(before: const &T, after: const &T)->AuditDiff'T
+func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
 {
     var result: AuditDiff'T = undefined
     #ast
@@ -112,7 +112,7 @@ func(T) buildAuditDiff(before: const &T, after: const &T)->AuditDiff'T
     return result
 }
 
-func(T) auditChangedCount(diff: const &AuditDiff'T)->s32
+func(T) auditChangedCount(diff: AuditDiff'T)->s32
 {
     var count: s32
     #ast
@@ -134,7 +134,7 @@ func(T) auditChangedCount(diff: const &AuditDiff'T)->s32
     return count
 }
 
-func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
+func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
 {
     var result = base
     #ast

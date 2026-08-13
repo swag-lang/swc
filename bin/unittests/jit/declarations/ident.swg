@@ -364,7 +364,7 @@ alias BigArray   = [5] s32
 
 #test
 {
-    func passConstRef(x: const &SmallPair)->u64
+    func passConstRef(x: SmallPair)->u64
     {
         return cast(u64) x.a + cast(u64) x.b + x.c
     }

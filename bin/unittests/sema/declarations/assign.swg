@@ -31,9 +31,9 @@ func semaTest004()
 func semaTest005()
 {
     var value:    s32
-    var valueRef: &s32 = &value
-    valueRef = 42
-    valueRef += 1
+    var valueRef: *s32 = &value
+    dref valueRef = 42
+    dref valueRef += 1
 }
 
 struct AssignRefValue
@@ -45,7 +45,7 @@ struct AssignRefValue
 func semaTest007()
 {
     var value:    AssignRefValue
-    var valueRef: &AssignRefValue = &value
+    var valueRef: *AssignRefValue = &value
     let other:    AssignRefValue  = {x: 4, y: 5}
     valueRef = other
 }

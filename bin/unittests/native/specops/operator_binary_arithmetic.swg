@@ -12,7 +12,7 @@ struct(T) GenBinaryPair
 
 impl GenBinaryPair
 {
-    mtd(op: Swag.Operator) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
+    mtd(op: Swag.Operator) const opBinary(other: GenBinaryPair'T)->GenBinaryPair'T
         where op == .Add or op == .Sub or op == .Mul or op == .Div or op == .Mod
     {
         #static switch op

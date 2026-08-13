@@ -30,7 +30,7 @@ impl Vec2
         }
     }
 
-    func(op: Swag.Operator) opBinary(const me, other: const &Vec2'T)->Vec2'T
+    func(op: Swag.Operator) opBinary(const me, other: Vec2'T)->Vec2'T
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
@@ -70,7 +70,7 @@ impl Vec2
         }
     }
 
-    func dot(a: const &Vec2'T, b: const &Vec2'T)->T
+    func dot(a: Vec2'T, b: Vec2'T)->T
     {
         return a.x * b.x + a.y * b.y
     }
@@ -96,7 +96,7 @@ impl Rect
     }
 
     // Rect + Vec2 = translate,  Rect + Rect = bounding union
-    func(op: Swag.Operator) opBinary(const me, offset: const &Vec2'T)->Rect'T
+    func(op: Swag.Operator) opBinary(const me, offset: Vec2'T)->Rect'T
         where op == .Add or op == .Sub
     {
         #static switch op
@@ -155,7 +155,7 @@ impl Transform2D
     }
 
     // Combine two transforms: add positions, multiply scales
-    func(op: Swag.Operator) opBinary(const me, other: const &Transform2D'T)->Transform2D'T
+    func(op: Swag.Operator) opBinary(const me, other: Transform2D'T)->Transform2D'T
         where op == .Add or op == .Sub
     {
         #static switch op
@@ -177,14 +177,14 @@ impl Transform2D
     }
 
     // Apply transform to a point
-    func apply(const me, point: const &Vec2'T)->Vec2'T
+    func apply(const me, point: Vec2'T)->Vec2'T
     {
         return {x: point.x * me.scale.x + me.pos.x,
                 y: point.y * me.scale.y + me.pos.y}
     }
 
     // Apply transform to a rectangle
-    func applyRect(const me, rect: const &Rect'T)->Rect'T
+    func applyRect(const me, rect: Rect'T)->Rect'T
     {
         return {min: {x: rect.min.x * me.scale.x + me.pos.x,
                       y: rect.min.y * me.scale.y + me.pos.y},

@@ -970,7 +970,6 @@ namespace
 
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
-            case TypeInfoKind::Reference:
             case TypeInfoKind::MoveReference:
             case TypeInfoKind::CString:
             case TypeInfoKind::Function:

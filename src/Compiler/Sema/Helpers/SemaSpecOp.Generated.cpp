@@ -537,8 +537,8 @@ namespace
         {
             if (const auto* qualified = typeNode->safeCast<AstQualifiedType>())
                 typeNode = &declAst->node(qualified->nodeTypeRef);
-            else if (const auto* reference = typeNode->safeCast<AstReferenceType>())
-                typeNode = &declAst->node(reference->nodePointeeTypeRef);
+            else if (const auto* pointer = typeNode->safeCast<AstValuePointerType>())
+                typeNode = &declAst->node(pointer->nodePointeeTypeRef);
             else
                 break;
         }

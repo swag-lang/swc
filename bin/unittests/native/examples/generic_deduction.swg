@@ -46,7 +46,7 @@ impl Rect
     }
 
     // Parameter type 'Vec2' and return type 'Rect' deduced from context
-    func translate(const me, offset: const &Vec2)->Rect
+    func translate(const me, offset: Vec2)->Rect
     {
         return {min: {x: me.min.x + offset.x, y: me.min.y + offset.y},
                 max: {x: me.max.x + offset.x, y: me.max.y + offset.y}}
@@ -71,7 +71,7 @@ impl Vec2
     }
 
     // Return type 'Vec2' is deduced as Vec2'T (self-type)
-    func add(const me, other: const &Vec2)->Vec2
+    func add(const me, other: Vec2)->Vec2
     {
         return {x: me.x + other.x, y: me.y + other.y}
     }

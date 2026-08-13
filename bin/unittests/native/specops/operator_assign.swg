@@ -40,7 +40,7 @@ impl RuntimeAssignBox
     }
 
     #[Swag.NoInline]
-    mtd(op: Swag.Operator) opAssign(other: const &RuntimeAssignBox)
+    mtd(op: Swag.Operator) opAssign(other: RuntimeAssignBox)
         where op == .AddAssign
     {
         .setPair(.a + other.a, .b + other.b)

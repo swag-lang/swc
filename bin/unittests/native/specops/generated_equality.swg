@@ -30,7 +30,7 @@ struct AlwaysEqual
 
 impl AlwaysEqual
 {
-    mtd const opEquals(other: const &AlwaysEqual)->bool
+    mtd const opEquals(other: AlwaysEqual)->bool
     {
         return true
     }
@@ -69,7 +69,7 @@ struct EmbeddedBase
 
 impl EmbeddedBase
 {
-    mtd const opEquals(other: const &EmbeddedBase)->bool
+    mtd const opEquals(other: EmbeddedBase)->bool
     {
         return true
     }
@@ -83,7 +83,7 @@ struct Embedder
 
 impl Embedder
 {
-    mtd const opEquals(other: const &Embedder)->bool
+    mtd const opEquals(other: Embedder)->bool
     {
         return .extra == other.extra
     }

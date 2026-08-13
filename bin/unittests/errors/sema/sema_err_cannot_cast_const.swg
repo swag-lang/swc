@@ -154,7 +154,7 @@ impl ICannotCastConst for CannotCastConstBox {}
 #test
 {
     var value: CannotCastConstBox        = {value: 1}
-    let ref:   const &CannotCastConstBox = &value
+    let ref:   const *CannotCastConstBox = &value
     let itf                              = @mkinterface(ref, CannotCastConstBox, ICannotCastConst)
     let raw                              = cast(*CannotCastConstBox) @dataof(itf)     // swc-expected-error {{sema_err_cannot_cast_const}}
 }

@@ -12,7 +12,7 @@ impl Vec
     mtd opDrop() {}
 }
 
-func refStore(v: &Vec) {}
+func refStore(v: *Vec) {}
 func ptrStore(v: *Vec) {}
 
 // An explicit '#move' argument requires a parameter that can receive the transfer: a

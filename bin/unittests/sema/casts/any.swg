@@ -23,9 +23,9 @@ func semaTest003()
 func semaTest004()
 {
     var a: any   = 42
-    let refValue = cast(const &s32) a
+    let refValue = cast(const *s32) a
     let ptrValue = cast(const *s32) a
-    @assert(refValue == 42)
+    @assert(dref refValue == 42)
     @assert(dref ptrValue == 42)
 }
 
@@ -45,7 +45,7 @@ struct AnyCompareType {}
 func semaTest005()
 {
     var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
-    let baseRef    = cast(const &AnyCastBase) boxed
+    let baseRef    = cast(const *AnyCastBase) boxed
     let basePtr    = cast(const *AnyCastBase) boxed
     @assert(baseRef.value == 9)
     @assert(basePtr.value == 9)

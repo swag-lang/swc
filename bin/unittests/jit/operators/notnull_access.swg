@@ -110,34 +110,34 @@ struct NotNullBox
 
 impl NotNullBox
 {
-    mtd const at()->const &NotNullSlot => &.slot
-    mtd atMut()->&NotNullSlot          => &.slot
+    mtd const at()->const *NotNullSlot => &.slot
+    mtd atMut()->*NotNullSlot          => &.slot
 }
 
 func notNullThroughConstRef(box: *NotNullBox)->s32
 {
     let bound = box.at()
-    return bound!.value
+    return (dref bound)!.value
 }
 
 func notNullThroughRef(box: *NotNullBox)->s32
 {
     let bound = box.atMut()
-    return bound!.inner.count == 7 ? bound!.value : -1
+    return (dref bound)!.inner.count == 7 ? (dref bound)!.value : -1
 }
 
-// 'dref' reads through the reference layer too: the binding dereferences like the pointer
-// it names, so the assertion is what discharges the proof, and the write lands in the object.
+// The first 'dref' reads the nullable pointer stored in the slot. The assertion discharges
+// its proof, and the following member access reads or writes the pointed object.
 func notNullDerefThroughRef(box: *NotNullBox)->s32
 {
     let bound = box.at()
-    return (dref bound!).value
+    return (dref bound)!.value
 }
 
 func notNullWriteThroughRef(box: *NotNullBox, newValue: s32)
 {
     let bound = box.atMut()
-    (dref bound!).value = newValue
+    (dref bound)!.value = newValue
 }
 
 // A cast whose source is asserted first: the assertion binds tighter than the cast.

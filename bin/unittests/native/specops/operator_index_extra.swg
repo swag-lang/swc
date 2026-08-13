@@ -12,7 +12,7 @@ struct RuntimeRefMutBox
 impl RuntimeRefMutBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32)->&s32
+    mtd opIndexPtr(index: s32)->*s32
     {
         return &.buffer[index]
     }
@@ -185,14 +185,14 @@ struct RuntimeConstMutBox
 impl RuntimeConstMutBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32)->&s32
+    mtd opIndexPtr(index: s32)->*s32
     {
         .mutReads += 1
         return &.data[index]
     }
 
     #[Swag.NoInline]
-    mtd const opIndex(index: s32)->const &s32
+    mtd const opIndexPtr(index: s32)->const *s32
     {
         return &.data[index]
     }

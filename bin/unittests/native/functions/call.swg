@@ -377,7 +377,7 @@ namespace compiler1677
         value2: s64 = 456
     }
 
-    func C(x: const &TT)->s64
+    func C(x: TT)->s64
     {
         @assert(x.value == 456)
         return x.value

@@ -45,7 +45,7 @@ impl Vec4
     }
 
     #[Swag.NoInline]
-    mtd(op: Swag.Operator) const opBinary(other: const &Vec4)->Vec4
+    mtd(op: Swag.Operator) const opBinary(other: Vec4)->Vec4
         where op == .Add
     {
         #static switch op

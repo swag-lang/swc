@@ -256,10 +256,6 @@ namespace
                 appendPublicApiSymbolFragment(out, "block_ptr");
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
                 return;
-            case TypeInfoKind::Reference:
-                appendPublicApiSymbolFragment(out, "ref");
-                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
-                return;
             case TypeInfoKind::MoveReference:
                 appendPublicApiSymbolFragment(out, "move_ref");
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());

@@ -12,12 +12,12 @@ struct(T) GenericRefIndexContainer
 
 impl RefIndexContainer
 {
-    mtd const opIndex(index: u64)->const &s32
+    mtd const opIndexPtr(index: u64)->const *s32
     {
         return &.values[index]
     }
 
-    mtd opIndex(index: u64)->&s32
+    mtd opIndexPtr(index: u64)->*s32
     {
         return &.values[index]
     }
@@ -25,29 +25,29 @@ impl RefIndexContainer
 
 impl GenericRefIndexContainer
 {
-    mtd const opIndex(index: u64)->const &T
+    mtd const opIndexPtr(index: u64)->const *T
     {
         return &.values[index]
     }
 
-    mtd opIndex(index: u64)->&T
+    mtd opIndexPtr(index: u64)->*T
     {
         return &.values[index]
     }
 }
 
-func arrayRefFirst(op: &RefIndexContainer)->s32
+func arrayRefFirst(op: *RefIndexContainer)->s32
 {
     return op[0]
 }
 
-func arrayRefDouble(op: &RefIndexContainer)->s32
+func arrayRefDouble(op: *RefIndexContainer)->s32
 {
     let value = op[0]
     return value + op[0]
 }
 
-func arrayRefWrite(op: &RefIndexContainer)
+func arrayRefWrite(op: *RefIndexContainer)
 {
     op[0] = 42
 }
@@ -59,12 +59,12 @@ struct LoopRefIndexContainer
 
 impl LoopRefIndexContainer
 {
-    mtd const opIndex(index: u64)->const &s32
+    mtd const opIndexPtr(index: u64)->const *s32
     {
         return &.values[index]
     }
 
-    mtd opIndex(index: u64)->&s32
+    mtd opIndexPtr(index: u64)->*s32
     {
         return &.values[index]
     }
@@ -103,7 +103,7 @@ impl LoopRefIndexContainer
 
 #test
 {
-    func genericFirst(op: &GenericRefIndexContainer's32)->s32
+    func genericFirst(op: *GenericRefIndexContainer's32)->s32
     {
         return op[0]
     }
@@ -112,26 +112,26 @@ impl LoopRefIndexContainer
     @assert(genericFirst(&values) == 21)
 }
 
-func refIndexSentinelSum(values: &LoopRefIndexContainer, index: &s32)->s32
+func refIndexSentinelSum(values: *LoopRefIndexContainer, index: *s32)->s32
 {
     var result = 0
-    while values[index] != 99
+    while values[dref index] != 99
     {
-        result += values[index + 1]
-        index  += 2
+        result += values[dref index + 1]
+        dref index += 2
     }
 
     return result
 }
 
-func refIndexAssignAt(values: &LoopRefIndexContainer, index: &s32, value: s32)
+func refIndexAssignAt(values: *LoopRefIndexContainer, index: *s32, value: s32)
 {
-    values[index] = value
+    values[dref index] = value
 }
 
-func refNestedIndexAssign(values: &LoopRefIndexContainer, index: &s32, value: s32)
+func refNestedIndexAssign(values: *LoopRefIndexContainer, index: *s32, value: s32)
 {
-    values[values[index + 1]] = value
+    values[values[dref index + 1]] = value
 }
 
 #test

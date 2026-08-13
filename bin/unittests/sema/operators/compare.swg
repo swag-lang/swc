@@ -29,15 +29,15 @@ func semaTest003()
 func semaTest004()
 {
     var value:    s32        = 42
-    let valueRef: const &s32 = &value
-    let eq0                  = valueRef == 42
-    let eq1                  = 42 == valueRef
-    let ne0                  = valueRef != 0
-    let lt0                  = valueRef < 100
-    let lt1                  = 0 < valueRef
-    let le0                  = valueRef <= 42
-    let ge0                  = valueRef >= 42
-    let cmp0                 = valueRef <=> 42
+    let valueRef: const *s32 = &value
+    let eq0                  = dref valueRef == 42
+    let eq1                  = 42 == dref valueRef
+    let ne0                  = dref valueRef != 0
+    let lt0                  = dref valueRef < 100
+    let lt1                  = 0 < dref valueRef
+    let le0                  = dref valueRef <= 42
+    let ge0                  = dref valueRef >= 42
+    let cmp0                 = dref valueRef <=> 42
 
     #assert(#typeof(eq0) == bool)
     #assert(#typeof(eq1) == bool)
@@ -52,18 +52,18 @@ func semaTest004()
 func semaTest005()
 {
     var value:    s32  = 2
-    var refValue: &s32 = &value
-    let ok             = refValue == 2
+    var refValue: *s32 = &value
+    let ok             = dref refValue == 2
     #assert(#typeof(ok) == bool)
 }
 
 func semaTest006()
 {
     var value:    f32        = 1.5
-    let valueRef: const &f32 = &value
-    let ok0                  = valueRef == 1.5
-    let ok1                  = valueRef < 2.0
-    let cmp                  = valueRef <=> 1.5
+    let valueRef: const *f32 = &value
+    let ok0                  = dref valueRef == 1.5
+    let ok1                  = dref valueRef < 2.0
+    let cmp                  = dref valueRef <=> 1.5
 
     #assert(#typeof(ok0) == bool)
     #assert(#typeof(ok1) == bool)

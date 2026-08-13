@@ -2176,14 +2176,6 @@ AstNodeRef AstQualifiedType::semaClone(Sema& sema, const CloneContext& cloneCont
     return newRef;
 }
 
-AstNodeRef AstReferenceType::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    const AstNodeRef newRef   = cloneNodeCopy<AstNodeId::ReferenceType>(sema, *this);
-    auto&            cloned   = sema.node(newRef).cast<AstReferenceType>();
-    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
-    return newRef;
-}
-
 AstNodeRef AstMoveRefType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef   = cloneNodeCopy<AstNodeId::MoveRefType>(sema, *this);

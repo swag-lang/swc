@@ -13,22 +13,22 @@ struct InlineRefIndexWriteInfo
 
 impl InlineRefIndexWriteValues
 {
-    mtd const opIndex(index: u64)->const &s32
+    mtd const opIndexPtr(index: u64)->const *s32
     {
         return &.values[index]
     }
 
-    mtd opIndex(index: u64)->&s32
+    mtd opIndexPtr(index: u64)->*s32
     {
         return &.values[index]
     }
 }
 
 #[Swag.Inline]
-func inlineRefIndexWriteAt(values: &InlineRefIndexWriteValues, index: &s32, value: s32)
+func inlineRefIndexWriteAt(values: *InlineRefIndexWriteValues, index: *s32, value: s32)
 {
-    values[index] = value
-    index         += 1
+    values[dref index] = value
+    dref index         += 1
 }
 
 func inlineRefIndexWriteResult()->InlineRefIndexWriteInfo

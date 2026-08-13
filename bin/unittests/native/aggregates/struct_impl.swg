@@ -15,7 +15,7 @@ impl Vec2
 {
     mtd length2()->s32 => .x * .x + .y * .y
 
-    mtd add(other: const &Vec2)->Vec2
+    mtd add(other: Vec2)->Vec2
     {
         return {x: .x + other.x, y: .y + other.y}
     }
@@ -58,7 +58,7 @@ impl Vec2
         .y = -.y
     }
 
-    mtd addInPlace(other: const &Vec2)
+    mtd addInPlace(other: Vec2)
     {
         .x += other.x
         .y += other.y

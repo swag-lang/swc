@@ -18,7 +18,7 @@ struct CastWide
 
 func castVariadicValue(x: ...)
 {
-    let refValue  = cast(const &CastTriple) x[0]
+    let refValue  = cast(const *CastTriple) x[0]
     var copyValue = cast(CastTriple) x[0]
     copyValue.x = 100
     @assert(refValue.x == 456)
@@ -48,7 +48,7 @@ func castVariadicValue(x: ...)
     var value: CastTriple
     var boxed: any = value
     var copyValue  = cast(CastTriple) boxed
-    let refValue   = cast(const &CastTriple) boxed
+    let refValue   = cast(const *CastTriple) boxed
     copyValue.y = 99
     @assert(copyValue.x == 456)
     @assert(copyValue.y == 99)

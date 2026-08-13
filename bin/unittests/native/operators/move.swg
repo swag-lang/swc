@@ -6,14 +6,14 @@
 
 struct Vec { x: s32 }
 
-func assign(a: &Vec, b: #move Vec)
+func assign(a: *Vec, b: #move Vec)
 {
-    a = #move b
+    dref a = #move b
 }
 
-func assign(a: &Vec, b: Vec)
+func assign(a: *Vec, b: Vec)
 {
-    a = b
+    dref a = b
 }
 
 // Move semantics with overloaded assign

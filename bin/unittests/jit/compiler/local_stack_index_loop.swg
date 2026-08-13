@@ -42,22 +42,22 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
     @assert(boxes[0].max == 5'u32)
 }
 
-func bumpForIndex(index: &u32)
+func bumpForIndex(index: *u32)
 {
-    index += 2'u32
+    dref index += 2'u32
 }
 
-func parseForDigit(bytes: const [..] u8, index: &u64)->u32
+func parseForDigit(bytes: const [..] u8, index: *u64)->u32
 {
-    let value = cast(u32) (bytes[index] - '0'u8)
-    index += 2'u64
+    let value = cast(u32) (bytes[dref index] - '0'u8)
+    dref index += 2'u64
     return value
 }
 
-func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
+func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
 {
-    let value = cast(u32) (bytes[index] - '0'u8)
-    index += 2'u32
+    let value = cast(u32) (bytes[dref index] - '0'u8)
+    dref index += 2'u32
     return value
 }
 

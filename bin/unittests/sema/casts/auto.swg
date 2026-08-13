@@ -94,8 +94,8 @@ func semaTest013()
     }
 
     var x: A
-    var r: &A = &x
-    var p: *A = &r
+    var r: *A = &x
+    var p: *A = r
     #assert(#typeof(p) == *A)
 }
 
@@ -107,8 +107,8 @@ func semaTest014()
     }
 
     var x: A
-    var r: const &A = &x
-    var p: const *A = &r
+    var r: const *A = &x
+    var p: const *A = r
 }
 
 #[Swag.Inline]

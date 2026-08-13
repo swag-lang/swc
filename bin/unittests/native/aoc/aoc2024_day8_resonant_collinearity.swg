@@ -123,7 +123,7 @@ func freeAntinodeGrid(grid: AntinodeGrid)
         testFree(grid.cells)
 }
 
-func markAntinode(grid: &AntinodeGrid, x, y: s32)->bool
+func markAntinode(grid: *AntinodeGrid, x, y: s32)->bool
 {
     if x < 0 or y < 0 or cast(u32) x >= grid.width or cast(u32) y >= grid.height do
         return false
@@ -135,7 +135,7 @@ func markAntinode(grid: &AntinodeGrid, x, y: s32)->bool
     return isNew
 }
 
-func clearGrid(grid: &AntinodeGrid)
+func clearGrid(grid: *AntinodeGrid)
 {
     let cells = grid.cells!
     for grid.width * grid.height
@@ -144,7 +144,7 @@ func clearGrid(grid: &AntinodeGrid)
     }
 }
 
-func countMarked(grid: const &AntinodeGrid)->u32
+func countMarked(grid: AntinodeGrid)->u32
 {
     var count: u32
     let cells = grid.cells!
@@ -160,7 +160,7 @@ func countMarked(grid: const &AntinodeGrid)->u32
 // Parsing: fills an AntennaMap through a mutable reference
 // ---------------------------------------------------------------------------
 
-func parseAntennaMap(result: &AntennaMap, text: string)
+func parseAntennaMap(result: *AntennaMap, text: string)
 {
     let bytes = cast(const [..] u8) text
 
@@ -208,7 +208,7 @@ func parseAntennaMap(result: &AntennaMap, text: string)
     result.height = y
 }
 
-func countAntennas(map: const &AntennaMap)->u32
+func countAntennas(map: AntennaMap)->u32
 {
     var total: u32
     for MaxFrequencies
@@ -218,7 +218,7 @@ func countAntennas(map: const &AntennaMap)->u32
     return total
 }
 
-func countFrequencies(map: const &AntennaMap)->u32
+func countFrequencies(map: AntennaMap)->u32
 {
     var total: u32
     for MaxFrequencies
@@ -233,7 +233,7 @@ func countFrequencies(map: const &AntennaMap)->u32
 // Antinode computation
 // ---------------------------------------------------------------------------
 
-func computeSimpleAntinodes(grid: &AntinodeGrid, map: const &AntennaMap)
+func computeSimpleAntinodes(grid: *AntinodeGrid, map: AntennaMap)
 {
     for MaxFrequencies
     {
@@ -260,7 +260,7 @@ func computeSimpleAntinodes(grid: &AntinodeGrid, map: const &AntennaMap)
     }
 }
 
-func computeHarmonicAntinodes(grid: &AntinodeGrid, map: const &AntennaMap)
+func computeHarmonicAntinodes(grid: *AntinodeGrid, map: AntennaMap)
 {
     for MaxFrequencies
     {

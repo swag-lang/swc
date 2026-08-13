@@ -23,7 +23,7 @@ namespace InjectExprCloneSupport
         }
 
         #[Macro]
-        mtd(ptr: bool) opVisit(stmt: #code(item: &InjectExprCloneSupport.VisitProbe, index: u64))
+        mtd(ptr: bool) opVisit(stmt: #code(item: *InjectExprCloneSupport.VisitProbe, index: u64))
         {
             var cursor: u64 = 0
 
@@ -35,7 +35,7 @@ namespace InjectExprCloneSupport
 
                 #scope(Down)
                 {
-                    #inject(stmt, item = cast(&InjectExprCloneSupport.VisitProbe) &.values[cursor], index = cursor, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*InjectExprCloneSupport.VisitProbe) &.values[cursor], index = cursor, break = break to Up, continue = break to Down)
                 }
 
                 cursor += 1
@@ -44,7 +44,7 @@ namespace InjectExprCloneSupport
     }
 
     #[Inline]
-    func visitStructBuffer(values: &VisitBuffer)->s32
+    func visitStructBuffer(values: *VisitBuffer)->s32
     {
         var code = 0
         for value, index in values

@@ -48,7 +48,7 @@ namespace DiskLayout
             testFree(dm.blocks)
     }
 
-    func copyDiskMap(src: const &DiskMap, capacity: u32 = MaxBlocks)->DiskMap
+    func copyDiskMap(src: DiskMap, capacity: u32 = MaxBlocks)->DiskMap
     {
         var result = initDiskMap(capacity)
         result.blockCount = src.blockCount
@@ -99,7 +99,7 @@ namespace DiskLayout
         return result
     }
 
-    func blockAt(dm: const &DiskMap, pos: u32)->u16
+    func blockAt(dm: DiskMap, pos: u32)->u16
     {
         @assert(pos < dm.blockCount)
         let blocks = dm.blocks!
@@ -116,7 +116,7 @@ namespace Compaction
 {
     using DiskLayout
 
-    func compactBlocks(dm: &DiskMap)
+    func compactBlocks(dm: *DiskMap)
     {
         if dm.blockCount < 2 do
             return
@@ -142,7 +142,7 @@ namespace Compaction
         }
     }
 
-    func compactWholeFiles(dm: &DiskMap)
+    func compactWholeFiles(dm: *DiskMap)
     {
         if dm.fileCount == 0 do
             return
@@ -170,7 +170,7 @@ namespace Compaction
         }
     }
 
-    func findFileSpan(dm: const &DiskMap, fileId: u16, outStart: *u32, outLen: *u32)
+    func findFileSpan(dm: DiskMap, fileId: u16, outStart: *u32, outLen: *u32)
     {
         dref outStart = 0
         dref outLen   = 0
@@ -187,7 +187,7 @@ namespace Compaction
         }
     }
 
-    func findGap(dm: const &DiskMap, minLen: u32, beforePos: u32, outStart: *u32, outLen: *u32)->bool
+    func findGap(dm: DiskMap, minLen: u32, beforePos: u32, outStart: *u32, outLen: *u32)->bool
     {
         var pos: u32
         let blocks = dm.blocks!
@@ -218,7 +218,7 @@ namespace Compaction
         return false
     }
 
-    func moveFileToGap(dm: &DiskMap, fileStart, fileLen, gapStart: u32)
+    func moveFileToGap(dm: *DiskMap, fileStart, fileLen, gapStart: u32)
     {
         let blocks = dm.blocks!
         for fileLen
@@ -238,7 +238,7 @@ namespace Checksum
 {
     using DiskLayout
 
-    func compute(dm: const &DiskMap)->u64
+    func compute(dm: DiskMap)->u64
     {
         var total: u64
         let blocks = dm.blocks!

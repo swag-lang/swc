@@ -14,25 +14,25 @@ func maxS32(a, b: s32)->s32
     return b
 }
 
-func nextPermutation5(values: &[5] s32)->bool
+func nextPermutation5(values: *[5] s32)->bool
 {
     var pivot = 3
-    while pivot >= 0 and values[pivot] >= values[pivot + 1] do
+    while pivot >= 0 and (dref values)[pivot] >= (dref values)[pivot + 1] do
         pivot -= 1
     if pivot < 0 do
         return false
 
     var successor = 4
-    while values[successor] <= values[pivot] do
+    while (dref values)[successor] <= (dref values)[pivot] do
         successor -= 1
 
-    swapValues(&values[pivot], &values[successor])
+    swapValues(&(dref values)[pivot], &(dref values)[successor])
 
     var left  = pivot + 1
     var right = 4
     while left < right
     {
-        swapValues(&values[left], &values[right])
+        swapValues(&(dref values)[left], &(dref values)[right])
         left  += 1
         right -= 1
     }

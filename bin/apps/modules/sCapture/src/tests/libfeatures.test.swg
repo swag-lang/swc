@@ -168,7 +168,7 @@ using Swag, Core
     var foundTrash = false
     for p in lib.menuPaths
     {
-        if p == Library.getTrashFolder() do
+        if dref p == Library.getTrashFolder() do
             foundTrash = true
     }
 

@@ -376,8 +376,8 @@ namespace
         if (nullableTypeRef.isInvalid())
             nullableTypeRef = childView.typeRef();
 
-        // On a binding to a nullable slot, the flag is stripped INSIDE the reference:
-        // '&#null *T' becomes '&*T'. Dropping the reference instead would change what the
+        // On a binding to a nullable slot, the flag is stripped INSIDE the move reference.
+        // Dropping the move reference instead would change what the
         // payload points at, and the qualifiers of the binding must survive onto whatever
         // is reached through it.
         const TypeInfo& outerType = sema.typeMgr().get(nullableTypeRef);
@@ -393,7 +393,7 @@ namespace
 
             TypeInfo nonNullPointee = pointeeType;
             nonNullPointee.removeFlag(TypeInfoFlagsE::Nullable);
-            return sema.typeMgr().addType(TypeInfo::makeReference(sema.typeMgr().addType(nonNullPointee), outerType.flags()));
+            return sema.typeMgr().addType(TypeInfo::makeMoveReference(sema.typeMgr().addType(nonNullPointee), outerType.flags()));
         }
 
         if (!outerType.isNullable())

@@ -8,7 +8,7 @@ struct DuplicateGeneratedEquals
 
 impl DuplicateGeneratedEquals
 {
-    mtd const opEquals(other: const &DuplicateGeneratedEquals)->bool
+    mtd const opEquals(other: DuplicateGeneratedEquals)->bool
     {
         return .value == other.value
     }

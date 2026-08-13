@@ -970,7 +970,7 @@ impl Volume
                 upserted.add(node!)
         }
 
-        let plain = JournalRecord.encode(.sequence + 1, .nextNodeId, .label, .removed.toSlice(), upserted.toSlice())
+        var plain = JournalRecord.encode(.sequence + 1, .nextNodeId, .label, .removed.toSlice(), upserted.toSlice())
         defer Core.Crypto.secureClear(plain.toSlice())
 
         // A change that does not fit one record is rare — a file with a very
@@ -1041,7 +1041,7 @@ impl Volume
             if index != Swag.U64.Max do
                 .removeNodeAt(index)
 
-            var copy   = node
+            var copy   = dref node
             let target = .nodes.count
             .nodes.add(#move copy)
             if !.nodeLookup.add(&.nodes[target], target) do

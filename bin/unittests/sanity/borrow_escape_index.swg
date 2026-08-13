@@ -17,7 +17,7 @@ struct BorrowIndexVec
 impl BorrowIndexVec
 {
     #[Swag.Inline]
-    mtd const opIndex(index: u64)->const &*s32
+    mtd const opIndexPtr(index: u64)->const **s32
     {
         return &.buffer[index]
     }

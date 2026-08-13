@@ -134,7 +134,7 @@ namespace compiler1665
 
     func C(x: ...)
     {
-        var ptr1 = cast(const & TT) x[0]
+        var ptr1 = cast(const * TT) x[0]
         var ptr2 = cast(TT) x[0]
         @assert(ptr1.x == 456)
         @assert(ptr2.y == 456)

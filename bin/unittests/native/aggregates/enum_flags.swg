@@ -29,7 +29,7 @@ struct RefTestFlagBuffer
 
 impl RefTestFlagBuffer
 {
-    mtd refAt(index: u64)->&RefTestFlags { return &me.values[index] }
+    mtd refAt(index: u64)->*RefTestFlags { return &me.values[index] }
 }
 
 #[Swag.EnumFlags]
@@ -49,7 +49,7 @@ struct ImplicitRefTestFlagBuffer
 
 impl ImplicitRefTestFlagBuffer
 {
-    mtd refAt(index: u64)->&ImplicitRefTestFlags { return &me.values[index] }
+    mtd refAt(index: u64)->*ImplicitRefTestFlags { return &me.values[index] }
 }
 
 func boxStrictTestFlags(value: StrictTestFlags)->bool
@@ -168,16 +168,16 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 #test
 {
     var values:   RefTestFlagBuffer
-    let firstRef: &RefTestFlags = &values.refAt(0)
-    firstRef         = RefTestFlags.A | RefTestFlags.B
+    let firstRef: *RefTestFlags = values.refAt(0)
+    dref firstRef    = RefTestFlags.A | RefTestFlags.B
     values.values[0] = RefTestFlags.A | RefTestFlags.B
     values.values[1] = RefTestFlags.B | RefTestFlags.C
 
-    values.refAt(0) &= ~RefTestFlags.A
+    dref values.refAt(0) &= ~RefTestFlags.A
     @assert(values.values[0] == RefTestFlags.B)
 
-    let valueRef: &RefTestFlags = &values.refAt(1)
-    valueRef |= RefTestFlags.D
+    let valueRef: *RefTestFlags = values.refAt(1)
+    dref valueRef |= RefTestFlags.D
     @assert(values.values[1] == (RefTestFlags.B | RefTestFlags.C | RefTestFlags.D))
 }
 
@@ -186,10 +186,10 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     var values: [2] RefTestFlags
 
     #[Swag.Mixin]
-    func refAt(index: u64)->&RefTestFlags => &values[index]
+    func refAt(index: u64)->*RefTestFlags => &values[index]
 
-    let firstRef: &RefTestFlags = &refAt(0)
-    firstRef = RefTestFlags.A | RefTestFlags.B
+    let firstRef: *RefTestFlags = refAt(0)
+    dref firstRef = RefTestFlags.A | RefTestFlags.B
     @assert(values[0] == (RefTestFlags.A | RefTestFlags.B))
 }
 
@@ -203,19 +203,19 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     let horizontal = values.refAt(0)
     switch
     {
-    case horizontal & .East:
+    case dref horizontal & .East:
         tookEast = true
     }
 
     var tookSouth = false
-    if values.refAt(1) & .South do
+    if dref values.refAt(1) & .South do
         tookSouth = true
 
     var missingWest = false
-    if !(values.refAt(1) & .West) do
+    if !(dref values.refAt(1) & .West) do
         missingWest = true
 
-    values.refAt(0) &= ~.West
+    dref values.refAt(0) &= ~.West
 
     @assert(tookEast)
     @assert(tookSouth)

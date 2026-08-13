@@ -126,18 +126,18 @@ impl ForeachTrackedValues
         #static if ptr do
             #inject(stmt, item = &me.item, index = 0)
         else do
-            #inject(stmt, item = cast(&Tracked) &me.item, index = 0)
+            #inject(stmt, item = cast(*Tracked) &me.item, index = 0)
     }
 }
 
-func assignTracked(dst: &Tracked, src: #move Tracked)
+func assignTracked(dst: *Tracked, src: #move Tracked)
 {
-    dst = #move src
+    dref dst = #move src
 }
 
-func assignTracked(dst: &Tracked, src: Tracked)
+func assignTracked(dst: *Tracked, src: Tracked)
 {
-    dst = src
+    dref dst = src
 }
 
 func takeTracked(src: Tracked)->s32
@@ -269,7 +269,7 @@ func foreachOverloadMoveInfo()->LifecycleInfo
     var values = ForeachTrackedValues{Tracked{9}}
     resetLifecycleHooks()
     for value in values do
-        assignTracked(&dst, #move value)
+        assignTracked(&dst, #move dref value)
     return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 

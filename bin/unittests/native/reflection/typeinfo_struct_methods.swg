@@ -1,12 +1,12 @@
 #global private
 using Swag
 
-alias SimplePingFn         = func(const &SimpleMethodProbe)->s32
-alias GenericCopyFromFn    = func(&GenericMethodProbe's32, const [..] s32)->s32
+alias SimplePingFn         = func(const *SimpleMethodProbe)->s32
+alias GenericCopyFromFn    = func(*GenericMethodProbe's32, const [..] s32)->s32
 alias ExportedScaleValueFn = func(s32, s32)->s32
-alias ExportedAddFn        = func(&ExportedMethodProbe, s32)->s32
-alias ExportedScaledFn     = func(const &ExportedMethodProbe, s32)->s32
-alias ExportedScoreFn      = func(&ExportedMethodProbe, s32)->s32
+alias ExportedAddFn        = func(*ExportedMethodProbe, s32)->s32
+alias ExportedScaledFn     = func(const *ExportedMethodProbe, s32)->s32
+alias ExportedScoreFn      = func(*ExportedMethodProbe, s32)->s32
 
 struct HiddenMethodProbe
 {
@@ -154,7 +154,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
        methodType.kind != .Func or
        params == null or
        @countof(params) != 1 or
-       params[0].pointedType != #type const &SimpleMethodProbe or
+       params[0].pointedType != #type const *SimpleMethodProbe or
        methodType.returnType != s32 or
        methodInfo.value == null do
         return false
@@ -181,7 +181,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
        methodType.kind != .Func or
        params == null or
        @countof(params) != 2 or
-       params[0].pointedType != #type &GenericMethodProbe's32 or
+       params[0].pointedType != #type *GenericMethodProbe's32 or
        params[1].pointedType != #type const [..] s32 or
        methodType.returnType != s32 or
        methodInfo.value == null do
@@ -230,7 +230,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        addType.kind != .Func or
        addParams == null or
        @countof(addParams) != 2 or
-       addParams[0].pointedType != #type &ExportedMethodProbe or
+       addParams[0].pointedType != #type *ExportedMethodProbe or
        addParams[1].pointedType != s32 or
        addType.returnType != s32 or
        addInfo.value == null do
@@ -241,7 +241,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        scaledType.kind != .Func or
        scaledParams == null or
        @countof(scaledParams) != 2 or
-       scaledParams[0].pointedType != #type const &ExportedMethodProbe or
+       scaledParams[0].pointedType != #type const *ExportedMethodProbe or
        scaledParams[1].pointedType != s32 or
        scaledType.returnType != s32 or
        scaledInfo.value == null do
@@ -252,7 +252,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        scoreType.kind != .Func or
        scoreParams == null or
        @countof(scoreParams) != 2 or
-       scoreParams[0].pointedType != #type &ExportedMethodProbe or
+       scoreParams[0].pointedType != #type *ExportedMethodProbe or
        scoreParams[1].pointedType != s32 or
        scoreType.returnType != s32 or
        scoreInfo.value == null do

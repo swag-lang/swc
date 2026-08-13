@@ -86,7 +86,7 @@ impl WorkloadForecast
 
     mtd const pairs()->WorkloadPairs
     {
-        return {source: &me}
+        return {source: me}
     }
 }
 

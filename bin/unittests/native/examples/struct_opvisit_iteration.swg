@@ -34,7 +34,7 @@ impl ShelfBins
 {
     mtd const reversed()->ReversedShelfBins
     {
-        return {source: &me}
+        return {source: me}
     }
 
     #[Swag.Macro]

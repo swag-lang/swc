@@ -894,7 +894,7 @@ namespace
 
             const TypeInfo&     argValueType     = sema.typeMgr().get(argValueTypeRef);
             const ConstantValue argConstantValue = sema.cstMgr().get(argCstRef);
-            if (argValueType.isReference() &&
+            if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
                 !argConstantValue.isBlockPointer())
@@ -1038,7 +1038,7 @@ namespace
 
             const TypeInfo&     argValueType     = sema.typeMgr().get(argValueTypeRef);
             const ConstantValue argConstantValue = sema.cstMgr().get(argCstRef);
-            if (argValueType.isReference() &&
+            if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
                 !argConstantValue.isBlockPointer())

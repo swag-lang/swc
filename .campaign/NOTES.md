@@ -304,10 +304,81 @@ NB: binaire DevMode à jour (rebuild fait après tous les edits C++).
 - L'assert du fallback raw-index garde son dump enrichi (type + nœud + parents,
   DEV_MODE) — c'est lui qui a permis le diagnostic.
 
-## REPRENDRE ICI
-- `tools\tests.swgs dm` (suites complètes), fallout itératif, puis D (suppression du
-  kind Reference), E (unittests refs), F (doc).
-- BUILD NUM: 63 = binaire courant. RE-BUMPER à 64 au prochain rebuild.
+## Session tests.swgs (suite): AVANCÉ, deux blocages restants
+- ÉCHELLE VERTE au build 75: core 578, pixel 361, gui 379, sondes .campaign 14,
+  sanity 42. Suites lexer/parser/errors/safety/sanity/sema* passent (sema: 1 échec
+  connu, voir blocage 2). La suite JIT passait au build 66 (1310) après migrations.
+- FIXES compilateur de cette étape (commit courant):
+  12. GATES CONST-EVAL (buildConstCallArguments x2, SemaJIT ~897/~1041): acceptent le
+      receveur pointeur-valeur non-null comme la référence — débloque #assert de
+      @countof/opCount/#ast sur receveurs constants (countof.swg, ast.swg, field_*).
+  13. BINDINGS FOREACH = LET (Sema.Loop ~517): l'alias par adresse (&v, struct v,
+      isReference) porte le flag Let — `v = X` → sema_err_assign_to_let (le chemin
+      opVisit #inject se comportait déjà ainsi; le builtin laissait écrire le SLOT
+      silencieusement). Fixtures sema_err_for_struct_binding_const/assign_to_const
+      migrées (dref + assign_to_let pour la réassignation du binding).
+  14. WALK D'ÉCHAPPEMENT À TRAVERS RETURN (SemaEscape expressionEscapeInfoAt): case
+      ReturnStmt → walk de l'expression — la racine inline (EmbeddedBlock substitué)
+      livre l'emprunt de son résultat; les deux directives inlineView de
+      borrow_invalidation.swg re-lèvent (le monde réf passait par un autre état).
+  15. RECEVEUR ALIAS-STRICT (Match applyCasts): un receveur pointeur ÉGAL au type du
+      paramètre à travers un alias (même #[Swag.Strict]) passe castless — la
+      strictness gouverne les conversions de valeur, pas le dispatch (struct_impl).
+- MIGRATIONS fixtures: reflection typeinfo_struct_methods/generic_method_where
+  (sema+jit+native: #type &X → *X, alias func(&T) → *T), dyn_string (&me → me,
+  const &DynString → par valeur), opvisit examples ({source: me}), for_elements /
+  for_struct_binding / for_element_dispatch (dref écrits/compares/typeof *T),
+  generic_specialization_drop_isolation + nodrop_self_pointer_copy (cast &me → me),
+  generic_opvisit_lazy_codegen (where dref value != null), aoc day4 (at → mtd const),
+  jit for_elements (dref v).
+
+## BLOCAGE 1 — LIVELOCK sema de la suite NATIVE ENTIÈRE (reprendre ICI)
+- `swc_devmode test -d bin/unittests/native` (578 fichiers, UN module) SPIN en phase
+  CHECK (avant même « checked ») — CPU brûle linéairement, aucun progrès, même à
+  --num-cores 1 (60 s+ là où le check normal prend ~1 s). CHAQUE SOUS-RÉPERTOIRE
+  passe isolément (les erreurs par-répertoire sont des artefacts: helpers.swg du
+  root exclu). Reproduit aux builds 72, 73 (sans le widening SemaJIT) et 74 → PAS
+  causé par les gates const-eval. La suite native entière n'a JAMAIS tourné sur
+  cette branche (les runs précédents s'arrêtaient avant) — le livelock peut dater
+  du stage 2. PISTE: cycle pause/retry inter-fichiers (état de substitut qui
+  flip-flop entre deux tentatives — la classe « pollution de substitut sur pause »);
+  instrumenter le scheduler sema (jobs re-postés sans progrès, dumper les nœuds
+  re-visités >N fois), ou bisecter par moitiés de fichiers du module natif.
+- ATTENTION opératoire: chaque kill de swc_devmode peut laisser un orphelin qui
+  VERROUILLE bin/swc_devmode.exe (LNK1168) — re-tuer avant de rebuilder.
+
+## BLOCAGE 2 — sélection d'overload const pour receveur `let` (sema/functions/overload.swg:37)
+- `let value` doit sélectionner `mtd const select()` (bool), le monde noref prend la
+  mutable (s32). Master y arrive via le PLIAGE de la let-constante (canFoldLetVariable
+  → cstRef sans symbole → ConstSource) — dans noref ce pliage ne produit pas l'état
+  attendu sur le receveur UFCS. NE PAS refaire ConstSource sur isImmutableBinding:
+  essayé, TROP STRICT — master AUTORISE les mtd MUTABLES sur un receveur let quand
+  aucune surcharge const ne rivalise (Array.contains est mtd non-const, appelé sur
+  let partout dans core) — la clause a cassé 88+ tests core. La bonne piste: soit
+  restaurer le pliage let-constant sur le receveur (pourquoi noref garde le symbole?),
+  soit une PRÉFÉRENCE de ranking (const-me mieux classé si receveur immuable) sans
+  refus dur.
+
+## STAGE D/E — préparation disponible
+- Drafts PRÊTS À APPLIQUER (coordinateur, scratchpad fgprep\): parser &T rejection
+  (hunks A/B/C/D1/D2/E + test d'erreur + trim type.swg) dans format\format-removal.md;
+  doc (004_007/005_003/006_008 remplacements + hunks 006_009/006_005/light_chapters +
+  suppression 004_008_references + renommage 004_009→004_008); vscode (opIndexPtr à
+  ajouter à l'alternation spec-op ~308, bump package 0.0.150); skills
+  (write-idiomatic-swag-code 2 remplacements + section « Borrow Through Pointers »);
+  backlog (T-386 draft, compteurs F-130/T-386 vérifiés, pièges de merge).
+  src/Format: RIEN à faire (vérifié exhaustivement).
+- ORDRE D: (1) sweep E des fixtures &T (inventaire: 171 fichiers — errors 16, jit 27,
+  native 84, parser 1, sanity 2, sema 32, workspace 9 — motif:
+  `: &T | -> &T | cast(&/const &) | #type & | ||(& | func(&T`), (2) PUIS le rejet
+  parser (casse tout usage &T restant), (3) kind: makeReference supprimé (4 appelants:
+  Sema.Type.cpp:255/362 → SWC_UNREACHABLE + case supprimé, SemaHelpers.Type.cpp:1159,
+  Sema.Function.Flow.cpp:396 → makeMoveReference), garder la VALEUR d'enum
+  TypeInfoKind::Reference si le renumbering inquiète (caveat AstNodeId idem),
+  isReference() devient de facto moveref-only (~174 sites, renommage cosmétique
+  optionnel), diags sema_err_ref_missing_init/const_ref_type supprimés (+ fixtures),
+  sema_err_move_arg_param_not_move + parser_err_invalid_type reformulés.
+- BUILD NUM: 75 = binaire courant. RE-BUMPER à 76 au prochain rebuild.
 - ÉTAT: core COMPILE et FORGE (320 fichiers, core.test.exe) ✓. Les tools TOURNENT
   (std.swgs parse ses args, compile le workspace, lance le test) ✓. Le crash
   restant est au RUNTIME NATIF de core.test.exe, dans __init_8 (sandbox):

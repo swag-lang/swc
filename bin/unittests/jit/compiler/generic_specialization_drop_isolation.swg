@@ -95,7 +95,7 @@ impl LeakTrackedValue
 
     mtd opDrop()
     {
-        let dropAddr = cast(u64) &me
+        let dropAddr = cast(u64) me
         LeakDropCount += 1
         if LeakDropCount == 1
         {

@@ -1973,6 +1973,12 @@ namespace
             case AstNodeId::NamedArgument:
                 return expressionEscapeInfoRec(sema, node.cast<AstNamedArgument>().nodeArgRef, budget);
 
+            // An inline expansion substitutes the call with its root block; the
+            // expansion's value flows out of its return statements, so the walk reads
+            // through them to reach the borrow the callee's body hands back.
+            case AstNodeId::ReturnStmt:
+                return expressionEscapeInfoRec(sema, node.cast<AstReturnStmt>().nodeExprRef, budget);
+
             case AstNodeId::MemberAccessExpr:
             {
                 SemaEscapeProjection projection;

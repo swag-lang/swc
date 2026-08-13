@@ -222,7 +222,7 @@ func solveClean(grid: Grid)->SearchResult
 
 impl Grid
 {
-    mtd at(row, col: u32)->u8 => .cells[row * MaxGridCols + col]
+    mtd const at(row, col: u32)->u8 => .cells[row * MaxGridCols + col]
 }
 
 func countXmasWithLanguageFeatures(grid: Grid)->u32

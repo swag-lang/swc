@@ -8,7 +8,7 @@ struct InlineMethodClosureReceiver
 impl InlineMethodClosureReceiver
 {
     #[Swag.Inline]
-    mtd makeInlineMethodClosure(offset: s32)->func ||(&InlineMethodClosureReceiver, s32)->s32
+    mtd makeInlineMethodClosure(offset: s32)->func ||(*InlineMethodClosureReceiver, s32)->s32
     {
         return mtd|offset|(value: s32)->s32
         {

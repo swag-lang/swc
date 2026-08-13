@@ -292,11 +292,19 @@ namespace
             // candidate can be derived below.
             outFound = true;
 
+            // Only bind the receiver to the argument's own symbol when a bare identifier
+            // naming it resolves at codegen. A castless receiver expression can carry an
+            // instance field or the macro's own `me` parameter as its stored symbol;
+            // those need the full expression, so fall through to the type-based
+            // candidate that clones it per elided use.
             if (const Symbol* boundSymbol = sema.viewSymbol(binding.exprRef).sym(); boundSymbol && boundSymbol->isVariable())
             {
                 const auto& boundVar = boundSymbol->cast<SymbolVariable>();
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, boundVar.typeRef(), &boundVar, AstNodeRef::invalid(), precedence++));
-                return Result::Continue;
+                if (SemaHelpers::bindingSymbolResolvesStandalone(sema, boundVar))
+                {
+                    SWC_RESULT(addCandidateFromType(sema, outCandidates, boundVar.typeRef(), &boundVar, AstNodeRef::invalid(), precedence++));
+                    return Result::Continue;
+                }
             }
 
             if (const SymbolVariable* receiver = activeReceiverBinding(sema))
@@ -447,9 +455,13 @@ namespace
         // first loop), preserving the original ordering exactly.
         const SemaInlinePayload* inlineReceiverPayload = nearestInlineReceiverPayload(sema);
 
+        // A binding var that cannot be named standalone at codegen (a macro's own `me`
+        // parameter pushed as the receiver binding) must not produce a bare-symbol
+        // candidate; the inline receiver payload below covers the same elisions with
+        // the receiver expression instead.
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
-            if (!isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar))
+            if (!isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar) && SemaHelpers::bindingSymbolResolvesStandalone(sema, *bindingVar))
                 SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
         }
 
@@ -457,7 +469,7 @@ namespace
 
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
-            if (isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar))
+            if (isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar) && SemaHelpers::bindingSymbolResolvesStandalone(sema, *bindingVar))
                 SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
         }
 
@@ -593,7 +605,7 @@ namespace
             return;
 
         const SymbolVariable* receiver = currentMethodReceiver(sema);
-        if (!receiver)
+        if (!receiver || !SemaHelpers::bindingSymbolResolvesStandalone(sema, *receiver))
             return;
 
         const TypeRef receiverTypeRef = normalizeAutoMemberBindingType(sema.ctx(), receiver->typeRef());

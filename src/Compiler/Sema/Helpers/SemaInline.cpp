@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
@@ -317,8 +318,11 @@ namespace
             if (binding.idRef != receiver.idRef() || !binding.exprRef.isValid())
                 continue;
 
+            // A castless receiver expression can carry an instance field as its stored
+            // symbol; a binding var must be nameable standalone, so keep the raw
+            // receiver parameter in that case.
             Symbol* sym = sema.viewSymbol(binding.exprRef).sym();
-            if (sym && sym->isVariable())
+            if (sym && sym->isVariable() && SemaHelpers::bindingSymbolResolvesStandalone(sema, sym->cast<SymbolVariable>()))
                 return &sym->cast<SymbolVariable>();
         }
 
@@ -1633,7 +1637,21 @@ namespace
             const TypeInfo& paramType                   = param->type(sema.ctx());
             // A non-null pointer parameter binds by address exactly like a reference did:
             // its binding aliases the caller's storage and must not be re-homed.
-            const bool paramBindsByAddress               = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+            const bool paramBindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+            // A macro or mixin receiver becomes a frame binding var that later names the
+            // receiver standalone (auto-member elision, `with` ranking). Only a variable
+            // that resolves standalone at codegen can play that role; any other receiver
+            // expression - a member chain, an indexed element - is homed into a prefix
+            // `let` holding the receiver's address, exactly as the reference world homed
+            // its cast-wrapped receivers.
+            bool receiverNeedsStandaloneHome = false;
+            if (!isOrdinaryInline && !bindingIsCaptured && paramBindsByAddress && param->typeRef().isValid() &&
+                param->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            {
+                const Symbol* boundSym      = sema.viewSymbol(binding.exprRef).sym();
+                receiverNeedsStandaloneHome = !(boundSym && boundSym->isVariable() &&
+                                                SemaHelpers::bindingSymbolResolvesStandalone(sema, boundSym->cast<SymbolVariable>()));
+            }
             const bool forceExplicitMaterialization      = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
             const bool forceRuntimeSafetyMaterialization = !bindingIsCaptured &&
                                                            !fn.attributes().runtimeSafetyOverrides.empty() &&
@@ -1670,7 +1688,8 @@ namespace
                                                      forceAddressMaterialization ||
                                                      forceRepeatedRValueMaterialization ||
                                                      forceRepeatedLValueMaterialization ||
-                                                     forceNarrowFactMaterialization;
+                                                     forceNarrowFactMaterialization ||
+                                                     receiverNeedsStandaloneHome;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
@@ -1698,6 +1717,15 @@ namespace
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
+            // The home holds the receiver's ADDRESS as the parameter's pointer type; the
+            // cast wraps the detached clone, never the caller's expression, and carries
+            // the receiver-address lowering so codegen never treats it as a value cast.
+            if (receiverNeedsStandaloneHome)
+            {
+                clonedInitRef = Cast::createCastNode(sema, param->typeRef(), clonedInitRef);
+                SemaHelpers::ensureCodeGenLoweringPayload(sema, clonedInitRef).ufcsReceiverAddress = true;
+            }
+
             auto [declRef, declPtr]      = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
             const bool materializedAsLet = !forceRuntimeSafetyMaterialization &&
                                            !bindingNeedsMutableMaterialization &&
@@ -1715,7 +1743,7 @@ namespace
             // where the parameter is non-null - a false use-site nullability error. Pinning
             // to the parameter type restores the non-null contract the argument was validated
             // against, reusing the same proven type-clone/cast mechanism as the cases below.
-            else if (!paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || forceNarrowFactMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
+            else if (!receiverNeedsStandaloneHome && !paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || forceNarrowFactMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
             {
                 AstNodeRef materializedTypeRef = AstNodeRef::invalid();
                 // A synthesized receiver has no declaration to clone a type node from.

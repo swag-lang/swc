@@ -140,21 +140,61 @@ NB: binaire DevMode à jour (rebuild fait après tous les edits C++).
   faut-il exclure aussi les pointeurs receveurs?). Sonde à écrire: même struct
   avec #[Swag.Inline] sur la mtd + appel depuis #test.
 
-## BLOCAGE COURANT (reprendre ICI)
-- CRASH: SWC_UNREACHABLE CodeGen.Identifier.cpp:259 (resolveIdentifierVariablePayload)
-  sur le `me` du MACRO opVisit (array.swg:177 `if !.count`) cloné chez des appelants
-  core (Scc.validateManifest, Reader.findChunk...). Le symbole me-binding du macro
-  n'entre dans AUCUNE catégorie de storage. PRÉ-EXISTAIT à mes edits narrow-pin.
-  À comprendre: comment le monde REF résolvait l'identifiant me d'un corps de macro
-  cloné (remplacement de binding par l'expr receveur? chemin ref-payload?), et
-  pourquoi le monde POINTEUR le laisse passer en symbole brut. Regarder:
-  SemaClone remplacement des identifiants de binding (idRef==me), CodeGen.Identifier
-  245-259, et bindings me des macros (#[Macro] func(ptr) opVisit(const me,...)).
-  Repro probable: #[Macro] mtd-like avec `const me` + `if !.count` + appel.
+## RÉGLÉ 2026-08-13: crash macro me-binding (ex-BLOCAGE COURANT)
+- Diagnostic complet. La maladie: avec les receveurs UFCS SANS cast, l'expression
+  de binding `me` d'un macro (`.header.bag`, `.chunks`...) porte un SYMBOLE stocké
+  = le CHAMP feuille (ou, faute de champ, le paramètre me brut du macro). Trois
+  chemins prenaient ce symbole pour « nommable seul »:
+  1. Sema.Member.Auto addCandidateFromInlineReceiverPayload:295 (candidat symVar nu),
+  2. SemaInline materializedReceiverBinding:313 (binding var du frame),
+  3. les boucles bindingVars de collectAutoMemberCandidates:450/458 (+
+     bindCurrentReceiverIfCandidateMatches).
+  L'identifiant gauche synthétisé par makeAutoMemberLeftExpr porte ce symbole SANS
+  base, court-circuite la re-résolution (token `.` + symbole présent,
+  Sema.Identifier:638), et resolveIdentifierVariablePayload n'a aucune catégorie
+  pour un champ d'instance → SWC_UNREACHABLE. Variante me-param: encore pire,
+  resolveCanonicalParameter (CodeGenFunctionHelpers:462) remappe PAR NOM sur le
+  me de l'APPELANT → mauvaise base silencieuse.
+  Le monde REF ne passait jamais là: le receveur était enrobé castToReference
+  (pas de symbole stocké) → chemin sain = candidat par TYPE + baseExprRef
+  (clone détaché de l'expression receveur par usage élidé).
+- FIX: prédicat partagé SemaHelpers::bindingSymbolResolvesStandalone (ni champ
+  d'instance, ni paramètre d'une AUTRE fonction) appliqué aux 4 sites ci-dessus;
+  sinon retombée sur le candidat type+baseExprRef (sain, les deux mondes l'ont).
+- Repro réduit: .campaign/probe5.swg (receveur membre imbriqué + offsets non nuls
+  anti-coïncidence) + test de suite bin/unittests/native/inline/
+  macro_receiver_member_access.swg. Les sondes .campaign vertes (JIT + natif).
+- CRASH 2 (même famille): receveur avec INDEX (`.shapes[shapeId].fields`,
+  tagbin.swg:829) → CodeGen.Index.cpp:321. Le candidat type+baseExprRef clone en
+  DÉTACHÉ par usage élidé, et le clone détaché JETTE le substitut des nœuds
+  ré-expansibles (IndexExpr, CallExpr...) en comptant sur une re-sema qui n'existe
+  pas dans le flux auto-member (SkipChildren, état posé à la main). Les chaînes de
+  membres pures survivent (état répliqué), pas les index.
+- FIX 2 (l'équivalent monde-références): matérialiser le binding me des
+  macros/mixins en préfixe `let __inline_arg = cast(<type param>) <clone détaché>`
+  quand l'expression receveur n'est pas une variable nommable seule
+  (receiverNeedsStandaloneHome, SemaInline materializeInlineBindings). Le cast
+  synthétisé porte CodeGenLoweringPayload.ufcsReceiverAddress → codegen émet
+  l'ADRESSE (CodeGen.Cast:1383, les 2 tryEmit* du stage 2). Le monde REF faisait
+  EXACTEMENT ça: le receveur cast-wrappé n'était pas une « direct stable lvalue »
+  → matérialisé; le castless a accidentellement pris le raccourci direct.
+  Évaluation UNE fois, binding var = local résoluble, élisions saines.
+- Repro réduit: .campaign/probe6.swg (index en fin et milieu de chaîne) + test de
+  suite bin/unittests/native/inline/macro_receiver_indexed_access.swg.
+  9/9 sondes vertes (JIT + natif), BUILD 29.
 - string.swg:301 contourné avec `.buffer![0]` (doc-conforme). probe4 verte.
-- Edits en place: paramBindsByAddress (exclusions safety/direct/address),
+- Edits antérieurs en place: paramBindsByAddress (exclusions safety/direct/address),
   narrow-pin par cast détaché pour bindings adresse (SemaInline ~1674),
   boxing variadique const *T, receveur UFCS SANS cast (lvalue ET rvalue,
-  storage rvalue via __call_arg_ptr_storage + spill codegen CallHelpers ~1080),
-  BUILD NUM 26 (ATTENTION: re-bump à CHAQUE rebuild désormais — le cache a
-  masqué des états pendant des heures!).
+  storage rvalue via __call_arg_ptr_storage + spill codegen CallHelpers ~1080).
+
+## État session 2026-08-13
+- master local MERGÉ dans noref (Tier B/C: deque/orderedmap/orderedset/
+  priorityqueue/mappedfile/watcher/globalization/json + win32). Nouveaux fichiers
+  migrés au monde pointeurs (opIndexPtr, frontPtr/backPtr/peekPtr, injects *T,
+  comparateurs par valeur, {source: me}). Balayage `&me` nus hérités (allocator
+  pages KEY/segmentBase!, GWLP_USERDATA, encoder/decoder dref me, wnd/menuctrl,
+  audio bus, rendercpu): `&me` = adresse du SLOT en monde pointeur, l'objet c'est
+  `me`. BUILD NUM 28 (27 = merge+instrumentation, 28 = fix). Un bump par binaire
+  exécuté, toujours.
+- REPRENDRE: échelle core → pixel → gui → tests.swgs dm, puis D/E/F/G.

@@ -203,7 +203,7 @@ impl SemaGenericScopedVisits
         where !ptr
     {
         #scope(Outer)
-            for 3
+        for 3
         {
             if @index < SemaGenericScopedVisits.FIRST do
                 continue

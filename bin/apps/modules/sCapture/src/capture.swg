@@ -29,11 +29,11 @@ const MaxFormCacheRefresh = 3
 // [Capture.pruneFormCaches] before the form's memory can be recycled.
 struct FormCache
 {
-    form:  #null IForm   // The rendered form; the key of this entry. Set at creation.
-    layer: Layer         // Retained targets: resolved content, plus the shadow once built.
-    zoom:  f32           // View zoom the content was rendered at.
-    scale: f32           // Painter content scale the content was rendered at.
-    dirty: bool = true   // The content changed; re-render before the next draw.
+    form:  #null IForm     // The rendered form; the key of this entry. Set at creation.
+    layer: Layer           // Retained targets: resolved content, plus the shadow once built.
+    zoom:  f32             // View zoom the content was rendered at.
+    scale: f32             // Painter content scale the content was rendered at.
+    dirty: bool = true     // The content changed; re-render before the next draw.
 }
 
 impl FormCache
@@ -1050,15 +1050,11 @@ impl Capture
         let fi = cast(*FormImage) @dataof(f)
         switch fi.kind
         {
-        case .Image:
-            return !fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty)
-        case .Capture:
-            return fi.texture.isValid() and fi.textureKind == fi.kind
+        case .Image:   return !fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty)
+        case .Capture: return fi.texture.isValid() and fi.textureKind == fi.kind
         }
 
-        return fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty and
-               fi.xc == fi.x and fi.yc == fi.y and fi.wc == fi.w and fi.hc == fi.h and
-               fi.stc == fi.strength and fi.serial == fi.capture!.serialBackTexture
+        return fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty and fi.xc == fi.x and fi.yc == fi.y and fi.wc == fi.w and fi.hc == fi.h and fi.stc == fi.strength and fi.serial == fi.capture!.serialBackTexture
     }
 
     // Paints one form through its retained rendering, or returns false to use the
@@ -1108,7 +1104,7 @@ impl Capture
         {
             let created = .formCaches.addNew()
             created.form = f
-            found = created
+            found        = created
         }
 
         let entry = found!
@@ -1126,7 +1122,7 @@ impl Capture
             if .cacheRefreshLeft > 0
             {
                 .cacheRefreshLeft -= 1
-                renderNow = true
+                renderNow         = true
             }
             else do
                 .cacheNeedsRefine = true

@@ -10,11 +10,12 @@ using Swag
 struct(T) Deque
 {
     private
-    frontItems: Array'T     // Front segment in reverse logical order.
-    backItems:  Array'T     // Back segment in logical order.
+    {
+        frontItems: Array'T     // Front segment in reverse logical order.
+        backItems:  Array'T     // Back segment in logical order.
+    }
 
-    public readonly
-    count: u64     // The number of elements in the queue.
+    public readonly count: u64     // The number of elements in the queue.
 }
 
 impl Deque
@@ -213,7 +214,7 @@ impl Deque
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #scope(Up)
-            for itemIndex in .count
+        for itemIndex in .count
         {
             var itemPtr: [*] T = undefined
             if itemIndex < .frontItems.count do

@@ -10,6 +10,7 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
         if actual[@index] != expected[@index] do
             return false
     }
+
     return true
 }
 
@@ -28,7 +29,7 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 
     // The offset deliberately crosses the host allocation-granularity boundary so the public
     // slice starts after the internally aligned native view.
-    var region = expect mapped.map(64 * 1024 - 7, 32)
+    var region   = expect mapped.map(64 * 1024 - 7, 32)
     let writable = region.writableBytes()
     writable[0]  = 0xA1
     writable[31] = 0xB2

@@ -10,11 +10,12 @@ using Swag
 struct(T) PriorityQueue
 {
     private
-    items:      Array'T
-    comparator: #null *void
+    {
+        items:      Array'T
+        comparator: #null *void
+    }
 
-    public readonly
-    count: u64     // The number of elements in the queue.
+    public readonly count: u64     // The number of elements in the queue.
 }
 
 impl PriorityQueue

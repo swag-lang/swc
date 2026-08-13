@@ -4,9 +4,9 @@
 // Access policy for a memory-mapped file and its regions.
 enum MapAccess
 {
-    Read          // Regions expose read-only bytes and never modify the file.
-    ReadWrite     // Regions expose writable bytes whose changes can be flushed to the file.
-    CopyOnWrite   // Regions expose private writable bytes whose changes are never written to the file.
+    Read            // Regions expose read-only bytes and never modify the file.
+    ReadWrite       // Regions expose writable bytes whose changes can be flushed to the file.
+    CopyOnWrite     // Regions expose private writable bytes whose changes are never written to the file.
 }
 
 // Owns an open file used to create independently owned mapped regions.
@@ -40,10 +40,8 @@ impl MappedFile
 
         switch access
         {
-        case .Read, .CopyOnWrite:
-            result.stream = File.open(name, .Open, .Read, .ReadWrite | .Delete)
-        case .ReadWrite:
-            result.stream = File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
+        case .Read, .CopyOnWrite: result.stream = File.open(name, .Open, .Read, .ReadWrite | .Delete)
+        case .ReadWrite:          result.stream = File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
         }
 
         return result
@@ -130,9 +128,9 @@ struct MappedRegion
 {
     public readonly
     {
-        offset: u64          // File byte offset represented by the first byte.
-        length: u64          // Number of bytes in the region.
-        access: MapAccess    // Access policy applied to this region.
+        offset: u64           // File byte offset represented by the first byte.
+        length: u64           // Number of bytes in the region.
+        access: MapAccess     // Access policy applied to this region.
     }
 
     internal

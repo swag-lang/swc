@@ -20,14 +20,22 @@ private func watcherNative(value: #null *void)->*WatcherNative => cast(*WatcherN
 private func watchFilterNative(filter: WatchFilter)->DWORD
 {
     var result: DWORD
-    if filter.has(.FileName) do result |= FILE_NOTIFY_CHANGE_FILE_NAME
-    if filter.has(.DirectoryName) do result |= FILE_NOTIFY_CHANGE_DIR_NAME
-    if filter.has(.Attributes) do result |= FILE_NOTIFY_CHANGE_ATTRIBUTES
-    if filter.has(.Size) do result |= FILE_NOTIFY_CHANGE_SIZE
-    if filter.has(.LastWrite) do result |= FILE_NOTIFY_CHANGE_LAST_WRITE
-    if filter.has(.LastAccess) do result |= FILE_NOTIFY_CHANGE_LAST_ACCESS
-    if filter.has(.Creation) do result |= FILE_NOTIFY_CHANGE_CREATION
-    if filter.has(.Security) do result |= FILE_NOTIFY_CHANGE_SECURITY
+    if filter.has(.FileName) do
+        result |= FILE_NOTIFY_CHANGE_FILE_NAME
+    if filter.has(.DirectoryName) do
+        result |= FILE_NOTIFY_CHANGE_DIR_NAME
+    if filter.has(.Attributes) do
+        result |= FILE_NOTIFY_CHANGE_ATTRIBUTES
+    if filter.has(.Size) do
+        result |= FILE_NOTIFY_CHANGE_SIZE
+    if filter.has(.LastWrite) do
+        result |= FILE_NOTIFY_CHANGE_LAST_WRITE
+    if filter.has(.LastAccess) do
+        result |= FILE_NOTIFY_CHANGE_LAST_ACCESS
+    if filter.has(.Creation) do
+        result |= FILE_NOTIFY_CHANGE_CREATION
+    if filter.has(.Security) do
+        result |= FILE_NOTIFY_CHANGE_SECURITY
     return result
 }
 
@@ -56,13 +64,15 @@ impl Watcher
 
         let winPath = Utf16.toZeroTerminated(.root.toString())
         state.directory = CreateFileW(@dataof(winPath), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, null)
-        defer if !.native and state.directory do CloseHandle(state.directory)
+        defer if !.native and state.directory do
+            CloseHandle(state.directory)
 
         state.event = CreateEventW(null, TRUE, FALSE, null)
-        defer if !.native and state.event do CloseHandle(state.event)
+        defer if !.native and state.event do
+            CloseHandle(state.event)
 
         state.buffer.reserve(.options.bufferSize)
-        state.buffer.count     = .options.bufferSize
+        state.buffer.count      = .options.bufferSize
         state.overlapped.hEvent = state.event
         .issueRead(state)
         .native = state
@@ -126,10 +136,10 @@ impl Watcher
         var offset = 0'u32
         for
         {
-            let info      = cast(const *FILE_NOTIFY_INFORMATION) (state.buffer.buffer! + offset)
-            let nameData  = cast(const [*] u16) &info.FileName[0]
-            var name      = Utf8.fromUtf16(@mkslice(nameData, cast(u64) info.FileNameLength / #sizeof(u16)))
-            let relative  = name.toString()
+            let info     = cast(const *FILE_NOTIFY_INFORMATION) (state.buffer.buffer! + offset)
+            let nameData = cast(const [*] u16) &info.FileName[0]
+            var name     = Utf8.fromUtf16(@mkslice(nameData, cast(u64) info.FileNameLength / #sizeof(u16)))
+            let relative = name.toString()
 
             if info.Action != FILE_ACTION_RENAMED_NEW_NAME and info.Action != FILE_ACTION_RENAMED_OLD_NAME and state.pendingRename.length
             {
@@ -141,14 +151,18 @@ impl Watcher
             {
             case FILE_ACTION_ADDED:
                 appendChange(&result.changes, .Added, .root.toString(), relative)
+
             case FILE_ACTION_REMOVED:
                 appendChange(&result.changes, .Removed, .root.toString(), relative)
+
             case FILE_ACTION_MODIFIED:
                 appendChange(&result.changes, .Modified, .root.toString(), relative)
+
             case FILE_ACTION_RENAMED_OLD_NAME:
                 if state.pendingRename.length do
                     appendChange(&result.changes, .Removed, .root.toString(), state.pendingRename.toString())
                 state.pendingRename = #move name
+
             case FILE_ACTION_RENAMED_NEW_NAME:
                 if state.pendingRename.length
                 {
@@ -160,6 +174,7 @@ impl Watcher
                 {
                     appendChange(&result.changes, .Added, .root.toString(), relative)
                 }
+
             default:
                 appendChange(&result.changes, .Modified, .root.toString(), relative)
             }
@@ -204,6 +219,7 @@ impl Watcher
                 cancelled.status = .Cancelled
                 return cancelled
             }
+
             fail err
         }
 

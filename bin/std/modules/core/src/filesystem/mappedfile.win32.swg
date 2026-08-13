@@ -8,16 +8,18 @@ impl MappedRegion
 {
     internal mtd mapNative(sourceHandle: FileHandle, offset, length: u64, access: MapAccess) fail
     {
-        var protect: DWORD
+        var protect:       DWORD
         var desiredAccess: DWORD
         switch access
         {
         case .Read:
             protect       = PAGE_READONLY
             desiredAccess = FILE_MAP_READ
+
         case .ReadWrite:
             protect       = PAGE_READWRITE
             desiredAccess = FILE_MAP_WRITE
+
         case .CopyOnWrite:
             protect       = PAGE_WRITECOPY
             desiredAccess = FILE_MAP_COPY
@@ -33,15 +35,18 @@ impl MappedRegion
         let mappedLength = length + prefix
 
         let mapping = CreateFileMappingW(cast(HANDLE) sourceHandle, null, protect, 0, 0, null)
-        defer if !.mapHandle do CloseHandle(mapping)
+        defer if !.mapHandle do
+            CloseHandle(mapping)
 
         let currentProcess = GetCurrentProcess()
         var duplicate: HANDLE
         DuplicateHandle(currentProcess, cast(HANDLE) sourceHandle, currentProcess, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)
-        defer if !.fileHandle do CloseHandle(duplicate)
+        defer if !.fileHandle do
+            CloseHandle(duplicate)
 
         let nativeView = MapViewOfFile(mapping, desiredAccess, cast(DWORD) (alignedOffset >> 32), cast(DWORD) alignedOffset, mappedLength)
-        defer if !.nativeView do discard catch UnmapViewOfFile(nativeView)
+        defer if !.nativeView do
+            discard catch UnmapViewOfFile(nativeView)
 
         .mapHandle  = cast(FileHandle) mapping
         .fileHandle = cast(FileHandle) duplicate

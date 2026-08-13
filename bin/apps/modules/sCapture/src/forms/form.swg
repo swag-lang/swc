@@ -110,7 +110,7 @@ impl BaseForm
         if quickMode do
             return QuickPaintOverdraw
 
-        let base = cast(*BaseForm) @dataof(itf)
+        let base   = cast(*BaseForm) @dataof(itf)
         var extent = base.borderSize * 1.5
         if @kindof(itf) == FormLine
         {

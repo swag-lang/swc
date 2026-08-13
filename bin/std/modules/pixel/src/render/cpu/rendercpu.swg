@@ -1483,9 +1483,9 @@ private impl RenderCpu
 
         batch.stencil = .currentStencil().buffer!
 
-        batch.solidPaint = !.paintOn or .paintCommand.texture0.type == .SolidColor
-        batch.paintImage = null
-        batch.blurWeights = null
+        batch.solidPaint      = !.paintOn or .paintCommand.texture0.type == .SolidColor
+        batch.paintImage      = null
+        batch.blurWeights     = null
         batch.blurWeightCount = 0
         if .paintOn and .paintCommand.texture0.type == .Texture
         {
@@ -1520,8 +1520,8 @@ private impl RenderCpu
             let radius = Math.max(.blurRadius, 0.0)
             if radius > 0.000001
             {
-                let rr = radius * radius
-                let w0 = 0.5135 / Math.pow(radius, 0.96)
+                let rr     = radius * radius
+                let w0     = 0.5135 / Math.pow(radius, 0.96)
                 var offset = -radius
                 while offset <= radius
                 {
@@ -1628,6 +1628,7 @@ private impl RenderCpu
                     let row = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
                     Memory.clear(row, byteCount)
                 }
+
                 return
             }
 

@@ -31,6 +31,7 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
                 return true
         }
     }
+
     return false
 }
 

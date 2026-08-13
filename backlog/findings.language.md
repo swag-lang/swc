@@ -880,3 +880,30 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `[X, Y] T` does not convert to `const [..] T` at all (it infers `const [..] [X] T` and then
   rejects the argument), so that shape needs the flat element pointer and total count instead of a
   slice. Settle both on a probe before touching the compiler.
+
+## What a modifier line governs
+
+### F-131 — A lone access-modifier line reads as a section but binds one declaration
+
+- Area: language
+- Found while: normalizing the visibility layout of the `core` collections
+  ([orderedmap.swg](../bin/std/modules/core/src/collections/orderedmap.swg) and its siblings)
+- Observation: an access modifier without braces applies to exactly the next aggregate value
+  (`Parser::parseAggregateAccessModifier` parses one `parseAggregateValue`), yet written alone on
+  its own line above several same-indent fields it reads as a C++-style section header that
+  governs everything below. Four collections carried the resulting latent gap: in `OrderedMap`,
+  `OrderedSet`, `PriorityQueue`, and `Deque`, a lone `private` line was followed by two fields,
+  so the second one (`comparator`, `backItems`) silently stayed `internal`. The gap is invisible
+  because `internal` is the member default and everything compiles either way.
+- Evidence: those four structs were fixed by bracing the groups in the same change that recorded
+  this entry. Roughly ninety other lone-modifier sites remain across `bin/std/gui`,
+  `bin/std/pixel`, and `bin/apps` (for instance `properties*.swg` and `painter.swg`); each binds a
+  single declaration and is semantically correct today, so only the trap remains. `swc format`
+  preserves the shape, since line breaks belong to the author.
+- Elsewhere: C++ `private:` opens a section that runs until the next label, which is exactly what
+  this shape suggests; C#, Java, Swift, and Rust write per-declaration modifiers on the
+  declaration's own line, so the ambiguous shape cannot be written.
+- Next step: decide between a parser warning when an unbraced access modifier is separated from
+  its declaration by a line break (the compact `internal hash: u32` spelling and the braced block
+  both stay silent), or making the canonical `swc format` style join a lone modifier with its
+  single declaration. Either one kills the section reading.

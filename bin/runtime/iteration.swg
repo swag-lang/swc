@@ -72,10 +72,10 @@ impl IterationRange
         {
             var item = .lower
             #scope(Up)
-                while item < .upper or (.inclusive and item == .upper)
+            while item < .upper or (.inclusive and item == .upper)
             {
                 #scope(Down)
-                    #inject(stmt, item = item, break = break to Up, continue = break to Down)
+                #inject(stmt, item = item, break = break to Up, continue = break to Down)
                 if item == .upper do
                     break
                 item += cast(T) 1
@@ -103,10 +103,10 @@ impl ReversedRange
                 item -= cast(T) 1
 
             #scope(Up)
-                while true
+            while true
             {
                 #scope(Down)
-                    #inject(stmt, item = item, break = break to Up, continue = break to Down)
+                #inject(stmt, item = item, break = break to Up, continue = break to Down)
                 if item == .lower do
                     break
                 item -= cast(T) 1

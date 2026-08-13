@@ -10,11 +10,12 @@ using Swag
 struct(K) OrderedSet
 {
     private
-    keys:       Array'K
-    comparator: #null *void
+    {
+        keys:       Array'K
+        comparator: #null *void
+    }
 
-    public readonly
-    count: u64     // The number of keys in the set.
+    public readonly count: u64     // The number of keys in the set.
 }
 
 // Iterates a borrowed ordered set from its greatest key to its least key.
@@ -31,7 +32,7 @@ impl ReversedOrderedSet
     mtd(ptr: bool) const opVisit(stmt: #code(key, index: u64))
     {
         #scope(Up)
-            for offset in .source.count
+        for offset in .source.count
         {
             let keyIndex = .source.count - offset - 1
             #scope(Down)
@@ -197,7 +198,7 @@ impl OrderedSet
     mtd(ptr: bool) opVisit(stmt: #code(key, index: u64))
     {
         #scope(Up)
-            for keyIndex in .count
+        for keyIndex in .count
         {
             #scope(Down)
             {

@@ -20,11 +20,12 @@ struct(K, V) OrderedMapEntry
 struct(K, V) OrderedMap
 {
     private
-    entries:    Array'(OrderedMapEntry'(K, V))
-    comparator: #null *void
+    {
+        entries:    Array'(OrderedMapEntry'(K, V))
+        comparator: #null *void
+    }
 
-    public readonly
-    count: u64     // The number of key-value pairs in the map.
+    public readonly count: u64     // The number of key-value pairs in the map.
 }
 
 // Iterates a borrowed ordered map from its greatest key to its least key.
@@ -41,7 +42,7 @@ impl ReversedOrderedMap
     mtd(ptr: bool) const opVisit(stmt: #code(key, value, index: u64))
     {
         #scope(Up)
-            for offset in .source.count
+        for offset in .source.count
         {
             let entryIndex = .source.count - offset - 1
             let entry      = &.source.entries[entryIndex]
@@ -263,7 +264,7 @@ impl OrderedMap
     mtd(ptr: bool) opVisit(stmt: #code(key, value, index: u64))
     {
         #scope(Up)
-            for entryIndex in .count
+        for entryIndex in .count
         {
             let entry = &.entries[entryIndex]
             #scope(Down)

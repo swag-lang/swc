@@ -7,17 +7,15 @@ using Swag
 public struct BitArray
 {
     public
+    allocator: #null IAllocator     // The allocator used for memory operations.
+
+    public readonly
+    count: u64     // The number of bits in the array.
+
+    private
     {
-        allocator: #null IAllocator     // The allocator used for memory operations.
-
-        public readonly
-        count: u64     // The number of bits in the array.
-
-        private
-        {
-            buffer:        #null [*] u32
-            capacityBytes: u64
-        }
+        buffer:        #null [*] u32
+        capacityBytes: u64
     }
 }
 
@@ -167,7 +165,7 @@ public impl BitArray
         let buffer    = .buffer!
 
         #scope(Up)
-            for idx in totalWords
+        for idx in totalWords
         {
             let bitsInWord = Math.min(.count - countBits, 32'u64)
             for bitIndex in bitsInWord

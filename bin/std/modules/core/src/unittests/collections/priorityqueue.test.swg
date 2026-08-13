@@ -56,7 +56,7 @@ impl PriorityItem
 {
     g_PriorityItemDrops = 0
     {
-        var queue:      PriorityQueue'PriorityItem
+        var queue: PriorityQueue'PriorityItem
         queue.initialize(func(left, right: const *PriorityItem)->s32 => left.priority <=> right.priority)
         var later  = PriorityItem{priority: 4, id: 4}
         var first  = PriorityItem{priority: 1, id: 1}

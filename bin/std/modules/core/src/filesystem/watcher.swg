@@ -5,25 +5,25 @@
 #[Swag.EnumFlags]
 enum WatchFilter
 {
-    FileName                         // File creation, deletion, and rename.
-    DirectoryName                    // Directory creation, deletion, and rename.
-    Attributes                       // Attribute changes.
-    Size                             // File size changes.
-    LastWrite                        // Last-write time changes.
-    LastAccess                       // Last-access time changes.
-    Creation                         // Creation-time changes.
-    Security                         // Security descriptor changes.
-    Common = FileName | DirectoryName | Size | LastWrite     // Changes commonly used by build and editor tools.
-    All = Common | Attributes | LastAccess | Creation | Security     // Every portable notification category.
+    FileName                                                            // File creation, deletion, and rename.
+    DirectoryName                                                       // Directory creation, deletion, and rename.
+    Attributes                                                          // Attribute changes.
+    Size                                                                // File size changes.
+    LastWrite                                                           // Last-write time changes.
+    LastAccess                                                          // Last-access time changes.
+    Creation                                                            // Creation-time changes.
+    Security                                                            // Security descriptor changes.
+    Common = FileName | DirectoryName | Size | LastWrite                // Changes commonly used by build and editor tools.
+    All    = Common | Attributes | LastAccess | Creation | Security     // Every portable notification category.
 }
 
 // Kind of one normalized filesystem change.
 enum ChangeKind
 {
-    Added       // A path appeared.
-    Removed     // A path disappeared.
-    Modified    // A watched property changed.
-    Renamed     // One path was renamed; both `oldPath` and `path` are populated.
+    Added        // A path appeared.
+    Removed      // A path disappeared.
+    Modified     // A watched property changed.
+    Renamed      // One path was renamed; both `oldPath` and `path` are populated.
 }
 
 // Outcome of one [[Core.Directory.Watcher.next]] call.
@@ -51,8 +51,8 @@ struct WatchBatch
 {
     public
     {
-        status:  WatchStatus       // Outcome that determines how the caller should continue.
-        changes: Array'Change      // Normalized changes; populated only for `Changes`.
+        status:  WatchStatus      // Outcome that determines how the caller should continue.
+        changes: Array'Change     // Normalized changes; populated only for `Changes`.
     }
 }
 
@@ -78,8 +78,8 @@ struct Watcher
 {
     public readonly
     {
-        root:    String          // Normalized directory whose changes are reported.
-        options: WatchOptions    // Scope, filter, and buffer policy fixed at creation.
+        root:    String           // Normalized directory whose changes are reported.
+        options: WatchOptions     // Scope, filter, and buffer policy fixed at creation.
     }
 
     internal native: #null *void

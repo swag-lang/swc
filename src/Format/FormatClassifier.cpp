@@ -1292,6 +1292,17 @@ namespace
                     break;
                 }
 
+                case AstNodeId::CompilerScope:
+                {
+                    // `#scope(Name)` rides on the statement it names, exactly like an
+                    // attribute: the statement starts its own line rather than hanging
+                    // as a continuation whose block brace would realign with `#scope`.
+                    const NodeSpan bodySpan = spanOf(node.cast<AstCompilerScope>().nodeBodyRef);
+                    if (bodySpan.valid())
+                        addRole(bodySpan.minPiece, FormatRoleE::StmtStart);
+                    break;
+                }
+
                 default:
                     break;
             }

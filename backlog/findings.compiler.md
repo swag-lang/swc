@@ -177,3 +177,46 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: a function returning `rune fail` reaches an internal compiler error when a branch executes `fail`; returning `u32 fail` and casting the successful value at the caller compiles.
 - Evidence: `Json.readUnicodeEscape()->rune fail` in `bin/std/modules/core/src/serialization/read/json.swg` failed with `cannot materialize the synthesized zero fallible result payload` at its first `fail` expression in DevMode; changing only its result type to `u32` made the same body compile.
 - Next step: reduce this to a native compiler-suite case with a standalone fallible function returning `rune`, then repair synthesized result initialization in backend lowering.
+
+### F-129 — A documentation run spends nine tenths of its time re-running sema
+
+- Area: compiler
+- Found while: investigating why some documentation pages take several seconds to generate
+- Observation: `swc doc` runs full workspace sema on every invocation, with or without
+  `--rebuild`, and the per-module stage line the user reads as "doc time" is dominated by it.
+  The page generation itself is small: instrumented per-module split (Stats build, 22 workers)
+  gives sema/doc-generation of 3673/496 ms for `gui`, 2144/187 for `pixel`, 1884/1159 for `ogl`,
+  848/327 for `core`; the doc side of the whole `std` workspace is ~2.5 s of a ~15 s wall run.
+  Inside that sema time, compile-time execution JIT-emits 7 803 functions: session timers report
+  77 s CPU of semantic analysis plus 24.5 s CPU codegen and 21.7 s CPU micro lowering, against
+  2.7 s parser and 0.7 s lexer. Each module also re-analyzes its dependencies' exported public
+  API (`ogl` has 29 own sources but sema processes 133 files).
+- Evidence: `swc doc --workspace bin/std --doc-output-dir <tmp> --rebuild --stats` with a Stats
+  configuration build; timing probes around `Command::doc`'s sema call and inside
+  `DocApi::generate` ([Command.Doc.cpp](../src/Main/Command/Command.Doc.cpp),
+  [DocApi.cpp](../src/Doc/DocApi.cpp)). Omitting `--rebuild` changes nothing: a doc run persists
+  no sema artifact it could reuse.
+- Next step: measure which compile-time callers demand the 7 803 JIT emissions during a doc run,
+  and whether any lowering is demanded by paths documentation never needs; that number bounds
+  what any doc-mode fast path could save before the larger incrementality work.
+
+### F-130 — Documentation item collection walks a file's whole AST once per symbol
+
+- Area: compiler
+- Found while: investigating why `std.ogl` documentation costs more than modules twice its size
+- Observation: `ModuleApi::tryFindReachableNodeRef` resolves a symbol's declaration node by
+  visiting the file's AST from the root with a `std::function` visitor until pointer equality,
+  and the documentation collector calls it once per candidate symbol and again per member, so a
+  generated binding file with thousands of declarations pays symbols-times-AST-size. The same
+  lookup also runs during `collectPublicEntries`, which doc mode executes in full inside sema.
+  `ogl` documents 4 713 items concentrated in a few ~50 KB generated sources and its
+  `collectDocItems` costs 803 ms wall inside a 22-worker parallel loop - the largest
+  doc-generation cost in the whole `std` run and about 70% of `ogl`'s 1 159 ms doc stage.
+- Evidence: [ModuleApi.Decl.cpp:243](../src/Compiler/ModuleApi/ModuleApi.Decl.cpp#L243),
+  call sites [DocApi.Collect.cpp:856](../src/Doc/DocApi.Collect.cpp#L856) and per-member at
+  lines 448/507/661, [ModuleApi.Symbol.cpp:114](../src/Compiler/ModuleApi/ModuleApi.Symbol.cpp#L114);
+  per-module probe numbers under F-129.
+- Next step: build one `AstNode*` to `AstNodeRef` map per file (lazily, on the `SourceFile` or
+  its `Ast`) and let `tryFindReachableNodeRef`/`tryFindNodeRef` answer from it, keeping the
+  reachability filter as a cheap check on the mapped path; re-measure `ogl` collect.
+- Related: F-129

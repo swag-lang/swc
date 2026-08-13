@@ -2455,12 +2455,20 @@ namespace
             // A UFCS receiver binding a value to a pointer parameter needs no cast node: the
             // call passes the receiver's address (passUfcsAddressAsPointer), and a cast
             // substitute would survive a pause and re-type the receiver expression. An
-            // rvalue receiver gets a call-site home the address can point into.
+            // rvalue receiver gets a call-site home the address can point into. The castless
+            // route only holds when the receiver IS the pointee: a 'using' field receiver
+            // needs the cast node carrying the using-path so the call reaches the subobject
+            // (and codegen's address-pass check, which compares the same types, stays in
+            // agreement - a skipped cast it refuses would dereference the receiver).
             const TypeRef preCastSrcTypeRef = argView.typeRef();
             if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
             {
-                const TypeInfo& preCastSrcType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef));
-                if (!preCastSrcType.isPointerOrReference() && !preCastSrcType.isNull())
+                const TypeRef   preCastSrcCheckRef     = unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef);
+                const TypeInfo& preCastSrcType         = sema.typeMgr().get(preCastSrcCheckRef);
+                const TypeRef   castPointeeTypeRef     = sema.typeMgr().get(castTypeRef).payloadTypeRef();
+                const TypeRef   resolvedPointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), castPointeeTypeRef);
+                const TypeRef   pointeeCheckRef        = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : castPointeeTypeRef;
+                if (!preCastSrcType.isPointerOrReference() && !preCastSrcType.isNull() && preCastSrcCheckRef == pointeeCheckRef)
                 {
                     if (!sema.isLValue(argView.nodeRef()) && !sema.isGlobalScope())
                         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, argView.nodeRef(), sema.node(argView.nodeRef()), preCastSrcTypeRef, "__call_arg_ptr_storage"));

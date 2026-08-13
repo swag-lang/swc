@@ -1548,9 +1548,35 @@ namespace
             // *callee* inline frame - where the caller's `me` is gone - and stall on the `.` marker.
             // Preserve the resolved identifier symbols so the receiver stays bound to the caller.
             const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
-            const AstNodeRef              clonedInitRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, binding.exprRef, noBindings);
+            AstNodeRef                    clonedInitRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, binding.exprRef, noBindings);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
+
+            // A castless by-address receiver types as its pointee; its home must hold the
+            // receiver's ADDRESS. Homing the value would move the temporary into the inline
+            // scope, whose exit drops it while the enclosing statement may still consume
+            // storage borrowed from it. With the address home, the temporary keeps its
+            // call-site registration and drops at the caller's statement boundary, exactly
+            // as the reference world's cast-to-reference home behaved. A register-held
+            // receiver value gets a call-site home the address can point into.
+            const bool paramBindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+            if (paramBindsByAddress && binding.sourceParam->typeRef().isValid())
+            {
+                const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
+                if (sourceTypeRef.isValid())
+                {
+                    const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+                    const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+                    const TypeInfo& resolvedSourceType     = sema.typeMgr().get(resolvedSourceTypeRef);
+                    if (!resolvedSourceType.isPointerOrReference() && !resolvedSourceType.isNull())
+                    {
+                        clonedInitRef = Cast::createCastNode(sema, binding.sourceParam->typeRef(), clonedInitRef);
+                        SemaHelpers::ensureCodeGenLoweringPayload(sema, clonedInitRef).ufcsReceiverAddress = true;
+                        if (!sema.isGlobalScope())
+                            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, clonedInitRef, sema.node(clonedInitRef), sourceTypeRef, "__call_arg_ptr_storage"));
+                    }
+                }
+            }
 
             auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(tokRef);
             declPtr->flags()        = AstVarDeclFlagsE::Let;
@@ -1652,6 +1678,35 @@ namespace
                 receiverNeedsStandaloneHome = !(boundSym && boundSym->isVariable() &&
                                                 SemaHelpers::bindingSymbolResolvesStandalone(sema, boundSym->cast<SymbolVariable>()));
             }
+            // The castless receiver of an ordinary inline types as its pointee. When such a
+            // binding has to be materialized, the home must hold the receiver's ADDRESS:
+            // homing the value would move the receiver into the inline scope, whose exit
+            // drops it while the enclosing statement may still consume storage borrowed
+            // from it, and a mutation through 'me' would write the copy. The reference
+            // world homed the cast-to-reference receiver node; the pointer cast carrying
+            // the receiver-address lowering is the same mechanism.
+            bool receiverHomesAddress = receiverNeedsStandaloneHome;
+            if (isOrdinaryInline && !bindingIsCaptured && paramBindsByAddress && param->typeRef().isValid() &&
+                param->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            {
+                const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
+                if (sourceTypeRef.isValid())
+                {
+                    const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+                    const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+                    const TypeInfo& resolvedSourceType   = sema.typeMgr().get(resolvedSourceTypeRef);
+                    receiverHomesAddress                 = !resolvedSourceType.isPointerOrReference() && !resolvedSourceType.isNull();
+                }
+            }
+            // An RVALUE receiver must be homed as a materialized binding: bound in place,
+            // its temporary registers its drop inside the callee's cloned body, where the
+            // statement boundary sits before the enclosing expression has consumed the
+            // receiver (its elided uses do not count as 'me' identifier uses, so the
+            // repeated-rvalue rule does not see it). The reference world's cast-wrapped
+            // receiver always went through materialization; this restores that route.
+            const bool forceReceiverHomeMaterialization = receiverHomesAddress && !bindingIsCaptured &&
+                                                          !sema.isLValue(binding.exprRef) &&
+                                                          !sema.viewConstant(binding.exprRef).hasConstant();
             const bool forceExplicitMaterialization      = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
             const bool forceRuntimeSafetyMaterialization = !bindingIsCaptured &&
                                                            !fn.attributes().runtimeSafetyOverrides.empty() &&
@@ -1689,7 +1744,8 @@ namespace
                                                      forceRepeatedRValueMaterialization ||
                                                      forceRepeatedLValueMaterialization ||
                                                      forceNarrowFactMaterialization ||
-                                                     receiverNeedsStandaloneHome;
+                                                     receiverNeedsStandaloneHome ||
+                                                     forceReceiverHomeMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
@@ -1720,10 +1776,15 @@ namespace
             // The home holds the receiver's ADDRESS as the parameter's pointer type; the
             // cast wraps the detached clone, never the caller's expression, and carries
             // the receiver-address lowering so codegen never treats it as a value cast.
-            if (receiverNeedsStandaloneHome)
+            // An rvalue receiver whose payload lives in a register also gets a call-site
+            // home attached to the cast, so the address has storage to point into.
+            if (receiverHomesAddress)
             {
-                clonedInitRef = Cast::createCastNode(sema, param->typeRef(), clonedInitRef);
+                const TypeRef homeSourceTypeRef = sema.viewType(binding.exprRef).typeRef();
+                clonedInitRef                   = Cast::createCastNode(sema, param->typeRef(), clonedInitRef);
                 SemaHelpers::ensureCodeGenLoweringPayload(sema, clonedInitRef).ufcsReceiverAddress = true;
+                if (!sema.isLValue(binding.exprRef) && !sema.isGlobalScope() && homeSourceTypeRef.isValid())
+                    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, clonedInitRef, sema.node(clonedInitRef), homeSourceTypeRef, "__call_arg_ptr_storage"));
             }
 
             auto [declRef, declPtr]      = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
@@ -1743,7 +1804,7 @@ namespace
             // where the parameter is non-null - a false use-site nullability error. Pinning
             // to the parameter type restores the non-null contract the argument was validated
             // against, reusing the same proven type-clone/cast mechanism as the cases below.
-            else if (!receiverNeedsStandaloneHome && !paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || forceNarrowFactMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
+            else if (!receiverHomesAddress && !paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || forceNarrowFactMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
             {
                 AstNodeRef materializedTypeRef = AstNodeRef::invalid();
                 // A synthesized receiver has no declaration to clone a type node from.

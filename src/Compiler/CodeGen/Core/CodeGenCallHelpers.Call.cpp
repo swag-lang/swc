@@ -1086,7 +1086,18 @@ namespace
                 const TypeRef pointeeTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
                 if (pointeeTypeRef.isValid() && !codeGen.typeMgr().get(pointeeTypeRef).isAnyPointer())
                 {
-                    const MicroOpBits storeBits = CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(pointeeTypeRef), codeGen.ctx());
+                    const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);
+                    MicroOpBits     storeBits   = CodeGenTypeHelpers::scalarStoreBits(pointeeType, codeGen.ctx());
+                    if (storeBits == MicroOpBits::Zero)
+                    {
+                        // A register-held small aggregate receiver (an 8-byte struct
+                        // returned in a register) has no scalar bits but still needs its
+                        // call-site home: spill it by storage size before its address
+                        // travels into the pointer parameter.
+                        const uint64_t pointeeSize = pointeeType.sizeOf(codeGen.ctx());
+                        if (pointeeSize == 1 || pointeeSize == 2 || pointeeSize == 4 || pointeeSize == 8)
+                            storeBits = CodeGenTypeHelpers::bitsFromStorageSize(pointeeSize);
+                    }
                     if (storeBits != MicroOpBits::Zero)
                     {
                         const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);

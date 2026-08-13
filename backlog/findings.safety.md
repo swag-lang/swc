@@ -102,8 +102,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 - Area: compiler
 - Found while: auditing the language reference for `backlog/findings.language.md`, checking whether
-  `any` behaves like the reference's "reference to an existing value" or like a box
-- Observation: the borrow rule names `any` as a view — "a pointer, a reference, a slice, a `string`,
+  `any` behaves like a view of an existing value or like a box
+- Observation: the borrow rule names `any` as a view — "a pointer, a slice, a `string`,
   an `any`, an interface, a closure capturing by address"
   ([013_004_borrowing.swg:5-8](../bin/reference/modules/language/src/013_004_borrowing.swg#L5-L8)) —
   and the escape half of that rule does not apply it. Assigning a function-local to a global `any`

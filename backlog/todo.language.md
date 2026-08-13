@@ -5,7 +5,7 @@ with: Rust, Go, Zig, Swift, D, and the self-hosted tier of Jai and Odin. The com
 implements it is [todo.compiler.md](todo.compiler.md).
 
 Open compiler defects and language-rule inconsistencies with evidence — the folded `typeinfo ==`
-that disagrees with the runtime comparison, nullability that does not survive a reference,
+that disagrees with the runtime comparison, nullability that does not survive indirection,
 a `#run` write that never reaches the emitted binary — are in
 [findings.compiler.md](findings.compiler.md) and are not repeated here. Language rules that behave
 exactly as specified and surprise anyway — a positional pattern that ignores the field names it
@@ -83,3 +83,31 @@ predicates after T-011 makes the current model's diagnostics complete.
 - The forcing function is already scheduled: [T-027](todo.core.md#t-027--no-blocking-tcp-sockets) puts
   non-blocking sockets on the path, and deciding this *under* that pressure is how languages end up
   with two concurrency models. Decide it early and deliberately, and record the decision here.
+
+## Pointer-model ergonomics
+
+### T-386 — The pointer-only world shipped without sugar, and the friction is uninventoried
+
+- The noref campaign removed reference types entirely: the one indirection is the non-null
+  pointer `*T`, a struct element binds as `const *T` under `for v` and `*T` under `for &v`,
+  a scalar write through a binding spells `dref v = x`, and `me` is a non-null pointer. The
+  migration was deliberately sugar-free so the bare model could be judged on real code before
+  any spelling is added — proposals were explicitly deferred to after the functional
+  migration, and this entry owns them.
+- The inventory comes from the migration diff, not from invented examples: the `for &v` bodies
+  across `bin/` whose scalar writes became `dref v = x` or `dref v *= k` (~168 sites at
+  migration time), `dref me += ...` in operator bodies, guarded element access, and the
+  `opIndexPtr` place-context rules (member access, address-of, assignment target, nested index)
+  that pick the pointer path without a visible mark.
+- Candidate directions, none decided: a postfix lvalue-deref (Zig's `v.*`, Pascal's `v^`) so a
+  dereference composes left-to-right with member and index access instead of prefixing the
+  whole expression; treating a pointer binding as an assignment target directly (auto-deref on
+  the left of `=`, the road C++ references and D's `ref` took — the one to weigh most
+  carefully, since an invisible deref is how a second indirection type grows back); a dedicated
+  loop-binding spelling that writes through without `dref`. A parameter mode that gives the
+  callee a mutable scratch copy belongs to the same review (struct parameters use a const-address
+  ABI, so the callee cannot mutate the value it receives).
+- The decision to make: which of these, if any, earns its place, judged against the inventory
+  above; a rejected direction is recorded here with its reason so the question does not reopen
+  itemless. Whatever is accepted must keep the invariant the campaign paid for: one indirection
+  type, visible at the type level.

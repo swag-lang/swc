@@ -366,7 +366,7 @@ impl LibraryWnd
         return true
     }
 
-    mtd addNamedFilterGroup(name: string, kind: LibrarySidebarFilter, values: &Array'LibraryNamedFilter)
+    mtd addNamedFilterGroup(name: string, kind: LibrarySidebarFilter, values: *Array'LibraryNamedFilter)
     {
         if values.isEmpty() do
             return
@@ -377,7 +377,7 @@ impl LibraryWnd
         let rootCount = root.setItem(1, Format.toString("% ", values.count))
         rootCount.horzAlign = .Right
 
-        for value, i in values
+        for value, i in dref values
         {
             var icon: Icon
             if kind == .Application and !value.executable.isEmpty()

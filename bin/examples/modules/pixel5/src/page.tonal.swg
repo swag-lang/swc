@@ -1,41 +1,41 @@
 using Core, Pixel
 
-func buildGrayScaleImage(source: const &Image, factor: f32)->Image
+func buildGrayScaleImage(source: Image, factor: f32)->Image
 {
     var result = cloneImage(source)
     result.grayscale(factor)
     return result
 }
 
-func buildContrastImage(source: const &Image, amount: f32)->Image
+func buildContrastImage(source: Image, amount: f32)->Image
 {
     var result = cloneImage(source)
     result.contrast(amount)
     return result
 }
 
-func buildLightnessImage(source: const &Image, amount: f32)->Image
+func buildLightnessImage(source: Image, amount: f32)->Image
 {
     var result = cloneImage(source)
     result.lightness(amount)
     return result
 }
 
-func buildGammaImage(source: const &Image, amount: f32)->Image
+func buildGammaImage(source: Image, amount: f32)->Image
 {
     var result = cloneImage(source)
     result.gamma(amount)
     return result
 }
 
-func buildInvertImage(source: const &Image)->Image
+func buildInvertImage(source: Image)->Image
 {
     var result = cloneImage(source)
     result.invert()
     return result
 }
 
-func buildTonalCards(source: const &Image)
+func buildTonalCards(source: Image)
 {
     setTextureCard(&g_TonalCards[0], "Original load", "Image.load + addImage", g_SourceTexture)
     setImageCard(&g_TonalCards[1], "Grayscale", "grayscale()", buildGrayScaleImage(source, 1.0))

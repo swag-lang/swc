@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func addIcoCard(card: *DecoderCard, source: const &Image, size: s32, pixelFormat: PixelFormat, withAlpha: bool) fail
+func addIcoCard(card: *DecoderCard, source: Image, size: s32, pixelFormat: PixelFormat, withAlpha: bool) fail
 {
     let resized    = source.resized(size, size, .Quadratic)
     let alphaTitle = withAlpha ? " with alpha" : ""

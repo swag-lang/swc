@@ -37,12 +37,12 @@ Once your Intcode computer is fully functional, the BOOST program should report 
 
 using Core
 
-private func run(op: &Array's64, input: s64)->s64
+private func run(op: *Array's64, input: s64)->s64
 {
     var output, ip, base = 0's64
 
     #[Swag.Mixin]
-    func addr(offset: u64)->&s64
+    func addrp(offset: u64)->*s64
     {
         if offset >= op.count
         {
@@ -53,6 +53,9 @@ private func run(op: &Array's64, input: s64)->s64
 
         return op.buffer! + offset
     }
+
+    #[Swag.Mixin]
+    func addr(offset: u64)->s64 => dref addrp(offset)
 
     while op[ip] != 99
     {
@@ -85,15 +88,15 @@ private func run(op: &Array's64, input: s64)->s64
         switch inst
         {
         case 1:
-            addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 + param1
+            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 + param1
             ip += 4
 
         case 2:
-            addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 * param1
+            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 * param1
             ip += 4
 
         case 3:
-            addr(op[ip + 1] + (mode0 == 2 ? base : 0)) = input
+            dref addrp(op[ip + 1] + (mode0 == 2 ? base : 0)) = input
             ip += 2
 
         case 4:
@@ -107,11 +110,11 @@ private func run(op: &Array's64, input: s64)->s64
             ip = !param0 ? param1 : ip + 3
 
         case 7:
-            addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 < param1 ? 1 : 0
+            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 < param1 ? 1 : 0
             ip += 4
 
         case 8:
-            addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 == param1 ? 1 : 0
+            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 == param1 ? 1 : 0
             ip += 4
 
         case 9:

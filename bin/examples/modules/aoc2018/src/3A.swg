@@ -69,7 +69,7 @@ func day3A0()
 
         for x in startX until startX + width do
             for y in startY until startY + height do
-                count.ref2(x, y, 1000) += 1
+                dref count.ptr2(x, y, 1000) += 1
     }
 
     var total = 0
@@ -97,7 +97,7 @@ func day3A1()
 
         for x in v[1] until v[1] + v[3] do
             for y in v[2] until v[2] + v[4] do
-                count.ref2(x, y, 1000) += 1
+                dref count.ptr2(x, y, 1000) += 1
     }
 
     var total = 0

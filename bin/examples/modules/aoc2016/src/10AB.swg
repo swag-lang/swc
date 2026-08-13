@@ -85,11 +85,11 @@ internal impl Bot
     }
 }
 
-internal func getBot(x: s32)->&Bot
+internal func getBot(x: s32)->*Bot
 {
     bots.growResize(x + 1)
     bots[x].id = x
-    return bots.ref1(x)
+    return bots.ptr1(x)
 }
 
 internal func execute(lines: Array'String)
@@ -99,20 +99,20 @@ internal func execute(lines: Array'String)
         switch
         {
         case r0.match(l):
-            let bot: &Bot = &getBot(expect StrConv.toS32(r0[2]))
+            let bot = getBot(expect StrConv.toS32(r0[2]))
             bot.add(expect StrConv.toS32(r0[1]))
             bot.execute()
 
         case r1.match(l):
-            let bot: &Bot = &getBot(expect StrConv.toS32(r1[1]))
+            let bot = getBot(expect StrConv.toS32(r1[1]))
             if bot.count != 2
             {
                 bot.pending.add(l)
                 break
             }
 
-            let low:  &Bot = &getBot(expect StrConv.toS32(r1[3]))
-            let high: &Bot = &getBot(expect StrConv.toS32(r1[5]))
+            let low  = getBot(expect StrConv.toS32(r1[3]))
+            let high = getBot(expect StrConv.toS32(r1[5]))
 
             if r1[2] == "bot" do
                 low.add(bot.eatLow())

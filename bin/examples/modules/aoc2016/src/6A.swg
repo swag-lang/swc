@@ -53,7 +53,7 @@ func day6A0()
             v                += 1
             freq[i, c - 'a'] = v
 
-            if v > best[i].freq
+            if dref v > best[i].freq
             {
                 best[i].freq = v
                 best[i].val  = c
@@ -82,12 +82,12 @@ func day6A1()
     {
         for c, i in l
         {
-            var v: &u32 = &freq[i, c - 'a']
-            v += 1
+            let v = &freq[i, c - 'a']
+            dref v += 1
 
-            if v > best[i]
+            if dref v > best[i]
             {
-                best[i] = v
+                best[i] = dref v
                 pwd[i]  = c
             }
         }

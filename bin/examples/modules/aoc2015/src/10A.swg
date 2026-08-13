@@ -52,7 +52,7 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
     return scan
 }
 
-internal func day10RunStep(input: string, output: &String)
+internal func day10RunStep(input: string, output: *String)
 {
     output.clear()
     output.reserve((@countof(input) * 2) + 1)

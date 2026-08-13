@@ -88,7 +88,7 @@ func day6A()
             let y = i / W
             let d = Math.abs(c.x - x) + Math.abs(c.y - y)
 
-            var r: &Claim = &arr.ref2(x, y, W)
+            let r = arr.ptr2(x, y, W)
             if d < r.d or !r.who
             {
                 let border = cast(s32) (!x or !y or x == W - 1 or y == W - 1)
@@ -99,7 +99,7 @@ func day6A()
                     borders[r.who - 1] -= border
                 }
 
-                r = {d, cast(s32) who + 1}
+                dref r = {d, cast(s32) who + 1}
 
                 count[who]   += 1
                 borders[who] += border

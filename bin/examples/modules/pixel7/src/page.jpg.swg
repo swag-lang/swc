@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func addJpgCard(card: *DecoderCard, source: const &Image, quality: u8) fail
+func addJpgCard(card: *DecoderCard, source: Image, quality: u8) fail
 {
     var options: Jpg.EncodeOptions
     options.quality = quality

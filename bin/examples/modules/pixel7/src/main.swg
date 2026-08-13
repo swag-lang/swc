@@ -63,7 +63,7 @@ func loadFonts() fail
     g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace!, 14)
 }
 
-func normalizeSource(image: const &Image)->Image
+func normalizeSource(image: Image)->Image
 {
     let maxSide = cast(f32) Math.max(image.width, image.height)
     if maxSide <= MaxSourceSide do
@@ -81,7 +81,7 @@ func loadSource(fileName: string)->Image fail
     return normalizeSource(image)
 }
 
-func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaBorder = false)->Image
+func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = false)->Image
 {
     let converted = source.convertedTo(pixelFormat)
     var result    = Image.create(converted.width, converted.height, converted.pixelFormat, converted.pixels.toSlice())
@@ -104,7 +104,7 @@ func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaBord
     return result
 }
 
-func paletteVariant(source: const &Image, withAlpha: bool)->Image
+func paletteVariant(source: Image, withAlpha: bool)->Image
 {
     var result      = sourceVariant(source, withAlpha ? .RGBA8 : .RGB8)
     var pixel       = result.pixels.buffer!
@@ -250,7 +250,7 @@ func fitTextureRect(bounds: Math.Rectangle, texture: Texture)->Math.Rectangle
     return {bounds.horzCenter() - width * 0.5, bounds.vertCenter() - height * 0.5, width, height}
 }
 
-func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &DecoderCard)
+func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: DecoderCard)
 {
     let headerRect  = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
     let detailsRect = Math.Rectangle{rect.x + 14, rect.y + 38, rect.width - 28, CardHeaderHeight - 42}

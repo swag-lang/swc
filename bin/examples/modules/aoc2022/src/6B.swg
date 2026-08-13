@@ -20,7 +20,7 @@ func day6B()
 {
     let dataPath           = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines              = expect File.readAllLines(dataPath)
-    let str: const &String = &lines[0]
+    let str                = &lines[0]
 
     var arr: [128] s32
     var len = 0

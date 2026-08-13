@@ -120,33 +120,33 @@ func day10B()
     maze.resize(width * height)
 
     #[Swag.Mixin]
-    func mp(x0, y0: s64)->&Dir => maze.buffer! + ((x0 + 1) + (y0 + 1) * width)
+    func mp(x0, y0: s64)->*Dir => maze.buffer! + ((x0 + 1) + (y0 + 1) * width)
 
     var startX, startY: s64
     for l, line in lines
     {
         for c, col in l.bytes()
         {
-            let one: &Dir = &mp(cast(s64) col, cast(s64) line)
+            let one = mp(cast(s64) col, cast(s64) line)
             switch c
             {
             case '-':
-                one = .West | .East
+                dref one = .West | .East
 
             case '|':
-                one = .North | .South
+                dref one = .North | .South
 
             case 'L':
-                one = .North | .East
+                dref one = .North | .East
 
             case 'J':
-                one = .North | .West
+                dref one = .North | .West
 
             case '7':
-                one = .South | .West
+                dref one = .South | .West
 
             case 'F':
-                one = .South | .East
+                dref one = .South | .East
 
             case 'S':
                 startX = col
@@ -156,40 +156,40 @@ func day10B()
     }
 
     // Determin the shape of the start 'S'
-    let start: &Dir = &mp(startX, startY)
-    if mp(startX - 1, startY) & .East do
-        start |= .West
-    if mp(startX + 1, startY) & .West do
-        start |= .East
-    if mp(startX, startY - 1) & .South do
-        start |= .North
-    if mp(startX, startY + 1) & .North do
-        start |= .South
+    let start = mp(startX, startY)
+    if dref mp(startX - 1, startY) & .East do
+        dref start |= .West
+    if dref mp(startX + 1, startY) & .West do
+        dref start |= .East
+    if dref mp(startX, startY - 1) & .South do
+        dref start |= .North
+    if dref mp(startX, startY + 1) & .North do
+        dref start |= .South
     var visitX = startX
 
     // Visit the maze
     var visitY = startY
     for
     {
-        let one: &Dir = &mp(visitX, visitY)
-        one |= .Edge
+        let one = mp(visitX, visitY)
+        dref one |= .Edge
         var moved = false
 
         switch
         {
-        case one & .East and !(mp(visitX + 1, visitY) & .Edge):
+        case dref one & .East and !(dref mp(visitX + 1, visitY) & .Edge):
             visitX += 1
             moved  = true
 
-        case one & .West and !(mp(visitX - 1, visitY) & .Edge):
+        case dref one & .West and !(dref mp(visitX - 1, visitY) & .Edge):
             visitX -= 1
             moved  = true
 
-        case one & .North and !(mp(visitX, visitY - 1) & .Edge):
+        case dref one & .North and !(dref mp(visitX, visitY - 1) & .Edge):
             visitY -= 1
             moved  = true
 
-        case one & .South and !(mp(visitX, visitY + 1) & .Edge):
+        case dref one & .South and !(dref mp(visitX, visitY + 1) & .Edge):
             visitY += 1
             moved  = true
         }
@@ -204,14 +204,14 @@ func day10B()
     {
         for c, col in l.bytes()
         {
-            let one = mp(cast(s64) col, cast(s64) line)
+            let one = dref mp(cast(s64) col, cast(s64) line)
             if one & .Edge do
                 continue
 
             var inside = false
             for x in col
             {
-                let one1 = mp(cast(s64) x, cast(s64) line)
+                let one1 = dref mp(cast(s64) x, cast(s64) line)
                 if one1 & .Edge and one1 & .North do
                     inside = !inside
             }

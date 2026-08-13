@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func buildDetailCropImage(source: const &Image)->Image
+func buildDetailCropImage(source: Image)->Image
 {
     let x = cast(s32) (cast(f32) source.width * 0.21)
     let y = cast(s32) (cast(f32) source.height * 0.24)
@@ -12,7 +12,7 @@ func buildDetailCropImage(source: const &Image)->Image
     return result
 }
 
-func buildPanoramaCropImage(source: const &Image)->Image
+func buildPanoramaCropImage(source: Image)->Image
 {
     let x = cast(s32) (cast(f32) source.width * 0.16)
     let y = cast(s32) (cast(f32) source.height * 0.22)
@@ -24,33 +24,33 @@ func buildPanoramaCropImage(source: const &Image)->Image
     return result
 }
 
-func buildMirroredImage(source: const &Image)->Image
+func buildMirroredImage(source: Image)->Image
 {
     var result = cloneImage(source)
     result.mirror()
     return result
 }
 
-func buildFlippedImage(source: const &Image)->Image
+func buildFlippedImage(source: Image)->Image
 {
     var result = cloneImage(source)
     result.flip()
     return result
 }
 
-func buildRotatedImage(source: const &Image, angle: Image.Rotation)->Image
+func buildRotatedImage(source: Image, angle: Image.Rotation)->Image
 {
     return source.rotated(angle)
 }
 
-func buildExpandedImage(source: const &Image)->Image
+func buildExpandedImage(source: Image)->Image
 {
     var result = cloneImage(source)
     result.expand(30, 18, 30, 18, Color.fromArgb(255, 249, 244, 234))
     return result
 }
 
-func buildTransformCards(source: const &Image)
+func buildTransformCards(source: Image)
 {
     setImageCard(&g_TransformCards[0], "Detail crop", "cropped(...) + expand(...)", buildDetailCropImage(source))
     setImageCard(&g_TransformCards[1], "Wide crop", "cropped(...) + expand(...)", buildPanoramaCropImage(source))

@@ -55,9 +55,9 @@ func day7B()
             self.value.children.add(v)
     }
 
-    func sum(set: &HashTable'(string, Pile), result: &s64, w: Pile)->u64
+    func sum(set: *HashTable'(string, Pile), result: *s64, w: Pile)->u64
     {
-        if result do
+        if dref result do
             return 0
 
         var total: u64
@@ -70,13 +70,13 @@ func day7B()
             total += s
         }
 
-        if sums.count > 1 and result == 0
+        if sums.count > 1 and dref result == 0
         {
             sums.sort(func(x, y) => x.total <=> y.total)
             if sums[sums.count - 2].total != sums[sums.count - 1].total
             {
                 let v = set.find(w.children[sums[sums.count - 1].rank])
-                result = sums[sums.count - 2].total - sums[sums.count - 1].total + v.value.val
+                dref result = sums[sums.count - 2].total - sums[sums.count - 1].total + v.value.val
             }
         }
 

@@ -40,8 +40,11 @@ internal struct Day6Instruction
 internal var day6InstructionsLoaded = false
 internal var day6Instructions: Array'Day6Instruction
 
-internal func day6ParseNumber(line: string, cursor: &u64)->u16
+internal func day6ParseNumber(line: string, cursorPtr: *u64)->u16
 {
+    var cursor = dref cursorPtr
+    defer dref cursorPtr = cursor
+
     while cursor < @countof(line) and (line[cursor] < '0' or line[cursor] > '9') do
         cursor += 1
 

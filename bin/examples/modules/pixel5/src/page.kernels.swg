@@ -1,13 +1,13 @@
 using Core, Pixel
 
-func buildKernelImage(source: const &Image, kernel: Image.Kernel)->Image
+func buildKernelImage(source: Image, kernel: Image.Kernel)->Image
 {
     var result = cloneImage(source)
     result.applyKernel(kernel)
     return result
 }
 
-func buildWarmGradeImage(source: const &Image)->Image
+func buildWarmGradeImage(source: Image)->Image
 {
     var result = cloneImage(source)
     result.colorize(0.08, 0.52, strength: 0.34)
@@ -16,7 +16,7 @@ func buildWarmGradeImage(source: const &Image)->Image
     return result
 }
 
-func buildCoolGradeImage(source: const &Image)->Image
+func buildCoolGradeImage(source: Image)->Image
 {
     var result = cloneImage(source)
     result.colorize(0.58, 0.46, strength: 0.38)
@@ -25,7 +25,7 @@ func buildCoolGradeImage(source: const &Image)->Image
     return result
 }
 
-func buildSepiaImage(source: const &Image)->Image
+func buildSepiaImage(source: Image)->Image
 {
     var result = cloneImage(source)
     result.grayscale(0.40)
@@ -34,7 +34,7 @@ func buildSepiaImage(source: const &Image)->Image
     return result
 }
 
-func buildKernelCards(source: const &Image)
+func buildKernelCards(source: Image)
 {
     setImageCard(&g_KernelCards[0], "Sharpen 3x3", "applyKernel(Sharpen3x3Strong)", buildKernelImage(source, .Sharpen3x3Strong))
     setImageCard(&g_KernelCards[1], "Blur 3x3", "applyKernel(GaussianBlur3x3Light)", buildKernelImage(source, .GaussianBlur3x3Light))

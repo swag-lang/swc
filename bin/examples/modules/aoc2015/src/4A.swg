@@ -15,12 +15,12 @@ using Core
 
 internal const DAY4_SECRET = "yzbqklnj"
 
-internal func day4InitBuffer(buffer: &[16] u8)
+internal func day4InitBuffer(buffer: [..] u8)
 {
     Memory.copy(&buffer[0], @dataof(DAY4_SECRET), @countof(DAY4_SECRET))
 }
 
-internal func day4BuildInput(buffer: &[16] u8, value: u64)->const [..] u8
+internal func day4BuildInput(buffer: [..] u8, value: u64)->const [..] u8
 {
     var digits: [20] u8
     var digitCount = 0'u64
@@ -48,10 +48,10 @@ internal func day4BuildInput(buffer: &[16] u8, value: u64)->const [..] u8
 func day4A()
 {
     var buffer: [16] u8
-    day4InitBuffer(&buffer)
+    day4InitBuffer(buffer)
     for
     {
-        let v = Hash.Md5.compute(day4BuildInput(&buffer, @index))
+        let v = Hash.Md5.compute(day4BuildInput(buffer, @index))
         if v[0] == 0 and v[1] == 0 and (v[2] & 0xF0) == 0
         {
             // Console.print("total: ", @index)

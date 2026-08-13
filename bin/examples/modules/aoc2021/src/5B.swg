@@ -52,9 +52,9 @@ func day5B()
         {
             let x: u64  = x0 + i * Math.sign(x1 - x0)
             let y: u64  = y0 + i * Math.sign(y1 - y0)
-            let c: &s32 = &m.ref2(x, y, W)
-            total += (c == 1 ? 1 : 0)
-            c     += 1
+            let c = m.ptr2(x, y, W)
+            total += (dref c == 1 ? 1 : 0)
+            dref c += 1
         }
     }
 

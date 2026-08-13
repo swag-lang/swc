@@ -1078,11 +1078,13 @@ namespace
         if (normalizedTypeRef.isValid())
         {
             // An rvalue receiver held in a register gets its call-site home first, so its
-            // address can travel into the pointer parameter like any other receiver.
+            // address can travel into the pointer parameter like any other receiver. A
+            // value payload that is already pointer-typed (a materialized constant
+            // receiver) holds the receiver's address itself and passes through as-is.
             if (arg.passUfcsAddressAsPointer && !argPayload.isAddress() && argPayload.reg.isValid())
             {
                 const TypeRef pointeeTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
-                if (pointeeTypeRef.isValid())
+                if (pointeeTypeRef.isValid() && !codeGen.typeMgr().get(pointeeTypeRef).isAnyPointer())
                 {
                     const MicroOpBits storeBits = CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(pointeeTypeRef), codeGen.ctx());
                     if (storeBits != MicroOpBits::Zero)

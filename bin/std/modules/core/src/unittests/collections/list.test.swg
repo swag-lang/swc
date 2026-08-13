@@ -137,9 +137,9 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
 
     for &value, node in values
     {
-        #assert(#typeof(value) == #type &s32)
+        #assert(#typeof(value) == *s32)
         #assert(#typeof(node) == *ListEntry's32)
-        value += 10
+        dref value += 10
     }
 
     let expected: [3] s32 = [11, 12, 13]

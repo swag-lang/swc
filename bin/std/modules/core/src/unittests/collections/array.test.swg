@@ -211,7 +211,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     for &value, ordinal in values
     {
-        value -= cast(s32) ordinal
+        dref value -= cast(s32) ordinal
     }
 
     let expectedVisited: [4] s32 = [9, 0, 1, 4]

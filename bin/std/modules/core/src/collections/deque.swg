@@ -212,12 +212,12 @@ impl Deque
 
     // Iterates elements in logical order from front to back.
     #[Macro]
-    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
+    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
         #scope(Up)
             for itemIndex in .count
         {
-            var itemPtr: [*] T = undefined
+            var itemPtr: const [*] T = undefined
             if itemIndex < .frontItems.count do
                 itemPtr = .frontItems.buffer! + .frontItems.count - itemIndex - 1
             else do

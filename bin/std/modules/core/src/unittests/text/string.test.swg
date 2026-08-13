@@ -119,7 +119,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     @assert(sumIndexes == 15)
 
     for &byte in value do
-        byte += 1'u8
+        dref byte += 1'u8
 
     @assert(assertString(value, "b[defg"))
 

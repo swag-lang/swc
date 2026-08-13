@@ -188,6 +188,35 @@ NB: binaire DevMode à jour (rebuild fait après tous les edits C++).
   boxing variadique const *T, receveur UFCS SANS cast (lvalue ET rvalue,
   storage rvalue via __call_arg_ptr_storage + spill codegen CallHelpers ~1080).
 
+## RÉGLÉ 2026-08-13 (suite): trois portes du monde références restées mortes
+- CRASH 3 (préexistant au stage 2, prouvé par bissection binaire 26+merge):
+  receveur RVALUE d'un opCast #[Implicit, Inline] (ex: `g_StoreArgs =
+  Utf8.fromUtf16(...)` → opCast String→string → opSet). buildStructOpCastResolvedArgs
+  ne posait que bindsReferenceToValue (gardé sur isReference) → les BITS de la
+  struct passaient comme pointeur receveur. FIX: structOpCastPassesAddressAsPointer
+  (Cast.Cast.cpp) pose passUfcsAddressAsPointer (le flag du receveur UFCS castless)
+  + NeedsAddressableStorage pour les sources scalaires. Sonde probe7.swg; suite
+  native/specops/operator_cast_rvalue_receiver.swg.
+- CRASH 4 (même famille): le receveur du cast SET (conversion opSet implicite,
+  ex: `arr.add("alpha")` → temp String) codait en dur bindsReferenceToValue=true.
+  Même fix (réutilise le prédicat).
+- CRASH 5 (LE gros — cause réelle des mimalloc 0x6C61/0x6766 des tools):
+  CodeGen.Foreach emitForeachBindSymbols décidait adresse-vs-copie sur
+  isReference() → le binding struct par valeur (désormais const *T synthétisé)
+  prenait la branche COPIE: memcopy de sizeof(T) octets dans le slot pointeur
+  de 8 → le binding contenait les premiers octets de l'élément (le ptr du
+  premier champ string = le TEXTE). Déclencheur partout: `for f in typeof.fields`
+  (#ast de IsSet, commandline.swg), toute boucle sur tableau natif/slice de
+  structs. FIX: flag de nœud AstForeachStmtFlagsE::BindsValueAddress posé par
+  sema (Sema.Loop foreachElementTypes) quand il synthétise le pointeur; codegen
+  le lit; l'alias d'échappement (bindForeachAddressAlias) le suit aussi.
+  Sonde probe8.swg; suite native/flow/for_struct_member_variadic.swg
+  (for_struct_binding.swg existant nette aussi la régression copie).
+- Sondes de script (scratchpad, jetables): CommandLine.parse + Env.arguments +
+  premain getNativeArgs + visites Array'String — toutes vertes au build 34.
+- BUILDS: 30 = bissection (26+merge, sans mes fixes), 31 = fixes restaurés,
+  32 = +opCast, 33 = +Set-cast, 34 = +foreach binding.
+
 ## État session 2026-08-13
 - master local MERGÉ dans noref (Tier B/C: deque/orderedmap/orderedset/
   priorityqueue/mappedfile/watcher/globalization/json + win32). Nouveaux fichiers
@@ -198,3 +227,46 @@ NB: binaire DevMode à jour (rebuild fait après tous les edits C++).
   `me`. BUILD NUM 28 (27 = merge+instrumentation, 28 = fix). Un bump par binaire
   exécuté, toujours.
 - REPRENDRE: échelle core → pixel → gui → tests.swgs dm, puis D/E/F/G.
+
+## BLOCAGE COURANT 2026-08-13 (fin de session — reprendre ICI)
+- ÉTAT: core COMPILE et FORGE (320 fichiers, core.test.exe) ✓. Les tools TOURNENT
+  (std.swgs parse ses args, compile le workspace, lance le test) ✓. Le crash
+  restant est au RUNTIME NATIF de core.test.exe, dans __init_8 (sandbox):
+  `Path.directoryName` reçoit un chemin dont les PREMIERS OCTETS SONT NULS.
+- FIX POSÉ EN CHEMIN: Env.getNativeArgs ne CONCATÈNE plus @pinfos.args à la
+  ligne de commande OS — la ligne effective transmise par la chaîne de hooks
+  GAGNE (environment.win32.swg). Sans ça, la premain de core.dll (2e passage,
+  rtflags=0 — passage PROGRAMME voulu par le hook généré, bits done disjoints)
+  doublait/collait les args → CommandLine.parse voyait « dm » décalé → le tool
+  prenait swc.exe au lieu de swc_devmode. Args OK vérifiés vs oracle master.
+- DIAGNOSTIC du crash natif restant (sondes byte-level, retirées de l'arbre):
+  * `root` arrive à enterSandbox avec path[0]==0 → GetFullPathNameW échoue →
+    fallback → le chemin nul se propage → assert isValidPathName.
+  * La ligne source: defaultSandboxRoot →
+    `Path.combine(realSpecialDirectory(.Temp).toString(), "swag-sandbox")` —
+    le TEMPORAIRE String de realSpecialDirectory semble libéré pendant que sa
+    slice .toString() est encore consommée (nommer le temporaire dans une
+    var locale GUÉRIT — heisenbug). NE PAS committer ce contournement: le
+    root-cause est la planification des drops de temporaires d'argument en
+    NATIF (JIT vert sur la même forme!).
+  * Avec le temporaire nommé, l'init PASSE et les tests démarrent, puis
+    d'autres pannes mémoire: « memory block address is not the start of an
+    allocation » — 2e famille probable: un buffer AVANCÉ puis free (op String
+    genre trimLeft/remove migrée, ou même famille de drops).
+- HARNAIS DISPONIBLES (rapides):
+  * Module natif isolé important core: scratchpad p9m (test -d src
+    --module-file module.swg) — 1 s/cycle, JIT+natif; 5 sondes vertes (retval
+    String, utf16 round-trip, stack-buffer retval, ligne sandbox exacte,
+    réplique defaultSandboxRoot+catch-else) — la corruption NE se reproduit
+    PAS isolée: il faut le contexte d'init réel de core.dll.
+  * Scripts scratchpad boxprobe*.swgs (JIT): args/rtflags/ctx — tous verts.
+  * L'oracle: swc.exe ET swc_devmode.exe de c:\Perso\swag-lang\swc (master,
+    build du 13/08 11:50) — comparer chaque comportement douteux.
+- PISTE POUR LA REPRISE: instrumenter les DROPS émis en natif autour de
+  `f().toString()` en argument (CodeGen des temporaires de statement, hooks
+  opDrop des String/Array en sortie d'#init), comparer JIT vs natif sur le
+  MÊME AST; et viser la 2e famille via les tests qui suivent l'init une fois
+  le sandbox passé (réactiver temporairement le tempDir nommé pour ça).
+- BUILD NUM: 38 = binaire courant (tous les fixes C++ committés + ConstantLower
+  + passthrough encore NON committés au moment du build — ils le sont
+  maintenant). RE-BUMPER à 39 au prochain rebuild.

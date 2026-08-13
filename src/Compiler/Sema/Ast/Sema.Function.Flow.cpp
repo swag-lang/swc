@@ -1621,9 +1621,23 @@ Result AstFailExpr::semaPostNode(Sema& sema) const
     payload.isFallibleResult = true;
     markCurrentErrorScopeFallible(sema);
     SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::SetErrRaw, codeRef()));
-    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, exprView.typeRef(), "__fail_runtime_storage"));
 
-    sema.setType(sema.curNodeRef(), preferredFailResultType(sema));
+    // The fail node's single runtime storage serves two writes: the ERROR value handed to
+    // '__setErrRaw', and the synthesized zero RESULT the (unreachable) consumers of the
+    // fail expression read through when the result is address-backed. Size the slot for
+    // whichever is larger, so zeroing a wide result never writes past an error-sized slot.
+    const TypeRef resultTypeRef  = preferredFailResultType(sema);
+    TypeRef       storageTypeRef = exprView.typeRef();
+    if (resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid() && storageTypeRef.isValid())
+    {
+        const TypeInfo& resultType = sema.typeMgr().get(resultTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&resultType, sema.curNodeRef()));
+        if (resultType.sizeOf(sema.ctx()) > sema.typeMgr().get(storageTypeRef).sizeOf(sema.ctx()))
+            storageTypeRef = resultTypeRef;
+    }
+    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, storageTypeRef, "__fail_runtime_storage"));
+
+    sema.setType(sema.curNodeRef(), resultTypeRef);
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;

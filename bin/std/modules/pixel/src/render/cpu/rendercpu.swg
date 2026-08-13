@@ -1935,7 +1935,7 @@ impl RenderCpu
         .resetDrawState()
         .contentScale = painter.contentScale()
         for &cmd, idx in painter.commandBuffer do
-            .executeCommand(painter, &cmd, cast(u64) idx)
+            .executeCommand(painter, cmd, cast(u64) idx)
     }
 
     // Binds an off-screen target for following direct operations or painter submission.

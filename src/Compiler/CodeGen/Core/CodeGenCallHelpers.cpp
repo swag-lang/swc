@@ -249,6 +249,27 @@ namespace
             return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, materializedCstRef);
         }
 
+        // A struct or array constant bound to a non-null value-pointer parameter (the
+        // castless receiver) passes the address of its own static payload: a segment
+        // address every backend relocates. Lowering the pointer itself to bytes would
+        // bake a compiler-memory address into the emitted code, dead in a native image.
+        if (storageType.isValuePointer() && !storageType.isNullable() && (defaultCst.isStruct() || defaultCst.isArray()))
+        {
+            const TypeRef     pointeeTypeRef = storageType.payloadTypeRef();
+            const ConstantRef safeCstRef     = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultCstRef, pointeeTypeRef);
+            if (safeCstRef.isValid())
+            {
+                const ConstantValue&             safeCst = codeGen.cstMgr().get(safeCstRef);
+                const std::span<const std::byte> bytes   = safeCst.isStruct() ? safeCst.getStruct() : safeCst.getArray();
+                outPayload.typeRef                       = targetTypeRef;
+                outPayload.reg                           = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(bytes.data()), safeCstRef);
+                outPayload.setIsValue();
+                outPayload.markMaterializedPointerLikeValue();
+                return true;
+            }
+        }
+
         if ((defaultCst.isNull() || defaultCst.isValuePointer() || defaultCst.isBlockPointer()) &&
             emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, defaultCstRef))
             return true;

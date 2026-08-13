@@ -411,6 +411,20 @@ namespace
         return (kind == SpecOpKind::OpBinary || kind == SpecOpKind::OpBinaryRight) && paramIndex == 1;
     }
 
+    // The 'me' parameter is the receiver whatever the call syntax: an explicit qualified
+    // call ('Vec2.length(v)') binds it by address exactly as the dotted form does, which
+    // is how the reference world's binds-reference-to-value rule behaved - it never looked
+    // at the call syntax either. Kept apart from allowsImplicitAddressBinding so overload
+    // RANKING is untouched: this only routes the selected binding.
+    bool bindsExplicitMeAddress(Sema& sema, const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isValid() || paramIndex != 0 || fn.parameters().empty())
+            return false;
+
+        const SymbolVariable* firstParam = fn.parameters().front();
+        return firstParam && firstParam->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+    }
+
     TypeRef unwrapAliasEnumOrSelf(Sema& sema, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -2448,7 +2462,8 @@ namespace
                 continue;
 
             CastFlags flags = CastFlagsE::AllowCopyToMoveRef;
-            if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
+            if (castTypeRef == paramTypeRef &&
+                (allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg) || bindsExplicitMeAddress(sema, selectedFn, i, appliedUfcsArg)))
                 flags.add(CastFlagsE::UfcsArgument);
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
@@ -2688,15 +2703,23 @@ namespace
         return !sourceType.isPointerOrReference();
     }
 
-    bool passUfcsAddressAsPointer(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef, AstNodeRef appliedUfcsArg)
+    bool passUfcsAddressAsPointer(Sema& sema, const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef argRef, AstNodeRef appliedUfcsArg)
     {
-        if (argRef.isInvalid() || appliedUfcsArg.isInvalid())
+        if (argRef.isInvalid() || paramIndex != 0)
             return false;
 
-        if (Match::resolveCallArgumentValueRef(sema, argRef) != Match::resolveCallArgumentValueRef(sema, appliedUfcsArg))
+        if (appliedUfcsArg.isValid())
+        {
+            if (Match::resolveCallArgumentValueRef(sema, argRef) != Match::resolveCallArgumentValueRef(sema, appliedUfcsArg))
+                return false;
+        }
+        else if (!bindsExplicitMeAddress(sema, fn, paramIndex, appliedUfcsArg))
+        {
             return false;
+        }
 
-        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        const TypeRef   paramTypeRef = fn.parameters()[paramIndex]->typeRef();
+        const TypeInfo& paramType    = sema.typeMgr().get(paramTypeRef);
         if (!paramType.isAnyPointer())
             return false;
 
@@ -2834,7 +2857,7 @@ namespace
                 .passKind                 = passKind,
                 .bindsReferenceToValue    = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
                 .movesValueToParam        = i < numParams && movesValueToParam(sema, selectedFn.parameters()[i]->typeRef(), entry.argRef),
-                .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef, appliedUfcsArg),
+                .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn, i, finalArgRef, appliedUfcsArg),
             };
 
             if (resolvedArg.bindsReferenceToValue)

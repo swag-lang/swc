@@ -63,6 +63,10 @@
     <PropertyGroup Label="UserMacros"/>
     <PropertyGroup>
         <SwcOutputDir>bin/</SwcOutputDir>
+        <!-- Bound parallel compilation (/MP) so a build leaves CPU headroom for the rest of the
+             machine. Override with the SWC_COMPILE_JOBS environment variable or -p:SwcCompileJobs=N. -->
+        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$(SWC_COMPILE_JOBS)</SwcCompileJobs>
+        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$([System.Math]::Max(1, $([MSBuild]::Subtract($([System.Environment]::ProcessorCount), 4))))</SwcCompileJobs>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>
@@ -99,6 +103,7 @@
             <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
             <LanguageStandard>stdcpplatest</LanguageStandard>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
+            <ProcessorNumber>$(SwcCompileJobs)</ProcessorNumber>
         </ClCompile>
         <Link>
             <SubSystem>Console</SubSystem>
@@ -125,6 +130,7 @@
             <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
             <LanguageStandard>stdcpplatest</LanguageStandard>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
+            <ProcessorNumber>$(SwcCompileJobs)</ProcessorNumber>
         </ClCompile>
         <Link>
             <SubSystem>Console</SubSystem>
@@ -151,6 +157,7 @@
             <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
             <LanguageStandard>stdcpplatest</LanguageStandard>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
+            <ProcessorNumber>$(SwcCompileJobs)</ProcessorNumber>
         </ClCompile>
         <Link>
             <SubSystem>Console</SubSystem>

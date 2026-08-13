@@ -196,7 +196,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return testCode
 
     // An unchanged native-only test must reuse its compiled artifact but still execute it.
-    let reusedOutput = try context.captureProgram(context.compiler.toString(), tested)
+    let reusedOutput = try context.captureCompiler(tested)
     Console.print(reusedOutput.toString())
     if !reusedOutput.contains("up-to-date • consumer_exe.test.exe")
     {
@@ -220,7 +220,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
 
     // Only the module carrying the directives must recompile; a dependency of its own is free to
     // be reused, and naming the module keeps that from reading as the failure.
-    let verifiedAgain = try context.captureProgram(context.compiler.toString(), verified)
+    let verifiedAgain = try context.captureCompiler(verified)
     Console.print(verifiedAgain.toString())
     if verifiedAgain.contains("std [core]")
     {
@@ -237,7 +237,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     var ran = workspaceModuleCommand("run", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&ran)
 
-    let output = try context.captureProgram(context.compiler.toString(), ran)
+    let output = try context.captureCompiler(ran)
     Console.print(output.toString())
 
     if !output.contains("SWAG_WORKSPACE_MAIN_RAN")
@@ -253,7 +253,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     options.appendExtra(&script)
     script.add([Path.combine(workspace.toString(), "import_core_without_using.swgs").toString()])
 
-    let scripted = try context.captureProgram(context.compiler.toString(), script)
+    let scripted = try context.captureCompiler(script)
     if !scripted.contains("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN")
     {
         // A capture drops what the compiler wrote to its error stream, which is exactly what a

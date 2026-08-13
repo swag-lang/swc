@@ -33,7 +33,7 @@ func day2A()
     var total: u32
     for l in lines
     {
-        discard r.match(l)
+        discard r.match(dref l)
 
         let min    = expect StrConv.toS32(r.getCapture(1))
         let max    = expect StrConv.toS32(r.getCapture(2))

@@ -38,7 +38,7 @@ func day9A()
 
     for l in lines
     {
-        discard r.match(l)
+        discard r.match(dref l)
         if !town.contains(r[1]) do
             town.add(r[1], town.count)
         if !town.contains(r[2]) do

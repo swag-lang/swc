@@ -41,7 +41,7 @@ func day5B()
     {
         expect
         {
-            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", l)
+            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", dref l)
             let x0 = StrConv.toS32(r.getCapture(1))
             let y0 = StrConv.toS32(r.getCapture(2))
             let x1 = StrConv.toS32(r.getCapture(3))

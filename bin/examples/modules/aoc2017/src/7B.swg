@@ -40,14 +40,14 @@ func day7B()
     var r0 = expect Parser.RegExp.create(#raw "(\l+) \((\d+)\)")
     for l in lines
     {
-        discard r0.partialMatch(l)
+        discard r0.partialMatch(dref l)
         set.add(r0[1], Pile{expect StrConv.toS32(r0[2])})
     }
 
     var r1 = expect Parser.RegExp.create(#raw "\l+")
     for l in lines
     {
-        let n = r1.grepAll(l)
+        let n = r1.grepAll(dref l)
         if n.count == 1 do
             continue
         let self = set.find(n[0])

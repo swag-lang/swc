@@ -80,7 +80,7 @@ internal impl Bot
         {
             let cpy = .pending
             .pending.clear()
-            execute(cpy)
+            executeLines(cpy)
         }
     }
 }
@@ -92,22 +92,22 @@ internal func getBot(x: s32)->*Bot
     return bots.ptr1(x)
 }
 
-internal func execute(lines: Array'String)
+internal func executeLines(lines: Array'String)
 {
     for l in lines
     {
         switch
         {
-        case r0.match(l):
+        case r0.match(dref l):
             let bot = getBot(expect StrConv.toS32(r0[2]))
             bot.add(expect StrConv.toS32(r0[1]))
             bot.execute()
 
-        case r1.match(l):
+        case r1.match(dref l):
             let bot = getBot(expect StrConv.toS32(r1[1]))
             if bot.count != 2
             {
-                bot.pending.add(l)
+                bot.pending.add(dref l)
                 break
             }
 
@@ -140,7 +140,7 @@ func day10AB()
     expect r0.compile(#raw "value (\d+) goes to bot (\d+)")
     expect r1.compile(#raw "bot (\d+) gives low to (\w+) (\d+) and high to (\w+) (\d+)")
 
-    execute(lines)
+    executeLines(lines)
 
     @assert(result == 47)
     @assert(bots[0].out * bots[1].out * bots[2].out == 2666)

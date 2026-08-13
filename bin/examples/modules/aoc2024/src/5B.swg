@@ -33,13 +33,13 @@ func day5B()
 
         if first
         {
-            let split = Tokenize.split(f, '|'u8)
+            let split = Tokenize.split(dref f, '|'u8)
             @assert(split.count == 2)
             order.findOrAdd(expect StrConv.toS32(split[0])).value.add(expect StrConv.toS32(split[1]))
         }
         else
         {
-            var update = Slice.map(Tokenize.split(f, ','u8).toSlice(), func(x) => expect StrConv.toS32(x))
+            var update = Slice.map(Tokenize.split(dref f, ','u8).toSlice(), func(x) => expect StrConv.toS32(x))
             @assert(update.count != 0)
 
             var isOrdered = true

@@ -97,7 +97,7 @@ func day5A1()
         l.replace("B", "1")
         l.replace("L", "0")
         l.replace("R", "1")
-        seats.add(expect StrConv.parseB64(l).value)
+        seats.add(expect StrConv.parseB64(dref l).value)
     }
 
     seats.sort()

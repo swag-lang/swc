@@ -32,7 +32,7 @@ func day2B()
         var values: Array's32
 
         #scope(Done)
-            for v in Tokenize.splitAny(l, [' ', '\t'])
+            for v in Tokenize.splitAny(dref l, [' ', '\t'])
         {
             let value = expect StrConv.toS32(Latin1.trim(v))
             for v1 in values

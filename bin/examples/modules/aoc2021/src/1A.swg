@@ -54,7 +54,7 @@ func day1A()
     var last = Swag.U64.Max
     for l in lines
     {
-        let cur = expect StrConv.toS32(l)
+        let cur = expect StrConv.toS32(dref l)
         if cur > last do
             total += 1
         last = cur

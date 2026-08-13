@@ -34,8 +34,8 @@ func day1A()
 
     for l in lines
     {
-        let first = Utf8.indexOfAny(l, "0123456789")
-        let last  = Utf8.lastIndexOfAny(l, "0123456789")
+        let first = Utf8.indexOfAny(dref l, "0123456789")
+        let last  = Utf8.lastIndexOfAny(dref l, "0123456789")
         total += ((l[first] - '0') * 10) + (l[last] - '0')
     }
 

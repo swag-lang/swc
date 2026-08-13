@@ -34,7 +34,7 @@ func day1A()
 
     var arr: Array's32
     for v in lines do
-        arr.add(expect StrConv.toS32(v))
+        arr.add(expect StrConv.toS32(dref v))
 
     arr.sort()
 

@@ -57,7 +57,7 @@ func day9A()
     const N = 25
     for l in lines
     {
-        let v1 = expect StrConv.toS32(l)
+        let v1 = expect StrConv.toS32(dref l)
         if @index < N
         {
             for v0 in val do

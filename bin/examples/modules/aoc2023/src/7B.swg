@@ -75,7 +75,7 @@ func day7B()
 
     for l in lines
     {
-        let first = Tokenize.split(l, ' 'u8)
+        let first = Tokenize.split(dref l, ' 'u8)
 
         var card: Card
         var maxCount = 0

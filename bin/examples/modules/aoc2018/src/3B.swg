@@ -22,7 +22,7 @@ func day3B()
     here.reserve(1000)
     for l in lines
     {
-        discard r.match(l)
+        discard r.match(dref l)
         let id     = expect StrConv.toS32(r[1])
         let startX = expect StrConv.toS32(r[2])
         let startY = expect StrConv.toS32(r[3])

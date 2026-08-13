@@ -78,7 +78,7 @@ func day8A()
     var total = 0
     for l in lines
     {
-        let parts = Tokenize.split(l, "|")
+        let parts = Tokenize.split(dref l, "|")
         let part2 = Tokenize.split(parts[1], " ")
         for it in part2
         {

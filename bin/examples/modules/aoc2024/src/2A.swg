@@ -49,7 +49,7 @@ func day2A()
     var total = 0
     for l in lines
     {
-        let first = Tokenize.split(l, ' 'u8)
+        let first = Tokenize.split(dref l, ' 'u8)
 
         var prev = 0, ls = 0
         var bad  = false

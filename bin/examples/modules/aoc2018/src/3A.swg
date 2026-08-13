@@ -61,7 +61,7 @@ func day3A0()
     count.resize(1000 * 1000)
     for l in lines
     {
-        discard r.match(l)
+        discard r.match(dref l)
         let startX = expect StrConv.toS32(r[1])
         let startY = expect StrConv.toS32(r[2])
         let width  = expect StrConv.toS32(r[3])
@@ -92,7 +92,7 @@ func day3A1()
     count.resize(1000 * 1000)
     for l in lines
     {
-        let r = expect Parser.RegExp.grepAll("\\d+", l)
+        let r = expect Parser.RegExp.grepAll("\\d+", dref l)
         let v = Slice.map(r[to], func(x) => expect StrConv.toS32(x))
 
         for x in v[1] until v[1] + v[3] do

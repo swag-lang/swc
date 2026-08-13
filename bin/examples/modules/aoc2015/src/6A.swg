@@ -80,10 +80,10 @@ internal func day6EnsureInstructions()
         else do
             instruction.action = .Toggle
 
-        instruction.x0 = day6ParseNumber(line, &cursor)
-        instruction.y0 = day6ParseNumber(line, &cursor)
-        instruction.x1 = day6ParseNumber(line, &cursor)
-        instruction.y1 = day6ParseNumber(line, &cursor)
+        instruction.x0 = day6ParseNumber(dref line, &cursor)
+        instruction.y0 = day6ParseNumber(dref line, &cursor)
+        instruction.x1 = day6ParseNumber(dref line, &cursor)
+        instruction.y1 = day6ParseNumber(dref line, &cursor)
         day6Instructions.add(instruction)
     }
 

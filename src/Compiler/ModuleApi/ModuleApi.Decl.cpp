@@ -242,22 +242,7 @@ namespace ModuleApi
 
     bool tryFindReachableNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)
     {
-        outNodeRef = AstNodeRef::invalid();
-        if (!targetNode)
-            return false;
-
-        const AstNodeRef rootRef = ast.root();
-        if (rootRef.isInvalid())
-            return false;
-
-        Ast::visit(ast, rootRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
-            if (&node != targetNode)
-                return Ast::VisitResult::Continue;
-
-            outNodeRef = nodeRef;
-            return Ast::VisitResult::Stop;
-        });
-
+        outNodeRef = ast.reachableNodeRef(targetNode);
         return outNodeRef.isValid();
     }
 

@@ -184,13 +184,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Found while: investigating why some documentation pages take several seconds to generate
 - Observation: `swc doc` runs full workspace sema on every invocation, with or without
   `--rebuild`, and the per-module stage line the user reads as "doc time" is dominated by it.
-  The page generation itself is small: instrumented per-module split (Stats build, 22 workers)
-  gives sema/doc-generation of 3673/496 ms for `gui`, 2144/187 for `pixel`, 1884/1159 for `ogl`,
-  848/327 for `core`; the doc side of the whole `std` workspace is ~2.5 s of a ~15 s wall run.
-  Inside that sema time, compile-time execution JIT-emits 7 803 functions: session timers report
-  77 s CPU of semantic analysis plus 24.5 s CPU codegen and 21.7 s CPU micro lowering, against
-  2.7 s parser and 0.7 s lexer. Each module also re-analyzes its dependencies' exported public
-  API (`ogl` has 29 own sources but sema processes 133 files).
+  The page generation itself is small: with the reachable-node index in place, the doc side of
+  the whole `std` workspace is under 1 s of a ~8 s wall run (Stats build, 22 workers), and no
+  single module keeps a doc stage above ~0.3 s. Inside the sema time, compile-time execution
+  JIT-emits 7 803 functions: session timers report 77 s CPU of semantic analysis plus 24.5 s CPU
+  codegen and 21.7 s CPU micro lowering, against 2.7 s parser and 0.7 s lexer. Each module also
+  re-analyzes its dependencies' exported public API (`ogl` has 29 own sources but sema
+  processes 133 files).
 - Evidence: `swc doc --workspace bin/std --doc-output-dir <tmp> --rebuild --stats` with a Stats
   configuration build; timing probes around `Command::doc`'s sema call and inside
   `DocApi::generate` ([Command.Doc.cpp](../src/Main/Command/Command.Doc.cpp),
@@ -200,23 +200,23 @@ Entries are sorted by identifier, ascending; position carries no priority.
   and whether any lowering is demanded by paths documentation never needs; that number bounds
   what any doc-mode fast path could save before the larger incrementality work.
 
-### F-130 — Documentation item collection walks a file's whole AST once per symbol
+### F-130 — Export-root resolution walks the declaration tree once per symbol
 
 - Area: compiler
-- Found while: investigating why `std.ogl` documentation costs more than modules twice its size
-- Observation: `ModuleApi::tryFindReachableNodeRef` resolves a symbol's declaration node by
-  visiting the file's AST from the root with a `std::function` visitor until pointer equality,
-  and the documentation collector calls it once per candidate symbol and again per member, so a
-  generated binding file with thousands of declarations pays symbols-times-AST-size. The same
-  lookup also runs during `collectPublicEntries`, which doc mode executes in full inside sema.
-  `ogl` documents 4 713 items concentrated in a few ~50 KB generated sources and its
-  `collectDocItems` costs 803 ms wall inside a 22-worker parallel loop - the largest
-  doc-generation cost in the whole `std` run and about 70% of `ogl`'s 1 159 ms doc stage.
-- Evidence: [ModuleApi.Decl.cpp:243](../src/Compiler/ModuleApi/ModuleApi.Decl.cpp#L243),
-  call sites [DocApi.Collect.cpp:856](../src/Doc/DocApi.Collect.cpp#L856) and per-member at
-  lines 448/507/661, [ModuleApi.Symbol.cpp:114](../src/Compiler/ModuleApi/ModuleApi.Symbol.cpp#L114);
-  per-module probe numbers under F-129.
-- Next step: build one `AstNode*` to `AstNodeRef` map per file (lazily, on the `SourceFile` or
-  its `Ast`) and let `tryFindReachableNodeRef`/`tryFindNodeRef` answer from it, keeping the
-  reachability filter as a cheap check on the mapped path; re-measure `ogl` collect.
+- Found while: removing the per-symbol whole-AST scans this entry originally described
+- Observation: the memoized `Ast::reachableNodeRef` index removed the dominant scan (`ogl`
+  `collectDocItems` 803 ms to ~190 ms, its doc stage 1 159 ms to ~315 ms, and the same index
+  serves `collectPublicEntries` inside sema), but the collector still resolves each item's
+  export root through `findExportDeclRoot`, whose `collectModuleApiNodePath` runs a
+  root-to-target DFS over the declaration tree for every symbol. A generated binding file with
+  thousands of top-level declarations pays declarations-times-tree-size again there; it is the
+  main suspected share of `ogl`'s remaining ~190 ms collect.
+- Evidence: [ModuleApi.Decl.cpp:32](../src/Compiler/ModuleApi/ModuleApi.Decl.cpp#L32)
+  (`collectModuleApiNodePath`), reached per candidate from
+  [DocApi.Collect.cpp:864](../src/Doc/DocApi.Collect.cpp#L864); measured with the F-129 probes
+  after the reachable-index fix.
+- Next step: record each node's parent in the same single traversal that builds
+  `Ast::ReachableNodeIndex` and derive the root-to-target path by walking parents upward,
+  keeping the additional-node and function-body constraints as per-ancestor checks; re-measure
+  `ogl` collect.
 - Related: F-129

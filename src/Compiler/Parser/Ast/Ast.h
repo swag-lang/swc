@@ -120,6 +120,7 @@ public:
 
     AstNodeRef findNodeRef(const AstNode* node) const;
     AstNodeRef tryFindNodeRef(const AstNode* node) const;
+    AstNodeRef reachableNodeRef(const AstNode* node) const;
 
     enum class VisitResult
     {
@@ -158,14 +159,28 @@ private:
         mutable std::shared_mutex mutex;
     };
 
-    Shard                                  shards_[SHARD_COUNT];
-    SourceView*                            srcView_ = nullptr;
-    AstNodeRef                             root_    = AstNodeRef::invalid();
-    AstFlags                               flags_   = AstFlagsE::Zero;
-    std::mutex                             generatedParseMutex_;
-    uint32_t                               parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
-    bool                                   hasParsedNodeBoundary_                  = false;
-    inline static thread_local SourceView* threadSourceViewOverride_               = nullptr;
+    // Memoizes reachableNodeRef(): one traversal answers the thousands of per-symbol lookups
+    // the module api export and the documentation collector make against the same file. The
+    // watermarks record each shard's allocation size at build time, so an index built before
+    // later nodes were parsed into this Ast is rebuilt instead of answering for a stale tree.
+    struct ReachableNodeIndex
+    {
+        std::unordered_map<const AstNode*, AstNodeRef> refs;
+        uint32_t                                       watermarks[SHARD_COUNT] = {};
+    };
+
+    bool isReachableNodeIndexCurrent(const ReachableNodeIndex& index) const;
+
+    Shard                                       shards_[SHARD_COUNT];
+    SourceView*                                 srcView_ = nullptr;
+    AstNodeRef                                  root_    = AstNodeRef::invalid();
+    AstFlags                                    flags_   = AstFlagsE::Zero;
+    std::mutex                                  generatedParseMutex_;
+    mutable std::shared_mutex                   reachableNodeIndexMutex_;
+    mutable std::unique_ptr<ReachableNodeIndex> reachableNodeIndex_;
+    uint32_t                                    parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
+    bool                                        hasParsedNodeBoundary_                  = false;
+    inline static thread_local SourceView*      threadSourceViewOverride_               = nullptr;
 };
 
 SWC_END_NAMESPACE();

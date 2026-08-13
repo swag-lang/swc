@@ -184,6 +184,55 @@ AstNodeRef Ast::tryFindNodeRef(const AstNode* node) const
     return AstNodeRef::invalid();
 }
 
+bool Ast::isReachableNodeIndexCurrent(const ReachableNodeIndex& index) const
+{
+    for (uint32_t i = 0; i < SHARD_COUNT; i++)
+    {
+        std::shared_lock lock(shards_[i].mutex);
+        if (index.watermarks[i] != shards_[i].store.size())
+            return false;
+    }
+    return true;
+}
+
+AstNodeRef Ast::reachableNodeRef(const AstNode* targetNode) const
+{
+    if (!targetNode || root_.isInvalid())
+        return AstNodeRef::invalid();
+
+    {
+        std::shared_lock lock(reachableNodeIndexMutex_);
+        if (reachableNodeIndex_ && isReachableNodeIndexCurrent(*reachableNodeIndex_))
+        {
+            const auto it = reachableNodeIndex_->refs.find(targetNode);
+            return it == reachableNodeIndex_->refs.end() ? AstNodeRef::invalid() : it->second;
+        }
+    }
+
+    std::unique_lock lock(reachableNodeIndexMutex_);
+    if (!reachableNodeIndex_ || !isReachableNodeIndexCurrent(*reachableNodeIndex_))
+    {
+        auto index = std::make_unique<ReachableNodeIndex>();
+        for (uint32_t i = 0; i < SHARD_COUNT; i++)
+        {
+            std::shared_lock shardLock(shards_[i].mutex);
+            index->watermarks[i] = shards_[i].store.size();
+        }
+
+        // The traversal itself carries the reachability guarantee: a node parsed into this
+        // storage but detached from the tree never enters the map, exactly as it was never
+        // found by the per-symbol traversals this index replaces.
+        visit(*this, root_, [&index](const AstNodeRef nodeRef, const AstNode& node) {
+            index->refs.emplace(&node, nodeRef);
+            return VisitResult::Continue;
+        });
+        reachableNodeIndex_ = std::move(index);
+    }
+
+    const auto it = reachableNodeIndex_->refs.find(targetNode);
+    return it == reachableNodeIndex_->refs.end() ? AstNodeRef::invalid() : it->second;
+}
+
 void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
 {
     SmallVector<AstNodeRef> children;

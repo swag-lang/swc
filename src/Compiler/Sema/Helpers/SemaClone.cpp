@@ -449,6 +449,11 @@ namespace
             if (paramType.isReference() && !paramType.isConst())
                 return targetRef;
 
+            // A mutable non-null pointer parameter writes through to the pointee, exactly
+            // like a mutable reference: inlining must not freeze the bound expression.
+            if (paramType.isValuePointer() && !paramType.isNullable() && !sema.typeMgr().get(paramType.payloadTypeRef()).isConst())
+                return targetRef;
+
             sema.setConstAssignBinding(targetRef, binding.sourceParam);
             if (!paramType.isPointerOrReference() || paramType.isReference())
                 sema.setConstAssignTarget(targetRef);

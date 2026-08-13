@@ -27,7 +27,7 @@ struct ListStructProbe
 func visitStructList(values: *List'ListStructProbe)->s32
 {
     var code = 0
-    for value, node in values
+    for value, node in dref values
     {
         #assert(#typeof(node) == *ListEntry'ListStructProbe)
         if value.value == 12 do

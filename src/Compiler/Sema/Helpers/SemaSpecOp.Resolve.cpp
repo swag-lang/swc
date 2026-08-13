@@ -1657,7 +1657,20 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         return Result::Continue;
 
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
-    SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
+
+    // A pointer receiver writes through to the pointee, never to the pointer variable
+    // itself: mutability is then the pointee's const-ness, enforced by operator matching.
+    bool writesThroughPtr = false;
+    if (indexedView.type())
+    {
+        TypeRef indexedTypeRef = unwrapAlias(sema.ctx(), indexedView.typeRef());
+        if (!indexedTypeRef.isValid())
+            indexedTypeRef = indexedView.typeRef();
+        const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
+        writesThroughPtr            = indexedType.isReference() || (indexedType.isValuePointer() && !indexedType.isNullable());
+    }
+    if (!writesThroughPtr)
+        SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
 
     SmallVector<Symbol*> candidates;
     SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, true, candidates));

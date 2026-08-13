@@ -318,6 +318,12 @@ namespace
         if (indexedType.isVariadic())
             return typeMgr.typeAny();
 
+#if SWC_DEV_MODE
+        {
+            const Utf8 detail = std::format("  raw-index fallback on non-indexable type: {}\n", indexedType.toName(codeGen.ctx()).c_str());
+            swcAssertDetail("indexable type in the raw-index fallback", __FILE__, __LINE__, detail.view());
+        }
+#endif
         SWC_UNREACHABLE();
     }
 

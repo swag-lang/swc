@@ -215,7 +215,7 @@ func findLanguage(tag: string)->#null const *Language
 {
     ensureReferenceLanguage()
     for &one in g_Localization.languages where one.tag == tag do
-        return &one
+        return one
     return null
 }
 

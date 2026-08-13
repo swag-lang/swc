@@ -3622,6 +3622,21 @@ namespace SemaEscape
             if (!iterationMutationHitsSource(sourceProj, sourceExact, receiverProj, receiverExact))
                 continue;
 
+            // The mutation is structural only when it targets the ITERATED COLLECTION
+            // itself. A non-const method owned by another struct mutates one element's
+            // own storage (a String inside an Array'String reached through the loop's
+            // address binding), which the iteration snapshot survives.
+            if (const SymbolStruct* calleeOwner = calledFn.ownerStruct())
+            {
+                const TypeRef sourceTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, borrow.sourceRef));
+                if (sourceTypeRef.isValid())
+                {
+                    const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+                    if (sourceType.isStruct() && &sourceType.payloadSymStruct() != calleeOwner)
+                        continue;
+                }
+            }
+
             // Spare the find-then-remove-then-exit pattern: the loop does not iterate again
             // after the mutation, so the snapshot is never read stale.
             if (mutationFollowedByLoopExit(sema, borrow.bodyRef, callRef))

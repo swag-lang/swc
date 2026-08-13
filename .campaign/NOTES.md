@@ -228,7 +228,72 @@ NB: binaire DevMode à jour (rebuild fait après tous les edits C++).
   exécuté, toujours.
 - REPRENDRE: échelle core → pixel → gui → tests.swgs dm, puis D/E/F/G.
 
-## BLOCAGE COURANT 2026-08-13 (fin de session — reprendre ICI)
+## RÉGLÉ 2026-08-13 (session suivante): la corruption native ET l'échelle core+pixel
+- CORE VERT: `swc_devmode tools\std.swgs dm test core` → 576 passed (JIT+natif).
+- PIXEL VERT: `tools\std.swgs dm test pixel` → 361 passed.
+- Les root causes, dans l'ordre (commits 1a5e0f209, f65690fd3, 851efe9ff, + en cours):
+  1. RECEVEUR RVALUE D'UN INLINE (la corruption sandbox): materializeInlineReceiverBinding
+     et materializeInlineBindings homaient le receveur PAR VALEUR → le temporaire migrait
+     dans le scope inline, dont la sortie le DROPPAIT pendant que l'expression englobante
+     consommait encore la slice (.toString()). Fix: le home tient l'ADRESSE (cast
+     ufcsReceiverAddress + __call_arg_ptr_storage pour les valeurs en registre); les uses
+     élidés ne comptant pas comme uses de `me`, le cas rvalue est forcé explicitement
+     (forceReceiverHomeMaterialization). Suite: native/inline/inline_rvalue_receiver_lifetime.swg
+     (opDrop-poison, sans allocateur). Sonde probe9 scratchpad.
+  2. RECEVEUR USING-PATH CASTLESS: le `continue` castless de Match applyCasts s'appliquait
+     même quand le pointee ≠ source (récepteur `using base`), et passUfcsAddressAsPointer
+     refusait → codegen DÉRÉFÉRENÇAIT le receveur (ArrayPtr.add plantait me=slot). Fix:
+     la route castless exige pointee == source. Suite: native/using/using_base_receiver_call.swg.
+  3. SPILL DES RECEVEURS STRUCT-REGISTRE: un struct 8 octets revenu en RAX n'avait pas de
+     scalarStoreBits → jamais spillé → les BITS passaient comme pointeur me
+     (Id.make() == b). Fix: spill par taille de stockage (CodeGenCallHelpers ~1084).
+     Suite: native/specops/operator_equals_register_rvalue_receiver.swg.
+  4. FOLD CONST-SET: supportsConstSetCallJit + buildConstSetCallArguments gataient sur
+     isReference → l'opSet ConstExpr d'un champ de littéral d'agrégat ne foldait plus et
+     tombait dans un chemin runtime qui PERD la source constante (angle 'deg). Fix: accepter
+     le pointeur-valeur non-null. Suite: jit/compiler/const_eval_pointer_set_receiver.swg.
+     Le trou runtime résiduel (opSet NON-ConstExpr + source constante) est PRÉ-EXISTANT
+     (master échoue la même sonde) → F-129.
+  5. ZÉROING FALLIBLE LARGE (pré-existant, master crashe aussi): le storage unique du nœud
+     fail servait l'ERREUR et le RÉSULTAT zéro; taillé pour l'erreur, le zéroing d'un
+     résultat 512 octets écrasait la frame (ImageCanvas). Fix: storage taillé au max des
+     deux (AstFailExpr::semaPostNode). Suite: native/flow/fallible_wide_result_fail.swg.
+  6. RECEVEUR CONSTANTE → ADRESSE NATIVE (pré-existant en germe): un struct constant lié
+     à un me pointeur était LOWERÉ en octets → adresse de payload-buffer compilateur baked
+     dans le code → JIT OK, natif mort (ImageFormat.matches). Fix: le matérialiseur passe
+     l'adresse du STATIC payload (segment relogeable) (materializeDefaultConstantPayload).
+     Suite: native/functions/constant_receiver_address.swg.
+  7. APPEL QUALIFIÉ EXPLICITE: `Vec2.length(v)` ne liait pas me par adresse (les checks
+     exigeaient un ufcsArg) → bits bruts comme pointeur me. Fix: bindsExplicitMeAddress
+     (SÉPARÉ de allowsImplicitAddressBinding: le RANKING d'overloads ne doit PAS changer —
+     l'étendre à la volée a cassé 88 tests core par flips de sélection, leçon apprise).
+  8. `ptr == null` NE PEELE PLUS: le retry relationnel peelait le pointeur non-null vers
+     l'opEquals du pointé même face à null → 46 erreurs gui. Fix: null reste une question
+     d'identité (SemaSpecOp tryResolveRelational). Suite: native/types/pointer_null_compare.swg.
+  9. MUTATION D'ÉLÉMENT EN ITÉRATION: le checker flaggait `for &v in volumes do
+     v.removeBack()` (méthode String via le binding pointeur) comme mutation STRUCTURELLE
+     du conteneur. Fix: ne flagger que si l'owner-struct du callee EST le type de la
+     source itérée (checkIterationMutation). Master acceptait la même source.
+- MIGRATIONS bin/: truetype findTable (`return it`), pixel svgparse/rendercpu/layer
+  (dref sur bindings scalaires, bindings passés tels quels, assert null retiré),
+  gui localization/filebrowser/formlayout (idem + auto-scope explicité dans une closure).
+
+## BLOCAGE COURANT gui (reprendre ICI)
+- `tools\std.swgs dm test gui` compile TOUT (sema OK) mais crashe en CODEGEN:
+  assert CodeGen.Index.cpp:321 (fallback raw-index) sur richeditview.swg:217
+  `edn.lines[i]!.isVisible()` — l'IndexExpr atteint codegen SANS payload spec-op ni
+  substitut, type indexé = ArrayPtr'(RichEditLine) brut. DÉTERMINISTE (même à
+  --num-cores 1). L'assert est maintenant enrichi (dump du type, DEV_MODE).
+- Sonde p26 scratchpad (réplique fidèle: mtd, `.ed!`, ArrayPtr, même condition
+  logique) PASSE → l'ingrédient manquant est ailleurs (soupçons: mtd IMPL d'interface
+  (IWnd.onPaint), taille/ordre du module gui, RichEditLine défini APRÈS usage,
+  re-sema après pause dans tryResolveIndexWithArgs, chemin DeferredIndexAssign).
+- PISTE: instrumenter tryResolveIndexWithArgs/applyIndexReadSpecOpResult pour tracer
+  ce que sema pose sur CE nœud (le node ref du crash est stable), ou faire cracher
+  sema quand outHandled=false et le type indexé est un struct à opIndex.
+- Après gui: `tools\tests.swgs dm` (suites complètes), puis D (suppression du kind
+  Reference), E (unittests refs), F (doc).
+- BUILD NUM: 52 = binaire courant. RE-BUMPER à 53 au prochain rebuild.
 - ÉTAT: core COMPILE et FORGE (320 fichiers, core.test.exe) ✓. Les tools TOURNENT
   (std.swgs parse ses args, compile le workspace, lance le test) ✓. Le crash
   restant est au RUNTIME NATIF de core.test.exe, dans __init_8 (sandbox):

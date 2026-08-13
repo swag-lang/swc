@@ -64,7 +64,16 @@ public impl Context
     // the tool and nothing reformats what it says.
     mtd runCompiler(arguments: Arguments)->s32 fail
     {
-        return try .runProgram(.compiler.toString(), arguments)
+        return try .runProgram(.compiler.toString(), withCoreBound(arguments))
+    }
+
+    // Runs the compiler under test with `arguments` and returns what it wrote to standard output.
+    //
+    // The core bound of [[Tool.Context.runCompiler]] applies here too, so a captured compiler
+    // run costs the machine no more than an open one.
+    mtd captureCompiler(arguments: Arguments)->String fail
+    {
+        return try .captureProgram(.compiler.toString(), withCoreBound(arguments))
     }
 
     // Runs `program` with a command line written out in place.
@@ -152,6 +161,62 @@ public struct ArtifactPaths
 {
     outDir:  String     // Where the artifact is written.
     workDir: String     // Where its intermediate state is kept.
+}
+
+// Returns `arguments` with a default '--num-cores' bound added, unless the caller chose one.
+//
+// A compiler left to detect its core count takes the whole machine, and a campaign that starts
+// one compiler after another starves everything else running on it. A few cores are therefore
+// kept free by default, while an explicit '--num-cores' or '-j' anywhere in the arguments
+// still wins.
+private func withCoreBound(arguments: Arguments)->Arguments
+{
+    for value in arguments.values
+    {
+        let text = value.toString()
+        if text == "--num-cores" or text == "-j" or value.startsWith("--num-cores=") or value.startsWith("-j=") do
+            return arguments
+    }
+
+    var result: retval
+    let bound = Format.toString("%", defaultCoreCount())
+
+    // A script names itself on the command line, and everything after the script path is the
+    // script's own command line, so the bound goes in front there. After a command, every token
+    // is an option, so the end is always safe.
+    if isScriptInvocation(arguments)
+    {
+        result.add(["--num-cores", bound.toString()])
+        result.addAll(arguments)
+        return result
+    }
+
+    result.addAll(arguments)
+    result.add(["--num-cores", bound.toString()])
+    return result
+}
+
+// Returns how many cores a started compiler uses when nothing was asked: all of them minus a
+// few, so the machine stays responsive for whoever and whatever else is working on it.
+private func defaultCoreCount()->u32
+{
+    let cores = Hardware.processorCount()
+    return cores > 4 ? cores - 4 : 1
+}
+
+// Reports whether `arguments` starts the compiler in script mode rather than with a command.
+//
+// A script invocation opens with an option or with the script path itself; a command invocation
+// opens with the command word.
+private func isScriptInvocation(arguments: Arguments)->bool
+{
+    if arguments.count() == 0 do
+        return false
+
+    let first = arguments.values[0]
+    if first.startsWith("-") do
+        return true
+    return first.endsWith(".swgs", .Latin1NoCase)
 }
 
 // Returns `arguments` joined into the one command line the system parses back into them.

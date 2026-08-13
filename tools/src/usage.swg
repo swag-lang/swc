@@ -45,6 +45,8 @@ Runs the compiler test suites.
 
 Without a suite every suite runs, in the order above. Any other option is
 forwarded to the compiler, for instance --seed, --num-cores, or --randomize.
+Every tool keeps a few cores free for the rest of the machine unless the
+caller passes its own --num-cores.
 """)
 
     case "portability":

@@ -7,8 +7,8 @@ diagnostics, input, and access to the host environment.
 The APIs are grouped into focused namespaces such as [[Core.Math]], [[Core.File]],
 [[Core.Path]], [[Core.Time]], [[Core.Threading]], [[Core.Sync]],
 [[Core.Serialization]], [[Core.Globalization]], [[Core.Scc]], [[Core.Crypto]], and [[Core.Reflection]]. Frequently used value types,
-including [[Core.Array]], [[Core.HashTable]], and [[Core.String]], live directly
-in `Core`.
+including [[Core.Array]], [[Core.HashTable]], [[Core.OrderedMap]], [[Core.OrderedSet]],
+[[Core.Deque]], [[Core.PriorityQueue]], and [[Core.String]], live directly in `Core`.
 
 ## Read and process a file
 

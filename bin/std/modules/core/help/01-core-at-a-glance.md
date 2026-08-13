@@ -6,7 +6,9 @@ an area by the problem you need to solve:
 | Goal | Start with |
 |---|---|
 | Store an ordered sequence | [[Core.Array]] or [[Core.StaticArray]] |
-| Associate keys with values | [[Core.HashTable]] or [[Core.HashSet]] |
+| Associate keys with values | [[Core.HashTable]], [[Core.HashSet]], [[Core.OrderedMap]], or [[Core.OrderedSet]] |
+| Work at both sequence ends | [[Core.Deque]] |
+| Consume work by priority | [[Core.PriorityQueue]] |
 | Own and edit UTF-8 text | [[Core.String]] |
 | Inspect borrowed UTF-8 data | [[Core.Utf8]] and slices |
 | Work with files and paths | [[Core.File]], [[Core.Directory]], and [[Core.Path]] |

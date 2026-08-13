@@ -296,35 +296,6 @@ Add streaming TAR reading and writing, with the supported metadata and extension
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
 stuck at the boundary.
 
-## Tier C — Collections
-
-### T-034 — No ordered map
-
-Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`, `List`,
-`StaticArray`. Add an ordered map so iteration is sorted and range queries are possible; a hash
-table cannot substitute.
-
-- Related: T-156, T-157, T-158
-
-### T-156 — No ordered set
-
-Add an ordered set with the same ordering, lookup, range, ownership, and iterator conventions as
-T-034's ordered map.
-
-- Related: T-034
-
-### T-157 — No deque
-
-Add a double-ended queue or ring-buffer collection with bounded amortized operations at both ends.
-
-- Related: T-158
-
-### T-158 — No priority queue
-
-Add a heap-backed priority queue with explicit comparator and ownership behavior.
-
-- Related: T-157
-
 ## Tier C — Concurrency and asynchronous I/O
 
 ### T-036 — No future or task abstraction

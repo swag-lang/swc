@@ -1,7 +1,7 @@
 #global private
 
 // Struct elements never bind by copy: 'for v in collection' aliases each element
-// through a const reference, and 'for &v in collection' through a mutable one.
+// through a const pointer, and 'for &v in collection' through a mutable one.
 
 var g_PostCopy = 0
 var g_Drop     = 0
@@ -63,7 +63,7 @@ struct Pair
     @assert(g_Drop == 0)
 }
 
-// The binding is typed as a const reference.
+// The binding is typed as a const pointer.
 #test
 {
     var arr: [2] Pair
@@ -97,7 +97,7 @@ struct Pair
     @assert(sum == 15)
 }
 
-// '&' binds a mutable reference; whole-element assignment writes through.
+// '&' binds a mutable pointer; whole-element assignment writes through.
 #test
 {
     var arr: [2] Pair = [{1, 2}, {3, 4}]
@@ -107,7 +107,7 @@ struct Pair
     @assert(arr[1].a == 11 and arr[1].b == 21)
 }
 
-// References are transparent in equality: binding == literal / binding == value.
+// Explicit dereference enables equality with a literal or value.
 #test
 {
     var arr: [3] Pair = [{1, 1}, {2, 2}, {3, 3}]
@@ -123,7 +123,7 @@ struct Pair
     @assert(hits == 2)
 }
 
-// References are transparent in scalar casts through the '&' byte form.
+// Explicit dereference enables scalar casts through the '&' byte form.
 #test
 {
     var text: string = "AB"

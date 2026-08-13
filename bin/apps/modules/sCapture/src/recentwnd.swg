@@ -325,6 +325,13 @@ impl IWnd for RecentWnd
             if !capture.changed do
                 return
 
+            // Rebuilding the preview and saving the capture deflates the whole
+            // background image on the interface thread. The one-second arm can predate
+            // a drag, so fired now it would freeze the gesture mid-move; the timer
+            // repeats, so just try again on the next tick.
+            if capture.interactiveMove or capture.mouseMode != .None do
+                return
+
             // The 1s save timer isn't cancelled when the selection is cleared
             // (e.g. onDeleteFile sets .selected to the Max sentinel), so only save
             // into a valid recent item to avoid indexing out of range.

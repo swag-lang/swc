@@ -472,9 +472,10 @@ impl Capture
 
         // During an interactive form drag this runs twice per mouse move (undo() +
         // pushUndo()). The full-view invalidate here would repaint every form and the
-        // recent-thumbnail strip each frame, defeating the per-form partial invalidate
-        // done by GizmoRect.apply. Skip the heavy refresh while dragging; it is done
-        // once when the drag ends (see Capture.mouse / endInteractiveMove).
+        // recent-thumbnail strip each frame, defeating the partial invalidate the
+        // interactive gestures do (GizmoRect.apply, the body drag and the create drag
+        // in Capture.mouse). Skip the heavy refresh while dragging; it is done once
+        // when the drag ends (see Capture.mouse / endInteractiveMove).
         if .interactiveMove do
             return
 
@@ -483,7 +484,6 @@ impl Capture
             return
         editView.invalidate()
         editView.main.captureHasChanged()
-        editView.main.updateRecent()
     }
 
     // Called once when an interactive form move/resize ends, to refresh the toolbar
@@ -1086,9 +1086,18 @@ impl Capture
 
     // Invalidate only the region a just-moved/resized form occupied before ('oldRect',
     // in capture coordinates) and now occupies, so a single-form drag re-renders just
-    // that form rather than every form. Falls back to a full repaint while snap guides
-    // are (or just were) visible, since those lines span the whole capture.
+    // that form rather than every form.
     mtd invalidateAfterMove(iform: IForm, oldRect: Math.Rectangle)
+    {
+        .invalidateMovedRegion(oldRect, iform.boundRect())
+    }
+
+    // Region form of the above, shared with the body drag and the create drag, which
+    // move a whole selection rather than one form: repaint the union of where the
+    // content stood ('oldRect') and where it stands now ('newRect'), both in capture
+    // coordinates. Falls back to a full repaint while snap guides are (or just were)
+    // visible, since those lines span the whole capture.
+    mtd invalidateMovedRegion(oldRect, newRect: Math.Rectangle)
     {
         let view = .editView
         if !view do
@@ -1102,11 +1111,10 @@ impl Capture
             return
         }
 
-        let nb   = iform.boundRect()
-        let minx = Math.min(oldRect.x, nb.x)
-        let miny = Math.min(oldRect.y, nb.y)
-        let maxx = Math.max(oldRect.right(), nb.right())
-        let maxy = Math.max(oldRect.bottom(), nb.bottom())
+        let minx = Math.min(oldRect.x, newRect.x)
+        let miny = Math.min(oldRect.y, newRect.y)
+        let maxx = Math.max(oldRect.right(), newRect.right())
+        let maxy = Math.max(oldRect.bottom(), newRect.bottom())
 
         // Union of old + new bound, padded for the drop shadow / stroke extent.
         var r = Math.Rectangle{minx, miny, maxx - minx, maxy - miny}
@@ -1766,13 +1774,21 @@ impl Capture
             let newPosX = cast(s32) ((localPos.x - .movingStart.x) / view.zoom)
             let newPosY = cast(s32) ((localPos.y - .movingStart.y) / view.zoom)
 
-            if .firstMouseMove
+            let firstDragMove = .firstMouseMove
+            if firstDragMove
             {
                 if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 do
                     return true
                 .firstMouseMove = false
             }
-            else do
+
+            // A body drag replays its offset from scratch on every move (undo + redo).
+            // Mark the move interactive so those replays skip the full-view repaint and
+            // the recent-strip refresh, exactly as GizmoRect.apply does for a resize;
+            // only the region the selection leaves and enters is repainted below.
+            let oldMovedBound = .getSelectionBoundRect()
+            .interactiveMove = true
+            if !firstDragMove do
                 .undo()
 
             let u = .newUndo(.OffsetSelection)
@@ -1805,19 +1821,21 @@ impl Capture
                 u.newPosY = ny1
 
             .pushUndo(u)
-            view.invalidate()
+            .invalidateMovedRegion(oldMovedBound, .getSelectionBoundRect())
             return true
 
         case .Creating:
             let newPosX = cast(s32) ((localPos.x - .movingStart.x) / view.zoom)
             let newPosY = cast(s32) ((localPos.y - .movingStart.y) / view.zoom)
 
+            var createdNow = false
             if .firstMouseMove
             {
                 let editView = .editView!
                 if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 and editView.main.editMode != .Step do
                     return true
                 .firstMouseMove = false
+                createdNow      = true
 
                 let mode = editView.main.getEditMode()
                 let itf  = editView.main.newFormFromModel(mode, clear: true)
@@ -1839,6 +1857,20 @@ impl Capture
             }
 
             let f = .forms.back()
+
+            // The pre-edit bound must not be read on the pass that just created the
+            // form: FormPolygon.boundRect() seeds a default shape while its point list
+            // is still empty, and the pushUndo above has already repainted the whole
+            // view anyway.
+            var oldCreateBound: Math.Rectangle
+            if !createdNow do
+                oldCreateBound = f.boundRect()
+
+            // Sizing the new form is as interactive as a body drag: skip the full
+            // refresh hasChanged() would run on every move and repaint just the region
+            // the form covered and covers. The release commits the full refresh
+            // through endInteractiveMove.
+            .interactiveMove = true
             if !f.edit(evt, .movingStart, localPos, view.zoom)
             {
                 view.releaseMouse()
@@ -1847,6 +1879,9 @@ impl Capture
             }
 
             .hasChanged()
+            if createdNow do
+                oldCreateBound = f.boundRect()
+            .invalidateMovedRegion(oldCreateBound, f.boundRect())
             return true
         }
 

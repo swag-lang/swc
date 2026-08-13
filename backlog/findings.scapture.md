@@ -68,3 +68,26 @@ Entries are sorted by identifier, ascending; position carries no priority.
      (`CaptureFileMagic`), so a preview offset (or a sidecar) would let the library read a few
      kilobytes per capture instead of megabytes. This is the move that makes the library scale
      regardless of what the pixels cost.
+
+## Editor interactivity
+
+### F-126 — The one-second auto-save freezes the interface for the duration of a full deflate
+
+- Area: apps/sCapture
+- Found while: making a form drag fluid. The per-move repaint and the mid-gesture save are fixed
+  (the save timer now waits for the gesture to end); this is the cost that remains.
+- Observation: one second after an edit burst, `RecentWnd.onTimerEvent` rebuilds the preview
+  (GPU render + read-back + PNG encode) and runs `Capture.save`, all on the interface thread.
+  The save TagBin-encodes and deflates `backImg` *and* `backImgOriginal` on every save, although
+  the original never changes after the capture is taken. On a large capture (a 4K grab is ~33 MB
+  of BGRA per image) the whole thing is a visible freeze, felt right after every adjustment.
+- Evidence: `Capture.save` in [capture.swg](../bin/apps/modules/sCapture/src/capture.swg)
+  re-encodes both image chunks unconditionally (`encodeValue(&.backImg)`,
+  `encodeValue(&.backImgOriginal)`, both under `codecDeflate`); the timer path is
+  `RecentWnd.onTimerEvent` in [recentwnd.swg](../bin/apps/modules/sCapture/src/recentwnd.swg).
+- Next step: cache the encoded+deflated `backImgOriginal` chunk on the `Capture` (invalidated the
+  rare times the original changes, e.g. RestoreOrg/Flatten) and hand the pre-compressed bytes to
+  `Scc.Writer`, which halves the save; then measure whether the remaining `backImg` deflate is
+  small enough, or whether the save must move off the interface thread (which needs a snapshot of
+  the form list to stay race-free).
+- Related: F-112 (storage compression and preview reads for the same files).

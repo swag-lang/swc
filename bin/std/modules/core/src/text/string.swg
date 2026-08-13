@@ -298,7 +298,7 @@ impl String
     {
         .length = 0
         if .buffer do
-            .buffer[0] = 0
+            .buffer![0] = 0
     }
 
     // Returns true if the String has zero length

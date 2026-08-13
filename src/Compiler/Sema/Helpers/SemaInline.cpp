@@ -1628,35 +1628,41 @@ namespace
             if (!param)
                 continue;
 
-            const bool      bindingIsCaptured                 = inlineBindingIsCaptured(binding.idRef, capturedIdentifierSet);
-            const bool      bindingNeedsMaterialization       = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
-            const TypeInfo& paramType                         = param->type(sema.ctx());
-            const bool      forceExplicitMaterialization      = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
-            const bool      forceRuntimeSafetyMaterialization = !bindingIsCaptured &&
+            const bool      bindingIsCaptured           = inlineBindingIsCaptured(binding.idRef, capturedIdentifierSet);
+            const bool      bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
+            const TypeInfo& paramType                   = param->type(sema.ctx());
+            // A non-null pointer parameter binds by address exactly like a reference did:
+            // its binding aliases the caller's storage and must not be re-homed.
+            const bool paramBindsByAddress               = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+            const bool forceExplicitMaterialization      = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
+            const bool forceRuntimeSafetyMaterialization = !bindingIsCaptured &&
                                                            !fn.attributes().runtimeSafetyOverrides.empty() &&
                                                            !paramType.isCodeBlock() &&
-                                                           !paramType.isReference() &&
+                                                           !paramBindsByAddress &&
                                                            !paramType.isAnyVariadic();
             const bool hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
-            const bool canInlineReferenceBindingDirectly  = paramType.isReference() && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
+            const bool canInlineReferenceBindingDirectly  = paramBindsByAddress && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
             const bool forceIndexOrForeachMaterialization = !bindingIsCaptured &&
                                                             !canInlineReferenceBindingDirectly &&
                                                             inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool bindingHasAddressUse        = inlineBindingNeedsAddressMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceAddressMaterialization = !bindingIsCaptured && bindingHasAddressUse &&
-                                                     (!paramType.isReference() || !sema.isLValue(binding.exprRef));
+                                                     (!paramBindsByAddress || !sema.isLValue(binding.exprRef));
             const bool forceRepeatedRValueMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool forceRepeatedLValueMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool bindingNeedsMutableMaterialization = inlineBindingNeedsMutableMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceNarrowFactMaterialization     = isOrdinaryInline &&
-                                                        !bindingIsCaptured &&
-                                                        !paramType.isCodeBlock() &&
-                                                        !paramType.isAnyVariadic() &&
-                                                        !paramType.isReference() &&
-                                                        inlineBindingDependsOnNarrowFact(sema, binding.exprRef);
+            // A non-null pointer parameter CAN bind a flow-narrowed nullable argument. A
+            // by-address binding is pinned in place with a typed cast below instead of
+            // being re-homed into a local.
+            const bool narrowDependent = isOrdinaryInline &&
+                                         !bindingIsCaptured &&
+                                         !paramType.isCodeBlock() &&
+                                         !paramType.isAnyVariadic() &&
+                                         inlineBindingDependsOnNarrowFact(sema, binding.exprRef);
+            const bool forceNarrowFactMaterialization = narrowDependent && !paramBindsByAddress;
             const bool forceBindingMaterialization = forceExplicitMaterialization ||
                                                      forceRuntimeSafetyMaterialization ||
                                                      forceVariadicMaterialization ||
@@ -1673,6 +1679,15 @@ namespace
 
             if (!forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization)
             {
+                // Pin the parameter's non-null pointer type onto a by-address binding whose
+                // argument was proven by flow narrowing: the clone must not re-type it
+                // '#null'. The cast wraps a detached clone, never the caller's expression.
+                if (narrowDependent && paramBindsByAddress && param->typeRef().isValid())
+                {
+                    const AstNodeRef detachedRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
+                    if (detachedRef.isValid())
+                        binding.exprRef = Cast::createCastNode(sema, param->typeRef(), detachedRef);
+                }
                 remainingBindings.push_back(binding);
                 continue;
             }

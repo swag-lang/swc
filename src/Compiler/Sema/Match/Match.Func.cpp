@@ -2452,15 +2452,18 @@ namespace
                 flags.add(CastFlagsE::UfcsArgument);
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
-            // A UFCS receiver binding an addressable value to a pointer parameter needs no
-            // cast node: the call passes the receiver's address (passUfcsAddressAsPointer),
-            // and a cast substitute would survive a pause and re-type the receiver.
+            // A UFCS receiver binding a value to a pointer parameter needs no cast node: the
+            // call passes the receiver's address (passUfcsAddressAsPointer), and a cast
+            // substitute would survive a pause and re-type the receiver expression. An
+            // rvalue receiver gets a call-site home the address can point into.
             const TypeRef preCastSrcTypeRef = argView.typeRef();
-            if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid() && sema.isLValue(argView.nodeRef()))
+            if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
             {
                 const TypeInfo& preCastSrcType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef));
                 if (!preCastSrcType.isPointerOrReference() && !preCastSrcType.isNull())
                 {
+                    if (!sema.isLValue(argView.nodeRef()) && !sema.isGlobalScope())
+                        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, argView.nodeRef(), sema.node(argView.nodeRef()), preCastSrcTypeRef, "__call_arg_ptr_storage"));
                     entry.valueRef = argView.nodeRef();
                     refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
                     continue;
@@ -2470,18 +2473,6 @@ namespace
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
                 SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
-
-            // An rvalue receiver still routes through the cast: mark it so codegen never
-            // lowers it as a numeric conversion, and give it a call-site home.
-            if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
-            {
-                const TypeInfo& preCastSrcType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef));
-                if (!preCastSrcType.isPointerOrReference() && !preCastSrcType.isNull())
-                {
-                    SemaHelpers::ensureCodeGenLoweringPayload(sema, argView.nodeRef()).ufcsReceiverAddress = true;
-                    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, argView.nodeRef(), sema.node(argView.nodeRef()), sema.typeMgr().get(castTypeRef).payloadTypeRef(), "__call_arg_ptr_storage"));
-                }
-            }
 
             entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());

@@ -1077,6 +1077,24 @@ namespace
         ABICall::PreparedArg preparedArg;
         if (normalizedTypeRef.isValid())
         {
+            // An rvalue receiver held in a register gets its call-site home first, so its
+            // address can travel into the pointer parameter like any other receiver.
+            if (arg.passUfcsAddressAsPointer && !argPayload.isAddress() && argPayload.reg.isValid())
+            {
+                const TypeRef pointeeTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
+                if (pointeeTypeRef.isValid())
+                {
+                    const MicroOpBits storeBits = CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(pointeeTypeRef), codeGen.ctx());
+                    if (storeBits != MicroOpBits::Zero)
+                    {
+                        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
+                        codeGen.builder().emitLoadMemReg(storageReg, 0, argPayload.reg, storeBits);
+                        argPayload.reg = storageReg;
+                        argPayload.setIsAddress();
+                    }
+                }
+            }
+
             if (arg.passUfcsAddressAsPointer && argPayload.isAddress())
             {
                 argPayload.typeRef = normalizedTypeRef;

@@ -1043,7 +1043,7 @@ namespace
                 argPayload = *payload;
 
                 bool requiresTypedConstMaterialization = constantTypeRef.isValid() && isNullConstantArg;
-                if (!requiresTypedConstMaterialization && constantTypeRef.isValid())
+                if (!arg.passUfcsAddressAsPointer && !requiresTypedConstMaterialization && constantTypeRef.isValid())
                 {
                     const TaskContext& ctx             = codeGen.ctx();
                     const TypeRef      expectedTypeRef = ctx.typeMgr().get(constantTypeRef).unwrap(ctx, constantTypeRef, TypeExpandE::Alias);
@@ -1081,10 +1081,11 @@ namespace
             // address can travel into the pointer parameter like any other receiver. A
             // value payload that is already pointer-typed (a materialized constant
             // receiver) holds the receiver's address itself and passes through as-is.
-            if (arg.passUfcsAddressAsPointer && !argPayload.isAddress() && argPayload.reg.isValid())
+            if (arg.passUfcsAddressAsPointer && !argPayload.isAddress() && !argPayload.hasMaterializedPointerLikeValue() && argPayload.reg.isValid())
             {
-                const TypeRef pointeeTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
-                if (pointeeTypeRef.isValid() && !codeGen.typeMgr().get(pointeeTypeRef).isAnyPointer())
+                const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+                const TypeRef   pointeeTypeRef  = normalizedType.isAnyPointer() ? normalizedType.payloadTypeRef() : TypeRef::invalid();
+                if (pointeeTypeRef.isValid())
                 {
                     const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);
                     MicroOpBits     storeBits   = CodeGenTypeHelpers::scalarStoreBits(pointeeType, codeGen.ctx());

@@ -2540,7 +2540,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Closure captures and non-addressable aggregate uses still need concrete locals before
     // cloning, while #code parameters are explicitly skipped inside materializeInlineBindings.
     SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings, isOrdinaryInline));
-    SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
+    SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst, false, true};
     // An auto-selected inline body resolves in the callee's context: pin its already-resolved
     // identifier symbols so a same-Ast inline does not re-resolve the callee's private
     // references by name in the caller. Marked / macro / mixin inlines keep their established

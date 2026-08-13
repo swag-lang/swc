@@ -576,6 +576,7 @@ Result AstCompilerMessageFunc::semaPostNode(Sema& sema) const
     if (!maskValue->isInt())
         return SemaError::raiseInvalidType(sema, nodeParamRef, finalMaskView.typeRef(), sema.typeMgr().typeU64());
 
+    sym.setTyped(sema.ctx());
     sym.setSemaCompleted(sema.ctx());
     sema.compiler().registerCompilerMessageFunction(&sym, sema.curNodeRef(), maskValue->getInt().as64());
     return Result::Continue;
@@ -701,6 +702,7 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
         return substituteCompilerAstString(sema, sema.curNodeRef(), resultView.cst()->getString());
     }
 
+    sym.setTyped(sema.ctx());
     sym.setSemaCompleted(sema.ctx());
     if (Token::isNativeArtifactCompilerFunc(tokenId))
         sema.compiler().registerNativeCompilerFunction(tokenId, &sym);

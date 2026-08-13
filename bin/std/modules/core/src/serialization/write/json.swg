@@ -14,7 +14,10 @@ struct JsonOptions
     }
 }
 
-// A JSON writer.
+// Writes declaration-driven JSON.
+//
+// Non-finite floating-point values have no JSON representation and are written as
+// `null`. Strings escape every JSON control character and preserve valid UTF-8.
 struct Json
 {
     public options: JsonOptions     // Formatting options.
@@ -230,7 +233,10 @@ impl Json
         }
         elif Reflection.isFloat(NT)
         {
-            StrConv.convertFloat(.output, value, .fmtFloat)
+            if Math.isFinite(value) do
+                StrConv.convertFloat(.output, value, .fmtFloat)
+            else do
+                .output.addBytes("null")
         }
         elif Reflection.isInteger(NT)
         {

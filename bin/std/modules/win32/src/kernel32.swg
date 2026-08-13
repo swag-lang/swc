@@ -102,6 +102,33 @@ const GENERIC_EXECUTE       = 0x20000000
 const GENERIC_ALL           = 0x10000000
 const FILE_READ_ATTRIBUTES  = 0x0080
 const FILE_WRITE_ATTRIBUTES = 0x0100
+const FILE_LIST_DIRECTORY   = 0x0001
+
+const FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
+const FILE_FLAG_OVERLAPPED       = 0x40000000
+
+const PAGE_READONLY  = 0x02
+const PAGE_READWRITE = 0x04
+const PAGE_WRITECOPY = 0x08
+
+const FILE_MAP_COPY  = 0x0001
+const FILE_MAP_WRITE = 0x0002
+const FILE_MAP_READ  = 0x0004
+
+const FILE_NOTIFY_CHANGE_FILE_NAME   = 0x00000001
+const FILE_NOTIFY_CHANGE_DIR_NAME    = 0x00000002
+const FILE_NOTIFY_CHANGE_ATTRIBUTES  = 0x00000004
+const FILE_NOTIFY_CHANGE_SIZE        = 0x00000008
+const FILE_NOTIFY_CHANGE_LAST_WRITE  = 0x00000010
+const FILE_NOTIFY_CHANGE_LAST_ACCESS = 0x00000020
+const FILE_NOTIFY_CHANGE_CREATION    = 0x00000040
+const FILE_NOTIFY_CHANGE_SECURITY    = 0x00000100
+
+const FILE_ACTION_ADDED            = 0x00000001
+const FILE_ACTION_REMOVED          = 0x00000002
+const FILE_ACTION_MODIFIED         = 0x00000003
+const FILE_ACTION_RENAMED_OLD_NAME = 0x00000004
+const FILE_ACTION_RENAMED_NEW_NAME = 0x00000005
 
 const FILE_BEGIN               = 0'u32
 const FILE_CURRENT             = 1'u32
@@ -134,6 +161,7 @@ const MOVEFILE_COPY_ALLOWED     = 0x00000002
 
 const HANDLE_FLAG_INHERIT            = 0x00000001
 const HANDLE_FLAG_PROTECT_FROM_CLOSE = 0x00000002
+const DUPLICATE_SAME_ACCESS           = 0x00000002
 
 const FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
 const FORMAT_MESSAGE_IGNORE_INSERTS  = 0x00000200
@@ -287,7 +315,19 @@ struct OVERLAPPED
     }
 }
 
+struct FILE_NOTIFY_INFORMATION
+{
+    public
+    {
+        NextEntryOffset: DWORD
+        Action:          DWORD
+        FileNameLength:  DWORD
+        FileName:        [1] WCHAR
+    }
+}
+
 alias LPOVERLAPPED = #null *OVERLAPPED
+alias LPOVERLAPPED_COMPLETION_ROUTINE = func(DWORD, DWORD, LPOVERLAPPED)
 
 #assert(#sizeof(ATOM) == 2)
 #assert(#sizeof(LONG_PTR) == 8)
@@ -630,6 +670,14 @@ internal namespace Win32Priv
         func GetFileSizeEx(hFile: HANDLE, lpFileSize: *LARGE_INTEGER)->BOOL
         func SetEndOfFile(hFile: HANDLE)->BOOL
         func FlushFileBuffers(hFile: HANDLE)->BOOL
+        func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: #null *SECURITY_ATTRIBUTES, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE
+        func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID
+        func UnmapViewOfFile(lpBaseAddress: LPCVOID)->BOOL
+        func FlushViewOfFile(lpBaseAddress: LPCVOID, dwNumberOfBytesToFlush: SIZE_T)->BOOL
+        func DuplicateHandle(hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE, hTargetProcessHandle: HANDLE, lpTargetHandle: *HANDLE, dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwOptions: DWORD)->BOOL
+        func ReadDirectoryChangesW(hDirectory: HANDLE, lpBuffer: LPVOID, nBufferLength: DWORD, bWatchSubtree: BOOL, dwNotifyFilter: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED, lpCompletionRoutine: #null LPOVERLAPPED_COMPLETION_ROUTINE)->BOOL
+        func GetOverlappedResult(hFile: HANDLE, lpOverlapped: *OVERLAPPED, lpNumberOfBytesTransferred: *DWORD, bWait: BOOL)->BOOL
+        func CancelIoEx(hFile: HANDLE, lpOverlapped: LPOVERLAPPED)->BOOL
 
         func FileTimeToSystemTime(lpFileTime: const *FILETIME, lpSystemTime: *SYSTEMTIME)->BOOL
         func SystemTimeToFileTime(lpSystemTime: const *SYSTEMTIME, lpFileTime: *FILETIME)->BOOL
@@ -885,6 +933,61 @@ internal namespace Win32Priv
         if !res and GetLastError() != ERROR_IO_PENDING do
             failWinError(GetLastError())
         return res
+    }
+
+    func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: #null *SECURITY_ATTRIBUTES, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE fail
+    {
+        let result = Win32Priv.CreateFileMappingW(hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
+        if !result do
+            failWinError(GetLastError())
+        return result
+    }
+
+    func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID fail
+    {
+        let result = Win32Priv.MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap)
+        if !result do
+            failWinError(GetLastError())
+        return result
+    }
+
+    func UnmapViewOfFile(lpBaseAddress: LPCVOID) fail
+    {
+        if !Win32Priv.UnmapViewOfFile(lpBaseAddress) do
+            failWinError(GetLastError())
+    }
+
+    func FlushViewOfFile(lpBaseAddress: LPCVOID, dwNumberOfBytesToFlush: SIZE_T) fail
+    {
+        if !Win32Priv.FlushViewOfFile(lpBaseAddress, dwNumberOfBytesToFlush) do
+            failWinError(GetLastError())
+    }
+
+    func DuplicateHandle(hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE, hTargetProcessHandle: HANDLE, lpTargetHandle: *HANDLE, dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwOptions: DWORD) fail
+    {
+        if !Win32Priv.DuplicateHandle(hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle, dwOptions) do
+            failWinError(GetLastError())
+    }
+
+    #[Discardable]
+    func ReadDirectoryChangesW(hDirectory: HANDLE, lpBuffer: LPVOID, nBufferLength: DWORD, bWatchSubtree: BOOL, dwNotifyFilter: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED, lpCompletionRoutine: #null LPOVERLAPPED_COMPLETION_ROUTINE)->BOOL fail
+    {
+        let result = Win32Priv.ReadDirectoryChangesW(hDirectory, lpBuffer, nBufferLength, bWatchSubtree, dwNotifyFilter, lpBytesReturned, lpOverlapped, lpCompletionRoutine)
+        if !result and GetLastError() != ERROR_IO_PENDING do
+            failWinError(GetLastError())
+        return result
+    }
+
+    func GetOverlappedResult(hFile: HANDLE, lpOverlapped: *OVERLAPPED, lpNumberOfBytesTransferred: *DWORD, bWait: BOOL) fail
+    {
+        if !Win32Priv.GetOverlappedResult(hFile, lpOverlapped, lpNumberOfBytesTransferred, bWait) do
+            failWinError(GetLastError())
+    }
+
+    func CancelIoEx(hFile: HANDLE, lpOverlapped: LPOVERLAPPED) fail
+    {
+        if !Win32Priv.CancelIoEx(hFile, lpOverlapped) do
+            failWinError(GetLastError())
     }
 
     func FileTimeToSystemTime(lpFileTime: const *FILETIME, lpSystemTime: *SYSTEMTIME) fail

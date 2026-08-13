@@ -209,72 +209,6 @@ state and policy in common code.
 
 ---
 
-## Tier B — Data interchange and internationalization
-
-### T-029 — No JSON
-
-- Problem: `serialization` provides `ByteStream` and the reflection-driven `TagBin` binary format.
-  There is no JSON, and no XML, TOML or YAML either.
-- Consequence: no configuration file another tool can read or write, no web API interoperability,
-  no exchange with anything outside Swag. `TagBin` is a good internal format and a useless
-  interchange one.
-- Fix: a JSON codec in `serialization`, declaration-driven the way `TagBin` already is. The
-  reflection layer means this can be *better* than most standard libraries here rather than merely
-  present — encoding a struct should need no schema and no annotations.
-- This is the highest value-to-effort entry in the module. Do it before anything in Tier C.
-
-### T-030 — Number formatting has no grouping rules
-
-- Problem: the whole area is twenty-nine lines. `CultureInfo` holds one `NumberFormatInfo`, which
-  holds a negative sign, a positive sign and a decimal separator.
-- Add per-culture group separators, group sizes, and grouped numeric formatting to the existing
-  sign and decimal-separator data.
-- Related: `bin/apps` and `std/gui` now have localization work in flight on the `gui-resources`
-  branch. Coordinate rather than building a second vocabulary. See T-142 through T-145 for the
-  other independent globalization capabilities.
-
-### T-146 — No per-culture currency formatting
-
-Add currency symbols, placement, grouping, decimal rules, and negative patterns independently of
-general number formatting.
-
-- Related: T-030
-
-### T-142 — No per-culture date patterns
-
-Add localized date patterns plus month and day names to `core` so applications and GUI resources
-do not maintain their own culture tables.
-
-- Related: T-030, T-218, T-315
-
-### T-315 — No per-culture time patterns
-
-Add localized clock patterns, separators, and 12/24-hour conventions independently of date
-formatting.
-
-- Related: T-030, T-142
-
-### T-143 — No locale-aware collation
-
-Provide locale-aware comparison and sort keys independently of Unicode normalization and ordinal
-string comparison.
-
-- Related: T-030
-
-### T-144 — No plural-rule evaluation
-
-Expose cardinal and ordinal plural categories for a locale so resource selection can represent
-more than singular versus plural.
-
-- Related: T-030, T-218
-
-### T-145 — No locale-aware case mapping
-
-Add culture-sensitive upper, lower, and case-fold operations without changing the existing ordinal
-and Unicode-default operations.
-
-- Related: T-030
-
 ## Tier B — Cryptography
 
 ### T-031 — No AES implementation
@@ -362,51 +296,6 @@ Add streaming TAR reading and writing, with the supported metadata and extension
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
 stuck at the boundary.
 
-## Tier C — Collections
-
-### T-034 — No ordered map
-
-Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`, `List`,
-`StaticArray`. Add an ordered map so iteration is sorted and range queries are possible; a hash
-table cannot substitute.
-
-- Related: T-156, T-157, T-158
-
-### T-156 — No ordered set
-
-Add an ordered set with the same ordering, lookup, range, ownership, and iterator conventions as
-T-034's ordered map.
-
-- Related: T-034
-
-### T-157 — No deque
-
-Add a double-ended queue or ring-buffer collection with bounded amortized operations at both ends.
-
-- Related: T-158
-
-### T-158 — No priority queue
-
-Add a heap-backed priority queue with explicit comparator and ownership behavior.
-
-- Related: T-157
-
-## Tier C — Filesystem integration
-
-### T-035 — No memory-mapped files
-
-Add portable mapped-file and mapped-region APIs with flush, resize interaction, lifetime, and
-failure contracts suitable for large files such as an sCrypt container.
-
-- Related: T-159
-
-### T-159 — No filesystem watching
-
-Add a filesystem change stream for tools that react to edits, with overflow, rename pairing,
-recursive scope, and cancellation behavior stated per platform.
-
-- Related: T-035, T-008
-
 ## Tier C — Concurrency and asynchronous I/O
 
 ### T-036 — No future or task abstraction
@@ -453,6 +342,6 @@ without coupling it to the first non-blocking socket backend.
 **A package registry client.** That belongs to the tooling around the compiler, not to the standard
 library, even after T-027 makes it possible.
 
-**Bundling ICU.** T-030 should grow toward what applications need from the platform's own locale
-data. Vendoring a multi-megabyte dependency into the module every program links is the wrong shape
-for that need.
+**Bundling ICU.** Globalization should grow toward what applications need from compact locale
+profiles or platform data. Vendoring a multi-megabyte dependency into the module every program
+links is the wrong shape for that need.

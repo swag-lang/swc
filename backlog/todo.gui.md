@@ -99,9 +99,10 @@ must not depend on each application remembering a manual handler.
 ### T-218 — French is the only shipped GUI translation
 
 Add each additional shipped language as an independently reviewable resource contribution, with
-coverage checks that prevent untranslated keys. Locale date/name data belongs to T-142.
+coverage checks that prevent untranslated keys. Use `Core.Globalization.CultureInfo` for locale
+date/name data and plural selection instead of maintaining GUI-local culture tables.
 
-- Related: T-040, T-142, T-144, T-217
+- Related: T-040, T-217
 
 ## Tier B — Live system changes
 

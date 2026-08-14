@@ -1209,13 +1209,16 @@ namespace
         return false;
     }
 
-    bool forceMaterializeInlineVariadicBinding(const SemaClone::ParamBinding& binding, const TypeInfo& paramType, const bool hasNonCountOfUse)
+    // A pack the body only measures with '#countof' answers from the binding's type and
+    // needs no home; any other use consumes the pack itself. The body scan is the costly
+    // part, so it runs after the cheap tests.
+    bool forceMaterializeInlineVariadicBinding(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, const SemaClone::ParamBinding& binding, const TypeInfo& paramType)
     {
         if (!binding.forceMaterialize || !binding.exprRef.isValid() || !binding.typeRef.isValid())
             return false;
         if (!paramType.isAnyVariadic())
             return false;
-        return hasNonCountOfUse;
+        return inlineBindingHasNonCountOfUse(sema, sourceAst, bodyRef, binding.idRef);
     }
 
     uint32_t inlineBindingUseCount(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
@@ -1620,6 +1623,23 @@ namespace
         return bodyRootRef;
     }
 
+    // Home an argument's ADDRESS rather than its value. Homing the value would move the
+    // temporary into the inline scope, whose exit drops it while the enclosing statement
+    // may still consume storage borrowed from it, and a mutation through the binding would
+    // write the copy. With the address home, the temporary keeps its call-site registration
+    // and drops at the caller's statement boundary, exactly as the reference world's
+    // cast-to-reference home behaved. The cast carries the receiver-address lowering so
+    // codegen never treats it as a value cast; an rvalue payload that lives in a register
+    // gets a call-site home for the address to point into.
+    Result makeInlineAddressHome(Sema& sema, AstNodeRef& ioInitRef, TypeRef paramTypeRef, TypeRef sourceTypeRef, bool attachStorage)
+    {
+        ioInitRef = Cast::createCastNode(sema, paramTypeRef, ioInitRef);
+        SemaHelpers::ensureCodeGenLoweringPayload(sema, ioInitRef).ufcsReceiverAddress = true;
+        if (attachStorage && !sema.isGlobalScope())
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, ioInitRef, sema.node(ioInitRef), sourceTypeRef, "__call_arg_ptr_storage"));
+        return Result::Continue;
+    }
+
     Result materializeInlineReceiverBinding(Sema& sema, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
     {
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
@@ -1645,30 +1665,13 @@ namespace
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
-            // A castless by-address receiver types as its pointee; its home must hold the
-            // receiver's ADDRESS. Homing the value would move the temporary into the inline
-            // scope, whose exit drops it while the enclosing statement may still consume
-            // storage borrowed from it. With the address home, the temporary keeps its
-            // call-site registration and drops at the caller's statement boundary, exactly
-            // as the reference world's cast-to-reference home behaved. A register-held
-            // receiver value gets a call-site home the address can point into.
+            // A castless by-address receiver types as its pointee, so its home holds the
+            // receiver's ADDRESS.
             const bool paramBindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
-            if (paramBindsByAddress && binding.sourceParam->typeRef().isValid())
+            if (paramBindsByAddress && binding.sourceParam->typeRef().isValid() && inlineBindingSourceTypesAsPointee(sema, binding.exprRef))
             {
                 const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
-                if (sourceTypeRef.isValid())
-                {
-                    const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-                    const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-                    const TypeInfo& resolvedSourceType     = sema.typeMgr().get(resolvedSourceTypeRef);
-                    if (!resolvedSourceType.isPointerOrReference() && !resolvedSourceType.isNull())
-                    {
-                        clonedInitRef = Cast::createCastNode(sema, binding.sourceParam->typeRef(), clonedInitRef);
-                        SemaHelpers::ensureCodeGenLoweringPayload(sema, clonedInitRef).ufcsReceiverAddress = true;
-                        if (!sema.isGlobalScope())
-                            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, clonedInitRef, sema.node(clonedInitRef), sourceTypeRef, "__call_arg_ptr_storage"));
-                    }
-                }
+                SWC_RESULT(makeInlineAddressHome(sema, clonedInitRef, binding.sourceParam->typeRef(), sourceTypeRef, true));
             }
 
             auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(tokRef);
@@ -1713,20 +1716,229 @@ namespace
         return false;
     }
 
+    // The identifiers an inline body declares or captures. Collected once per expansion,
+    // then queried for every binding.
+    struct InlineBodyIdentifiers
+    {
+        std::unordered_set<IdentifierRef> locals;
+        std::unordered_set<IdentifierRef> captured;
+        std::unordered_set<IdentifierRef> capturedByRef;
+    };
+
+    // The callee side of an expansion: what every binding is classified against.
+    struct InlineBindingContext
+    {
+        const SymbolFunction*  fn               = nullptr;
+        const Ast*             sourceAst        = nullptr;
+        const AstFunctionDecl* decl             = nullptr;
+        InlineBodyIdentifiers  identifiers;
+        bool                   isOrdinaryInline = false;
+    };
+
+    void collectInlineBodyIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, InlineBodyIdentifiers& outIdentifiers)
+    {
+        SmallVector<IdentifierRef> identifiers;
+        collectInlineLocalIdentifiers(sema, sourceAst, bodyRef, identifiers);
+        outIdentifiers.locals.insert(identifiers.begin(), identifiers.end());
+
+        identifiers.clear();
+        collectInlineClosureCaptureIdentifiers(sema, sourceAst, bodyRef, identifiers, false);
+        outIdentifiers.captured.insert(identifiers.begin(), identifiers.end());
+
+        identifiers.clear();
+        collectInlineClosureCaptureIdentifiers(sema, sourceAst, bodyRef, identifiers, true);
+        outIdentifiers.capturedByRef.insert(identifiers.begin(), identifiers.end());
+    }
+
+    const SymbolVariable* inlineBindingParameter(const SymbolFunction& fn, IdentifierRef idRef)
+    {
+        for (const SymbolVariable* param : fn.parameters())
+        {
+            if (param && param->idRef() == idRef)
+                return param;
+        }
+
+        return nullptr;
+    }
+
+    // Why a binding cannot be substituted into the cloned body as it stands, and what
+    // shape the prefix `let` that replaces it must take.
+    struct InlineBindingMaterialization
+    {
+        bool required         = false; // a prefix `let` has to be emitted at all
+        bool bindsByAddress   = false; // the parameter aliases the caller's storage
+        bool homesAddress     = false; // the home holds the argument's ADDRESS, not its value
+        bool hasAddressUse    = false; // the body takes the binding's address
+        bool needsMutableHome = false; // the body assigns through the binding
+        bool capturedByRef    = false; // a closure in the body captures the binding by reference
+        bool narrowDependent  = false; // the argument's typing rests on a caller flow proof
+        bool forRuntimeSafety = false;
+        bool forVariadic      = false;
+        bool forAddress       = false;
+        bool forNarrowFact    = false;
+    };
+
+    InlineBindingMaterialization classifyInlineBinding(Sema& sema, const InlineBindingContext& context, const SemaClone::ParamBinding& binding, const SymbolVariable& param)
+    {
+        const Ast&       sourceAst  = *context.sourceAst;
+        const AstNodeRef bodyRef    = context.decl->nodeBodyRef;
+        const TypeInfo&  paramType  = param.type(sema.ctx());
+        const bool       isCaptured = inlineBindingIsCaptured(binding.idRef, context.identifiers.captured);
+        SWC_ASSERT(!paramType.isCodeBlock());
+
+        InlineBindingMaterialization mat;
+        mat.capturedByRef = inlineBindingIsCaptured(binding.idRef, context.identifiers.capturedByRef);
+        // A non-null pointer parameter binds by address exactly like a reference did:
+        // its binding aliases the caller's storage and must not be re-homed.
+        mat.bindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+        mat.hasAddressUse  = inlineBindingNeedsAddressMaterialization(sema, sourceAst, bodyRef, binding.idRef);
+        // A non-null pointer parameter CAN bind a flow-narrowed nullable argument. A
+        // by-address binding is pinned in place with a typed cast instead of being
+        // re-homed into a local.
+        mat.narrowDependent = context.isOrdinaryInline && !isCaptured && !paramType.isAnyVariadic() &&
+                              inlineBindingDependsOnNarrowFact(sema, binding.exprRef);
+
+        // The call passed the argument's ADDRESS implicitly (a UFCS receiver, a castless
+        // 'me'): the bound expression types as the pointee, and any use that consumes the
+        // pointer level itself needs that address restored.
+        const bool bindsPointeeByAddress = mat.bindsByAddress && param.typeRef().isValid() && inlineBindingSourceTypesAsPointee(sema, binding.exprRef);
+
+        // A macro or mixin receiver becomes a frame binding var that later names the
+        // receiver standalone (auto-member elision, `with` ranking). Only a variable that
+        // resolves standalone at codegen can play that role; any other receiver expression
+        // - a member chain, an indexed element - is homed into a prefix `let` holding the
+        // receiver's address, exactly as the reference world homed its cast-wrapped
+        // receivers.
+        bool needsStandaloneHome = false;
+        if (!context.isOrdinaryInline && !isCaptured && mat.bindsByAddress && param.typeRef().isValid() &&
+            param.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+        {
+            const Symbol* boundSym = sema.viewSymbol(binding.exprRef).sym();
+            needsStandaloneHome    = !(boundSym && boundSym->isVariable() && SemaHelpers::bindingSymbolResolvesStandalone(sema, boundSym->cast<SymbolVariable>()));
+        }
+
+        // A castless by-address binding types as its pointee, so its home holds the
+        // argument's ADDRESS (see makeInlineAddressHome). This holds for 'me' and for any
+        // pointer parameter fed by an implicit UFCS address alike.
+        mat.homesAddress = needsStandaloneHome || (!isCaptured && bindsPointeeByAddress);
+
+        // An RVALUE receiver must be homed as a materialized binding: bound in place, its
+        // temporary registers its drop inside the callee's cloned body, where the statement
+        // boundary sits before the enclosing expression has consumed the receiver (its
+        // elided uses do not count as 'me' identifier uses, so the repeated-rvalue rule
+        // does not see it). The reference world's cast-wrapped receiver always went through
+        // materialization; this restores that route.
+        const bool forReceiverHome = mat.homesAddress && !isCaptured && !sema.isLValue(binding.exprRef) && !sema.viewConstant(binding.exprRef).hasConstant();
+
+        mat.forRuntimeSafety = !isCaptured && !context.fn->attributes().runtimeSafetyOverrides.empty() && !mat.bindsByAddress && !paramType.isAnyVariadic();
+        mat.forVariadic      = !isCaptured && forceMaterializeInlineVariadicBinding(sema, sourceAst, bodyRef, binding, paramType);
+        mat.forAddress       = !isCaptured && mat.hasAddressUse && (!mat.bindsByAddress || !sema.isLValue(binding.exprRef));
+        mat.forNarrowFact    = mat.narrowDependent && !mat.bindsByAddress;
+
+        // A reference bound to a stable lvalue survives an index or foreach use as it
+        // stands; every other such use needs a home.
+        const bool canBindReferenceDirectly = mat.bindsByAddress && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
+
+        // The reasons below feed nothing but this disjunction, so they scan the body only
+        // until one of them answers.
+        const bool forced = needsStandaloneHome ||
+                            forReceiverHome ||
+                            mat.forRuntimeSafety ||
+                            mat.forVariadic ||
+                            mat.forAddress ||
+                            mat.forNarrowFact ||
+                            (!isCaptured && binding.forceMaterialize && !paramType.isAnyVariadic()) ||
+                            (!isCaptured && !canBindReferenceDirectly && inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, bodyRef, binding.idRef)) ||
+                            (!isCaptured && inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, bodyRef, binding)) ||
+                            (!isCaptured && inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, bodyRef, binding)) ||
+                            (!isCaptured && bindsPointeeByAddress && inlineBindingNeedsPointerLevelMaterialization(sema, sourceAst, bodyRef, binding.idRef));
+
+        mat.required = forced || isCaptured || inlineBindingNeedsMaterialization(sema, binding.exprRef, context.identifiers.locals);
+        if (mat.required)
+            mat.needsMutableHome = inlineBindingNeedsMutableMaterialization(sema, sourceAst, bodyRef, binding.idRef);
+        return mat;
+    }
+
+    // Emit the prefix `let` that homes the argument, and rebind the binding to it.
+    Result emitInlineBindingHome(Sema& sema, const InlineBindingContext& context, SmallVector<AstNodeRef>& outStatements, SemaClone::ParamBinding& ioBinding, const SymbolVariable& param, const InlineBindingMaterialization& mat)
+    {
+        const TypeInfo& paramType    = param.type(sema.ctx());
+        const TokenRef  paramNameRef = materializedInlineBindingTokRef(sema, param, ioBinding.exprRef);
+
+        AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, ioBinding.exprRef);
+        if (clonedInitRef.isInvalid())
+            return Result::Error;
+
+        // Every cast below wraps the detached clone, never the caller's expression.
+        if (mat.homesAddress)
+        {
+            const TypeRef homeSourceTypeRef = sema.viewType(ioBinding.exprRef).typeRef();
+            const bool    attachStorage     = !sema.isLValue(ioBinding.exprRef) && homeSourceTypeRef.isValid();
+            SWC_RESULT(makeInlineAddressHome(sema, clonedInitRef, param.typeRef(), homeSourceTypeRef, attachStorage));
+        }
+        // The home initializer re-runs sema inside the inline frame, where the caller's
+        // flow proofs are gone. The call site already validated the argument against the
+        // parameter, so pin the parameter's declared non-null pointer type onto the clone:
+        // a proof carried by a narrowing fact or by a `with` binding's narrowed base cannot
+        // be re-derived from bare syntax.
+        else if (paramType.isValuePointer() && !paramType.isNullable() && param.typeRef().isValid())
+        {
+            clonedInitRef = Cast::createCastNode(sema, param.typeRef(), clonedInitRef);
+        }
+
+        auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
+        // A by-value parameter is a mutable local of the callee, so a home whose address
+        // the body takes must be a 'var': a 'let' home would answer 'const *T' where the
+        // parameter answered '*T'.
+        const bool materializedAsLet = !mat.forRuntimeSafety && !mat.needsMutableHome && !(mat.hasAddressUse && !mat.bindsByAddress) && !mat.capturedByRef;
+        declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
+        declPtr->tokNameRef          = paramNameRef;
+        if (mat.forAddress && paramType.isReference())
+        {
+            declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
+        }
+        // A narrow-fact materialization is pinned to the PARAMETER type: the binding exists
+        // precisely because its value was proven non-null by flow narrowing at the call site
+        // (inlineBindingDependsOnNarrowFact). Inferring the `let` type from the un-narrowed
+        // argument would relabel it '#null' inside the callee body, where the parameter is
+        // non-null - a false use-site nullability error. Pinning to the parameter type
+        // restores the non-null contract the argument was validated against, reusing the
+        // same proven type-clone/cast mechanism as the cases below.
+        else if (!mat.homesAddress && !paramType.isAnyVariadic() && (mat.forRuntimeSafety || mat.forNarrowFact || isInlineCoercibleLiteralArg(sema.node(ioBinding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, ioBinding.exprRef)))
+        {
+            AstNodeRef materializedTypeRef = AstNodeRef::invalid();
+            // A synthesized receiver has no declaration to clone a type node from.
+            if (const auto* paramDecl = param.decl() ? param.decl()->safeCast<AstSingleVarDecl>() : nullptr)
+            {
+                const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, context.sourceAst};
+                materializedTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);
+            }
+            if (materializedTypeRef.isInvalid())
+                clonedInitRef = Cast::createCastNode(sema, param.typeRef(), clonedInitRef);
+            else
+                declPtr->nodeTypeRef = materializedTypeRef;
+        }
+
+        declPtr->nodeInitRef            = clonedInitRef;
+        SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, param, paramNameRef, *declPtr, materializedAsLet);
+        sema.setSymbol(declRef, materializedSym);
+        outStatements.push_back(declRef);
+
+        ioBinding.exprRef            = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
+        ioBinding.preserveUseCodeRef = mat.forRuntimeSafety;
+        ioBinding.mutableHomeUse     = context.isOrdinaryInline && !materializedAsLet && !mat.homesAddress;
+        if (!mat.forVariadic)
+            ioBinding.typeRef = TypeRef::invalid();
+        return Result::Continue;
+    }
+
     Result materializeInlineBindings(Sema& sema, const SymbolFunction& fn, const Ast& sourceAst, const AstFunctionDecl& decl, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements, bool isOrdinaryInline)
     {
         if (ioBindings.empty())
             return Result::Continue;
 
-        SmallVector<IdentifierRef> localIdentifiers;
-        collectInlineLocalIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
-        SmallVector<IdentifierRef> capturedIdentifiers;
-        collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedIdentifiers, false);
-        SmallVector<IdentifierRef> capturedByRefIdentifiers;
-        collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedByRefIdentifiers, true);
-        const std::unordered_set<IdentifierRef> localIdentifierSet{localIdentifiers.begin(), localIdentifiers.end()};
-        const std::unordered_set<IdentifierRef> capturedIdentifierSet{capturedIdentifiers.begin(), capturedIdentifiers.end()};
-        const std::unordered_set<IdentifierRef> capturedByRefIdentifierSet{capturedByRefIdentifiers.begin(), capturedByRefIdentifiers.end()};
+        InlineBindingContext context{&fn, &sourceAst, &decl, {}, isOrdinaryInline};
+        collectInlineBodyIdentifiers(sema, sourceAst, decl.nodeBodyRef, context.identifiers);
 
         SmallVector<SemaClone::ParamBinding> remainingBindings;
         remainingBindings.reserve(ioBindings.size());
@@ -1738,138 +1950,27 @@ namespace
                 continue;
             }
 
-            const SymbolVariable* param = nullptr;
-            for (const SymbolVariable* candidate : fn.parameters())
-            {
-                if (candidate && candidate->idRef() == binding.idRef)
-                {
-                    param = candidate;
-                    break;
-                }
-            }
-
+            // A binding naming no parameter of this function is dropped: nothing in the
+            // cloned body can refer to it.
+            const SymbolVariable* param = inlineBindingParameter(fn, binding.idRef);
             if (!param)
                 continue;
 
-            const bool      bindingIsCaptured           = inlineBindingIsCaptured(binding.idRef, capturedIdentifierSet);
-            const bool      bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
-            const TypeInfo& paramType                   = param->type(sema.ctx());
-            // A non-null pointer parameter binds by address exactly like a reference did:
-            // its binding aliases the caller's storage and must not be re-homed.
-            const bool paramBindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
-            // The call passed the argument's ADDRESS implicitly (a UFCS receiver, a
-            // castless 'me'): the bound expression types as the pointee, and any use that
-            // consumes the pointer level itself needs that address restored.
-            const bool bindsPointeeByAddress = paramBindsByAddress && param->typeRef().isValid() &&
-                                               inlineBindingSourceTypesAsPointee(sema, binding.exprRef);
-            // A macro or mixin receiver becomes a frame binding var that later names the
-            // receiver standalone (auto-member elision, `with` ranking). Only a variable
-            // that resolves standalone at codegen can play that role; any other receiver
-            // expression - a member chain, an indexed element - is homed into a prefix
-            // `let` holding the receiver's address, exactly as the reference world homed
-            // its cast-wrapped receivers.
-            bool receiverNeedsStandaloneHome = false;
-            if (!isOrdinaryInline && !bindingIsCaptured && paramBindsByAddress && param->typeRef().isValid() &&
-                param->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
-            {
-                const Symbol* boundSym      = sema.viewSymbol(binding.exprRef).sym();
-                receiverNeedsStandaloneHome = !(boundSym && boundSym->isVariable() &&
-                                                SemaHelpers::bindingSymbolResolvesStandalone(sema, boundSym->cast<SymbolVariable>()));
-            }
-            // A castless by-address binding types as its pointee. When such a binding has
-            // to be materialized, the home must hold the argument's ADDRESS: homing the
-            // value would move it into the inline scope, whose exit drops it while the
-            // enclosing statement may still consume storage borrowed from it, and a
-            // mutation through the binding would write the copy. The reference world
-            // homed the cast-to-reference receiver node; the pointer cast carrying the
-            // receiver-address lowering is the same mechanism. This holds for 'me' and
-            // for any pointer parameter fed by an implicit UFCS address alike.
-            const bool receiverHomesAddress = receiverNeedsStandaloneHome || (!bindingIsCaptured && bindsPointeeByAddress);
-            // An RVALUE receiver must be homed as a materialized binding: bound in place,
-            // its temporary registers its drop inside the callee's cloned body, where the
-            // statement boundary sits before the enclosing expression has consumed the
-            // receiver (its elided uses do not count as 'me' identifier uses, so the
-            // repeated-rvalue rule does not see it). The reference world's cast-wrapped
-            // receiver always went through materialization; this restores that route.
-            const bool forceReceiverHomeMaterialization = receiverHomesAddress && !bindingIsCaptured &&
-                                                          !sema.isLValue(binding.exprRef) &&
-                                                          !sema.viewConstant(binding.exprRef).hasConstant();
-            const bool forceExplicitMaterialization      = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
-            const bool forceRuntimeSafetyMaterialization = !bindingIsCaptured &&
-                                                           !fn.attributes().runtimeSafetyOverrides.empty() &&
-                                                           !paramType.isCodeBlock() &&
-                                                           !paramBindsByAddress &&
-                                                           !paramType.isAnyVariadic();
-            const bool hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
-            const bool canInlineReferenceBindingDirectly  = paramBindsByAddress && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
-            const bool forceIndexOrForeachMaterialization = !bindingIsCaptured &&
-                                                            !canInlineReferenceBindingDirectly &&
-                                                            inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool bindingHasAddressUse        = inlineBindingNeedsAddressMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceAddressMaterialization = !bindingIsCaptured && bindingHasAddressUse &&
-                                                     (!paramBindsByAddress || !sema.isLValue(binding.exprRef));
-            const bool forceRepeatedRValueMaterialization = !bindingIsCaptured &&
-                                                            inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
-            const bool forceRepeatedLValueMaterialization = !bindingIsCaptured &&
-                                                            inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
-            const bool forcePointerLevelMaterialization = !bindingIsCaptured && bindsPointeeByAddress &&
-                                                          inlineBindingNeedsPointerLevelMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool bindingNeedsMutableMaterialization = inlineBindingNeedsMutableMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            // A non-null pointer parameter CAN bind a flow-narrowed nullable argument. A
-            // by-address binding is pinned in place with a typed cast below instead of
-            // being re-homed into a local.
-            const bool narrowDependent = isOrdinaryInline &&
-                                         !bindingIsCaptured &&
-                                         !paramType.isCodeBlock() &&
-                                         !paramType.isAnyVariadic() &&
-                                         inlineBindingDependsOnNarrowFact(sema, binding.exprRef);
-            {
-                SmallVector4<const Symbol*> dbgPath;
-                const bool dbgExtract = SemaHelpers::extractNarrowPath(sema, binding.exprRef, dbgPath);
-                int dbgTok   = -1;
-                int dbgInner = -1;
-                int dbgInnerExtract = -1;
-                if (sema.node(binding.exprRef).is(AstNodeId::UnaryExpr) && sema.node(binding.exprRef).codeRef().isValid())
-                {
-                    dbgTok = (int) sema.token(sema.node(binding.exprRef).codeRef()).id;
-                    const AstNodeRef innerRef = sema.node(binding.exprRef).cast<AstUnaryExpr>().nodeExprRef;
-                    if (innerRef.isValid())
-                    {
-                        dbgInner = (int) sema.node(innerRef).id();
-                        SmallVector4<const Symbol*> innerPath;
-                        dbgInnerExtract = SemaHelpers::extractNarrowPath(sema, innerRef, innerPath) ? (int) innerPath.size() : -2;
-                    }
-                }
-                fprintf(stderr, "[NARROWDBG] pba=%d nd=%d ordinary=%d extract=%d pathLen=%u nodeId=%d tok=%d inner=%d innerExtract=%d\n",
-                        paramBindsByAddress, narrowDependent, isOrdinaryInline, dbgExtract,
-                        (uint32_t) dbgPath.size(), (int) sema.node(binding.exprRef).id(), dbgTok, dbgInner, dbgInnerExtract);
-                fflush(stderr);
-            }
-            const bool forceNarrowFactMaterialization = narrowDependent && !paramBindsByAddress;
-            const bool forceBindingMaterialization = forceExplicitMaterialization ||
-                                                     forceRuntimeSafetyMaterialization ||
-                                                     forceVariadicMaterialization ||
-                                                     forceIndexOrForeachMaterialization ||
-                                                     forceAddressMaterialization ||
-                                                     forceRepeatedRValueMaterialization ||
-                                                     forceRepeatedLValueMaterialization ||
-                                                     forcePointerLevelMaterialization ||
-                                                     forceNarrowFactMaterialization ||
-                                                     receiverNeedsStandaloneHome ||
-                                                     forceReceiverHomeMaterialization;
-            if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
+            // A '#code' parameter is injected where the body asks for it, never homed.
+            const TypeInfo& paramType = param->type(sema.ctx());
+            if (paramType.isCodeBlock())
             {
                 remainingBindings.push_back(binding);
                 continue;
             }
 
-            if (!forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization)
+            const InlineBindingMaterialization mat = classifyInlineBinding(sema, context, binding, *param);
+            if (!mat.required)
             {
                 // Pin the parameter's non-null pointer type onto a by-address binding whose
                 // argument was proven by flow narrowing: the clone must not re-type it
                 // '#null'. The cast wraps a detached clone, never the caller's expression.
-                if (narrowDependent && paramBindsByAddress && param->typeRef().isValid())
+                if (mat.narrowDependent && mat.bindsByAddress && param->typeRef().isValid())
                 {
                     const AstNodeRef detachedRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
                     if (detachedRef.isValid())
@@ -1879,80 +1980,7 @@ namespace
                 continue;
             }
 
-            const TokenRef paramNameRef = materializedInlineBindingTokRef(sema, *param, binding.exprRef);
-
-            AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
-            if (clonedInitRef.isInvalid())
-                return Result::Error;
-
-            // The home holds the receiver's ADDRESS as the parameter's pointer type; the
-            // cast wraps the detached clone, never the caller's expression, and carries
-            // the receiver-address lowering so codegen never treats it as a value cast.
-            // An rvalue receiver whose payload lives in a register also gets a call-site
-            // home attached to the cast, so the address has storage to point into.
-            if (receiverHomesAddress)
-            {
-                const TypeRef homeSourceTypeRef = sema.viewType(binding.exprRef).typeRef();
-                clonedInitRef                   = Cast::createCastNode(sema, param->typeRef(), clonedInitRef);
-                SemaHelpers::ensureCodeGenLoweringPayload(sema, clonedInitRef).ufcsReceiverAddress = true;
-                if (!sema.isLValue(binding.exprRef) && !sema.isGlobalScope() && homeSourceTypeRef.isValid())
-                    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, clonedInitRef, sema.node(clonedInitRef), homeSourceTypeRef, "__call_arg_ptr_storage"));
-            }
-            // The home initializer re-runs sema inside the inline frame, where the
-            // caller's flow proofs are gone. The call site already validated the argument
-            // against the parameter, so pin the parameter's declared non-null pointer
-            // type onto the detached clone: a proof carried by a narrowing fact or by a
-            // `with` binding's narrowed base cannot be re-derived from bare syntax.
-            else if (paramType.isValuePointer() && !paramType.isNullable() && param->typeRef().isValid())
-            {
-                clonedInitRef = Cast::createCastNode(sema, param->typeRef(), clonedInitRef);
-            }
-
-            auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
-            // A by-value parameter is a mutable local of the callee, so a home whose
-            // address the body takes must be a 'var': a 'let' home would answer
-            // 'const *T' where the parameter answered '*T'.
-            const bool materializedAsLet = !forceRuntimeSafetyMaterialization &&
-                                           !bindingNeedsMutableMaterialization &&
-                                           !(bindingHasAddressUse && !paramBindsByAddress) &&
-                                           !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
-            declPtr->flags()    = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
-            declPtr->tokNameRef = paramNameRef;
-            if (forceAddressMaterialization && paramType.isReference())
-            {
-                declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
-            }
-            // A narrow-fact materialization is pinned to the PARAMETER type: the binding
-            // exists precisely because its value was proven non-null by flow narrowing at
-            // the call site (inlineBindingDependsOnNarrowFact). Inferring the `let` type
-            // from the un-narrowed argument would relabel it '#null' inside the callee body,
-            // where the parameter is non-null - a false use-site nullability error. Pinning
-            // to the parameter type restores the non-null contract the argument was validated
-            // against, reusing the same proven type-clone/cast mechanism as the cases below.
-            else if (!receiverHomesAddress && !paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || forceNarrowFactMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
-            {
-                AstNodeRef materializedTypeRef = AstNodeRef::invalid();
-                // A synthesized receiver has no declaration to clone a type node from.
-                if (const auto* paramDecl = param->decl() ? param->decl()->safeCast<AstSingleVarDecl>() : nullptr)
-                {
-                    const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, &sourceAst};
-                    materializedTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);
-                }
-                if (materializedTypeRef.isInvalid())
-                    clonedInitRef = Cast::createCastNode(sema, param->typeRef(), clonedInitRef);
-                else
-                    declPtr->nodeTypeRef = materializedTypeRef;
-            }
-            declPtr->nodeInitRef            = clonedInitRef;
-            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, paramNameRef, *declPtr, materializedAsLet);
-            sema.setSymbol(declRef, materializedSym);
-            outStatements.push_back(declRef);
-
-            binding.exprRef            = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
-            binding.preserveUseCodeRef = forceRuntimeSafetyMaterialization;
-            binding.mutableHomeUse     = isOrdinaryInline && !materializedAsLet && !receiverHomesAddress;
-            if (!forceVariadicMaterialization)
-                binding.typeRef = TypeRef::invalid();
+            SWC_RESULT(emitInlineBindingHome(sema, context, outStatements, binding, *param, mat));
             remainingBindings.push_back(binding);
         }
 

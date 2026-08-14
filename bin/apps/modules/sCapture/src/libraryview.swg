@@ -1,23 +1,24 @@
 using Threading, Time
 
-// Five positions communicate a rating at a glance and keep the same visual vocabulary
-// in thumbnails, details and the context menu.
-func ratingStars(rating: u8)->String
+// Returns the localized wording used where a vector rating glyph cannot be painted.
+func ratingLabel(rating: u8)->String
 {
-    var result: String
-    var idx: u8
-    while idx < 5
+    switch rating
     {
-        result += (idx < rating ? "★" : "☆")
-        idx += 1
+    case 0: return appStrings().act_NoRating
+    case 1: return appStrings().act_Rating1
+    case 2: return appStrings().act_Rating2
+    case 3: return appStrings().act_Rating3
+    case 4: return appStrings().act_Rating4
+    default: return appStrings().act_Rating5
     }
-
-    return result
 }
 
 internal var g_UpdatingLib: bool
 internal var g_DirtyList: bool = true
 internal const ItemMargin = 8.0
+internal const RatingGlyphSize = 12.0
+internal const RatingGlyphGap  = 2.0
 
 // How often the visible set is rebuilt while the previews are still streaming in. Each
 // loaded capture marks the list dirty, so without a cadence the rebuild runs on every
@@ -181,11 +182,11 @@ impl IWnd for LibraryView
                     with let rating = MenuCtrl.createPopup(menu, owner: me)
                     {
                         .addItem(appStrings().act_NoRating, "sCapture.library.rating.0", checked: focusedCapture and focusedCapture.rating == 0)
-                        .addItem(ratingStars(1), "sCapture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
-                        .addItem(ratingStars(2), "sCapture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
-                        .addItem(ratingStars(3), "sCapture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
-                        .addItem(ratingStars(4), "sCapture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
-                        .addItem(ratingStars(5), "sCapture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
+                        .addItem(appStrings().act_Rating1, "sCapture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
+                        .addItem(appStrings().act_Rating2, "sCapture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
+                        .addItem(appStrings().act_Rating3, "sCapture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
+                        .addItem(appStrings().act_Rating4, "sCapture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
+                        .addItem(appStrings().act_Rating5, "sCapture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
                         menu.addPopup(appStrings().act_Rating, rating)
                     }
 
@@ -254,12 +255,24 @@ impl IWnd for LibraryView
             let itemLoaded = it.loaded
             .mutexLoaded.unlock()
 
-            // We have a capture but not yet a texture. Create it (only when the capture
-            // actually has a preview image; a preview-less capture just shows the
-            // hour-glass placeholder below).
-            if capture and !it.texture.isValid() and capture.preview.isValid() do
-                it.texture = evt.paintContext.renderer.addImage(capture.preview)
-            elif it.kind == .Image and !it.texture.isValid() and image.isValid() do
+            // SCC items retain their compressed PNG, not a decoded image plus a texture for
+            // every file in the library. Materialize only what is visible, upload it, then
+            // release the transient pixels. Off-screen textures are evicted by the same rule.
+            if capture and !it.visible and it.texture.isValid() and !capture.previewBytes.isEmpty()
+            {
+                evt.paintContext.renderer.removeTexture(&it.texture)
+            }
+            elif capture and it.visible and !it.texture.isValid()
+            {
+                catch capture.materializePreview()
+                if capture.preview.isValid()
+                {
+                    it.texture = evt.paintContext.renderer.addImage(capture.preview)
+                    if !capture.previewBytes.isEmpty() do
+                        capture.preview = {}
+                }
+            }
+            elif it.kind == .Image and it.visible and !it.texture.isValid() and image.isValid() do
                 it.texture = evt.paintContext.renderer.addImage(image)
 
             it.rect = Math.Rectangle{x, y, w, h}
@@ -309,20 +322,25 @@ impl IWnd for LibraryView
                 painter.drawString(rc.x + 6, rc.y + 2, text, font, .themeColors().label_TextLight)
             }
 
-            if capture and (capture.favorite or (capture.rating and .libWnd.showRatingOverlay))
+            if capture and capture.favorite
             {
                 let font = me .theme().res.fontDefault.bold!
-                var text: String
-                if capture.favorite do
-                    text = "♥"
-                if capture.rating and .libWnd.showRatingOverlay
-                {
-                    if !text.isEmpty() do
-                        text += " "
-                    text += ratingStars(capture.rating)
-                }
+                let text = "♥"
                 let ms = Painter.measureString(text, font)
                 painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
+            }
+
+            if capture and capture.rating and .libWnd.showRatingOverlay
+            {
+                let star  = .mainWnd.icon(.RatingStar, RatingGlyphSize)
+                let width = cast(f32) capture.rating * RatingGlyphSize + cast(f32) (capture.rating - 1) * RatingGlyphGap
+                var sx    = it.rect.right() - width - 8
+                let sy    = it.rect.y + (capture.favorite ? 24 : 8)
+                for capture.rating
+                {
+                    star.paint(painter, sx, sy, .themeColors().hilight)
+                    sx += RatingGlyphSize + RatingGlyphGap
+                }
             }
 
             // Loading, a legacy preview-less capture, or an image the decoder rejected.
@@ -413,8 +431,11 @@ impl LibraryView
         if !capture do
             return
 
+        catch capture.materializePreview()
         catch File.touch(item.fi.fullname)
         .mainWnd.recentWnd.addRecent(item.fi.fullname, capture.preview, front: true, sel: true, linked: capture.linkedImage)
+        if !capture.previewBytes.isEmpty() do
+            capture.preview = {}
         .mainWnd.recentWnd.setScrollPos(0, 0)
         .mainWnd.swapLibraryMode()
         .mainWnd.updateState()
@@ -456,6 +477,11 @@ impl LibraryView
         {
             if capture.file == it.fi.fullname
             {
+                if it.capture
+                {
+                    it.capture.previewBytes.clear()
+                    it.capture.preview = capture.preview
+                }
                 if it.capture and it.texture.isValid()
                 {
                     .app().renderer.removeTexture(&it.texture)
@@ -612,13 +638,18 @@ impl LibraryView
     {
         if it.kind == .Capture
         {
-            let capture:       #null *Capture = catch Capture.load(it.fi.fullname, preview: true)
+            let capture:       #null *Capture = catch Capture.load(it.fi.fullname, preview: true, deferPreviewDecode: true)
             var haar:          ImageStatistics.HaarFeatures
             var width, height: s32
             if capture
             {
-                if capture.preview.isValid() do
+                catch capture.materializePreview()
+                if capture.preview.isValid()
+                {
                     haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
+                    if !capture.previewBytes.isEmpty() do
+                        capture.preview = {}
+                }
                 width  = capture.width
                 height = capture.height
             }

@@ -148,6 +148,9 @@ struct Capture
         // schema and a save would not preserve everything it held.
         loadIssues: u32
 
+        // Encoded SCC thumbnail retained by the library until a visible cell needs pixels.
+        previewBytes: Array'u8
+
         changed:   bool
         mouseMode: MouseMode = None
         editView:  #null *EditView
@@ -437,9 +440,19 @@ impl Capture
         if !.editView do
             return
         let zoom = Math.min(PreviewWidth / .width, PreviewHeight / .height)
+        .previewBytes.clear()
         .preview = .toImage(zoom)
         .preview.applyKernel(.GaussianBlur3x3Light)
         .changed = true
+    }
+
+    // Decodes the retained SCC thumbnail on demand. Ordinary and legacy loads already carry
+    // pixels, while library-only SCC loads keep the much smaller PNG bytes between paints.
+    mtd materializePreview() fail
+    {
+        if .preview.isValid() or .previewBytes.isEmpty() do
+            return
+        .preview = try Image.decode("preview.png", .previewBytes.toSlice())
     }
 
     mtd toImage(zoom: f32 = 1, onlySel = false)->Image
@@ -716,7 +729,7 @@ impl Capture
         .changed = false
     }
 
-    private func loadScc(file: String, preview: bool)->*Capture fail
+    private func loadScc(file: String, preview: bool, deferPreviewDecode: bool)->*Capture fail
     {
         var reader: Scc.Reader
         reader.initialize(file)
@@ -773,7 +786,10 @@ impl Capture
         if previewInfo
         {
             var imageBytes = try reader.readChunk(previewInfo.id)
-            capture.preview = try Image.decode("preview.png", imageBytes.toSlice())
+            if deferPreviewDecode do
+                capture.previewBytes = #move imageBytes
+            else do
+                capture.preview = try Image.decode("preview.png", imageBytes.toSlice())
         }
 
         capture.file = file
@@ -821,10 +837,10 @@ impl Capture
         return capture
     }
 
-    func load(file: String, preview = false)->#null *Capture fail
+    func load(file: String, preview = false, deferPreviewDecode = false)->#null *Capture fail
     {
         if try Scc.hasSignature(file) do
-            return try loadScc(file, preview)
+            return try loadScc(file, preview, deferPreviewDecode)
         return try loadLegacy(file, preview)
     }
 

@@ -47,6 +47,16 @@ func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost)->*MainWnd
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "scapture.surface")
+
+    // Library keeps the same push-button silhouette as Capture. Only the active page gives
+    // it the informational blue ground; returning to the editor removes that local style.
+    g_Library.loaded = true
+    main.swapLibraryMode()
+    main.applyLayout()
+    host.finishAnimations()
+
+    image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "scapture.library.surface")
 }
 
 // Repeated painted document replacement exercises the ownership boundary between Capture,

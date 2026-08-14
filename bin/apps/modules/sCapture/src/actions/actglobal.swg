@@ -77,6 +77,7 @@ impl MainWnd
     mtd swapLibraryMode()
     {
         .libraryMode = !.libraryMode
+        .updateLibraryButtonAppearance()
 
         // The tool rail and the tool column belong to the editor: in library mode there is
         // no form to draw and no form to style, so both leave instead of standing empty.
@@ -95,5 +96,26 @@ impl MainWnd
         .applyLayout()
         if .libraryMode do
             .libWnd.layoutSidebarColumns()
+    }
+
+    // Keeps Library a regular push button until it represents the page currently on screen.
+    // The informational palette is deliberately distinct from Capture's yellow action accent.
+    mtd updateLibraryButtonAppearance()
+    {
+        .libraryBtn.style.clearStyleSheetColors()
+        if .libraryMode
+        {
+            .libraryBtn.style.addStyleSheetColors("btnPush_Text          $embInfo_InformationBk")
+            .libraryBtn.style.addStyleSheetColors("btnPush_Border        $embInfo_InformationText")
+            .libraryBtn.style.addStyleSheetColors("btnPush_Bk            $embInfo_InformationText")
+            .libraryBtn.style.addStyleSheetColors("btnPush_HotText       $embInfo_InformationBk")
+            .libraryBtn.style.addStyleSheetColors("btnPush_HotBorder     $embInfo_InformationText")
+            .libraryBtn.style.addStyleSheetColors("btnPush_HotBk         $embInfo_InformationText")
+            .libraryBtn.style.addStyleSheetColors("btnPush_PressedText   $embInfo_InformationBk")
+            .libraryBtn.style.addStyleSheetColors("btnPush_PressedBorder $embInfo_InformationText")
+            .libraryBtn.style.addStyleSheetColors("btnPush_PressedBk     $embInfo_InformationText")
+        }
+
+        .libraryBtn.invalidate()
     }
 }

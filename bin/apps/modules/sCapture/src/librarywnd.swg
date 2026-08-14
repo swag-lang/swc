@@ -815,12 +815,7 @@ impl LibraryWnd
             .addItems([ActionLibFilter.AllItems, ActionLibFilter.Captures, ActionLibFilter.ScreenCaptures, ActionLibFilter.ImportedCaptures, ActionLibFilter.Images])
             .addSeparator()
             .addItem(ActionLibFilter.FavoritesOnly)
-
-            with let rating = MenuCtrl.createPopup(menu, owner: me)
-            {
-                .addItems([ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5])
-                menu.addPopup(appStrings().act_Rating, rating)
-            }
+            .addItems([ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5])
 
             with let apps = MenuCtrl.createPopup(menu, owner: me)
             {
@@ -1228,12 +1223,8 @@ impl LibraryWnd
                     .addItem(ActionRecentSize.LibBig)
                     .addSeparator()
 
-                    with let overlays = MenuCtrl.createPopup(menu, owner: res)
-                    {
-                        .addItem(ActionLibView.Ratings)
-                        .addItem(ActionLibView.LinkMarkers)
-                        menu.addPopup(appStrings().ui_Overlays, overlays)
-                    }
+                    .addItem(ActionLibView.Ratings)
+                    .addItem(ActionLibView.LinkMarkers)
                 }
 
                 discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)

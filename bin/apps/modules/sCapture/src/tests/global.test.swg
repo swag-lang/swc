@@ -21,8 +21,8 @@ func testSetupGlobalMain(main: *MainWnd)
     main.quickStyleBar           = SplitterCtrl.create(main.rightBar, {0, 0, RightBarWidth, 600}, vertical: true)
     main.quickStyleBar.dockStyle = .Center
 
-    main.toolRail           = StackLayoutCtrl.create(main, .Top, {0, 0, RailCellSize, 0})
-    main.toolRail.dockStyle = .Left
+    main.createToolRail()
+    main.setToolRailWidth()
 
     main.libWnd = LibraryWnd.create(main)
     main.libWnd.hide()
@@ -51,6 +51,15 @@ func testSetupGlobalMain(main: *MainWnd)
 
     testSetupGlobalMain(f.main)
 
+    // In icon-only mode the active rule's own margin replaces the leading cell padding.
+    // Counting both used to leave the glyph visibly adrift from its selection marker.
+    let firstTool = cast(*IconButton) f.main.toolRail.children[0]
+    let metrics   = f.main.themeMetrics()
+    @assert(firstTool.flags.has(.IconOnly))
+    @assert(firstTool.padding.x == 0)
+    @assert(firstTool.padding.z == RailCellPadding)
+    @assert(firstTool.position.width == RailCellSize + metrics.activeRail_Size)
+
     // The wait indicator of a library scan stands in the command bar, not over the captures. It
     // used to be a child of the scroll window at 8,8 — which is exactly where the view's own
     // padding puts the first thumbnail, so it landed on a cell that already carries an hour glass
@@ -74,14 +83,15 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(!evt.checked)
     @assert(@countof(f.main.libraryBtn.text()) != 0)
     @assert(f.main.libraryBtn.icon.isValid())
-    @assert(f.main.libraryBtn.flags.has(.Toggle))
-    @assert(!f.main.libraryBtn.isChecked)
+    @assert(f.main.libraryBtn.form == .Normal)
+    @assert(f.main.libraryBtn.position.width == f.main.captureBtn.position.width)
+    @assert(f.main.icon(.RatingStar, RatingGlyphSize).isValid())
     @assert(f.main.commandReadouts.isLocallyVisible())
 
     f.gui.focus(f.main.libraryBtn)
     f.gui.keyPress(Input.Key.Space)
     @assert(f.main.libraryMode)
-    @assert(f.main.libraryBtn.isChecked)
+    @assert(@countof(f.main.libraryBtn.style.styleSheetColors) != 0)
     @assert(!f.main.editWnd.isLocallyVisible())
     @assert(f.main.libWnd.isLocallyVisible())
     @assert(!f.main.commandReadouts.isLocallyVisible())
@@ -92,7 +102,7 @@ func testSetupGlobalMain(main: *MainWnd)
 
     f.gui.keyPress(Input.Key.Space)
     @assert(!f.main.libraryMode)
-    @assert(!f.main.libraryBtn.isChecked)
+    @assert(@countof(f.main.libraryBtn.style.styleSheetColors) == 0)
     @assert(f.main.editWnd.isLocallyVisible())
     @assert(!f.main.libWnd.isLocallyVisible())
     @assert(f.main.commandReadouts.isLocallyVisible())

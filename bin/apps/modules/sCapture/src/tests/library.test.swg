@@ -31,9 +31,9 @@ using Swag, Core, File
     @assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.LinkMarkers))
     @assert(!f.main.libWnd.showLinkOverlay)
 
-    @assert(ratingStars(0) == "☆☆☆☆☆")
-    @assert(ratingStars(3) == "★★★☆☆")
-    @assert(ratingStars(5) == "★★★★★")
+    @assert(ratingLabel(0) == appStrings().act_NoRating)
+    @assert(ratingLabel(3) == appStrings().act_Rating3)
+    @assert(ratingLabel(5) == appStrings().act_Rating5)
 
     with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
     {

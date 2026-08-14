@@ -209,6 +209,26 @@ func testSameBytes(left, right: const [..] u8)->bool
     @assert(loaded.preview.width == 8)
     @assert(loaded.preview.height == 6)
     @assert(loaded.title == "Preview Title")
+
+    let deferred = expect Capture.load(path, preview: true, deferPreviewDecode: true)!
+    defer Memory.delete(deferred)
+    @assert(!deferred.preview.isValid())
+    @assert(!deferred.previewBytes.isEmpty())
+    expect deferred.materializePreview()
+    @assert(deferred.preview.isValid())
+    @assert(deferred.preview.width == 8)
+    @assert(deferred.preview.height == 6)
+
+    var libraryView: LibraryView
+    var libraryItem: LibraryItem
+    libraryItem.kind        = .Capture
+    libraryItem.fi.fullname = path
+    libraryView.loadOne(&libraryItem)
+    @assert(libraryItem.loaded)
+    @assert(libraryItem.capture != null)
+    @assert(!libraryItem.capture!.preview.isValid())
+    @assert(!libraryItem.capture!.previewBytes.isEmpty())
+    @assert(libraryItem.haar.size != 0)
 }
 
 // A capture file from before the container header still loads: a stream without the

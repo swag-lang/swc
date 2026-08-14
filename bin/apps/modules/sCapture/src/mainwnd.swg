@@ -64,6 +64,7 @@ enum CaptureIcons
     AlignTop            // Top vertical alignment.
     AlignMiddle         // Middle vertical alignment.
     AlignBottom         // Bottom vertical alignment.
+    RatingStar          // Capture rating.
 }
 
 // The application icon document and the frames rasterized from it, shared by the main window
@@ -104,8 +105,8 @@ struct MainWnd
         recentWnd:                   *RecentWnd
         quickStyleBar:               *SplitterCtrl
         toolTitle:                   *Label
-        libraryBtn, zoomBtn:         *IconButton
-        captureBtn:                  *PushButton
+        libraryBtn, captureBtn:      *PushButton
+        zoomBtn:                     *IconButton
     }
 
     sizeBtn:       #null *IconButton
@@ -891,14 +892,14 @@ impl MainWnd
             .padding   = {8, 4, 8, 4}
         }
 
-        // Capture is the primary Voltage action. Library is the equally explicit secondary
-        // destination: its labeled toggle uses a full neutral fill when library mode is active.
+        // Capture is the primary Voltage action. Library has the same push-button shape and
+        // footprint, but only takes an informational blue fill while its page is active.
         .captureBtn = PushButton.create(verbs, "", {0, 0, 104, RailCellSize - 8}, ActionCapture.DoIt, .Strong)
 
-        .libraryBtn = IconButton.create(verbs, .icon(.Library, RailGlyphSize), {0, 0, 148, RailCellSize - 8}, ActionGlobal.ShowLibrary, .Toggle | .CenterContent)
-        .libraryBtn.setText(appStrings().act_Library)
-        .libraryBtn.setTextPosition(.Right)
-        .libraryBtn.setCheckIndicator(.None)
+        with .libraryBtn = PushButton.create(verbs, appStrings().act_Library, {0, 0, 104, RailCellSize - 8}, ActionGlobal.ShowLibrary)
+        {
+            .setIcon(me .icon(.Library, RailGlyphSize))
+        }
 
         with .commandReadouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, CommandRowHeight})
         {
@@ -977,20 +978,27 @@ impl MainWnd
         let metrics    = .themeMetrics()
         let showLabels = .editorOptions.showToolBarLabels
 
-        // The rule marking the active tool runs in a lane of its own on the leading edge, so
-        // the glyph column keeps its size and its air whatever the state of the cell.
+        // The rule marking the active tool runs in a lane of its own on the leading edge. With
+        // labels, that lane is extra room beside the row. Without labels, its margin replaces
+        // the cell's leading padding, otherwise the same air is counted twice before the glyph.
         let lane  = metrics.activeRail_Size + metrics.activeRail_Margin
-        let width = (showLabels ? RailLabelWidth : RailCellSize) + lane
+        let width = showLabels ? RailLabelWidth + lane : RailCellSize + metrics.activeRail_Size
 
         for c in .toolRail.children
         {
             if c.type != IconButton do
                 continue
             let btn = cast(*IconButton) c
-            if showLabels do
+            if showLabels
+            {
                 btn.updateFlags(remove: .IconOnly)
-            else do
+                btn.setAllPaddings({RailCellPadding, 0, RailCellPadding, 0})
+            }
+            else
+            {
                 btn.updateFlags(.IconOnly)
+                btn.setAllPaddings({0, 0, RailCellPadding, 0})
+            }
             btn.position.width  = width
             btn.position.height = RailCellSize
         }

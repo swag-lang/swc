@@ -173,10 +173,10 @@ impl IWnd for Header
         case .Transparent: painter.drawLine(clientRect.x, clientRect.bottom() - 1, clientRect.right(), clientRect.bottom() - 1, colors.headerItem_Separator, 1)
         }
 
-        // Clipping, take care of padding
-        var clipRect = .surfaceRect()
-        clipRect.applyPadding(.padding)
-        painter.pushClippingSurfaceRect(clipRect)
+        // Keep the clip in the same local coordinate space as the item geometry. A presented
+        // ancestor can paint this subtree into an off-screen layer whose origin differs from
+        // the surface origin; an absolute surface clip would then reject the header contents.
+        painter.pushClippingRect(.paddedClientRect())
         defer painter.popClippingRect()
 
         // Paint all except selected one, which will be painted last

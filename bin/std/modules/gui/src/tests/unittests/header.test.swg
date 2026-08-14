@@ -32,3 +32,58 @@ using Swag, Core
     header.clearSortIndicator()
     @assert(header.sortColumn == Swag.U32.Max and header.sortDirection == .None)
 }
+
+// A header nested below a presented window keeps its local content clip when the subtree is
+// rendered into an off-screen layer. A surface-space clip used to fall outside that layer and
+// hide the column labels for the duration of a page transition.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 100)
+    defer host.shutdown()
+    host.root.backgroundStyle = .Window
+
+    let page   = Wnd.create'Wnd(&host.root, null, {160, 10, 220, 60})
+    let header = Header.create(page, {0, 10, 180, 24})
+    header.form = .Transparent
+    header.addColumn("Mounted", 160)
+
+    let background = host.theme.colors.wnd_Bk
+    let normal     = host.render()
+    var normalInk: bool
+    var y          = 22's32
+    while y < 41
+    {
+        var x = 164's32
+        while x < 240
+        {
+            if normal.pixelColor(x, y).argb != background.argb do
+                normalInk = true
+            x += 1
+        }
+
+        y += 1
+    }
+
+    @assert(normalInk)
+
+    page.setPresentationOpacity(0.5)
+    page.setPresentationOffset({8, 0})
+    let presented = host.render()
+    var presentedInk: bool
+    y = 22
+    while y < 41
+    {
+        var x = 172's32
+        while x < 248
+        {
+            if presented.pixelColor(x, y).argb != background.argb do
+                presentedInk = true
+            x += 1
+        }
+
+        y += 1
+    }
+
+    @assert(presentedInk)
+}

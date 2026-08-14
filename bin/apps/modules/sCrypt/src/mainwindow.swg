@@ -798,8 +798,8 @@ impl MainWindow
     {
         .mountedDrives = MountedDrives.create(parent)
 
-        // The vault column takes what the fixed ones leave, so it is measured again every time
-        // the table is given a new width rather than once on the width it was built at.
+        // The semantic column shares are resolved again every time the table receives a new
+        // width, so the header covers the complete logical client area at every surface size.
         .mountedDrives.list.listView.hookOnEvent = func|window = me|(wnd, evt)
         {
             discard wnd

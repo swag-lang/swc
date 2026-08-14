@@ -52,13 +52,19 @@ struct MountedDrives
 
 impl MountedDrives
 {
-    // Width of the two columns whose content has a known shape. The vault name takes what they
-    // leave, because it is the one column a reader actually needs wide.
+    // Minimum room each column keeps when the surface is narrow. Above that baseline the five
+    // columns share the complete table width according to their content rather than giving all
+    // additional room to the vault name.
     const StartupColumnWidth   = 92'f32
     const DriveColumnWidth     = 78'f32
     const SizeColumnWidth      = 92'f32
     const AvailableColumnWidth = 104'f32
     const MinimumVaultWidth    = 120'f32
+
+    const StartupColumnShare   = 0.16'f32
+    const DriveColumnShare     = 0.12'f32
+    const SizeColumnShare      = 0.14'f32
+    const AvailableColumnShare = 0.18'f32
 
     // Side of the padlock a read-only drive carries, at the row size of the chart.
     const LockIconSize = 16'f32
@@ -95,6 +101,11 @@ impl MountedDrives
         list.addColumn(appStrings().ui_ColSize, SizeColumnWidth)
         list.addColumn(appStrings().ui_ColAvailable, AvailableColumnWidth)
         list.addColumn(appStrings().ui_ColVault, MinimumVaultWidth)
+
+        // This compact status table has no user-defined layout to preserve. Its five semantic
+        // lanes always follow the surface, so draggable separators would only create overflow.
+        for item in list.header.items do
+            item!.isResizable = false
 
         // Only a read-only drive carries a padlock, and the lane it stands in is reserved on every
         // row whatever the state: sized to its content, the column would put the letters of two
@@ -164,17 +175,41 @@ impl MountedDrives
         .sigDrivesChanged.call(me)
     }
 
-    // Gives the vault column whatever the two fixed ones leave.
+    // Divides the complete visible width into stable semantic lanes.
     //
-    // Measured against what the header actually occupies rather than against the sum of the
-    // column widths: the separators and the leading padding are part of that width, and a
-    // table one separator too wide answers with a horizontal scroll bar.
+    // The final lane receives the arithmetic remainder so rounding never leaves a strip beside
+    // the header. Separators and leading padding are removed first because they are part of the
+    // header width but not part of any lane.
     mtd layoutColumns()
     {
+        let startup   = cast(u32) MountedColumn.Startup
+        let drive     = cast(u32) MountedColumn.Drive
+        let size      = cast(u32) MountedColumn.Size
+        let free      = cast(u32) MountedColumn.Available
         let vault     = cast(u32) MountedColumn.Vault
         let available = .list.listView.paddedClientRect().width
-        let others    = .list.header.contentWidth() - .list.header.itemWidthForColumn(vault)
-        .list.setColumnWidth(vault, Math.max(MinimumVaultWidth, available - others))
+
+        var currentItems = 0'f32
+        for item, index in .list.header.items
+        {
+            discard item
+            currentItems += .list.header.itemWidthAt(cast(u32) index)
+        }
+
+        let chrome = .list.header.contentWidth() - currentItems
+        let room   = Math.max(available - chrome, 0)
+
+        let startupWidth = Math.max(StartupColumnWidth, room * StartupColumnShare)
+        let driveWidth   = Math.max(DriveColumnWidth, room * DriveColumnShare)
+        let sizeWidth    = Math.max(SizeColumnWidth, room * SizeColumnShare)
+        let freeWidth    = Math.max(AvailableColumnWidth, room * AvailableColumnShare)
+        let vaultWidth   = Math.max(MinimumVaultWidth, room - startupWidth - driveWidth - sizeWidth - freeWidth)
+
+        .list.setColumnWidth(startup, startupWidth)
+        .list.setColumnWidth(drive, driveWidth)
+        .list.setColumnWidth(size, sizeWidth)
+        .list.setColumnWidth(free, freeWidth)
+        .list.setColumnWidth(vault, vaultWidth)
         .list.computeLayout()
     }
 

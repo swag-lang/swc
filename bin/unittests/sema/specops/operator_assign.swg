@@ -69,5 +69,5 @@ func semaTest003()
 {
     var box = AssignBox{}
     let ptr = &box
-    dref ptr += 9's32
+    ptr[] += 9's32
 }

@@ -14,7 +14,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()!
+    const cfg      = #run @compiler.getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.BoundCheck ? true : false
     #assert(#safety(Swag.SafetyWhat.BoundCheck) == expected)
 }

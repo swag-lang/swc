@@ -172,7 +172,7 @@ func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
 func paletteIndex(src: const [*] u8, bpp: u8)->u32
 {
     if bpp == 16 do
-        return dref cast(const *u16) src
+        return (cast(const *u16) src)[]
     return src[0]
 }
 
@@ -185,8 +185,8 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) fail
     let entry       = paletteData + cast(u64) (index - palette.first) * palette.bytesPerPixel
     switch palette.bitsPerPixel
     {
-    case 15: writeTga16Pixel(dst, dref cast(const *u16) entry, false, false)
-    case 16: writeTga16Pixel(dst, dref cast(const *u16) entry, true, true)
+    case 15: writeTga16Pixel(dst, (cast(const *u16) entry)[], false, false)
+    case 16: writeTga16Pixel(dst, (cast(const *u16) entry)[], true, true)
     case 24: writeBgrPixel(dst, entry[0], entry[1], entry[2])
     case 32: writeBgraPixel(dst, entry[0], entry[1], entry[2], entry[3])
     }
@@ -214,8 +214,8 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
 
     switch header.bitsPerPixel
     {
-    case 15: writeTga16Pixel(dst, dref cast(const *u16) src, false, false)
-    case 16: writeTga16Pixel(dst, dref cast(const *u16) src, true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
+    case 15: writeTga16Pixel(dst, (cast(const *u16) src)[], false, false)
+    case 16: writeTga16Pixel(dst, (cast(const *u16) src)[], true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
     case 24: writeBgrPixel(dst, src[0], src[1], src[2])
     case 32: writeBgraPixel(dst, src[0], src[1], src[2], src[3])
     }
@@ -284,7 +284,7 @@ internal impl IImageDecoder for Decoder
         if countof < #sizeof(Header) do
             fail InvalidFormatError{"invalid source buffer"}
 
-        let header = dref cast(const *Header) dataof
+        let header = (cast(const *Header) dataof)[]
         dataof += #sizeof(Header)
 
         if header.width == 0 or header.height == 0 do

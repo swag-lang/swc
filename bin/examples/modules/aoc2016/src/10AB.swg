@@ -98,16 +98,16 @@ internal func executeLines(lines: Array'String)
     {
         switch
         {
-        case r0.match(dref l):
+        case r0.match(l[]):
             let bot = getBot(expect StrConv.toS32(r0[2]))
             bot.add(expect StrConv.toS32(r0[1]))
             bot.execute()
 
-        case r1.match(dref l):
+        case r1.match(l[]):
             let bot = getBot(expect StrConv.toS32(r1[1]))
             if bot.count != 2
             {
-                bot.pending.add(dref l)
+                bot.pending.add(l[])
                 break
             }
 

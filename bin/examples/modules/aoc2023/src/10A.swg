@@ -128,22 +128,22 @@ func day10A()
             switch c
             {
             case '-':
-                dref one = .West | .East
+                one[] = .West | .East
 
             case '|':
-                dref one = .North | .South
+                one[] = .North | .South
 
             case 'L':
-                dref one = .North | .East
+                one[] = .North | .East
 
             case 'J':
-                dref one = .North | .West
+                one[] = .North | .West
 
             case '7':
-                dref one = .South | .West
+                one[] = .South | .West
 
             case 'F':
-                dref one = .South | .East
+                one[] = .South | .East
 
             case 'S':
                 startX = col
@@ -154,14 +154,14 @@ func day10A()
 
     // Determin the shape of the start 'S'
     let start = mp(startX, startY)
-    if dref mp(startX - 1, startY) & .East do
-        dref start |= .West
-    if dref mp(startX + 1, startY) & .West do
-        dref start |= .East
-    if dref mp(startX, startY - 1) & .South do
-        dref start |= .North
-    if dref mp(startX, startY + 1) & .North do
-        dref start |= .South
+    if mp(startX - 1, startY)[] & .East do
+        start[] |= .West
+    if mp(startX + 1, startY)[] & .West do
+        start[] |= .East
+    if mp(startX, startY - 1)[] & .South do
+        start[] |= .North
+    if mp(startX, startY + 1)[] & .North do
+        start[] |= .South
     var visitX = startX
 
     // Visit the maze
@@ -169,24 +169,24 @@ func day10A()
     var total  = 0
     for
     {
-        let one = dref mp(visitX, visitY)
+        let one = mp(visitX, visitY)[]
         switch
         {
         case one & .East:
-            visitX += 1
-            dref mp(visitX, visitY) &= ~.West
+            visitX               += 1
+            mp(visitX, visitY)[] &= ~.West
 
         case one & .West:
-            visitX -= 1
-            dref mp(visitX, visitY) &= ~.East
+            visitX               -= 1
+            mp(visitX, visitY)[] &= ~.East
 
         case one & .North:
-            visitY -= 1
-            dref mp(visitX, visitY) &= ~.South
+            visitY               -= 1
+            mp(visitX, visitY)[] &= ~.South
 
         case one & .South:
-            visitY += 1
-            dref mp(visitX, visitY) &= ~.North
+            visitY               += 1
+            mp(visitX, visitY)[] &= ~.North
         }
 
         total += 1

@@ -371,18 +371,18 @@ impl Decimal
         let plusSign = g_CultureInfo.numberFormat.positiveSign
         let dotSign  = g_CultureInfo.numberFormat.decimalSeparator
 
-        var c = dref buffer
+        var c = buffer[]
         if c == negSign
         {
             buffer, cpt += 1
             .neg        = true
-            if !Latin1.isDigit(dref buffer) and cpt == countof do
+            if !Latin1.isDigit(buffer[]) and cpt == countof do
                 fail ParseIncompleteError{}
         }
         elif c == plusSign
         {
             buffer, cpt += 1
-            if !Latin1.isDigit(dref buffer) and cpt == countof do
+            if !Latin1.isDigit(buffer[]) and cpt == countof do
                 fail ParseIncompleteError{}
         }
 
@@ -397,7 +397,7 @@ impl Decimal
 
         while cpt < countof
         {
-            c = dref buffer
+            c = buffer[]
             if c == dotSign
             {
                 if sawdot do
@@ -442,7 +442,7 @@ impl Decimal
             .dp = .nd
 
         // Exponent
-        c = dref buffer
+        c = buffer[]
         if cpt < countof and (c | 32) == 'e'
         {
             cpt, buffer += 1
@@ -450,19 +450,19 @@ impl Decimal
                 fail ParseIncompleteError{}
 
             var esign = 1
-            c = dref buffer
+            c = buffer[]
             if c == negSign
             {
                 buffer, cpt += 1
                 esign       = -1
-                c           = dref buffer
+                c           = buffer[]
                 if !Latin1.isDigit(c) and cpt >= countof do
                     fail ParseIncompleteError{}
             }
             elif c == plusSign
             {
                 buffer, cpt += 1
-                c           = dref buffer
+                c           = buffer[]
                 if !Latin1.isDigit(c) and cpt >= countof do
                     fail ParseIncompleteError{}
             }
@@ -473,7 +473,7 @@ impl Decimal
             var e = 0
             while cpt < countof
             {
-                c = dref buffer
+                c = buffer[]
                 if c < '0' or c > '9' do
                     break
                 if e < 10000 do

@@ -60,13 +60,13 @@ internal impl IPropertyEditor for FontStyleEditor
             let bold   = btnBold.isChecked
             let italic = btnItalic.isChecked
             if bold and italic do
-                dref style = .BoldItalic
+                style[] = .BoldItalic
             elif bold do
-                dref style = .Bold
+                style[] = .Bold
             elif italic do
-                dref style = .Italic
+                style[] = .Italic
             else do
-                dref style = .Regular
+                style[] = .Regular
             list.commitItemChange(item)
         }
 
@@ -76,7 +76,7 @@ internal impl IPropertyEditor for FontStyleEditor
 
         item.sigRefresh += func|style, btnBold, btnItalic|(item)
         {
-            let s = dref style!
+            let s = style![]
             btnBold.setChecked(s == .Bold or s == .BoldItalic)
             btnItalic.setChecked(s == .Italic or s == .BoldItalic)
         }

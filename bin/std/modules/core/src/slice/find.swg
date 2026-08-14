@@ -33,7 +33,7 @@ func(T, V) findSorted(values: #null const [..] T, value: V)->u64
 // Returns Swag.U64.Max if not found.
 func(T, V) findLinear(values: #null const [..] T, value: V)->u64
 {
-    for &v, i in values where dref v == value do
+    for &v, i in values where v[] == value do
         return i
     return Swag.U64.Max
 }

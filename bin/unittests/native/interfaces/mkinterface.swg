@@ -28,7 +28,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
         return false
 
     let kind      = cast(const *Swag.TypeInfoStruct) @kindof(itf)
-    let tableType = cast(#null const *Swag.TypeInfoStruct) dref runtimeItf.itable
+    let tableType = cast(#null const *Swag.TypeInfoStruct) runtimeItf.itable[]
     if kind != expectedType or tableType != expectedType do
         return false
 
@@ -59,7 +59,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     #assert(#typeof(constAction) == const IAction)
     @assert(rawConst == constPtr)
 
-    let constFromDeref: const IAction = dref constPtr
+    let constFromDeref: const IAction = constPtr[]
     let rawFromDeref = cast(const *UndoAction) @dataof(constFromDeref)
     #assert(#typeof(constFromDeref) == const IAction)
     @assert(rawFromDeref != null)

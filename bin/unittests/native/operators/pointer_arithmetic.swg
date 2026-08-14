@@ -51,9 +51,9 @@ alias PointerArithmeticStrictU8     = u8
     let p4            = 4 + base
     let p1            = p4 - 3
 
-    @assert(dref p2 == 30)
-    @assert(dref p4 == 50)
-    @assert(dref p1 == 20)
+    @assert(p2[] == 30)
+    @assert(p4[] == 50)
+    @assert(p1[] == 20)
     @assert((p4 - base) == 4)
     @assert((p2 - p1) == 1)
 }
@@ -77,9 +77,9 @@ alias PointerArithmeticStrictU8     = u8
     let p4            = 4 + base
     let p1            = p4 - 3
 
-    @assert(dref cast([*] s32) p2 == 30)
-    @assert(dref cast([*] s32) p4 == 50)
-    @assert(dref cast([*] s32) p1 == 20)
+    @assert((cast([*] s32) p2)[] == 30)
+    @assert((cast([*] s32) p4)[] == 50)
+    @assert((cast([*] s32) p1)[] == 20)
     @assert((p4 - base) == 4)
     @assert((p2 - p1) == 1)
 }
@@ -102,7 +102,7 @@ alias PointerArithmeticStrictU8     = u8
     var ptr    = cast([*] u8) &data[0]
     let offset = cast(PointerArithmeticStrictU8) 255
     ptr += offset
-    @assert(dref ptr == 42)
+    @assert(ptr[] == 42)
     ptr -= offset
     @assert(ptr[255] == 42)
 }

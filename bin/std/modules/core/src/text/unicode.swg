@@ -174,7 +174,7 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
     {
         Debug.assert(count != @countof(dest), "destination buffer is too small")
 
-        dref destPtr   = c
+        destPtr[]      = c
         destPtr, count += 1
 
         srcPtr    += eat
@@ -200,8 +200,8 @@ public func makeUpper(buffer: [..] rune)
     var p = @dataof(buffer)
     for @countof(buffer)
     {
-        dref p = toUpper(dref p)
-        p      += 1
+        p[] = toUpper(p[])
+        p   += 1
     }
 }
 
@@ -211,8 +211,8 @@ public func makeLower(buffer: [..] rune)
     var p = @dataof(buffer)
     for @countof(buffer)
     {
-        dref p = toLower(dref p)
-        p      += 1
+        p[] = toLower(p[])
+        p   += 1
     }
 }
 

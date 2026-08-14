@@ -47,27 +47,27 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
         return result
 
     var cursor = scan!
-    while dref cursor
+    while cursor[]
     {
-        while dref cursor == ' ' do
+        while cursor[] == ' ' do
             cursor += 1
-        if dref cursor == 0 do
+        if cursor[] == 0 do
             break
 
         // Tokens are separated by spaces, and a quoted token may contain them.
         var quoted = false
-        if dref cursor == '"'
+        if cursor[] == '"'
         {
             quoted = true
             cursor += 1
         }
 
         let start = cursor
-        while dref cursor and (quoted ? dref cursor != '"' : dref cursor != ' ') do
+        while cursor[] and (quoted ? cursor[] != '"' : cursor[] != ' ') do
             cursor += 1
 
         let token = cast(string) @mkslice(start, cast(u64) (cursor - start))
-        if dref cursor do
+        if cursor[] do
             cursor += 1
 
         if @countof(token) < @countof(name) do

@@ -38,8 +38,8 @@ func sumValues(values: [..] s32)->s32
     cube[1, 0, 2] += 10
 
     let ptr = &cube[1, 1, 2]
-    @assert(dref ptr == 12)
-    dref ptr = 77
+    @assert(ptr[] == 12)
+    ptr[] = 77
 
     @assert(cube[0][1][1] == 50)
     @assert(cube[1][0][2] == 19)

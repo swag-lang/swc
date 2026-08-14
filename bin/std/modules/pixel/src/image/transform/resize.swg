@@ -271,7 +271,7 @@ namespace ResizeTools
                 var ptr = srcRow + left * bpp8
                 for (right - left) + 1
                 {
-                    let f = dref pw
+                    let f = pw[]
                     db += f * ptr[0]
                     dg += f * ptr[1]
                     dr += f * ptr[2]
@@ -324,7 +324,7 @@ namespace ResizeTools
                 var ptr = srcCol + left * w8Src
                 for (right - left) + 1
                 {
-                    let f = dref pw
+                    let f = pw[]
                     db += f * ptr[0]
                     dg += f * ptr[1]
                     dr += f * ptr[2]

@@ -6,7 +6,7 @@ func makeContextCaptureAllocator(alloc: *Allocator)->IAllocator
 {
     alloc.setup()
     alloc.configure(false, false, true, false, true)
-    return @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    return @mkinterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
 func contextCaptureAlloc(size: u64, alignment: u32 = 0)->AllocatorRequest

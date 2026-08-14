@@ -55,7 +55,7 @@ private func run(op: *Array's64, input: s64)->s64
     }
 
     #[Swag.Mixin]
-    func addr(offset: u64)->s64 => dref addrp(offset)
+    func addr(offset: u64)->s64 => addrp(offset)[]
 
     while op[ip] != 99
     {
@@ -88,15 +88,15 @@ private func run(op: *Array's64, input: s64)->s64
         switch inst
         {
         case 1:
-            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 + param1
+            addrp(op[ip + 3] + (mode2 == 2 ? base : 0))[] = param0 + param1
             ip += 4
 
         case 2:
-            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 * param1
+            addrp(op[ip + 3] + (mode2 == 2 ? base : 0))[] = param0 * param1
             ip += 4
 
         case 3:
-            dref addrp(op[ip + 1] + (mode0 == 2 ? base : 0)) = input
+            addrp(op[ip + 1] + (mode0 == 2 ? base : 0))[] = input
             ip += 2
 
         case 4:
@@ -110,11 +110,11 @@ private func run(op: *Array's64, input: s64)->s64
             ip = !param0 ? param1 : ip + 3
 
         case 7:
-            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 < param1 ? 1 : 0
+            addrp(op[ip + 3] + (mode2 == 2 ? base : 0))[] = param0 < param1 ? 1 : 0
             ip += 4
 
         case 8:
-            dref addrp(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 == param1 ? 1 : 0
+            addrp(op[ip + 3] + (mode2 == 2 ? base : 0))[] = param0 == param1 ? 1 : 0
             ip += 4
 
         case 9:

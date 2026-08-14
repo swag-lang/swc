@@ -93,7 +93,7 @@ impl ThemeStyle
     {
         .free()
         var theme = Memory.new'Theme()
-        dref theme = dref parent.refr!.theme
+        theme[] = parent.refr!.theme[]
         .set(theme)
     }
 

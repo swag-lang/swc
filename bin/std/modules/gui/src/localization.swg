@@ -387,9 +387,9 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
         // The table field becomes a view into a heap string the pool keeps alive; the
         // string never moves, so the view survives pool growth.
         let owned = Memory.new'String()
-        dref owned = value
+        owned[] = value
         pool.add(owned)
-        dref cast(*string) (data + safeField.offset) = owned.toString()
+        (cast(*string) (data + safeField.offset))[] = owned.toString()
     }
 }
 

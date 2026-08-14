@@ -113,7 +113,7 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
     var ptr    = dataof + (countof - 1)
 
     // Ascii
-    var c = cast(rune) dref ptr
+    var c = cast(rune) ptr[]
     if c & 0x80 == 0
     {
         result.c   = c
@@ -124,7 +124,7 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
     var eat = 1'u32
     for
     {
-        c = dref ptr
+        c = ptr[]
         if c >> 6 != 2 do
             break
         if ptr == dataof
@@ -169,7 +169,7 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
     }
 
     let dataof = @dataof(buffer)
-    let p0     = cast(rune) dref dataof
+    let p0     = cast(rune) dataof[]
     if (p0 & 0x80) == 0
     {
         result.c   = p0
@@ -378,7 +378,7 @@ func countBytesAt(buffer: const [..] u8)->u32
     if !countof do
         return 1
 
-    let p0 = cast(rune) dref dataof
+    let p0 = cast(rune) dataof[]
     if (p0 & 0x80) == 0 do
         return 1
 
@@ -526,7 +526,7 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
     var remain = length - startByteIndex
     while remain
     {
-        if Slice.contains(what, dref scan) do
+        if Slice.contains(what, scan[]) do
             return idx
         scan, idx += 1
         remain    -= 1
@@ -639,7 +639,7 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
     while byteIdx
     {
         scan, byteIdx -= 1
-        if Slice.contains(what, dref scan) do
+        if Slice.contains(what, scan[]) do
             return byteIdx
     }
 
@@ -834,7 +834,7 @@ func isValid(buffer: const [..] u8)->bool
     // Quick zap ascii characters
     while countof >= 8
     {
-        let first64 = dref cast(const *u64) p
+        let first64 = (cast(const *u64) p)[]
         if first64 & 0x80808080_80808080 do
             break
         p       += 8
@@ -843,7 +843,7 @@ func isValid(buffer: const [..] u8)->bool
 
     while countof
     {
-        let p0 = cast(rune) dref p
+        let p0 = cast(rune) p[]
         if (p0 & 0x80) == 0
         {
             p       += 1

@@ -88,7 +88,7 @@ impl Depot
     mtd scaleCrate(i, k: u64)
     {
         for &v in .crates[i].inner do
-            dref v *= k
+            v[] *= k
     }
 }
 

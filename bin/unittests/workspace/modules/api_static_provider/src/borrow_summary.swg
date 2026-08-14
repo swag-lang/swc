@@ -32,7 +32,7 @@ func depBorrowStashed()->#null *s32
 // No summary: call sites stay silent whatever was passed.
 func depBorrowRead(p: *s32)->s32
 {
-    return dref p
+    return p[]
 }
 
 // Every parameter carried by an aggregate contributes to the exported return summary.

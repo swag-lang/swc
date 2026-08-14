@@ -287,7 +287,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         if Reflection.isBool(typeField) and
            (itp + 1 == maxItp or isOption(allArgs[itp + 1].value, options))
         {
-            dref cast(*bool) addr = true
+            (cast(*bool) addr)[] = true
         }
 
         // All types supported by 'Parse.pokeValue'
@@ -356,8 +356,8 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
         // Set the associated 'isSet' boolean to true
         var addrIsSet = cast([*] bool) &result.isSet
-        addrIsSet      += fieldResult.index
-        dref addrIsSet = true
+        addrIsSet   += fieldResult.index
+        addrIsSet[] = true
     }
 
     return result

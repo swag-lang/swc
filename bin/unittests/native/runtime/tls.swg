@@ -118,9 +118,9 @@ var g_Point: TlsPoint
     g_Counter = 0x1234
 
     let pointer = &g_Counter
-    @assert(dref pointer == 0x1234)
+    @assert(pointer[] == 0x1234)
 
-    dref pointer = 0x5678
+    pointer[] = 0x5678
     @assert(g_Counter == 0x5678)
 
     g_Counter = 0

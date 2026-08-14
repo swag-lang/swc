@@ -94,7 +94,7 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
             if options.filterLambda and !options.filterLambda(entry) do
                 continue
 
-            result.add(#move dref entry)
+            result.add(#move entry[])
         }
     }
 

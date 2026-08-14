@@ -418,9 +418,9 @@ impl RichEditView
                 pStyle += 1
             }
 
-            newStyle = edn.styles[dref pStyle]
+            newStyle = edn.styles[pStyle[]]
 
-            var cr           = dref pChar
+            var cr           = pChar[]
             let isTabulation = cr == '\t'
 
             var selected = false
@@ -452,9 +452,9 @@ impl RichEditView
                 elif edn.flags & .ShowFocusSel do
                     newStyle = edn.stylesSelect[1]
                 if !newStyle.colFg.a do
-                    newStyle.colFg = edn.styles[dref pStyle].colFg
-                newStyle.fontMode  = edn.styles[dref pStyle].fontMode
-                newStyle.underline = edn.styles[dref pStyle].underline
+                    newStyle.colFg = edn.styles[pStyle[]].colFg
+                newStyle.fontMode  = edn.styles[pStyle[]].fontMode
+                newStyle.underline = edn.styles[pStyle[]].underline
             }
 
             if edn.flags & .DrawBlanks

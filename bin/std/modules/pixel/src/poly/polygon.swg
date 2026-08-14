@@ -330,7 +330,7 @@ impl Polygon
 
         // Closed path needs last point to be the same as the first one; copy it out
         // before 'add' can reallocate the buffer it points into.
-        let v0 = dref .pointAt(0)
+        let v0 = .pointAt(0)[]
         .add(v0)
 
         // Clipper output contours never self-intersect, so the O(n^2) simplicity

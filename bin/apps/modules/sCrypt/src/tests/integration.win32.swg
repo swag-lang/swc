@@ -10,6 +10,8 @@ namespace Integration
     const WrongPasswordText       = "definitely not the password"
     const VisibilityProbeArgument = "--integration-drive-probe"
     const ContainerSize           = 64'u64 * 1024 * 1024
+    const LargeMoveSize           = 16'u64 * 1024 * 1024 + 37
+    const MaximumRenameDurationMs = 5000'u64
     const FileAttributeReadOnly   = 0x00000001'u32
     const FileAttributeNormal     = 0x00000080'u32
     const MoveReplaceExisting     = 0x00000001'u32
@@ -303,10 +305,30 @@ namespace Integration
         movePath(overwrite, renamed)
         try verify(!File.exists(overwrite) and File.exists(renamed), "files must be renameable")
 
+        // Explorer computes progress while cached writes and namespace notifications are still
+        // active. WinFsp 2.1 could deadlock in that overlap and leave Explorer waiting forever.
+        // Keep a real multi-megabyte payload in this scenario: the subsequent move must remain a
+        // bounded metadata operation and preserve the file without copying its encrypted blocks.
+        let largeSource      = Path.combine(documents, "large-move-source.bin")
+        let largeDestination = Path.combine(nested, "large-move-destination.bin")
+        trace("FS: large file move between directories")
+        var largePayload = try createPayload(LargeMoveSize)
+        discard File.writeAllBytes(largeSource, largePayload.toSlice())
+        var renameTimer: Time.Stopwatch
+        renameTimer.start()
+        movePath(largeSource, largeDestination)
+        renameTimer.stop()
+        let movedLargeStream = try File.openRead(largeDestination)
+        let movedSize        = try movedLargeStream.size()
+        movedLargeStream.close()
+        try verify(renameTimer.elapsedMilliseconds() < MaximumRenameDurationMs, "moving a large file between directories must not stall the filesystem host")
+        try verify(!File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
+
         let renamedNested = Path.combine(documents, "Renamed-Nested")
         movePath(nested, renamedNested)
         let movedPersistent = Path.combine(renamedNested, "external-copy.bin")
-        try verify(!Directory.exists(nested) and File.exists(movedPersistent), "directories with children must be renameable")
+        let movedLargePath  = Path.combine(renamedNested, "large-move-destination.bin")
+        try verify(!Directory.exists(nested) and File.exists(movedPersistent) and File.exists(movedLargePath), "directories with children must be renameable")
 
         let replacementSource = Path.combine(documents, "replacement-source.bin")
         trace("FS: rename with replacement")

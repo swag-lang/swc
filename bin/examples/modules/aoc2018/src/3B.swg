@@ -22,7 +22,7 @@ func day3B()
     here.reserve(1000)
     for l in lines
     {
-        discard r.match(dref l)
+        discard r.match(l[])
         let id     = expect StrConv.toS32(r[1])
         let startX = expect StrConv.toS32(r[2])
         let startY = expect StrConv.toS32(r[3])
@@ -35,13 +35,13 @@ func day3B()
             for y in startY until startY + height
             {
                 let re = ids.ptr2(x, y, 1000)
-                if dref re
+                if re[]
                 {
                     alone = false
-                    here.remove(dref re)
+                    here.remove(re[])
                 }
 
-                dref re = id
+                re[] = id
             }
         }
 

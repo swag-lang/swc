@@ -36,8 +36,8 @@ impl ArrayPtr
             }
 
             let newPtr = Memory.new'T(.allocator)
-            dref newPtr = dref oldPtr
-            buffer[i]   = newPtr
+            newPtr[]  = oldPtr[]
+            buffer[i] = newPtr
         }
     }
 

@@ -31,7 +31,7 @@ positive value otherwise.
 
 ```swag
 var ranking: OrderedMap'(u32, String)
-ranking.initialize(func(left, right: const *u32)->s32 => dref left <=> dref right)
+ranking.initialize(func(left, right: const *u32)->s32 => left[] <=> right[])
 ranking.add(20, "silver")
 ranking.add(10, "gold")
 
@@ -39,7 +39,7 @@ for entry in ranking.range(10, 30) do
     Console.printLn(entry.key, ": ", entry.value)
 
 var work: PriorityQueue'u32
-work.initialize(func(left, right: const *u32)->s32 => dref left <=> dref right)
+work.initialize(func(left, right: const *u32)->s32 => left[] <=> right[])
 work.push(30)
 work.push(10)
 let first = work.pop()

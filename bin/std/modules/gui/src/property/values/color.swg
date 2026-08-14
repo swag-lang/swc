@@ -68,7 +68,7 @@ internal impl Properties
             bc.painter.setParams(.Antialiased)
             if !color.isOpaque() do
                 bc.painter.fillRoundRect(pos, 5, 5, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
-            bc.painter.fillRoundRect(pos, 5, 5, dref color)
+            bc.painter.fillRoundRect(pos, 5, 5, color[])
         }
 
         btn.sigPopupRequested += func|prop = me, color, item, opaque, keepAlpha|(btn)
@@ -87,7 +87,7 @@ internal impl Properties
                 flags.remove(ColorPickerFlags.AllowAlpha)
 
             let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal, flags)
-            picker.setColor(dref color)
+            picker.setColor(color[])
             picker.sigColorChanged += func|prop, color, item, opaque, keepAlpha|(pk)
             {
                 var result = pk.color().argb

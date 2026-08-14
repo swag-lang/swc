@@ -6,7 +6,7 @@ internal enum AppState
     Creating
     Mounting
     Unmounting
-    Growing
+    Resizing
     ChangingPassword
 }
 
@@ -16,7 +16,7 @@ internal enum OperationKind
     Create
     Mount
     Unmount
-    Grow
+    Resize
     ChangePassword
 }
 
@@ -35,26 +35,28 @@ internal enum StatusTone
 // tone, which is why `setStatus` takes no second argument.
 internal enum StatusMessage
 {
-    Ready                // Nothing has run yet, or the last operation finished cleanly.
-    Randomizing          // The container is being filled with random bytes; `statusProgress` says how far.
-    StopRequested        // The user asked the running operation to stop.
-    CreateCanceled       // Creation stopped on request and left nothing behind.
-    StartingDriver       // The portable filesystem driver is starting.
-    Unmounting           // The drive is being synchronized and unmounted.
-    CreateStopped        // Container creation stopped.
-    Created              // The container was created and is ready to mount.
-    MountStopped         // Mounting stopped.
-    Mounted              // A drive is mounted; `statusDrive` names its letter.
-    MountedReadOnly      // A drive is mounted for reading alone; `statusDrive` names its letter.
-    Unmounted            // The drive was unmounted safely.
-    Growing              // The added region is being randomized; `statusProgress` says how far.
-    GrowCanceled         // Growing stopped on request and left the container at its previous size.
-    GrowStopped          // Growing stopped.
-    Grown                // The container is larger; `statusDrive` says by how much it now holds.
-    ChangingPassword     // The key slot is being rewritten.
-    PasswordChanged      // The container now opens with the new password.
-    PasswordRemoved      // The container now opens without a password.
-    PasswordStopped      // The password change stopped.
+    Ready                  // Nothing has run yet, or the last operation finished cleanly.
+    Randomizing            // The container is being filled with random bytes; `statusProgress` says how far.
+    StopRequested          // The user asked the running operation to stop.
+    CreateCanceled         // Creation stopped on request and left nothing behind.
+    StartingDriver         // The portable filesystem driver is starting.
+    Unmounting             // The drive is being synchronized and unmounted.
+    CreateStopped          // Container creation stopped.
+    Created                // The container was created and is ready to mount.
+    MountStopped           // Mounting stopped.
+    Mounted                // A drive is mounted; `statusDrive` names its letter.
+    MountedReadOnly        // A drive is mounted for reading alone; `statusDrive` names its letter.
+    Unmounted              // The drive was unmounted safely.
+    Resizing               // Blocks are being moved or added; `statusProgress` says how far.
+    ResizeCanceled         // Resizing stopped on request and left the previous geometry.
+    ResizeStopped          // Resizing stopped.
+    Resized                // The container has another capacity; `statusDrive` says how much it holds.
+    AutoUnmounted          // A configured security event closed every protected drive.
+    AutoUnmountStopped     // The drives closed, but at least one final synchronization stopped.
+    ChangingPassword       // The key slot is being rewritten.
+    PasswordChanged        // The container now opens with the new password.
+    PasswordRemoved        // The container now opens without a password.
+    PasswordStopped        // The password change stopped.
 }
 
 // Rows of the "create a new vault" form, in the order `createNewVaultCard` adds them.
@@ -76,6 +78,33 @@ internal enum MountRow
     Password     // Password unlocking the container, or empty when it has none.
     Drive        // Drive letter the volume appears on.
     ReadOnly     // Whether the drive opens for reading alone.
+}
+
+// Rows of the automatic-unmount form, in the order `createOptionsCard` adds them.
+internal enum OptionsRow
+{
+    SessionLock
+    Suspend
+    Idle
+    IdleTimeout
+}
+
+// A Windows condition that can close protected drives without an explicit button press.
+internal enum AutoUnmountCause
+{
+    SessionLock
+    Suspend
+    Idle
+}
+
+// Persisted automatic-unmount policy. Closing the application is deliberately absent: WinFsp
+// callbacks and their keys live in this process, so every mount necessarily ends with it.
+struct AutoUnmountSettings
+{
+    onSessionLock: bool = true
+    onSuspend:     bool = true
+    onIdle:        bool
+    idleMinutes:   u32  = 15
 }
 
 // What a capacity field holds, or why it cannot be used.
@@ -135,6 +164,8 @@ struct VaultOperation
     usedPassword:    bool     // Whether the container was opened with a password.
     removesPassword: bool     // Whether a password change leaves the container without one.
     fromStartup:     bool     // Whether the mount came from the startup list rather than from the card.
+    securityEpoch:   u64      // Security-event generation at which this mount started.
+    securityStopped: bool     // Whether a security event interrupted this mount.
 
     progress: VolumeProgress     // What the job has done, and the way to ask it to stop.
 }
@@ -150,6 +181,15 @@ struct MainWindow
     {
         subtitle:       *Label
         languageChoice: *ComboBox
+    }
+
+    // Controls of the automatic-unmount page.
+    #[Swag.Late]
+    {
+        unmountOnLock:    *CheckButton
+        unmountOnSuspend: *CheckButton
+        unmountOnIdle:    *CheckButton
+        idleTimeout:      *ComboBox
     }
 
     // Controls of the "create a new vault" card.
@@ -188,16 +228,17 @@ struct MainWindow
         statusBusy: *Spinner
     }
 
-    // The three cards are pages of one tab strip rather than columns of one grid: a vault is
-    // created, then opened, then watched, and a reader is only ever doing one of the three. Shown
-    // side by side they cost the width of all three at once and leave two of them idle.
+    // The cards are pages of one tab strip rather than columns of one grid: a vault is created,
+    // opened, watched, or governed by automatic-unmount policy, and only one task is active at a
+    // time. Side by side they would cost the width of every page while leaving the others idle.
     #[Swag.Late]
     tabs: *Tab
 
-    // The two cards, kept whole so a language switch can re-label their headings, and the band
+    // The form cards, kept whole so a language switch can re-label their headings, and the band
     // that says which drives the window currently exposes.
-    createCard: VaultCard = undefined
-    mountCard:  VaultCard = undefined
+    createCard:  VaultCard = undefined
+    mountCard:   VaultCard = undefined
+    optionsCard: VaultCard = undefined
 
     // Not `undefined`: the band owns the drive list, and an owning array has to be constructed
     // before the window can put anything in it.
@@ -210,13 +251,17 @@ struct MainWindow
 
     // Containers to mount at the next start, and what is left of that list while the window
     // works through it. Only the first survives a run.
-    startupVaults: Array'StartupVault
-    startupQueue:  Array'StartupVault
-    startupTimer:  #null *Timer
+    startupVaults:   Array'StartupVault
+    startupQueue:    Array'StartupVault
+    startupTimer:    #null *Timer
+    securityTimer:   #null *Timer
+    securityMonitor: AutoUnmountMonitor
 
     // Last successful choices restored into the open-vault form. Passwords are never settings.
     mountSettings:     MountSettings
     mountDestinations: Array'MountDestination
+    autoUnmount:       AutoUnmountSettings
+    securityEpoch:     u64
 
     // What the status line says, plus the two values its wording interpolates: the drive
     // letter of the mounted message and the percentage of the randomizing one.
@@ -402,8 +447,8 @@ internal struct PasswordChangeFields
     confirm:     *PasswordEdit     // `replacement`, entered again.
 }
 
-// What the grow box asks for.
-internal struct VaultGrowFields
+// What the resize box asks for.
+internal struct VaultResizeFields
 {
     current:  *PasswordEdit     // Password the vault opens with.
     capacity: *EditBox          // Capacity the vault should hold from now on.
@@ -427,11 +472,11 @@ internal func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
     return {current, replacement, confirm}
 }
 
-// Fills `dialog` with what growing a vault of `currentSize` bytes asks for, and returns its fields.
+// Fills `dialog` with what resizing a vault of `currentSize` bytes asks for, and returns its fields.
 //
 // The password comes first here as it does in the box above: every box that changes a vault opens
 // on the one question that has to be answered before any of the others matter.
-internal func buildVaultGrowForm(dialog: *FormDlg, currentSize: u64)->VaultGrowFields
+internal func buildVaultResizeForm(dialog: *FormDlg, currentSize: u64)->VaultResizeFields
 {
     let texts = appStrings()
     let form  = dialog.form
@@ -487,8 +532,8 @@ impl MainWindow
         result.createHeader()
         result.createFooter()
 
-        // Three pages, in the order a vault goes through them: create it, open it, then watch the
-        // drive it became.
+        // Four pages: the three stops in a vault's lifecycle, then the policy that can close a
+        // protected drive without an explicit button press.
         let tabs = Tab.create(result)
         result.tabs = tabs
         with tabs
@@ -500,6 +545,7 @@ impl MainWindow
             .addItem(appStrings().ui_CreateTab, view: result.createNewVaultCard(tabs))
             .addItem(appStrings().ui_OpenTab, view: result.createOpenVaultCard(tabs))
             .addItem(appStrings().ui_MountedTab, view: result.createMountedDrivesCard(tabs))
+            .addItem(appStrings().ui_OptionsTab, view: result.createOptionsCard(tabs))
         }
 
         tabs.sigSelectionChanged += func|window = result|(tab)
@@ -530,7 +576,8 @@ impl MainWindow
         {
         case 0:  return .createPath
         case 1:  return .mountPath
-        default: return .mountedDrives.list
+        case 2:  return .mountedDrives.list
+        default: return .unmountOnLock
         }
     }
 
@@ -550,6 +597,7 @@ impl MainWindow
         .applyLayout()
         .createCard.endForm()
         .mountCard.endForm()
+        .optionsCard.endForm()
     }
 
     // Brings one page of the strip up.
@@ -681,7 +729,7 @@ impl MainWindow
         .languageChoice.dockStyle   = .Right
         .languageChoice.anchorStyle = .Bottom
         .languageChoice.maxSize.y   = .themeMetrics().comboBox_Height
-        .languageChoice.sigChanged += func|window = me|(combo, index)
+        .languageChoice.sigChanged  += func|window = me|(combo, index)
         {
             discard combo
             window.chooseLanguage(index)
@@ -708,7 +756,7 @@ impl MainWindow
 
     mtd createFooter()
     {
-        let footerRow = Wnd.create'Wnd(me, {0, 0, 0, 24})
+        let footerRow = Wnd.create'Wnd(&.wnd, {0, 0, 0, 24})
         footerRow.dockStyle = .Bottom
         footerRow.margin    = {32, 0, 32, 12}
 
@@ -722,7 +770,7 @@ impl MainWindow
 
         // The status line is raised off the ground by its own fill. A border around it would
         // draw a third box on a surface that already reads without one.
-        .statusView                 = Wnd.create'Wnd(me, {0, 0, 0, 52})
+        .statusView                 = Wnd.create'Wnd(&.wnd, {0, 0, 0, 52})
         .statusView.dockStyle       = .Bottom
         .statusView.margin          = {32, 0, 32, 12}
         .statusView.backgroundStyle = .Window
@@ -785,6 +833,91 @@ impl MainWindow
         }
 
         return .mountedDrives.card.panel
+    }
+
+    mtd createOptionsCard(parent: *Wnd)->*Wnd
+    {
+        let card = VaultCard.create(parent, appStrings().ui_OptionsCardTitle, appStrings().ui_OptionsCardHelp)
+        let form = card.form
+        .optionsCard = card
+        card.actions.hide()
+
+        .unmountOnLock    = form.addOptionField(appStrings().ui_UnmountOnLock, help: appStrings().ui_UnmountOnLockHelp)
+        .unmountOnSuspend = form.addOptionField(appStrings().ui_UnmountOnSuspend, help: appStrings().ui_UnmountOnSuspendHelp)
+        .unmountOnIdle    = form.addOptionField(appStrings().ui_UnmountOnIdle, help: appStrings().ui_UnmountOnIdleHelp)
+        .idleTimeout      = form.addChoiceField(appStrings().ui_IdleTimeout)
+
+        for minutes in [5'u32, 15, 30, 60] do
+            .idleTimeout.addItem(Format.toString(appStrings().ui_Minutes, minutes).toString())
+
+        .unmountOnLock.sigChanged += func|window = me|(button)
+        {
+            discard button
+            window.readAutoUnmountControls()
+        }
+        .unmountOnSuspend.sigChanged += func|window = me|(button)
+        {
+            discard button
+            window.readAutoUnmountControls()
+        }
+        .unmountOnIdle.sigChanged += func|window = me|(button)
+        {
+            discard button
+            window.readAutoUnmountControls()
+        }
+        .idleTimeout.sigChanged += func|window = me|(combo, index)
+        {
+            discard combo
+            discard index
+            window.readAutoUnmountControls()
+        }
+
+        .applyAutoUnmountControls()
+        card.endForm()
+        return card.panel
+    }
+
+    mtd idleMinutesAt(index: u32)->u32
+    {
+        switch index
+        {
+        case 0:  return 5
+        case 2:  return 30
+        case 3:  return 60
+        default: return 15
+        }
+    }
+
+    mtd idleIndexFor(minutes: u32)->u32
+    {
+        switch minutes
+        {
+        case 5:  return 0
+        case 30: return 2
+        case 60: return 3
+        default: return 1
+        }
+    }
+
+    // Applies persisted policy without firing the controls' save callbacks.
+    mtd applyAutoUnmountControls()
+    {
+        .unmountOnLock.setState(.autoUnmount.onSessionLock ? .Checked : .Unchecked)
+        .unmountOnSuspend.setState(.autoUnmount.onSuspend ? .Checked : .Unchecked)
+        .unmountOnIdle.setState(.autoUnmount.onIdle ? .Checked : .Unchecked)
+        .idleTimeout.setSelectedIndex(.idleIndexFor(.autoUnmount.idleMinutes), notify: false)
+        .idleTimeout.enable(.autoUnmount.onIdle)
+    }
+
+    // Reads one complete policy snapshot and persists it immediately.
+    mtd readAutoUnmountControls()
+    {
+        .autoUnmount.onSessionLock = .unmountOnLock.isChecked()
+        .autoUnmount.onSuspend     = .unmountOnSuspend.isChecked()
+        .autoUnmount.onIdle        = .unmountOnIdle.isChecked()
+        .autoUnmount.idleMinutes   = .idleMinutesAt(.idleTimeout.selectedIndex)
+        .idleTimeout.enable(.autoUnmount.onIdle)
+        catch g_App.saveState()
     }
 
     // Puts the spinner in the glyph's place while an operation runs, and takes it back when the
@@ -888,17 +1021,18 @@ impl MainWindow
              .Unmounting,
              .Mounted,
              .MountedReadOnly,
-             .Growing,
+             .Resizing,
              .ChangingPassword: return .Active
 
-        case .CreateStopped, .MountStopped, .GrowStopped, .PasswordStopped: return .Stopped
+        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .AutoUnmountStopped: return .Stopped
 
         case .Ready,
              .CreateCanceled,
              .Created,
              .Unmounted,
-             .GrowCanceled,
-             .Grown,
+             .ResizeCanceled,
+             .Resized,
+             .AutoUnmounted,
              .PasswordChanged,
              .PasswordRemoved: return .Idle
         }
@@ -910,26 +1044,28 @@ impl MainWindow
         let texts = appStrings()
         switch #complete .statusMessage
         {
-        case .Ready:            return String.from(texts.msg_Ready)
-        case .Randomizing:      return Format.toString(texts.msg_Randomizing, .statusProgress)
-        case .StopRequested:    return String.from(texts.msg_StopRequested)
-        case .CreateCanceled:   return String.from(texts.msg_CreateCanceled)
-        case .StartingDriver:   return String.from(texts.msg_StartingDriver)
-        case .Unmounting:       return String.from(texts.msg_Unmounting)
-        case .CreateStopped:    return String.from(texts.msg_CreateStopped)
-        case .Created:          return String.from(texts.msg_Created)
-        case .MountStopped:     return String.from(texts.msg_MountStopped)
-        case .Mounted:          return Format.toString(texts.msg_Mounted, .statusDrive)
-        case .MountedReadOnly:  return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
-        case .Unmounted:        return String.from(texts.msg_Unmounted)
-        case .Growing:          return Format.toString(texts.msg_Growing, .statusProgress)
-        case .GrowCanceled:     return String.from(texts.msg_GrowCanceled)
-        case .GrowStopped:      return String.from(texts.msg_GrowStopped)
-        case .Grown:            return Format.toString(texts.msg_Grown, .statusDrive)
-        case .ChangingPassword: return String.from(texts.msg_ChangingPassword)
-        case .PasswordChanged:  return String.from(texts.msg_PasswordChanged)
-        case .PasswordRemoved:  return String.from(texts.msg_PasswordRemoved)
-        case .PasswordStopped:  return String.from(texts.msg_PasswordStopped)
+        case .Ready:              return String.from(texts.msg_Ready)
+        case .Randomizing:        return Format.toString(texts.msg_Randomizing, .statusProgress)
+        case .StopRequested:      return String.from(texts.msg_StopRequested)
+        case .CreateCanceled:     return String.from(texts.msg_CreateCanceled)
+        case .StartingDriver:     return String.from(texts.msg_StartingDriver)
+        case .Unmounting:         return String.from(texts.msg_Unmounting)
+        case .CreateStopped:      return String.from(texts.msg_CreateStopped)
+        case .Created:            return String.from(texts.msg_Created)
+        case .MountStopped:       return String.from(texts.msg_MountStopped)
+        case .Mounted:            return Format.toString(texts.msg_Mounted, .statusDrive)
+        case .MountedReadOnly:    return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
+        case .Unmounted:          return String.from(texts.msg_Unmounted)
+        case .Resizing:           return Format.toString(texts.msg_Resizing, .statusProgress)
+        case .ResizeCanceled:     return String.from(texts.msg_ResizeCanceled)
+        case .ResizeStopped:      return String.from(texts.msg_ResizeStopped)
+        case .Resized:            return Format.toString(texts.msg_Resized, .statusDrive)
+        case .AutoUnmounted:      return String.from(texts.msg_AutoUnmounted)
+        case .AutoUnmountStopped: return String.from(texts.msg_AutoUnmountStopped)
+        case .ChangingPassword:   return String.from(texts.msg_ChangingPassword)
+        case .PasswordChanged:    return String.from(texts.msg_PasswordChanged)
+        case .PasswordRemoved:    return String.from(texts.msg_PasswordRemoved)
+        case .PasswordStopped:    return String.from(texts.msg_PasswordStopped)
         }
     }
 
@@ -1036,10 +1172,10 @@ impl MainWindow
         .resizeButton.sigPressed += func|window = me|(btn)
         {
             discard btn
-            if window.state == .Growing do
+            if window.state == .Resizing do
                 window.stopLongOperation()
             else do
-                window.growVault()
+                window.resizeVault()
         }
 
         .passwordButton            = PushButton.create(card.actions, appStrings().ui_ChangePassword, {0, 0, 0, 36})
@@ -1154,7 +1290,7 @@ impl MainWindow
         .state = state
         let ready    = state == .Ready
         let creating = state == .Creating
-        let growing  = state == .Growing
+        let resizing = state == .Resizing
 
         // The create and resize buttons stay live through their own long operation, because
         // during it they are what stops it. They are put in their new state before the forms go
@@ -1164,8 +1300,8 @@ impl MainWindow
         .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
         .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, 18))
 
-        .resizeButton.enable(growing or (ready and .canModifyVault()))
-        .resizeButton.setText(growing ? appStrings().ui_StopGrowing : appStrings().ui_Resize)
+        .resizeButton.enable(resizing or (ready and .canModifyVault()))
+        .resizeButton.setText(resizing ? appStrings().ui_StopResizing : appStrings().ui_Resize)
 
         // Disabling a form disables every field and trailing control it owns.
         .createCard.form.enable(ready)
@@ -1191,6 +1327,7 @@ impl MainWindow
         .tabs.setItemName(0, texts.ui_CreateTab)
         .tabs.setItemName(1, texts.ui_OpenTab)
         .tabs.setItemName(2, texts.ui_MountedTab)
+        .tabs.setItemName(3, texts.ui_OptionsTab)
 
         .createCard.setTexts(texts.ui_CreateCardTitle, texts.ui_CreateCardHelp)
         .createCard.form.setRowLabel(cast(u64) CreateRow.Path, texts.ui_ContainerFile)
@@ -1214,6 +1351,19 @@ impl MainWindow
         .mountButton.setText(texts.ui_MountDrive)
         .passwordButton.setText(texts.ui_ChangePassword)
 
+        .optionsCard.setTexts(texts.ui_OptionsCardTitle, texts.ui_OptionsCardHelp)
+        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.SessionLock, texts.ui_UnmountOnLockHelp)
+        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Suspend, texts.ui_UnmountOnSuspendHelp)
+        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Idle, texts.ui_UnmountOnIdleHelp)
+        .optionsCard.form.setRowLabel(cast(u64) OptionsRow.IdleTimeout, texts.ui_IdleTimeout)
+        .unmountOnLock.setText(texts.ui_UnmountOnLock)
+        .unmountOnSuspend.setText(texts.ui_UnmountOnSuspend)
+        .unmountOnIdle.setText(texts.ui_UnmountOnIdle)
+        .idleTimeout.clear()
+        for minutes in [5'u32, 15, 30, 60] do
+            .idleTimeout.addItem(Format.toString(texts.ui_Minutes, minutes).toString())
+        .applyAutoUnmountControls()
+
         // The create and resize buttons say what they do *now*, so their captions are the
         // state's to write, not this method's: during a creation the first reads "stop".
         .setState(.state)
@@ -1223,6 +1373,7 @@ impl MainWindow
         .applyLayout()
         .createCard.endForm()
         .mountCard.endForm()
+        .optionsCard.endForm()
         .createCard.actions.computeLayout()
         .mountCard.actions.computeLayout()
         .mountedDrives.retranslate()
@@ -1265,6 +1416,69 @@ impl MainWindow
         for &one in .mountedDrives.drives where one.path == path do
             return true
         return false
+    }
+
+    mtd autoUnmountEnabled(cause: AutoUnmountCause)->bool
+    {
+        switch #complete cause
+        {
+        case .SessionLock: return .autoUnmount.onSessionLock
+        case .Suspend:     return .autoUnmount.onSuspend
+        case .Idle:        return .autoUnmount.onIdle
+        }
+    }
+
+    // Closes protected mounts synchronously. Lock and suspend notifications cannot leave cleanup
+    // queued behind the event that is taking the session away.
+    mtd handleAutoUnmount(cause: AutoUnmountCause)
+    {
+        if .shuttingDown or !.autoUnmountEnabled(cause) do
+            return
+
+        .securityEpoch += 1
+        .startupQueue.clear()
+        let interruptedMount = .operation.kind == .Mount and .operation.usedPassword
+
+        // A protected mount already in flight belongs to the event too. Waiting here lets the
+        // worker hand its handle back before the notification returns; `finishOperation` sees the
+        // changed epoch and closes it instead of publishing a new drive after the lock or sleep.
+        if interruptedMount
+        {
+            .operation.securityStopped = true
+            Jobs.wait(&.operation.job)
+            .finishOperation()
+        }
+
+        var synchronizationStopped = interruptedMount and .statusMessage == .AutoUnmountStopped
+        var unmounted              = false
+        var index                  = .mountedDrives.drives.count
+        while index
+        {
+            index -= 1
+            let entry = &.mountedDrives.drives[index]
+            if !entry.needsPassword do
+                continue
+            unmounted = true
+
+            let mounted = entry.volume
+            entry.volume = null
+            if mounted
+            {
+                discard catch mounted.close() as closeError
+                if closeError != null do
+                    synchronizationStopped = true
+                Memory.delete(mounted!)
+            }
+
+            .mountedDrives.drives.removeAtOrdered(index)
+        }
+
+        if !interruptedMount and !unmounted do
+            return
+
+        .mountedDrives.refresh()
+        .fillDriveChoice()
+        .setStatus(synchronizationStopped ? .AutoUnmountStopped : .AutoUnmounted)
     }
 
     mtd beginOperation(kind: OperationKind)
@@ -1335,7 +1549,7 @@ impl MainWindow
     // button goes down immediately so a second press cannot start anything while that happens.
     mtd stopLongOperation()
     {
-        if .state != .Creating and .state != .Growing do
+        if .state != .Creating and .state != .Resizing do
             return
         .operation.progress.cancel()
         .createButton.enable(false)
@@ -1373,12 +1587,13 @@ impl MainWindow
     // Starts the mount the password already staged in the operation opens.
     mtd startMount(path, mountPoint: String, fromStartup: bool, readOnly: bool)
     {
-        .operation.path         = path
-        .operation.mount        = mountPoint
-        .operation.mountLabel   = .mountPointLabel(.operation.mount.toString())
-        .operation.fromStartup  = fromStartup
-        .operation.readOnly     = readOnly
-        .operation.usedPassword = .operation.password.count != 0
+        .operation.path          = path
+        .operation.mount         = mountPoint
+        .operation.mountLabel    = .mountPointLabel(.operation.mount.toString())
+        .operation.fromStartup   = fromStartup
+        .operation.readOnly      = readOnly
+        .operation.usedPassword  = .operation.password.count != 0
+        .operation.securityEpoch = .securityEpoch
         .setStatus(.StartingDriver)
         .setState(.Mounting)
         .beginOperation(.Mount)
@@ -1444,9 +1659,8 @@ impl MainWindow
         .beginOperation(.ChangePassword)
     }
 
-    // Asks for the password the vault opens with and a larger capacity, then extends the
-    // container to it.
-    mtd growVault()
+    // Asks for the password the vault opens with and another capacity, then resizes the container.
+    mtd resizeVault()
     {
         if .state != .Ready or !.canModifyVault() do
             return
@@ -1472,7 +1686,7 @@ impl MainWindow
         options.height            = 240
 
         let dialog = FormDlg.create(.surface!, options)
-        let fields = buildVaultGrowForm(dialog, info.size)
+        let fields = buildVaultResizeForm(dialog, info.size)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
@@ -1483,9 +1697,9 @@ impl MainWindow
             return
         }
 
-        if size.bytes <= info.size
+        if size.bytes == info.size
         {
-            .showError(appStrings().msg_OnlyGrows)
+            .showError(appStrings().msg_SameCapacity)
             return
         }
 
@@ -1493,9 +1707,9 @@ impl MainWindow
         .operation.size = size.bytes
         .operation.password.add(fields.current.bytes())
         .statusProgress = 0
-        .setStatus(.Growing)
-        .setState(.Growing)
-        .beginOperation(.Grow)
+        .setStatus(.Resizing)
+        .setState(.Resizing)
+        .beginOperation(.Resize)
     }
 
     mtd runOperation()
@@ -1533,12 +1747,12 @@ impl MainWindow
                 .operation.volume = null
             }
 
-        case .Grow:
+        case .Resize:
             var volume = catch Volume.open(.operation.path.toString(), .operation.password.toSlice()) as openError
             .operation.error = openError
             if openError == null
             {
-                discard catch volume.grow(.operation.size, &.operation.progress) as growError
+                discard catch volume.resize(.operation.size, &.operation.progress) as growError
                 .operation.error = growError
                 volume.close()
             }
@@ -1567,12 +1781,12 @@ impl MainWindow
     // honestly be said about them.
     mtd reportProgress()
     {
-        if .operation.kind != .Create and .operation.kind != .Grow do
+        if .operation.kind != .Create and .operation.kind != .Resize do
             return
         if .operation.progress.isCanceled() do
             return
         .statusProgress = cast(s32) (.operation.progress.ratio() * 100)
-        .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : StatusMessage.Growing)
+        .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : StatusMessage.Resizing)
     }
 
     mtd finishOperation()
@@ -1614,9 +1828,24 @@ impl MainWindow
             {
                 // A startup mount reports on the status line alone: a box per vault would meet
                 // the reader with a stack of them before the window is even readable.
-                if !.operation.fromStartup do
+                if !.operation.fromStartup and !.operation.securityStopped do
                     .showError(appStrings().msg_MountFailed, .operation.error)
-                .setStatus(.MountStopped)
+                .setStatus(.operation.securityStopped ? StatusMessage.AutoUnmounted : StatusMessage.MountStopped)
+            }
+            elif .operation.usedPassword and .operation.securityEpoch != .securityEpoch
+            {
+                let mounted = .operation.volume
+                if mounted
+                {
+                    discard catch mounted.close() as closeError
+                    if closeError != null do
+                        .setStatus(.AutoUnmountStopped)
+                    Memory.delete(mounted!)
+                    .operation.volume = null
+                }
+
+                if .statusMessage != .AutoUnmountStopped do
+                    .setStatus(.AutoUnmounted)
             }
             else
             {
@@ -1633,20 +1862,20 @@ impl MainWindow
             .setStatus(.Unmounted)
             .fillDriveChoice()
 
-        case .Grow:
+        case .Resize:
             if isCanceledError(.operation.error)
             {
-                .setStatus(.GrowCanceled)
+                .setStatus(.ResizeCanceled)
             }
             elif .operation.error != null
             {
-                .showError(appStrings().msg_GrowFailed, .operation.error)
-                .setStatus(.GrowStopped)
+                .showError(appStrings().msg_ResizeFailed, .operation.error)
+                .setStatus(.ResizeStopped)
             }
             else
             {
                 .statusDrive = capacityText(.operation.size)
-                .setStatus(.Grown)
+                .setStatus(.Resized)
             }
 
         case .ChangePassword:
@@ -1668,6 +1897,7 @@ impl MainWindow
         .operation.volume          = null
         .operation.removesPassword = false
         .operation.fromStartup     = false
+        .operation.securityStopped = false
         .operation.path.clear()
         .operation.mount.clear()
         .operation.mountLabel.clear()
@@ -1696,9 +1926,10 @@ impl MainWindow
             .readOnly      = me.operation.readOnly
             .atStartup     = known != Swag.U64.Max
         }
+
         if .operation.volume
         {
-            let space           = .operation.volume!.space()
+            let space = .operation.volume!.space()
             entry.totalBytes     = space.total
             entry.availableBytes = space.available
         }
@@ -1829,6 +2060,14 @@ impl MainWindow
             .startupTimer = null
         }
 
+        if .securityTimer
+        {
+            .removeTimer(.securityTimer!)
+            .securityTimer = null
+        }
+
+        .securityMonitor.stop()
+
         if .operation.kind != .None
         {
             // Randomizing a hundred-gigabyte container takes minutes. Asking it to stop before
@@ -1911,6 +2150,11 @@ impl IWnd for MainWindow
             .startupTimer = null
             .pumpStartupQueue()
         }
+        elif evt.timer == .securityTimer
+        {
+            if .autoUnmount.onIdle and autoUnmountIdleMilliseconds() >= cast(u64) .autoUnmount.idleMinutes * 60 * 1000 do
+                .handleAutoUnmount(.Idle)
+        }
 
         .wnd.IWnd.onTimerEvent(evt)
     }
@@ -1926,6 +2170,9 @@ impl IWnd for MainWindow
             catch g_App.loadState()
             .applyLanguage()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
+
+            .securityMonitor.start(me)
+            .securityTimer = .app().addTimer(1's, me)
 
             // The startup mounts wait for a surface a reader can see: the first one may need a
             // password, and a box on a window that is not up yet has nothing to sit on.
@@ -1949,6 +2196,7 @@ impl IWnd for MainWindow
         // sCrypt should mount on its own.
         catch evt.serializer.serialize("MainWindow.mountSettings", &me.mountSettings)
         catch evt.serializer.serialize("MainWindow.startupVaults", &me.startupVaults)
+        catch evt.serializer.serialize("MainWindow.autoUnmount", &me.autoUnmount)
 
         // The window reopens on the page it was left on, so a reader who only ever mounts an
         // existing vault does not walk past the creation form at every start.
@@ -1957,6 +2205,7 @@ impl IWnd for MainWindow
         if evt.serializer.isReading()
         {
             .restoreMountSettings()
+            .applyAutoUnmountControls()
             .showTab(Math.min(selectedTab, cast(u32) .tabs.items.count - 1))
         }
     }

@@ -89,7 +89,7 @@ func semaTest006()
     const s: string = "abc"
     const p         = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a'u8)
+    #assert(p[] == 'a'u8)
 }
 
 func semaTest007()
@@ -97,7 +97,7 @@ func semaTest007()
     const s: const [..] u8 = cast(const [..] u8) "abc"
     const p                = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a'u8)
+    #assert(p[] == 'a'u8)
 }
 
 func semaTest008()
@@ -105,7 +105,7 @@ func semaTest008()
     const arr: [2] s32 = [7, 9]
     const p            = @dataof(arr)
     #assert(p != null)
-    #assert(dref p == 7)
+    #assert(p[] == 7)
 }
 
 func semaTest009()
@@ -124,6 +124,6 @@ func semaTest010()
     const value: ConstDataOfSpecBuffer = {data: [7'u8, 9'u8]}
     let p = @dataof(value)
     #assert(#typeof(p) == const [*] u8)
-    @assert(dref p == 7'u8)
+    @assert(p[] == 7'u8)
     @assert(p[1] == 9'u8)
 }

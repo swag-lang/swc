@@ -607,7 +607,7 @@ namespace compiler4102
 // _compiler4104.swg
 namespace compiler4104
 {
-    const CFG: Swag.BuildCfg = #run dref @compiler.getBuildCfg()!
+    const CFG: Swag.BuildCfg = #run @compiler.getBuildCfg()![]
 }
 
 // _compiler4266.swg

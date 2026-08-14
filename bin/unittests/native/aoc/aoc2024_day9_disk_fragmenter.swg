@@ -172,17 +172,17 @@ namespace Compaction
 
     func findFileSpan(dm: DiskMap, fileId: u16, outStart: *u32, outLen: *u32)
     {
-        dref outStart = 0
-        dref outLen   = 0
+        outStart[] = 0
+        outLen[]   = 0
         let blocks = dm.blocks!
         for var i = cast(s64) dm.blockCount - 1; i >= 0; i -= 1
         {
             if blocks[cast(u32) i] == fileId
             {
-                dref outStart = cast(u32) i
-                dref outLen   += 1
+                outStart[] = cast(u32) i
+                outLen[]   += 1
             }
-            elif dref outLen > 0 do
+            elif outLen[] > 0 do
                 break
         }
     }
@@ -209,8 +209,8 @@ namespace Compaction
 
             if gapLen >= minLen
             {
-                dref outStart = gapStart
-                dref outLen   = gapLen
+                outStart[] = gapStart
+                outLen[]   = gapLen
                 return true
             }
         }

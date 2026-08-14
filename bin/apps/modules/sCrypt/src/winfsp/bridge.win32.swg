@@ -39,15 +39,15 @@ namespace WinFsp
         let context = mountContext(fileSystem)
         context.volume.accessLock.lockShared()
         defer context.volume.accessLock.unlockShared()
-        let node    = context.volume.nodeById(nodeId)
+        let node = context.volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
 
-        let available = dref securitySize
+        let available = securitySize[]
         let stored    = node!.security.toSlice()
         if @countof(stored)
         {
-            dref securitySize = @countof(stored)
+            securitySize[] = @countof(stored)
             if security and available < @countof(stored) do
                 return StatusBufferOverflow
             if security do
@@ -56,7 +56,7 @@ namespace WinFsp
         }
 
         let required = cast(u64) GetSecurityDescriptorLength(context.defaultSecurity)
-        dref securitySize = required
+        securitySize[] = required
         if security and available < required do
             return StatusBufferOverflow
         if security and required do
@@ -95,7 +95,7 @@ namespace WinFsp
         if status != StatusSuccess do
             return status
         if attributes do
-            dref attributes = info.fileAttributes
+            attributes[] = info.fileAttributes
         return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize!) : StatusSuccess
     }
 
@@ -109,7 +109,7 @@ namespace WinFsp
         var nodeId: u64
         let status       = callbackCreate(mounted, value.buffer, directory, attributes, allocationSize, security, securitySize, &nodeId, info)
         if status == StatusSuccess do
-            dref fileContext = contextFromId(nodeId)
+            fileContext[] = contextFromId(nodeId)
         return status
     }
 
@@ -121,7 +121,7 @@ namespace WinFsp
         var nodeId: u64
         let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, info)
         if status == StatusSuccess do
-            dref fileContext = contextFromId(nodeId)
+            fileContext[] = contextFromId(nodeId)
         return status
     }
 
@@ -197,7 +197,7 @@ namespace WinFsp
             stored.add(node!.security.toSlice())
         }
 
-        let input = stored.count ? cast(#null const *void) stored.buffer : context.defaultSecurity
+        let input  = stored.count ? cast(#null const *void) stored.buffer : context.defaultSecurity
         var updated: #null *void
         let status = (g_WinFsp.setSecurityDescriptor)(input, information, modification, &updated)
         if status != StatusSuccess do
@@ -222,7 +222,7 @@ namespace WinFsp
         @memset(storage.buffer, 0, bytes)
         let dirInfo = cast(*FspDirInfo) storage.buffer!
         dirInfo.size     = cast(u16) bytes
-        dirInfo.fileInfo = dref info
+        dirInfo.fileInfo = info[]
         if @countof(name16) > 1 do
             @memcpy(&dirInfo.fileName[0], @dataof(name16), (@countof(name16) - 1) * #sizeof(u16))
         return (g_WinFsp.addDirInfo)(dirInfo, context.buffer, context.length, context.transferred)

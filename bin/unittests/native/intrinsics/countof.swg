@@ -226,12 +226,12 @@ namespace NS {}
 
 func countStringRef(value: *string)->u64
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countCStringRef(value: *cstring)->u64
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countSliceRef(value: [..] u8)->u64
@@ -241,17 +241,17 @@ func countSliceRef(value: [..] u8)->u64
 
 func countUnsignedRef(value: *u32)->u32
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countSignedRef(value: *s32)->s32
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countEnumRef(value: *RefCountKind)->u64
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countSpecOpRef(value: RefCountedRuntime)->u64
@@ -270,7 +270,7 @@ func loopStringRef(value: string)->u64
 func loopCStringRef(value: *cstring)->u64
 {
     var count: u64 = 0
-    for dref value do
+    for value[] do
         count += 1
     return count
 }
@@ -286,7 +286,7 @@ func loopSliceRef(value: [..] u8)->u64
 func loopUnsignedRef(value: *u32)->u32
 {
     var count: u32 = 0
-    for dref value do
+    for value[] do
         count += 1
     return count
 }
@@ -294,7 +294,7 @@ func loopUnsignedRef(value: *u32)->u32
 func loopSignedRef(value: *s32)->s32
 {
     var count: s32 = 0
-    for dref value do
+    for value[] do
         count += 1
     return count
 }
@@ -303,9 +303,9 @@ func loopSignedRef(value: *s32)->s32
 {
     var text             = "hello"
     var textRef: *string = &text
-    @assert(@countof(dref textRef) == 5)
+    @assert(@countof(textRef[]) == 5)
     @assert(countStringRef(textRef) == 5)
-    @assert(loopStringRef(dref textRef) == 5)
+    @assert(loopStringRef(textRef[]) == 5)
 }
 
 #test
@@ -313,7 +313,7 @@ func loopSignedRef(value: *s32)->s32
     var data:    [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
     var cstr:    cstring  = cast(cstring) &data[0]
     var cstrRef: *cstring = &cstr
-    @assert(@countof(dref cstrRef) == 4)
+    @assert(@countof(cstrRef[]) == 4)
     @assert(countCStringRef(cstrRef) == 4)
     @assert(loopCStringRef(cstrRef) == 4)
 }
@@ -322,22 +322,22 @@ func loopSignedRef(value: *s32)->s32
 {
     var array:    [2, 3] u8
     var arrayRef: *[2, 3] u8 = &array
-    @assert(@countof(dref arrayRef) == 6)
+    @assert(@countof(arrayRef[]) == 6)
 
     var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
     let slice                    = cast([..] u8) flat
     var sliceRef: const *[..] u8 = &slice
-    @assert(@countof(dref sliceRef) == 6)
-    @assert(countSliceRef(dref sliceRef) == 6)
-    @assert(loopSliceRef(dref sliceRef) == 6)
+    @assert(@countof(sliceRef[]) == 6)
+    @assert(countSliceRef(sliceRef[]) == 6)
+    @assert(loopSliceRef(sliceRef[]) == 6)
 }
 
 #test
 {
     var number:    u32  = 7
     var numberRef: *u32 = &number
-    @assert(#typeof(@countof(dref numberRef)) == u32)
-    @assert(@countof(dref numberRef) == 7)
+    @assert(#typeof(@countof(numberRef[])) == u32)
+    @assert(@countof(numberRef[]) == 7)
     @assert(countUnsignedRef(numberRef) == 7)
     @assert(loopUnsignedRef(numberRef) == 7)
 }
@@ -346,8 +346,8 @@ func loopSignedRef(value: *s32)->s32
 {
     var number:    s32  = 7
     var numberRef: *s32 = &number
-    @assert(#typeof(@countof(dref numberRef)) == s32)
-    @assert(@countof(dref numberRef) == 7)
+    @assert(#typeof(@countof(numberRef[])) == s32)
+    @assert(@countof(numberRef[]) == 7)
     @assert(countSignedRef(numberRef) == 7)
     @assert(loopSignedRef(numberRef) == 7)
 }
@@ -356,11 +356,11 @@ func loopSignedRef(value: *s32)->s32
 {
     var kind = RefCountKind.C
     var kindRef: *RefCountKind = &kind
-    @assert(@countof(dref kindRef) == 4)
+    @assert(@countof(kindRef[]) == 4)
     @assert(countEnumRef(kindRef) == 4)
 
     let counted = RefCountedRuntime{count: 11}
     let countedRef: const *RefCountedRuntime = &counted
-    @assert(@countof(dref countedRef) == 11)
+    @assert(@countof(countedRef[]) == 11)
     @assert(countSpecOpRef(countedRef) == 11)
 }

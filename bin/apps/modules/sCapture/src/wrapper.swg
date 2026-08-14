@@ -49,7 +49,7 @@ impl MainWnd
         switch f
         {
         case FormStep as b:
-            .mdlFormStep    = dref b
+            .mdlFormStep    = b[]
             .mdlFormStep.ws = b.w
             .mdlFormStep.hs = b.h
         }
@@ -84,33 +84,33 @@ impl MainWnd
         switch #complete f
         {
         case FormShape as b:
-            .mdlFormShape = dref b
+            .mdlFormShape = b[]
 
         case FormImage as b:
-            .mdlFormImage = dref b
+            .mdlFormImage = b[]
 
         case FormStep as b:
-            .mdlFormStep    = dref b
+            .mdlFormStep    = b[]
             .mdlFormStep.ws = b.w
             .mdlFormStep.hs = b.h
 
         case FormArrow as b:
-            .mdlFormArrow = dref b
+            .mdlFormArrow = b[]
 
         case FormLine as b:
-            .mdlFormLine = dref b
+            .mdlFormLine = b[]
 
         case FormPolygon as b:
-            .mdlFormPolygon = dref b
+            .mdlFormPolygon = b[]
 
         case FormText as b:
-            .mdlFormText = dref b
+            .mdlFormText = b[]
 
         case FormDraw as b:
-            .mdlFormDraw = dref b
+            .mdlFormDraw = b[]
 
         case FormCallout as b:
-            .mdlFormCallout = dref b
+            .mdlFormCallout = b[]
         }
     }
 

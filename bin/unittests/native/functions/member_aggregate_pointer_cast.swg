@@ -11,7 +11,7 @@ func readAggregatePointerMember(flag: bool)->u16
     var payload = {ptr: value}
     let data    = cast(*#decltype(payload)) &payload
     let ptr     = cast(const *u16) data.ptr
-    return dref ptr
+    return ptr[]
 }
 
 #test

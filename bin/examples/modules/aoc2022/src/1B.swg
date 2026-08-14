@@ -22,7 +22,7 @@ func day1B()
     for l in lines
     {
         if !l.isEmpty() do
-            one += expect StrConv.toU64(dref l)
+            one += expect StrConv.toU64(l[])
 
         if l.isEmpty() or @index == lines.count - 1
         {

@@ -10,18 +10,18 @@ func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) & M32)
 #[Swag.Inline]
 func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
-    (dref state)[a] = add32((dref state)[a], (dref state)[b])
-    (dref state)[d] ^= (dref state)[a]
-    (dref state)[d] = @rol((dref state)[d], 16)
-    (dref state)[c] = add32((dref state)[c], (dref state)[d])
-    (dref state)[b] ^= (dref state)[c]
-    (dref state)[b] = @rol((dref state)[b], 12)
-    (dref state)[a] = add32((dref state)[a], (dref state)[b])
-    (dref state)[d] ^= (dref state)[a]
-    (dref state)[d] = @rol((dref state)[d], 8)
-    (dref state)[c] = add32((dref state)[c], (dref state)[d])
-    (dref state)[b] ^= (dref state)[c]
-    (dref state)[b] = @rol((dref state)[b], 7)
+    state[][a] = add32(state[][a], state[][b])
+    state[][d] ^= state[][a]
+    state[][d] = @rol(state[][d], 16)
+    state[][c] = add32(state[][c], state[][d])
+    state[][b] ^= state[][c]
+    state[][b] = @rol(state[][b], 12)
+    state[][a] = add32(state[][a], state[][b])
+    state[][d] ^= state[][a]
+    state[][d] = @rol(state[][d], 8)
+    state[][c] = add32(state[][c], state[][d])
+    state[][b] ^= state[][c]
+    state[][b] = @rol(state[][b], 7)
 }
 
 #main

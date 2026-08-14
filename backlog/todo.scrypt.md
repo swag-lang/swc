@@ -92,13 +92,13 @@ locally.
 - Owner: sCrypt
 - On workstation/session lock, unmount or wipe every live key according to an explicit failure
   policy.
-- Related: T-089, T-256
+- Related: T-089
 
 ### T-255 — System suspend does not wipe mounted keys
 
 - Owner: sCrypt
 - Handle suspend independently of session lock and wipe or unmount before sleep completes.
-- Related: T-089, T-257
+- Related: T-089
 
 ### T-090 — The executable is not signed
 
@@ -124,25 +124,6 @@ locally.
 - Note: the startup list is persisted with `needsPassword` beside each path, which is what keeps a
   start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
   attempt, but it does mean the state file says which vaults have no password.
-- Related: T-256, T-257, T-258
-
-### T-256 — No automatic unmount on session lock
-
-- Owner: sCrypt
-- Unmount protected volumes on session lock, independently of key-memory wiping.
-- Related: T-091, T-254
-
-### T-257 — No automatic unmount on system suspend
-
-- Owner: sCrypt
-- Unmount protected volumes on suspend with a defined response when a volume is busy.
-- Related: T-091, T-255
-
-### T-258 — No automatic unmount after idle
-
-- Owner: sCrypt
-- Add an opt-in idle timeout based on appropriate user activity and reset semantics.
-- Related: T-091
 
 ## Tier B — Credentials and derivation profiles
 
@@ -165,14 +146,6 @@ locally.
 - Related: T-092, T-251, T-252
 
 ## Tier B — Container maintenance
-
-### T-093 — Shrinking a container
-
-- Owner: sCrypt
-- Problem: capacity can only go up.
-- Fix: evacuating every block above the new limit, then truncating. More work than growing, and far
-  less value — a container that has to be rewritten to lose space is a poor trade. Ranked here
-  because it is the other half of a capacity a reader can change, not because it is urgent.
 
 ### T-094 — Header backup and restore
 

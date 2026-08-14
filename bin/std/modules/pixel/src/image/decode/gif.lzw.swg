@@ -23,28 +23,28 @@ impl Decoder
         var frag_size = 0
         for var bits_read = 0; bits_read < keySize; bits_read += frag_size
         {
-            let rpad = (dref shift + bits_read) % 8
+            let rpad = (shift[] + bits_read) % 8
             if rpad == 0
             {
                 // Update byte.
-                if dref subLen == 0
+                if subLen[] == 0
                 {
-                    dref subLen = .readU8()     // Must be nonzero!
-                    if dref subLen == 0 do
+                    subLen[] = .readU8()     // Must be nonzero!
+                    if subLen[] == 0 do
                         return 0x1000
                 }
 
-                dref byte   = .readU8()
-                dref subLen -= 1
+                byte[]   = .readU8()
+                subLen[] -= 1
             }
 
             frag_size = Math.min(cast(s32) (keySize - bits_read), cast(s32) (8 - rpad))
-            key       |= (cast(u32) (dref byte) >> rpad) << bits_read
+            key       |= (cast(u32) byte[] >> rpad) << bits_read
         }
 
         // Clear extra bits to the left
-        key        &= (1'u32 << keySize) - 1
-        dref shift = cast(u8) ((dref shift + keySize) % 8)
+        key     &= (1'u32 << keySize) - 1
+        shift[] = cast(u8) ((shift[] + keySize) % 8)
         return cast(u16) key
     }
 

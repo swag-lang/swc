@@ -92,10 +92,10 @@ again.
     }
 
     let p = cast(*s32) exampleAlloc(4)!
-    dref p = 1
+    p[] = 1
     exampleFree(p, 4)
 
-// let x = dref p       // Uncomment: error, use of a freed pointer (proven)
+// let x = p[]       // Uncomment: error, use of a freed pointer (proven)
 // exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
 }
 

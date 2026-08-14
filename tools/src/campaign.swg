@@ -102,7 +102,7 @@ private func buildEveryWorkspace(context: *Context, options: *Options)->s32 fail
 // Returns a copy of `options` bound to one configuration.
 public func forConfiguration(options: *Options, buildCfg: string)->Options
 {
-    var result = dref options
+    var result = options[]
     result.buildCfg   = String.from(buildCfg)
     result.allConfigs = false
     return result
@@ -375,7 +375,7 @@ private func reportScope(context: *Context, options: *Options, scope: *Scope)
         {
             if @index != 0 do
                 configurations += " "
-            configurations += dref cfg
+            configurations += cfg[]
         }
 
         reportLine("everything", Format.toString("in %", configurations.toString()).toString(), &reported)
@@ -445,7 +445,7 @@ private func reportNames(context: *Context, label: string, workspace: string, se
             continue
         if !line.isEmpty() do
             line += " "
-        line += dref name
+        line += name[]
     }
 
     reportLine(label, line.toString(), reported)
@@ -485,7 +485,7 @@ private func reportScripts(context: *Context, scope: *Scope, reported: *bool)
             continue
         if !line.isEmpty() do
             line += " "
-        line += dref name
+        line += name[]
     }
 
     reportLine("scripts", line.toString(), reported)
@@ -501,5 +501,5 @@ private func reportLine(label: string, value: string, reported: *bool)
         padded += " "
 
     Console.println("  ", padded.toString(), " ", value)
-    dref reported = true
+    reported[] = true
 }

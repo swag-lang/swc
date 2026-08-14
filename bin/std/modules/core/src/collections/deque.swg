@@ -63,7 +63,7 @@ impl Deque
     mtd opIndexSet(index: u64, value: T)
         where Reflection.canCopy(T)
     {
-        dref .opIndexPtr(index) = value
+        .opIndexPtr(index)[] = value
     }
 
     // Adds `value` at the front of the queue.
@@ -157,7 +157,7 @@ impl Deque
     mtd const front()->T
     {
         Debug.assert(.count > 0, "deque is empty")
-        let result: retval = dref .opIndexPtr(0)
+        let result: retval = .opIndexPtr(0)[]
         return result
     }
 
@@ -173,7 +173,7 @@ impl Deque
     mtd const back()->T
     {
         Debug.assert(.count > 0, "deque is empty")
-        let result: retval = dref .opIndexPtr(.count - 1)
+        let result: retval = .opIndexPtr(.count - 1)[]
         return result
     }
 

@@ -8,7 +8,7 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.checkBox.setState(.Indeterminate)
             else do
-                item.checkBox.setState((dref cast(*bool) item.data!) ? .Checked : .Unchecked)
+                item.checkBox.setState(((cast(*bool) item.data!)[]) ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
         elif @isset(item.comboBox)
@@ -17,7 +17,7 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.comboBox.clearSelection(notify: false)
             else do
-                item.comboBox.setSelectedIndex((dref cast(*bool) item.data!) ? 1 : 0, notify: false)
+                item.comboBox.setSelectedIndex(((cast(*bool) item.data!)[]) ? 1 : 0, notify: false)
         }
     }
 
@@ -25,14 +25,14 @@ internal impl Properties
     {
         var data = cast(*bool) item.data!
         if @isset(item.checkBox) do
-            dref data = item.checkBox.isChecked()
+            data[] = item.checkBox.isChecked()
         elif @isset(item.comboBox)
         {
             // A deselected combo means "mixed" was just shown: nothing to write.
             let sel = item.comboBox.selectedIndex
             if sel > 1 do
                 return
-            dref data = sel == 1
+            data[] = sel == 1
         }
 
         .commitItemChange(item)

@@ -147,7 +147,7 @@ impl IconSet
         let cell  = key * cast(s32) .scale
         let image = .atlas!.image(.renderer, cell)
         let list  = Memory.new'ImageList()
-        list.set(.renderer.addImage(dref image), cell, cell)
+        list.set(.renderer.addImage(image[]), cell, cell)
         .lists.add(key, list)
         return list
     }

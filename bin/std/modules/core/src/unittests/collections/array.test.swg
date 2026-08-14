@@ -101,7 +101,7 @@ func assertStaticStringArray(values: StaticArray'(String, 4'u64), expected: cons
 
 func visitStructArray(values: *Array'ArrayVisitProbe)->s32
 {
-    for value, index in dref values where value.value != 12
+    for value, index in values[] where value.value != 12
     {
         if index == 0 do
             continue
@@ -193,10 +193,10 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     @assert(asSlice[3] == 2)
 
     let first = values.ptr1(0)
-    dref first = 9
+    first[] = 9
 
     let bottomRight = values.ptr2(1, 1, 2)
-    dref bottomRight = 7
+    bottomRight[] = 7
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]
     @assert(assertIntArray(values, expectedGrid))
@@ -211,7 +211,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     for &value, ordinal in values
     {
-        dref value -= cast(s32) ordinal
+        value[] -= cast(s32) ordinal
     }
 
     let expectedVisited: [4] s32 = [9, 0, 1, 4]
@@ -327,8 +327,8 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     var copy: Array's32 = values
     let frontPtr        = copy.frontPtr()
     let backPtr         = copy.backPtr()
-    dref frontPtr = 9
-    dref backPtr  = 7
+    frontPtr[] = 9
+    backPtr[]  = 7
 
     let expectedOriginal: [3] s32 = [1, 2, 3]
     let expectedCopy:     [3] s32 = [9, 2, 7]
@@ -510,8 +510,8 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.fill(7)
     let frontPtr = values.frontPtr()
     let backPtr  = values.backPtr()
-    dref frontPtr = 1
-    dref backPtr  = 9
+    frontPtr[] = 1
+    backPtr[]  = 9
 
     @assert(values.front() == 1)
     @assert(values.back() == 9)

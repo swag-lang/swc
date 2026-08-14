@@ -179,7 +179,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     first.sigFocusLost += func|panel, lostCount = &lostCount|(ed)
     {
         discard ed
-        dref lostCount += 1
+        lostCount[] += 1
         panel.destroy()
     }
 
@@ -470,9 +470,9 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.app.sigFrame += func|host = &host, no, checked = &checked|(app)
     {
         discard app
-        if dref checked do
+        if checked[] do
             return
-        dref checked = true
+        checked[] = true
 
         // Reading order would have opened on `Yes`, and a focused button answers Enter itself:
         // the box would have answered yes to a question whose default is no.
@@ -505,9 +505,9 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.app.sigFrame += func|host = &host, field, checked = &checked|(app)
     {
         discard app
-        if dref checked do
+        if checked[] do
             return
-        dref checked = true
+        checked[] = true
 
         @assert(field.hasFocus())
 
@@ -546,9 +546,9 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.app.sigFrame += func|host = &host, again, toggle, no, checked = &checked|(app)
     {
         discard app
-        if dref checked do
+        if checked[] do
             return
-        dref checked = true
+        checked[] = true
 
         @assert(no.hasFocus())
         @assert(!again.hasFocus() and !toggle.hasFocus())

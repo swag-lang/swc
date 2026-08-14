@@ -35,8 +35,8 @@
         y: s32
     }
 
-    var st = AA{x: 1, y: 2}
-    let p  = &st
+    var st   = AA{x: 1, y: 2}
+    let p    = &st
     var copy = p[]
     #assert(#typeof(copy) == AA)
     @assert(copy.x == 1 and copy.y == 2)
@@ -59,7 +59,7 @@
 #test
 {
     var arr: [3] s32 = [1, 2, 3]
-    let p = &arr
+    let p            = &arr
     @assert(p[][1] == 2)
     p[][2] = 9
     @assert(arr[2] == 9)

@@ -409,9 +409,9 @@ func resolvePropertyText(key: string)->#null string
         let field = f!
         if !Utf8.startsWith(field.name orelse "", PropertyKeyPrefix) do
             continue
-        if dref cast(const *string) (reference + field.offset) != key do
+        if (cast(const *string) (reference + field.offset))[] != key do
             continue
-        return dref cast(const *string) (active + field.offset)
+        return (cast(const *string) (active + field.offset))[]
     }
 
     return null
@@ -452,7 +452,7 @@ private func checkPropertyKeysAreDistinct()
         if !Utf8.startsWith(name, PropertyKeyPrefix) do
             continue
 
-        let value = dref cast(const *string) (data + field.offset)
+        let value = (cast(const *string) (data + field.offset))[]
         for g in type.fields!
         {
             let other = g!
@@ -460,7 +460,7 @@ private func checkPropertyKeysAreDistinct()
                 break
             if !Utf8.startsWith(other.name orelse "", PropertyKeyPrefix) do
                 continue
-            if dref cast(const *string) (data + other.offset) != value do
+            if (cast(const *string) (data + other.offset))[] != value do
                 continue
 
             let clash = Format.toString("property key [[%]] is declared by both [[%]] and [[%]]", value, other.name orelse "", name)

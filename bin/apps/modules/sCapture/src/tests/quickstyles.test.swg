@@ -165,11 +165,11 @@ using Swag, Core
 
     f.gui.app.sigFrame += func|host = &f.gui, dismissed = &didDismiss|(app)
     {
-        if dref dismissed do
+        if dismissed[] do
             return
 
         @assert(host.dismissPopupMenu())
-        dref dismissed = true
+        dismissed[] = true
     }
 
     f.gui.clickWnd(f.main.quickWnd.layout.children[0], Input.MouseButton.Right)

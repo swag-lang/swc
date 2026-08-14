@@ -176,7 +176,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     if p
     {
         let pp = &p
-        dref pp = null
+        pp[] = null
         narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
     }
 }

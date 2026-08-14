@@ -115,10 +115,10 @@ impl LoopRefIndexContainer
 func refIndexSentinelSum(values: *LoopRefIndexContainer, index: *s32)->s32
 {
     var result = 0
-    while values[dref index] != 99
+    while values[index[]] != 99
     {
-        result     += values[dref index + 1]
-        dref index += 2
+        result  += values[index[] + 1]
+        index[] += 2
     }
 
     return result
@@ -126,12 +126,12 @@ func refIndexSentinelSum(values: *LoopRefIndexContainer, index: *s32)->s32
 
 func refIndexAssignAt(values: *LoopRefIndexContainer, index: *s32, value: s32)
 {
-    values[dref index] = value
+    values[index[]] = value
 }
 
 func refNestedIndexAssign(values: *LoopRefIndexContainer, index: *s32, value: s32)
 {
-    values[values[dref index + 1]] = value
+    values[values[index[] + 1]] = value
 }
 
 #test

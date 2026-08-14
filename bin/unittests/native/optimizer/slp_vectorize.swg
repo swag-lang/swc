@@ -15,18 +15,18 @@ func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) & 0xFFF
 #[Swag.Inline]
 func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
-    (dref state)[a] = add32((dref state)[a], (dref state)[b])
-    (dref state)[d] ^= (dref state)[a]
-    (dref state)[d] = @rol((dref state)[d], 16)
-    (dref state)[c] = add32((dref state)[c], (dref state)[d])
-    (dref state)[b] ^= (dref state)[c]
-    (dref state)[b] = @rol((dref state)[b], 12)
-    (dref state)[a] = add32((dref state)[a], (dref state)[b])
-    (dref state)[d] ^= (dref state)[a]
-    (dref state)[d] = @rol((dref state)[d], 8)
-    (dref state)[c] = add32((dref state)[c], (dref state)[d])
-    (dref state)[b] ^= (dref state)[c]
-    (dref state)[b] = @rol((dref state)[b], 7)
+    state[][a] = add32(state[][a], state[][b])
+    state[][d] ^= state[][a]
+    state[][d] = @rol(state[][d], 16)
+    state[][c] = add32(state[][c], state[][d])
+    state[][b] ^= state[][c]
+    state[][b] = @rol(state[][b], 12)
+    state[][a] = add32(state[][a], state[][b])
+    state[][d] ^= state[][a]
+    state[][d] = @rol(state[][d], 8)
+    state[][c] = add32(state[][c], state[][d])
+    state[][b] ^= state[][c]
+    state[][b] = @rol(state[][b], 7)
 }
 
 // The state array arrives through a pointer, so the vectorizer sees a
@@ -79,11 +79,11 @@ func chachaRoundsLocal()->u32
 #[Swag.Optimize(true)]
 func lanesThenReadBack(values: *[8] u32)->u32
 {
-    (dref values)[4] = (dref values)[0] + 1
-    (dref values)[5] = (dref values)[1] + 1
-    (dref values)[6] = (dref values)[2] + 1
-    (dref values)[7] = (dref values)[3] + 1
-    return (dref values)[5]
+    values[][4] = values[][0] + 1
+    values[][5] = values[][1] + 1
+    values[][6] = values[][2] + 1
+    values[][7] = values[][3] + 1
+    return values[][5]
 }
 
 // An incomplete chunk: three adjacent stores never form a packed group and
@@ -91,9 +91,9 @@ func lanesThenReadBack(values: *[8] u32)->u32
 #[Swag.Optimize(true)]
 func threeLanes(values: *[8] u32)
 {
-    (dref values)[4] = (dref values)[0] + 1
-    (dref values)[5] = (dref values)[1] + 1
-    (dref values)[6] = (dref values)[2] + 1
+    values[][4] = values[][0] + 1
+    values[][5] = values[][1] + 1
+    values[][6] = values[][2] + 1
 }
 
 #test

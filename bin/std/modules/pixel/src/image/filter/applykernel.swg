@@ -63,7 +63,7 @@ impl Image
                 {
                     for kfull
                     {
-                        let ks0 = dref ks
+                        let ks0 = ks[]
                         bs += cast(s32) p[0] * ks0
                         gs += cast(s32) p[1] * ks0
                         rs += cast(s32) p[2] * ks0
@@ -85,7 +85,7 @@ impl Image
                     {
                         let nx  = Math.clamp(x + dx, 0, w - 1)
                         let p   = px + (nx * b8) + (ny * w8)
-                        let ks0 = dref ks
+                        let ks0 = ks[]
                         bs += cast(s32) p[0] * ks0
                         gs += cast(s32) p[1] * ks0
                         rs += cast(s32) p[2] * ks0

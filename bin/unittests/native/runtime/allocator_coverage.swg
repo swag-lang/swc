@@ -6,7 +6,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 {
     alloc.setup()
     alloc.configure(electricMode, detectLeaks, captureStack, trackAllocations, fillMemory)
-    return @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    return @mkinterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
 func allocOne(itf: IAllocator, size: u64, alignment: u32 = 0)->#null *void
@@ -255,7 +255,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     // 'second' is now the head and its stored link must decode to 'first'.
     @assert(page.decode(page.freeList) == cast(u64) second)
-    let storedLink = dref cast(*u64) second
+    let storedLink = (cast(*u64) second)[]
     @assert(storedLink != cast(u64) first)
     @assert(page.decode(storedLink) == cast(u64) first)
 
@@ -499,7 +499,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         var req: AllocatorRequest
         req.size = p.size
         p.allocator.alloc(&req)
-        dref p.out = req.address
+        p.out[] = req.address
 
         releaseAllocatorThreadCache()
         @atomadd(p.done, 1)

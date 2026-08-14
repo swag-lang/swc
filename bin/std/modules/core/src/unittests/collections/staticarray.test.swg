@@ -49,7 +49,7 @@ func assertStaticIntArray(values: StaticArray'(s32, 4'u64), expected: const [..]
 
 func visitStructStaticArray(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
 {
-    for value, index in dref values where value.value != 12
+    for value, index in values[] where value.value != 12
     {
         if index == 0 do
             continue

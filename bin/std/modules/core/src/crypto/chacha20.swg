@@ -16,29 +16,29 @@ private func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right)
 // The wire format is little-endian, which is the target's byte order: one
 // unaligned word access replaces the byte-at-a-time assembly.
 #[Swag.Inline]
-private func load32(data: const [*] u8)->u32 => dref cast(const *u32) data
+private func load32(data: const [*] u8)->u32 => (cast(const *u32) data)[]
 
 #[Swag.Inline]
 private func store32(data: [*] u8, value: u32)
 {
-    dref cast(*u32) data = value
+    (cast(*u32) data)[] = value
 }
 
 #[Swag.Inline]
 private func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
-    (dref state)[a] = add32((dref state)[a], (dref state)[b])
-    (dref state)[d] ^= (dref state)[a]
-    (dref state)[d] = @rol((dref state)[d], 16)
-    (dref state)[c] = add32((dref state)[c], (dref state)[d])
-    (dref state)[b] ^= (dref state)[c]
-    (dref state)[b] = @rol((dref state)[b], 12)
-    (dref state)[a] = add32((dref state)[a], (dref state)[b])
-    (dref state)[d] ^= (dref state)[a]
-    (dref state)[d] = @rol((dref state)[d], 8)
-    (dref state)[c] = add32((dref state)[c], (dref state)[d])
-    (dref state)[b] ^= (dref state)[c]
-    (dref state)[b] = @rol((dref state)[b], 7)
+    state[][a] = add32(state[][a], state[][b])
+    state[][d] ^= state[][a]
+    state[][d] = @rol(state[][d], 16)
+    state[][c] = add32(state[][c], state[][d])
+    state[][b] ^= state[][c]
+    state[][b] = @rol(state[][b], 12)
+    state[][a] = add32(state[][a], state[][b])
+    state[][d] ^= state[][a]
+    state[][d] = @rol(state[][d], 8)
+    state[][c] = add32(state[][c], state[][d])
+    state[][b] ^= state[][c]
+    state[][b] = @rol(state[][b], 7)
 }
 
 // Produces one IETF ChaCha20 key-stream block for `counter`.
@@ -113,7 +113,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         var i   = 0'u64
         while i + 8 <= count
         {
-            dref cast(*u64) (dst + i) = (dref cast(const *u64) (src + i)) ^ (dref cast(const *u64) &block[i])
+            (cast(*u64) (dst + i))[] = ((cast(const *u64) (src + i))[]) ^ ((cast(const *u64) &block[i])[])
             i += 8
         }
 

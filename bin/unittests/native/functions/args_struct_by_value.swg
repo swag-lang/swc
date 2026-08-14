@@ -96,7 +96,7 @@ struct DragVTable
     var vtbl: DragVTable = undefined
     vtbl.onDrag = func(state: u32, pt: Pair, effect: *u32)->u32
     {
-        dref effect = pt.x + pt.y
+        effect[] = pt.x + pt.y
         return state + pt.x * 1000 + pt.y
     }
 

@@ -28,7 +28,7 @@ alias StrictAddressArray = [3] s32
     var A  = 10's32
     var PA = &A
     #assert(#typeof(PA) == *s32)
-    @assert(dref PA == 10)
+    @assert(PA[] == 10)
 }
 
 #test
@@ -76,7 +76,7 @@ alias StrictAddressArray = [3] s32
     var px  = &x
     var ppx = &px
     #assert(#typeof(ppx) == **s32)
-    @assert(dref ppx == &x)
+    @assert(ppx[] == &x)
 }
 
 #test
@@ -127,7 +127,7 @@ alias StrictAddressArray = [3] s32
     var PB = &B
     #assert(#typeof(PA) == *s32)
     #assert(#typeof(PB) == *s32)
-    @assert(dref PA + dref PB == 30)
+    @assert(PA[] + PB[] == 30)
 }
 
 #test
@@ -140,8 +140,8 @@ alias StrictAddressArray = [3] s32
     var ppy = &py
     #assert(#typeof(ppx) == **s32)
     #assert(#typeof(ppy) == **s32)
-    @assert(dref ppx == &x)
-    @assert(dref ppy == &y)
+    @assert(ppx[] == &x)
+    @assert(ppy[] == &y)
 }
 
 #test
@@ -167,14 +167,14 @@ alias StrictAddressArray = [3] s32
 {
     func mutateThroughRefPtr(x: *s32)
     {
-        dref x = 55
+        x[] = 55
     }
 
     func inspectConstRefPtr(x: s32, expected: s32)
     {
         let p = &x
         #assert(#typeof(p) == *s32)
-        @assert(dref p == expected)
+        @assert(p[] == expected)
     }
 
     var x: s32 = 10
@@ -189,14 +189,14 @@ alias StrictAddressArray = [3] s32
     var r: *s32 = &y
     let rebound = r
     #assert(#typeof(rebound) == *s32)
-    dref rebound = 123
+    rebound[] = 123
     @assert(x == 55)
     @assert(y == 123)
 
     var cr: const *s32 = &x
     let constRefPtr    = cr
     #assert(#typeof(constRefPtr) == const *s32)
-    @assert(dref constRefPtr == 55)
+    @assert(constRefPtr[] == 55)
 }
 
 #test
@@ -215,7 +215,7 @@ alias StrictAddressArray = [3] s32
     let p = &a[0]
     #assert(#typeof(p) == const *s32)
     let bp = cast(const [*] s32) p
-    @assert(dref p == 10)
+    @assert(p[] == 10)
     @assert(bp[2] == 30)
 }
 
@@ -224,7 +224,7 @@ alias StrictAddressArray = [3] s32
     const a: [4] u8 = [1, 2, 3, 4]
     let p = &a[2]
     #assert(#typeof(p) == const *u8)
-    @assert(dref p == 3)
+    @assert(p[] == 3)
 }
 
 #test
@@ -233,7 +233,7 @@ alias StrictAddressArray = [3] s32
     let p = &a[0]
     #assert(#typeof(p) == const *s32)
     let bp = cast(const [*] s32) p
-    @assert(dref p == 10)
+    @assert(p[] == 10)
     @assert(bp[2] == 30)
 }
 

@@ -1329,7 +1329,7 @@ namespace
 
     // Whether evaluating this argument expression runs a call. Substituting a binding hands the
     // expression itself to the callee body, so it is re-evaluated once per use there: free for a
-    // storage reference (`a`, `a.b`, `dref p`), but not for anything that calls.
+    // storage reference (`a`, `a.b`, `p[]`), but not for anything that calls.
     bool inlineBindingExprCalls(Sema& sema, AstNodeRef exprRef)
     {
         if (exprRef.isInvalid())

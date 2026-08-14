@@ -7,7 +7,7 @@ internal impl Properties
     {
         var data = cast(*String) item.data!
         if @isset(item.editBox) do
-            dref data = item.editBox.text()
+            data[] = item.editBox.text()
         .commitItemChange(item)
     }
 
@@ -28,7 +28,7 @@ internal impl Properties
         var sel = 0'u32
         for &fnt, idx in g_PropSysFonts
         {
-            if dref cur == fnt.name do
+            if cur[] == fnt.name do
                 sel = cast(u32) idx + 1
         }
 
@@ -45,7 +45,7 @@ internal impl Properties
         if sel == 0 do
             data.clear()
         else do
-            dref data = g_PropSysFonts[sel - 1].name
+            data[] = g_PropSysFonts[sel - 1].name
 
         .commitItemChange(item)
     }
@@ -110,7 +110,7 @@ internal impl Properties
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(item.line, dref cast(*String) data!)
+        with let ed = EditBox.create(item.line, (cast(*String) data!)[])
         {
             if me.kind == .Panel
             {
@@ -165,7 +165,7 @@ internal impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(item.line, dref cast(*string) data!)
+        with let ed = EditBox.create(item.line, (cast(*string) data!)[])
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

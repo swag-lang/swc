@@ -102,9 +102,9 @@ func(A, B) castTo(value: A)->B => cast(B) value
 // Generic swap via pointers
 func(T) swap(a: *T, b: *T)
 {
-    let tmp = dref a
-    dref a = dref b
-    dref b = tmp
+    let tmp = a[]
+    a[] = b[]
+    b[] = tmp
 }
 
 // Generic find in array (returns index or -1)

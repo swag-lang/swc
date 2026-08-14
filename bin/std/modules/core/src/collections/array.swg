@@ -597,8 +597,8 @@ impl Array
             var destPtr = buffer + oldCount
             for sliceCount
             {
-                dref destPtr = #nodrop vals[@index]
-                destPtr      += 1
+                destPtr[] = #nodrop vals[@index]
+                destPtr   += 1
             }
         }
         else

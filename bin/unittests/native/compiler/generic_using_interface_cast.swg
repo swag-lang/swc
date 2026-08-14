@@ -43,7 +43,7 @@ struct GenericUsingWrapper
 func(T) makeInterface(object: *T, value: s32)->IGenericUsingCast
 {
     object.valueField = value
-    return cast(IGenericUsingCast) dref object
+    return cast(IGenericUsingCast) object[]
 }
 
 #test

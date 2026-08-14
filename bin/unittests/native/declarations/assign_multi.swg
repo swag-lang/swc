@@ -45,14 +45,14 @@
     var count         = 0'u64
 
     ptr, count += 1
-    @assert(dref ptr == 20)
+    @assert(ptr[] == 20)
     @assert(count == 1)
 
     ptr, count += 1
-    @assert(dref ptr == 30)
+    @assert(ptr[] == 30)
     @assert(count == 2)
 
     ptr, count -= 1
-    @assert(dref ptr == 20)
+    @assert(ptr[] == 20)
     @assert(count == 1)
 }

@@ -62,8 +62,8 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
-        dref total = volume.totalBytes()
-        dref free  = volume.freeBytes()
+        total[] = volume.totalBytes()
+        free[]  = volume.freeBytes()
         let count = Math.min(volume.label.length, cast(u64) labelCapacity - 1)
         if count do
             @memcpy(label, volume.label.buffer, count)
@@ -76,7 +76,7 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        let value  = cString(label)
+        let value = cString(label)
         if @countof(value) > 32 * 4 do
             return StatusInvalidParameter
         volume.label = value
@@ -90,11 +90,11 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
-        let node   = volume.resolve(cString(path))
+        let node = volume.resolve(cString(path))
         if !node do
             return StatusObjectNameNotFound
-        dref nodeId = node!.id
-        return fillInfo(volume, dref nodeId, info)
+        nodeId[] = node!.id
+        return fillInfo(volume, nodeId[], info)
     }
 
     func callbackCreate(context: #null *void, path: #null const [*] u8, directory: u8, attributes: u32, allocationSize: u64, security: #null const *void, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
@@ -102,7 +102,7 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        let name   = cString(path)
+        let name = cString(path)
         if volume.resolve(name) do
             return StatusObjectNameCollision
         let parent = volume.resolveParent(name).parent
@@ -114,7 +114,7 @@ namespace WinFsp
         let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) as err
         if err != null do
             return statusFromError(err)
-        dref nodeId = id
+        nodeId[] = id
         if !directory and allocationSize
         {
             discard catch volume.resizeNode(id, 0) as resizeErr
@@ -130,7 +130,7 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         if node.isDirectory() do
@@ -173,7 +173,7 @@ namespace WinFsp
         if (flags & CleanupSetChangeTime) != 0 do
             node.changeTime = now
         if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit | CleanupSetLastAccessTime | CleanupSetLastWriteTime | CleanupSetChangeTime)) != 0 do
-            volume.touch(nodeId)
+            volume.touchMetadata(nodeId)
 
         // A create is intentionally pending until cleanup so its initial data
         // and timestamps share one journal record. Cleanup has no result
@@ -187,14 +187,14 @@ namespace WinFsp
     {
         if !length
         {
-            dref transferred = 0
+            transferred[] = 0
             return StatusSuccess
         }
 
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         if node!.isDirectory() do
@@ -202,7 +202,7 @@ namespace WinFsp
         let count = catch volume.readNode(nodeId, offset, @mkslice(cast([*] u8) buffer!, length)) as err
         if err != null do
             return statusFromError(err)
-        dref transferred = count
+        transferred[] = count
         return StatusSuccess
     }
 
@@ -210,14 +210,14 @@ namespace WinFsp
     {
         if !length
         {
-            dref transferred = 0
+            transferred[] = 0
             return callbackGetFileInfo(context, nodeId, info)
         }
 
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         let validNode = node!
@@ -249,7 +249,7 @@ namespace WinFsp
         let count = catch volume.writeNode(nodeId, offset, @mkslice(cast(const [*] u8) buffer!, length), writeToEnd != 0, constrained != 0) as err
         if err != null do
             return statusFromError(err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull)
-        dref transferred = count
+        transferred[] = count
         return fillInfo(volume, nodeId, info)
     }
 
@@ -279,7 +279,7 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         let validNode = node!
@@ -300,7 +300,7 @@ namespace WinFsp
             validNode.lastWriteTime = lastWriteTime
         if changeTime do
             validNode.changeTime = changeTime
-        volume.touch(nodeId)
+        volume.touchMetadata(nodeId)
         return fillInfo(volume, nodeId, info)
     }
 
@@ -309,7 +309,7 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         let validNode = node!
@@ -331,7 +331,7 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         if nodeId == 1 do
@@ -359,12 +359,12 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         let stored    = node!.security.toSlice()
-        let available = dref securitySize
-        dref securitySize = cast(u32) @countof(stored)
+        let available = securitySize[]
+        securitySize[] = cast(u32) @countof(stored)
         if !@countof(stored) do
             return StatusSuccess
         if !security or available < @countof(stored) do
@@ -378,7 +378,7 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        let node   = volume.nodeById(nodeId)
+        let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         let validNode = node!
@@ -397,7 +397,7 @@ namespace WinFsp
 
     func callbackReadDirectory(context: #null *void, nodeId: u64, marker: #null const [*] u8, emit: EmitDirFn, emitContext: #null *void, complete: *u8)->s32
     {
-        let volume    = cast(*Volume) context!
+        let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let directory = volume.nodeById(nodeId)
@@ -451,13 +451,13 @@ namespace WinFsp
             child = volume.nextSibling(current.id)
         }
 
-        dref complete = 1
+        complete[] = 1
         return StatusSuccess
     }
 
     func callbackGetDirInfoByName(context: #null *void, directoryId: u64, name: #null const [*] u8, info: *FileInfo)->s32
     {
-        let volume    = cast(*Volume) context!
+        let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let directory = volume.nodeById(directoryId)

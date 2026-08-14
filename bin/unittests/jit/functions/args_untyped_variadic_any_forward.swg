@@ -50,7 +50,7 @@ func anyIsPair(value: any)->bool
 func anyDataS32(value: any)->s32
 {
     let ptr = cast(*s32) @dataof(value)
-    return dref ptr
+    return ptr[]
 }
 
 func relayAny(value: any)->any
@@ -280,7 +280,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func strictAnyViewThroughVariadic()->bool
     {
         var raw: any = 42's32
-        let boxed    = dref cast(*VariadicStrictAny) &raw
+        let boxed    = (cast(*VariadicStrictAny) &raw)[]
         return variadicFirstAnyIsS32(boxed)
     }
 
@@ -306,7 +306,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     {
         var value: s32 = 1234
         var raw:   any = @mkany(&value, s32)
-        let boxed      = dref cast(*VariadicStrictAny) &raw
+        let boxed      = (cast(*VariadicStrictAny) &raw)[]
         return variadicFirstAnyDataS32(boxed)
     }
 

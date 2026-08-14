@@ -250,39 +250,39 @@ impl CaptureClipboardForm
         {
         case FormArrow as form:
             .kind  = .Arrow
-            .arrow = dref form
+            .arrow = form[]
 
         case FormDraw as form:
             .kind = .Draw
-            .draw = dref form
+            .draw = form[]
 
         case FormImage as form:
             .kind  = .Image
-            .image = dref form
+            .image = form[]
 
         case FormLine as form:
             .kind = .Line
-            .line = dref form
+            .line = form[]
 
         case FormPolygon as form:
             .kind    = .Polygon
-            .polygon = dref form
+            .polygon = form[]
 
         case FormShape as form:
             .kind  = .Shape
-            .shape = dref form
+            .shape = form[]
 
         case FormStep as form:
             .kind = .Step
-            .step = dref form
+            .step = form[]
 
         case FormText as form:
             .kind = .Text
-            .text = dref form
+            .text = form[]
 
         case FormCallout as form:
             .kind    = .Callout
-            .callout = dref form
+            .callout = form[]
 
         default:
             .kind = .None
@@ -297,48 +297,48 @@ impl CaptureClipboardForm
         {
         case .Arrow:
             let form = Memory.new'FormArrow()
-            dref form = .arrow
-            result    = form
+            form[] = .arrow
+            result = form
 
         case .Draw:
             let form = Memory.new'FormDraw()
-            dref form = .draw
-            result    = form
+            form[] = .draw
+            result = form
 
         case .Image:
             let form = Memory.new'FormImage()
-            dref form = .image
-            result    = form
+            form[] = .image
+            result = form
 
         case .Line:
             let form = Memory.new'FormLine()
-            dref form = .line
-            result    = form
+            form[] = .line
+            result = form
 
         case .Polygon:
             let form = Memory.new'FormPolygon()
-            dref form = .polygon
-            result    = form
+            form[] = .polygon
+            result = form
 
         case .Shape:
             let form = Memory.new'FormShape()
-            dref form = .shape
-            result    = form
+            form[] = .shape
+            result = form
 
         case .Step:
             let form = Memory.new'FormStep()
-            dref form = .step
-            result    = form
+            form[] = .step
+            result = form
 
         case .Text:
             let form = Memory.new'FormText()
-            dref form = .text
-            result    = form
+            form[] = .text
+            result = form
 
         case .Callout:
             let form = Memory.new'FormCallout()
-            dref form = .callout
-            result    = form
+            form[] = .callout
+            result = form
 
         case .None:
             return result
@@ -559,7 +559,7 @@ impl Capture
     {
         var output:  ConcatBuffer
         var encoder: Encoder'Write.TagBin
-        encoder.writeAll(&output, dref value)
+        encoder.writeAll(&output, value[])
         output.makeLinear()
 
         var result: retval
@@ -674,7 +674,7 @@ impl Capture
 
         var writer: Scc.Writer
         writer.initialize(containerKind())
-        dref writer.manifest() = #move manifest
+        writer.manifest()[] = #move manifest
         let typeTagBin     = tagBinType()
         let typePng        = pngType()
         let roleModel      = modelRole()
@@ -731,7 +731,7 @@ impl Capture
             var decoder: Decoder'Read.TagBin
             let metadata = decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())!
             defer Memory.delete(metadata)
-            capture = fromLibraryMetadata(dref metadata, reader.manifest())
+            capture = fromLibraryMetadata(metadata[], reader.manifest())
         }
         else
         {
@@ -754,7 +754,7 @@ impl Capture
                 var imageBytes = try reader.readChunk(background.id)
                 var imageDecoder: Decoder'Read.TagBin
                 let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
-                capture.backImg = #move dref image
+                capture.backImg = #move image[]
                 Memory.delete(image)
             }
 
@@ -764,7 +764,7 @@ impl Capture
                 var imageBytes = try reader.readChunk(original.id)
                 var imageDecoder: Decoder'Read.TagBin
                 let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
-                capture.backImgOriginal = #move dref image
+                capture.backImgOriginal = #move image[]
                 Memory.delete(image)
             }
         }
@@ -1606,8 +1606,8 @@ impl Capture
         if !editView.main.snap and !ctrlPressed do
             return
 
-        var nx = x ? dref x : 0
-        var ny = y ? dref y : 0
+        var nx = x ? x[] : 0
+        var ny = y ? y[] : 0
 
         let bound = .getSelectionBoundRect(editForm)
 
@@ -1719,9 +1719,9 @@ impl Capture
         }
 
         if x do
-            dref x = nx
+            x[] = nx
         if y do
-            dref y = ny
+            y[] = ny
     }
 
     //////////////////////////////
@@ -2283,7 +2283,7 @@ impl Capture
     mtd expandGroups(sel: *Array'u64)
     {
         var ids: Array'u64
-        for s in dref sel
+        for s in sel[]
         {
             let g = formOuterGroup(.forms[s])
             if g != 0 and !ids.contains(g) do

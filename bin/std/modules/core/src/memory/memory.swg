@@ -84,7 +84,7 @@ func withAllocator(allocator: #null Swag.IAllocator, stmt: #code)
     let prev = @getcontext()
     defer @setcontext(prev)
 
-    var cxt = dref prev
+    var cxt = prev[]
     cxt.allocator = allocator
     @setcontext(cxt)
 
@@ -98,7 +98,7 @@ func withTemporaryAllocator(stmt: #code)
     let prev = @getcontext()
     defer @setcontext(prev)
 
-    var cxt = dref prev
+    var cxt = prev[]
     cxt.allocator = @getcontext().tempAllocator
     @setcontext(cxt)
 

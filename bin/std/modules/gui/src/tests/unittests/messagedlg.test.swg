@@ -40,9 +40,9 @@ func unbreakableMessage()->String
     host.app.sigFrame += func|host = &host, dlg, width = &width|(app)
     {
         discard app
-        if dref width != 0 do
+        if width[] != 0 do
             return
-        dref width = dlg.surface!.position.width
+        width[] = dlg.surface!.position.width
         @assert(host.clickModalButton(Dialog.BtnOk))
     }
 

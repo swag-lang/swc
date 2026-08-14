@@ -528,7 +528,7 @@ namespace
         return storageRootVariable(sema, leftRef, forAssignment, leftWhole, depth + 1);
     }
 
-    // The storage root of an expression reached THROUGH a carrier ('dref p', 'p.field',
+    // The storage root of an expression reached THROUGH a carrier ('p[]', 'p.field',
     // 'p[i]'): the pointee is a root only when the carrier is tracked - a pointer holding
     // a local borrow, a pointer parameter (caller-owned storage), a local bound to either
     // of those, or a payload owned by a known value.
@@ -3367,7 +3367,7 @@ namespace SemaEscape
         // ('me.list = item' -> pair item->me): legal here, but judged at call sites
         // where the destination argument provably outlives the stored one. The
         // assignment-mode root above bails on parameter-pointer destinations, so walk
-        // the destination in READ mode: it roots member/dref accesses at the signature
+        // the destination in READ mode: it roots member/deref accesses at the signature
         // receiver. A BARE identifier destination is the parameter being rebound: no
         // caller-visible store.
         if (info.kind == SemaEscapeKind::Parameter)

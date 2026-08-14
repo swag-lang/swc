@@ -115,7 +115,7 @@ func reverseCode(bins: ShelfBins)->s32
     for &writeUnits, slot in bins
     {
         if slot != 1'u64 do
-            dref writeUnits += 3 + cast(s32) slot
+            writeUnits[] += 3 + cast(s32) slot
     }
 
     @assert(bins.morning == 5)

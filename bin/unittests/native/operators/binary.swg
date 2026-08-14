@@ -368,6 +368,6 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
     let next          = binaryStrictPointerOffset(base, one)
 
     #assert(#typeof(next) == BinaryStrictS32Ptr)
-    @assert(dref next == 20)
+    @assert(next[] == 20)
     @assert(binaryStrictPointerDiff(next, base) == 1)
 }

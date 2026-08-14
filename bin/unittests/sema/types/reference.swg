@@ -73,10 +73,10 @@ impl RefIndexBuffer
 }
 
 func sumConstPair(value: const *RefPair)->s32 { return value.x + value.y }
-func(T) addRefValue(value: *T, rhs: T)->T { return dref value + rhs }
+func(T) addRefValue(value: *T, rhs: T)->T { return value[] + rhs }
 func(T) dampRefValue(currentVelocity: *T, omega, clampedChange, deltaTime: T)->T
 {
-    let temp = (dref currentVelocity + omega * clampedChange) * deltaTime
+    let temp = (currentVelocity[] + omega * clampedChange) * deltaTime
     return temp
 }
 
@@ -84,7 +84,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 {
     let omega  = 2.0 / smoothTime
     let change = current - target
-    let temp   = (dref currentVelocity + omega * change) * deltaTime
+    let temp   = (currentVelocity[] + omega * change) * deltaTime
     return temp
 }
 
@@ -109,8 +109,8 @@ func semaTest006()
 {
     var value:    f32        = 1.5
     let valueRef: const *f32 = &value
-    let copied               = cast(f32) dref valueRef
-    let sum                  = dref valueRef + 2.5'f32
+    let copied               = cast(f32) valueRef[]
+    let sum                  = valueRef[] + 2.5'f32
 
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
@@ -154,7 +154,7 @@ func semaTest011()
 {
     var grid:     [2, 3] u32
     var valueRef: *u32 = &grid[1, 2]
-    dref valueRef += 1'u32
+    valueRef[] += 1'u32
 
     #assert(#typeof(valueRef) == #type *u32)
 }
@@ -167,7 +167,7 @@ func semaTest012()
     for c, i in text
     {
         var valueRef: *u32 = &freq[i, c - 'a']
-        dref valueRef += 1'u32
+        valueRef[] += 1'u32
     }
 }
 
@@ -178,8 +178,8 @@ func semaTest013()
     var index = 0's64
 
     let valueRef: *s32 = values.ref1(index)
-    total         += dref valueRef
-    dref valueRef += 5
+    total      += valueRef[]
+    valueRef[] += 5
 
     #assert(#typeof(valueRef) == #type *s32)
     #assert(#typeof(total) == s32)

@@ -3,7 +3,7 @@ using Core, Gui
 // A panel holding a heading, a field form, and one trailing row of actions.
 //
 // The card is a raised surface, not a framed box: it is told apart from the ground by its own
-// fill, so nothing has to be drawn around it or between its parts. The two panels of the main
+// fill, so nothing has to be drawn around it or between its parts. The form panels of the main
 // window share this shape, and only their fields differ.
 struct VaultCard
 {

@@ -160,14 +160,14 @@ let renderer: IRenderer = &cpu
 ## Borrow Through Pointers
 
 `*T` is the only borrowed indirection: it is non-null, member access and method calls read
-through it directly, and only a whole-value write needs `dref`.
+through it directly, and only a whole-value read or write opens the place with the postfix `[]`.
 
 - Iterate elements as pointers. Over struct elements, `for v in items` binds `const *T` — never
   a copy — and `for &v in items` binds `*T`. Access members and call methods through the binding
-  directly; write a scalar element with `dref v = value`.
+  directly; write a scalar element with `v[] = value`.
 - Pass structs by value. The ABI hands the callee a const address, so a by-value struct
   parameter costs no copy. Take `*T` only when the callee mutates the caller's value, and write
-  the whole pointee with `dref`.
+  the whole pointee with `[]`.
 - `me` is a non-null pointer to the receiver. Pass `me` itself where a `*T` is expected; `&me`
   is the address of the receiver slot, never the object.
 - Index places directly: `items[i].field = x` and `&items[i]` route through the container's

@@ -156,7 +156,7 @@ impl SheetView
                 continue
             .openFamily(familyOf(name))
 
-            let value = dref cast(const *Color) (cast([*] u8) colors + field.offset)
+            let value = (cast(const *Color) (cast([*] u8) colors + field.offset))[]
 
             with var row: SheetRow
             {
@@ -188,7 +188,7 @@ impl SheetView
             var row: SheetRow
             row.name = name
             for i in ThemeVariantCount do
-                row.colors[i] = dref cast(const *Color) (cast([*] u8) &palettes[i] + field.offset)
+                row.colors[i] = (cast(const *Color) (cast([*] u8) &palettes[i] + field.offset))[]
 
             let swagDark  = row.colors[cast(s32) ThemeVariant.SwagDark]
             let swagLight = row.colors[cast(s32) ThemeVariant.SwagLight]
@@ -221,12 +221,12 @@ impl SheetView
             {
                 .name = name
                 if field.pointedType == #typeof(f32) do
-                    .text = Format.toString("%", dref cast(const *f32) raw)
+                    .text = Format.toString("%", (cast(const *f32) raw)[])
                 elif field.pointedType == #typeof(u32) do
-                    .text = Format.toString("%", dref cast(const *u32) raw)
+                    .text = Format.toString("%", (cast(const *u32) raw)[])
                 else
                 {
-                    let vec = dref cast(const *Math.Vector4) raw
+                    let vec = (cast(const *Math.Vector4) raw)[]
                     .text = Format.toString("% % % %", vec.x, vec.y, vec.z, vec.w)
                 }
             }

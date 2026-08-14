@@ -26,23 +26,23 @@ func moveDelta(outDx: *s32, outDy: *s32, instruction: u8)
     switch instruction
     {
     case '<'u8:
-        dref outDx = -1
-        dref outDy = 0
+        outDx[] = -1
+        outDy[] = 0
         break
 
     case '>'u8:
-        dref outDx = 1
-        dref outDy = 0
+        outDx[] = 1
+        outDy[] = 0
         break
 
     case '^'u8:
-        dref outDx = 0
-        dref outDy = -1
+        outDx[] = 0
+        outDy[] = -1
         break
 
     case 'v'u8:
-        dref outDx = 0
-        dref outDy = 1
+        outDx[] = 0
+        outDy[] = 1
         break
 
     default:

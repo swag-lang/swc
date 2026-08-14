@@ -131,22 +131,22 @@ func day10B()
             switch c
             {
             case '-':
-                dref one = .West | .East
+                one[] = .West | .East
 
             case '|':
-                dref one = .North | .South
+                one[] = .North | .South
 
             case 'L':
-                dref one = .North | .East
+                one[] = .North | .East
 
             case 'J':
-                dref one = .North | .West
+                one[] = .North | .West
 
             case '7':
-                dref one = .South | .West
+                one[] = .South | .West
 
             case 'F':
-                dref one = .South | .East
+                one[] = .South | .East
 
             case 'S':
                 startX = col
@@ -157,14 +157,14 @@ func day10B()
 
     // Determin the shape of the start 'S'
     let start = mp(startX, startY)
-    if dref mp(startX - 1, startY) & .East do
-        dref start |= .West
-    if dref mp(startX + 1, startY) & .West do
-        dref start |= .East
-    if dref mp(startX, startY - 1) & .South do
-        dref start |= .North
-    if dref mp(startX, startY + 1) & .North do
-        dref start |= .South
+    if mp(startX - 1, startY)[] & .East do
+        start[] |= .West
+    if mp(startX + 1, startY)[] & .West do
+        start[] |= .East
+    if mp(startX, startY - 1)[] & .South do
+        start[] |= .North
+    if mp(startX, startY + 1)[] & .North do
+        start[] |= .South
     var visitX = startX
 
     // Visit the maze
@@ -172,24 +172,24 @@ func day10B()
     for
     {
         let one = mp(visitX, visitY)
-        dref one |= .Edge
+        one[] |= .Edge
         var moved = false
 
         switch
         {
-        case dref one & .East and !(dref mp(visitX + 1, visitY) & .Edge):
+        case one[] & .East and !(mp(visitX + 1, visitY)[] & .Edge):
             visitX += 1
             moved  = true
 
-        case dref one & .West and !(dref mp(visitX - 1, visitY) & .Edge):
+        case one[] & .West and !(mp(visitX - 1, visitY)[] & .Edge):
             visitX -= 1
             moved  = true
 
-        case dref one & .North and !(dref mp(visitX, visitY - 1) & .Edge):
+        case one[] & .North and !(mp(visitX, visitY - 1)[] & .Edge):
             visitY -= 1
             moved  = true
 
-        case dref one & .South and !(dref mp(visitX, visitY + 1) & .Edge):
+        case one[] & .South and !(mp(visitX, visitY + 1)[] & .Edge):
             visitY += 1
             moved  = true
         }
@@ -204,14 +204,14 @@ func day10B()
     {
         for c, col in l.bytes()
         {
-            let one = dref mp(cast(s64) col, cast(s64) line)
+            let one = mp(cast(s64) col, cast(s64) line)[]
             if one & .Edge do
                 continue
 
             var inside = false
             for x in col
             {
-                let one1 = dref mp(cast(s64) x, cast(s64) line)
+                let one1 = mp(cast(s64) x, cast(s64) line)[]
                 if one1 & .Edge and one1 & .North do
                     inside = !inside
             }

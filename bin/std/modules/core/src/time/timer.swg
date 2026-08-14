@@ -52,7 +52,7 @@ impl Timer
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
 
         .callback = callback
-        .context  = dref @getcontext()
+        .context  = @getcontext()[]
         .handle   = createTimerNative(me, cast(u32) delayMs, periodic)
     }
 

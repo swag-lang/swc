@@ -104,13 +104,13 @@ using Swag, Core
     var didClick:    bool
     f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(app)
     {
-        dref frames += 1
-        g_Width     = 42
-        g_Height    = 27
-        if !dref didClick
+        frames[] += 1
+        g_Width  = 42
+        g_Height = 27
+        if !didClick[]
         {
             @assert(host.clickModalButton(Dialog.BtnOk))
-            dref didClick = true
+            didClick[] = true
         }
     }
 
@@ -148,10 +148,10 @@ using Swag, Core
     {
         g_Width  = 42
         g_Height = 27
-        if !dref didClick
+        if !didClick[]
         {
             @assert(host.clickModalButton(Dialog.BtnOk))
-            dref didClick = true
+            didClick[] = true
         }
     }
 

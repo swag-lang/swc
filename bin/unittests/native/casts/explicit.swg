@@ -40,17 +40,17 @@ func takeStringValue(value: string)->u64
 {
     var text             = "seed"
     var textRef: *string = &text
-    let textValue        = cast(string) dref textRef
+    let textValue        = cast(string) textRef[]
 
     @assert(textValue == "seed")
-    @assert(takeStringValue(dref textRef) == 4'u64)
+    @assert(takeStringValue(textRef[]) == 4'u64)
 }
 
 #test
 {
     var text             = "seed"
     var textRef: *string = &text
-    let snapshot         = cast(string) dref textRef
+    let snapshot         = cast(string) textRef[]
     text = "changed"
 
     @assert(snapshot == "seed")

@@ -76,8 +76,8 @@ func parseNumber(bytes: const [..] u8, pos: u64, outVal: *s32, outEnd: *u64)->bo
     if digits == 0 or digits > 3 do
         return false
 
-    dref outVal = value
-    dref outEnd = i
+    outVal[] = value
+    outEnd[] = i
     return true
 }
 

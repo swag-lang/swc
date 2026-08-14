@@ -16,7 +16,7 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 {
     if type.kind == .Native and (cast(const *Swag.TypeInfoNative) type).nativeKind == .Any
     {
-        __setErr(dref cast(*any) data)
+        __setErr((cast(*any) data)[])
         return
     }
 
@@ -110,14 +110,14 @@ func __endErr()
 // '__endErr' only after H). All the fat-value copy lives here so codegen just passes the slot.
 func __bindErr(dst: *#null any)
 {
-    dref dst = @getcontext().curError
+    dst[] = @getcontext().curError
 }
 
 // Reset a 'catch e as err' capture slot before the fallible call runs, so a successful
 // call leaves 'err' null (the failure path overwrites it via '__bindErr').
 func __clearErr(dst: *#null any)
 {
-    dref dst = null
+    dst[] = null
 }
 
 func __catchErr()

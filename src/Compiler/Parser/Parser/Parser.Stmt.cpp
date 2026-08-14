@@ -1044,7 +1044,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::Identifier:
         case TokenId::SymDot:
         case TokenId::SymLeftParen:
-        case TokenId::KwdDRef:
         case TokenId::IntrinsicGetContext:
         case TokenId::IntrinsicProcessInfos:
         case TokenId::KwdMe:

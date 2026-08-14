@@ -119,7 +119,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     @assert(sumIndexes == 15)
 
     for &byte in value do
-        dref byte += 1'u8
+        byte[] += 1'u8
 
     @assert(assertString(value, "b[defg"))
 
@@ -271,7 +271,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     let ptr           = cast(const *String) &value
 
     @assert(ptr.toString() == "alpha")
-    @assert(dref ptr == "alpha")
+    @assert(ptr[] == "alpha")
 }
 
 #test

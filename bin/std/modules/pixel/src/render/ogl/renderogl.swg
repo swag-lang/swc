@@ -499,7 +499,7 @@ impl RenderOgl
         // in lockstep with what was just drawn.
         glFlush()
         glFinish()
-        .native.swapBuffers(dref oglContext(.curRC))
+        .native.swapBuffers(oglContext(.curRC)[])
     }
 
     // Set the current rendering context
@@ -511,7 +511,7 @@ impl RenderOgl
         // more: a submission recorded before the first frame would otherwise find a
         // zero-sized target and a zero transform, and draw nothing at all.
         .curRC = rc
-        .native.setCurrentContext(dref oglContext(rc))
+        .native.setCurrentContext(oglContext(rc)[])
         .resetTransformImpl()
     }
 
@@ -1425,7 +1425,7 @@ impl RenderOgl
         }
 
         var rt = Memory.new'RenderTarget()
-        dref rt = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
+        rt[] = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
         return rt
     }
 

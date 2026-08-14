@@ -22,7 +22,7 @@ impl SelfPointerValue
 
     mtd const first()->u8
     {
-        return dref .buffer!
+        return .buffer![]
     }
 
     mtd opPostCopy()

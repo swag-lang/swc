@@ -28,10 +28,10 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 {
     var result: u32
 
-    while dref index < @countof(bytes) and bytes[dref index] >= '0' and bytes[dref index] <= '9'
+    while index[] < @countof(bytes) and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result     = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
-        dref index += 1
+        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        index[] += 1
     }
 
     return result

@@ -26,7 +26,7 @@ func nullPointerFallback(ptr: #null *s32)->s32
 {
     let fallback = cast(*s32) &GNullOrelse
     let resolved = ptr orelse fallback
-    return dref resolved
+    return resolved[]
 }
 
 func nonNullPointerWins()->bool

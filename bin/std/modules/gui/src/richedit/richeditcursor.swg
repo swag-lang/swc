@@ -101,7 +101,7 @@ impl RichEditCtrl
         var tab = (of / sx) * sx
         tab = of - tab
         if numBlanks do
-            dref numBlanks = cast(s32) (tab / sizeBlank.x)
+            numBlanks[] = cast(s32) (tab / sizeBlank.x)
 
         tab = sx - tab
         return tab

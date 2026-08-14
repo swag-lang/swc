@@ -225,7 +225,7 @@ func testSameBytes(left, right: const [..] u8)->bool
     // Write exactly what an old save produced: the serialized capture, nothing in front.
     var buf:     ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
-    expect encoder.writeAll(&buf, dref f.capture)
+    expect encoder.writeAll(&buf, f.capture[])
 
     let path = testTempCapturePath()
     defer discard catch File.delete(path)

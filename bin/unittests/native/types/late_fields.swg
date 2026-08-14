@@ -44,7 +44,7 @@ func nativeLateAddressOf()->bool
     var it   = NativeLateItem{value: 3}
     var box: NativeLateBox
     let slot = &box.item
-    dref slot = &it
+    slot[] = &it
     return @isset(box.item) and box.item.value == 3
 }
 

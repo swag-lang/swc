@@ -90,12 +90,12 @@ alias CompoundStrictS32Ptr = [*] s32
 
 func addAssign(a: *s32, b: s32)
 {
-    dref a += b
+    a[] += b
 }
 
 func mulAssign(a: *s32, b: s32)
 {
-    dref a *= b
+    a[] *= b
 }
 
 // Compound assignment through reference parameters
@@ -110,12 +110,12 @@ func mulAssign(a: *s32, b: s32)
 
 func addAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
 {
-    dref a += b
+    a[] += b
 }
 
 func mulAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
 {
-    dref a *= b
+    a[] *= b
 }
 
 #test
@@ -167,7 +167,7 @@ func mulAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
     var data: [3] s32 = [10, 20, 30]
     var ptr           = cast(CompoundStrictS32Ptr) &data[0]
     ptr += cast(CompoundStrictS32) 1
-    @assert(dref ptr == 20)
+    @assert(ptr[] == 20)
     ptr -= cast(CompoundStrictS32) 1
-    @assert(dref ptr == 10)
+    @assert(ptr[] == 10)
 }

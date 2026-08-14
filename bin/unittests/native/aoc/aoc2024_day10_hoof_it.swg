@@ -134,8 +134,8 @@ func dfs(g: Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
         let idx = row * MaxDim + col
         if !vis[idx]
         {
-            vis[idx]      = true
-            dref scoreOut += 1
+            vis[idx]   = true
+            scoreOut[] += 1
         }
         return 1
     }

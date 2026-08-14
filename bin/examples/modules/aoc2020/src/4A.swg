@@ -54,7 +54,7 @@ func day4A()
     var total, pass: u32
     for l in lines
     {
-        let res = Tokenize.split(dref l, ' 'u8)
+        let res = Tokenize.split(l[], ' 'u8)
         for r in res
         {
             let res1 = Tokenize.split(r, ':'u8)

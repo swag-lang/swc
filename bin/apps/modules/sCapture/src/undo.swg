@@ -257,7 +257,7 @@ impl Undo
                 let t = formEditableText(itf)
                 if !t do
                     continue
-                .oldText.add(dref t)
+                .oldText.add(t[])
             }
 
         case .SetFont:
@@ -268,8 +268,8 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                .oldText.add(dref np)
-                .oldU32.add(cast(u32) dref sp!)
+                .oldText.add(np[])
+                .oldU32.add(cast(u32) sp![])
             }
 
         case .SetFontStyle:
@@ -279,7 +279,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !sp do
                     continue
-                .oldU32.add(cast(u32) dref sp)
+                .oldU32.add(cast(u32) sp[])
             }
 
         case .SetFormFromModel:
@@ -470,7 +470,7 @@ impl Undo
                 let t = formEditableText(itf)
                 if !t do
                     continue
-                dref t = .text
+                t[] = .text
                 formEditableTextDirty(itf)
             }
 
@@ -481,8 +481,8 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np  = .text
-                dref sp! = .fontStyle
+                np[]  = .text
+                sp![] = .fontStyle
                 formFontDirty(itf)
             }
 
@@ -492,7 +492,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !sp do
                     continue
-                dref sp = .fontStyle
+                sp[] = .fontStyle
                 formFontDirty(itf)
             }
 
@@ -700,7 +700,7 @@ impl Undo
                 let t = formEditableText(itf)
                 if !t do
                     continue
-                dref t = .oldText[idx]
+                t[] = .oldText[idx]
                 formEditableTextDirty(itf)
             }
 
@@ -711,8 +711,8 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np  = .oldText[idx]
-                dref sp! = cast() .oldU32[idx]
+                np[]  = .oldText[idx]
+                sp![] = cast() .oldU32[idx]
                 formFontDirty(itf)
             }
 
@@ -722,7 +722,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !sp do
                     continue
-                dref sp = cast() .oldU32[idx]
+                sp[] = cast() .oldU32[idx]
                 formFontDirty(itf)
             }
 

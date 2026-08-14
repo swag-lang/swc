@@ -55,7 +55,7 @@ func parseAlignedNumber(line: string, firstColumn, lastColumn: u32, value: *u64)
     }
 
     if foundDigit do
-        dref value = result
+        value[] = result
     return foundDigit
 }
 

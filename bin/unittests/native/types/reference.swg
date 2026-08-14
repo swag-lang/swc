@@ -43,18 +43,18 @@ impl RefIndexBuffer
     func getPtr(x: *s32)->*s32 { return x; }
     func writeThrough(p: *s32)
     {
-        dref p = 42
+        p[] = 42
     }
     var v: s32 = 10
     var p      = getPtr(&v)
-    @assert(dref p == 10)
+    @assert(p[] == 10)
     writeThrough(p)
     @assert(v == 42)
 }
 
 func writeScalarRef(target: *s32, value: s32)
 {
-    dref target = value
+    target[] = value
 }
 
 #test
@@ -62,16 +62,16 @@ func writeScalarRef(target: *s32, value: s32)
     var value:    s32  = 10
     var valueRef: *s32 = &value
 
-    dref valueRef = 42
-    @assert(dref valueRef == 42)
+    valueRef[] = 42
+    @assert(valueRef[] == 42)
     @assert(value == 42)
 
-    dref valueRef += 8
-    @assert(dref valueRef == 50)
+    valueRef[] += 8
+    @assert(valueRef[] == 50)
     @assert(value == 50)
 
     writeScalarRef(&value, 99)
-    @assert(dref valueRef == 99)
+    @assert(valueRef[] == 99)
     @assert(value == 99)
 }
 
@@ -92,7 +92,7 @@ func writeScalarRef(target: *s32, value: s32)
 
 func writeVecRef(target: *Vec2, value: Vec2)
 {
-    dref target = value
+    target[] = value
 }
 
 #test
@@ -101,7 +101,7 @@ func writeVecRef(target: *Vec2, value: Vec2)
     var valueRef: *Vec2 = &value
     let other:    Vec2  = {x: 30, y: 40}
 
-    dref valueRef = other
+    valueRef[] = other
     @assert(valueRef.x == 30)
     @assert(valueRef.y == 40)
     @assert(value.x == 30)
@@ -136,10 +136,10 @@ func writeVecRef(target: *Vec2, value: Vec2)
 {
     func nextDigit(bytes: const [..] u8, index: *u64)->u8
     {
-        if dref index < @countof(bytes)
+        if index[] < @countof(bytes)
         {
-            let value = bytes[dref index]
-            dref index += 1
+            let value = bytes[index[]]
+            index[] += 1
             return value
         }
 
@@ -160,11 +160,11 @@ func writeVecRef(target: *Vec2, value: Vec2)
     var index = 0's64
 
     let valueRef: *s32 = values.ref1(index)
-    total         += dref valueRef
-    dref valueRef += 5
+    total      += valueRef[]
+    valueRef[] += 5
 
     @assert(total == 13)
-    @assert(dref valueRef == 17)
+    @assert(valueRef[] == 17)
     @assert(values.values[0] == 17)
 }
 
@@ -215,7 +215,7 @@ func inspectConstScalar(value: s32, expected: s32)
     let ptr = &value
     #assert(#typeof(ptr) == *s32)
     @assert(value == expected)
-    @assert(dref ptr == expected)
+    @assert(ptr[] == expected)
 }
 
 func sumConstAnon(value: { x: s32, y: s32 })->s32
@@ -235,10 +235,10 @@ struct RefFloatBox
 }
 
 func sumConstPair(value: const *RefPair)->s32 { return value.x + value.y }
-func(T) addRefValue(value: *T, rhs: T)->T { return dref value + rhs }
+func(T) addRefValue(value: *T, rhs: T)->T { return value[] + rhs }
 func(T) dampRefValue(currentVelocity: *T, omega, clampedChange, deltaTime: T)->T
 {
-    let temp = (dref currentVelocity + omega * clampedChange) * deltaTime
+    let temp = (currentVelocity[] + omega * clampedChange) * deltaTime
     return temp
 }
 
@@ -246,7 +246,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 {
     let omega  = 2.0 / smoothTime
     let change = current - target
-    let temp   = (dref currentVelocity + omega * change) * deltaTime
+    let temp   = (currentVelocity[] + omega * change) * deltaTime
     return temp
 }
 
@@ -268,8 +268,8 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 {
     var value:    f32        = 1.5
     let valueRef: const *f32 = &value
-    let copied               = cast(f32) dref valueRef
-    let sum                  = dref valueRef + 2.5'f32
+    let copied               = cast(f32) valueRef[]
+    let sum                  = valueRef[] + 2.5'f32
 
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
@@ -322,9 +322,9 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     var grid:     [2, 3] u32
     var valueRef: *u32 = &grid[1, 2]
 
-    dref valueRef += 1'u32
+    valueRef[] += 1'u32
     @assert(grid[1, 2] == 1'u32)
 
-    dref valueRef = 7'u32
+    valueRef[] = 7'u32
     @assert(grid[1, 2] == 7'u32)
 }

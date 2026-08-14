@@ -13,5 +13,5 @@ public func macAddress()->u64
     var length: DWORD = #sizeof(info)
     if GetAdaptersInfo(&info, &length) != 0 do
         return 0
-    return dref cast(*u64) &info[0].address[0]
+    return (cast(*u64) &info[0].address[0])[]
 }

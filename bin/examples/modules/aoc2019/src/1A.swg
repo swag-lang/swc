@@ -29,7 +29,7 @@ func day1A()
 
     var total = 0
     for l in lines do
-        total += (expect StrConv.toS32(dref l) / 3) - 2
+        total += (expect StrConv.toS32(l[]) / 3) - 2
 
     // Console.print("total: ", total)
     @assert(total == 3296560)

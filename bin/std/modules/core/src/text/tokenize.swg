@@ -50,7 +50,7 @@ func splitLines(src: string)->Array'(string)
     var end    = dataof
     while cpt < countof
     {
-        while cpt < countof and dref end != '\r' and dref end != '\n'
+        while cpt < countof and end[] != '\r' and end[] != '\n'
         {
             end += 1
             cpt += 1
@@ -58,7 +58,7 @@ func splitLines(src: string)->Array'(string)
 
         let onestr = @mkstring(dataof, cast(u64) (end - dataof))
         result.add(onestr)
-        if cpt < countof - 1 and dref end == '\r' and end[1] == '\n' do
+        if cpt < countof - 1 and end[] == '\r' and end[1] == '\n' do
             end, cpt += 1
         end, cpt += 1
         dataof   = end
@@ -229,7 +229,7 @@ func sliceToDelimiter(source: string, delimiter: u8, startByteIndex = 0'u64, inc
     var scan = dataof
     while length
     {
-        if dref scan == delimiter
+        if scan[] == delimiter
         {
             if includeDelimiter do
                 scan += 1

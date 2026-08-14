@@ -21,8 +21,8 @@ const VP8_CATEGORY_PROB: [48] u8 = [
 
 func vp8Pack4(values: *[4] u8, shift: s32)->u32
 {
-    let value = cast(u32) (dref values)[0] | (cast(u32) (dref values)[1] << 1) |
-                (cast(u32) (dref values)[2] << 2) | (cast(u32) (dref values)[3] << 3)
+    let value = cast(u32) values[][0] | (cast(u32) values[][1] << 1) |
+                (cast(u32) values[][2] << 2) | (cast(u32) values[][3] << 3)
     return value << shift
 }
 

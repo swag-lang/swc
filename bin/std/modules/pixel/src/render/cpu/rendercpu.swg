@@ -1797,7 +1797,7 @@ private impl RenderCpu
             .paintOn = false
 
         case .BindTexture0:
-            .paintCommand = dref cmd
+            .paintCommand = cmd[]
             if cmd.texture0.gradientStopCount do
                 .gradientStops = @mkslice(painter.gradientStops.buffer + cmd.texture0.gradientStopStart, cmd.texture0.gradientStopCount)
             else do
@@ -2035,7 +2035,7 @@ impl RenderCpu
 
         var storage: CpuTexture
         storage.handle = result.handle
-        storage.image  = dref image
+        storage.image  = image[]
         .textures.add(#move storage)
         return result
     }
@@ -2144,7 +2144,7 @@ impl RenderCpu
         }
 
         let result = Memory.new'RenderTarget()
-        dref result = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
+        result[] = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
         return result
     }
 

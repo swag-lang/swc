@@ -70,7 +70,7 @@
     var a: *s32 = undefined
     var v: s32  = 99
     a = &v
-    @assert(dref a == 99)
+    @assert(a[] == 99)
 }
 
 struct Point { x: s32, y: s32 }

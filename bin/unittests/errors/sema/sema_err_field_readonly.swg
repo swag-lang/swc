@@ -34,7 +34,7 @@
 }
 
 // The address of a read-only field is a pointer to const, so a mutable pointer cannot bind it.
-func write(p: *s32) { dref p = 1 }
+func write(p: *s32) { p[] = 1 }
 
 #test
 {

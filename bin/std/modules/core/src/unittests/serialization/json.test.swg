@@ -95,7 +95,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect decoder.readAll'JsonPayload(json.toSlice())!
-    @assert(assertJsonPayload(dref decoded))
+    @assert(assertJsonPayload(decoded[]))
     @assert(decoded.transient == 0)
 
     Memory.delete(decoded)
@@ -150,7 +150,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect decoder.readAll'JsonPayload(interoperable.toSlice())!
-    @assert(assertJsonPayload(dref decoded))
+    @assert(assertJsonPayload(decoded[]))
     Memory.delete(decoded)
 
     let missing: String = "{\"id\":12}"

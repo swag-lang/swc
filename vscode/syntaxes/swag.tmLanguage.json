@@ -116,7 +116,7 @@
       "patterns": [
         {
           "name": "keyword",
-          "match": "\\b(using|with|cast|dref|retval|try|catch|expect|fail|discard)\\b"
+          "match": "\\b(using|with|cast|retval|try|catch|expect|fail|discard)\\b"
         }
       ]
     },

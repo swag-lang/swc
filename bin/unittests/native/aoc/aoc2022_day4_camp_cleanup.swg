@@ -10,12 +10,12 @@ const Input = """2-4,6-8
 func num(b: const [..] u8, p: *u64)->u32
 {
     var n: u32
-    while dref p < @countof(b) and b[dref p] >= '0'u8 and b[dref p] <= '9'u8
+    while p[] < @countof(b) and b[p[]] >= '0'u8 and b[p[]] <= '9'u8
     {
-        n      = n * 10 + (b[dref p] - '0'u8)
-        dref p += 1
+        n   = n * 10 + (b[p[]] - '0'u8)
+        p[] += 1
     }
-    if dref p < @countof(b) do dref p += 1
+    if p[] < @countof(b) do p[] += 1
     return n
 }
 

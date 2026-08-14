@@ -106,16 +106,16 @@ func findWireIndex(wireNames: const [..] string, wireCount: u32, name: string)->
 
 func registerSuspect(suspects: [..] string, suspectCount: *u32, name: string)
 {
-    for dref suspectCount
+    for suspectCount[]
     {
         let index = cast(u32) @index
         if suspects[index] == name do
             return
     }
 
-    @assert(dref suspectCount < MaxSuspects)
-    suspects[dref suspectCount] = name
-    dref suspectCount           += 1
+    @assert(suspectCount[] < MaxSuspects)
+    suspects[suspectCount[]] = name
+    suspectCount[]           += 1
 }
 
 func hasConsumerOp(gates: const [..] LogicGate, wireName: string, op: GateOp)->bool

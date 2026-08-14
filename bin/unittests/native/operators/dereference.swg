@@ -18,7 +18,7 @@ struct DereferenceStrictAA
 
     var st: AA
     var v:  *AA = &st
-    var v1      = dref v
+    var v1      = v[]
     #assert(#typeof(v1) == AA)
     @assert(v1.x == 0)
 }
@@ -28,7 +28,7 @@ struct DereferenceStrictAA
 {
     var st = DereferenceStrictAA{x: 12}
     let v  = cast(DereferenceStrictAAPtr) &st
-    var v1 = dref v
+    var v1 = v[]
     #assert(#typeof(v1) == DereferenceStrictAA)
     @assert(v1.x == 12)
 }
@@ -60,7 +60,7 @@ struct DereferenceStrictAA
 
     var st: AA
     var v:  const *AA = &st
-    var v1            = dref v
+    var v1            = v[]
     #assert(#typeof(v1) == AA)
     @assert(v1.x == 0)
 }
@@ -75,7 +75,7 @@ struct DereferenceStrictAA
 
     var st: AA
     var v  = &st
-    var v1 = dref v
+    var v1 = v[]
     #assert(#typeof(v) == *AA)
     #assert(#typeof(v1) == AA)
     @assert(v1.x == 0)
@@ -92,7 +92,7 @@ struct DereferenceStrictAA
     var st: AA
     var v:  *AA = &st
     var pp      = &v
-    var v1      = dref pp
+    var v1      = pp[]
     #assert(#typeof(pp) == **AA)
     #assert(#typeof(v1) == *AA)
     @assert(v1 == v)
@@ -107,7 +107,7 @@ struct DereferenceStrictAA
     }
 
     var st: AA
-    var v1 = dref &st
+    var v1 = (&st)[]
     #assert(#typeof(v1) == AA)
     @assert(v1.x == 0)
 }

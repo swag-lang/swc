@@ -227,12 +227,12 @@ func parseInput(text: string)->Parsed
 
 func dirDelta(ch: u8, dr: *s32, dc: *s32)
 {
-    dref dr = 0
-    dref dc = 0
-    if ch == '^' do dref dr = -1
-    elif ch == 'v' do dref dr = 1
-    elif ch == '<' do dref dc = -1
-    elif ch == '>' do dref dc = 1
+    dr[] = 0
+    dc[] = 0
+    if ch == '^' do dr[] = -1
+    elif ch == 'v' do dr[] = 1
+    elif ch == '<' do dc[] = -1
+    elif ch == '>' do dc[] = 1
 }
 
 func simulate(p: *Parsed)

@@ -15,7 +15,7 @@ impl INullCoalescingProbe for NullCoalescingProbe
 {
     mtd impl write(value: *u64)
     {
-        dref value = .tag
+        value[] = .tag
     }
 }
 

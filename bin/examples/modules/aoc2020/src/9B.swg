@@ -46,7 +46,7 @@ func day9B()
         var max = 0
         for l1 in lines[i to]
         {
-            let v1 = expect StrConv.toS32(dref l1)
+            let v1 = expect StrConv.toS32(l1[])
             min = Math.min(min, v1)
             max = Math.max(max, v1)
             sum += v1

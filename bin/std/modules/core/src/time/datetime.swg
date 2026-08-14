@@ -150,33 +150,33 @@ impl DateTime
     // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
     internal func parseU8(buf: *string, eat: *u32)->u16 fail
     {
-        let {year, eat0, ovf} = StrConv.parseU8(dref buf)
+        let {year, eat0, ovf} = StrConv.parseU8(buf[])
         if ovf do
             fail SyntaxError{}
-        dref eat += eat0
-        dref buf = Tokenize.eatCount(dref buf, cast(u64) eat0)
+        eat[] += eat0
+        buf[] = Tokenize.eatCount(buf[], cast(u64) eat0)
         return year
     }
 
     // Parses a 16-bit unsigned integer from the buffer and updates the consumed character count
     internal func parseU16(buf: *string, eat: *u32)->u16 fail
     {
-        let {year, eat0, ovf} = StrConv.parseU16(dref buf)
+        let {year, eat0, ovf} = StrConv.parseU16(buf[])
         if ovf do
             fail SyntaxError{}
-        dref eat += eat0
-        dref buf = Tokenize.eatCount(dref buf, cast(u64) eat0)
+        eat[] += eat0
+        buf[] = Tokenize.eatCount(buf[], cast(u64) eat0)
         return year
     }
 
     // Parses a separator character from the buffer and updates the consumed character count
     internal func parseSep(buf: *string, sep: u8, eat: *u32) fail
     {
-        let view = dref buf
+        let view = buf[]
         if !@countof(view) or view[0] != sep do
             fail SyntaxError{}
-        dref buf = Tokenize.eatCount(view, 1)
-        dref eat += 1
+        buf[] = Tokenize.eatCount(view, 1)
+        eat[] += 1
     }
 
     // Converts a string to a DateTime using the expected format
@@ -336,7 +336,7 @@ impl Serialization.ISerialize for DateTime
         if decoder.isTextual()
         {
             let val = decoder.readString()
-            dref me = parse(val).value
+            me[] = parse(val).value
             return true
         }
 

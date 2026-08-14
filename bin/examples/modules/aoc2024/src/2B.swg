@@ -29,7 +29,7 @@ func day2B()
     var total = 0
     for l in lines
     {
-        let first0 = Tokenize.split(dref l, ' 'u8)
+        let first0 = Tokenize.split(l[], ' 'u8)
         var first  = first0
 
         var tor = 0

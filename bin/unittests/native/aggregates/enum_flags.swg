@@ -169,15 +169,15 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 {
     var values:   RefTestFlagBuffer
     let firstRef: *RefTestFlags = values.refAt(0)
-    dref firstRef    = RefTestFlags.A | RefTestFlags.B
+    firstRef[]       = RefTestFlags.A | RefTestFlags.B
     values.values[0] = RefTestFlags.A | RefTestFlags.B
     values.values[1] = RefTestFlags.B | RefTestFlags.C
 
-    dref values.refAt(0) &= ~RefTestFlags.A
+    values.refAt(0)[] &= ~RefTestFlags.A
     @assert(values.values[0] == RefTestFlags.B)
 
     let valueRef: *RefTestFlags = values.refAt(1)
-    dref valueRef |= RefTestFlags.D
+    valueRef[] |= RefTestFlags.D
     @assert(values.values[1] == (RefTestFlags.B | RefTestFlags.C | RefTestFlags.D))
 }
 
@@ -189,7 +189,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     func refAt(index: u64)->*RefTestFlags => &values[index]
 
     let firstRef: *RefTestFlags = refAt(0)
-    dref firstRef = RefTestFlags.A | RefTestFlags.B
+    firstRef[] = RefTestFlags.A | RefTestFlags.B
     @assert(values[0] == (RefTestFlags.A | RefTestFlags.B))
 }
 
@@ -203,19 +203,19 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     let horizontal = values.refAt(0)
     switch
     {
-    case dref horizontal & .East:
+    case horizontal[] & .East:
         tookEast = true
     }
 
     var tookSouth = false
-    if dref values.refAt(1) & .South do
+    if values.refAt(1)[] & .South do
         tookSouth = true
 
     var missingWest = false
-    if !(dref values.refAt(1) & .West) do
+    if !(values.refAt(1)[] & .West) do
         missingWest = true
 
-    dref values.refAt(0) &= ~.West
+    values.refAt(0)[] &= ~.West
 
     @assert(tookEast)
     @assert(tookSouth)

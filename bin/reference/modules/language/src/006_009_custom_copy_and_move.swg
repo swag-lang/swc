@@ -121,7 +121,7 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
     // One declaration, two variants: 'assign(&v, x)' copies, 'assign(&v, #move x)' moves.
     func assign(assignTo: *Vector3, from: #fwd Vector3)
     {
-        dref assignTo = #fwd from
+        assignTo[] = #fwd from
     }
 
     var a = Vector3{1, 2, 3}
@@ -144,7 +144,7 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
     // copied into a call-site temporary, then moved from it.
     func assign(assignTo: *Vector3, from: #move Vector3)
     {
-        dref assignTo = #move from
+        assignTo[] = #move from
     }
 
     var a = Vector3{1, 2, 3}

@@ -490,9 +490,9 @@ impl Vector2
         let dir  = target - me
         let dist = dir.length()
         if dist <= maxDistance do
-            dref me = target
+            me[] = target
         else do
-            dref me += dir * (maxDistance / dist)
+            me[] += dir * (maxDistance / dist)
     }
 
     // Returns a vector moved towards 'target' by a maximum distance of 'maxDistance'.
@@ -503,7 +503,7 @@ impl Vector2
         let dist = dir.length()
         if dist <= maxDistance do
             return target
-        return dref me + (dir * (maxDistance / dist))
+        return me[] + (dir * (maxDistance / dist))
     }
 
     // Perform smooth damping interpolation towards 'target'.

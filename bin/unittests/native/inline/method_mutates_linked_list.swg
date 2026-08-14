@@ -38,7 +38,7 @@ impl InlineBug11List
             return false
 
         let node = head!
-        dref outNode = node
+        outNode[] = node
         .unlink(node)
         return true
     }

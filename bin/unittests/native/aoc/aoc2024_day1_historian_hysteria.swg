@@ -59,22 +59,22 @@ func isSpacing(ch: u8)->bool
 
 func skipSpacing(bytes: const [..] u8, index: *u32)
 {
-    while dref index < @countof(bytes) and isSpacing(bytes[dref index])
+    while index[] < @countof(bytes) and isSpacing(bytes[index[]])
     {
-        dref index += 1
+        index[] += 1
     }
 }
 
 func parseNumber(bytes: const [..] u8, index: *u32)->u32
 {
-    @assert(dref index < @countof(bytes))
-    @assert(isDigit(bytes[dref index]))
+    @assert(index[] < @countof(bytes))
+    @assert(isDigit(bytes[index[]]))
 
     var result: u32
-    while dref index < @countof(bytes) and isDigit(bytes[dref index])
+    while index[] < @countof(bytes) and isDigit(bytes[index[]])
     {
-        result     = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
-        dref index += 1
+        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        index[] += 1
     }
 
     return result

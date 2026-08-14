@@ -126,11 +126,11 @@ func day6B()
         {
             if sx + dx < 0 or sx + dx >= w or sy + dy < 0 or sy + dy >= h
             {
-                dref arr.ptr2(sx, sy, w) = what
+                arr.ptr2(sx, sy, w)[] = what
                 return false
             }
 
-            if dref arr.ptr2(sx + dx, sy + dy, w) == '#'
+            if arr.ptr2(sx + dx, sy + dy, w)[] == '#'
             {
                 if dx == 0 and dy == -1
                 {
@@ -164,9 +164,9 @@ func day6B()
 
             if first do
                 what = 'O'
-            elif dref r == what do
+            elif r[] == what do
                 return true
-            dref r = what
+            r[] = what
 
             sx += dx
             sy += dy

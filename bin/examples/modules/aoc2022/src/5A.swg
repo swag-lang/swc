@@ -68,7 +68,7 @@ func day5A()
     {
         if moveMode
         {
-            let res = r.grepAll(dref l)
+            let res = r.grepAll(l[])
             if res.count == 0 do
                 continue
             var count   = expect StrConv.toU64(res[0])

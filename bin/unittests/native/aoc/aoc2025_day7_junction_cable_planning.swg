@@ -36,10 +36,10 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 {
     var result: u32
 
-    while dref index < @countof(bytes) and bytes[dref index] >= '0' and bytes[dref index] <= '9'
+    while index[] < @countof(bytes) and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result     = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
-        dref index += 1
+        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        index[] += 1
     }
 
     return result
@@ -82,21 +82,21 @@ func findRoot(parents: const [..] u32, value: u32)->u32
 
 func registerCluster(size: u32, largest: *u32, second: *u32, third: *u32)
 {
-    if size > dref largest
+    if size > largest[]
     {
-        dref third   = dref second
-        dref second  = dref largest
-        dref largest = size
+        third[]   = second[]
+        second[]  = largest[]
+        largest[] = size
         return
     }
-    if size > dref second
+    if size > second[]
     {
-        dref third  = dref second
-        dref second = size
+        third[]  = second[]
+        second[] = size
         return
     }
-    if size > dref third do
-        dref third = size
+    if size > third[] do
+        third[] = size
 }
 
 func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan

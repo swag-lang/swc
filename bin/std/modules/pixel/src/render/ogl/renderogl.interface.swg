@@ -33,7 +33,7 @@ impl IRenderer for RenderOgl
 
         if shared
         {
-            let sharedOgl = oglContext(dref shared)
+            let sharedOgl = oglContext(shared[])
             Debug.assert(.nativeContext == sharedOgl.hRC, "shared context belongs to another renderer")
         }
 
@@ -46,7 +46,7 @@ impl IRenderer for RenderOgl
         }
 
         let storage = Memory.new'OglContext()
-        dref storage  = ogl
+        storage[]     = ogl
         .contextCount += 1
         return {renderHandle, storage, width, height}
     }
@@ -55,20 +55,20 @@ impl IRenderer for RenderOgl
     {
         if !context.data
         {
-            dref context = {}
+            context[] = {}
             return
         }
 
-        let ogl = oglContext(dref context)
+        let ogl = oglContext(context[])
         Debug.assert(.contextCount > 0)
         .contextCount -= 1
         if !.contextCount
         {
-            .native.setCurrentContext(dref ogl)
+            .native.setCurrentContext(ogl[])
             .releaseFontTextures()
         }
 
-        .native.dropContext(dref ogl)
+        .native.dropContext(ogl[])
         Memory.delete(ogl)
 
         if !.contextCount
@@ -77,7 +77,7 @@ impl IRenderer for RenderOgl
             .nativeContext = null
         }
 
-        dref context = {}
+        context[] = {}
     }
 
     mtd impl fontCache()->*FontCache => &.fonts

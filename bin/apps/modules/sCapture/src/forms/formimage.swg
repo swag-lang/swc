@@ -66,7 +66,7 @@ impl FormImage
             var pix1    = maskImg.pixels.buffer! + x * 4
             pix1 += maskImg.width * y * 4
             if !pix1[0] do
-                dref cast(*u32) pix = 0
+                (cast(*u32) pix)[] = 0
         }
 
         renderer.removeTexture(&.texture)

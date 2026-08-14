@@ -59,7 +59,7 @@ struct PtrWrap
 {
     var a: Vec2 = {x: 10, y: 20}
     var p       = &a
-    dref p = {x: 30, y: 40}
+    p[] = {x: 30, y: 40}
     @assert(a.x == 30)
     @assert(a.y == 40)
 }
@@ -69,8 +69,8 @@ struct PtrWrap
     var a: Vec2 = {x: 7, y: 8}
     var px      = &a.x
     var py      = &a.y
-    dref px = 70
-    dref py = 80
+    px[] = 70
+    py[] = 80
     @assert(a.x == 70)
     @assert(a.y == 80)
 }
@@ -129,7 +129,7 @@ struct PtrWrap
 {
     var h: Holder = {count: 1, flags: {a: false, b: true}}
     var ph        = &h
-    dref ph = {count: 9, flags: {a: true, b: false}}
+    ph[] = {count: 9, flags: {a: true, b: false}}
     @assert(h.count == 9)
     @assert(h.flags.a)
     @assert(!h.flags.b)
@@ -139,8 +139,8 @@ struct PtrWrap
 {
     var v             = 123's32
     var wrap: PtrWrap = {value: &v}
-    @assert(dref wrap.value == 123)
-    dref wrap.value = 321
+    @assert(wrap.value[] == 123)
+    wrap.value[] = 321
     @assert(v == 321)
 }
 
@@ -150,7 +150,7 @@ struct PtrWrap
     var right: Vec2 = {x: 1, y: 2}
     var pleft       = &left
     var pright      = &right
-    dref pleft = dref pright
+    pleft[] = pright[]
     @assert(left.x == 1)
     @assert(left.y == 2)
     @assert(right.x == 1)

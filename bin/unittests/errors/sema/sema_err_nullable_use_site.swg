@@ -2,7 +2,7 @@
 
 // Use-site nullability enforcement: dereferencing a value whose type is still
 // nullable (no dominating null test, no '!', no '?.') is an error, for
-// every dereferencing operation: member access, 'dref', indexing, and calls
+// every dereferencing operation: member access, '[]', indexing, and calls
 // through function values.
 
 struct NullableUseSiteItem
@@ -38,11 +38,6 @@ interface IsItf
 }
 
 func nullableUseSiteDeref(p: #null *s32)->s32
-{
-    return dref p     // swc-expected-error {{sema_err_nullable_deref}}
-}
-
-func nullableUseSitePostfixDeref(p: #null *s32)->s32
 {
     return p[]     // swc-expected-error {{sema_err_nullable_deref}}
 }
@@ -95,25 +90,25 @@ impl NullableUseSiteBox
 func nullableUseSiteThroughRef(box: *NullableUseSiteBox)->s32
 {
     let bound = box.at()
-    return (dref bound).value     // swc-expected-error {{sema_err_nullable_member_access}}
+    return bound[].value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
 func nullableUseSiteDerefThroughRef(box: *NullableUseSiteBox)->NullableUseSiteItem
 {
     let bound = box.at()
-    return dref dref bound     // swc-expected-error {{sema_err_nullable_deref}}
+    return bound[][]     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
 func nullableUseSiteIndexThroughRef(box: *NullableUseSiteBox)->s32
 {
     let bound = box.atBlock()
-    return (dref bound)[0]     // swc-expected-error {{sema_err_nullable_index}}
+    return bound[][0]     // swc-expected-error {{sema_err_nullable_index}}
 }
 
 func nullableUseSiteCallThroughRef(box: *NullableUseSiteBox)->s32
 {
     let bound = box.atFn()
-    return (dref bound)()     // swc-expected-error {{sema_err_nullable_call}}
+    return bound[]()     // swc-expected-error {{sema_err_nullable_call}}
 }
 
 // A guard kills the fact after reassignment: the second access is unproven again.

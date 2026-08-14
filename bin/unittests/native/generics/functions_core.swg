@@ -15,7 +15,7 @@ func(T) isZero(value: T)->bool => value == 0
 func(T) wrapEcho(value: T)->T   => echo(value)
 func(T) doubleEcho(value: T)->T => echo(echo(value))
 
-func(T) deref(ptr: *T)->T        => dref ptr
+func(T) deref(ptr: *T)->T        => ptr[]
 func(T) addrValue(value: *T)->*T => value
 
 func(A, B) makePairFirst(a: A, b: B)->A  => a

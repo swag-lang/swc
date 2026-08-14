@@ -289,7 +289,7 @@ impl IActionUI for ActionFile
                 {
                     if !tags.isEmpty() do
                         tags += ", "
-                    tags += dref tag
+                    tags += tag[]
                 }
 
                 addLine(lt, appStrings().ui_DetailTags, tags)
@@ -383,7 +383,7 @@ impl MainWnd
 
         let img = data.image()
         if img do
-            .newCapture(dref img)
+            .newCapture(img[])
     }
 
     // Returns the file name the capture travels under when it leaves the application.
@@ -410,7 +410,7 @@ impl MainWnd
     // `img` is borrowed by the producer, so it has to outlive the gesture the payload is used for.
     mtd fillDragData(data: *DragData, capture: *Capture, img: *Image)
     {
-        data.setImage(dref img)
+        data.setImage(img[])
         data.addContent(.dragFileName(capture), func|img|()
         {
             var opt: Png.EncodeOptions

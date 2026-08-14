@@ -60,7 +60,7 @@ impl InlineForeachMoveValues
 #[Swag.Inline]
 func inlineForeachMoveAssign(dst: *InlineForeachMoveTracked, src: #move InlineForeachMoveTracked)
 {
-    dref dst = #move src
+    dst[] = #move src
 }
 
 func inlineForeachMoveInfo()->InlineForeachMoveInfo
@@ -69,7 +69,7 @@ func inlineForeachMoveInfo()->InlineForeachMoveInfo
     var values = InlineForeachMoveValues{InlineForeachMoveTracked{9}}
     resetInlineForeachMoveLifecycleHooks()
     for value in values do
-        inlineForeachMoveAssign(&dst, #move dref value)
+        inlineForeachMoveAssign(&dst, #move value[])
     return {dst.value, values.item.value, InlineForeachMoveDropCount, InlineForeachMoveDropTrace, InlineForeachMovePostMoveCount}
 }
 

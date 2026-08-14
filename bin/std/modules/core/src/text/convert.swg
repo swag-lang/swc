@@ -167,7 +167,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     if Reflection.isPointerRef(type)
     {
         let ptrType = cast(const *TypeInfoPointer) type!
-        valueData = dref cast(const **void) valueData!
+        valueData = (cast(const **void) valueData!)[]
         type      = ptrType.pointedType!
     }
 
@@ -176,7 +176,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     // This is a type
     if Reflection.isType(type)
     {
-        let ptrType = dref cast(const *typeinfo) valueData!
+        let ptrType = (cast(const *typeinfo) valueData!)[]
         if ptrType do
             buf.addBytes(ptrType.fullname)
         else do
@@ -189,7 +189,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     {
         if type.flags & TypeInfoFlags.CString
         {
-            let ptr = dref cast(const [*] [*] u8) valueData!
+            let ptr = (cast(const [*] [*] u8) valueData!)[]
             let len = @countof(cast(#null cstring) ptr)
             buf.addBytes(@mkslice(ptr, len))
             return
@@ -200,7 +200,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
         fmt.width   = 16
         fmt.padding = '0'u8
         fmt.setFormat(strFormat)
-        convertInt(buf, dref cast(const *u64) valueData!, fmt)
+        convertInt(buf, (cast(const *u64) valueData!)[], fmt)
         return
     }
 
@@ -280,11 +280,11 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     {
         let ptrAny = cast(const *any) valueData!
         buf.addBytes("{type = ")
-        let typeAny = @kindof(dref ptrAny)
+        let typeAny = @kindof(ptrAny[])
         convertAny(buf, typeAny, convFmt, strFormat)
         buf.addBytes(", value = ")
-        if @dataof(dref ptrAny) do
-            convertAny(buf, dref ptrAny, convFmt, strFormat)
+        if @dataof(ptrAny[]) do
+            convertAny(buf, ptrAny[], convFmt, strFormat)
         else do
             buf.addBytes("null")
         buf.addBytes("}")
@@ -299,15 +299,15 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
         switch typeNative.nativeKind
         {
         case .Bool:
-            convertBool(buf, dref cast(const *bool) valueData!)
+            convertBool(buf, (cast(const *bool) valueData!)[])
             return
 
         case .Rune:
-            convertRune(buf, dref cast(const *rune) valueData!)
+            convertRune(buf, (cast(const *rune) valueData!)[])
             return
 
         case .String:
-            buf.addBytes(dref cast(const *string) valueData!)
+            buf.addBytes((cast(const *string) valueData!)[])
             return
         }
     }
@@ -364,8 +364,8 @@ func convertFloat(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormat
     var value64: f64
     switch kindof.nativeKind
     {
-    case .F32: value64 = cast(f64) dref cast(const *f32) dataof!
-    case .F64: value64 = dref cast(const *f64) dataof!
+    case .F32: value64 = cast(f64) (cast(const *f32) dataof!)[]
+    case .F64: value64 = (cast(const *f64) dataof!)[]
     }
 
     Dtoa.parse(buf, value64, fmt.fmt, cast(s64) fmt.precision, fmt.forceSign)
@@ -388,35 +388,35 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
     switch kindof.nativeKind
     {
     case .S8:
-        signedValue = cast(s64) dref cast(const *s8) dataof!
+        signedValue = cast(s64) (cast(const *s8) dataof!)[]
         value64     = cast(u64) Math.abs(signedValue)
 
     case .S16:
-        signedValue = cast(s64) dref cast(const *s16) dataof!
+        signedValue = cast(s64) (cast(const *s16) dataof!)[]
         value64     = cast(u64) Math.abs(signedValue)
 
     case .S32:
-        signedValue = cast(s64) dref cast(const *s32) dataof!
+        signedValue = cast(s64) (cast(const *s32) dataof!)[]
         value64     = cast(u64) Math.abs(signedValue)
 
     case .S64:
-        signedValue = dref cast(const *s64) dataof!
+        signedValue = (cast(const *s64) dataof!)[]
         if signedValue == Swag.S64.Min do
             overflowS64 = true
         else do
             value64 = cast(u64) Math.abs(signedValue)
 
     case .U8:
-        value64 = cast(u64) dref cast(const *u8) dataof!
+        value64 = cast(u64) (cast(const *u8) dataof!)[]
 
     case .U16:
-        value64 = cast(u64) dref cast(const *u16) dataof!
+        value64 = cast(u64) (cast(const *u16) dataof!)[]
 
     case .U32:
-        value64 = cast(u64) dref cast(const *u32) dataof!
+        value64 = cast(u64) (cast(const *u32) dataof!)[]
 
     case .U64:
-        value64 = dref cast(const *u64) dataof!
+        value64 = (cast(const *u64) dataof!)[]
     }
 
     const Tbl = "0123456789ABCDEF"

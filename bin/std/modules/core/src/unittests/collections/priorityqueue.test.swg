@@ -23,7 +23,7 @@ impl PriorityItem
 #test
 {
     var queue: PriorityQueue's32
-    queue.initialize(func(left, right: const *s32)->s32 => dref left <=> dref right)
+    queue.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
     queue.push(5)
     queue.push(1)
     queue.push(3)
@@ -40,7 +40,7 @@ impl PriorityItem
 #test
 {
     var queue: PriorityQueue's32
-    queue.initialize(func(left, right: const *s32)->s32 => dref right <=> dref left)
+    queue.initialize(func(left, right: const *s32)->s32 => right[] <=> left[])
     queue.reserve(8)
     queue.push(2)
     queue.push(9)

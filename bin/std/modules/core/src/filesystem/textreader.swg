@@ -37,8 +37,8 @@ impl TextReader
             if .encodingType == .Utf8
             {
                 let buffer = .buffer.buffer!
-                dref cast(*u32) buffer = 0
-                .buffer.count          = .stream.read(buffer, .buffer.capacity)
+                (cast(*u32) buffer)[] = 0
+                .buffer.count         = .stream.read(buffer, .buffer.capacity)
 
                 // BOM
                 if .buffer.count >= 3 and .buffer[0] == 0xEF and .buffer[1] == 0xBB and .buffer[2] == 0xBF do
@@ -100,18 +100,18 @@ public impl TextReader
             // u64 by u64
             while ptr + 8'u64 <= ptrE
             {
-                let c64 = dref cast(*u64) ptr
+                let c64 = (cast(*u64) ptr)[]
                 if Math.hasByte(c64, '\r') or Math.hasByte(c64, '\n') do
                     break
                 ptr += 8
             }
 
             // u8 by u8
-            while ptr != ptrE and dref ptr != '\r' and dref ptr != '\n' do
+            while ptr != ptrE and ptr[] != '\r' and ptr[] != '\n' do
                 ptr += 1
 
             let range = cast(u64) (ptr - ptrB)
-            dref result += @mkstring(ptrB, range)
+            result[] += @mkstring(ptrB, range)
 
             // We have reached the end of the buffer without finding an eol
             // Restart
@@ -127,11 +127,11 @@ public impl TextReader
             .byteSeek += range + 1
 
             // If we have a '\r', then eat the following '\n' if it exists
-            if dref ptr == '\r'
+            if ptr[] == '\r'
             {
                 if ptr + 1'u64 < ptrE
                 {
-                    if dref (ptr + 1) == '\n' do
+                    if (ptr + 1)[] == '\n' do
                         .byteSeek += 1
                 }
                 else

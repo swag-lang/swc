@@ -161,12 +161,12 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     var didClick:   bool
     host.app.sigFrame += func|host = &host, popup, frames = &frameCount, didClick = &didClick|(app)
     {
-        dref frames += 1
-        if !dref didClick
+        frames[] += 1
+        if !didClick[]
         {
             @assert(host.capturedPopupMenu() == popup)
             @assert(host.clickPopupMenuItem(Menu_Open))
-            dref didClick = true
+            didClick[] = true
         }
     }
 
@@ -196,15 +196,15 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     var didClick: bool
     host.app.sigFrame += func|host = &host, opened = &didOpen, clicked = &didClick|(app)
     {
-        if !dref opened
+        if !opened[]
         {
             @assert(host.openPopupSubMenu("More"))
-            dref opened = true
+            opened[] = true
         }
-        elif !dref clicked
+        elif !clicked[]
         {
             @assert(host.clickPopupMenuItem(Menu_Open))
-            dref clicked = true
+            clicked[] = true
         }
     }
 
@@ -230,10 +230,10 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     var didDismiss: bool
     host.app.sigFrame += func|host = &host, dismissed = &didDismiss|(app)
     {
-        if !dref dismissed
+        if !dismissed[]
         {
             @assert(host.dismissPopupMenu())
-            dref dismissed = true
+            dismissed[] = true
         }
     }
 

@@ -194,7 +194,7 @@ namespace
             switch (node.id())
             {
                 case AstNodeId::UnaryExpr:
-                    return tokenIdOf(node, TokenId::KwdDRef) == TokenId::SymAmpersand;
+                    return tokenIdOf(node, TokenId::SymLeftBracket) == TokenId::SymAmpersand;
 
                 case AstNodeId::Identifier:
                 {

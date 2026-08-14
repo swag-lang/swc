@@ -948,7 +948,7 @@ namespace compiler287
     {
         var a: bool = true
         let b       = &a
-        let c       = dref b
+        let c       = b[]
         @assert(c == true)
     }
 
@@ -956,7 +956,7 @@ namespace compiler287
     {
         var a: s32 = 666
         let b      = &a
-        let c      = dref b
+        let c      = b[]
         @assert(c == 666)
     }
 }
@@ -984,8 +984,8 @@ namespace compiler322
         var a: s32  = 666
         let b       = &a
         var c: *s32 = b
-        c = b; @assert(dref b == 666)
-        @assert(dref c == 666)
+        c = b; @assert(b[] == 666)
+        @assert(c[] == 666)
     /*@assert(a == 1);
     	b[0] = 666;
     	@assert(a == 666);*/
@@ -1000,8 +1000,8 @@ namespace compiler323
     {
         var a: s32 = 1
         var b      = &a
-        dref b = 666; @assert(a == 666)
-        @assert(dref b == a)
+        b[] = 666; @assert(a == 666)
+        @assert(b[] == a)
     }
 }
 

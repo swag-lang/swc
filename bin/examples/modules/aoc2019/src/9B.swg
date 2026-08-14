@@ -49,7 +49,7 @@ private func run(op: *Array's64, input: s64)->s64
     }
 
     #[Swag.Mixin]
-    func val(offset: u64)->s64 => dref valp(offset)
+    func val(offset: u64)->s64 => valp(offset)[]
 
     while op[ip] != 99
     {
@@ -65,16 +65,16 @@ private func run(op: *Array's64, input: s64)->s64
         switch inst
         {
         case 1:
-            dref valp(param2) = val(param0) + val(param1)
-            ip                += 4
+            valp(param2)[] = val(param0) + val(param1)
+            ip             += 4
 
         case 2:
-            dref valp(param2) = val(param0) * val(param1)
-            ip                += 4
+            valp(param2)[] = val(param0) * val(param1)
+            ip             += 4
 
         case 3:
-            dref valp(param0) = input
-            ip                += 2
+            valp(param0)[] = input
+            ip             += 2
 
         case 4:
             output = val(param0)
@@ -87,12 +87,12 @@ private func run(op: *Array's64, input: s64)->s64
             ip = !val(param0) ? val(param1) : ip + 3
 
         case 7:
-            dref valp(param2) = val(param0) < val(param1) ? 1 : 0
-            ip                += 4
+            valp(param2)[] = val(param0) < val(param1) ? 1 : 0
+            ip             += 4
 
         case 8:
-            dref valp(param2) = val(param0) == val(param1) ? 1 : 0
-            ip                += 4
+            valp(param2)[] = val(param0) == val(param1) ? 1 : 0
+            ip             += 4
 
         case 9:
             base += val(param0)

@@ -126,6 +126,9 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
         window.showTab(1)
         assertFormEndsInsideCard(&window.mountCard)
+
+        window.showTab(3)
+        assertFormEndsInsideCard(&window.optionsCard)
     }
 
     window.showTab(0)
@@ -223,6 +226,59 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     @assert(window.mountPassword.isEmpty())
 }
 
+// Automatic-unmount choices are explicit persistent policy, and the timeout is only actionable
+// while inactivity handling is enabled.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    @assert(window.unmountOnLock.isChecked())
+    @assert(window.unmountOnSuspend.isChecked())
+    @assert(!window.unmountOnIdle.isChecked())
+    @assert(!window.idleTimeout.isEnabled())
+
+    window.unmountOnLock.toggle()
+    window.unmountOnIdle.toggle()
+    window.idleTimeout.setSelectedIndex(2)
+    window.readAutoUnmountControls()
+    var state = saveMainWindowState(window)
+
+    window.autoUnmount = {}
+    window.applyAutoUnmountControls()
+    loadMainWindowState(window, state.toSlice())
+
+    @assert(!window.autoUnmount.onSessionLock)
+    @assert(window.autoUnmount.onSuspend)
+    @assert(window.autoUnmount.onIdle)
+    @assert(window.autoUnmount.idleMinutes == 30)
+    @assert(window.idleTimeout.isEnabled())
+}
+
+// A configured event closes protected drives only. An unprotected container has no key to wipe
+// and remains mounted, while startup marks remain policy for the next application start.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.mountedDrives.drives.add({null, String.from("C:\\protected.scrypt"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
+    window.mountedDrives.drives.add({null, String.from("C:\\open.scrypt"), String.from("mount-y"), String.from("Y:"), false, false, false, 0, 0})
+    window.mountedDrives.refresh()
+    window.handleAutoUnmount(.SessionLock)
+
+    @assert(window.mountedDrives.drives.count == 1)
+    @assert(window.mountedDrives.drives[0].path == "C:\\open.scrypt")
+    @assert(window.statusMessage == .AutoUnmounted)
+
+    window.autoUnmount.onSessionLock = false
+    window.mountedDrives.drives.add({null, String.from("C:\\second.scrypt"), String.from("mount-z"), String.from("Z:"), true, false, false, 0, 0})
+    window.handleAutoUnmount(.SessionLock)
+    @assert(window.mountedDrives.drives.count == 2)
+}
+
 // The page on show is reachable from the keyboard, in the order it reads, and it is the only
 // page in the ring.
 //
@@ -286,6 +342,14 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     @assert(opened.stops[8] == cast(*Wnd) window.resizeButton)
     @assert(opened.stops[9] == cast(*Wnd) window.mountButton)
 
+    window.showTab(3)
+    let options = Gui.FocusOrder.collect(window)
+    @assert(options.stops[0] == cast(*Wnd) window.languageChoice)
+    @assert(options.stops[1] == cast(*Wnd) window.tabs)
+    @assert(options.stops[2] == cast(*Wnd) window.unmountOnLock)
+    @assert(options.stops[3] == cast(*Wnd) window.unmountOnSuspend)
+    @assert(options.stops[4] == cast(*Wnd) window.unmountOnIdle)
+
     window.showTab(0)
 }
 
@@ -318,12 +382,12 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
         if !host.openedSurfaceCount() do
             return
 
-        dref frames += 1
-        if dref frames == 1 do
+        frames[] += 1
+        if frames[] == 1 do
             host.keyPress(Input.Key.Escape)
-        elif dref frames > 30
+        elif frames[] > 30
         {
-            dref forced = true
+            forced[] = true
             app.exitModal(Gui.Dialog.BtnCancel)
         }
     }
@@ -477,17 +541,17 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(change.form.rows[2].field == cast(*Wnd) fields.confirm)
     openAndDismiss(&host, change)
 
-    // Growing asks the same question first, and in the same words: one shape for every box that
+    // Resizing asks the same question first, and in the same words: one shape for every box that
     // changes a vault is one thing to learn instead of two.
-    let grow       = FormDlg.create(&host.surface, options)
-    let growFields = buildVaultGrowForm(grow, 512 * 1024 * 1024)
+    let resize       = FormDlg.create(&host.surface, options)
+    let resizeFields = buildVaultResizeForm(resize, 512 * 1024 * 1024)
 
-    @assert(grow.form.rows.count == 2)
-    @assert(grow.form.rows[0].field == cast(*Wnd) growFields.current)
-    @assert(grow.form.rows[0].label.name.raw == texts.ui_CurrentPassword)
-    @assert(growFields.capacity.text() == "512")
-    @assert(growFields.unit.selectedIndex == 0)
-    openAndDismiss(&host, grow)
+    @assert(resize.form.rows.count == 2)
+    @assert(resize.form.rows[0].field == cast(*Wnd) resizeFields.current)
+    @assert(resize.form.rows[0].label.name.raw == texts.ui_CurrentPassword)
+    @assert(resizeFields.capacity.text() == "512")
+    @assert(resizeFields.unit.selectedIndex == 0)
+    openAndDismiss(&host, resize)
 }
 
 // Both boxes end up as tall as what they ask for, in every language.
@@ -525,9 +589,9 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         discard buildPasswordChangeForm(change)
         assertFormFits(&host, change)
 
-        let grow = FormDlg.create(&host.surface, options)
-        discard buildVaultGrowForm(grow, 512 * 1024 * 1024)
-        assertFormFits(&host, grow)
+        let resize = FormDlg.create(&host.surface, options)
+        discard buildVaultResizeForm(resize, 512 * 1024 * 1024)
+        assertFormFits(&host, resize)
     }
 }
 
@@ -693,9 +757,9 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 // column - the class of defect an assertion never catches because nothing about it is wrong enough
 // to fail.
 //
-// It is the page the window opens on. The other two are pinned by the containment test above,
+// It is the page the window opens on. The other three are pinned by the containment test above,
 // which brings each one up and measures it in every language; what an image adds over that is the
-// look of the surface, and the three pages share it.
+// look of the surface, and the four pages share it.
 //
 // It is one image, of the palette sCrypt ships on. Photographing the other three costs a full
 // repaint of the whole surface each, which is minutes on the default configuration, and the

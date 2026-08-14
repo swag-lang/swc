@@ -75,19 +75,19 @@ func day4A()
 
     for l in lines
     {
-        discard when.grep(dref l)
+        discard when.grep(l[])
         curMin = expect StrConv.toS32(when[5])
 
-        let s = start.grep(dref l)
+        let s = start.grep(l[])
         if s
         {
             curGuard = expect StrConv.toS32(start[1])
         }
-        elif asleep.grep(dref l)
+        elif asleep.grep(l[])
         {
             startSleep = curMin
         }
-        elif wakesup.grep(dref l)
+        elif wakesup.grep(l[])
         {
             while startSleep < curMin
             {

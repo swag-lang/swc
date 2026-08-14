@@ -15,7 +15,7 @@ var __dbgCacheSection: #null [*] u8 = null
 var __dbgCacheCount:   u32          = 0
 var __dbgCacheValid:   bool         = false
 
-func __dbgU32(p: [*] u8, off: u64)->u32 => dref cast(*u32) &p[off]
+func __dbgU32(p: [*] u8, off: u64)->u32 => (cast(*u32) &p[off])[]
 
 func __dbgFindSection(base: #null *void)
 {

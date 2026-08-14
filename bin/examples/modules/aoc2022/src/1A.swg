@@ -56,7 +56,7 @@ func day1A()
             continue
         }
 
-        one += expect StrConv.toU64(dref l)
+        one += expect StrConv.toU64(l[])
     }
 
     // Console.print("total: ", total)

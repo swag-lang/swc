@@ -471,7 +471,7 @@ private impl Application
             .endModal = true
 
         surface.destroyNative()
-        .toDelete.add({surface, #typeof(dref surface)})
+        .toDelete.add({surface, #typeof(surface[])})
     }
 
     mtd unregisterWnd(wnd: *Wnd)
@@ -1163,7 +1163,7 @@ impl Application
 
         var writer: Scc.Writer
         writer.initialize(stateContainerKind())
-        dref writer.manifest() = #move manifest
+        writer.manifest()[] = #move manifest
         let chunkType = stateChunkType()
         let chunkRole = stateChunkRole()
         let stateId   = try writer.addChunk(buf.toSlice()!, {typeId: chunkType, roleId: chunkRole, flags: .Required | .Metadata})

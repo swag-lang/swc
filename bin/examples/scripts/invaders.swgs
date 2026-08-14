@@ -281,7 +281,7 @@ func display()
 
     // Aliens
     for alien in g_Aliens where !alien.dead do
-        painter.drawTexture(alien.x, alien.y, dref alien.type)
+        painter.drawTexture(alien.x, alien.y, alien.type[])
 
     // Player
     painter.drawTexture(g_Player.x, g_Player.y, g_PlayerImg)

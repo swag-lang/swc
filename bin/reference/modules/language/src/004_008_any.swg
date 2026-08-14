@@ -39,7 +39,7 @@ Use '@dataof' to access a pointer to the underlying value stored inside 'any'.
 {
     let a: any = 6
     let ptr    = cast(const *s32) @dataof(a)
-    @assert(dref ptr == 6)
+    @assert(ptr[] == 6)
 }
 
 /**
@@ -75,7 +75,7 @@ You can retrieve the stored value directly or through a constant pointer.
     @assert(b == 42)
 
     let d = cast(const *s32) a     // Get a constant pointer to the value
-    @assert(dref d == 42)
+    @assert(d[] == 42)
 }
 
 /**

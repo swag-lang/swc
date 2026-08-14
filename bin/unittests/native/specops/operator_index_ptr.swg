@@ -203,7 +203,7 @@ impl NestedContainer
     @assert(g_ValueReads == 1)
 
     let p = &c[0]
-    @assert(dref p == 15)
+    @assert(p[] == 15)
     @assert(g_PtrAccesses == 1)
 }
 
@@ -229,7 +229,7 @@ impl NestedContainer
     @assert(g.cells[1, 2] == 10)
 
     let p = &g[0, 1]
-    dref p = 33
+    p[] = 33
     @assert(g.cells[0, 1] == 33)
 }
 

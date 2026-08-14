@@ -1,14 +1,14 @@
 # Composants tiers
 
-## WinFsp 2.1.25156
+## WinFsp 2.2.26215 (2026 Beta 4)
 
 WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos
 
 - Projet : <https://github.com/winfsp/winfsp>
 - Site : <https://winfsp.dev/>
 - Licence : GNU GPLv3 avec exception FLOSS, reproduite dans `vendor/winfsp/LICENSE.txt`
-- Paquet officiel inchangé : `winfsp-2.1.25156.msi`
-- SHA-256 : `073A70E00F77423E34BED98B86E600DEF93393BA5822204FAC57A29324DB9F7A`
+- Paquet officiel inchangé : `winfsp-2.2.26215.msi`
+- SHA-256 : `2ECB5C89405488A95BBD8A01875E02C48534FD37BBDFD84488F7590464D65944`
 
 Le paquet est signé par NAVIMATICS LLC. Le pilote x64 qu’il contient est signé par Microsoft
 Windows Hardware Compatibility Publisher. sCrypt l’extrait dans le dossier temporaire de

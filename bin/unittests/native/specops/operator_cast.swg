@@ -50,7 +50,7 @@ func consumeNullableStrictPtr(value: #null OpCastStrictPtr)->s32
 {
     if value == null do
         return 0
-    return dref value
+    return value[]
 }
 
 #test

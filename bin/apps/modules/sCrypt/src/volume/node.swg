@@ -56,6 +56,7 @@ impl Node
                 return
             }
         }
+
         .blocks.add(mapping)
     }
 
@@ -124,7 +125,7 @@ impl Node
 
             result.appendMapping({logical, physical, count})
             previousLogical = logical + count
-            mapped += count
+            mapped          += count
         }
 
         if reader.isEof() do

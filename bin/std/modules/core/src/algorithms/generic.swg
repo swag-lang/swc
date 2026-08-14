@@ -9,9 +9,9 @@
 func(T) swap(x, y: *T)
 {
     var tmp: T = undefined
-    tmp    = #relocate dref x
-    dref x = #relocate dref y
-    dref y = #relocate tmp
+    tmp = #relocate x[]
+    x[] = #relocate y[]
+    y[] = #relocate tmp
     @memset(cast([*] void) &tmp, 0, #sizeof(T))
 }
 
@@ -20,7 +20,7 @@ func(T) swap(x, y: *T)
 #[Swag.Inline]
 func(T) orderMinMax(x, y: *T)
 {
-    if dref x > dref y do
+    if x[] > y[] do
         swap(x, y)
 }
 
@@ -29,6 +29,6 @@ func(T) orderMinMax(x, y: *T)
 #[Swag.Inline]
 func(T) orderMaxMin(x, y: *T)
 {
-    if dref x < dref y do
+    if x[] < y[] do
         swap(x, y)
 }

@@ -239,7 +239,7 @@ public impl LinePath
 
         if .polygon.points.count
         {
-            .startPoint = dref .polygon.pointAt(0)
+            .startPoint = .polygon.pointAt(0)[]
             .endPoint   = .startPoint
         }
     }

@@ -46,7 +46,7 @@ func day7B0()
     var r = expect Parser.RegExp.create(#raw "\d+ \w+ \w+")
     for l in lines
     {
-        let split = Tokenize.split(dref l, " bags contain ")
+        let split = Tokenize.split(l[], " bags contain ")
         for v in r.grepAll(split[1])
         {
             let splitVal = Tokenize.split(v, ' 'u8, 1)
@@ -88,7 +88,7 @@ func day7B1()
     var r = expect Parser.RegExp.create(#raw "(\d+) (\w+ \w+)")
     for l in lines
     {
-        let split = Tokenize.split(dref l, " bags contain ")
+        let split = Tokenize.split(l[], " bags contain ")
         for v in r.grepAll(split[1])
         {
             discard r.match(v)

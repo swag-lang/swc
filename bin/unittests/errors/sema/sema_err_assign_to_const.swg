@@ -74,7 +74,7 @@ func macroForeachWriteConstParam(values: [2] s32)
 {
     for &value in values
     {
-        dref value += 1     // swc-expected-error {{sema_err_assign_to_const}}
+        value[] += 1     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -83,7 +83,7 @@ func mixinForeachWriteConstParam(values: [2] s32)
 {
     for &value in values
     {
-        dref value += 1     // swc-expected-error {{sema_err_assign_to_const}}
+        value[] += 1     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -137,7 +137,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: string = "abc"
     for &value in text
     {
-        dref value = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+        value[] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -146,7 +146,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: const cstring = cast(const cstring) @dataof("abc")
     for &value in text
     {
-        dref value = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+        value[] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -168,13 +168,6 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var data: [3] u8       = [1, 2, 3]
     let ptr:  const [*] u8 = cast(const [*] u8) &data[0]
     ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
-}
-
-#test
-{
-    var value           = 1's32
-    let ptr: const *s32 = &value
-    dref ptr = 2's32     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -217,7 +210,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var data:   [2] ConstAssignPair        = [{value: 1}, {value: 2}]
     let values: const [..] ConstAssignPair = cast(const [..] ConstAssignPair) data
     let ptr = &values[0].value
-    dref ptr = 9     // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[] = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -225,7 +218,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var data:   [2] ConstAssignPair       = [{value: 1}, {value: 2}]
     let values: const [*] ConstAssignPair = cast(const [*] ConstAssignPair) &data[0]
     let ptr = &values[0].value
-    dref ptr = 9     // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[] = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test

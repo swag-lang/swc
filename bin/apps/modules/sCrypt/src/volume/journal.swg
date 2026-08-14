@@ -1,5 +1,20 @@
 using Core
 
+// Scalar namespace data that can change without rewriting a file's block map or security data.
+// Explorer renames and cleanup timestamps use this form so their cost does not depend on file size
+// or fragmentation.
+struct NodeMetadataPatch
+{
+    id:             u64
+    parentId:       u64
+    name:           String
+    attributes:     u32
+    creationTime:   u64
+    lastAccessTime: u64
+    lastWriteTime:  u64
+    changeTime:     u64
+}
+
 // One metadata change, small enough to append instead of rewriting everything.
 //
 // A change used to cost a full re-serialization of the node table: populating a
@@ -16,15 +31,16 @@ struct JournalRecord
     sequence:   u64     // Position in the single sequence shared with checkpoints.
     nextNodeId: u64
     label:      String
-    removed:    Array'u64      // Nodes this change deleted.
-    upserted:   Array'Node     // Nodes this change created or modified, in full.
+    removed:    Array'u64                   // Nodes this change deleted.
+    upserted:   Array'Node                  // Nodes this change created or modified, in full.
+    metadata:   Array'NodeMetadataPatch     // Namespace and timestamp-only changes.
 }
 
 impl JournalRecord
 {
     // Encodes one change. `upserted` borrows the live nodes, so a record costs
     // no copy of a block map on the way out.
-    func encode(sequence, nextNodeId: u64, label: string, removed: const [..] u64, upserted: const [..] *Node)->Array'u8
+    func encode(sequence, nextNodeId: u64, label: string, removed: const [..] u64, upserted, metadata: const [..] *Node)->Array'u8
     {
         var result: retval
         var writer = ByteStream.openWrite(&result)
@@ -40,6 +56,19 @@ impl JournalRecord
         writer.writeLittleEndian(@countof(upserted))
         for node in upserted do
             node.serialize(&writer)
+
+        writer.writeLittleEndian(@countof(metadata))
+        for node in metadata
+        {
+            writer.writeLittleEndian(node.id)
+            writer.writeLittleEndian(node.parentId)
+            writer.writeSizedString(node.name)
+            writer.writeLittleEndian(node.attributes)
+            writer.writeLittleEndian(node.creationTime)
+            writer.writeLittleEndian(node.lastAccessTime)
+            writer.writeLittleEndian(node.lastWriteTime)
+            writer.writeLittleEndian(node.changeTime)
+        }
 
         return result
     }
@@ -71,6 +100,29 @@ impl JournalRecord
         {
             let node = try Node.deserialize(&reader, blockCount)
             result.upserted.add(#move node)
+        }
+
+        // Records written before metadata patches were introduced end after the full-node list.
+        // Keeping that form readable preserves every existing container.
+        if @countof(reader.remainingBytes())
+        {
+            let metadataCount = reader.readLittleEndian'u64()
+            if metadataCount > MaximumNodeCount do
+                failWith("A journal record declares an implausible number of metadata changes.", .Corrupted)
+            result.metadata.reserve(metadataCount)
+            for metadataCount
+            {
+                var patch: NodeMetadataPatch
+                patch.id             = reader.readLittleEndian'u64()
+                patch.parentId       = reader.readLittleEndian'u64()
+                patch.name           = reader.readSizedString(MaximumNameSize)
+                patch.attributes     = reader.readLittleEndian'u32()
+                patch.creationTime   = reader.readLittleEndian'u64()
+                patch.lastAccessTime = reader.readLittleEndian'u64()
+                patch.lastWriteTime  = reader.readLittleEndian'u64()
+                patch.changeTime     = reader.readLittleEndian'u64()
+                result.metadata.add(#move patch)
+            }
         }
 
         if reader.isEof() do

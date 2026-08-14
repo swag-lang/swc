@@ -172,7 +172,7 @@ impl Decoder
             fail InvalidFormatError{"PNG IHDR chunk size is not 13 bytes"}
 
         let chunk = .readChunk(ch)
-        .header        = dref cast(const *Header) @dataof(Decoder.safeDatas(chunk))
+        .header        = (cast(const *Header) @dataof(Decoder.safeDatas(chunk)))[]
         .header.width  = Math.bigEndianToNative(.header.width)
         .header.height = Math.bigEndianToNative(.header.height)
 

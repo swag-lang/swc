@@ -120,24 +120,24 @@ func msdfFlattenQuadratic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, toleranc
 // msdfgen's "switchColor": deterministically pick the next edge color.
 func msdfSwitchColor(color: *u8, seed: *u64, banned: u8 = MSDF_BLACK)
 {
-    let combined = dref color & banned
+    let combined = color[] & banned
     if combined == MSDF_RED or combined == MSDF_GREEN or combined == MSDF_BLUE
     {
-        dref color = combined ^ MSDF_WHITE
+        color[] = combined ^ MSDF_WHITE
         return
     }
 
-    if dref color == MSDF_BLACK or dref color == MSDF_WHITE
+    if color[] == MSDF_BLACK or color[] == MSDF_WHITE
     {
         let start: [3] u8 = [MSDF_CYAN, MSDF_MAGENTA, MSDF_YELLOW]
-        dref color = start[dref seed % 3]
-        dref seed  /= 3
+        color[] = start[seed[] % 3]
+        seed[]  /= 3
         return
     }
 
-    let shifted = cast(u32) (dref color) << (1 + (dref seed & 1))
-    dref color = cast(u8) ((shifted | (shifted >> 3)) & MSDF_WHITE)
-    dref seed  >>= 1
+    let shifted = cast(u32) color[] << (1 + (seed[] & 1))
+    color[] = cast(u8) ((shifted | (shifted >> 3)) & MSDF_WHITE)
+    seed[]  >>= 1
 }
 
 func msdfIsCorner(ax, ay, bx, by, crossThreshold: f64)->bool

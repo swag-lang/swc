@@ -44,7 +44,7 @@ func jitLateAddressOf()->bool
     var it   = JitLateItem{value: 3}
     var box: JitLateBox
     let slot = &box.item
-    dref slot = &it
+    slot[] = &it
     return @isset(box.item) and box.item.value == 3
 }
 

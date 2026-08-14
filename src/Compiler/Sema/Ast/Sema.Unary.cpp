@@ -57,11 +57,11 @@ namespace
         return sema.typeMgr().get(typeRef);
     }
 
-    // The type 'dref' operates on. A reference bound to a POINTER slot — '&#null *T', what a
-    // container's 'opIndex' hands back — dereferences like the pointer it names, so the
+    // The type a dereference operates on. A reference bound to a POINTER slot — '&#null *T',
+    // what a container's 'opIndex' hands back — dereferences like the pointer it names, so the
     // reference layers are looked through and the nullability of the slot is the nullability
     // of the dereference. A reference to anything else keeps its own type: it already IS the
-    // value, and 'dref' on it stays an operand-type error rather than a second indirection.
+    // value, and dereferencing it stays an operand-type error rather than a second indirection.
     TypeRef derefOperandTypeRef(Sema& sema, const SemaNodeView& view)
     {
         TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
@@ -438,7 +438,7 @@ namespace
         return Result::Continue;
     }
 
-    Result checkDRef(Sema& sema, const SemaNodeView& view)
+    Result checkDeref(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& type = sema.typeMgr().get(derefOperandTypeRef(sema, view));
         if (!type.isAnyPointer())
@@ -452,7 +452,7 @@ namespace
         return Result::Continue;
     }
 
-    Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& view)
+    Result semaDeref(Sema& sema, AstUnaryExpr& node, const SemaNodeView& view)
     {
         const TypeInfo& type          = sema.typeMgr().get(derefOperandTypeRef(sema, view));
         const TypeRef   resultTypeRef = type.dereferenceTypeRef(sema.ctx());
@@ -469,7 +469,7 @@ namespace
         if (type.isReference())
             return Result::Continue;
 
-        // A raw pointer operand is ambiguous (move the pointer or the pointee?): require 'dref'.
+        // A raw pointer operand is ambiguous (move the pointer or the pointee?): require '[]'.
         if (type.isAnyPointer())
             return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
 
@@ -544,8 +544,8 @@ namespace
                 return checkTilde(sema, node, view);
             case TokenId::SymAmpersand:
                 return checkTakeAddress(sema, node, view);
-            case TokenId::KwdDRef:
-                return checkDRef(sema, view);
+            case TokenId::SymLeftBracket:
+                return checkDeref(sema, view);
             case TokenId::ModifierMove:
             case TokenId::ModifierFwd:
                 return checkMoveRef(sema, node, view);
@@ -557,12 +557,9 @@ namespace
 
 Result AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView view = sema.viewNodeTypeConstantSymbol(nodeExprRef);
-    const Token& tok  = sema.token(codeRef());
-
-    // The postfix 'expr[]' spelling carries the '[' token and behaves exactly like the
-    // prefix dereference: normalize the operator once for every decision below.
-    const TokenId opId = Token::isDeref(tok.id) ? TokenId::KwdDRef : tok.id;
+    SemaNodeView  view = sema.viewNodeTypeConstantSymbol(nodeExprRef);
+    const Token&  tok  = sema.token(codeRef());
+    const TokenId opId = tok.id;
 
     // Function declarations are addressable even if they are not plain value expressions.
     const bool takesFunctionAddress = opId == TokenId::SymAmpersand && isFunctionAddressOperand(view);
@@ -616,8 +613,8 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     switch (opId)
     {
-        case TokenId::KwdDRef:
-            return semaDRef(sema, *this, view);
+        case TokenId::SymLeftBracket:
+            return semaDeref(sema, *this, view);
         case TokenId::SymAmpersand:
             // Taking the address of a tracked nullable path lets it be mutated through the
             // alias: drop any active narrowing for it, then recompute the operand view so

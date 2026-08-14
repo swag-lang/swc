@@ -28,7 +28,7 @@ public func runStd(context: *Context, options: *Options)->s32 fail
     // A module is tested from its own module file, against the API the workspace build published.
     for name in context.workspaceModules("std")
     {
-        if !options.module.isEmpty() and options.module != dref name do
+        if !options.module.isEmpty() and options.module != name[] do
             continue
 
         let moduleDir = Path.combine(context.workspacePath("std").toString(), "modules", name.toString())
@@ -156,7 +156,7 @@ private func packageApplications(context: *Context, options: *Options)->s32 fail
 {
     for name in context.workspaceModules("apps")
     {
-        if !options.module.isEmpty() and options.module != dref name do
+        if !options.module.isEmpty() and options.module != name[] do
             continue
 
         let code = try packageApplication(context, options, name.toString())
@@ -228,7 +228,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     try copyBeside(Path.combine(moduleDir.toString(), "LICENSE.md").toString(), appDir.toString(), "LICENSE.md")
     try copyBeside(Path.combine(moduleDir.toString(), "THIRD-PARTY-NOTICES.md").toString(), appDir.toString(), "THIRD-PARTY-NOTICES.md")
 
-    let installer = Path.combine(appDir.toString(), "winfsp-2.1.25156.msi")
+    let installer = Path.combine(appDir.toString(), "winfsp-2.2.26215.msi")
     if File.exists(installer) do
         discard catch File.delete(installer.toString())
 

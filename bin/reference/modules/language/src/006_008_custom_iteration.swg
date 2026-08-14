@@ -132,7 +132,7 @@ impl SliceStruct
 
 The '&' binding selects 'ptr == true', and the hook answers with the element's
 mutable address: the loop binding is a non-null pointer, and the loop body
-writes the element through 'dref'. Without '&', scalar elements are copied
+writes the element through '[]'. Without '&', scalar elements are copied
 into the loop binding.
 */
 #test
@@ -140,7 +140,7 @@ into the loop binding.
     var values = SliceStruct{}
 
     for &value, index in values do
-        dref value += cast(s32) index
+        value[] += cast(s32) index
 
     @assert(values.buffer[0] == 1)
     @assert(values.buffer[4] == 9)

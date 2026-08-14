@@ -123,7 +123,7 @@ func clearUpdate(result: *Update)
 
 func writePage(result: *s32, value: s32)
 {
-    dref result = value
+    result[] = value
 }
 
 func copyUpdate(result: *Update, source: Update)
@@ -140,14 +140,14 @@ func copyUpdate(result: *Update, source: Update)
 
 func findPageIndex(result: *u32, update: Update, page: s32)->bool
 {
-    dref result = 0'u32
+    result[] = 0'u32
 
     for update.count
     {
         let index = cast(u32) @index
         if update[index] == page
         {
-            dref result = index
+            result[] = index
             return true
         }
     }

@@ -18,7 +18,7 @@ func callReferencedFunction()->s32
 {
     let holder: ReferencedFunctionHolder = {callback: &referencedFunctionTarget}
     let callback = holder.atFn()
-    return (dref callback)()
+    return callback[]()
 }
 
 #test

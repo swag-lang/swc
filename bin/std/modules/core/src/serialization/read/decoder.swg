@@ -134,17 +134,17 @@ impl Decoder
             let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case .Bool:       dref cast(*bool) data = .serializer.readNative'bool()
-            case .U8:         dref cast(*u8) data = .serializer.readNative'u8()
-            case .U16:        dref cast(*u16) data = .serializer.readNative'u16()
-            case .U32, .Rune: dref cast(*u32) data = .serializer.readNative'u32()
-            case .U64:        dref cast(*u64) data = .serializer.readNative'u64()
-            case .S8:         dref cast(*s8) data = .serializer.readNative's8()
-            case .S16:        dref cast(*s16) data = .serializer.readNative's16()
-            case .S32:        dref cast(*s32) data = .serializer.readNative's32()
-            case .S64:        dref cast(*s64) data = .serializer.readNative's64()
-            case .F32:        dref cast(*f32) data = .serializer.readNative'f32()
-            case .F64:        dref cast(*f64) data = .serializer.readNative'f64()
+            case .Bool:       (cast(*bool) data)[] = .serializer.readNative'bool()
+            case .U8:         (cast(*u8) data)[] = .serializer.readNative'u8()
+            case .U16:        (cast(*u16) data)[] = .serializer.readNative'u16()
+            case .U32, .Rune: (cast(*u32) data)[] = .serializer.readNative'u32()
+            case .U64:        (cast(*u64) data)[] = .serializer.readNative'u64()
+            case .S8:         (cast(*s8) data)[] = .serializer.readNative's8()
+            case .S16:        (cast(*s16) data)[] = .serializer.readNative's16()
+            case .S32:        (cast(*s32) data)[] = .serializer.readNative's32()
+            case .S64:        (cast(*s64) data)[] = .serializer.readNative's64()
+            case .F32:        (cast(*f32) data)[] = .serializer.readNative'f32()
+            case .F64:        (cast(*f64) data)[] = .serializer.readNative'f64()
             }
 
             return
@@ -154,7 +154,7 @@ impl Decoder
         {
             let crc      = .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
-            dref cast(*#null typeinfo) data = typeType
+            (cast(*#null typeinfo) data)[] = typeType
             return
         }
 
@@ -216,7 +216,7 @@ impl Decoder
             if type == String
             {
                 let strBuf = cast(*String) data
-                dref strBuf = #nodrop .serializer.readNative'String()
+                strBuf[] = #nodrop .serializer.readNative'String()
                 strBuf.opPostMove()
                 return
             }
@@ -244,7 +244,7 @@ impl Decoder
             }
 
             // A structure with an implementation of ISerialize
-            let idecoder = cast(IDecoder) dref me
+            let idecoder = cast(IDecoder) me[]
             let itf      = @mkinterface(data, type, ISerialize)
             if itf != null
             {
@@ -446,7 +446,7 @@ impl IDecoder for Decoder
             for Math.min(cpt, count)
             {
                 .serializer.beginValue()
-                dref ptr = .serializer.readNative'u8()
+                ptr[] = .serializer.readNative'u8()
                 .serializer.endValue()
                 ptr += 1
             }

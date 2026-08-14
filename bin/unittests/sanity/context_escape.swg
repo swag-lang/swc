@@ -11,7 +11,7 @@ var contextEscapeGlobal: Context
 // error machinery, the allocator - dies far from here.
 func contextEscapeLeaksLocal()
 {
-    var cxt = dref @getcontext()
+    var cxt = @getcontext()[]
     cxt.user0 = 1
     @setcontext(cxt)     // swc-expected-error {{sanity_err_context_escape}}
 }
@@ -21,7 +21,7 @@ func contextEscapeLeaksFromInnerScope(patch: bool)
 {
     if patch
     {
-        var cxt = dref @getcontext()
+        var cxt = @getcontext()[]
         cxt.user1 = 2
         @setcontext(cxt)     // swc-expected-error {{sanity_err_context_escape}}
     }
@@ -38,7 +38,7 @@ func contextEscapeScoped()
     let prev = @getcontext()
     defer @setcontext(prev)
 
-    var cxt = dref prev
+    var cxt = prev[]
     cxt.user0 = 1
     @setcontext(cxt)
 }

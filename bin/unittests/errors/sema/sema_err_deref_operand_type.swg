@@ -1,13 +1,7 @@
 #global private
 
-// Every dereference spelling needs a pointer operand: the prefix 'dref', the postfix
-// place-deref 'expr[]', and the reinterpreting 'expr[as T]'.
-
-#test
-{
-    var value: s32
-    let bad = dref value     // swc-expected-error {{sema_err_deref_operand_type}}
-}
+// Every dereference needs a pointer operand: the place-deref 'expr[]' and the
+// reinterpreting 'expr[as T]'.
 
 #test
 {

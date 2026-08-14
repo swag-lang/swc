@@ -1564,7 +1564,7 @@ func intrinsicInitStrictPointerInfo()->bool
     var values: [2] IntrinsicStrictS32Ptr = undefined
     @init(&values, 2)(cast(IntrinsicStrictS32Ptr) &second)
 
-    return dref value == 42 and dref values[0] == 7 and dref values[1] == 7
+    return value[] == 42 and values[0][] == 7 and values[1][] == 7
 }
 
 func intrinsicInitStrictStringInfo()->bool

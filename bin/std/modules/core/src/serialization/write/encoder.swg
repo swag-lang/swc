@@ -156,17 +156,17 @@ impl Encoder
             let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case .Bool:       .serializer.writeNative(dref cast(const *bool) data)
-            case .U8:         .serializer.writeNative(dref cast(const *u8) data)
-            case .U16:        .serializer.writeNative(dref cast(const *u16) data)
-            case .U32, .Rune: .serializer.writeNative(dref cast(const *u32) data)
-            case .U64:        .serializer.writeNative(dref cast(const *u64) data)
-            case .S8:         .serializer.writeNative(dref cast(const *s8) data)
-            case .S16:        .serializer.writeNative(dref cast(const *s16) data)
-            case .S32:        .serializer.writeNative(dref cast(const *s32) data)
-            case .S64:        .serializer.writeNative(dref cast(const *s64) data)
-            case .F32:        .serializer.writeNative(dref cast(const *f32) data)
-            case .F64:        .serializer.writeNative(dref cast(const *f64) data)
+            case .Bool:       .serializer.writeNative((cast(const *bool) data)[])
+            case .U8:         .serializer.writeNative((cast(const *u8) data)[])
+            case .U16:        .serializer.writeNative((cast(const *u16) data)[])
+            case .U32, .Rune: .serializer.writeNative((cast(const *u32) data)[])
+            case .U64:        .serializer.writeNative((cast(const *u64) data)[])
+            case .S8:         .serializer.writeNative((cast(const *s8) data)[])
+            case .S16:        .serializer.writeNative((cast(const *s16) data)[])
+            case .S32:        .serializer.writeNative((cast(const *s32) data)[])
+            case .S64:        .serializer.writeNative((cast(const *s64) data)[])
+            case .F32:        .serializer.writeNative((cast(const *f32) data)[])
+            case .F64:        .serializer.writeNative((cast(const *f64) data)[])
             }
 
             return
@@ -174,7 +174,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = dref cast(const *#null typeinfo) data!
+            let typeType = (cast(const *#null typeinfo) data!)[]
             .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }
@@ -189,7 +189,7 @@ impl Encoder
             var objType, itfType: #null typeinfo
             if itf.itable
             {
-                objType = dref cast(const *typeinfo) itf.itable!
+                objType = (cast(const *typeinfo) itf.itable!)[]
                 itfType = type
             }
 
@@ -252,7 +252,7 @@ impl Encoder
             let itf = @mkinterface(data, type, ISerialize)
             if itf != null
             {
-                if itf.write(cast(IEncoder) dref me) do
+                if itf.write(cast(IEncoder) me[]) do
                     return
             }
 
@@ -269,7 +269,7 @@ impl Encoder
             let plan = planFor(structType)
             for &pf in plan.fields
             {
-                if !itf or !itf.writeElement(pf.value, cast(#null const [*] u8) data + pf.value.offset, cast(IEncoder) dref me)
+                if !itf or !itf.writeElement(pf.value, cast(#null const [*] u8) data + pf.value.offset, cast(IEncoder) me[])
                 {
                     .writeTypeValue(pf.value, cast(#null const [*] u8) data + pf.value.offset)
                 }
@@ -388,7 +388,7 @@ impl IEncoder for Encoder
             for count
             {
                 .serializer.beginValue()
-                .serializer.writeNative(dref ptr)
+                .serializer.writeNative(ptr[])
                 .serializer.endValue()
                 ptr += 1
             }

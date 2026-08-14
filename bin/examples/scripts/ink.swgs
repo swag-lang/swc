@@ -69,7 +69,7 @@ impl Drop
         {
             let p    = v - other.center
             let root = sqrt(1 + (otherr / p.lengthSquared()))
-            dref v = (p * root) + other.center
+            v[] = (p * root) + other.center
         }
 
         .lp.recomputeFlattenedPolygon()
@@ -139,7 +139,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             else
             {
                 for other in drops do
-                    other.marble(dref drops.back())
+                    other.marble(drops.back()[])
             }
         }
         else

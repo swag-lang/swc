@@ -49,14 +49,14 @@ private func store64(data: [*] u8, value: u64)
 #[Swag.Inline]
 private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
 {
-    (dref state)[a] += (dref state)[b] + x
-    (dref state)[d] = @ror((dref state)[d] ^ (dref state)[a], 32'u8)
-    (dref state)[c] += (dref state)[d]
-    (dref state)[b] = @ror((dref state)[b] ^ (dref state)[c], 24'u8)
-    (dref state)[a] += (dref state)[b] + y
-    (dref state)[d] = @ror((dref state)[d] ^ (dref state)[a], 16'u8)
-    (dref state)[c] += (dref state)[d]
-    (dref state)[b] = @ror((dref state)[b] ^ (dref state)[c], 63'u8)
+    state[][a] += state[][b] + x
+    state[][d] = @ror(state[][d] ^ state[][a], 32'u8)
+    state[][c] += state[][d]
+    state[][b] = @ror(state[][b] ^ state[][c], 24'u8)
+    state[][a] += state[][b] + y
+    state[][d] = @ror(state[][d] ^ state[][a], 16'u8)
+    state[][c] += state[][d]
+    state[][b] = @ror(state[][b] ^ state[][c], 63'u8)
 }
 
 // Computes a BLAKE2b digest incrementally, in unkeyed or keyed mode.

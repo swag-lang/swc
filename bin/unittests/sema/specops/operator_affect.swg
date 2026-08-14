@@ -248,7 +248,7 @@ func semaTest005()
 {
     var target = SetTarget{}
     let ptr    = &target
-    dref ptr = 99's32
+    ptr[] = 99's32
 }
 
 func semaTest006()

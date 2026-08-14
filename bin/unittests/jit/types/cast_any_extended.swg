@@ -26,7 +26,7 @@ enum AnyKind
         var value: s32 = 77
         var boxed: any = &value
         let ptr        = cast(*s32) boxed
-        return ptr == &value and dref ptr == 77
+        return ptr == &value and ptr[] == 77
     }
 
     const V = #run anyToPointer()

@@ -85,7 +85,7 @@ func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
     {
         @assert(@countof(values) == 2)
         @assert(values[1].length == 1)
-        return dref values[0].ptr!
+        return values[0].ptr![]
     }
 
     @assert(firstByte(["qr", "s"]) == 'q')

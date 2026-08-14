@@ -102,7 +102,7 @@ struct Pair
 {
     var arr: [2] Pair = [{1, 2}, {3, 4}]
     for &v, i in arr do
-        dref v = Pair{cast(s32) i + 10, cast(s32) i + 20}
+        v[] = Pair{cast(s32) i + 10, cast(s32) i + 20}
     @assert(arr[0].a == 10 and arr[0].b == 20)
     @assert(arr[1].a == 11 and arr[1].b == 21)
 }
@@ -115,9 +115,9 @@ struct Pair
     var hits          = 0
     for v in arr
     {
-        if dref v == Pair{2, 2} do
+        if v[] == Pair{2, 2} do
             hits += 1
-        if dref v == wanted do
+        if v[] == wanted do
             hits += 1
     }
     @assert(hits == 2)
@@ -129,6 +129,6 @@ struct Pair
     var text: string = "AB"
     var sum          = 0
     for &b in text do
-        sum += cast(s32) dref b
+        sum += cast(s32) b[]
     @assert(sum == 65 + 66)
 }

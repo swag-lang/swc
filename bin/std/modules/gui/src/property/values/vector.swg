@@ -56,7 +56,7 @@ internal impl Properties
 
             item.sigRefresh += func|prop = me, ed, dataField, fieldOffset|(item)
             {
-                ed.setText(Format.toString("%", dref dataField))
+                ed.setText(Format.toString("%", dataField[]))
                 prop.setEditMixedSub(item, ed, fieldOffset, #sizeof(f32))
             }
         }

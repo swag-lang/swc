@@ -13,7 +13,7 @@ enum OverFlags: u8
 func overload(x: s32, e: OverA)->s32 { return 10 }
 func overload(x: f32, e: OverB)->f32 { return 20.0 }
 func withFlags(e: OverFlags)->OverFlags { return e }
-func(T) addFlagsByUfcs(flags: *T, value: T) { dref flags |= value }
+func(T) addFlagsByUfcs(flags: *T, value: T) { flags[] |= value }
 
 func semaTest001()
 {

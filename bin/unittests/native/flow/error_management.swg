@@ -630,7 +630,7 @@ func notNullPointerSuccess()->s32
     let maybe:   #null *s32 = notNullMaybePtr(&storage)
     let ptr                 = maybe!
     #assert(#typeof(ptr) == *s32)
-    return dref ptr
+    return ptr[]
 }
 
 func notNullSliceSuccess()->s32

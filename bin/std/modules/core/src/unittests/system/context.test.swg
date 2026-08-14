@@ -4,7 +4,7 @@
 func pushContextRestoresAfterContinue()->bool
 {
     let base   = @getcontext()
-    var pushed = dref base
+    var pushed = base[]
     pushed.user0 = 0xC071E
 
     var reachedTail = 0
@@ -33,7 +33,7 @@ func pushContextRestoresAfterContinue()->bool
 func pushContextRestoresAfterBreak()->bool
 {
     let base   = @getcontext()
-    var pushed = dref base
+    var pushed = base[]
     pushed.user0 = 0xBEEA
 
     var iterations = 0
@@ -59,7 +59,7 @@ func pushContextRestoresAfterBreak()->bool
 func pushContextRestoresAfterReturn()->bool
 {
     let base   = @getcontext()
-    var pushed = dref base
+    var pushed = base[]
     pushed.user0 = 0xCA11EE
 
     System.pushContext(pushed)

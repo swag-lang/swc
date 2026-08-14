@@ -85,7 +85,7 @@ func collMutRemoveDuringIter()
     v.add(2)
     for &x in v
     {
-        dref x += 1
+        x[] += 1
         v.remove()     // swc-expected-error {{sanity_err_collection_mutated}}
     }
 }

@@ -135,10 +135,10 @@ func memoGet(m: *Memo, key: u64, found: *bool)->u64
     let vals  = m.vals!
     if alive[idx] and keys[idx] == key
     {
-        dref found = true
+        found[] = true
         return vals[idx]
     }
-    dref found = false
+    found[] = false
     return 0
 }
 

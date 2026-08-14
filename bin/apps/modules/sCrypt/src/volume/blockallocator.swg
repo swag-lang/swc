@@ -75,7 +75,7 @@ impl BlockAllocator
         if .free.count and .free.back().first + .free.back().count == first
         {
             .free.backPtr().count += count
-            .freeBlocksCount += count
+            .freeBlocksCount      += count
             return
         }
 
@@ -104,6 +104,60 @@ impl BlockAllocator
             .free.removeAtOrdered(index)
         .freeBlocksCount -= count
         return result
+    }
+
+    // Takes adjacent blocks strictly below `limit`. Shrinking uses this to evacuate the tail
+    // without accidentally choosing another block that the new geometry will discard.
+    mtd allocateRunBelow(limit, maximumCount: u64)->FreeExtent fail
+    {
+        Debug.assert(maximumCount != 0)
+        var index = .free.count
+        while index
+        {
+            index -= 1
+            let extent = .free[index]
+            if extent.first >= limit do
+                continue
+
+            let availableEnd = Math.min(extent.first + extent.count, limit)
+            let count        = Math.min(maximumCount, availableEnd - extent.first)
+            if !count do
+                continue
+
+            let first = extent.first
+            .free[index].first += count
+            .free[index].count -= count
+            if !.free[index].count do
+                .free.removeAtOrdered(index)
+            .freeBlocksCount -= count
+            return {first, count}
+        }
+
+        failWith("The smaller container has no room for every used block.", .DiskFull)
+    }
+
+    // Discards free extents outside a new, smaller geometry.
+    mtd trim(limit: u64)
+    {
+        var index = .free.count
+        while index
+        {
+            index -= 1
+            let extent = .free[index]
+            if extent.first >= limit
+            {
+                .freeBlocksCount -= extent.count
+                .free.removeAtOrdered(index)
+                continue
+            }
+
+            if extent.first + extent.count > limit
+            {
+                let removed = extent.first + extent.count - limit
+                .free[index].count -= removed
+                .freeBlocksCount   -= removed
+            }
+        }
     }
 
     mtd allocate()->u64 fail

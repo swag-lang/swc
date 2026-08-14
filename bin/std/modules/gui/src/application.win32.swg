@@ -217,7 +217,7 @@ impl Application
         if curImg.isValid() do
             nimage.mix(curImg, 0, 0)
         nimage.mix(img, sizeIcon * index, 0)
-        dref curImg = nimage
+        curImg[] = nimage
 
         curImgList.release(.renderer)
         curImgList.set(.renderer.addImage(curImg), sizeIcon, sizeIcon)

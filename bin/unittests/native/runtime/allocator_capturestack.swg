@@ -6,7 +6,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
 {
     alloc.setup()
     alloc.configure(false, true, true, false, true)
-    return @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    return @mkinterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
 #test

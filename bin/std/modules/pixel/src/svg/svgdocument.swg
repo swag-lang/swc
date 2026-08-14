@@ -182,12 +182,12 @@ private func appendExactContour(data: *String, path: const *LinePath)
     }
 
     if path.isClosed do
-        dref data += "Z"
+        data[] += "Z"
 }
 
 private func appendFlattenedContour(data: *String, path: const *LinePath, quality: PaintQuality)
 {
-    var copy = dref path
+    var copy = path[]
     copy.flatten(quality)
     let polygon = copy.flattenedPolygon()
     if polygon.points.count < 2 do
@@ -195,7 +195,7 @@ private func appendFlattenedContour(data: *String, path: const *LinePath, qualit
 
     for &point, i in polygon.points do
         data.appendFormat("%% %", i == 0 ? "M" : "L", num(point.x), num(point.y))
-    dref data += "Z"
+    data[] += "Z"
 }
 
 // Formats a coordinate with the shortest exact spelling: a whole number loses its fraction and

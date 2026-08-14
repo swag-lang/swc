@@ -89,7 +89,7 @@ impl ImageCanvas
         renderer.begin(width, height)
         let rendererItf: IRenderer = renderer
         rendererItf.init()
-        dref canvas.target! = rendererItf.createRenderTarget(width, height)
+        canvas.target![] = rendererItf.createRenderTarget(width, height)
         rendererItf.end()
 
         canvas.painter = Painter.create(renderer)

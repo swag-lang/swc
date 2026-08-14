@@ -19,7 +19,7 @@ func createSuspendedNative(entry: func(#null *void)->u32, param: *void, id: *u64
 {
     var nativeId: DWORD
     let handle = try CreateThread(null, 0, entry, param, CREATE_SUSPENDED, &nativeId)
-    dref id = nativeId
+    id[] = nativeId
     return cast(ThreadHandle) handle
 }
 

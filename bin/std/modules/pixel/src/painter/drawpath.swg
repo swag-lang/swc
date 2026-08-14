@@ -214,9 +214,9 @@ impl Painter
         switch #complete capStyle
         {
         case .None:     break
-        case .Triangle: .drawCapTriangle(p, d, sens, dref cxt.pen)
-        case .Round:    .drawCapRound(p, d, sens, dref cxt.pen)
-        case .Square:   .drawCapSquare(p, d, sens, dref cxt.pen)
+        case .Triangle: .drawCapTriangle(p, d, sens, cxt.pen[])
+        case .Round:    .drawCapRound(p, d, sens, cxt.pen[])
+        case .Square:   .drawCapSquare(p, d, sens, cxt.pen[])
         }
     }
 
@@ -369,10 +369,10 @@ impl Painter
         switch #complete cxt.pen.joinStyle
         {
         case .None:       break
-        case .Bevel:      .drawJoinBevel(p, d1, d2, dref cxt.pen)
-        case .Round:      .drawJoinRound(p, d1, d2, dref cxt.pen)
-        case .Miter:      .drawJoinMiter(p, d1, d2, true, dref cxt.pen)
-        case .MiterBevel: .drawJoinMiter(p, d1, d2, false, dref cxt.pen)
+        case .Bevel:      .drawJoinBevel(p, d1, d2, cxt.pen[])
+        case .Round:      .drawJoinRound(p, d1, d2, cxt.pen[])
+        case .Miter:      .drawJoinMiter(p, d1, d2, true, cxt.pen[])
+        case .MiterBevel: .drawJoinMiter(p, d1, d2, false, cxt.pen[])
         }
     }
 
@@ -791,7 +791,7 @@ impl Painter
                 n.normalizeOrZero()
                 var c = n.cross(1)
                 c *= cxt.penSize2
-                .drawLineCap(cxt.pen.begCapStyle, v1, c, 1.0, dref cxt.pen, true)
+                .drawLineCap(cxt.pen.begCapStyle, v1, c, 1.0, cxt.pen[], true)
             }
 
             // Draw end cap
@@ -803,7 +803,7 @@ impl Painter
                 n.normalizeOrZero()
                 var c = n.cross(1)
                 c *= cxt.penSize2
-                .drawLineCap(cxt.pen.endCapStyle, v1, c, -1.0, dref cxt.pen, false)
+                .drawLineCap(cxt.pen.endCapStyle, v1, c, -1.0, cxt.pen[], false)
             }
         }
 

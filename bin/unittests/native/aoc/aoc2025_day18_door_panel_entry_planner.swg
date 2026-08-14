@@ -172,7 +172,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
 
     path.buttons[path.count] = 'A'u8
     path.count               += 1
-    dref outPath             = path
+    outPath[]             = path
     return true
 }
 

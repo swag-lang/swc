@@ -40,7 +40,7 @@ func day2A()
     var h, d: u64
     for l in lines
     {
-        let cmd = Tokenize.split(dref l, ' 'u8)
+        let cmd = Tokenize.split(l[], ' 'u8)
         let val = expect StrConv.toS32(cmd[1])
         switch cmd[0]
         {

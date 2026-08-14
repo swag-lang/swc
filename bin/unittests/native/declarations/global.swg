@@ -48,11 +48,11 @@ var GText:  string  = "abc"
     @assert(GText == "xyz")
 
     var pInt = &GInt
-    dref pInt = 77
+    pInt[] = 77
     @assert(GInt == 77)
 
     var pPair = &GPair
-    dref pPair = {x: 100, y: 200}
+    pPair[] = {x: 100, y: 200}
     @assert(GPair.x == 100)
     @assert(GPair.y == 200)
 }

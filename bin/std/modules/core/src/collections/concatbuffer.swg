@@ -252,7 +252,7 @@ impl ConcatBuffer
                 return
             }
 
-            dref cast(*T) currentSP = val
+            (cast(*T) currentSP)[] = val
             .currentSP              += #sizeof(T)
         }
         else
@@ -260,7 +260,7 @@ impl ConcatBuffer
             .grow(#sizeof(T))
             let curBucket = .curBucket!
             let currentSP = .currentSP!
-            dref cast(*T) currentSP = val
+            (cast(*T) currentSP)[] = val
             .currentSP              += #sizeof(T)
             curBucket.count         += #sizeof(T)
         }

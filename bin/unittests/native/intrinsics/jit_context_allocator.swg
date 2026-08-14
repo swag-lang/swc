@@ -10,7 +10,7 @@ func jitStableWithNullAllocatorContext()->bool
     let prev     = @getcontext()
     let expected = @jit()
 
-    var cxt = dref prev
+    var cxt = prev[]
     cxt.allocator = null
     @setcontext(cxt)
 
@@ -26,7 +26,7 @@ func compilerJitStableWithNullAllocatorContext()->bool
 {
     let prev = @getcontext()
 
-    var cxt = dref prev
+    var cxt = prev[]
     cxt.allocator = null
     @setcontext(cxt)
 

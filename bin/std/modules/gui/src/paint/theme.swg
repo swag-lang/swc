@@ -400,7 +400,7 @@ impl Theme
             renderer.removeTexture(&.res.imgWidgets)
 
         let image = defaultWidgetsImage(renderer, wanted)
-        .res.imgWidgets = renderer.addImage(dref image)
+        .res.imgWidgets = renderer.addImage(image[])
         .res.atlasScale = wanted
     }
 

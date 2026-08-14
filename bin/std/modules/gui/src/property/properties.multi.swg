@@ -67,7 +67,7 @@ internal impl Properties
             let s0 = cast(*String) item.dataInstances[0]!
             for i in 1 until n
             {
-                if (dref cast(*String) item.dataInstances[i]!) != dref s0 do
+                if ((cast(*String) item.dataInstances[i]!)[]) != s0[] do
                     return true
             }
 
@@ -98,7 +98,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for i in 1 until n do
-                dref cast(*String) item.dataInstances[i]! = dref cast(*String) item.dataInstances[0]!
+                (cast(*String) item.dataInstances[i]!)[] = (cast(*String) item.dataInstances[0]!)[]
             return
         }
 
@@ -167,7 +167,7 @@ internal impl Properties
     {
         let n = .instanceCount(item)
         for k in n do
-            dref cast(*f32) (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset)! = val
+            (cast(*f32) (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset)!)[] = val
     }
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
@@ -215,10 +215,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: return cast(u64) dref cast(*u8) addr!
-        case 2: return cast(u64) dref cast(*u16) addr!
-        case 4: return cast(u64) dref cast(*u32) addr!
-        case 8: return dref cast(*u64) addr!
+        case 1: return cast(u64) (cast(*u8) addr!)[]
+        case 2: return cast(u64) (cast(*u16) addr!)[]
+        case 4: return cast(u64) (cast(*u32) addr!)[]
+        case 8: return (cast(*u64) addr!)[]
         }
 
         return 0
@@ -228,10 +228,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: dref cast(*u8) addr! = cast(u8) val
-        case 2: dref cast(*u16) addr! = cast(u16) val
-        case 4: dref cast(*u32) addr! = cast(u32) val
-        case 8: dref cast(*u64) addr! = val
+        case 1: (cast(*u8) addr!)[] = cast(u8) val
+        case 2: (cast(*u16) addr!)[] = cast(u16) val
+        case 4: (cast(*u32) addr!)[] = cast(u32) val
+        case 8: (cast(*u64) addr!)[] = val
         }
     }
 }

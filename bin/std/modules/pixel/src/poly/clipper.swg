@@ -674,7 +674,7 @@ impl Transform
             return false
 
         let y = .scanBeamList.popBack()
-        dref res = y
+        res[] = y
         while .scanBeamList.count and y == .scanBeamList.back() do
             .scanBeamList.count -= 1
 
@@ -762,7 +762,7 @@ impl Transform
     {
         if !.sortedEdges do
             return false
-        dref edge = .sortedEdges
+        edge[] = .sortedEdges
         .deleteFromSEL(nnEdge(.sortedEdges))
         return true
     }
@@ -778,15 +778,15 @@ impl Transform
     {
         if horzEdge.bot.x < horzEdge.top.x
         {
-            dref left  = horzEdge.bot.x
-            dref right = horzEdge.top.x
-            dref dir   = .LeftToRight
+            left[]  = horzEdge.bot.x
+            right[] = horzEdge.top.x
+            dir[]   = .LeftToRight
         }
         else
         {
-            dref left  = horzEdge.top.x
-            dref right = horzEdge.bot.x
-            dref dir   = .RightToLeft
+            left[]  = horzEdge.top.x
+            right[] = horzEdge.bot.x
+            dir[]   = .RightToLeft
         }
     }
 
@@ -1551,26 +1551,26 @@ impl Transform
         {
             if b1 < b2
             {
-                dref left  = Math.max(a1, b1)
-                dref right = Math.min(a2, b2)
+                left[]  = Math.max(a1, b1)
+                right[] = Math.min(a2, b2)
             }
             else
             {
-                dref left  = Math.max(a1, b2)
-                dref right = Math.min(a2, b1)
+                left[]  = Math.max(a1, b2)
+                right[] = Math.min(a2, b1)
             }
         }
         else
         {
             if b1 < b2
             {
-                dref left  = Math.max(a2, b1)
-                dref right = Math.min(a1, b2)
+                left[]  = Math.max(a2, b1)
+                right[] = Math.min(a1, b2)
             }
             else
             {
-                dref left  = Math.max(a2, b2)
-                dref right = Math.min(a1, b1)
+                left[]  = Math.max(a2, b2)
+                right[] = Math.min(a1, b1)
             }
         }
 
@@ -2210,7 +2210,7 @@ impl Transform
     {
         if .currentLM == .minimaList.count or .minimaList[.currentLM].y != y do
             return false
-        dref locMin = &.minimaList[.currentLM]
+        locMin[] = &.minimaList[.currentLM]
         .currentLM  += 1
         return true
     }

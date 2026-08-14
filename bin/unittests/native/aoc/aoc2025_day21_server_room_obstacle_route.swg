@@ -65,7 +65,7 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
 
         if current == endCell
         {
-            dref outSteps = distance[current]
+            outSteps[] = distance[current]
             return true
         }
 

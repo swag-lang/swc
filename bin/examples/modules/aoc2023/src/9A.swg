@@ -76,7 +76,7 @@ func day9A()
 
     for l in lines
     {
-        let vals = Tokenize.split(dref l, ' 'u8)
+        let vals = Tokenize.split(l[], ' 'u8)
 
         var values: Array's64
         for v in vals do

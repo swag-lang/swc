@@ -217,7 +217,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
                 return true
             defer #nofail decoder.endField(type)
 
-            dref cast(*s32) data! = decoder.readS32() - 6
+            (cast(*s32) data!)[] = decoder.readS32() - 6
             return true
         }
 
@@ -248,7 +248,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             encoder.beginField(type)
             defer #nofail encoder.endField(type)
 
-            encoder.writeS32((dref cast(const *s32) data!) + 10)
+            encoder.writeS32(((cast(const *s32) data!)[]) + 10)
             return true
         }
 

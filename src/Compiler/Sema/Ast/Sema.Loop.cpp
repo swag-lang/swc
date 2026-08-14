@@ -512,7 +512,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
             {
                 // The alias is an immutable binding: reassigning the slot would silently
                 // retarget the alias rather than write the element, exactly what the
-                // 'let' rule exists to refuse. Element writes go through 'dref'. The
+                // 'let' rule exists to refuse. Element writes go through '[]'. The
                 // custom-visit path already behaves this way ('#inject' let aliases).
                 valueVar.addExtraFlag(SymbolVariableFlagsE::Let);
                 SemaEscape::bindForeachAddressAlias(sema, valueVar, nodeExprRef);

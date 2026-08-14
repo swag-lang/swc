@@ -88,7 +88,7 @@ private func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamO
 private func streamOnlyQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     discard riid
-    dref ppv = cast([*] void) itf
+    ppv[] = cast([*] void) itf
     return S_OK
 }
 
@@ -110,7 +110,7 @@ private func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->H
         return DV_E_TYMED
 
     let inner = cast(*IDataObject) streamOnlyOf(itf).inner!
-    var ask   = dref fmt
+    var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
     return inner.lpVtbl.QueryGetData(inner, &ask)
 }
@@ -121,7 +121,7 @@ private func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *S
         return DV_E_TYMED
 
     let inner = cast(*IDataObject) streamOnlyOf(itf).inner!
-    var ask   = dref fmt
+    var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
 
     var block: STGMEDIUM
@@ -170,7 +170,7 @@ private func streamOnlyEnum(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID
 {
     discard itf
     discard direction
-    dref ppenum = null
+    ppenum[] = null
     return E_NOTIMPL
 }
 
@@ -194,7 +194,7 @@ private func streamOnlyUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
 private func streamOnlyEnumAdvise(itf: *IDataObject, ppenum: *LPVOID)->HRESULT
 {
     discard itf
-    dref ppenum = null
+    ppenum[] = null
     return OLE_E_ADVISENOTSUPPORTED
 }
 

@@ -22,7 +22,7 @@ defer Memory.delete(settings)
 var encoder: Serialization.Encoder'Serialization.Write.Json
 encoder.serializer.options.saveBlanks = true
 var output: ConcatBuffer
-try encoder.writeAll(&output, dref settings)
+try encoder.writeAll(&output, settings[])
 ```
 
 Malformed UTF-8, invalid escapes and numbers, duplicate properties, trailing commas, excessive

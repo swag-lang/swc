@@ -51,7 +51,7 @@ using Swag, Core
         let r = cast(u8) ((x * 17 + y * 3) % 255)
         let g = cast(u8) ((x * 5 + y * 19) % 255)
         let b = cast(u8) ((x * 29 + y * 7) % 255)
-        dref cast(*u32) pix = Color.fromArgb(255'u8, r, g, b).argb
+        (cast(*u32) pix)[] = Color.fromArgb(255'u8, r, g, b).argb
     }
 
     let before = f.capture.backImg.pixelColor(12, 12)

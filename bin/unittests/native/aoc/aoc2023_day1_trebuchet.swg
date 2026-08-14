@@ -245,7 +245,7 @@ func accumulateLine(line: const [..] u8, finder: IDigitFinder, target: *u64)
     let first = finder.findFirst(line)
     let last  = finder.findLast(line)
     if first >= 0 do
-        dref target += cast(u64) (first * 10 + last)
+        target[] += cast(u64) (first * 10 + last)
 }
 
 #[Swag.Macro]

@@ -162,7 +162,7 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
             grid[cast(u64) y * cast(u64) gw + cast(u64) x] = coverage(image, bpp, rOffset, bOffset, key, options.threshold, x - 1, y - 1)
     }
 
-    func at(grid: *Array'f32, gw: s32, x, y: s32)->f32 => (dref grid)[cast(u64) y * cast(u64) gw + cast(u64) x]
+    func at(grid: *Array'f32, gw: s32, x, y: s32)->f32 => grid[][cast(u64) y * cast(u64) gw + cast(u64) x]
 
     // One flag per cell edge crossing, so each contour is walked exactly once.
     // Index: cell (x, y) with 2 horizontal-crossing slots (top edge) per cell.

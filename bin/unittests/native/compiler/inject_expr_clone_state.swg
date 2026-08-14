@@ -63,7 +63,7 @@ namespace InjectExprCloneSupport
     #[Macro]
     func assignInjectedS32(out: *s32, expr: #code->s32)
     {
-        dref out = #inject(expr)
+        out[] = #inject(expr)
     }
 }
 

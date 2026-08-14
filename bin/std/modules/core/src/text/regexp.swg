@@ -473,7 +473,7 @@ impl RegExp
             swap(&pstack1, &pstack2)
 
             var cptReachedEnd = 0
-            for &v in dref pstack1
+            for &v in pstack1[]
             {
                 if v.parseIdx >= .bufLength do
                     cptReachedEnd += 1
@@ -572,7 +572,7 @@ impl RegExp
         if grp
         {
             let grpNode = grp.value!
-            var st      = dref state
+            var st      = state[]
             .syncActiveGroups(&st, grpNode.rawGroup)
             var strGroup: string = ""
             var hasGroup         = false
@@ -747,7 +747,7 @@ impl RegExp
             let #uniq1 = #uniq2.transitions.tryFind(c)
             if #uniq1
             {
-                var st                = dref curState
+                var st                = curState[]
                 let #uniq3            = #uniq1.value!
                 let pendingEmptyGroup = .findDisappearingEmptyGroup(&st, #uniq3, c)
                 if pendingEmptyGroup do
@@ -1132,7 +1132,7 @@ impl RegExp
 
         while cpt < .preprocessed.count
         {
-            var c = dref pz
+            var c = pz[]
             switch c
             {
             case '(', RuneOpenParen:
@@ -1227,7 +1227,7 @@ impl RegExp
         outH.clear()
 
         var stack: Array'(*NfaNode)
-        for n in dref inH do
+        for n in inH[] do
             stack.add(n)
 
         while stack.count
@@ -1249,7 +1249,7 @@ impl RegExp
 
     mtd setTable(node: *DfaNode, tbl: *Array'(*NfaNode))
     {
-        node.table = #move dref tbl
+        node.table = #move tbl[]
         for n in node.table
         {
             if node.rawGroup == 0 do
@@ -1281,7 +1281,7 @@ impl RegExp
     {
         if s1.count != s2.count do
             return false
-        for t1 in dref s1
+        for t1 in s1[]
         {
             if !s2.contains(t1) do
                 return false
@@ -1357,7 +1357,7 @@ impl RegExp
 
         // Negation
         var invert: rune
-        if dref pz == '^'
+        if pz[] == '^'
         {
             invert = RuneInvert
             pz     += 1
@@ -1483,14 +1483,14 @@ impl RegExp
             }
 
             // This is not an interval
-            if dref pz == '\\'
+            if pz[] == '\\'
             {
                 pz = .preprocessEscape(@mkslice(pz, pzEnd - pz), true)
             }
-            elif isReservedChar(dref pz)
+            elif isReservedChar(pz[])
             {
                 .preprocessed.add('\\')
-                .addPatternRune(dref pz)
+                .addPatternRune(pz[])
                 pz += 1
             }
             else
@@ -1520,7 +1520,7 @@ impl RegExp
             pzStart += 1
         }
 
-        dref val = n
+        val[] = n
         return pzStart
     }
 
@@ -1754,7 +1754,7 @@ impl RegExp
     mtd preprocessEscape(sl: const [..] rune, inInter = false)->const [*] rune fail
     {
         var pz = @dataof(sl)
-        let c  = dref pz
+        let c  = pz[]
         if c == '\\'
         {
             if pz[1] == 0 do

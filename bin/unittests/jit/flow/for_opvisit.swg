@@ -235,7 +235,7 @@ func jitForeachVisitCallSource()->s32
     var sum = 0
 
     for &value, ordinal in jitCallSource() do
-        sum += dref value + cast(s32) ordinal
+        sum += value[] + cast(s32) ordinal
 
     // The source expression belongs to the loop, not to the visit body: exactly one evaluation.
     return g_JitCallSourceCalls == 1 ? sum : -1
@@ -274,7 +274,7 @@ func jitForeachVisitByAddress()->s32
     var values = JitBufferVisits{}
 
     for &value, ordinal in values do
-        dref value += cast(s32) (ordinal + 1)
+        value[] += cast(s32) (ordinal + 1)
 
     return values.values[0] + values.values[1] + values.values[2]
 }

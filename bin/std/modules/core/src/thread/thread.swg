@@ -83,7 +83,7 @@ impl Thread
     {
         Debug.assert(!.isValid(), "thread already created")
 
-        .context = dref @getcontext()
+        .context = @getcontext()[]
         @init(&.context.tempAllocator, 1)
         let allocator = .context.allocator!
         if tempAllocSize < 0 do
@@ -139,7 +139,7 @@ private func threadEntry(param: #null *void)->u32
     if lambda
     {
         let safeLambda = lambda orelse func(th: Thread) {}
-        safeLambda(dref thread)
+        safeLambda(thread[])
     }
 
     thread.context.tempAllocator.release()

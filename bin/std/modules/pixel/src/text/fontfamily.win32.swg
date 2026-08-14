@@ -45,7 +45,7 @@ impl FontFamily
             idx = cast(u64) FontFamilyStyle.Italic
 
         ret.faces[idx].name = x
-        ret.faces[idx].face = dref fa
+        ret.faces[idx].face = fa[]
         return TRUE
     }
 
@@ -64,7 +64,7 @@ impl FontFamily
 
             // Already here ?
             let ret = cast(*Array'SystemFontFamilyInfo) cast #bit (u64) lParam
-            for here in dref ret
+            for here in ret[]
             {
                 if here.name == x do
                     return TRUE

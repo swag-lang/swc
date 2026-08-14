@@ -18,9 +18,9 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var cpt    = 0'u32
     var value  = 0'u64
 
-    if !Latin1.isHexDigit(dref buffer) do
+    if !Latin1.isHexDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isHexDigit(dref buffer)
+    while cpt < countof and Latin1.isHexDigit(buffer[])
     {
         if value & 0xF0000000_00000000
         {
@@ -29,7 +29,7 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         else
         {
             value <<= 4
-            let c = dref buffer
+            let c = buffer[]
             if Latin1.isDigit(c) do
                 value += cast(u64) (c - '0'u8)
             elif c <= 'F'u8 do
@@ -61,9 +61,9 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var cpt    = 0'u32
     var value  = 0'u64
 
-    if !Latin1.isBinDigit(dref buffer) do
+    if !Latin1.isBinDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isBinDigit(dref buffer)
+    while cpt < countof and Latin1.isBinDigit(buffer[])
     {
         if value & 0x80000000_00000000
         {
@@ -72,7 +72,7 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         else
         {
             value <<= 1
-            value += cast(u64) (dref buffer - '0'u8)
+            value += cast(u64) (buffer[] - '0'u8)
         }
 
         buffer, cpt += 1
@@ -146,9 +146,9 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var cpt    = 0'u32
     var value  = 0'u64
 
-    if !Latin1.isDigit(dref buffer) do
+    if !Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isDigit(dref buffer)
+    while cpt < countof and Latin1.isDigit(buffer[])
     {
         let value1 = value * #wrap 10
         if value1 < value
@@ -161,7 +161,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 
         if !result.ovf
         {
-            let add = cast(u64) (dref buffer - '0'u8)
+            let add = cast(u64) (buffer[] - '0'u8)
             if value + #wrap add < value
             {
                 result.ovf = true
@@ -236,20 +236,20 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
         buffer, cpt += 1
         signed      = true
         maxValue    += 1
-        if !Latin1.isDigit(dref buffer) and cpt == countof do
+        if !Latin1.isDigit(buffer[]) and cpt == countof do
             fail ParseIncompleteError{}
     }
     elif c == g_CultureInfo.numberFormat.positiveSign
     {
         buffer, cpt += 1
-        if !Latin1.isDigit(dref buffer) and cpt == countof do
+        if !Latin1.isDigit(buffer[]) and cpt == countof do
             fail ParseIncompleteError{}
     }
 
     // Parse the rest
-    if !Latin1.isDigit(dref buffer) do
+    if !Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isDigit(dref buffer)
+    while cpt < countof and Latin1.isDigit(buffer[])
     {
         let value1 = value * #wrap 10
         if value1 < value
@@ -262,7 +262,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 
         if !result.ovf
         {
-            let toAdd = cast(u64) (dref buffer - '0'u8)
+            let toAdd = cast(u64) (buffer[] - '0'u8)
             if value + toAdd > maxValue
             {
                 result.ovf = true
@@ -400,13 +400,13 @@ func parseString(result: *String, str: string)->u32 fail
                 fail SyntaxError{}
             switch str[cpt]
             {
-            case 't'u8: dref result += '\t'u8
-            case 'n'u8: dref result += '\n'u8
-            default:    dref result += str[cpt]
+            case 't'u8: result[] += '\t'u8
+            case 'n'u8: result[] += '\n'u8
+            default:    result[] += str[cpt]
             }
         }
         else do
-            dref result += str[cpt]
+            result[] += str[cpt]
 
         cpt += 1
     }

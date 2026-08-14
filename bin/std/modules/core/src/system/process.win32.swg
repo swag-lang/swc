@@ -180,12 +180,12 @@ private func nativePath(path: string)->String
 // Closes `handle` and clears it, so a repeated release is a no-op.
 private func releaseHandle(handle: *ProcessHandle)
 {
-    let native = cast(HANDLE) dref handle
+    let native = cast(HANDLE) handle[]
     if !native do
         return
 
     CloseHandle(native)
-    dref handle = null
+    handle[] = null
 }
 
 // Opens the null device, which throws writes away and reads as an empty stream.
@@ -213,12 +213,12 @@ private func createRedirectionPipe(parentEnd, childEnd: *ProcessHandle, childWri
     var readEnd, writeEnd: HANDLE
     try CreatePipe(&readEnd, &writeEnd, &attributes, 0)
 
-    dref parentEnd = childWrites ? readEnd : writeEnd
-    dref childEnd  = childWrites ? writeEnd : readEnd
+    parentEnd[] = childWrites ? readEnd : writeEnd
+    childEnd[]  = childWrites ? writeEnd : readEnd
 
     // Only the child's end may be inherited. A duplicate of this side living in the child would
     // hold the pipe open after the child exits, and the reader would never see the end of it.
-    try SetHandleInformation(cast(HANDLE) dref parentEnd, HANDLE_FLAG_INHERIT, 0)
+    try SetHandleInformation(cast(HANDLE) parentEnd[], HANDLE_FLAG_INHERIT, 0)
 }
 
 // Returns the standard handle a child inherits, normalizing the absence of one to null.
@@ -248,7 +248,7 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
         try createRedirectionPipe(parentEnd, ownedChildEnd, childWrites)
 
     case .Discard:
-        dref ownedChildEnd = try openNullDevice()
+        ownedChildEnd[] = try openNullDevice()
 
     case .Inherit:
 
@@ -259,7 +259,7 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
             return inheritableStandardHandle(standardHandle)
     }
 
-    return dref ownedChildEnd
+    return ownedChildEnd[]
 }
 
 // Builds the zero-terminated block of 'name=value' entries the system expects.
@@ -480,7 +480,7 @@ impl Process
     // Moves everything one captured pipe currently holds into `text`.
     private mtd drainPipe(pipe: *ProcessHandle, text: *String)
     {
-        let handle = cast(HANDLE) dref pipe
+        let handle = cast(HANDLE) pipe[]
         if !handle do
             return
 

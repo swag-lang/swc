@@ -45,7 +45,7 @@ func makeCells()->[2] Cell => [Cell{1}, Cell{2}]
     let values = [1, 2]
     for &v in values
     {
-        dref v = 5     // swc-expected-error {{sema_err_assign_to_const}}
+        v[] = 5     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -54,6 +54,6 @@ func makeCells()->[2] Cell => [Cell{1}, Cell{2}]
     const values = [1, 2]
     for &v in values
     {
-        dref v = 5     // swc-expected-error {{sema_err_assign_to_const}}
+        v[] = 5     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }

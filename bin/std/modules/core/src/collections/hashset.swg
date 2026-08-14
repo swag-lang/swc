@@ -380,20 +380,20 @@ impl HashSet
         var index = cast(u64) hashVal & (.capacity - 1)
         let table = .tablePtr()
 
-        index = .getNewIndex(dref key, index, hashVal)
+        index = .getNewIndex(key[], index, hashVal)
         if table[index].hash >= HashSet.HASH_FIRST do
             return table + index
 
         if table[index].hash == HashSet.HASH_FREE
         {
-            table[index].key = #relocate dref key
+            table[index].key = #relocate key[]
         }
         else
         {
             if table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
             @drop(&table[index].key)
-            table[index].key = #relocate dref key
+            table[index].key = #relocate key[]
         }
 
         table[index].hash = hashVal

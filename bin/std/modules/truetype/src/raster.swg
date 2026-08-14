@@ -273,7 +273,7 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
             var c = Math.abs(val)
             if c > 1.0 do
                 c = 1.0
-            dref dst = cast(u8) (c * 255.0 + 0.5)
+            dst[] = cast(u8) (c * 255.0 + 0.5)
             dst      += 1
         }
     }

@@ -54,10 +54,10 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     host.app.sigFrame += func|host = &host, didClose = &didClose|(app)
     {
         discard app
-        if !dref didClose
+        if !didClose[]
         {
             @assert(host.clickModalButton(Dialog.BtnCancel))
-            dref didClose = true
+            didClose[] = true
         }
     }
     @assert(dlg.doModal() == Dialog.BtnCancel)
@@ -96,12 +96,12 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     var didSet: bool
     host.app.sigFrame += func|host = &host, ctrl, didSet = &didSet|(app)
     {
-        if !dref didSet
+        if !didSet[]
         {
             @assert(host.setModalEditText("Name", "Alice"))
             @assert(ctrl.edit.text() == "Alice")
             @assert(host.clickModalButton(Dialog.BtnOk))
-            dref didSet = true
+            didSet[] = true
         }
     }
 

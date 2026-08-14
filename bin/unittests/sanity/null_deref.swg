@@ -20,7 +20,7 @@ func nullSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()!
+    const cfg      = #run @compiler.getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Null ? true : false
     #assert(#safety(Swag.SafetyWhat.Null) == expected)
 }
@@ -52,13 +52,13 @@ func nullSafetyEnabled()->bool
     q.y = 2     // swc-expected-error {{sanity_err_null_deref}}
 }
 
-// Store through a null scalar pointer via `dref`.
+// Store through a null scalar pointer via `[]`.
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *s32 = null
     let q             = p!
-    dref q = 9     // swc-expected-error {{sanity_err_null_deref}}
+    q[] = 9     // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // The null value propagates through a copy, then the copy is written through.

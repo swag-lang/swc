@@ -9,23 +9,23 @@ func utoaCopy(result: [*] u8, value: u64)->[*] u8
     {
         let tmpValue = orgValue
         orgValue /= 10
-        dref ptr = conv[35 + (tmpValue - (orgValue * 10))]
+        ptr[] = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
         if !orgValue do
             break
     }
 
     let retVal = ptr
-    dref ptr = 0
+    ptr[] = 0
     ptr      -= 1
 
     var ptr1 = result
     while ptr1 < ptr
     {
-        let tmpChar = dref ptr
-        dref ptr  = dref ptr1
+        let tmpChar = ptr[]
+        ptr[]  = ptr1[]
         ptr       -= 1
-        dref ptr1 = tmpChar
+        ptr1[] = tmpChar
         ptr1      += 1
     }
 

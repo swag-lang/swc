@@ -28,7 +28,7 @@ func nullableUsageLocalDeref(use: bool)->s32
         p = &g_nullableUsageStorage
     if p == null do
         return 0
-    return dref p
+    return p[]
 }
 
 func nullableUsageLocalIndex(count: u64)->s32

@@ -75,7 +75,7 @@ impl LosslessBitReader
         {
             if .ptr >= .last do
                 fail InvalidFormatError{"WebP data ends inside the lossless bitstream"}
-            .bits  |= cast(u64) dref .ptr << .nBits
+            .bits  |= cast(u64) .ptr[] << .nBits
             .ptr   += 1
             .nBits += 8
         }
@@ -270,7 +270,7 @@ impl LosslessHuffmanTree
         var node: u32
         if reader.nBits < LOSSLESS_LUT_BITS and reader.ptr < reader.last
         {
-            reader.bits  |= cast(u64) dref reader.ptr << reader.nBits
+            reader.bits  |= cast(u64) reader.ptr[] << reader.nBits
             reader.ptr   += 1
             reader.nBits += 8
         }
@@ -303,7 +303,7 @@ impl LosslessHuffmanTree
             {
                 if reader.ptr >= reader.last do
                     fail InvalidFormatError{"WebP data ends inside a Huffman code"}
-                reader.bits  = dref reader.ptr
+                reader.bits  = reader.ptr[]
                 reader.ptr   += 1
                 reader.nBits = 8
             }
@@ -414,8 +414,8 @@ func losslessDecodeHeader(reader: *LosslessBitReader, source: const [..] u8, wid
     if reader.read(8) != 0x2F do
         fail InvalidFormatError{"WebP lossless stream does not start with the VP8L signature"}
 
-    dref width  = cast(s32) reader.read(14) + 1
-    dref height = cast(s32) reader.read(14) + 1
+    width[]  = cast(s32) reader.read(14) + 1
+    height[] = cast(s32) reader.read(14) + 1
     discard reader.read(1)
     if reader.read(3) != 0 do
         fail UnsupportedFormatError{"WebP lossless stream uses an unsupported version"}
@@ -482,9 +482,9 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
 
     if topLevel and reader.read(1)
     {
-        dref huffmanBits = reader.read(3) + 2
-        let tileWidth  = losslessTileCount(width, dref huffmanBits)
-        let tileHeight = losslessTileCount(height, dref huffmanBits)
+        huffmanBits[] = reader.read(3) + 2
+        let tileWidth  = losslessTileCount(width, huffmanBits[])
+        let tileHeight = losslessTileCount(height, huffmanBits[])
         let tileCount  = tileWidth * tileHeight
         losslessDecodePixels(reader, huffmanPixels, tileWidth, tileHeight, 0, false)
         let huffmanData = cast([*] u8) huffmanPixels.buffer!
@@ -991,7 +991,7 @@ func losslessDecode(source: const [..] u8, pixels: *Array'u8, width: *s32, heigh
 
     var transforms:     Array'LosslessTransform
     var seenTransforms: [LOSSLESS_TRANSFORM_COUNT] bool
-    let originalWidth    = dref width
+    let originalWidth    = width[]
     var transformedWidth = originalWidth
 
     while reader.read(1)
@@ -1001,22 +1001,22 @@ func losslessDecode(source: const [..] u8, pixels: *Array'u8, width: *s32, heigh
 
         transforms.resize(transforms.count + 1)
         let transform = &transforms[transforms.count - 1]
-        transformedWidth = losslessDecodeTransform(&reader, transform, transformedWidth, dref height)
+        transformedWidth = losslessDecodeTransform(&reader, transform, transformedWidth, height[])
         if seenTransforms[transform.kind] do
             fail InvalidFormatError{"WebP lossless stream repeats a transform"}
         seenTransforms[transform.kind] = true
     }
 
-    losslessDecodePixels(&reader, pixels, transformedWidth, dref height, 0, true)
+    losslessDecodePixels(&reader, pixels, transformedWidth, height[], 0, true)
 
     var index = transforms.count
     while index
     {
         index -= 1
-        losslessApplyInverseTransform(&transforms[index], pixels, dref height)
+        losslessApplyInverseTransform(&transforms[index], pixels, height[])
     }
 
-    let expectedSize = cast(u64) originalWidth * dref height * 4
+    let expectedSize = cast(u64) originalWidth * height[] * 4
     if pixels.count != expectedSize do
         fail InvalidFormatError{"WebP lossless transforms produce a pixel count different from the image dimensions"}
 }

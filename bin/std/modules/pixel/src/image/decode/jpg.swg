@@ -284,9 +284,9 @@ impl Decoder
                 var psrc   = cast([*] u8) scanLineOfs!
                 for .imageSizeX
                 {
-                    pdest1[0] = dref psrc
-                    pdest1[1] = dref psrc
-                    pdest1[2] = dref psrc
+                    pdest1[0] = psrc[]
+                    pdest1[1] = psrc[]
+                    pdest1[2] = psrc[]
                     pdest1    += 3
                     psrc      += 1
                 }

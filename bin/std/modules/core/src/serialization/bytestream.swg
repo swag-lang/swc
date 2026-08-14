@@ -75,7 +75,7 @@ public impl ByteStream
             wb.reserve(seek + #sizeof(T))
         let buffer = wb.buffer!
         var ptr    = cast(*T) (buffer + seek)
-        dref ptr = val
+        ptr[] = val
         seek     += #sizeof(T)
         wb.count = Math.max(wb.count, seek)
     }
@@ -104,7 +104,7 @@ public impl ByteStream
     {
         if .seek + #sizeof(T) > .length() do
             fail OverflowError{"byte stream overflow"}
-        let val = dref cast(const *T) (.data() + .seek)
+        let val = (cast(const *T) (.data() + .seek))[]
         .seek += #sizeof(T)
         return val
     }
@@ -226,7 +226,7 @@ public impl ByteStream
     {
         if .seek >= .length() do
             return 0
-        return dref (.data() + .seek)
+        return (.data() + .seek)[]
     }
 
     // Advances by `count` bytes, clamping at the end of the buffer.

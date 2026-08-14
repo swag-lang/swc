@@ -75,7 +75,7 @@ impl VisitKeeper
     mtd scale(k: u64)
     {
         for &v in .header.bag do
-            dref v *= k
+            v[] *= k
     }
 }
 

@@ -411,7 +411,7 @@ func probeTinyReg(a: u64, t: Tiny)->u64
 // slot and a pointer argument follows on the stack.
 func probeDragEnter(itf: u64, dataObj: u64, keyState: u32, pt: PtL, effect: *u32)->s32
 {
-    dref effect = cast(u32) (pt.x + pt.y) + keyState
+    effect[] = cast(u32) (pt.x + pt.y) + keyState
     return cast(s32) (itf + dataObj) + pt.x * 1000 + pt.y
 }
 

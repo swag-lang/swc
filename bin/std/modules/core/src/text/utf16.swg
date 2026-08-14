@@ -153,7 +153,7 @@ func lengthZeroTerminated(buf: #null const [*] u16)->u64
         return 0
     var ptr   = buf
     var count = 0'u64
-    while dref ptr do
+    while ptr[] do
         ptr, count += 1
     return count
 }

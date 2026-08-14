@@ -56,7 +56,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     {
         switch evt
         {
-        case TimerEvent: dref count += 1
+        case TimerEvent: count[] += 1
         }
 
         return false
@@ -119,11 +119,11 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var didClick:   bool
     let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
     {
-        dref frames += 1
-        if !dref didClick
+        frames[] += 1
+        if !didClick[]
         {
             host.clickWnd(button)
-            dref didClick = true
+            didClick[] = true
         }
     })
 
@@ -147,7 +147,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(160, 90)
     defer host.shutdown()
     var frameCallbacks: u32
-    host.app.sigFrame    += func|count = &frameCallbacks|(app) { dref count += 1 }
+    host.app.sigFrame    += func|count = &frameCallbacks|(app) { count[] += 1 }
     host.app.maxRunFrame = 2
 
     host.app.runFrame()

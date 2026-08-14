@@ -102,7 +102,7 @@ impl IActionUI for ActionEdit
             let f = capture.forms[capture.selection.back()]
             let t = formEditableText(f)
             if t do
-                discard PropWnd.editText(main, dref t)
+                discard PropWnd.editText(main, t[])
             capture.selectionHasChanged()
 
         case .ClearImageInside:

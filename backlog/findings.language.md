@@ -862,7 +862,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Area: language
 - Found while: studying pointer-read ergonomics after the noref campaign; the shape comes from
   [quickstyles.test.swg](../bin/apps/modules/sCapture/src/tests/quickstyles.test.swg), where a
-  closure captures `dismissed = &didDismiss` (a `*bool`) and must spell `if dref dismissed`.
+  closure captures `dismissed = &didDismiss` (a `*bool`) and must spell `if dismissed[]`.
 - Observation: on a `#null *T`, `if p` is the null test and feeds flow narrowing — load-bearing
   and correct. On a bare non-null `*T`, the same spelling compiles and is vacuously always-true:
   `if dismissed` reads like a test of the pointed flag and is silently a constant. The same holds
@@ -877,6 +877,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   compiles `if (ptr)` only for optional pointers (unwrapped as `if (opt) |p|`). No neighbouring
   language lets a provably non-null pointer be a condition.
 - Next step: make truthiness of a non-null single-value pointer a dedicated error ("this test is
-  always true; test the pointed value with 'dref', or declare the pointer '#null' if absence is
+  always true; test the pointed value with '[]', or declare the pointer '#null' if absence is
   the question"). Before deciding error versus warning, survey generic instantiations that test
   `if x` where `T` arrives as a non-null pointer.

@@ -946,7 +946,7 @@ impl Allocator
             return
         }
 
-        var allocReq = dref request
+        var allocReq = request[]
         allocReq.address = null
         .allocate(&allocReq)
         if !allocReq.address
@@ -957,7 +957,7 @@ impl Allocator
 
         @memcpy(allocReq.address, cast(*void) oldAddress, @min(oldBlockSize, request.size))
 
-        var freeReq = dref request
+        var freeReq = request[]
         freeReq.address = cast(*void) oldAddress
         .freeBlock(&freeReq)
 
@@ -1403,7 +1403,7 @@ func installAllocator(electricMode: bool = false, detectLeaks: bool = true, capt
 
     if installInContext
     {
-        cxt.allocator        = @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+        cxt.allocator        = @mkinterface(alloc, #typeof(alloc[]), IAllocator)
         cxt.defaultAllocator = cxt.allocator
     }
 

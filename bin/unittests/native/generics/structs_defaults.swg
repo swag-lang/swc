@@ -41,9 +41,9 @@ struct(T) PtrHolder
 {
     var x:      s32           = 42
     let holder: PtrHolder's32 = {ptr: &x}
-    @assert(dref holder.ptr == 42)
+    @assert(holder.ptr[] == 42)
 
     var y:       f64           = 1.5
     let holderF: PtrHolder'f64 = {ptr: &y}
-    @assert(dref holderF.ptr == 1.5)
+    @assert(holderF.ptr[] == 1.5)
 }

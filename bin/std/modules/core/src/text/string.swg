@@ -505,7 +505,7 @@ impl String
         .grow(.length + 2)
         let buffer = .buffer!
         var ptr    = cast(*u16) (buffer + .length)
-        dref ptr = value
+        ptr[] = value
         .length  += 1
     }
 

@@ -16,7 +16,7 @@ impl IRenderer for RenderCpu
 
     mtd impl deleteContext(context: *RenderContext)
     {
-        dref context = {}
+        context[] = {}
     }
 
     mtd impl fontCache()->*FontCache => &.fonts

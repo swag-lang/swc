@@ -77,9 +77,9 @@ func(T) minOf(a, b: T)->T
 
 func(T) swap(a, b: *T)
 {
-    let tmp = dref a
-    dref a = dref b
-    dref b = tmp
+    let tmp = a[]
+    a[] = b[]
+    b[] = tmp
 }
 
 // ---------------------------------------------------------------------------

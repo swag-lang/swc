@@ -34,7 +34,7 @@ struct UndOuter
 
 func undFillPtr(p: *s32)
 {
-    dref p = 42
+    p[] = 42
 }
 
 func undPair()->{ x: s32, y: s32 }

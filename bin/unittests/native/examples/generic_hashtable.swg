@@ -154,7 +154,7 @@ func(K, V) getOr(table: *HashTable'(K, V), key: K, fallback: V)->V
     let ptr = tryGet'(K, V)(table, key)
     if ptr == null do
         return fallback
-    return dref ptr
+    return ptr[]
 }
 
 func hashU64(value: u64)->u64
@@ -217,7 +217,7 @@ struct InventoryRow
     @assert(getOr'(string, s32)(&table, "pears", -1) == -1)
 
     let ptr = (tryGet'(string, s32)(&table, "bananas"))!
-    dref ptr += 5
+    ptr[] += 5
     @assert(getOr'(string, s32)(&table, "bananas", -1) == 12)
 }
 

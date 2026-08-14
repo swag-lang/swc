@@ -101,7 +101,7 @@ func borrowEscapeAnyLocalOnly(param: *BorrowEscapePayload)->any
     value.text = "x"
     let boxed: any = value
     @assert(@dataof(boxed) != null)
-    return dref param
+    return param[]
 }
 
 // A by-value parameter is a copy living in the callee frame: borrowing its storage
@@ -133,7 +133,7 @@ func borrowEscapeSameScope()->s32
 {
     var v: s32 = 42
     var p      = &v
-    return dref p
+    return p[]
 }
 
 // Flow joins: clearing the borrow on only one path does not erase it.
@@ -431,7 +431,7 @@ func borrowEscapeClosureLocal()->s32
 {
     var total: s32                 = 7
     let pTotal                     = &total
-    let cb:    BorrowEscapeVisitor = func|pTotal|()->s32 { return dref pTotal }
+    let cb:    BorrowEscapeVisitor = func|pTotal|()->s32 { return pTotal[] }
     return cb()
 }
 
@@ -440,7 +440,7 @@ func borrowEscapeClosureReturn()->BorrowEscapeVisitor
 {
     var total: s32 = 7
     let pTotal     = &total
-    return func|pTotal|()->s32 { return dref pTotal }     // swc-expected-error {{sanity_err_borrow_escape}}
+    return func|pTotal|()->s32 { return pTotal[] }     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Capturing by reference borrows the source storage itself.
@@ -533,7 +533,7 @@ func borrowEscapeInlineCaller()->u64
     var data: [4] u8
     data[1] = 42
     let p = borrowEscapeInlineOffset(@dataof(data))
-    return cast(u64) dref p
+    return cast(u64) p[]
 }
 
 // The borrow rules are part of the language: '#[Swag.Sanity(.Lifecycle, false)]' governs
@@ -612,7 +612,7 @@ func borrowEscapeThroughCallCarrier()->string
 #[Swag.NoInline]
 func borrowEscapeReadOnly(p: *s32)->s32
 {
-    return dref p
+    return p[]
 }
 
 func borrowEscapeThroughCallValue()->s32
@@ -797,7 +797,7 @@ func borrowEscapeChainedLocalOnly()->s32
 {
     var v: s32 = 7
     let p      = borrowEscapePassthrough(&v)
-    return dref p
+    return p[]
 }
 
 // Clearing the local erases the deferred borrow.
@@ -978,7 +978,7 @@ func borrowEscapeOwnedChained()->string
 // feeds the summary, so call sites are judged against what was really passed.
 func borrowEscapeOwnedParamView(str: *BorrowEscapeOwned)->string
 {
-    return dref str
+    return str[]
 }
 
 func borrowEscapeOwnedThroughParam()->string
@@ -1145,7 +1145,7 @@ func borrowEscapePairLocal()->s32
     var v: s32 = 5
     var c: BorrowEscapeContainer
     c.add(&v)
-    return dref c.slot!
+    return c.slot![]
 }
 
 // Caller-owned data can be stored into a global container.
@@ -1529,7 +1529,7 @@ func borrowEscapeRetainedClosure()
 {
     var local:   s32
     let pLocal = &local
-    let visitor: BorrowEscapeVisitor = func|pLocal|()->s32 { return dref pLocal }
+    let visitor: BorrowEscapeVisitor = func|pLocal|()->s32 { return pLocal[] }
     borrowEscapeRetainVisitor(visitor)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 

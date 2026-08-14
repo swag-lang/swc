@@ -306,7 +306,7 @@ impl Rectangle
     mtd intersect(other: Rectangle)
     {
         let current: Rectangle = me
-        dref me = intersect(current, other)
+        me[] = intersect(current, other)
     }
 
     // Create a rectangle representing the intersection of two rectangles.
@@ -334,7 +334,7 @@ impl Rectangle
     mtd combine(other: Rectangle)
     {
         let current: Rectangle = me
-        dref me = combined(current, other)
+        me[] = combined(current, other)
     }
 
     // Create a rectangle representing the union of two rectangles.

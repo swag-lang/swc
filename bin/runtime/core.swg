@@ -85,7 +85,7 @@ func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
 
             let fieldPtrAddr = cast(*#null *void) (cast([*] u8) ptr + ft.offset)
             let typeStruct   = cast(const *Swag.TypeInfoStruct) pointedType
-            let result       = @as(toType, typeStruct, dref fieldPtrAddr)
+            let result       = @as(toType, typeStruct, fieldPtrAddr[])
             if result do
                 return result
         }
@@ -204,27 +204,27 @@ func __convertArgcArgv(args: const [*] u8)
 
     var cmdLine = args
     __argc = 0
-    while dref cmdLine
+    while cmdLine[]
     {
-        while dref cmdLine == ' ' do
+        while cmdLine[] == ' ' do
             cmdLine += 1
-        if dref cmdLine == 0 do
+        if cmdLine[] == 0 do
             break
 
-        if dref cmdLine == '"'
+        if cmdLine[] == '"'
         {
             cmdLine += 1
             let start = cmdLine
-            while dref cmdLine and dref cmdLine != '"' do
+            while cmdLine[] and cmdLine[] != '"' do
                 cmdLine += 1
             __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
-            if dref cmdLine do
+            if cmdLine[] do
                 cmdLine += 1
         }
         else
         {
             let start = cmdLine
-            while dref cmdLine and dref cmdLine != ' ' do
+            while cmdLine[] and cmdLine[] != ' ' do
                 cmdLine += 1
             __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
         }
@@ -232,7 +232,7 @@ func __convertArgcArgv(args: const [*] u8)
         __argc += 1
         if __argc == __MAX_ARGUMENTS do
             return
-        while dref cmdLine and dref cmdLine == ' ' do
+        while cmdLine[] and cmdLine[] == ' ' do
             cmdLine += 1
     }
 }
@@ -247,7 +247,7 @@ func @args()->const [..] string
 ////////////////////////////////////////////////////////////
 
 // Make a build configuration copy
-const __buildCfg = #run dref @compiler.getBuildCfg()!
+const __buildCfg = #run @compiler.getBuildCfg()![]
 
 func @rtflags()   => @getcontext().runtimeFlags
 func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
@@ -267,7 +267,7 @@ func __runtimeAllocator()->IAllocator
             let allocator = defaultAllocator()
             if !allocator.installed() do
                 allocator.setup()
-            cxt.allocator        = @mkinterface(allocator, #typeof(dref allocator), IAllocator)
+            cxt.allocator        = @mkinterface(allocator, #typeof(allocator[]), IAllocator)
             cxt.defaultAllocator = cxt.allocator
         }
     }

@@ -66,7 +66,7 @@ func sizedOp(a: u32) { gOverU32 = a }
 var gOverPtrVal: s32 = 0
 
 func ptrOrVal(a: s32) { gOverPtrVal = a }
-func ptrOrVal(a: *s32) { gOverPtrVal = dref a }
+func ptrOrVal(a: *s32) { gOverPtrVal = a[] }
 
 #test
 {

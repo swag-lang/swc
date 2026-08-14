@@ -19,7 +19,7 @@ enum MkanyKind: u16
         var x: s32 = 42
         let a: any = @mkany(&x, s32)
         let p      = cast(*s32) @dataof(a)
-        return dref p
+        return p[]
     }
 
     const V = #run mkanyRoundtripS32()
@@ -36,7 +36,7 @@ enum MkanyKind: u16
         var b: any = @mkany(&y, s32)
         b = a
         let p = cast(*s32) @dataof(b)
-        return dref p
+        return p[]
     }
 
     const V = #run mkanyAssignAny()
@@ -63,7 +63,7 @@ enum MkanyKind: u16
         var p: MkanyPair = {a: 11, b: 31}
         let a: any       = @mkany(&p, MkanyPair)
         let data         = cast(*MkanyPair) @dataof(a)
-        let value        = dref data
+        let value        = data[]
         return value.a + value.b
     }
 
@@ -79,7 +79,7 @@ enum MkanyKind: u16
         let ptr          = cast(*[6] s32) &arr
         let a:   any     = @mkany(ptr, [6] s32)
         let p            = cast(*[6] s32) @dataof(a)
-        let value        = dref p
+        let value        = p[]
         var acc: s32     = 0
         for v, i in value
         {
@@ -101,7 +101,7 @@ enum MkanyKind: u16
         let ptr    = cast([*] void) &x
         let a: any = @mkany(ptr, s32)
         let p      = cast(*s32) @dataof(a)
-        return dref p
+        return p[]
     }
 
     const V = #run mkanyBlockVoidPointer()
@@ -117,7 +117,7 @@ enum MkanyKind: u16
         if @kindof(a) != MkanyKind do
             return false
         let p = cast(*MkanyKind) @dataof(a)
-        return dref p == MkanyKind.B
+        return p[] == MkanyKind.B
     }
 
     const V = #run mkanyKindAndValue()
@@ -149,7 +149,7 @@ enum MkanyKind: u16
         let p1 = cast(*s64) @dataof(b)
         let p2 = cast(*s64) @dataof(c)
         let p3 = cast(*s64) @dataof(d)
-        return cast(u64) (dref p0 + dref p1 + dref p2 + dref p3)
+        return cast(u64) (p0[] + p1[] + p2[] + p3[])
     }
 
     const V = #run mkanyRewriteStress()
@@ -195,7 +195,7 @@ enum MkanyKind: u16
         let ar: any  = @mkany(&r, rune)
         let pb       = cast(*bool) @dataof(ab)
         let pr       = cast(*rune) @dataof(ar)
-        return cast(s32) dref pb + cast(s32) dref pr
+        return cast(s32) pb[] + cast(s32) pr[]
     }
 
     const V = #run mkanyBoolRuneMix()
@@ -210,7 +210,7 @@ enum MkanyKind: u16
         let info       = #typeof(values)
         let boxed: any = @mkany(&values, info)
         let data       = cast(*[2] f32) @dataof(boxed)
-        let array      = dref data
+        let array      = data[]
         return array[0] + array[1]
     }
 

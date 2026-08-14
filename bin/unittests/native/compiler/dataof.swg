@@ -107,9 +107,9 @@ impl ConstDataOfSpecBuffer
     const s: string = "abc"
     const p         = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a'u8)
+    #assert(p[] == 'a'u8)
     @assert(p != null)
-    @assert(dref p == 'a'u8)
+    @assert(p[] == 'a'u8)
 }
 
 // @dataof on const slice at compile time
@@ -118,9 +118,9 @@ impl ConstDataOfSpecBuffer
     const s: const [..] u8 = cast(const [..] u8) "abc"
     const p                = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a'u8)
+    #assert(p[] == 'a'u8)
     @assert(p != null)
-    @assert(dref p == 'a'u8)
+    @assert(p[] == 'a'u8)
 }
 
 // @dataof on const fixed array at compile time
@@ -129,9 +129,9 @@ impl ConstDataOfSpecBuffer
     const arr: [2] s32 = [7, 9]
     const p            = @dataof(arr)
     #assert(p != null)
-    #assert(dref p == 7)
+    #assert(p[] == 7)
     @assert(p != null)
-    @assert(dref p == 7)
+    @assert(p[] == 7)
 }
 
 #test
@@ -150,7 +150,7 @@ impl ConstDataOfSpecBuffer
     const value: ConstDataOfSpecBuffer = {data: [7'u8, 9'u8]}
     let p = @dataof(value)
     #assert(#typeof(p) == const [*] u8)
-    @assert(dref p == 7'u8)
+    @assert(p[] == 7'u8)
     @assert(p[1] == 9'u8)
 }
 
@@ -170,7 +170,7 @@ impl ConstDataOfSpecBuffer
     const value: StrictDataOfArray = cast(StrictDataOfArray) [7, 8, 9]
     const p = @dataof(value)
     #assert(#typeof(p) == const [*] s32)
-    #assert(dref p == 7)
+    #assert(p[] == 7)
     @assert(p[1] == 8)
 }
 

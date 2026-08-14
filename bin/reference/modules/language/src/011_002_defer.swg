@@ -81,7 +81,7 @@ release logic stay close together and cleanup always happens.
 
     func releaseResource(resource: *bool)
     {
-        dref resource = false
+        resource[] = false
     }
 
     func isResourceCreated(b: bool) => b
@@ -114,7 +114,7 @@ to errors. This pattern creates robust, error-resilient code.
 
     func releaseResource(resource: *bool)
     {
-        dref resource = false
+        resource[] = false
     }
 
     func isResourceCreated(b: bool) => b

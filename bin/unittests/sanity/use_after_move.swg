@@ -95,7 +95,7 @@ func lifecycleSafetyEnabled()->bool
     let p = &a.x
     var b = #move a
     discard b
-    @assert(dref p == 4)     // swc-expected-error {{sanity_err_use_after_move}}
+    @assert(p[] == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // ---------------------------------------------------------------------------

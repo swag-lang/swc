@@ -29,7 +29,7 @@ func day2A()
     {
         var max = 0
         var min = Swag.S32.Max
-        for v in Tokenize.splitAny(dref l, [' ', '\t'])
+        for v in Tokenize.splitAny(l[], [' ', '\t'])
         {
             let val = expect StrConv.toS32(Latin1.trim(v))
             min = Math.min(min, val)

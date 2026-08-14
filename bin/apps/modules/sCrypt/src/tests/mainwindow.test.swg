@@ -318,12 +318,12 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
         if !host.openedSurfaceCount() do
             return
 
-        dref frames += 1
-        if dref frames == 1 do
+        frames[] += 1
+        if frames[] == 1 do
             host.keyPress(Input.Key.Escape)
-        elif dref frames > 30
+        elif frames[] > 30
         {
-            dref forced = true
+            forced[] = true
             app.exitModal(Gui.Dialog.BtnCancel)
         }
     }

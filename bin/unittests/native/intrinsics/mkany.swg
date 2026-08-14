@@ -31,7 +31,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let p      = cast(*s32) @dataof(a)
 
     @assert(@kindof(a) == s32)
-    @assert(dref p == 42)
+    @assert(p[] == 42)
 }
 
 #test
@@ -43,7 +43,7 @@ alias MkanyStrictTypeInfo = typeinfo
     b = a
     let p = cast(*s32) @dataof(b)
 
-    @assert(dref p == 123)
+    @assert(p[] == 123)
 }
 
 #test
@@ -52,7 +52,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let a: any       = @mkany(&p, MkanyPair)
     p.b = 10
     let data  = cast(*MkanyPair) @dataof(a)
-    let value = dref data
+    let value = data[]
 
     @assert(@kindof(a) == MkanyPair)
     @assert(value.a == 11)
@@ -65,7 +65,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let ptr          = cast(*[6] s32) &arr
     let a:   any     = @mkany(ptr, [6] s32)
     let p            = cast(*[6] s32) @dataof(a)
-    let value        = dref p
+    let value        = p[]
     var acc: s32     = 0
     for v, i in value
     {
@@ -83,7 +83,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let p      = cast(*s32) @dataof(a)
 
     @assert(@kindof(a) == s32)
-    @assert(dref p == 55)
+    @assert(p[] == 55)
 }
 
 #test
@@ -93,7 +93,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let p            = cast(*MkanyKind) @dataof(a)
 
     @assert(@kindof(a) == MkanyKind)
-    @assert(dref p == MkanyKind.B)
+    @assert(p[] == MkanyKind.B)
 }
 
 #test
@@ -120,7 +120,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let p2 = cast(*s64) @dataof(c)
     let p3 = cast(*s64) @dataof(d)
 
-    @assert(cast(u64) (dref p0 + dref p1 + dref p2 + dref p3) == 100'u64)
+    @assert(cast(u64) (p0[] + p1[] + p2[] + p3[]) == 100'u64)
 }
 
 #test
@@ -132,7 +132,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let pb       = cast(*bool) @dataof(ab)
     let pr       = cast(*rune) @dataof(ar)
 
-    @assert(cast(s32) dref pb + cast(s32) dref pr == 66)
+    @assert(cast(s32) pb[] + cast(s32) pr[] == 66)
 }
 
 #test
@@ -143,7 +143,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let p = cast(*s64) @dataof(boxed)
 
     @assert(@kindof(boxed) == s64)
-    @assert(dref p == 9000)
+    @assert(p[] == 9000)
 }
 
 #test
@@ -155,8 +155,8 @@ alias MkanyStrictTypeInfo = typeinfo
     text = "beta"
 
     @assert(@kindof(boxed) == string)
-    @assert(dref ptr == "beta")
-    @assert(@countof(dref ptr) == 4)
+    @assert(ptr[] == "beta")
+    @assert(@countof(ptr[]) == 4)
     @assert(cast(string) boxed == "beta")
 }
 
@@ -194,9 +194,9 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     values    = buffer[1 to 3]
 
     @assert(@kindof(boxed) == [..] s32)
-    @assert(@countof(dref ptr) == 3)
-    @assert((dref ptr)[0] == 77)
-    @assert((dref ptr)[2] == 12)
+    @assert(@countof(ptr[]) == 3)
+    @assert(ptr[][0] == 77)
+    @assert(ptr[][2] == 12)
 }
 
 #test
@@ -207,7 +207,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let data       = cast(*s32) @dataof(boxed)
 
     @assert(@kindof(boxed) == s32)
-    @assert(dref data == 314)
+    @assert(data[] == 314)
 }
 
 #test
@@ -218,7 +218,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let data       = cast(*s32) @dataof(boxed)
 
     @assert(@kindof(boxed) == s32)
-    @assert(dref data == 271)
+    @assert(data[] == 271)
 }
 
 #test
@@ -229,7 +229,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let data       = cast(*s32) @dataof(boxed)
 
     @assert(@kindof(boxed) == s32)
-    @assert(dref data == 812)
+    @assert(data[] == 812)
 }
 
 #test
@@ -260,8 +260,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let raw             = cast(const *s32) @dataof(boxed)
 
     @assert(@kindof(boxed) == s32)
-    @assert(dref data == 733)
-    @assert(dref raw == 733)
+    @assert(data[] == 733)
+    @assert(raw[] == 733)
 }
 
 #test
@@ -272,7 +272,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let data              = cast(const *s32) boxed
 
     #assert(#typeof(boxed) == const any)
-    @assert(dref data == 123)
+    @assert(data[] == 123)
 }
 
 #test

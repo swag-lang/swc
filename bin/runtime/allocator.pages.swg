@@ -313,8 +313,8 @@ impl AllocatorPage
             if !.isBlockAddress(block) do
                 @panic("allocator free list is corrupted", #curlocation)
 
-            let next = dref cast(*u64) block
-            dref cast(*u64) block = .freeList
+            let next = (cast(*u64) block)[]
+            (cast(*u64) block)[] = .freeList
             .freeList             = list
             list                  = next
             taken                 += 1
@@ -333,7 +333,7 @@ impl AllocatorPage
         discard @atomadd(&.remoteCount, 1)
 
         .lockRemote()
-        dref cast(*u64) address = .remoteFree
+        (cast(*u64) address)[] = .remoteFree
         .remoteFree             = encoded
         .unlockRemote()
     }
@@ -349,7 +349,7 @@ impl AllocatorPage
             let block = .decode(head)
             if !.isBlockAddress(block) do
                 @panic("allocator free list is corrupted", #curlocation)
-            .freeList = dref cast(*u64) block
+            .freeList = (cast(*u64) block)[]
             .used     += 1
             return block
         }
@@ -377,7 +377,7 @@ impl AllocatorPage
         {
             if scan == wanted do
                 return true
-            scan = dref cast(*u64) .decode(scan)
+            scan = (cast(*u64) .decode(scan))[]
         }
 
         .lockRemote()
@@ -390,7 +390,7 @@ impl AllocatorPage
                 return true
             }
 
-            scan = dref cast(*u64) .decode(scan)
+            scan = (cast(*u64) .decode(scan))[]
         }
 
         .unlockRemote()
@@ -401,7 +401,7 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd releaseBlock(address: u64)
     {
-        dref cast(*u64) address = .freeList
+        (cast(*u64) address)[] = .freeList
         .freeList               = .encode(address)
         @assert(.used > 0)
         .used -= 1

@@ -42,8 +42,8 @@ internal var day6Instructions: Array'Day6Instruction
 
 internal func day6ParseNumber(line: string, cursorPtr: *u64)->u16
 {
-    var cursor = dref cursorPtr
-    defer dref cursorPtr = cursor
+    var cursor = cursorPtr[]
+    defer cursorPtr[] = cursor
 
     while cursor < @countof(line) and (line[cursor] < '0' or line[cursor] > '9') do
         cursor += 1
@@ -80,10 +80,10 @@ internal func day6EnsureInstructions()
         else do
             instruction.action = .Toggle
 
-        instruction.x0 = day6ParseNumber(dref line, &cursor)
-        instruction.y0 = day6ParseNumber(dref line, &cursor)
-        instruction.x1 = day6ParseNumber(dref line, &cursor)
-        instruction.y1 = day6ParseNumber(dref line, &cursor)
+        instruction.x0 = day6ParseNumber(line[], &cursor)
+        instruction.y0 = day6ParseNumber(line[], &cursor)
+        instruction.x1 = day6ParseNumber(line[], &cursor)
+        instruction.y1 = day6ParseNumber(line[], &cursor)
         day6Instructions.add(instruction)
     }
 

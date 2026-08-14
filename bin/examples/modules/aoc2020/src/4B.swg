@@ -84,7 +84,7 @@ func day4B0()
     var total, pass: u32
     for l in lines
     {
-        for r in Tokenize.split(dref l, ' 'u8)
+        for r in Tokenize.split(l[], ' 'u8)
         {
             let res1 = Tokenize.split(r, ':'u8)
             switch res1[0]
@@ -186,7 +186,7 @@ func day4B1()
     var total, pass: u32
     for l in lines
     {
-        for r in Tokenize.split(dref l, ' 'u8)
+        for r in Tokenize.split(l[], ' 'u8)
         {
             let res1 = Tokenize.split(r, ':'u8)
             let it   = map.tryFind(res1[0])

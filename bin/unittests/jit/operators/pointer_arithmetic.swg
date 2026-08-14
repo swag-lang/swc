@@ -19,7 +19,7 @@ impl PointerFieldHolder
         .len = 4
         .assignArrayFieldToPointer()
         var tail = cast([*] u16) (.ptr + .len)
-        dref tail = 0x1234'u16
+        tail[] = 0x1234'u16
         return cast(u16) .buf[4] | (cast(u16) .buf[5] << 8)
     }
 }
@@ -34,7 +34,7 @@ impl PointerFieldHolder
         var ptr          = base
         ptr += 4
         ptr -= 2
-        return (ptr - next) * 100 + dref ptr + dref next
+        return (ptr - next) * 100 + ptr[] + next[]
     }
 
     const V = #run pointerStepAndDistance()
@@ -50,7 +50,7 @@ impl PointerFieldHolder
         var acc: s32     = 0
         for 4
         {
-            acc += dref ptr
+            acc += ptr[]
             ptr -= 1
         }
 

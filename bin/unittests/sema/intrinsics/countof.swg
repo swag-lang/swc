@@ -82,12 +82,12 @@ func semaTest004()
 
 func countStringRef(value: *string)->u64
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countCStringRef(value: *cstring)->u64
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countSliceRef(value: [..] u8)->u64
@@ -97,12 +97,12 @@ func countSliceRef(value: [..] u8)->u64
 
 func countUnsignedRef(value: *u32)->u32
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countEnumRef(value: *RefCountKind)->u64
 {
-    return @countof(dref value)
+    return @countof(value[])
 }
 
 func countSpecOpRef(value: RefCountedBySpecOp)->u64
@@ -121,7 +121,7 @@ func loopStringRef(value: string)->u64
 func loopCStringRef(value: *cstring)->u64
 {
     var count: u64 = 0
-    for dref value do
+    for value[] do
         count += 1
     return count
 }
@@ -137,7 +137,7 @@ func loopSliceRef(value: [..] u8)->u64
 func loopUnsignedRef(value: *u32)->u32
 {
     var count: u32 = 0
-    for dref value do
+    for value[] do
         count += 1
     return count
 }
@@ -146,41 +146,41 @@ func semaTest005()
 {
     var text             = "hello"
     var textRef: *string = &text
-    #assert(#typeof(@countof(dref textRef)) == u64)
+    #assert(#typeof(@countof(textRef[])) == u64)
     #assert(#typeof(countStringRef(textRef)) == u64)
-    #assert(#typeof(loopStringRef(dref textRef)) == u64)
+    #assert(#typeof(loopStringRef(textRef[])) == u64)
 
     var cstrData: [4] u8   = ['a'u8, 'b'u8, 'c'u8, 0]
     var cstr:     cstring  = cast(cstring) &cstrData[0]
     var cstrRef:  *cstring = &cstr
-    #assert(#typeof(@countof(dref cstrRef)) == u64)
+    #assert(#typeof(@countof(cstrRef[])) == u64)
     #assert(#typeof(countCStringRef(cstrRef)) == u64)
     #assert(#typeof(loopCStringRef(cstrRef)) == u64)
 
     var array:    [2, 3] u8
     var arrayRef: *[2, 3] u8 = &array
-    #assert(@countof(dref arrayRef) == 6)
+    #assert(@countof(arrayRef[]) == 6)
 
     var flat:     [6] u8
     let slice = cast([..] u8) flat
     var sliceRef: const *[..] u8 = &slice
-    #assert(#typeof(@countof(dref sliceRef)) == u64)
-    #assert(#typeof(countSliceRef(dref sliceRef)) == u64)
-    #assert(#typeof(loopSliceRef(dref sliceRef)) == u64)
+    #assert(#typeof(@countof(sliceRef[])) == u64)
+    #assert(#typeof(countSliceRef(sliceRef[])) == u64)
+    #assert(#typeof(loopSliceRef(sliceRef[])) == u64)
 
     var number:    u32  = 4
     var numberRef: *u32 = &number
-    #assert(#typeof(@countof(dref numberRef)) == u32)
+    #assert(#typeof(@countof(numberRef[])) == u32)
     #assert(#typeof(countUnsignedRef(numberRef)) == u32)
     #assert(#typeof(loopUnsignedRef(numberRef)) == u32)
 
     var kind = RefCountKind.B
     var kindRef: *RefCountKind = &kind
-    #assert(@countof(dref kindRef) == 4)
+    #assert(@countof(kindRef[]) == 4)
     #assert(#typeof(countEnumRef(kindRef)) == u64)
 
     let spec = RefCountedBySpecOp{count: 11}
     let specRef: const *RefCountedBySpecOp = &spec
-    #assert(@countof(dref specRef) == 11)
-    #assert(#typeof(countSpecOpRef(dref specRef)) == u64)
+    #assert(@countof(specRef[]) == 11)
+    #assert(#typeof(countSpecOpRef(specRef[])) == u64)
 }

@@ -161,7 +161,7 @@ impl RefCountedRuntime
     {
         var text             = "hello"
         var textRef: *string = &text
-        return @countof(dref textRef)
+        return @countof(textRef[])
     }
 
     func loopStringRef()->u64
@@ -169,7 +169,7 @@ impl RefCountedRuntime
         var text                   = "hello"
         let textRef: const *string = &text
         var count:   u64           = 0
-        for dref textRef do
+        for textRef[] do
             count += 1
         return count
     }
@@ -187,7 +187,7 @@ impl RefCountedRuntime
         var valueData: [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
         var value:     cstring  = cast(cstring) &valueData[0]
         var valueRef:  *cstring = &value
-        return @countof(dref valueRef)
+        return @countof(valueRef[])
     }
 
     func loopCStringRef()->u64
@@ -196,7 +196,7 @@ impl RefCountedRuntime
         var value:     cstring  = cast(cstring) &valueData[0]
         let valueRef:  *cstring = &value
         var count:     u64      = 0
-        for dref valueRef do
+        for valueRef[] do
             count += 1
         return count
     }
@@ -217,7 +217,7 @@ impl RefCountedRuntime
         var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
         let slice                    = cast([..] u8) flat
         let sliceRef: const *[..] u8 = &slice
-        return @countof(dref arrayRef) + @countof(dref sliceRef)
+        return @countof(arrayRef[]) + @countof(sliceRef[])
     }
 
     func loopSliceRef()->u64
@@ -226,7 +226,7 @@ impl RefCountedRuntime
         let slice                    = cast([..] u8) flat
         let sliceRef: const *[..] u8 = &slice
         var count:    u64            = 0
-        for dref sliceRef do
+        for sliceRef[] do
             count += 1
         return count
     }
@@ -243,7 +243,7 @@ impl RefCountedRuntime
     {
         var value:    u32  = 7
         var valueRef: *u32 = &value
-        return @countof(dref valueRef)
+        return @countof(valueRef[])
     }
 
     func loopUnsignedRef()->u32
@@ -251,7 +251,7 @@ impl RefCountedRuntime
         var value:    u32  = 7
         let valueRef: *u32 = &value
         var count:    u32  = 0
-        for dref valueRef do
+        for valueRef[] do
             count += 1
         return count
     }
@@ -269,7 +269,7 @@ impl RefCountedRuntime
     {
         var value:    s32  = 7
         var valueRef: *s32 = &value
-        return @countof(dref valueRef)
+        return @countof(valueRef[])
     }
 
     func loopSignedRef()->s32
@@ -277,7 +277,7 @@ impl RefCountedRuntime
         var value:    s32  = 7
         let valueRef: *s32 = &value
         var count:    s32  = 0
-        for dref valueRef do
+        for valueRef[] do
             count += 1
         return count
     }
@@ -295,14 +295,14 @@ impl RefCountedRuntime
     {
         var kind = RefCountKind.C
         var kindRef: *RefCountKind = &kind
-        return @countof(dref kindRef)
+        return @countof(kindRef[])
     }
 
     func countSpecRef()->u64
     {
         let value = RefCountedRuntime{count: 11}
         let valueRef: const *RefCountedRuntime = &value
-        return @countof(dref valueRef)
+        return @countof(valueRef[])
     }
 
     const V0 = #run countEnumRef()

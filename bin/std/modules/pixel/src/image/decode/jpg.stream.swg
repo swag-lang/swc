@@ -80,7 +80,7 @@ impl Decoder
             .prepareInBuffer()
             if !.inBufLeft
             {
-                dref paddingFlag = true
+                paddingFlag[] = true
                 let t = .temFlag
                 .temFlag ^= 1
                 if t do
@@ -89,9 +89,9 @@ impl Decoder
             }
         }
 
-        dref paddingFlag = false
+        paddingFlag[] = false
         let inBufOfs = .inBufOfs!
-        let c        = dref inBufOfs
+        let c        = inBufOfs[]
         .inBufOfs  += 1
         .inBufLeft -= 1
         return c
@@ -471,7 +471,7 @@ impl Decoder
         var ps = cast([*] u16) p
         for n
         {
-            dref ps = c
+            ps[] = c
             ps      += 1
         }
     }

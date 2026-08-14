@@ -52,7 +52,7 @@ func day4A()
     var r:     Parser.RegExp
     for l in lines
     {
-        discard expect r.match(#raw "(\d+)-(\d+),(\d+)-(\d+)", dref l)
+        discard expect r.match(#raw "(\d+)-(\d+),(\d+)-(\d+)", l[])
         let v0a = expect StrConv.toS32(r.getCapture(1))
         let v0b = expect StrConv.toS32(r.getCapture(2))
         let v1a = expect StrConv.toS32(r.getCapture(3))

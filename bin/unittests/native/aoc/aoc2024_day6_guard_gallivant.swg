@@ -140,23 +140,23 @@ func directionDelta(outDx: *s32, outDy: *s32, dir: Direction)
     switch #complete dir
     {
     case Direction.Up:
-        dref outDx = 0
-        dref outDy = -1
+        outDx[] = 0
+        outDy[] = -1
         break
 
     case Direction.Right:
-        dref outDx = 1
-        dref outDy = 0
+        outDx[] = 1
+        outDy[] = 0
         break
 
     case Direction.Down:
-        dref outDx = 0
-        dref outDy = 1
+        outDx[] = 0
+        outDy[] = 1
         break
 
     case Direction.Left:
-        dref outDx = -1
-        dref outDy = 0
+        outDx[] = -1
+        outDy[] = 0
         break
     }
 }
@@ -235,7 +235,7 @@ func parseGrid(outGrid: *GridMap, text: string)
         }
     }
 
-    dref outGrid = result
+    outGrid[] = result
 }
 
 func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: GridMap)
@@ -257,7 +257,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
     visited[startIndex]  = 1'u8
-    dref outVisitedCount = 1'u32
+    outVisitedCount[] = 1'u32
     trace                = appendIndex(trace, startIndex)
 
     while true
@@ -287,12 +287,12 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
         if visited[nextIndex] == 0'u8
         {
             visited[nextIndex]   = 1'u8
-            dref outVisitedCount += 1'u32
+            outVisitedCount[] += 1'u32
             trace                = appendIndex(trace, nextIndex)
         }
     }
 
-    dref outTrace = trace
+    outTrace[] = trace
 }
 
 func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool

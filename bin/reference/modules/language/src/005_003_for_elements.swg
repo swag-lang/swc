@@ -181,7 +181,7 @@ Use '&' when the loop must write.
 Prefix the element name with '&' to bind the element's **mutable address**: the
 binding is a non-null pointer into the collection ('const *T' when the collection
 itself is constant). Members of a struct element are reached directly through the
-binding; the whole element is read or written with 'dref'.
+binding; the whole element is read or written with '[]'.
 */
 
 #test
@@ -192,8 +192,8 @@ binding; the whole element is read or written with 'dref'.
     for &it in array
     {
         #assert(#typeof(it) == *s32)
-        result  += dref it
-        dref it = 555
+        result  += it[]
+        it[] = 555
     }
 
     @assert(result == 1 + 2 + 3 + 4)
@@ -217,7 +217,7 @@ The same '&' binding replaces a struct element in one write.
     var points: [2] Point = [{1, 2}, {3, 4}]
 
     for &p, index in points do
-        dref p = Point{cast(s32) index, cast(s32) index}
+        p[] = Point{cast(s32) index, cast(s32) index}
 
     @assert(points[0].x == 0 and points[0].y == 0)
     @assert(points[1].x == 1 and points[1].y == 1)

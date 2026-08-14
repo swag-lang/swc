@@ -48,7 +48,7 @@ lazily — only on the failure path — and may divert control flow (e.g. an ear
 */
 func recordTrace(name: #null string, out: *s32) fail
 {
-    dref out = cast(s32) count(name)
+    out[] = cast(s32) count(name)
 }
 
 #test

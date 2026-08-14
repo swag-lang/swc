@@ -174,33 +174,33 @@ impl Md5
     #[Swag.Inline]
     func ff1(a: *u32, b, c, d, x, s, ac: u32)
     {
-        dref a += f1(b, c, d) + x + ac
-        dref a = f5(dref a, s)
-        dref a += b
+        a[] += f1(b, c, d) + x + ac
+        a[] = f5(a[], s)
+        a[] += b
     }
 
     #[Swag.Inline]
     func ff2(a: *u32, b, c, d, x, s, ac: u32)
     {
-        dref a += f2(b, c, d) + x + ac
-        dref a = f5(dref a, s)
-        dref a += b
+        a[] += f2(b, c, d) + x + ac
+        a[] = f5(a[], s)
+        a[] += b
     }
 
     #[Swag.Inline]
     func ff3(a: *u32, b, c, d, x, s, ac: u32)
     {
-        dref a += f3(b, c, d) + x + ac
-        dref a = f5(dref a, s)
-        dref a += b
+        a[] += f3(b, c, d) + x + ac
+        a[] = f5(a[], s)
+        a[] += b
     }
 
     #[Swag.Inline]
     func ff4(a: *u32, b, c, d, x, s, ac: u32)
     {
-        dref a += f4(b, c, d) + x + ac
-        dref a = f5(dref a, s)
-        dref a += b
+        a[] += f4(b, c, d) + x + ac
+        a[] = f5(a[], s)
+        a[] += b
     }
 
     func transform(state: [4] u32, block: const [*] u8)

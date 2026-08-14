@@ -20,6 +20,6 @@ namespace InlineRegressionBug13
     #[Swag.Inline]
     func assign(assignTo: *Vector3, from: #move Vector3)
     {
-        dref assignTo = #move from
+        assignTo[] = #move from
     }
 }

@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 // The registry records WHICH slot was dropped, never a pointer it can follow: every use
 // below is an equality test. Addresses are therefore kept as plain identities, so the
@@ -90,7 +90,7 @@ impl LeakTrackedValue
 
     mtd const marker()->s32
     {
-        return .tag + cast(s32) dref .self! + cast(s32) .storage[1]
+        return .tag + cast(s32) .self![] + cast(s32) .storage[1]
     }
 
     mtd opDrop()
@@ -116,7 +116,7 @@ impl LeakTrackedValue
             @assert(dropAddr == LeakExpectedDropAddr)
             @assert(cast(u64) .self == LeakExpectedDropSelf)
             @assert(.tag == LeakExpectedDropTag)
-            @assert(dref .self! == cast(u8) .tag)
+            @assert(.self![] == cast(u8) .tag)
         }
     }
 }

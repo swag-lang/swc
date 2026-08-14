@@ -35,13 +35,13 @@ func day5A0()
     var total = 0
     for l in lines
     {
-        if Utf8.indexOf(dref l, "ab") != Swag.U64.Max do
+        if Utf8.indexOf(l[], "ab") != Swag.U64.Max do
             continue
-        if Utf8.indexOf(dref l, "cd") != Swag.U64.Max do
+        if Utf8.indexOf(l[], "cd") != Swag.U64.Max do
             continue
-        if Utf8.indexOf(dref l, "pq") != Swag.U64.Max do
+        if Utf8.indexOf(l[], "pq") != Swag.U64.Max do
             continue
-        if Utf8.indexOf(dref l, "xy") != Swag.U64.Max do
+        if Utf8.indexOf(l[], "xy") != Swag.U64.Max do
             continue
 
         var vowels, dbl = 0
@@ -74,11 +74,11 @@ func day5A1()
     var r2    = expect Parser.RegExp.create(#raw "([a-z])\1")
     for l in lines
     {
-        if r0.grep(dref l) do
+        if r0.grep(l[]) do
             continue
-        if r1.grepAll(dref l).count < 3 do
+        if r1.grepAll(l[]).count < 3 do
             continue
-        if !r2.grep(dref l) do
+        if !r2.grep(l[]) do
             continue
         total += 1
     }

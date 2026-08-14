@@ -55,10 +55,10 @@ func isRepeatedDoubleId(value: u64)->bool
 func parseNumber(bytes: const [..] u8, index: *u32)->u64
 {
     var result: u64
-    while dref index < @countof(bytes) and bytes[dref index] >= '0' and bytes[dref index] <= '9'
+    while index[] < @countof(bytes) and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result     = result * 10'u64 + cast(u64) (bytes[dref index] - '0')
-        dref index += 1
+        result     = result * 10'u64 + cast(u64) (bytes[index[]] - '0')
+        index[] += 1
     }
 
     return result

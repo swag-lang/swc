@@ -37,6 +37,6 @@ struct EqualityPoint
 {
     var point = EqualityPoint{10, 20}
     let pointRef: const *EqualityPoint = &point
-    @assert(dref pointRef == {10, 20})
-    @assert({10, 20} == dref pointRef)
+    @assert(pointRef[] == {10, 20})
+    @assert({10, 20} == pointRef[])
 }

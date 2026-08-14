@@ -139,8 +139,8 @@ impl Encoder
 
         for i in 64 do
             .du[ZigZag[i]] = .duDct[i]
-        let diff = .du[0] - dref dC
-        dref dC = .du[0]
+        let diff = .du[0] - dC[]
+        dC[] = .du[0]
 
         if diff == 0 do
             .writeBits(hTDC[0])

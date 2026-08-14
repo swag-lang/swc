@@ -11,7 +11,7 @@ internal impl Properties
             func(T) setEd()
             {
                 let p = cast(*T) data!
-                item.sliderBox.slider.setValue(cast(f32) dref p)
+                item.sliderBox.slider.setValue(cast(f32) p[])
             }
 
             item.sliderBox.invalidate()
@@ -37,7 +37,7 @@ internal impl Properties
             func(T) setEd()
             {
                 let p = cast(*T) data!
-                item.editBox.setText(Format.toString("%", dref p))
+                item.editBox.setText(Format.toString("%", p[]))
             }
 
             item.editBox.invalidate()
@@ -70,7 +70,7 @@ internal impl Properties
             func(T) setEd()
             {
                 var p = cast(*T) data!
-                dref p = cast(T) item.sliderBox.slider.value()
+                p[] = cast(T) item.sliderBox.slider.value()
             }
 
             switch typeNative.nativeKind
@@ -93,7 +93,7 @@ internal impl Properties
             func(T) setEd()
             {
                 var p = cast(*T) data!
-                dref p = catch StrConv.toNum'T(txt)
+                p[] = catch StrConv.toNum'T(txt)
             }
 
             let txt = item.editBox.text()

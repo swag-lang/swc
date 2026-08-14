@@ -172,23 +172,23 @@ func matchReferenceValue(value: s32)->bool
     let refY: const *s32 = &y
     let refZ: const *s32 = &z
 
-    @assert(dref refX == 42)
-    @assert(42 == dref refX)
-    @assert(dref refX != 7)
-    @assert(7 != dref refX)
-    @assert(dref refX < 50)
-    @assert(41 < dref refX)
-    @assert(dref refX <= 42)
-    @assert(42 <= dref refX)
-    @assert(dref refX > 10)
-    @assert(50 > dref refX)
-    @assert(dref refX >= 42)
-    @assert(42 >= dref refX)
-    @assert((dref refX <=> 42) == 0)
-    @assert((dref refX <=> 50) == -1)
-    @assert((50 <=> dref refX) == 1)
-    @assert(dref refX == dref refY)
-    @assert(dref refX != dref refZ)
+    @assert(refX[] == 42)
+    @assert(42 == refX[])
+    @assert(refX[] != 7)
+    @assert(7 != refX[])
+    @assert(refX[] < 50)
+    @assert(41 < refX[])
+    @assert(refX[] <= 42)
+    @assert(42 <= refX[])
+    @assert(refX[] > 10)
+    @assert(50 > refX[])
+    @assert(refX[] >= 42)
+    @assert(42 >= refX[])
+    @assert((refX[] <=> 42) == 0)
+    @assert((refX[] <=> 50) == -1)
+    @assert((50 <=> refX[]) == 1)
+    @assert(refX[] == refY[])
+    @assert(refX[] != refZ[])
 }
 
 // Const-reference parameters keep value-style comparisons
@@ -196,7 +196,7 @@ func matchReferenceValue(value: s32)->bool
 {
     var value:    s32        = 4
     let valueRef: const *s32 = &value
-    @assert(matchReferenceValue(dref valueRef))
+    @assert(matchReferenceValue(valueRef[]))
 }
 
 // Float references use the same comparison pipeline
@@ -205,13 +205,13 @@ func matchReferenceValue(value: s32)->bool
     var value:    f32        = 1.5
     let valueRef: const *f32 = &value
 
-    @assert(dref valueRef == 1.5)
-    @assert(dref valueRef != 2.5)
-    @assert(dref valueRef < 2.5)
-    @assert(dref valueRef <= 1.5)
-    @assert(dref valueRef > 1.0)
-    @assert(dref valueRef >= 1.5)
-    @assert((dref valueRef <=> 1.5) == 0)
+    @assert(valueRef[] == 1.5)
+    @assert(valueRef[] != 2.5)
+    @assert(valueRef[] < 2.5)
+    @assert(valueRef[] <= 1.5)
+    @assert(valueRef[] > 1.0)
+    @assert(valueRef[] >= 1.5)
+    @assert((valueRef[] <=> 1.5) == 0)
 }
 
 // Short-circuit evaluation with side effects
@@ -230,7 +230,7 @@ func matchReferenceValue(value: s32)->bool
 {
     var value: s32 = 42
     var raw:   any = @mkany(&value, s32)
-    let boxed      = dref cast(*CompareStrictAny) &raw
+    let boxed      = (cast(*CompareStrictAny) &raw)[]
 
     @assert(boxed == s32)
     @assert(s32 == boxed)

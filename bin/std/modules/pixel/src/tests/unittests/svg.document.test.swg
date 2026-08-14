@@ -93,9 +93,9 @@ func makeTrianglePath()->LinePath
 {
     var list: LinePathList
     var first = list.newPath()
-    dref first = makeTrianglePath()
+    first[] = makeTrianglePath()
     var second = list.newPath()
-    dref second = makeTrianglePath()
+    second[] = makeTrianglePath()
 
     var doc = Svg.Document.create(16, 16)
     doc.addPath(list, Color.fromRgb(1, 2, 3))

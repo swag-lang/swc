@@ -310,7 +310,7 @@ impl GenericScopedVisits
     var values = BufferVisits{}
 
     for &value, ordinal in values do
-        dref value += cast(s32) (ordinal + 1)
+        value[] += cast(s32) (ordinal + 1)
 
     @assert(values.values[0] == 4)
     @assert(values.values[1] == 8)
@@ -416,8 +416,8 @@ impl GenericScopedVisits
     for &value, ordinal in values
     {
         #assert(#typeof(value) == #type *s32)
-        dref value += cast(s32) (ordinal + 1)
-        mutatedSum += dref value
+        value[] += cast(s32) (ordinal + 1)
+        mutatedSum += value[]
     }
 
     @assert(values.first == 2)
@@ -452,7 +452,7 @@ impl GenericScopedVisits
     for &value, ordinal in values
     {
         #assert(#typeof(value) == #type const *s32)
-        sum += dref value + cast(s32) ordinal
+        sum += value[] + cast(s32) ordinal
     }
 
     @assert(sum == 27)
@@ -471,7 +471,7 @@ impl GenericScopedVisits
     for &value, ordinal in callSource()
     {
         #assert(#typeof(value) == #type const *s32)
-        sum += dref value + cast(s32) ordinal
+        sum += value[] + cast(s32) ordinal
     }
 
     @assert(sum == 27)

@@ -148,7 +148,7 @@ impl ICannotCastConst for CannotCastConstBox {}
 {
     var value: CannotCastConstBox        = {value: 1}
     let ptr:   const *CannotCastConstBox = &value
-    var itf:   ICannotCastConst          = dref ptr     // swc-expected-error {{sema_err_cannot_cast_const}}
+    var itf:   ICannotCastConst          = ptr[]     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test

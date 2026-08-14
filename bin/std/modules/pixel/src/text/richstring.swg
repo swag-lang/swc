@@ -201,7 +201,7 @@ impl RichString
             if handled do
                 continue
 
-            result += dref scan
+            result += scan[]
             scan   += 1
             count  -= 1
         }

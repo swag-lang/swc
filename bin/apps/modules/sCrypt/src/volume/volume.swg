@@ -1080,7 +1080,7 @@ impl Volume
             if index != Swag.U64.Max do
                 .removeNodeAt(index)
 
-            var copy   = dref node
+            var copy   = node[]
             let target = .nodes.count
             .nodes.add(#move copy)
             if !.nodeLookup.add(&.nodes[target], target) do
@@ -1259,7 +1259,7 @@ impl Volume
             let mappingEnd = mapping.logical + mapping.count
             if mappingEnd <= logical
             {
-                updated.add(dref mapping)
+                updated.add(mapping[])
                 continue
             }
             if mapping.logical >= end
@@ -1269,7 +1269,7 @@ impl Volume
                     updated.add({logical, physical, count})
                     inserted = true
                 }
-                updated.add(dref mapping)
+                updated.add(mapping[])
                 continue
             }
 
@@ -1296,7 +1296,7 @@ impl Volume
 
         node.blocks.clear()
         for mapping in updated do
-            node.appendMapping(dref mapping)
+            node.appendMapping(mapping[])
     }
 
     mtd writeBlock(nodeId, logical: u64, source: const [..] u8) fail

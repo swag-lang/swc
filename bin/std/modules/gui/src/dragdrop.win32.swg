@@ -222,7 +222,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
     if block.count < #sizeof(UINT) do
         return
 
-    let count = cast(u64) dref cast(const *UINT) block.buffer!
+    let count = cast(u64) (cast(const *UINT) block.buffer!)[]
     if !count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count do
         return
 
@@ -317,13 +317,13 @@ private func dropTargetOf(itf: *IDropTarget)->*SurfaceDropTarget => cast(*Surfac
 
 private func comQueryInterface(itf: *IDropTarget, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
-    dref ppv = null
-    if !isEqualGuid(dref riid, IID_IUnknown) and !isEqualGuid(dref riid, IID_IDropTarget) do
+    ppv[] = null
+    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IDropTarget) do
         return E_NOINTERFACE
 
     let target = dropTargetOf(itf)
     target.refCount += 1
-    dref ppv        = cast([*] void) itf
+    ppv[]        = cast([*] void) itf
     return S_OK
 }
 
@@ -347,17 +347,17 @@ private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKey
 {
     let target = dropTargetOf(itf)
     readDragData(dataObj, &target.data, false)
-    target.allowed = toDropEffect(dref pdwEffect)
+    target.allowed = toDropEffect(pdwEffect[])
 
     let surface = target.surface!
     let effect  = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
-    dref pdwEffect = fromDropEffect(effect)
+    pdwEffect[] = fromDropEffect(effect)
 
     let helper = dropTargetHelper(surface)
     if helper
     {
         var cursor = POINT{pt.x, pt.y}
-        discard helper.lpVtbl.DragEnter(helper, surface.hWnd, dataObj, &cursor, dref pdwEffect)
+        discard helper.lpVtbl.DragEnter(helper, surface.hWnd, dataObj, &cursor, pdwEffect[])
     }
 
     return S_OK
@@ -366,17 +366,17 @@ private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKey
 private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
     let target = dropTargetOf(itf)
-    target.allowed = toDropEffect(dref pdwEffect)
+    target.allowed = toDropEffect(pdwEffect[])
 
     let surface = target.surface!
     let effect  = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
-    dref pdwEffect = fromDropEffect(effect)
+    pdwEffect[] = fromDropEffect(effect)
 
     let helper = dropTargetHelper(surface)
     if helper
     {
         var cursor = POINT{pt.x, pt.y}
-        discard helper.lpVtbl.DragOver(helper, &cursor, dref pdwEffect)
+        discard helper.lpVtbl.DragOver(helper, &cursor, pdwEffect[])
     }
 
     return S_OK
@@ -403,18 +403,18 @@ private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState
     // The object handed to Drop is the authoritative one: a source may publish more on release
     // than it announced while hovering, and a source that produces on demand only produces here.
     readDragData(dataObj, &target.data, true)
-    target.allowed = toDropEffect(dref pdwEffect)
+    target.allowed = toDropEffect(pdwEffect[])
 
     let surface = target.surface!
     let effect  = surface.app.dragDrop(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
-    dref pdwEffect = fromDropEffect(effect)
+    pdwEffect[] = fromDropEffect(effect)
     target.data.clear()
 
     let helper = dropTargetHelper(surface)
     if helper
     {
         var cursor = POINT{pt.x, pt.y}
-        discard helper.lpVtbl.Drop(helper, dataObj, &cursor, dref pdwEffect)
+        discard helper.lpVtbl.Drop(helper, dataObj, &cursor, pdwEffect[])
     }
 
     return S_OK
@@ -519,11 +519,11 @@ private func buildHDrop(data: *DragData)->HGLOBAL
         let wide = Utf16.fromUtf8(f.toString())
         Memory.copy(cursor, wide.buffer, wide.count * 2)
         cursor      += wide.count
-        dref cursor = 0
+        cursor[] = 0
         cursor      += 1
     }
 
-    dref cursor = 0
+    cursor[] = 0
     discard GlobalUnlock(base)
     return hglob
 }
@@ -583,7 +583,7 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
         return null
     }
 
-    dref cast(*UINT) base! = cast(UINT) count
+    (cast(*UINT) base!)[] = cast(UINT) count
 
     let descriptors = cast([*] FILEDESCRIPTORW) (base! + #sizeof(UINT))
     for i in count
@@ -711,12 +711,12 @@ private func dropSourceOf(itf: *IDropSource)->*DragDropSource => cast(*DragDropS
 
 private func srcQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
-    dref ppv = null
-    if !isEqualGuid(dref riid, IID_IUnknown) and !isEqualGuid(dref riid, IID_IDataObject) do
+    ppv[] = null
+    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IDataObject) do
         return E_NOINTERFACE
 
     dataObjectOf(itf).refCount += 1
-    dref ppv = cast([*] void) itf
+    ppv[] = cast([*] void) itf
     return S_OK
 }
 
@@ -898,17 +898,17 @@ private func srcSetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     {
         let slot = &obj.stored[cast(u64) already]
         ReleaseStgMedium(&slot.medium)
-        slot.medium = dref med
+        slot.medium = med[]
         return S_OK
     }
 
-    obj.stored.add({format: dref fmt, medium: dref med})
+    obj.stored.add({format: fmt[], medium: med[]})
     return S_OK
 }
 
 private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESULT
 {
-    dref ppenum = null
+    ppenum[] = null
     if direction != DATADIR_GET do
         return E_NOTIMPL
 
@@ -921,7 +921,7 @@ private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVO
     for &s in obj.stored do
         res.formats.add(s.format)
 
-    dref ppenum = cast([*] void) res
+    ppenum[] = cast([*] void) res
     return S_OK
 }
 
@@ -945,18 +945,18 @@ private func srcDUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
 private func srcEnumDAdvise(itf: *IDataObject, ppenum: *LPVOID)->HRESULT
 {
     discard itf
-    dref ppenum = null
+    ppenum[] = null
     return OLE_E_ADVISENOTSUPPORTED
 }
 
 private func enumQueryInterface(itf: *IEnumFORMATETC, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
-    dref ppv = null
-    if !isEqualGuid(dref riid, IID_IUnknown) and !isEqualGuid(dref riid, IID_IEnumFORMATETC) do
+    ppv[] = null
+    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IEnumFORMATETC) do
         return E_NOINTERFACE
 
     formatEnumOf(itf).refCount += 1
-    dref ppv = cast([*] void) itf
+    ppv[] = cast([*] void) itf
     return S_OK
 }
 
@@ -992,7 +992,7 @@ private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, f
     }
 
     if fetched do
-        dref fetched = cast(ULONG) done
+        fetched[] = cast(ULONG) done
     return done == count ? S_OK : S_FALSE
 }
 
@@ -1017,18 +1017,18 @@ private func enumClone(itf: *IEnumFORMATETC, ppenum: *LPVOID)->HRESULT
     res.lpVtbl  = &g_FormatEnumVtbl
     res.formats = obj.formats
     res.index   = obj.index
-    dref ppenum = cast([*] void) res
+    ppenum[] = cast([*] void) res
     return S_OK
 }
 
 private func dropSrcQueryInterface(itf: *IDropSource, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
-    dref ppv = null
-    if !isEqualGuid(dref riid, IID_IUnknown) and !isEqualGuid(dref riid, IID_IDropSource) do
+    ppv[] = null
+    if !isEqualGuid(riid[], IID_IUnknown) and !isEqualGuid(riid[], IID_IDropSource) do
         return E_NOINTERFACE
 
     dropSourceOf(itf).refCount += 1
-    dref ppv = cast([*] void) itf
+    ppv[] = cast([*] void) itf
     return S_OK
 }
 
@@ -1097,7 +1097,7 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
 {
     var result: retval
 
-    var img = dref image
+    var img = image[]
     if !img.isValid() do
         return result
 

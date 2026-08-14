@@ -57,7 +57,7 @@ func day5A()
     {
         expect
         {
-            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", dref l)
+            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", l[])
             var x0 = StrConv.toS32(r.getCapture(1))
             var y0 = StrConv.toS32(r.getCapture(2))
             var x1 = StrConv.toS32(r.getCapture(3))
@@ -76,8 +76,8 @@ func day5A()
             for x in cast(u64) x0 to cast(u64) x1
             {
                 let c = m.ptr2(x, yy0, W)
-                total  += (dref c == 1 ? 1 : 0)
-                dref c += 1
+                total  += (c[] == 1 ? 1 : 0)
+                c[] += 1
             }
         }
         elif y0 != y1
@@ -86,8 +86,8 @@ func day5A()
             for y in cast(u64) y0 to cast(u64) y1
             {
                 let c = m.ptr2(xx0, y, W)
-                total  += (dref c == 1 ? 1 : 0)
-                dref c += 1
+                total  += (c[] == 1 ? 1 : 0)
+                c[] += 1
             }
         }
     }

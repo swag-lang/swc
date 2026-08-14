@@ -8,14 +8,14 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 {
     alloc.setup()
     alloc.configure(electricMode, detectLeaks, captureStack, trackAllocations, fillMemory)
-    return @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    return @mkinterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
 func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAllocator
 {
     let itf = makeAllocator(alloc, fillMemory: false)
     scratch.setCapacity(AllocatorScratchBufSize, itf)
-    return @mkinterface(scratch, #typeof(dref scratch), IAllocator)
+    return @mkinterface(scratch, #typeof(scratch[]), IAllocator)
 }
 
 #static if #os == Swag.TargetOs.Windows

@@ -8,9 +8,9 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 {
     alloc.setup()
     alloc.configure(false, false, false, false, false)
-    let itf = @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    let itf = @mkinterface(alloc, #typeof(alloc[]), IAllocator)
     scratch.setCapacity(BufSize, itf)
-    return @mkinterface(scratch, #typeof(dref scratch), IAllocator)
+    return @mkinterface(scratch, #typeof(scratch[]), IAllocator)
 }
 
 // Basic alloc and free

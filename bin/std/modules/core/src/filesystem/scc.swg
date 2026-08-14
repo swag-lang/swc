@@ -275,7 +275,7 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
 {
     var output:  ConcatBuffer
     var encoder: Encoder'Write.TagBin
-    encoder.writeAll(&output, dref header)
+    encoder.writeAll(&output, header[])
     output.makeLinear()
 
     var result: retval

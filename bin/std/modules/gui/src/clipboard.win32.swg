@@ -51,7 +51,7 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
     let hglob = GetClipboardData(cast(UINT) fmt)
     let pz    = cast(*u32) GlobalLock(hglob)!
     defer discard GlobalUnlock(pz)
-    return dref pz == type.crc
+    return pz[] == type.crc
 }
 
 // Adds or replaces a raw payload and optional type fingerprint without clearing other formats.
@@ -69,12 +69,12 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 
     // Store type CRC
     var pzi = cast([*] u32) pz
-    dref pzi = type ? type.crc : 0
+    pzi[] = type ? type.crc : 0
     pzi      += 1
 
     // Store data size
     var pzu = cast([*] u64) pzi
-    dref pzu = @countof(data)
+    pzu[] = @countof(data)
     pzu      += 1
 
     // Store data
@@ -104,13 +104,13 @@ func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
 
             // Get type CRC, check this is correct
             var pzi = cast([*] u32) pz
-            if type and dref pzi != type.crc do
+            if type and pzi[] != type.crc do
                 return result
             pzi += 1
 
             // Get data count
             var pzu   = cast([*] u64) pzi
-            let count = dref pzu
+            let count = pzu[]
             pzu += 1
 
             result.add(@mkslice(cast([*] u8) pzu, count))

@@ -1701,7 +1701,7 @@ impl ListCtrl
             let it1   = b.itemAt(column)
             let sort0 = it0.sortKey.isEmpty() ? &it0.name.raw : &it0.sortKey
             let sort1 = it1.sortKey.isEmpty() ? &it1.name.raw : &it1.sortKey
-            var res   = Latin1.compareNatural(dref sort0, dref sort1)
+            var res   = Latin1.compareNatural(sort0[], sort1[])
             if descending do
                 res *= -1
             return res

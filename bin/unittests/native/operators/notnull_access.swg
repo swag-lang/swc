@@ -95,8 +95,8 @@ func notNullIndex(buffer: #null [*] s32)->s32 => buffer![1]
 
 func notNullCall(fn: #null func()->s32)->s32 => fn!()
 
-// 'dref' applies to the proven pointer.
-func notNullDeref(value: #null *s32)->s32 => dref value!
+// The dereference applies to the proven pointer.
+func notNullDeref(value: #null *s32)->s32 => value![]
 
 // A binding to a nullable slot is asserted through its reference layer: what an
 // 'opIndex' hands back is as nullable as the slot, and the assertion strips the flag
@@ -117,13 +117,13 @@ impl NotNullBox
 func notNullThroughConstRef(box: *NotNullBox)->s32
 {
     let bound = box.at()
-    return (dref bound)!.value
+    return bound[]!.value
 }
 
 func notNullThroughRef(box: *NotNullBox)->s32
 {
     let bound = box.atMut()
-    return (dref bound)!.inner.count == 7 ? (dref bound)!.value : -1
+    return bound[]!.inner.count == 7 ? bound[]!.value : -1
 }
 
 // A cast whose source is asserted first: the assertion binds tighter than the cast.

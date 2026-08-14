@@ -123,7 +123,7 @@ func day6A()
         if sx + dx < 0 or sx + dx >= w or sy + dy < 0 or sy + dy >= h do
             break
 
-        if dref arr.ptr2(sx + dx, sy + dy, w) == '#'
+        if arr.ptr2(sx + dx, sy + dy, w)[] == '#'
         {
             if dx == 0 and dy == -1
             {
@@ -152,10 +152,10 @@ func day6A()
         sx += dx
         sy += dy
 
-        if dref arr.ptr2(sx, sy, w) != 'O'
+        if arr.ptr2(sx, sy, w)[] != 'O'
         {
             total += 1
-            dref arr.ptr2(sx, sy, w) = 'O'
+            arr.ptr2(sx, sy, w)[] = 'O'
         }
     }
 

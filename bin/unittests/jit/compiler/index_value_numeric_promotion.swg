@@ -20,7 +20,7 @@ impl ByteBox
 
 func arrayShift0(values: *[2] u8, shift: s64)->s64
 {
-    return (dref values)[0] + shift
+    return values[][0] + shift
 }
 
 func boxShift0(values: *ByteBox, shift: s64)->s64

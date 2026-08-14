@@ -583,7 +583,7 @@ impl Wnd
     {
         let res = Memory.new'T()
         res.isAllocated = true
-        res.itf         = dref res
+        res.itf         = res[]
         res.type        = T
         res.name.set(name)
         res.id            = id

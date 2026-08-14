@@ -21,7 +21,7 @@ func captureDirectoryEntry(context: #null *void, name: #null const [*] u8, info:
 
 func captured(capture: const *DirectoryCapture, name: string)->bool
 {
-    for value in capture.names where dref value == name do
+    for value in capture.names where value[] == name do
         return true
     return false
 }

@@ -365,14 +365,14 @@ func solve(text: string)->BlinkResult
 
     var zero: u64 = 0
     let p         = mapLookup(&m, 42) orelse &zero
-    @assert(dref p == 5'u64)
+    @assert(p[] == 5'u64)
 
     let q = mapLookup(&m, 999) orelse &zero
-    @assert(dref q == 0'u64)
+    @assert(q[] == 0'u64)
 
     mapAdd(&m, 42, 3)
     let r = mapLookup(&m, 42) orelse &zero
-    @assert(dref r == 8'u64)
+    @assert(r[] == 8'u64)
 
     @assert(mapTotal(&m) == 8'u64)
     mapFree(&m)
@@ -384,8 +384,8 @@ func solve(text: string)->BlinkResult
     var m = mapFromValues(0'u64, 1, 10, 99, 999)
     @assert(mapTotal(&m) == 5'u64)
     var zero: u64 = 0
-    @assert(dref (mapLookup(&m, 0) orelse &zero) == 1'u64)
-    @assert(dref (mapLookup(&m, 10) orelse &zero) == 1'u64)
+    @assert((mapLookup(&m, 0) orelse &zero)[] == 1'u64)
+    @assert((mapLookup(&m, 10) orelse &zero)[] == 1'u64)
     mapFree(&m)
 }
 
@@ -400,7 +400,7 @@ func solve(text: string)->BlinkResult
     let pSum              = &sum
     let cb:  StoneVisitor = func|pSum|(key: u64, count: u64)
     {
-        dref pSum += key * count
+        pSum[] += key * count
     }
     forEachStone(&m, cb)
     @assert(sum == 80'u64)
@@ -415,7 +415,7 @@ func solve(text: string)->BlinkResult
     var b = mapInit()
     blinkOnce(&a, &b)
     var zero: u64 = 0
-    @assert(dref (mapLookup(&b, 1) orelse &zero) == 1'u64)
+    @assert((mapLookup(&b, 1) orelse &zero)[] == 1'u64)
     @assert(mapTotal(&b) == 1'u64)
     mapFree(&a)
     mapFree(&b)
@@ -437,8 +437,8 @@ func solve(text: string)->BlinkResult
     let p34       = mapLookup(&b, 34)
     @assert(p12 != null)
     @assert(p34 != null)
-    @assert(dref (p12 orelse &zero) == 1'u64)
-    @assert(dref (p34 orelse &zero) == 1'u64)
+    @assert((p12 orelse &zero)[] == 1'u64)
+    @assert((p34 orelse &zero)[] == 1'u64)
     mapFree(&a)
     mapFree(&b)
 }
@@ -451,7 +451,7 @@ func solve(text: string)->BlinkResult
     var b = mapInit()
     blinkOnce(&a, &b)
     var zero: u64 = 0
-    @assert(dref (mapLookup(&b, 253000) orelse &zero) == 1'u64)
+    @assert((mapLookup(&b, 253000) orelse &zero)[] == 1'u64)
     mapFree(&a)
     mapFree(&b)
 }

@@ -23,7 +23,7 @@
     let prev = @getcontext()
     defer @setcontext(prev)
 
-    var cxt = dref prev
+    var cxt = prev[]
     cxt.user0 = 0x5E7C0A7E
 
     @setcontext(cxt)

@@ -6,7 +6,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
 {
     alloc.setup()
     alloc.configure(electricMode, true, false, trackAllocations, fillMemory)
-    return @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    return @mkinterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
 #test

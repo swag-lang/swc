@@ -159,7 +159,7 @@ private func isNumberStart(c: u8)->bool
 private func scanNumber(s: string, pos: *u64)->f32
 {
     let len = @countof(s)
-    var i   = dref pos
+    var i   = pos[]
     while i < len and (s[i] == ' ' or s[i] == ',' or s[i] == '\t' or s[i] == '\n' or s[i] == '\r') do
         i += 1
 
@@ -184,7 +184,7 @@ private func scanNumber(s: string, pos: *u64)->f32
             i += 1
     }
 
-    dref pos = i
+    pos[] = i
     if i == start do
         return 0
     return catch StrConv.toF32(cast(string) @mkslice(@dataof(s) + start, i - start))
@@ -242,10 +242,10 @@ private func hexNibble(c: u8)->u8
 private func scanCssComponent(value: string, pos: *u64, scale: f32)->f32
 {
     var result = scanNumber(value, pos)
-    if dref pos < @countof(value) and value[dref pos] == '%'
+    if pos[] < @countof(value) and value[pos[]] == '%'
     {
         result   *= 0.01 * scale
-        dref pos += 1
+        pos[] += 1
     }
 
     return Math.clamp(result, 0, scale)
@@ -331,7 +331,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     {
         if it.name and !Latin1.compare(it.name!, text, ignoreCase: true)
         {
-            result.color = Color.fromArgb(dref cast(const *Argb) it.value!)
+            result.color = Color.fromArgb((cast(const *Argb) it.value!)[])
             return result
         }
     }
@@ -703,15 +703,15 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
     func number(data: string, pos: *u64, valid: *bool)->f32
     {
-        if !dref valid do
+        if !valid[] do
             return 0
 
-        var look = dref pos
+        var look = pos[]
         while look < @countof(data) and (data[look] == ' ' or data[look] == ',' or data[look] == '\t' or data[look] == '\n' or data[look] == '\r') do
             look += 1
         if look >= @countof(data) or !isNumberStart(data[look])
         {
-            dref valid = false
+            valid[] = false
             return 0
         }
 
@@ -720,19 +720,19 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
     func flag(data: string, pos: *u64, valid: *bool)->bool
     {
-        if !dref valid do
+        if !valid[] do
             return false
 
-        while dref pos < @countof(data) and (data[dref pos] == ' ' or data[dref pos] == ',' or data[dref pos] == '\t' or data[dref pos] == '\n' or data[dref pos] == '\r') do
-            dref pos += 1
-        if dref pos >= @countof(data) or (data[dref pos] != '0' and data[dref pos] != '1')
+        while pos[] < @countof(data) and (data[pos[]] == ' ' or data[pos[]] == ',' or data[pos[]] == '\t' or data[pos[]] == '\n' or data[pos[]] == '\r') do
+            pos[] += 1
+        if pos[] >= @countof(data) or (data[pos[]] != '0' and data[pos[]] != '1')
         {
-            dref valid = false
+            valid[] = false
             return false
         }
 
-        let f = data[dref pos] == '1'
-        dref pos += 1
+        let f = data[pos[]] == '1'
+        pos[] += 1
         return f
     }
 
@@ -1349,7 +1349,7 @@ private impl Parser
         {
             let shape = &.drawing.shapes[first + i]
             for &value in shape.strokePattern do
-                dref value *= scale
+                value[] *= scale
             shape.strokeOffset *= scale
         }
     }
@@ -1880,7 +1880,7 @@ private impl Parser
                 strokeMiter   = src.strokeMiter
                 strokePattern = src.strokePattern
                 for &value in strokePattern do
-                    dref value *= state.sx
+                    value[] *= state.sx
                 capStyle  = src.capStyle
                 joinStyle = src.joinStyle
                 paintTx   = mapX(state, src.paintTx + offX)
@@ -2040,7 +2040,7 @@ impl Drawing
                     if Math.abs(shape.strokeWidth) > 0.000001
                     {
                         for &value in pen.pattern do
-                            dref value /= Math.abs(shape.strokeWidth)
+                            value[] /= Math.abs(shape.strokeWidth)
                     }
 
                     pen.dashStyle = .Pattern

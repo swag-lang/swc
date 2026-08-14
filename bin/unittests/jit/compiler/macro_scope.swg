@@ -177,7 +177,7 @@ func runGenericAliasFold()->bool
     var sum    = 0
     genericAliasFold(values, 10, &sum)
     {
-        dref out += value
+        out[] += value
     }
 
     return sum == 36
@@ -209,7 +209,7 @@ func runMemberMacroWithPositionalThenNamedArg()->bool
     var sum = 0
     walker.visitWithData(&sum, scale: 2)
     {
-        dref out! += item
+        out![] += item
     }
 
     return sum == 12
@@ -221,7 +221,7 @@ func runQualifiedGenericMacro()->bool
     var sum    = 0
     QualifiedMacroScope.fold(values, 10, &sum)
     {
-        dref out += item
+        out[] += item
     }
 
     return sum == 36

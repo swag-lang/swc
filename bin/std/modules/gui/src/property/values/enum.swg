@@ -26,20 +26,20 @@ internal impl Properties
             switch item.typeValue.pointedType!.sizeof
             {
             case 1:
-                val1 = cast(u64) dref cast(*u8) item.data!
-                val2 = cast(u64) dref cast(const *u8) item.typeValue.value!
+                val1 = cast(u64) (cast(*u8) item.data!)[]
+                val2 = cast(u64) (cast(const *u8) item.typeValue.value!)[]
 
             case 2:
-                val1 = cast(u64) dref cast(*u16) item.data!
-                val2 = cast(u64) dref cast(const *u16) item.typeValue.value!
+                val1 = cast(u64) (cast(*u16) item.data!)[]
+                val2 = cast(u64) (cast(const *u16) item.typeValue.value!)[]
 
             case 4:
-                val1 = cast(u64) dref cast(*u32) item.data!
-                val2 = cast(u64) dref cast(const *u32) item.typeValue.value!
+                val1 = cast(u64) (cast(*u32) item.data!)[]
+                val2 = cast(u64) (cast(const *u32) item.typeValue.value!)[]
 
             case 8:
-                val1 = cast(u64) dref cast(*u64) item.data!
-                val2 = cast(u64) dref cast(const *u64) item.typeValue.value!
+                val1 = cast(u64) (cast(*u64) item.data!)[]
+                val2 = cast(u64) (cast(const *u64) item.typeValue.value!)[]
             }
 
             // Multi-selection: a flag whose bit disagrees across instances is indeterminate.
@@ -61,11 +61,11 @@ internal impl Properties
             var val1s, val2s: #null string
             switch typeEnum.rawType!.sizeof
             {
-            case 1:  val1 = cast(u64) dref cast(*u8) item.data!
-            case 2:  val1 = cast(u64) dref cast(*u16) item.data!
-            case 4:  val1 = cast(u64) dref cast(*u32) item.data!
-            case 8:  val1 = cast(u64) dref cast(*u64) item.data!
-            case 16: val1s = dref cast(*string) item.data!
+            case 1:  val1 = cast(u64) (cast(*u8) item.data!)[]
+            case 2:  val1 = cast(u64) (cast(*u16) item.data!)[]
+            case 4:  val1 = cast(u64) (cast(*u32) item.data!)[]
+            case 8:  val1 = cast(u64) (cast(*u64) item.data!)[]
+            case 16: val1s = (cast(*string) item.data!)[]
             }
 
             var idxSel = 0'u64
@@ -73,11 +73,11 @@ internal impl Properties
             {
                 switch typeEnum.rawType!.sizeof
                 {
-                case 1:  val2 = cast(u64) dref cast(const *u8) v.value!
-                case 2:  val2 = cast(u64) dref cast(const *u16) v.value!
-                case 4:  val2 = cast(u64) dref cast(const *u32) v.value!
-                case 8:  val2 = cast(u64) dref cast(const *u64) v.value!
-                case 16: val2s = dref cast(const *string) v.value!
+                case 1:  val2 = cast(u64) (cast(const *u8) v.value!)[]
+                case 2:  val2 = cast(u64) (cast(const *u16) v.value!)[]
+                case 4:  val2 = cast(u64) (cast(const *u32) v.value!)[]
+                case 8:  val2 = cast(u64) (cast(const *u64) v.value!)[]
+                case 16: val2s = (cast(const *string) v.value!)[]
                 }
 
                 if val1 == val2 and val1s == val2s do
@@ -128,7 +128,7 @@ internal impl Properties
             {
                 let p  = cast(*T) item.data!
                 let p1 = cast(const *T) typeEnum.values![idxEnum].value!
-                dref p = dref p1
+                p[] = p1[]
             }
 
             let typeEnum = cast(const *Swag.TypeInfoEnum) item.typeValue.pointedType!

@@ -29,7 +29,7 @@ func compareDynamic(left, right: #null const [*] void, size: u64)->s32
     var source: [17] u8
     var target: [17] u8
     for &value, index in source do
-        dref value = cast(u8) (index + 1)
+        value[] = cast(u8) (index + 1)
 
     fillDynamic(target, 0xA5, #sizeof(target))
     for value in target do
@@ -64,14 +64,14 @@ func compareDynamic(left, right: #null const [*] void, size: u64)->s32
 {
     var data: [96] u8
     for &value, index in data do
-        dref value = cast(u8) index
+        value[] = cast(u8) index
 
     moveDynamic(&data[8], &data[0], 80)
     for index in 80 do
         @assert(data[8 + index] == cast(u8) index)
 
     for &value, index in data do
-        dref value = cast(u8) index
+        value[] = cast(u8) index
     moveDynamic(&data[0], &data[8], 80)
     for index in 80 do
         @assert(data[index] == cast(u8) (index + 8))

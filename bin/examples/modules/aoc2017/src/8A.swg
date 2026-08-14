@@ -34,7 +34,7 @@ func day8A()
 
     for l in lines
     {
-        @assert(re.match(dref l))
+        @assert(re.match(l[]))
         var v0 = expect StrConv.toS32(re[3])
         let v1 = expect StrConv.toS32(re[6])
         if !regs.contains(re[1]) do

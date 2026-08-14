@@ -137,15 +137,15 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
     for &stops, day in forecast
     {
         if day == 2'u64 do
-            dref stops -= 3
+            stops[] -= 3
         else
         {
             if day == 4'u64 do
-                dref stops -= 5
+                stops[] -= 5
             else
             {
                 if day < 2'u64 do
-                    dref stops += 2
+                    stops[] += 2
             }
         }
     }

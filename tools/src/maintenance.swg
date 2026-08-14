@@ -172,7 +172,7 @@ public func runSetup(context: *Context, _options: *Options)->s32 fail
 // on demand. The final rebuild is what puts a plain sCrypt back in the output directory.
 public func runScrypt(context: *Context, options: *Options)->s32 fail
 {
-    var integration = dref options
+    var integration = options[]
     integration.command  = String.from("build")
     integration.module   = String.from("sCrypt")
     integration.buildCfg = String.from("release")
@@ -202,7 +202,7 @@ public func runScrypt(context: *Context, options: *Options)->s32 fail
 
     Console.println()
 
-    var restore = dref options
+    var restore = options[]
     restore.command  = String.from("build")
     restore.module   = String.from("sCrypt")
     restore.buildCfg = String.from("release")

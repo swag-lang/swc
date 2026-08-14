@@ -11,7 +11,7 @@
     #assert(#typeof(x1) == *s32)
     @assert(y0 == x)
     @assert(x1 == x)
-    @assert(dref x1 == 42)
+    @assert(x1[] == 42)
 }
 
 #test

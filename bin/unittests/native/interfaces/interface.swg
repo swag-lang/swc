@@ -167,7 +167,7 @@ impl IReset for Point3
 {
     var pt2: Point2
     var raw = cast(IReset) pt2
-    let itf = dref cast(*StrictIReset) &raw
+    let itf = (cast(*StrictIReset) &raw)[]
     @assert(@kindof(itf) == Point2)
 }
 

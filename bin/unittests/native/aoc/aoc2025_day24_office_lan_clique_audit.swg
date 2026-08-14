@@ -153,7 +153,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
         length              += 1
     }
 
-    dref outLength = length
+    outLength[] = length
 }
 
 func passwordLess(leftPassword: const [..] u8, leftLength: u32, rightPassword: const [..] u8, rightLength: u32)->bool

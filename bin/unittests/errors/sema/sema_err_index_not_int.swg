@@ -57,7 +57,7 @@ enum VariadicKind: u16
         let p1 = cast(*s32) @dataof(values[1])
         let p2 = cast(*s32) @dataof(values[2])
         let p3 = cast(*s32) @dataof(values[3])
-        return dref p0 + dref p1 + dref p2 + dref p3
+        return p0[] + p1[] + p2[] + p3[]
     }
 
     const V0 = #run variadicAny(1's32, 2's32, 3's32, 4's32)
@@ -72,7 +72,7 @@ enum VariadicKind: u16
         let p1 = cast(*s64) @dataof(values[1])
         let p2 = cast(*s64) @dataof(values[2])
         let p3 = cast(*s64) @dataof(values[3])
-        return dref p0 + dref p1 + dref p2 + dref p3
+        return p0[] + p1[] + p2[] + p3[]
     }
 
     const V0 = #run variadicAny(10's64, 20's64, 30's64, 40's64)
@@ -86,7 +86,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*s64) @dataof(values[0])
         let p1 = cast(*s64) @dataof(values[1])
-        return a + dref p0 + dref p1
+        return a + p0[] + p1[]
     }
 
     const V0 = #run variadicAnyWithHead(100's64, 7's64, 8's64)
@@ -102,7 +102,7 @@ enum VariadicKind: u16
         let p1 = cast(*u32) @dataof(values[1])
         let p2 = cast(*u32) @dataof(values[2])
         let p3 = cast(*u32) @dataof(values[3])
-        return dref p0 + dref p1 + dref p2 + dref p3
+        return p0[] + p1[] + p2[] + p3[]
     }
 
     const V0 = #run variadicAny(1'u32, 2'u32, 3'u32, 4'u32)
@@ -116,7 +116,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*u32) @dataof(values[0])
         let p1 = cast(*u32) @dataof(values[1])
-        return a + dref p0 + dref p1
+        return a + p0[] + p1[]
     }
 
     const V0 = #run variadicAnyWithHead(50'u32, 60'u32, 70'u32)
@@ -131,7 +131,7 @@ enum VariadicKind: u16
         let p0 = cast(*f32) @dataof(values[0])
         let p1 = cast(*f32) @dataof(values[1])
         let p2 = cast(*f32) @dataof(values[2])
-        return dref p0 + dref p1 + dref p2
+        return p0[] + p1[] + p2[]
     }
 
     const V0 = #run variadicAny(1.5'f32, 2.0'f32, 3.25'f32)
@@ -145,7 +145,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*f32) @dataof(values[0])
         let p1 = cast(*f32) @dataof(values[1])
-        return a + dref p0 + dref p1
+        return a + p0[] + p1[]
     }
 
     const V0 = #run variadicAnyWithHead(4.0'f32, 0.25'f32, 1.75'f32)
@@ -161,7 +161,7 @@ enum VariadicKind: u16
         let p1 = cast(*f64) @dataof(values[1])
         let p2 = cast(*f64) @dataof(values[2])
         let p3 = cast(*f64) @dataof(values[3])
-        return dref p0 + dref p1 + dref p2 + dref p3
+        return p0[] + p1[] + p2[] + p3[]
     }
 
     const V0 = #run variadicAny(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64)
@@ -175,7 +175,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*f64) @dataof(values[0])
         let p1 = cast(*f64) @dataof(values[1])
-        return a + dref p0 + dref p1
+        return a + p0[] + p1[]
     }
 
     const V0 = #run variadicAnyWithHead(10.0'f64, 0.5'f64, 1.25'f64)
@@ -191,7 +191,7 @@ enum VariadicKind: u16
         let p1 = cast(*bool) @dataof(values[1])
         let p2 = cast(*bool) @dataof(values[2])
         let p3 = cast(*bool) @dataof(values[3])
-        return cast(s32) dref p0 + cast(s32) dref p1 + cast(s32) dref p2 + cast(s32) dref p3
+        return cast(s32) p0[] + cast(s32) p1[] + cast(s32) p2[] + cast(s32) p3[]
     }
 
     const V0 = #run variadicAny(true, false, true, true)
@@ -204,7 +204,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*bool) @dataof(values[0])
         let p1 = cast(*bool) @dataof(values[1])
-        return cast(s32) a + cast(s32) dref p0 + cast(s32) dref p1
+        return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
     }
 
     const V0 = #run variadicAnyWithHead(false, true, true)
@@ -218,7 +218,7 @@ enum VariadicKind: u16
         let p0 = cast(*rune) @dataof(values[0])
         let p1 = cast(*rune) @dataof(values[1])
         let p2 = cast(*rune) @dataof(values[2])
-        return cast(s32) dref p0 + cast(s32) dref p1 + cast(s32) dref p2
+        return cast(s32) p0[] + cast(s32) p1[] + cast(s32) p2[]
     }
 
     const V0 = #run variadicAny('A', 'B', 'C')
@@ -231,7 +231,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*rune) @dataof(values[0])
         let p1 = cast(*rune) @dataof(values[1])
-        return cast(s32) a + cast(s32) dref p0 + cast(s32) dref p1
+        return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
     }
 
     const V0 = #run variadicAnyWithHead('a', 'b', 'c')
@@ -289,7 +289,7 @@ enum VariadicKind: u16
         let p0 = cast(*s32) @dataof(values[0])
         let p1 = cast(*bool) @dataof(values[1])
         let p2 = cast(*f64) @dataof(values[2])
-        return dref p0 == 1 and dref p1 and dref p2 == 12.5'f64 and cast(string) values[3] == "ab"
+        return p0[] == 1 and p1[] and p2[] == 12.5'f64 and cast(string) values[3] == "ab"
     }
 
     const V0 = #run variadicAny(1's32, true, 12.5'f64, "ab")
@@ -389,8 +389,8 @@ enum VariadicKind: u16
     {
         let p0 = cast(*VariadicPair) @dataof(values[0])
         let p1 = cast(*VariadicPair) @dataof(values[1])
-        let v0 = dref p0
-        let v1 = dref p1
+        let v0 = p0[]
+        let v1 = p1[]
         return v0.a + v0.b + v1.a + v1.b
     }
 
@@ -406,8 +406,8 @@ enum VariadicKind: u16
     {
         let p0 = cast(*[4] s32) @dataof(values[0])
         let p1 = cast(*[4] s32) @dataof(values[1])
-        let a0 = dref p0
-        let a1 = dref p1
+        let a0 = p0[]
+        let a1 = p1[]
         return a0[0] + a0[3] + a1[1] + a1[2]
     }
 
@@ -423,7 +423,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*VariadicKind) @dataof(values[0])
         let p1 = cast(*VariadicKind) @dataof(values[1])
-        return cast(u16) dref p0 + cast(u16) dref p1
+        return cast(u16) p0[] + cast(u16) p1[]
     }
 
     const V0 = #run variadicAny(VariadicKind.A, VariadicKind.B)
@@ -439,8 +439,8 @@ enum VariadicKind: u16
         let p1  = cast(*[2] u64) @dataof(values[1])
         let s0  = cast(string) values[2]
         let ptr = cast(*void) values[3]
-        let v0  = dref p0
-        let a1  = dref p1
+        let v0  = p0[]
+        let a1  = p1[]
         return cast(u64) v0.arr[1] + cast(u64) v0.flag + cast(u64) v0.tag + a1[0] + a1[1] + cast(u64) s0[0] + cast(u64) (ptr != null)
     }
 
@@ -690,21 +690,21 @@ enum VariadicKind: u16
             if @kindof(v) == s32
             {
                 let p = cast(*s32) @dataof(v)
-                acc += dref p * cast(s32) (i + 1)
+                acc += p[] * cast(s32) (i + 1)
                 continue
             }
 
             if @kindof(v) == bool
             {
                 let p = cast(*bool) @dataof(v)
-                acc += cast(s32) dref p * 100
+                acc += cast(s32) p[] * 100
                 continue
             }
 
             if @kindof(v) == rune
             {
                 let p = cast(*rune) @dataof(v)
-                acc += cast(s32) dref p
+                acc += cast(s32) p[]
             }
         }
 
@@ -744,9 +744,9 @@ enum VariadicKind: u16
         let p1 = cast(*VariadicPayload) @dataof(values[1])
         let p2 = cast(*[3] s32) @dataof(values[2])
 
-        let v0 = dref p0
-        let v1 = dref p1
-        let v2 = dref p2
+        let v0 = p0[]
+        let v1 = p1[]
+        let v2 = p2[]
 
         return cast(u64) (v0.a + v0.b + v1.arr[0] + v1.arr[1] + v1.arr[2] + v1.tag + v2[0] + v2[1] + v2[2])
     }

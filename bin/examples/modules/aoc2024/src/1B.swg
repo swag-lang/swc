@@ -39,7 +39,7 @@ func day1B()
     var arr0, arr1: Array's32
     for l in lines
     {
-        let first = Tokenize.split(dref l, ' 'u8)
+        let first = Tokenize.split(l[], ' 'u8)
         arr0.add(expect StrConv.toS32(first[0]))
         arr1.add(expect StrConv.toS32(first[1]))
     }

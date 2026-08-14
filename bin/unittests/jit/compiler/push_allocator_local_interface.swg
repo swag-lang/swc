@@ -7,7 +7,7 @@ func pushAllocatorMacro(allocator: #null IAllocator, stmt: #code)
     let prev = @getcontext()
     defer @setcontext(prev)
 
-    var cxt = dref prev
+    var cxt = prev[]
     cxt.allocator = allocator
     @setcontext(cxt)
 

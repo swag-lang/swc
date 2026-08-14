@@ -18,7 +18,7 @@ const COUNT_VALUE = cast(#null const *s32) FUNC_INFO.generics[1].value
 #assert(FUNC_INFO.generics[1].name == "N")
 #assert(FUNC_INFO.generics[1].pointedType == s32)
 #assert(COUNT_VALUE != null)
-#assert(dref COUNT_VALUE == 3)
+#assert(COUNT_VALUE[] == 3)
 #assert(FUNC_INFO.returnType == #type [3] u16)
 
 #test
@@ -26,6 +26,6 @@ const COUNT_VALUE = cast(#null const *s32) FUNC_INFO.generics[1].value
     @assert(@countof(FUNC_INFO.generics) == 2)
     @assert(FUNC_INFO.generics[0].pointedType == u16)
     @assert(FUNC_INFO.generics[1].pointedType == s32)
-    @assert(dref COUNT_VALUE == 3)
+    @assert(COUNT_VALUE[] == 3)
     @assert(FUNC_INFO.returnType == #type [3] u16)
 }

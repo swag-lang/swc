@@ -1199,10 +1199,10 @@ impl TagBin
     // Updates 'countElem' with the actual number of elements and returns true for bulk reading optimization.
     mtd beginSequence(typeElem: #null typeinfo, data: #null *u8, countElem: *u64)->bool fail
     {
-        let orgCount = dref countElem
+        let orgCount = countElem[]
         if .convertValToArray
         {
-            dref countElem = 1
+            countElem[] = 1
         }
         else
         {
@@ -1212,14 +1212,14 @@ impl TagBin
 
             // 0 for a dynamic array, > 0 for a static array
             if .wire >= 2 do
-                dref countElem = .stream.readVarint()
+                countElem[] = .stream.readVarint()
             else do
-                dref countElem = .stream.readNative'u64()
+                countElem[] = .stream.readNative'u64()
 
             // Every element takes at least one byte, so a count beyond the remaining
             // bytes is corrupt. Checking here keeps a hostile count from driving the
             // allocations below.
-            if dref countElem > .remaining() do
+            if countElem[] > .remaining() do
                 fail SerializationError{"sequence count runs past the end of the stream"}
         }
 
@@ -1271,8 +1271,8 @@ impl TagBin
 
                 // Validate the payload against the remaining bytes before any
                 // allocation, so a corrupt count cannot request arbitrary memory.
-                let byteCount = dref countElem * elemSize
-                if elemSize != 0 and dref countElem > .remaining() / elemSize do
+                let byteCount = countElem[] * elemSize
+                if elemSize != 0 and countElem[] > .remaining() / elemSize do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
                 // A version 2 stream also records the written byte length: a different
@@ -1285,7 +1285,7 @@ impl TagBin
                 }
 
                 let bufArr = cast(*Array'u8) data!
-                bufArr.count = dref countElem
+                bufArr.count = countElem[]
                 bufArr.reserve(byteCount)
                 bufArr.capacity = bufArr.count
                 .stream.readBytes(bufArr.buffer, byteCount)
@@ -1296,8 +1296,8 @@ impl TagBin
         // Static array
         else
         {
-            let streamCount = dref countElem
-            dref countElem = Math.min(orgCount, streamCount)
+            let streamCount = countElem[]
+            countElem[] = Math.min(orgCount, streamCount)
 
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw do
@@ -1320,12 +1320,12 @@ impl TagBin
                         fail SerializationError{"raw element layout changed"}
                 }
 
-                .stream.readBytes(data, dref countElem * te.sizeof)
+                .stream.readBytes(data, countElem[] * te.sizeof)
 
                 // The stream can hold more elements than the array does now; skip them
                 // so the next value starts at the right position.
-                if streamCount > dref countElem do
-                    .stream.advance((streamCount - dref countElem) * te.sizeof)
+                if streamCount > countElem[] do
+                    .stream.advance((streamCount - countElem[]) * te.sizeof)
                 return true
             }
         }
@@ -1341,9 +1341,9 @@ impl TagBin
     // Decrements 'countElem' and returns false when no more elements remain.
     mtd toNextSequenceElement(countElem: *u64)->bool
     {
-        if dref countElem == 0 do
+        if countElem[] == 0 do
             return false
-        dref countElem -= 1
+        countElem[] -= 1
         return true
     }
 

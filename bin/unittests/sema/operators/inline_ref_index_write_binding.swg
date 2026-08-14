@@ -27,8 +27,8 @@ impl InlineRefIndexWriteValues
 #[Swag.Inline]
 func inlineRefIndexWriteAt(values: *InlineRefIndexWriteValues, index: *s32, value: s32)
 {
-    values[dref index] = value
-    dref index         += 1
+    values[index[]] = value
+    index[]         += 1
 }
 
 func inlineRefIndexWriteResult()->InlineRefIndexWriteInfo

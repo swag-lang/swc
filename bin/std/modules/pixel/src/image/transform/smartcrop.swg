@@ -196,7 +196,7 @@ public impl Image
     internal func buildEdgeDistanceMap(edges: *Array'f32, w, h: s32)->Array'f32
     {
         // blur edge magnitude
-        let B = boxBlurViaIntegral(dref edges, w, h, 3)
+        let B = boxBlurViaIntegral(edges[], w, h, 3)
 
         // invert & gently sharpen far-from-edge regions
         var D: retval

@@ -130,16 +130,16 @@ impl Decoder
                 for
                 {
                     var thisCoef = p + Zag[k]
-                    if dref thisCoef != 0
+                    if thisCoef[] != 0
                     {
                         if .getBits2(1)
                         {
-                            if (dref thisCoef & cast(s16) p1) == 0
+                            if (thisCoef[] & cast(s16) p1) == 0
                             {
-                                if dref thisCoef >= 0 do
-                                    dref thisCoef += cast(s16) p1
+                                if thisCoef[] >= 0 do
+                                    thisCoef[] += cast(s16) p1
                                 else do
-                                    dref thisCoef += cast(s16) m1
+                                    thisCoef[] += cast(s16) m1
                             }
                         }
                     }
@@ -171,16 +171,16 @@ impl Decoder
             while k <= .spectralEnd
             {
                 var thisCoef = p + Zag[k]
-                if dref thisCoef != 0
+                if thisCoef[] != 0
                 {
                     if .getBits2(1)
                     {
-                        if (dref thisCoef & cast(s16) p1) == 0
+                        if (thisCoef[] & cast(s16) p1) == 0
                         {
-                            if dref thisCoef >= 0 do
-                                dref thisCoef += cast(s16) p1
+                            if thisCoef[] >= 0 do
+                                thisCoef[] += cast(s16) p1
                             else do
-                                dref thisCoef += cast(s16) m1
+                                thisCoef[] += cast(s16) m1
                         }
                     }
                 }

@@ -60,22 +60,22 @@ struct Fleet
 func parseS32(bytes: const [..] u8, pos: *u32)->s32
 {
     var neg = false
-    if dref pos < @countof(bytes) and bytes[dref pos] == '-'
+    if pos[] < @countof(bytes) and bytes[pos[]] == '-'
     {
         neg      = true
-        dref pos += 1
+        pos[] += 1
     }
 
     var val: s32
     for
     {
-        if dref pos >= @countof(bytes) do
+        if pos[] >= @countof(bytes) do
             break
-        let ch = bytes[dref pos]
+        let ch = bytes[pos[]]
         if ch < '0' or ch > '9' do
             break
         val      = val * 10 + cast(s32) (ch - '0')
-        dref pos += 1
+        pos[] += 1
     }
 
     return neg ? -val : val
@@ -85,12 +85,12 @@ func skipToDigitOrMinus(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if dref pos >= @countof(bytes) do
+        if pos[] >= @countof(bytes) do
             break
-        let ch = bytes[dref pos]
+        let ch = bytes[pos[]]
         if ch == '-' or (ch >= '0' and ch <= '9') do
             break
-        dref pos += 1
+        pos[] += 1
     }
 }
 

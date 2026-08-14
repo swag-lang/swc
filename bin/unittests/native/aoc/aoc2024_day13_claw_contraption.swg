@@ -68,19 +68,19 @@ enum ParseState: u8
 func parseNum(bytes: const [..] u8, pos: *u32)->s64
 {
     var neg = false
-    if dref pos < @countof(bytes) and bytes[dref pos] == '-'
+    if pos[] < @countof(bytes) and bytes[pos[]] == '-'
     {
         neg      = true
-        dref pos += 1
+        pos[] += 1
     }
 
     var val: s64
     for
     {
-        if dref pos >= @countof(bytes) or bytes[dref pos] < '0' or bytes[dref pos] > '9' do
+        if pos[] >= @countof(bytes) or bytes[pos[]] < '0' or bytes[pos[]] > '9' do
             break
-        val      = val * 10 + cast(s64) (bytes[dref pos] - '0')
-        dref pos += 1
+        val      = val * 10 + cast(s64) (bytes[pos[]] - '0')
+        pos[] += 1
     }
     return neg ? -val : val
 }
@@ -90,12 +90,12 @@ func skipToNum(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if dref pos >= @countof(bytes) do
+        if pos[] >= @countof(bytes) do
             break
-        let ch = bytes[dref pos]
+        let ch = bytes[pos[]]
         if ch == '-' or (ch >= '0' and ch <= '9') do
             break
-        dref pos += 1
+        pos[] += 1
     }
 }
 

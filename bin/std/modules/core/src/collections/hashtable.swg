@@ -423,18 +423,18 @@ impl HashTable
         var index = cast(u64) hashVal & (.capacity - 1)
         let table = .tablePtr()
 
-        index = .getNewIndex(dref key, index, hashVal)
+        index = .getNewIndex(key[], index, hashVal)
         if table[index].hash >= HashTable.HASH_FIRST
         {
             @drop(&table[index].value)
-            table[index].value = #relocate dref value
+            table[index].value = #relocate value[]
             return table + index
         }
 
         if table[index].hash == HashTable.HASH_FREE
         {
-            table[index].key   = #relocate dref key
-            table[index].value = #relocate dref value
+            table[index].key   = #relocate key[]
+            table[index].value = #relocate value[]
         }
         else
         {
@@ -442,8 +442,8 @@ impl HashTable
                 .deleted -= 1
             @drop(&table[index].key)
             @drop(&table[index].value)
-            table[index].key   = #relocate dref key
-            table[index].value = #relocate dref value
+            table[index].key   = #relocate key[]
+            table[index].value = #relocate value[]
         }
 
         table[index].hash = hashVal

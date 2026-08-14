@@ -77,7 +77,7 @@ namespace GenericCloneCodegenSupport
         mtd addNew(value: T)
         {
             let ptr = cast(*T) testAlloc(#sizeof(T))!
-            dref ptr = value
+            ptr[] = value
             .values.add(ptr)
         }
 
@@ -112,8 +112,8 @@ namespace GenericCloneCodegenSupport
     box.addNew(9)
 
     let values = box.values.toSlice()
-    @assert(dref values[0] == 7)
-    @assert(dref values[1] == 9)
+    @assert(values[0][] == 7)
+    @assert(values[1][] == 9)
 
     box.clear()
     box.values.free()

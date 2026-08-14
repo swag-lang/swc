@@ -90,19 +90,19 @@ predicates after T-011 makes the current model's diagnostics complete.
 
 - The noref campaign removed reference types entirely: the one indirection is the non-null
   pointer `*T`, a struct element binds as `const *T` under `for v` and `*T` under `for &v`,
-  a scalar write through a binding spells `dref v = x`, and `me` is a non-null pointer. The
+  a scalar write through a binding spells `v[] = x`, and `me` is a non-null pointer. The
   migration was deliberately sugar-free so the bare model could be judged on real code before
   any spelling is added — proposals were explicitly deferred to after the functional
   migration, and this entry owns them.
 - The inventory comes from the migration diff, not from invented examples: the `for &v` bodies
-  across `bin/` whose scalar writes became `dref v = x` or `dref v *= k` (~168 sites at
-  migration time), `dref me += ...` in operator bodies, guarded element access, and the
+  across `bin/` whose scalar writes go through the whole-value place (~168 sites at migration
+  time), `me[] += ...` in operator bodies, guarded element access, and the
   `opIndexPtr` place-context rules (member access, address-of, assignment target, nested index)
   that pick the pointer path without a visible mark.
 - Decided and shipped: the postfix lvalue-deref, spelled `expr[]` (empty brackets open the
   pointed storage as a read/write place, composing left-to-right with member and index
-  access), together with `expr[as T]` which opens the same place reinterpreted as a `T`.
-  `dref` remains the prefix spelling of the same operation.
+  access), together with `expr[as T]` which opens the same place reinterpreted as a `T`. It
+  is the language's only dereference spelling; there is no prefix form.
 - Candidate directions still undecided: treating a pointer binding as an assignment target
   directly (auto-deref on the left of `=`, the road C++ references and D's `ref` took — the
   one to weigh most carefully, since an invisible deref is how a second indirection type

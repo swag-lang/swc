@@ -6,7 +6,7 @@ using Swag
 #test
 {
     var set: OrderedSet's32
-    set.initialize(func(left, right: const *s32)->s32 => dref left <=> dref right)
+    set.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
     @assert(set.add(4))
     @assert(set.add(1))
     @assert(set.add(3))
@@ -34,14 +34,14 @@ using Swag
 #test
 {
     var set: OrderedSet'String
-    set.initialize(func(left, right: const *String)->s32 => Utf8.compare(dref right, dref left))
+    set.initialize(func(left, right: const *String)->s32 => Utf8.compare(right[], left[]))
     set.add("alpha")
     set.add("gamma")
     set.add("beta")
 
     var result: String
     for key in set do
-        result += dref key
+        result += key[]
     @assert(result == "gammabetaalpha")
 
     var copy = set

@@ -158,7 +158,7 @@ region is dead, not wrong.
 
 A non-null `*T` needs no ceremony at the use site. A member access written on the
 pointer reads the pointed-to object directly, and a method call binds the pointed-to
-object as its receiver. `dref` is reserved for the **whole value**: reading it out in
+object as its receiver. The postfix `[]` opens the **whole value**: reading it out in
 one expression, or replacing it in one assignment. Field for field, the code looks the
 same whether a binding holds the object or its address, which is what makes `*T` the
 everyday indirection.
@@ -190,10 +190,10 @@ impl ReachDoc
     ptr.shift(10)
     @assert(value.x == 11)
 
-    // 'dref' reads or replaces the whole pointed value.
-    let copy = dref ptr
+    // '[]' reads or replaces the whole pointed value.
+    let copy = ptr[]
     @assert(copy.y == 20)
-    dref ptr = ReachDoc{7, 8}
+    ptr[] = ReachDoc{7, 8}
     @assert(value.x == 7)
 }
 
@@ -232,7 +232,7 @@ impl ElemBoxDoc
     // The element address escapes as a plain pointer and stays writable.
     let p = &box[1]
     #assert(#typeof(p) == *s32)
-    dref p = 7
+    p[] = 7
     @assert(box.values[1] == 7)
 
     // Indexing through a pointer to the container reaches the same hooks.
@@ -246,7 +246,7 @@ impl ElemBoxDoc
 
 Taking an address never invents a proof. The address of a `#null` slot is a non-null
 pointer TO that slot, and the slot's own nullability waits inside: reading the slot
-with `dref` hands back the `#null` value, and every use of that value needs the same
+with `[]` hands back the `#null` value, and every use of that value needs the same
 proof it would need on the slot itself.
 */
 struct SlotTargetDoc
@@ -273,16 +273,16 @@ impl SlotBoxDoc
     target.count = 3
     var box = SlotBoxDoc{slot: &target}
 
-    // The address itself is non-null; the slot's '#null' waits behind one 'dref'.
+    // The address itself is non-null; the slot's '#null' waits behind one '[]'.
     let bound = box.slotPtr()
     #assert(#typeof(bound) == #type *DocSlot)
 
     // The slot's value is still nullable: prove it, or assert it with '!'.
-    let slot = dref bound
+    let slot = bound[]
     @assert(slot!.count == 3)
 
     // Writing through the address updates the slot itself.
-    dref bound = null
+    bound[] = null
     @assert(box.slot == null)
 }
 
@@ -347,29 +347,16 @@ This allows you to access or modify a variable indirectly via its memory address
 /**
 # Dereferencing a Pointer
 
-To access the value stored at a pointerâ€™s address, use the `dref` intrinsic.
-Dereferencing retrieves the data located at the memory address referenced by the pointer.
+To access the value stored at a pointer's address, write `[]` after the pointer:
+empty brackets open the pointed storage as a read/write place. Being postfix, the
+dereference composes left-to-right with member and index access, so a chain stays
+readable without parentheses.
 */
 #test
 {
     var value = 42
     let ptr   = &value
-    @assert(dref ptr == 42)     // Access the value stored at the pointer
-}
-
-/**
-# The Postfix Dereference
-
-`expr[]` is the postfix spelling of the same dereference: empty brackets open the
-pointed storage as a read/write place. Being postfix, it composes left-to-right with
-member and index access, which keeps a chain readable where the prefix form would
-need parentheses.
-*/
-#test
-{
-    var value = 42
-    let ptr   = &value
-    @assert(ptr[] == 42)     // Reads like 'dref ptr'
+    @assert(ptr[] == 42)     // Reads the value stored at the pointer
     ptr[] = 7                // Replaces the whole pointed value
     @assert(value == 7)
 
@@ -405,15 +392,15 @@ without a chain of pointer casts.
 
 `const` qualifies the **pointed-to data**, never the pointer itself. Written just before
 a `*`, it makes whatever that `*` points to read-only, so `const *u8` is a pointer to a
-read-only `u8` and assigning through `dref` is rejected. The pointer variable stays free
+read-only `u8` and assigning through `[]` is rejected. The pointer variable stays free
 to point somewhere else; `let` is what makes a pointer itself immutable.
 */
 #test
 {
     let str            = "string"
     let ptr: const *u8 = @dataof(str)
-    @assert(dref ptr == 's')     // Reading through the pointer is fine,
-// but assigning to 'dref ptr' would be rejected
+    @assert(ptr[] == 's')     // Reading through the pointer is fine,
+// but assigning to 'ptr[]' would be rejected
 }
 
 /**
@@ -482,7 +469,7 @@ This is particularly useful when traversing arrays or buffers via pointers.
     let value2 = ptr[1]
     @assert(value2 == 2)
     #assert(#typeof(value2) == s32)
-    let value = dref ptr
+    let value = ptr[]
     @assert(value == 1)
     #assert(#typeof(value) == s32)
 }

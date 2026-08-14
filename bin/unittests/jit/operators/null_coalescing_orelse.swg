@@ -61,7 +61,7 @@ var GNullCoerc: s32 = 56
     {
         let fallback = cast(*s32) &GNullCoerc
         let resolved = ptr orelse fallback
-        return dref resolved
+        return resolved[]
     }
 
     const V = #run nullPointerFallback(null)

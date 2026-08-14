@@ -127,10 +127,10 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
             }
 
             previous        = parsed.value
-            dref maxFinding = Math.max(dref maxFinding, parsed.value)
+            maxFinding[] = Math.max(maxFinding[], parsed.value)
         }
         else do
-            dref maxTodo = Math.max(dref maxTodo, parsed.value)
+            maxTodo[] = Math.max(maxTodo[], parsed.value)
 
         entry     = BacklogEntry{heading: key, line: lineNumber}
         haveEntry = true

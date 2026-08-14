@@ -139,7 +139,7 @@ internal impl Properties
             let d = cast(*String) item.defaultData!
             for k in n
             {
-                if (dref cast(*String) .instanceAddr(item, k)!) != dref d do
+                if ((cast(*String) .instanceAddr(item, k)!)[]) != d[] do
                     return true
             }
 
@@ -185,7 +185,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for k in n do
-                dref cast(*String) .instanceAddr(item, k)! = dref cast(*String) item.defaultData!
+                (cast(*String) .instanceAddr(item, k)!)[] = (cast(*String) item.defaultData!)[]
         }
         else
         {

@@ -112,7 +112,7 @@ namespace GenericForeachLazyCodegen
         mtd nonNullIndexSum()->u64
         {
             var total = 0'u64
-            for &value, index in .values.toSlice() where dref value != null do
+            for &value, index in .values.toSlice() where value[] != null do
                 total += index + 1
             return total
         }
@@ -148,7 +148,7 @@ namespace GenericForeachLazyCodegen
     func allocS32(value: s32)->*s32
     {
         let ptr = cast(*s32) testAlloc(#sizeof(s32))!
-        dref ptr = value
+        ptr[] = value
         return ptr
     }
 

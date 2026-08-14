@@ -189,10 +189,10 @@ func skipWhitespace(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if dref pos >= @countof(bytes) do break
-        let ch = bytes[dref pos]
+        if pos[] >= @countof(bytes) do break
+        let ch = bytes[pos[]]
         if ch != ' ' and ch != '\r' and ch != '\n' and ch != '\t' do break
-        dref pos += 1
+        pos[] += 1
     }
 }
 
@@ -201,10 +201,10 @@ func skipToNewline(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if dref pos >= @countof(bytes) do break
-        if bytes[dref pos] == '\n' do break
-        if bytes[dref pos] == '\r' do break
-        dref pos += 1
+        if pos[] >= @countof(bytes) do break
+        if bytes[pos[]] == '\n' do break
+        if bytes[pos[]] == '\r' do break
+        pos[] += 1
     }
 }
 

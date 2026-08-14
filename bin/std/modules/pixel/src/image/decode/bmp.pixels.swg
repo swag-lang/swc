@@ -96,7 +96,7 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
         var dst    = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
         for result.width
         {
-            writeMaskedPixel(dst, dref cast(const *u16) srcPix, masks, false)
+            writeMaskedPixel(dst, (cast(const *u16) srcPix)[], masks, false)
             srcPix += 2
             dst    += 3
         }

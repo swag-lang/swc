@@ -11,7 +11,7 @@ struct OrderedMapKey
 #test
 {
     var map: OrderedMap'(s32, String)
-    map.initialize(func(left, right: const *s32)->s32 => dref left <=> dref right)
+    map.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
     map.add(30, "thirty")
     map.add(10, "ten")
     map.add(20, "twenty")
@@ -22,7 +22,7 @@ struct OrderedMapKey
     {
         keyCode = keyCode * 100 + key
         if index == 1 do
-            @assert(dref value == "TWENTY")
+            @assert(value[] == "TWENTY")
     }
 
     @assert(keyCode == 102030)
@@ -44,7 +44,7 @@ struct OrderedMapKey
 #test
 {
     var map: OrderedMap'(s32, s32)
-    map.initialize(func(left, right: const *s32)->s32 => dref right <=> dref left)
+    map.initialize(func(left, right: const *s32)->s32 => right[] <=> left[])
     map.add(1, 10)
     map.add(3, 30)
     map.add(2, 20)

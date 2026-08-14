@@ -11,7 +11,7 @@
         b = a
         // @print("boxed", b)
         let p = cast(*s32) @dataof(b)
-        return dref p
+        return p[]
     }
 
     const V = #run printAnyFromMkAny()

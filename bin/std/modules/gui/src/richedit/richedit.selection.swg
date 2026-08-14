@@ -28,8 +28,8 @@ private impl RichEditCtrl
             re += 1
         }
 
-        dref rankBeg = rb
-        dref rankEnd = re
+        rankBeg[] = rb
+        rankEnd[] = re
         return true
     }
 

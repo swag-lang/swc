@@ -83,7 +83,7 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
     let value           = ptr orelse fallbackPointer()
 
     @assert(value == &NullCoercValue)
-    @assert(dref value == 33)
+    @assert(value[] == 33)
     @assert(NullCoercCounter == 1)
 }
 

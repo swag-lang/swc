@@ -61,7 +61,7 @@ impl XAudio2DriverNative
 
         // Context for xaudio2 threads
         let cxt = @getcontext()
-        g_ThreadCxt = dref cxt
+        g_ThreadCxt = cxt[]
     }
 
     // Destroys the xaudio2 engine

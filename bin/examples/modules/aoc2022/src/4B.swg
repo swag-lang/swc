@@ -23,7 +23,7 @@ func day4B()
     var total: u64
     for l in lines
     {
-        let pair  = Tokenize.split(dref l, ','u8)
+        let pair  = Tokenize.split(l[], ','u8)
         let pair0 = Tokenize.split(pair[0], '-'u8)
         let pair1 = Tokenize.split(pair[1], '-'u8)
         let v0a   = expect StrConv.toS32(pair0[0])

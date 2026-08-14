@@ -23,7 +23,7 @@ func(T) equals(flags, value: T)->bool
 func(T) add(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    dref flags |= value
+    flags[] |= value
 }
 
 // Removes value from a flag set.
@@ -31,7 +31,7 @@ func(T) add(flags: *T, value: T)
 func(T) remove(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    dref flags &= ~value
+    flags[] &= ~value
 }
 
 // Replaces a flag set with value.
@@ -39,7 +39,7 @@ func(T) remove(flags: *T, value: T)
 func(T) set(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    dref flags = value
+    flags[] = value
 }
 
 // Toggles value in a flag set.
@@ -47,5 +47,5 @@ func(T) set(flags: *T, value: T)
 func(T) toggle(flags: *T, value: T)
     where Reflection.isEnum(T)
 {
-    dref flags ^= value
+    flags[] ^= value
 }

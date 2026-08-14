@@ -35,7 +35,7 @@ func fallbackString()->string
     var ptr: #null *s32 = null
     let value           = ptr orelse fallbackPointer()
     @assert(value == &GNullShortValue)
-    @assert(dref value == 33)
+    @assert(value[] == 33)
     @assert(GNullShortCounter == 1)
 }
 

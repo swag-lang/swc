@@ -13,7 +13,7 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
     {
         let tmpValue = orgValue
         orgValue /= 10
-        dref ptr = conv[35 + (tmpValue - (orgValue * 10))]
+        ptr[] = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
         if !orgValue do
             break
@@ -21,21 +21,21 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
 
     if value < 0
     {
-        dref ptr = '-'
+        ptr[] = '-'
         ptr      += 1
     }
 
     let retVal = ptr
-    dref ptr = 0
+    ptr[] = 0
     ptr      -= 1
 
     var ptr1 = result
     while ptr1 < ptr
     {
-        let tmpChar = dref ptr
-        dref ptr  = dref ptr1
+        let tmpChar = ptr[]
+        ptr[]  = ptr1[]
         ptr       -= 1
-        dref ptr1 = tmpChar
+        ptr1[] = tmpChar
         ptr1      += 1
     }
 
@@ -53,23 +53,23 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
     {
         let tmpValue = orgValue
         orgValue /= 10
-        dref ptr = conv[35 + (tmpValue - (orgValue * 10))]
+        ptr[] = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
         if !orgValue do
             break
     }
 
     let retVal = ptr
-    dref ptr = 0
+    ptr[] = 0
     ptr      -= 1
 
     var ptr1 = result
     while ptr1 < ptr
     {
-        let tmpChar = dref ptr
-        dref ptr  = dref ptr1
+        let tmpChar = ptr[]
+        ptr[]  = ptr1[]
         ptr       -= 1
-        dref ptr1 = tmpChar
+        ptr1[] = tmpChar
         ptr1      += 1
     }
 
@@ -87,7 +87,7 @@ func __ftoa(result: [*] u8, value: f64)
     {
         if value < 0
         {
-            dref n = '-'
+            n[] = '-'
             n      += 1
         }
 
@@ -167,7 +167,7 @@ func @print(params: ...)
             let ptr = cast(const *TypeInfoPointer) ko
             ko = cast() ptr.pointedType
             let val = cast(**u64) @dataof(v)
-            v = @mkany(dref val, ko)
+            v = @mkany(val[], ko)
         }
 
         if ko.flags & TypeInfoFlags.PointerTypeInfo
@@ -203,19 +203,19 @@ func @print(params: ...)
             let data   = @dataof(v)
             switch native.nativeKind
             {
-            case .S8:     __printS64(dref cast(const *s8) data)
-            case .S16:    __printS64(dref cast(const *s16) data)
-            case .S32:    __printS64(dref cast(const *s32) data)
-            case .S64:    __printS64(dref cast(const *s64) data)
-            case .U8:     __printU64(dref cast(const *u8) data)
-            case .U16:    __printU64(dref cast(const *u16) data)
-            case .U32:    __printU64(dref cast(const *u32) data)
-            case .U64:    __printU64(dref cast(const *u64) data)
-            case .Rune:   __printU64(cast(u64) dref cast(const *rune) data)
-            case .F32:    __printF64(dref cast(const *f32) data)
-            case .F64:    __printF64(dref cast(const *f64) data)
-            case .String: __printString(dref cast(const *string) data)
-            case .Bool:   __printString(dref cast(const *bool) data ? "true" : "false")
+            case .S8:     __printS64((cast(const *s8) data)[])
+            case .S16:    __printS64((cast(const *s16) data)[])
+            case .S32:    __printS64((cast(const *s32) data)[])
+            case .S64:    __printS64((cast(const *s64) data)[])
+            case .U8:     __printU64((cast(const *u8) data)[])
+            case .U16:    __printU64((cast(const *u16) data)[])
+            case .U32:    __printU64((cast(const *u32) data)[])
+            case .U64:    __printU64((cast(const *u64) data)[])
+            case .Rune:   __printU64(cast(u64) (cast(const *rune) data)[])
+            case .F32:    __printF64((cast(const *f32) data)[])
+            case .F64:    __printF64((cast(const *f64) data)[])
+            case .String: __printString((cast(const *string) data)[])
+            case .Bool:   __printString((cast(const *bool) data)[] ? "true" : "false")
             default:      __printString("?")
             }
 

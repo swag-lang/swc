@@ -31,7 +31,7 @@ func update(dt: f32)
     if pending.delay < 0
     {
         // Make a copy because g_Pending will be destroy by 'show'
-        let copy = dref pending
+        let copy = pending[]
         show(copy.owner, copy.surfacePos, copy.str, 0's)
     }
 }

@@ -8,12 +8,12 @@ struct Vec { x: s32 }
 
 func assign(a: *Vec, b: #move Vec)
 {
-    dref a = #move b
+    a[] = #move b
 }
 
 func assign(a: *Vec, b: Vec)
 {
-    dref a = b
+    a[] = b
 }
 
 // Move semantics with overloaded assign

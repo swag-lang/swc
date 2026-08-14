@@ -335,8 +335,8 @@ private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
     if !g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do
         return 0     // EXCEPTION_CONTINUE_SEARCH
 
-    let record = dref cast(*const *u32) exceptionPointers
-    __testHardwareException(dref record)
+    let record = (cast(*const *u32) exceptionPointers)[]
+    __testHardwareException(record[])
     return 0
 }
 
@@ -366,8 +366,8 @@ func __hostImageBaseForAddress(address: *void)->#null *void
     return result
 }
 
-private func __peU16(p: [*] u8, off: u64)->u16 => dref cast(*u16) &p[off]
-private func __peU32(p: [*] u8, off: u64)->u32 => dref cast(*u32) &p[off]
+private func __peU16(p: [*] u8, off: u64)->u16 => (cast(*u16) &p[off])[]
+private func __peU32(p: [*] u8, off: u64)->u32 => (cast(*u32) &p[off])[]
 
 // Locates the linker-owned `.swagdbg` payload in one Windows PE image.
 func __hostDebugSection(base: *void)->#null [*] u8

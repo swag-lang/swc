@@ -6,7 +6,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
 {
     alloc.setup()
     alloc.configure(false, false, captureStack, false, true)
-    return @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    return @mkinterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
 #test

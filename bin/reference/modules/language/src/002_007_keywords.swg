@@ -34,7 +34,7 @@ overload contract with a 'where' constraint, and a runtime precondition with ord
 # Values, Errors, and Conversion
 
 ```swag
-cast  catch  discard  dref  expect  fail  false  null
+cast  catch  discard  expect  fail  false  null
 retval  true  try  undefined
 ```
 

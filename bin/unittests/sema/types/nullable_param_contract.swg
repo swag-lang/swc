@@ -33,7 +33,7 @@ func npcCheck(x: #null *s32)->bool => x != null
 
 func npcErrDeref(x: #null *s32)->s32
 {
-    return dref x     // swc-expected-error {{sema_err_nullable_deref}}
+    return x[]     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
 func npcErrMember(v: #null *NpcItem)->s32
@@ -65,7 +65,7 @@ func npcOkGuarded(x: #null *s32)->s32
 {
     if x == null do
         return 0
-    return dref x
+    return x[]
 }
 
 // Truthiness guard first.
@@ -91,21 +91,21 @@ func npcOkDelegated(x: #null *s32)->s32
         return 0
     if x == null do
         return 0
-    return dref x
+    return x[]
 }
 
 // A failing exit can leave the function before the dereference.
 func npcOkFailFirst(x: #null *s32)->s32 fail
 {
     try npcBoom()
-    return dref x!
+    return x![]
 }
 
 // Dereference on one branch only: some executions never touch the parameter.
 func npcOkConditional(x: #null *s32, use: bool)->s32
 {
     if use and x != null do
-        return dref x
+        return x[]
     return 0
 }
 
@@ -160,7 +160,7 @@ func npcMayNull()->#null *s32 => null
 
 func npcFillPtrPtr(pp: *#null *s32)
 {
-    dref pp = null
+    pp[] = null
 }
 
 func npcErrLocalNeverNull()->s32
@@ -168,7 +168,7 @@ func npcErrLocalNeverNull()->s32
     var p: #null *s32 = &g_npcStorage     // swc-expected-error {{sema_err_nullable_local_contract}}
     if p == null do
         return 0
-    return dref p
+    return p[]
 }
 
 // No initializer: the local defaults to null.
@@ -177,7 +177,7 @@ func npcOkLocalDefaultsNull(use: bool)->s32
     var p: #null *s32
     if use do
         p = &g_npcStorage
-    return p == null ? 0 : dref p
+    return p == null ? 0 : p[]
 }
 
 // Reassigned with a possibly-null value.
@@ -185,7 +185,7 @@ func npcOkLocalNullableValue()->s32
 {
     var p: #null *s32 = &g_npcStorage
     p = npcMayNull()
-    return p == null ? 0 : dref p
+    return p == null ? 0 : p[]
 }
 
 // Explicit null assignment.
@@ -194,7 +194,7 @@ func npcOkLocalNullAssign(c: bool)->s32
     var p: #null *s32 = &g_npcStorage
     if c do
         p = null
-    return p == null ? 0 : dref p
+    return p == null ? 0 : p[]
 }
 
 // Address escape: the callee may store null through it.
@@ -202,5 +202,5 @@ func npcOkLocalEscaped()->s32
 {
     var p: #null *s32 = &g_npcStorage
     npcFillPtrPtr(&p)
-    return p == null ? 0 : dref p
+    return p == null ? 0 : p[]
 }

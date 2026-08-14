@@ -55,7 +55,7 @@ impl Image
                             let outputAlpha      = sourceAlpha + destinationAlpha * (1.0 - sourceAlpha)
                             if Math.isZeroEpsilon(outputAlpha)
                             {
-                                dref cast(*u32) pixDst = 0
+                                (cast(*u32) pixDst)[] = 0
                             }
                             else
                             {

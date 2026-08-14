@@ -15,7 +15,7 @@ const COUNT_VALUE = cast(#null const *s32) STRUCT_INFO.generics[1].value
 #assert(STRUCT_INFO.generics[0].pointedType == u16)
 #assert(STRUCT_INFO.generics[1].name == "N")
 #assert(STRUCT_INFO.generics[1].pointedType == s32)
-#assert(dref COUNT_VALUE == 7)
+#assert(COUNT_VALUE[] == 7)
 
 #test
 {
@@ -23,5 +23,5 @@ const COUNT_VALUE = cast(#null const *s32) STRUCT_INFO.generics[1].value
     @assert(@countof(STRUCT_INFO.generics) == 2)
     @assert(STRUCT_INFO.generics[0].pointedType == u16)
     @assert(STRUCT_INFO.generics[1].pointedType == s32)
-    @assert(dref COUNT_VALUE == 7)
+    @assert(COUNT_VALUE[] == 7)
 }

@@ -23,7 +23,7 @@
 
 #test
 {
-    // '#move' on a raw pointer is ambiguous (move the pointer or the pointee?): use 'dref'.
+    // '#move' on a raw pointer is ambiguous (move the pointer or the pointee?): use '[]'.
     func takeMove(v: #move s32) {}
     var value: s32
     var p = &value

@@ -260,14 +260,14 @@ impl IForm for FormText
             for t, idx in tokens
             {
                 let pathl = &.paths[idx]
-                dref pathl = expect face!.buildStringOutline(t, cast() fSize, cast() sSize)
+                pathl[] = expect face!.buildStringOutline(t, cast() fSize, cast() sSize)
                 pathl.flatten(.High)
                 pathl.clean()
 
                 let borderPath = &.borderPaths[idx]
                 if !Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
-                    dref borderPath = expect face!.buildStringOutline(t, cast() fSize, cast() sSize)
+                    borderPath[] = expect face!.buildStringOutline(t, cast() fSize, cast() sSize)
                     borderPath.flatten(.Normal)
                     borderPath.clean()
                     borderPath.offset(bSize, .joinStyle, 0.25)

@@ -208,7 +208,7 @@ func day10A()
     for l in lines
     {
         toCheck()
-        if dref l != "noop"
+        if l[] != "noop"
         {
             x += expect StrConv.toS32(l[5 to])
             toCheck()

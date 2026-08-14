@@ -19,8 +19,8 @@ const ENUM_INFO = cast(const *Swag.TypeInfoEnum) #typeof(ReflectMode)
 
 const FIRST_VALUE  = cast(#null const *ReflectMode) ENUM_INFO.values[0].value
 const SECOND_VALUE = cast(#null const *ReflectMode) ENUM_INFO.values[1].value
-#assert(cast(s16) dref FIRST_VALUE == -2's16)
-#assert(cast(s16) dref SECOND_VALUE == 7's16)
+#assert(cast(s16) FIRST_VALUE[] == -2's16)
+#assert(cast(s16) SECOND_VALUE[] == 7's16)
 
 const ARRAY_INFO0 = cast(const *Swag.TypeInfoArray) #typeof(#type [2] s32)
 #assert(#typeof(#type [2] s32).kind == .Array)
@@ -53,7 +53,7 @@ const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
     let sliceInfo = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] ReflectMode)
 
     @assert(enumInfo.rawType == s16)
-    @assert(cast(s16) dref second == 7)
+    @assert(cast(s16) second[] == 7)
     @assert(arrayInfo.count == 2)
     @assert(arrayInfo.totalCount == 6)
     @assert(arrayInfo.finalType == ReflectMode)

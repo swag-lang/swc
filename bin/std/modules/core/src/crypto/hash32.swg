@@ -33,7 +33,7 @@ public func hashBytes32(buffer: #null const [..] u8)->u32
             var offset = 0'u64
             while length - offset >= 8
             {
-                result ^= dref cast(const *u64) (data + offset)
+                result ^= (cast(const *u64) (data + offset))[]
                 result *= Mix2
                 result ^= result >> 29
                 offset += 8
@@ -42,14 +42,14 @@ public func hashBytes32(buffer: #null const [..] u8)->u32
             // Re-reading the last 8 bytes is cheaper than a byte loop and stays in bounds
             if offset != length
             {
-                result ^= dref cast(const *u64) (data + length - 8)
+                result ^= (cast(const *u64) (data + length - 8))[]
                 result *= Mix2
             }
         }
         elif length >= 4
         {
-            let head = cast(u64) dref cast(const *u32) data
-            let tail = cast(u64) dref cast(const *u32) (data + length - 4)
+            let head = cast(u64) (cast(const *u32) data)[]
+            let tail = cast(u64) (cast(const *u32) (data + length - 4))[]
             result ^= head | (tail << 32)
             result *= Mix2
         }
@@ -80,9 +80,9 @@ public func(T) hash32(value: T)->u32
     elif Reflection.isStruct(T) and #defined(T.IHash64) do
         #ast "return cast(u32) " ++ #typeof(T).fullname ++ ".IHash64.compute(value)"
     elif Reflection.isStruct(T) and #sizeof(T) == 8 do
-        return cast(u32) murmur3(dref cast(const *u64) &value)
+        return cast(u32) murmur3((cast(const *u64) &value)[])
     elif Reflection.isStruct(T) and #sizeof(T) == 4 do
-        return murmur3(dref cast(const *u32) &value)
+        return murmur3((cast(const *u32) &value)[])
     elif Reflection.isStruct(T) do
         return hashBytes32(@mkslice(cast(const [*] u8) &value, #sizeof(T)))
     elif Reflection.isInteger(T) and #sizeof(T) == 8

@@ -77,7 +77,7 @@ namespace GenericCloneCodegenSupport
         mtd addNew(value: T)
         {
             let ptr = cast(*T) testAlloc(#sizeof(T))!
-            dref ptr = value
+            ptr[] = value
             .values.add(ptr)
         }
 
@@ -117,7 +117,7 @@ namespace GenericCloneCodegenSupport
         mtd addNew(value: T)
         {
             let ptr = cast(*T) testAlloc(#sizeof(T))!
-            dref ptr = value
+            ptr[] = value
             if .count == 0 do
                 .first = ptr
             else do
@@ -158,8 +158,8 @@ namespace GenericCloneCodegenSupport
     box.addNew(9)
 
     let values = box.values.toSlice()
-    @assert(dref values[0] == 7)
-    @assert(dref values[1] == 9)
+    @assert(values[0][] == 7)
+    @assert(values[1][] == 9)
 
     box.clear()
     box.values.free()
@@ -171,8 +171,8 @@ namespace GenericCloneCodegenSupport
     values.addNew(3)
     values.addNew(5)
 
-    @assert(dref values.first! == 3)
-    @assert(dref values.second! == 5)
+    @assert(values.first![] == 3)
+    @assert(values.second![] == 5)
 
     values.clearOwned()
     @assert(values.count == 0)

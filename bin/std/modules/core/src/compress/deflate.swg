@@ -204,10 +204,10 @@ impl Deflate
 
         d.totalLzBytes += 1
         let lzCodeBufAddr = d.lzCodeBufAddr!
-        dref lzCodeBufAddr = lit
+        lzCodeBufAddr[] = lit
         d.lzCodeBufAddr    += 1
         let lzFlags = d.lzFlags!
-        dref lzFlags = cast(u8) (dref lzFlags >> 1)
+        lzFlags[] = cast(u8) (lzFlags[] >> 1)
 
         d.numFlagsLeft -= 1
         if d.numFlagsLeft == 0
@@ -236,7 +236,7 @@ impl Deflate
         d.lzCodeBufAddr  += 3
 
         let lzFlags = d.lzFlags!
-        dref lzFlags   = cast(u8) ((dref lzFlags >> 1) | 0x80)
+        lzFlags[]   = cast(u8) ((lzFlags[] >> 1) | 0x80)
         d.numFlagsLeft -= 1
         if d.numFlagsLeft == 0
         {
@@ -257,7 +257,7 @@ impl Deflate
         let d = .state!
 
         let pos      = laPos & LzDictSizeMask
-        var matchLen = dref matchLenAddr
+        var matchLen = matchLenAddr[]
         var probePos = pos
 
         var numProbesLeft = d.maxProbes[matchLen >= 32 ? 1 : 0]
@@ -308,8 +308,8 @@ impl Deflate
             var probeLen: u32
             while probeLen < maxMatchLen
             {
-                let pp = dref p
-                let qq = dref q
+                let pp = p[]
+                let qq = q[]
                 p, q += 1
                 if pp != qq do
                     break
@@ -318,8 +318,8 @@ impl Deflate
 
             if probeLen > matchLen
             {
-                dref matchDistAddr = dist
-                dref matchLenAddr  = probeLen
+                matchDistAddr[] = dist
+                matchLenAddr[]  = probeLen
                 matchLen           = probeLen
                 if matchLen == maxMatchLen do
                     return
@@ -343,7 +343,7 @@ impl Deflate
             if d.outputBufAddr < d.outputBufEndAddr
             {
                 let outputBufAddr = d.outputBufAddr!
-                dref outputBufAddr = cast(u8) d.bitBuffer
+                outputBufAddr[] = cast(u8) d.bitBuffer
                 d.outputBufAddr    += 1
             }
 
@@ -385,8 +385,8 @@ impl Deflate
             {
                 let offsetIndex = (curSym[i].key >> passShift) & 0xFF'u16
                 var ptr         = &offsets[offsetIndex]
-                newSym[dref ptr] = curSym[i]
-                dref ptr         += 1
+                newSym[ptr[]] = curSym[i]
+                ptr[]         += 1
             }
 
             swap(&curSym, &newSym)
@@ -799,7 +799,7 @@ impl Deflate
         {
             if flags == 1
             {
-                flags   = cast(u32) (dref lzCodes) | 0x100
+                flags   = cast(u32) lzCodes[] | 0x100
                 lzCodes += 1
             }
 
@@ -829,7 +829,7 @@ impl Deflate
             }
             else
             {
-                let lit = dref lzCodes
+                let lit = lzCodes[]
                 lzCodes += 1
                 .putBits(cast(u32) d.huffCodes[0, lit], cast(u32) d.huffCodeSizes[0, lit])
             }
@@ -869,7 +869,7 @@ impl Deflate
 
         let numFlagsLeft = cast(u8) d.numFlagsLeft
         let lzFlags      = d.lzFlags!
-        dref lzFlags    = cast(u8) (dref lzFlags >> numFlagsLeft)
+        lzFlags[]    = cast(u8) (lzFlags[] >> numFlagsLeft)
         d.lzCodeBufAddr -= (d.numFlagsLeft == 8) ? 1 : 0
 
         .putBits(finish ? 1 : 0, 1)
@@ -966,7 +966,7 @@ impl Deflate
                 Debug.assert(pSrc != null)
                 while pSrc != pSrc_end
                 {
-                    let c = dref pSrc!
+                    let c = pSrc![]
                     pSrc           += 1
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
@@ -982,7 +982,7 @@ impl Deflate
             {
                 while srcBufLeft and d.lookaheadSize < MaxMatchLen
                 {
-                    let c = dref pSrc!
+                    let c = pSrc![]
                     pSrc += 1
                     let dstPos = (d.lookaheadPos + d.lookaheadSize) & LzDictSizeMask
                     srcBufLeft     -= 1

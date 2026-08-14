@@ -125,10 +125,10 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
 func parseU64(bytes: const [..] u8, pos: *u32)->u64
 {
     var value: u64
-    while dref pos < @countof(bytes) and isDigit(bytes[dref pos])
+    while pos[] < @countof(bytes) and isDigit(bytes[pos[]])
     {
-        value    = value * 10 + cast(u64) (bytes[dref pos] - '0')
-        dref pos += 1
+        value    = value * 10 + cast(u64) (bytes[pos[]] - '0')
+        pos[] += 1
     }
 
     return value
@@ -136,9 +136,9 @@ func parseU64(bytes: const [..] u8, pos: *u32)->u64
 
 func skipSpaces(bytes: const [..] u8, pos: *u32)
 {
-    while dref pos < @countof(bytes) and bytes[dref pos] == ' 'u8
+    while pos[] < @countof(bytes) and bytes[pos[]] == ' 'u8
     {
-        dref pos += 1
+        pos[] += 1
     }
 }
 

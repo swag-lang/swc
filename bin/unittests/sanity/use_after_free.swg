@@ -37,9 +37,9 @@ func myFree(ptr: *void, size: u64)
 #test
 {
     let p = cast(*s32) myAlloc(4)
-    dref p = 1
+    p[] = 1
     myFree(p, 4)
-    let x = dref p     // swc-expected-error {{sanity_err_use_after_free}}
+    let x = p[]     // swc-expected-error {{sanity_err_use_after_free}}
     discard x
 }
 
@@ -49,7 +49,7 @@ func myFree(ptr: *void, size: u64)
 {
     let p = cast(*s32) myAlloc(4)
     myFree(p, 4)
-    dref p = 2     // swc-expected-error {{sanity_err_use_after_free}}
+    p[] = 2     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 // Double free.
@@ -81,8 +81,8 @@ func rejectFreeBorrowed()
     var p = cast(*s32) myAlloc(4)
     myFree(p, 4)
     p      = cast(*s32) myAlloc(4)
-    dref p = 3
-    @assert(dref p == 3)
+    p[] = 3
+    @assert(p[] == 3)
     myFree(p, 4)
 }
 
@@ -91,10 +91,10 @@ func rejectFreeBorrowed()
 func useAfterConditionalFree(cond: bool)->s32
 {
     let p = cast(*s32) myAlloc(4)
-    dref p = 4
+    p[] = 4
     if cond do
         myFree(p, 4)
-    let x = dref p
+    let x = p[]
     if !cond do
         myFree(p, 4)
     return x
@@ -106,9 +106,9 @@ func useAfterConditionalFree(cond: bool)->s32
 {
     let p = cast(*s32) myAlloc(4)
     let q = cast(*s32) myAlloc(4)
-    dref q = 5
+    q[] = 5
     myFree(p, 4)
-    @assert(dref q == 5)
+    @assert(q[] == 5)
     myFree(q, 4)
 }
 

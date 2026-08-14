@@ -311,7 +311,7 @@ impl Offset
     // Determines the offset position based on adjacent edge normals and join type.
     mtd offsetPoint(j: s32, ptrk: *s32, jointype: JoinType)
     {
-        let k = dref ptrk
+        let k = ptrk[]
 
         let kN = .normals[k]
         let jN = .normals[j]
@@ -363,7 +363,7 @@ impl Offset
             }
         }
 
-        dref ptrk = j
+        ptrk[] = j
     }
 
     // Create a square join between two offset edges.

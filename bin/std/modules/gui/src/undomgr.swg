@@ -123,7 +123,7 @@ impl UndoManager
     mtd(T) push(cmd: T)
     {
         let p = Memory.new'T()
-        dref p = cmd
+        p[] = cmd
         .pushCmd(p, 0, true)
     }
 

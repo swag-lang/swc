@@ -1,6 +1,6 @@
 #run
 {
-    let cfg = dref @compiler.getBuildCfg()!
+    let cfg = @compiler.getBuildCfg()![]
     @assert(cfg.backendKind == .Executable or cfg.backendKind == .SharedLibrary or cfg.backendKind == .StaticLibrary)
 }
 

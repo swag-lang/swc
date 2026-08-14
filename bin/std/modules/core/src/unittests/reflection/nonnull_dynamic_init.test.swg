@@ -92,8 +92,8 @@ func testCoreNonNullDynamicInitialization()->bool
     let allocatedDefaults      = Memory.new(defaultArrayType)
     let allocatedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) allocatedDefaults
     let initializedNewArray    = allocatedDefaultValues != null and
-                                 (dref allocatedDefaultValues)[0].value == "fallback" and
-                                 (dref allocatedDefaultValues)[1].value == "fallback"
+                                 allocatedDefaultValues[][0].value == "fallback" and
+                                 allocatedDefaultValues[][1].value == "fallback"
     if allocatedDefaults do
         Memory.free(cast(#null [*] void) allocatedDefaults, cast(u64) defaultArrayType.sizeof)
 
@@ -135,8 +135,8 @@ func testCoreNonNullDynamicInitialization()->bool
     let appendedDefaultsPtr    = Reflection.appendDynamicArrayElement(&appendedDefaults, defaultArrayType)
     let appendedDefaultValues  = cast(#null *[2] CoreNonNullRuntimeDefault) appendedDefaultsPtr
     let initializedAppendArray = appendedDefaultValues != null and
-                                 (dref appendedDefaultValues)[0].value == "fallback" and
-                                 (dref appendedDefaultValues)[1].value == "fallback"
+                                 appendedDefaultValues[][0].value == "fallback" and
+                                 appendedDefaultValues[][1].value == "fallback"
 
     var appendedAliases: Array'CoreNonNullRuntimeDefaultAlias
     let appendedAliasPtr       = Reflection.appendDynamicArrayElement(&appendedAliases, defaultAliasType)

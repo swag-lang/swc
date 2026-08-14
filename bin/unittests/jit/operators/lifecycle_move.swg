@@ -141,12 +141,12 @@ impl ForeachTrackedValues
 
 func assignTracked(dst: *Tracked, src: #move Tracked)
 {
-    dref dst = #move src
+    dst[] = #move src
 }
 
 func assignTracked(dst: *Tracked, src: Tracked)
 {
-    dref dst = src
+    dst[] = src
 }
 
 func takeTracked(src: Tracked)->s32
@@ -284,7 +284,7 @@ func foreachOverloadMoveInfo()->LifecycleInfo
     var values = ForeachTrackedValues{Tracked{9}}
     resetLifecycleHooks()
     for value in values do
-        assignTracked(&dst, #move dref value)
+        assignTracked(&dst, #move value[])
     return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 

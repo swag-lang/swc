@@ -52,13 +52,13 @@ func sameSccBytes(left, right: const [..] u8)->bool
 
     var writer: Scc.Writer
     writer.initialize(kind)
-    dref writer.manifest() = #move manifest
+    writer.manifest()[] = #move manifest
     let previewId = expect writer.addChunk("small preview", {typeId: bytesType, roleId: previewRole, flags: .Required})
 
     var large: Array'u8
     large.resize(256 * 1024)
     for &value, index in large do
-        dref value = cast(u8) (index & 0xFF)
+        value[] = cast(u8) (index & 0xFF)
     let imageId = expect writer.addChunk(large.toSlice(), {typeId: bytesType, roleId: imageRole, codecId: deflate})
     expect writer.saveAtomic(path)
 
@@ -146,7 +146,7 @@ func sameSccBytes(left, right: const [..] u8)->bool
     manifest.name = "Metadata only"
     var writer: Scc.Writer
     writer.initialize(sccTestId("0293583e-3019-4a79-9ba6-0678436dcf67"))
-    dref writer.manifest() = #move manifest
+    writer.manifest()[] = #move manifest
     expect writer.saveAtomic(path)
 
     var reader: Scc.Reader

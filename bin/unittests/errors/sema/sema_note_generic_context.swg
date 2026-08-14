@@ -17,7 +17,7 @@ impl GenericCompareBox
 {
     mtd const compareValue()->s32
     {
-        return dref me <=> dref me     // swc-expected-error {{sema_err_compare_operand_type}}
+        return me[] <=> me[]     // swc-expected-error {{sema_err_compare_operand_type}}
     }
 }
 

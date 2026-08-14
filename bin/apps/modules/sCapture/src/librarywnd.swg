@@ -228,7 +228,7 @@ impl LibraryWnd
     mtd deleteForeverSelected()
     {
         for name in .selectedFiles() do
-            discard catch File.delete(dref name)
+            discard catch File.delete(name[])
 
         catch .view.fill()
         .invalidate()
@@ -332,14 +332,14 @@ impl LibraryWnd
             for tag in capture.tags
             {
                 var found = false
-                for &entry in result where Utf8.compare(entry.name.toSlice(), dref tag, .Latin1NoCase) == 0
+                for &entry in result where Utf8.compare(entry.name.toSlice(), tag[], .Latin1NoCase) == 0
                 {
                     entry.count += 1
                     found       = true
                 }
 
                 if !found do
-                    result.add({dref tag, "", 1})
+                    result.add({tag[], "", 1})
             }
         }
 
@@ -349,8 +349,8 @@ impl LibraryWnd
 
     mtd const namedFiltersEqual(a, b: const *Array'LibraryNamedFilter)->bool
     {
-        let valuesA = dref a
-        let valuesB = dref b
+        let valuesA = a[]
+        let valuesB = b[]
         if valuesA.count != valuesB.count do
             return false
         for value, i in valuesA
@@ -377,7 +377,7 @@ impl LibraryWnd
         let rootCount = root.setItem(1, Format.toString("% ", values.count))
         rootCount.horzAlign = .Right
 
-        for value, i in dref values
+        for value, i in values[]
         {
             var icon: Icon
             if kind == .Application and !value.executable.isEmpty()
@@ -825,8 +825,8 @@ impl LibraryWnd
                 .addItem(appStrings().act_AllApplications, me.menuValues.back(), checked: me.applicationFilter.isEmpty())
                 for application in applications
                 {
-                    me.menuValues.add(Format.toString("sCapture.library.app:%", dref application))
-                    .addItem(dref application, me.menuValues.back(), checked: Utf8.compare(application.toSlice(), me.applicationFilter, .Latin1NoCase) == 0)
+                    me.menuValues.add(Format.toString("sCapture.library.app:%", application[]))
+                    .addItem(application[], me.menuValues.back(), checked: Utf8.compare(application.toSlice(), me.applicationFilter, .Latin1NoCase) == 0)
                 }
 
                 menu.addPopup(appStrings().act_Application, apps)
@@ -838,8 +838,8 @@ impl LibraryWnd
                 .addItem(appStrings().act_AllTags, me.menuValues.back(), checked: me.tagFilter.isEmpty())
                 for tag in tags
                 {
-                    me.menuValues.add(Format.toString("sCapture.library.tag:%", dref tag))
-                    .addItem(dref tag, me.menuValues.back(), checked: Utf8.compare(tag.toSlice(), me.tagFilter, .Latin1NoCase) == 0)
+                    me.menuValues.add(Format.toString("sCapture.library.tag:%", tag[]))
+                    .addItem(tag[], me.menuValues.back(), checked: Utf8.compare(tag.toSlice(), me.tagFilter, .Latin1NoCase) == 0)
                 }
 
                 menu.addPopup(appStrings().act_Tags, tagMenu)
@@ -890,11 +890,11 @@ impl LibraryWnd
         let capture = loaded!
         defer Memory.delete(capture)
         if tags do
-            capture.tags = dref tags
+            capture.tags = tags[]
         if favorite do
-            capture.favorite = dref favorite
+            capture.favorite = favorite[]
         if rating do
-            capture.rating = dref rating
+            capture.rating = rating[]
         capture.changed = true
         discard catch capture.save() as saveErr
         if saveErr != null
@@ -921,7 +921,7 @@ impl LibraryWnd
                 {
                     if !text.isEmpty() do
                         text += ", "
-                    text += dref tag
+                    text += tag[]
                 }
             }
         }

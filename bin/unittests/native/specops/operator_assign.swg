@@ -107,7 +107,7 @@ struct RuntimeAssignHolder
 {
     var box = RuntimeAssignBox{a: 10, b: 20}
     let ptr = &box
-    dref ptr += 5's32
+    ptr[] += 5's32
 
     @assert(box.a == 15)
     @assert(box.b == 25)

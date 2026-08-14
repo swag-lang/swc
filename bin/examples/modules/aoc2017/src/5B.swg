@@ -21,8 +21,8 @@ func day5B()
     while it < jumps.count
     {
         let jit = jumps.ptr1(it)
-        it       += dref jit
-        dref jit += -1 + 2 * cast(s64) (dref jit < 3)
+        it       += jit[]
+        jit[] += -1 + 2 * cast(s64) (jit[] < 3)
         step     += 1
     }
 

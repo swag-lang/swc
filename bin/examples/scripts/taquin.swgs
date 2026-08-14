@@ -152,7 +152,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                     cur.moveDt = Math.min(cur.moveDt, 1.0)
                     if Math.isEqualEpsilon(rd.x, rdd.x)
                     {
-                        g_Matrix[i + cur.moveX, j]       = dref cur
+                        g_Matrix[i + cur.moveX, j]       = cur[]
                         g_Matrix[i + cur.moveX, j].moveX = 0
                         cur.empty                        = true
                         g_Moving                         = false
@@ -168,7 +168,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                     cur.moveDt = Math.min(cur.moveDt, 1.0)
                     if Math.isEqualEpsilon(rd.y, rdd.y)
                     {
-                        g_Matrix[i, j + cur.moveY]       = dref cur
+                        g_Matrix[i, j + cur.moveY]       = cur[]
                         g_Matrix[i, j + cur.moveY].moveY = 0
                         cur.empty                        = true
                         g_Moving                         = false

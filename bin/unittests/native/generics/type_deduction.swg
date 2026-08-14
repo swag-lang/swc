@@ -28,8 +28,8 @@ func(A, B) pairFirst(p: Pair'(A, B))->A  => p.first
 func(A, B) pairSecond(p: Pair'(A, B))->B => p.second
 
 // Deduction from pointer
-func(T) readPtr(ptr: *T)->T => dref ptr
-func(T) writePtr(ptr: *T, value: T) { dref ptr = value }
+func(T) readPtr(ptr: *T)->T => ptr[]
+func(T) writePtr(ptr: *T, value: T) { ptr[] = value }
 
 // Deduction from array
 func(T) firstOf2(arr: [2] T)->T => arr[0]

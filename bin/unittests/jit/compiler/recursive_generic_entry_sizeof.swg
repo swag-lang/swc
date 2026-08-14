@@ -127,9 +127,9 @@ impl RecursiveAssocTable
         var index = hashVal % .capacity
         while table[index].hash >= 2
         {
-            if table[index].hash == hashVal and table[index].key == dref key
+            if table[index].hash == hashVal and table[index].key == key[]
             {
-                table[index].value = dref value
+                table[index].value = value[]
                 return .table + index
             }
 
@@ -137,8 +137,8 @@ impl RecursiveAssocTable
         }
 
         table[index].hash  = hashVal
-        table[index].key   = dref key
-        table[index].value = dref value
+        table[index].key   = key[]
+        table[index].value = value[]
         .count             += 1
         return .table + index
     }

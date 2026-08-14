@@ -44,7 +44,7 @@ func checksumConfig(cfg: Config)->s32
         if field.pointedType == s32
         {
             let ptr = cast(const *s32) (base + field.offset)
-            sum += dref ptr
+            sum += ptr[]
         }
     }
     return sum
@@ -140,7 +140,7 @@ func levelName(level: LogLevel)->string
     for i in @countof(info.values)
     {
         let stored = cast(const *LogLevel) info.values[i].value!
-        if dref stored == level do
+        if stored[] == level do
             return info.values[i].name!
     }
     return "unknown"

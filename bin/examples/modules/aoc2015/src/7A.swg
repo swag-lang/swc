@@ -63,13 +63,13 @@ using Core
             l.replace("in", "_in")
 
             result += "internal const "
-            if r.match(#raw "(\w+) -> (\w+)", dref l)
+            if r.match(#raw "(\w+) -> (\w+)", l[])
             {
                 result += r[2]
                 result += " = "
                 result += r[1]
             }
-            elif r.match(#raw "(\w+) (\w+) (\w+) -> (\w+)", dref l)
+            elif r.match(#raw "(\w+) (\w+) (\w+) -> (\w+)", l[])
             {
                 result += r[4]
                 result += " = "
@@ -79,7 +79,7 @@ using Core
                 result += " "
                 result += r[3]
             }
-            elif r.match(#raw "NOT (\w+) -> (\w+)", dref l)
+            elif r.match(#raw "NOT (\w+) -> (\w+)", l[])
             {
                 result += r[2]
                 result += " = ~"

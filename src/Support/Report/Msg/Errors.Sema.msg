@@ -283,7 +283,7 @@ SWC_DIAG_DEF(sema_err_undefined_drop, Error, "'{sym}' may be dropped here while 
 SWC_DIAG_DEF(sema_err_nullable_return_contract, Error, "the return type is declared '#null', but no return path can produce null; [help] remove '#null' from the return type, or return null where it is meant to happen")
 SWC_DIAG_DEF(sema_err_nullable_local_contract, Error, "'{sym}' is declared '#null', but it can never hold null; [help] every value it receives is non-null: remove the '#null' qualifier")
 SWC_DIAG_DEF(sema_err_nullable_member_access, Error, "member access through '{type}' dereferences a value that can still be null; [help] test the value against null first, assert with '!', or use '?.' to skip the access when null")
-SWC_DIAG_DEF(sema_err_nullable_deref, Error, "'dref' dereferences '{type}', which can still be null; [help] test the pointer against null first, or assert with '!'")
+SWC_DIAG_DEF(sema_err_nullable_deref, Error, "cannot dereference '{type}', which can still be null; [help] test the pointer against null first, or assert with '!'")
 SWC_DIAG_DEF(sema_err_nullable_index, Error, "indexing into '{type}' dereferences a value that can still be null; [help] test the value against null first, or assert with '!'")
 SWC_DIAG_DEF(sema_err_nullable_call, Error, "calling through '{type}' dereferences a value that can still be null; [help] test the function value against null first, or assert with '!'")
 SWC_DIAG_DEF(sema_err_optional_access_not_nullable, Error, "'?.' needs a nullable left side, but '{type}' can never be null; [help] use '.' for a plain member access")

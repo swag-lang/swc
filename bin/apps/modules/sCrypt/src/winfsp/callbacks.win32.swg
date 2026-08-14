@@ -62,8 +62,8 @@ namespace WinFsp
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
-        dref total = volume.totalBytes()
-        dref free  = volume.freeBytes()
+        total[] = volume.totalBytes()
+        free[]  = volume.freeBytes()
         let count = Math.min(volume.label.length, cast(u64) labelCapacity - 1)
         if count do
             @memcpy(label, volume.label.buffer, count)
@@ -93,8 +93,8 @@ namespace WinFsp
         let node   = volume.resolve(cString(path))
         if !node do
             return StatusObjectNameNotFound
-        dref nodeId = node!.id
-        return fillInfo(volume, dref nodeId, info)
+        nodeId[] = node!.id
+        return fillInfo(volume, nodeId[], info)
     }
 
     func callbackCreate(context: #null *void, path: #null const [*] u8, directory: u8, attributes: u32, allocationSize: u64, security: #null const *void, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
@@ -114,7 +114,7 @@ namespace WinFsp
         let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) as err
         if err != null do
             return statusFromError(err)
-        dref nodeId = id
+        nodeId[] = id
         if !directory and allocationSize
         {
             discard catch volume.resizeNode(id, 0) as resizeErr
@@ -187,7 +187,7 @@ namespace WinFsp
     {
         if !length
         {
-            dref transferred = 0
+            transferred[] = 0
             return StatusSuccess
         }
 
@@ -202,7 +202,7 @@ namespace WinFsp
         let count = catch volume.readNode(nodeId, offset, @mkslice(cast([*] u8) buffer!, length)) as err
         if err != null do
             return statusFromError(err)
-        dref transferred = count
+        transferred[] = count
         return StatusSuccess
     }
 
@@ -210,7 +210,7 @@ namespace WinFsp
     {
         if !length
         {
-            dref transferred = 0
+            transferred[] = 0
             return callbackGetFileInfo(context, nodeId, info)
         }
 
@@ -249,7 +249,7 @@ namespace WinFsp
         let count = catch volume.writeNode(nodeId, offset, @mkslice(cast(const [*] u8) buffer!, length), writeToEnd != 0, constrained != 0) as err
         if err != null do
             return statusFromError(err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull)
-        dref transferred = count
+        transferred[] = count
         return fillInfo(volume, nodeId, info)
     }
 
@@ -363,8 +363,8 @@ namespace WinFsp
         if !node do
             return StatusObjectNameNotFound
         let stored    = node!.security.toSlice()
-        let available = dref securitySize
-        dref securitySize = cast(u32) @countof(stored)
+        let available = securitySize[]
+        securitySize[] = cast(u32) @countof(stored)
         if !@countof(stored) do
             return StatusSuccess
         if !security or available < @countof(stored) do
@@ -451,7 +451,7 @@ namespace WinFsp
             child = volume.nextSibling(current.id)
         }
 
-        dref complete = 1
+        complete[] = 1
         return StatusSuccess
     }
 

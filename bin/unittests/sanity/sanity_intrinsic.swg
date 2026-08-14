@@ -32,7 +32,7 @@ func sanityUnaffectedBySafety()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()!
+    const cfg      = #run @compiler.getBuildCfg()![]
     const expected = cfg.sanityGuards & Swag.SafetyWhat.Null ? true : false
     #assert(#sanity(Swag.SafetyWhat.Null) == expected)
     #assert(sanityUnaffectedBySafety() == (cfg.sanityGuards & Swag.SafetyWhat.BoundCheck ? true : false))

@@ -24,7 +24,7 @@ func expectSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()!
+    const cfg      = #run @compiler.getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Expect ? true : false
     #assert(#safety(Swag.SafetyWhat.Expect) == expected)
 }

@@ -116,7 +116,7 @@ enum ForeachIndexedSlot: u8
 
         for &v, i in arr
         {
-            sum += dref v + cast(s32) i
+            sum += v[] + cast(s32) i
         }
 
         return sum
@@ -228,7 +228,7 @@ enum ForeachIndexedSlot: u8
         for v, i in values
         {
             let p = cast(*s32) @dataof(v)
-            acc += dref p + cast(s32) i
+            acc += p[] + cast(s32) i
         }
 
         return acc
@@ -310,21 +310,21 @@ enum ForeachIndexedSlot: u8
             if @kindof(v) == s32
             {
                 let p = cast(*s32) @dataof(v)
-                acc += dref p * cast(s32) (i + 1)
+                acc += p[] * cast(s32) (i + 1)
                 continue
             }
 
             if @kindof(v) == bool
             {
                 let p = cast(*bool) @dataof(v)
-                acc += cast(s32) dref p * 10
+                acc += cast(s32) p[] * 10
                 continue
             }
 
             if @kindof(v) == rune
             {
                 let p = cast(*rune) @dataof(v)
-                acc += cast(s32) dref p
+                acc += cast(s32) p[]
             }
         }
 

@@ -8,11 +8,11 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
     if values.count != @countof(expected) do
         return false
 
-    for value, index in dref values
+    for value, index in values[]
     {
         if value == null do
             return false
-        if dref value != expected[index] do
+        if value[] != expected[index] do
             return false
     }
 
@@ -22,9 +22,9 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 #test
 {
     var values: ArrayPtr's32
-    dref values.addNew() = 1
-    dref values.addNew() = 2
-    dref values.addNew() = 3
+    values.addNew()[] = 1
+    values.addNew()[] = 2
+    values.addNew()[] = 3
 
     var copy = values
     @assert(assertIntArrayPtr(&copy, [1, 2, 3]))
@@ -34,21 +34,21 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
         let src = value!
         let dup = copy[index]!
         @assert(dup != src)
-        @assert(dref dup == dref src)
+        @assert(dup[] == src[])
     }
 
     let slot1 = copy[1]!
-    dref slot1 = 42
-    @assert((dref values[1]!) == 2)
-    @assert((dref copy[1]!) == 42)
+    slot1[] = 42
+    @assert(values[1]![] == 2)
+    @assert(copy[1]![] == 42)
 }
 
 #test
 {
     var values: ArrayPtr's32
-    dref values.addNew() = 7
+    values.addNew()[] = 7
     values.add(cast(#null *s32) null)
-    dref values.addNew() = 9
+    values.addNew()[] = 9
 
     var copy = values
 
@@ -58,8 +58,8 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
     @assert(copy[2] != null)
     @assert(copy[0] != values[0])
     @assert(copy[2] != values[2])
-    @assert((dref copy[0]!) == 7)
-    @assert((dref copy[2]!) == 9)
+    @assert(copy[0]![] == 7)
+    @assert(copy[2]![] == 9)
 }
 
 var g_ApDropCount: s32

@@ -25,8 +25,8 @@ func semaTest004()
     var a: any   = 42
     let refValue = cast(const *s32) a
     let ptrValue = cast(const *s32) a
-    @assert(dref refValue == 42)
-    @assert(dref ptrValue == 42)
+    @assert(refValue[] == 42)
+    @assert(ptrValue[] == 42)
 }
 
 struct AnyCastBase

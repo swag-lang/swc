@@ -105,7 +105,7 @@ func runIntrinsicDynamicTypeInfo()->bool
 
     let intPtr  = cast(#null *s32) intRaw
     let basePtr = cast(#null *Base) baseRaw
-    if intPtr != &number or dref intPtr != 45 do
+    if intPtr != &number or intPtr[] != 45 do
         return false
     if @as(bool, intType, &number) != null do
         return false

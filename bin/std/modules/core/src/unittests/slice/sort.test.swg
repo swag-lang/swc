@@ -76,7 +76,7 @@ func countedSortCompares(values: [..] s32)->u64
     var compares = 0'u64
     Slice.sort(values, func|counter = &compares|(x, y: s32)->s32
     {
-        dref counter += 1
+        counter[] += 1
         return x <=> y
     })
 

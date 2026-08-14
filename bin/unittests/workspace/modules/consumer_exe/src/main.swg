@@ -62,7 +62,7 @@ func verifyImportedInterfaceTablePreparation()
     let runtimeScore = cast(*Swag.Interface) &dynamicScore
     @assert(runtimeScore != null)
     @assert(runtimeScore.itable == table)
-    @assert(cast(#null const *Swag.TypeInfoStruct) dref runtimeScore.itable! == objectInfo)
+    @assert(cast(#null const *Swag.TypeInfoStruct) runtimeScore.itable![] == objectInfo)
 
     var concreteScore             = DepTableScore{value: 32}
     var castScore: IDepTableScore = concreteScore
@@ -375,7 +375,7 @@ var gPatchedContext: Swag.Context
 
 func verifyRuntimeContext()
 {
-    gPatchedContext       = dref @getcontext()
+    gPatchedContext       = @getcontext()[]
     gPatchedContext.user0 = 42
     gPatchedContext.user2 = cast(u64) @getcontext()
     @setcontext(gPatchedContext)
@@ -407,7 +407,7 @@ func verifyRuntimeContext()
 {
     // Same lifetime rule as `verifyRuntimeContext`: the DLL's `#drop` runs after this one and
     // reads `user0` through the installed pointer, so the patched copy must not be a local.
-    gPatchedContext       = dref @getcontext()
+    gPatchedContext       = @getcontext()[]
     gPatchedContext.user0 = 43
     @setcontext(gPatchedContext)
 }

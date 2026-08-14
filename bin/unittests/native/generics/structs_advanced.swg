@@ -120,8 +120,8 @@ impl Matrix
 {
     var box:  Box's32    = {value: 77}
     let refb: RefBox's32 = {ptr: &box}
-    @assert(dref refb.ptr == box)
-    @assert((dref refb.ptr).value == 77)
+    @assert(refb.ptr[] == box)
+    @assert(refb.ptr[].value == 77)
 }
 
 // Non-generic struct with many generic instantiations

@@ -271,38 +271,38 @@ impl Decoder
             if (.mcuLinesLeft & 1) == 0
             {
                 .convertH2V2()
-                dref scanLineOfs = .scanLine0.buffer
+                scanLineOfs[] = .scanLine0.buffer
             }
             else do
-                dref scanLineOfs = .scanLine1.buffer
+                scanLineOfs[] = .scanLine1.buffer
 
         case YH2V1:
             .convertH2V1()
-            dref scanLineOfs = .scanLine0.buffer
+            scanLineOfs[] = .scanLine0.buffer
 
         case YH1V2:
             if (.mcuLinesLeft & 1) == 0
             {
                 .convertH1V2()
-                dref scanLineOfs = .scanLine0.buffer
+                scanLineOfs[] = .scanLine0.buffer
             }
             else do
-                dref scanLineOfs = .scanLine1.buffer
+                scanLineOfs[] = .scanLine1.buffer
 
         case YH1V1:
             .convertH1V1()
-            dref scanLineOfs = .scanLine0.buffer
+            scanLineOfs[] = .scanLine0.buffer
 
         case RGBH1V1:
             .convertRgbH1V1()
-            dref scanLineOfs = .scanLine0.buffer
+            scanLineOfs[] = .scanLine0.buffer
 
         case GrayScale:
             .convertGrayscale()
-            dref scanLineOfs = .scanLine0.buffer
+            scanLineOfs[] = .scanLine0.buffer
         }
 
-        dref scanLineLen = .realDestBytesPerScanLine
+        scanLineLen[] = .realDestBytesPerScanLine
         .mcuLinesLeft    -= 1
         .totalLinesLeft  -= 1
 
@@ -458,7 +458,7 @@ impl Decoder
     {
         .inBufOfs -= 1
         let inBufOfs = .inBufOfs!
-        dref inBufOfs = q
+        inBufOfs[] = q
         .inBufLeft    += 1
     }
 

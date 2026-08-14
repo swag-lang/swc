@@ -251,7 +251,7 @@ func drawOutlineCore(painter: *Pixel.Painter, outline: *LinePathList, x, y, scal
     case .OffsetFill:
         if outlineColor.a
         {
-            var borderOutline = dref outline
+            var borderOutline = outline[]
             borderOutline.offset(border, .Round, 0.5)
             painter.fillPath(&borderOutline, outlineColor)
         }

@@ -172,7 +172,7 @@ impl Guid128
             sourceIndex             += 2
         }
 
-        dref result = parsed
+        result[] = parsed
         return true
     }
 }

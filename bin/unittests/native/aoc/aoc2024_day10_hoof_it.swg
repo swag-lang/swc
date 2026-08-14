@@ -135,7 +135,7 @@ func dfs(g: Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
         if !vis[idx]
         {
             vis[idx]      = true
-            dref scoreOut += 1
+            scoreOut[] += 1
         }
         return 1
     }

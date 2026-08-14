@@ -115,9 +115,9 @@
 {
     var x: s32 = 10
     var p      = &x
-    dref p += 5
+    p[] += 5
     @assert(x == 15)
-    dref p *= 2
+    p[] *= 2
     @assert(x == 30)
 }
 

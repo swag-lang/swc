@@ -118,7 +118,7 @@ impl HeadlessHost
         .app.mainSurface  = &.surface
 
         let root = &.root
-        root.itf     = dref root
+        root.itf     = root[]
         root.type    = Wnd
         root.surface = &.surface
         root.style.share(&.app.style)

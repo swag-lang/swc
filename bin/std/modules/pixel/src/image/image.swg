@@ -173,7 +173,7 @@ impl Image
 
         .freeWorkingBuffer()
         .workingBuffer      = Memory.new'Image()
-        dref .workingBuffer = Image.create(newWidth, newHeight, newPixelFormat)
+        .workingBuffer[] = Image.create(newWidth, newHeight, newPixelFormat)
     }
 
     // Returns the allocated working image.
@@ -265,11 +265,11 @@ impl Image
         #static switch BPP
         {
         case 24:
-            dref cast(*u16) pixDst = dref cast(*u16) pixSrc
+            (cast(*u16) pixDst)[] = (cast(*u16) pixSrc)[]
             pixDst[2]              = pixSrc[2]
 
         case 32:
-            dref cast(*u32) pixDst = dref cast(*u32) pixSrc
+            (cast(*u32) pixDst)[] = (cast(*u32) pixSrc)[]
 
         default:
             #assert("invalid pixelCopy BPP")

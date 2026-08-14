@@ -282,7 +282,7 @@ impl BaseForm
 // Shared geometry of the forms defined by a cloud of points (FormDraw & FormPolygon)
 func offsetPoints(points: *Array'Math.Vector2, newPosX, newPosY: s32)
 {
-    for &pt in dref points
+    for &pt in points[]
     {
         pt.x += newPosX
         pt.y += newPosY
@@ -291,7 +291,7 @@ func offsetPoints(points: *Array'Math.Vector2, newPosX, newPosY: s32)
 
 func scalePointsBy(points: *Array'Math.Vector2, scale: f32)
 {
-    for &pt in dref points do
+    for &pt in points[] do
         pt.x, pt.y *= scale
 }
 
@@ -303,7 +303,7 @@ func scalePointsTo(points: *Array'Math.Vector2, bound: Math.Rectangle, newPosX, 
     let fx = Math.isZeroEpsilon(bound.width) ? 1'f32 : newSizeX / bound.width
     let fy = Math.isZeroEpsilon(bound.height) ? 1'f32 : newSizeY / bound.height
 
-    for &pt in dref points
+    for &pt in points[]
     {
         pt.x = ((pt.x - bound.x) * fx) + newPosX
         pt.y = ((pt.y - bound.y) * fy) + newPosY
@@ -322,7 +322,7 @@ func boundOfPoints(points: *Array'Math.Vector2, pad: f32 = 0)->Math.Rectangle
     // negative coordinates stay clamped at 0 and produce oversized/misplaced bounds.
     var x1 = -Swag.F32.Max
     var y1 = -Swag.F32.Max
-    for &pt in dref points
+    for &pt in points[]
     {
         x0 = Math.min(x0, pt.x - pad)
         y0 = Math.min(y0, pt.y - pad)

@@ -68,11 +68,11 @@ impl IPropertyEditor for AlignEditor
                 if !btn.isChecked
                 {
                     // The selected alignment cannot be untoggled, only replaced
-                    btn.setChecked(dref align == Values[i])
+                    btn.setChecked(align[] == Values[i])
                     return
                 }
 
-                dref align = Values[i]
+                align[] = Values[i]
                 list.commitItemChange(item)
             }
         }
@@ -81,7 +81,7 @@ impl IPropertyEditor for AlignEditor
         {
             for i in 3
             {
-                btns[i].setChecked(dref align == Values[i])
+                btns[i].setChecked(align[] == Values[i])
             }
         }
 

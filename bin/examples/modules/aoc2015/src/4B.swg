@@ -33,14 +33,14 @@ func day4B()
             var index  = oneJob.start
             let offset = Jobs.workerCount()
             var buffer: [16] u8
-            day4InitBuffer(&buffer)
+            day4InitBuffer(buffer)
             for
             {
                 // Another job is better than us, just quit
                 if Atomic.get(&best) < index do
                     return
 
-                let v = Hash.Md5.compute(day4BuildInput(&buffer, index))
+                let v = Hash.Md5.compute(day4BuildInput(buffer, index))
                 if v[0] == 0 and v[1] == 0 and v[2] == 0
                 {
                     discard Atomic.exchange(&best, index)

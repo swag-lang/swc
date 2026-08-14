@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertBuilderString(value: const &String, expected: string)->bool
+func assertBuilderString(value: String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and

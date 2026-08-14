@@ -56,7 +56,7 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
         if methodType.kind != .Func or
            params == null or
            @countof(params) != 1 or
-           params[0].pointedType != #type &GenericLazyMethodBox'func||()->s32 or
+           params[0].pointedType != #type *GenericLazyMethodBox'func||()->s32 or
            methodType.returnType != s32 do
             return false
 

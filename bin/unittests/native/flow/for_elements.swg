@@ -63,7 +63,7 @@ alias StrictForeachF32           = f32
     var arr: [2] u32 = [10'u32, 20]
     for &v in arr
     {
-        v += 1
+        dref v += 1
     }
     @assert(arr[0] == 11)
     @assert(arr[1] == 21)
@@ -93,8 +93,8 @@ alias StrictForeachF32           = f32
     var sum          = 0
     for &v in text
     {
-        #assert(#typeof(v) == #type const &u8)
-        sum += cast(s32) v
+        #assert(#typeof(v) == #type const *u8)
+        sum += cast(s32) dref v
     }
     @assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
 }
@@ -121,8 +121,8 @@ alias StrictForeachF32           = f32
     var sum                 = 0
     for &v in text
     {
-        #assert(#typeof(v) == #type const &u8)
-        sum += cast(s32) v
+        #assert(#typeof(v) == #type const *u8)
+        sum += cast(s32) dref v
     }
     @assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
 }
@@ -143,10 +143,10 @@ alias StrictForeachF32           = f32
     @assert(order[2] == 'A'u8)
 }
 
-func foreachCStringRefSum(value: &cstring)->s32
+func foreachCStringRefSum(value: *cstring)->s32
 {
     var sum = 0
-    for v in value do
+    for v in dref value do
         sum += cast(s32) v
     return sum
 }
@@ -328,7 +328,7 @@ func foreachCStringRefSum(value: &cstring)->s32
 {
     var values = [1, 2, 3]
     for &v in values do
-        v = 9
+        dref v = 9
     @assert(values[0] == 9 and values[1] == 9 and values[2] == 9)
 }
 
@@ -338,7 +338,7 @@ func foreachCStringRefSum(value: &cstring)->s32
     var backing        = [1, 2, 3]
     let view: [..] s32 = backing
     for &v in view do
-        v = 7
+        dref v = 7
     @assert(backing[0] == 7 and backing[1] == 7 and backing[2] == 7)
 }
 

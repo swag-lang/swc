@@ -49,7 +49,6 @@ enum class TypeInfoKind : uint8_t
     Enum,
     ValuePointer,
     BlockPointer,
-    Reference,
     MoveReference,
     Slice,
     Array,
@@ -137,7 +136,7 @@ public:
     bool isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
-    bool isReference() const noexcept { return kind_ == TypeInfoKind::Reference || kind_ == TypeInfoKind::MoveReference; }
+    bool isReference() const noexcept { return kind_ == TypeInfoKind::MoveReference; }
     bool isMoveReference() const noexcept { return kind_ == TypeInfoKind::MoveReference; }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
@@ -325,7 +324,6 @@ public:
     static TypeInfo makeAlias(SymbolAlias* sym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeMoveReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::span<const uint64_t>& dims,

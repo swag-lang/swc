@@ -224,14 +224,34 @@ namespace
         const TypeRef   referenceTypeRef = argType.unwrap(codeGen.ctx(), ioTypeRef, TypeExpandE::Alias);
         const TypeInfo& referenceType    = codeGen.typeMgr().get(referenceTypeRef);
 
-        // The implicit receiver is reference-shaped but variadic APIs use its address identity.
-        // Other const references represent borrowed values and must be boxed as their pointees.
-        if (!referenceType.isReference() || !referenceType.isConst() || isImplicitMethodReceiverArgument(codeGen, argRef))
+        // The implicit receiver keeps its address identity for variadic APIs. Other const
+        // references and const non-null value pointers represent borrowed values and are
+        // boxed as their pointees.
+        const bool borrowsValue = referenceType.isReference() || (referenceType.isValuePointer() && !referenceType.isNullable());
+        if (!borrowsValue || !referenceType.isConst() || isImplicitMethodReceiverArgument(codeGen, argRef))
             return;
 
-        TypeRef payloadTypeRef = ioTypeRef;
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, ioPayload, payloadTypeRef);
-        ioTypeRef         = payloadTypeRef;
+        if (referenceType.isReference())
+        {
+            TypeRef payloadTypeRef = ioTypeRef;
+            CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, ioPayload, payloadTypeRef);
+            ioTypeRef         = payloadTypeRef;
+            ioPayload.typeRef = ioTypeRef;
+            return;
+        }
+
+        // The pointer VALUE is the pointee's address: load it when the payload still holds
+        // the pointer's own storage, then continue as an address payload of the pointee.
+        MicroReg pointeeAddressReg = ioPayload.reg;
+        if (ioPayload.isAddress())
+        {
+            pointeeAddressReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(pointeeAddressReg, ioPayload.reg, 0, MicroOpBits::B64);
+        }
+
+        ioTypeRef = referenceType.payloadTypeRef();
+        ioPayload.setIsAddress();
+        ioPayload.reg     = pointeeAddressReg;
         ioPayload.typeRef = ioTypeRef;
     }
 
@@ -1023,7 +1043,7 @@ namespace
                 argPayload = *payload;
 
                 bool requiresTypedConstMaterialization = constantTypeRef.isValid() && isNullConstantArg;
-                if (!requiresTypedConstMaterialization && constantTypeRef.isValid())
+                if (!arg.passUfcsAddressAsPointer && !requiresTypedConstMaterialization && constantTypeRef.isValid())
                 {
                     const TaskContext& ctx             = codeGen.ctx();
                     const TypeRef      expectedTypeRef = ctx.typeMgr().get(constantTypeRef).unwrap(ctx, constantTypeRef, TypeExpandE::Alias);
@@ -1057,6 +1077,38 @@ namespace
         ABICall::PreparedArg preparedArg;
         if (normalizedTypeRef.isValid())
         {
+            // An rvalue receiver held in a register gets its call-site home first, so its
+            // address can travel into the pointer parameter like any other receiver. A
+            // value payload that is already pointer-typed (a materialized constant
+            // receiver) holds the receiver's address itself and passes through as-is.
+            if (arg.passUfcsAddressAsPointer && !argPayload.isAddress() && !argPayload.hasMaterializedPointerLikeValue() && argPayload.reg.isValid())
+            {
+                const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+                const TypeRef   pointeeTypeRef  = normalizedType.isAnyPointer() ? normalizedType.payloadTypeRef() : TypeRef::invalid();
+                if (pointeeTypeRef.isValid())
+                {
+                    const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);
+                    MicroOpBits     storeBits   = CodeGenTypeHelpers::scalarStoreBits(pointeeType, codeGen.ctx());
+                    if (storeBits == MicroOpBits::Zero)
+                    {
+                        // A register-held small aggregate receiver (an 8-byte struct
+                        // returned in a register) has no scalar bits but still needs its
+                        // call-site home: spill it by storage size before its address
+                        // travels into the pointer parameter.
+                        const uint64_t pointeeSize = pointeeType.sizeOf(codeGen.ctx());
+                        if (pointeeSize == 1 || pointeeSize == 2 || pointeeSize == 4 || pointeeSize == 8)
+                            storeBits = CodeGenTypeHelpers::bitsFromStorageSize(pointeeSize);
+                    }
+                    if (storeBits != MicroOpBits::Zero)
+                    {
+                        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
+                        codeGen.builder().emitLoadMemReg(storageReg, 0, argPayload.reg, storeBits);
+                        argPayload.reg = storageReg;
+                        argPayload.setIsAddress();
+                    }
+                }
+            }
+
             if (arg.passUfcsAddressAsPointer && argPayload.isAddress())
             {
                 argPayload.typeRef = normalizedTypeRef;

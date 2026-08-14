@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertUtf8String(value: const &String, expected: string)->bool
+func assertUtf8String(value: String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and

@@ -1377,7 +1377,7 @@ SWC_TEST_BEGIN(DebugInfo_RuntimeStorageLocalsStayOutOfCodeView)
 {
     static constexpr std::string_view SOURCE     = R"(struct DebugInfoRuntimeStoragePair { left: s32; right: s32 }
 
-func debugInfoRuntimeStorageRead(value: const &DebugInfoRuntimeStoragePair)->s32
+func debugInfoRuntimeStorageRead(value: DebugInfoRuntimeStoragePair)->s32
 {
     return value.left + value.right
 }

@@ -490,9 +490,9 @@ impl Vector2
         let dir  = target - me
         let dist = dir.length()
         if dist <= maxDistance do
-            me = target
+            dref me = target
         else do
-            me += dir * (maxDistance / dist)
+            dref me += dir * (maxDistance / dist)
     }
 
     // Returns a vector moved towards 'target' by a maximum distance of 'maxDistance'.
@@ -503,13 +503,13 @@ impl Vector2
         let dist = dir.length()
         if dist <= maxDistance do
             return target
-        return me + (dir * (maxDistance / dist))
+        return dref me + (dir * (maxDistance / dist))
     }
 
     // Perform smooth damping interpolation towards 'target'.
     // Uses 'smoothTime' and 'deltaTime' for frame-rate independent smooth movement.
     // 'currentVelocity' is modified to track the current rate of change.
-    func smoothDamp(current, target: Vector2, currentVelocity: &Vector2, smoothTime, deltaTime: f32)->Vector2
+    func smoothDamp(current, target: Vector2, currentVelocity: *Vector2, smoothTime, deltaTime: f32)->Vector2
     {
         var result: retval = undefined
         result.x = Math.smoothDamp(current.x, target.x, &currentVelocity.x, smoothTime, deltaTime)

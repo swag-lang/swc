@@ -13,7 +13,7 @@ struct(T) JitConditionalIndex
 impl JitConditionalIndex
 {
     #[Swag.Inline]
-    mtd opIndex(index: u64)->&T
+    mtd opIndexPtr(index: u64)->*T
     {
         return &.values[index]
     }

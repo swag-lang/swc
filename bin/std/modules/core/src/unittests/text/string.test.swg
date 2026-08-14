@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertString(value: const &String, expected: string)->bool
+func assertString(value: String, expected: string)->bool
 {
     let text  = value.toString()
     let slice = value.toSlice()
@@ -26,7 +26,7 @@ func makePatternString(count: u64)->String
     return result
 }
 
-func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
+func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 {
     for byte, index in value.reversed()
     {
@@ -119,7 +119,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(sumIndexes == 15)
 
     for &byte in value do
-        byte += 1'u8
+        dref byte += 1'u8
 
     @assert(assertString(value, "b[defg"))
 
@@ -268,10 +268,10 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 #test
 {
     var value: String = "alpha"
-    let ref           = cast(const &String) value
+    let ptr           = cast(const *String) &value
 
-    @assert(ref.toString() == "alpha")
-    @assert(ref == "alpha")
+    @assert(ptr.toString() == "alpha")
+    @assert(dref ptr == "alpha")
 }
 
 #test

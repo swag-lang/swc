@@ -10,8 +10,8 @@ func inlineByteLookup(c: u8)->u8 => table[c]
     table[3] = 37
 
     var x: u8  = 3
-    let r: &u8 = &x
+    let r: *u8 = &x
 
-    @assert(inlineByteLookup(r) == 37)
-    @assert(inlineByteLookup(cast(u8) r) == 37)
+    @assert(inlineByteLookup(dref r) == 37)
+    @assert(inlineByteLookup(cast(u8) dref r) == 37)
 }

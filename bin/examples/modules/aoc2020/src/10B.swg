@@ -62,7 +62,7 @@ func day10B()
 
     vals.sort()
 
-    func count(i: u64, input: Array's64, storage: &HashTable'(u64, u64))->u64
+    func count(i: u64, input: Array's64, storage: *HashTable'(u64, u64))->u64
     {
         if i == input.count - 1 do
             return 1

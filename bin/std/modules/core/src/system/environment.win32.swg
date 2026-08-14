@@ -353,12 +353,16 @@ var g_StoreArgs: String
 
 func getNativeArgs()->string
 {
+    // The effective command line handed down the hook chain wins: it is what the
+    // launcher asked this program to see. The operating-system one only describes
+    // a plain native start, and appending one to the other glues two command
+    // lines into one unparseable text.
+    let handed = @pinfos.args
+    if handed != null and @countof(handed) do
+        return handed!
+
     let ptr = GetCommandLineW()
     g_StoreArgs = Utf8.fromUtf16(@mkslice(ptr, Utf16.lengthZeroTerminated(ptr)))
-
-    if @countof(@pinfos.args) do
-        g_StoreArgs.append(@pinfos.args)
-
     return g_StoreArgs
 }
 
@@ -460,7 +464,7 @@ impl Window
 
     internal mtd rebindNative()
     {
-        SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) &me)
+        SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) me)
     }
 }
 

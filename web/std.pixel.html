@@ -1933,7 +1933,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Polygon_offsetPointAt">Polygon.offsetPointAt</a></td><td><p>Returns point <span class="code-inline">i</span>, optionally offset along the averaged edge normal.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Polygon_pointAt">Polygon.pointAt</a></td><td><p>Borrows the point at zero-based index <span class="code-inline">i</span>.</p>
+<tr><td class="code-type"><a href="#Pixel_Polygon_pointAt">Polygon.pointAt</a></td><td><p>Borrows the address of the point at zero-based index <span class="code-inline">i</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Polygon_recompute">Polygon.recompute</a></td><td><p>Computes the polygon's cached geometric properties.</p>
 </td></tr>
@@ -4325,7 +4325,7 @@ painter.<span class="SFct">end</span>()
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Polygon_offsetPointAt">offsetPointAt</a></td><td><p>Returns point <span class="code-inline">i</span>, optionally offset along the averaged edge normal.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Polygon_pointAt">pointAt</a></td><td><p>Borrows the point at zero-based index <span class="code-inline">i</span>.</p>
+<tr><td class="code-type"><a href="#Pixel_Polygon_pointAt">pointAt</a></td><td><p>Borrows the address of the point at zero-based index <span class="code-inline">i</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Polygon_recompute">recompute</a></td><td><p>Computes the polygon's cached geometric properties.</p>
 </td></tr>
@@ -7756,48 +7756,48 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(painter: *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, info: <span class="SCst"><a href="#Pixel_LayerBeginInfo">LayerBeginInfo</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_buildShadow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.buildShadow</span> <a class="api-item-permalink" href="#Pixel_Layer_buildShadow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L175">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_buildShadow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.buildShadow</span> <a class="api-item-permalink" href="#Pixel_Layer_buildShadow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L174">src</a></div>
 <p>Builds the optional blurred shadow and composites the layer content into it.</p>
 <p>Recording must have ended. A disabled shadow leaves the layer unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">buildShadow</span>(info: <span class="SCst"><a href="#Pixel_LayerShadowInfo">LayerShadowInfo</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_draw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.draw</span> <a class="api-item-permalink" href="#Pixel_Layer_draw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L249">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_draw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.draw</span> <a class="api-item-permalink" href="#Pixel_Layer_draw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L248">src</a></div>
 <p>Composites the resolved layer into the painter.</p>
 <p>The layer is released afterward when <span class="code-inline">info.releaseAfterDraw</span> is true.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">draw</span>(info: <span class="SCst"><a href="#Pixel_LayerDrawInfo">LayerDrawInfo</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.end</span> <a class="api-item-permalink" href="#Pixel_Layer_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L113">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.end</span> <a class="api-item-permalink" href="#Pixel_Layer_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L112">src</a></div>
 <p>Ends the active off-screen recording scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">end</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.release</span> <a class="api-item-permalink" href="#Pixel_Layer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L319">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.release</span> <a class="api-item-permalink" href="#Pixel_Layer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L318">src</a></div>
 <p>Queues every owned render target for release and resets the layer.</p>
 <p>Calling <span class="code-inline">release</span> on an empty layer is harmless.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_releaseImmediate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.releaseImmediate</span> <a class="api-item-permalink" href="#Pixel_Layer_releaseImmediate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L346">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_releaseImmediate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.releaseImmediate</span> <a class="api-item-permalink" href="#Pixel_Layer_releaseImmediate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L345">src</a></div>
 <p>Returns every owned render target straight to the renderer pool and resets the layer.</p>
 <p><a href="#Pixel_Layer_release">Pixel.Layer.release</a> records the release into the painter command stream, which is right in the middle of a frame but wrong for a layer retained across frames: <a href="#Pixel_Painter_begin">Pixel.Painter.begin</a> discards pending commands, so a release recorded between two frames would be lost with them. Call this form instead when releasing a retained layer, once no recorded frame still draws from its targets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseImmediate</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_resolve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.resolve</span> <a class="api-item-permalink" href="#Pixel_Layer_resolve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L137">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_resolve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.resolve</span> <a class="api-item-permalink" href="#Pixel_Layer_resolve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L136">src</a></div>
 <p>Downsamples supersampled content to the layer's device resolution.</p>
 <p>Calling this more than once is harmless.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resolve</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_sourceRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.sourceRect</span> <a class="api-item-permalink" href="#Pixel_Layer_sourceRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L311">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_sourceRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.sourceRect</span> <a class="api-item-permalink" href="#Pixel_Layer_sourceRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L310">src</a></div>
 <p>Returns the logical layer rectangle with origin <span class="code-inline">(0, 0)</span>.</p>
 <p>Use it as a destination rectangle. When sampling the layer texture directly, remember its texels are at device resolution: one logical unit covers the painter content scale in texels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sourceRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Layer_texture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.texture</span> <a class="api-item-permalink" href="#Pixel_Layer_texture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L299">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Layer_texture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Layer.texture</span> <a class="api-item-permalink" href="#Pixel_Layer_texture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/layer.swg#L298">src</a></div>
 <p>Returns the resolved layer texture.</p>
 <p>Supersampled content is resolved on demand. The texture remains renderer-owned and valid until the layer is released.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">texture</span>()-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
@@ -8611,12 +8611,12 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">add</span>(v: <span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Polygon_clean" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.clean</span> <a class="api-item-permalink" href="#Pixel_Polygon_clean" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L436">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Polygon_clean" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.clean</span> <a class="api-item-permalink" href="#Pixel_Polygon_clean" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L437">src</a></div>
 <p>Clean polygon by removing bad/unecessary points</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clean</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Polygon_cleanedPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.cleanedPaths</span> <a class="api-item-permalink" href="#Pixel_Polygon_cleanedPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L446">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Polygon_cleanedPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.cleanedPaths</span> <a class="api-item-permalink" href="#Pixel_Polygon_cleanedPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L447">src</a></div>
 <p>Clean polygon by removing bad/unecessary points</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cleanedPaths</span>()-&gt;<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span></span></div>
 </section>
@@ -8639,7 +8639,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">offset</span>(value: <span class="STpe">f32</span>, joinStyle: <span class="SCst"><a href="#Pixel_JoinStyle">JoinStyle</a></span>, toler: <span class="STpe">f32</span> = <span class="SNum">0.5</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Polygon_offsetPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.offsetPaths</span> <a class="api-item-permalink" href="#Pixel_Polygon_offsetPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L396">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Polygon_offsetPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.offsetPaths</span> <a class="api-item-permalink" href="#Pixel_Polygon_offsetPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L397">src</a></div>
 <p>Slow but quality offset with a joinStyle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">offsetPaths</span>(value: <span class="STpe">f32</span>, joinStyle: <span class="SCst"><a href="#Pixel_JoinStyle">JoinStyle</a></span>, tolerance: <span class="STpe">f32</span> = <span class="SNum">0.5</span>)-&gt;<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span></span></div>
 </section>
@@ -8650,15 +8650,15 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Polygon_pointAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.pointAt</span> <a class="api-item-permalink" href="#Pixel_Polygon_pointAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L52">src</a></div>
-<p>Borrows the point at zero-based index <span class="code-inline">i</span>.</p>
+<p>Borrows the address of the point at zero-based index <span class="code-inline">i</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
-<span class="SKwd">mtd</span> <span class="SFct">pointAt</span>(i: <span class="STpe">u64</span>)-&gt;&amp;<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span></span></div>
-<p>Borrows the point at zero-based index <span class="code-inline">i</span> as read-only.</p>
+<span class="SKwd">mtd</span> <span class="SFct">pointAt</span>(i: <span class="STpe">u64</span>)-&gt;*<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span></span></div>
+<p>Borrows the address of the point at zero-based index <span class="code-inline">i</span>, as read-only.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pointAt</span>(i: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> &amp;<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span></span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pointAt</span>(i: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Polygon_recompute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.recompute</span> <a class="api-item-permalink" href="#Pixel_Polygon_recompute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L475">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Polygon_recompute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Polygon.recompute</span> <a class="api-item-permalink" href="#Pixel_Polygon_recompute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/polygon.swg#L476">src</a></div>
 <p>Computes the polygon's cached geometric properties.</p>
 <p>Call this after adding all points. <span class="code-inline">knownSimple</span> lets a caller that already guarantees the polygon does not self-intersect (e.g. the output of a Clipper union/clean/offset) skip the O(n^2) self-intersection test, which otherwise dominates for large contours.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">recompute</span>(knownSimple = <span class="SKwd">false</span>)</span></div>
@@ -8669,24 +8669,24 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">subdivideEdges</span>(maxDistance: <span class="STpe">f32</span>, closed: <span class="STpe">bool</span> = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1882">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1883">src</a></div>
 <p>Starts a CPU frame with the requested positive BGRA surface dimensions.</p>
 <p>Reusing the same dimensions preserves the surface pixels until they are cleared or drawn over. No native context is created.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(width, height: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1863">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1864">src</a></div>
 <p>Releases pooled render-target descriptors owned by the renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1872">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1873">src</a></div>
 <p>Resets all renderer-owned resources and returns to an empty deterministic state.</p>
 <p>Every outstanding texture and render-target handle from this renderer becomes invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1895">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L1896">src</a></div>
 <p>Returns an owned copy of the current surface pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">surfaceImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
@@ -9002,7 +9002,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.26</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.129</div>
 </footer>
 </section>
 </main>
@@ -10418,7 +10418,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 "f|Pixel.Polygon.offset|Pixel_Polygon_offset|Fast expand polygon by a given amount",
 "f|Pixel.Polygon.offsetPaths|Pixel_Polygon_offsetPaths|Slow but quality offset with a joinStyle",
 "f|Pixel.Polygon.offsetPointAt|Pixel_Polygon_offsetPointAt|Returns point i, optionally offset along the averaged edge normal.",
-"f|Pixel.Polygon.pointAt|Pixel_Polygon_pointAt|Borrows the point at zero-based index i.",
+"f|Pixel.Polygon.pointAt|Pixel_Polygon_pointAt|Borrows the address of the point at zero-based index i.",
 "f|Pixel.Polygon.recompute|Pixel_Polygon_recompute|Computes the polygon's cached geometric properties.",
 "f|Pixel.Polygon.subdivideEdges|Pixel_Polygon_subdivideEdges|Divide by adding points if two points are too far away",
 "f|Pixel.RenderCpu.begin|Pixel_RenderCpu_begin|Starts a CPU frame with the requested positive BGRA surface dimensions.",

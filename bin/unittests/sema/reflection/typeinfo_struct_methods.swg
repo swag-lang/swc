@@ -1,12 +1,12 @@
 #global private
 using Swag
 
-alias SimplePingFn         = func(const &SimpleMethodProbe)->s32
-alias GenericCopyFromFn    = func(&GenericMethodProbe's32, const [..] s32)->s32
+alias SimplePingFn         = func(const *SimpleMethodProbe)->s32
+alias GenericCopyFromFn    = func(*GenericMethodProbe's32, const [..] s32)->s32
 alias ExportedScaleValueFn = func(s32, s32)->s32
-alias ExportedAddFn        = func(&ExportedMethodProbe, s32)->s32
-alias ExportedScaledFn     = func(const &ExportedMethodProbe, s32)->s32
-alias ExportedScoreFn      = func(&ExportedMethodProbe, s32)->s32
+alias ExportedAddFn        = func(*ExportedMethodProbe, s32)->s32
+alias ExportedScaledFn     = func(const *ExportedMethodProbe, s32)->s32
+alias ExportedScoreFn      = func(*ExportedMethodProbe, s32)->s32
 
 struct HiddenMethodProbe
 {
@@ -167,7 +167,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
        methodType.kind != .Func or
        params == null or
        @countof(params) != 1 or
-       params[0].pointedType != #type const &SimpleMethodProbe or
+       params[0].pointedType != #type const *SimpleMethodProbe or
        methodType.returnType != s32 or
        methodInfo.value == null do
         return false
@@ -192,7 +192,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
        methodType.kind != .Func or
        params == null or
        @countof(params) != 2 or
-       params[0].pointedType != #type &GenericMethodProbe's32 or
+       params[0].pointedType != #type *GenericMethodProbe's32 or
        params[1].pointedType != #type const [..] s32 or
        methodType.returnType != s32 or
        methodInfo.value == null do
@@ -240,7 +240,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        addType.kind != .Func or
        addParams == null or
        @countof(addParams) != 2 or
-       addParams[0].pointedType != #type &ExportedMethodProbe or
+       addParams[0].pointedType != #type *ExportedMethodProbe or
        addParams[1].pointedType != s32 or
        addType.returnType != s32 or
        addInfo.value == null do
@@ -251,7 +251,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        scaledType.kind != .Func or
        scaledParams == null or
        @countof(scaledParams) != 2 or
-       scaledParams[0].pointedType != #type const &ExportedMethodProbe or
+       scaledParams[0].pointedType != #type const *ExportedMethodProbe or
        scaledParams[1].pointedType != s32 or
        scaledType.returnType != s32 or
        scaledInfo.value == null do
@@ -262,7 +262,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        scoreType.kind != .Func or
        scoreParams == null or
        @countof(scoreParams) != 2 or
-       scoreParams[0].pointedType != #type &ExportedMethodProbe or
+       scoreParams[0].pointedType != #type *ExportedMethodProbe or
        scoreParams[1].pointedType != s32 or
        scoreType.returnType != s32 or
        scoreInfo.value == null do
@@ -311,7 +311,7 @@ const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks(
 #assert(SIMPLE_METHOD_INFO.name == "ping")
 #assert(SIMPLE_METHOD_INFO.pointedType.kind == .Func)
 #assert(@countof(SIMPLE_METHOD_TYPE.parameters) == 1)
-#assert(SIMPLE_METHOD_TYPE.parameters[0].pointedType == #type const &SimpleMethodProbe)
+#assert(SIMPLE_METHOD_TYPE.parameters[0].pointedType == #type const *SimpleMethodProbe)
 #assert(SIMPLE_METHOD_TYPE.returnType == s32)
 
 #assert(GENERIC_INFO.name == "GenericMethodProbe")
@@ -321,7 +321,7 @@ const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks(
 #assert(ARRAY_METHOD_INFO.name == "copyFrom")
 #assert(ARRAY_METHOD_INFO.pointedType.kind == .Func)
 #assert(@countof(ARRAY_METHOD_TYPE.parameters) == 2)
-#assert(ARRAY_METHOD_TYPE.parameters[0].pointedType == #type &GenericMethodProbe's32)
+#assert(ARRAY_METHOD_TYPE.parameters[0].pointedType == #type *GenericMethodProbe's32)
 #assert(ARRAY_METHOD_TYPE.parameters[1].pointedType == #type const [..] s32)
 #assert(ARRAY_METHOD_TYPE.returnType == s32)
 
@@ -336,21 +336,21 @@ const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks(
 #assert(EXPORTED_ADD_INFO.name == "add")
 #assert(EXPORTED_ADD_INFO.pointedType.kind == .Func)
 #assert(@countof(EXPORTED_ADD_TYPE.parameters) == 2)
-#assert(EXPORTED_ADD_TYPE.parameters[0].pointedType == #type &ExportedMethodProbe)
+#assert(EXPORTED_ADD_TYPE.parameters[0].pointedType == #type *ExportedMethodProbe)
 #assert(EXPORTED_ADD_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_ADD_TYPE.returnType == s32)
 
 #assert(EXPORTED_SCALED_INFO.name == "scaled")
 #assert(EXPORTED_SCALED_INFO.pointedType.kind == .Func)
 #assert(@countof(EXPORTED_SCALED_TYPE.parameters) == 2)
-#assert(EXPORTED_SCALED_TYPE.parameters[0].pointedType == #type const &ExportedMethodProbe)
+#assert(EXPORTED_SCALED_TYPE.parameters[0].pointedType == #type const *ExportedMethodProbe)
 #assert(EXPORTED_SCALED_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_SCALED_TYPE.returnType == s32)
 
 #assert(EXPORTED_SCORE_INFO.name == "score")
 #assert(EXPORTED_SCORE_INFO.pointedType.kind == .Func)
 #assert(@countof(EXPORTED_SCORE_TYPE.parameters) == 2)
-#assert(EXPORTED_SCORE_TYPE.parameters[0].pointedType == #type &ExportedMethodProbe)
+#assert(EXPORTED_SCORE_TYPE.parameters[0].pointedType == #type *ExportedMethodProbe)
 #assert(EXPORTED_SCORE_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_SCORE_TYPE.returnType == s32)
 

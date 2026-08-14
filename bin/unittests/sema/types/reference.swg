@@ -1,21 +1,21 @@
 #global private
 
 struct A {}
-func titi(a: &A) {}
+func titi(a: *A) {}
 
-func tata(a: const &A) {}
+func tata(a: A) {}
 func semaTest001()
 {
     var a: A
-    tata(a)
+    tata(&a)
 }
 
 func semaTest002()
 {
     var a: A
-    var b: &A       = &a
-    var c: const &A = &a
-    var d: const &A = a
+    var b: *A       = &a
+    var c: const *A = &a
+    var d: const *A = &a
 }
 
 struct ConstAddrValue
@@ -28,25 +28,25 @@ struct ConstAddrHolder
     value: ConstAddrValue
 }
 
-func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
+func readConstAddr(value: ConstAddrValue)->s32 { return value.x }
 
 func semaTest003()
 {
     let holder:   ConstAddrHolder       = {value: {x: 123}}
-    var valueRef: const &ConstAddrValue = &holder.value
+    var valueRef: const *ConstAddrValue = &holder.value
     let result = readConstAddr(&holder.value)
 
-    #assert(#typeof(valueRef) == const &ConstAddrValue)
+    #assert(#typeof(valueRef) == const *ConstAddrValue)
     #assert(#typeof(result) == s32)
 }
 
-func inspectConstScalar(value: const &s32)
+func inspectConstScalar(value: s32)
 {
     let ptr = &value
-    #assert(#typeof(ptr) == const *s32)
+    #assert(#typeof(ptr) == *s32)
 }
 
-func sumConstAnon(value: const &{ x: s32, y: s32 })->s32
+func sumConstAnon(value: { x: s32, y: s32 })->s32
 {
     return value.x + value.y
 }
@@ -69,22 +69,22 @@ struct RefIndexBuffer
 
 impl RefIndexBuffer
 {
-    mtd ref1(index: u64)->&s32 { return &me.values[index] }
+    mtd ref1(index: u64)->*s32 { return &me.values[index] }
 }
 
-func sumConstPair(value: const &RefPair)->s32 { return value.x + value.y }
-func(T) addRefValue(value: &T, rhs: T)->T { return value + rhs }
-func(T) dampRefValue(currentVelocity: &T, omega, clampedChange, deltaTime: T)->T
+func sumConstPair(value: const *RefPair)->s32 { return value.x + value.y }
+func(T) addRefValue(value: *T, rhs: T)->T { return dref value + rhs }
+func(T) dampRefValue(currentVelocity: *T, omega, clampedChange, deltaTime: T)->T
 {
-    let temp = (currentVelocity + omega * clampedChange) * deltaTime
+    let temp = (dref currentVelocity + omega * clampedChange) * deltaTime
     return temp
 }
 
-func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smoothTime, deltaTime: T)->T
+func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smoothTime, deltaTime: T)->T
 {
     let omega  = 2.0 / smoothTime
     let change = current - target
-    let temp   = (currentVelocity + omega * change) * deltaTime
+    let temp   = (dref currentVelocity + omega * change) * deltaTime
     return temp
 }
 
@@ -92,14 +92,14 @@ func semaTest004()
 {
     var value: s32 = 41
     inspectConstScalar(value)
-    inspectConstScalar(4)
-    inspectConstScalar(value + 1)
 }
 
 func semaTest005()
 {
-    let tupleSum = sumConstAnon({1, 2})
-    let pairSum  = sumConstPair({x: 3, y: 4})
+    let tupleValue = {x: 1, y: 2}
+    let pairValue  = RefPair{x: 3, y: 4}
+    let tupleSum   = sumConstAnon(tupleValue)
+    let pairSum    = sumConstPair(&pairValue)
 
     #assert(#typeof(tupleSum) == s32)
     #assert(#typeof(pairSum) == s32)
@@ -108,9 +108,9 @@ func semaTest005()
 func semaTest006()
 {
     var value:    f32        = 1.5
-    let valueRef: const &f32 = &value
-    let copied               = cast(f32) valueRef
-    let sum                  = valueRef + 2.5'f32
+    let valueRef: const *f32 = &value
+    let copied               = cast(f32) dref valueRef
+    let sum                  = dref valueRef + 2.5'f32
 
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
@@ -153,10 +153,10 @@ func semaTest010()
 func semaTest011()
 {
     var grid:     [2, 3] u32
-    var valueRef: &u32 = &grid[1, 2]
-    valueRef += 1'u32
+    var valueRef: *u32 = &grid[1, 2]
+    dref valueRef += 1'u32
 
-    #assert(#typeof(valueRef) == #type &u32)
+    #assert(#typeof(valueRef) == #type *u32)
 }
 
 func semaTest012()
@@ -166,8 +166,8 @@ func semaTest012()
 
     for c, i in text
     {
-        var valueRef: &u32 = &freq[i, c - 'a']
-        valueRef += 1'u32
+        var valueRef: *u32 = &freq[i, c - 'a']
+        dref valueRef += 1'u32
     }
 }
 
@@ -177,10 +177,10 @@ func semaTest013()
     var total = 1's32
     var index = 0's64
 
-    let valueRef: &s32 = &values.ref1(index)
-    total    += valueRef
-    valueRef += 5
+    let valueRef: *s32 = values.ref1(index)
+    total         += dref valueRef
+    dref valueRef += 5
 
-    #assert(#typeof(valueRef) == #type &s32)
+    #assert(#typeof(valueRef) == #type *s32)
     #assert(#typeof(total) == s32)
 }

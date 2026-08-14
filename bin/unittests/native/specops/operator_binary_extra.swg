@@ -12,7 +12,7 @@ struct RuntimeCommBox
 impl RuntimeCommBox
 {
     #[Swag.NoInline]
-    mtd(op: Swag.Operator) const opBinary(other: const &RuntimeCommBox)->RuntimeCommBox
+    mtd(op: Swag.Operator) const opBinary(other: RuntimeCommBox)->RuntimeCommBox
         where op == .Add or op == .Mul
     {
         #static switch op
@@ -27,7 +27,7 @@ impl RuntimeCommBox
     }
 
     #[Swag.NoInline]
-    mtd const opEquals(other: const &RuntimeCommBox)->bool
+    mtd const opEquals(other: RuntimeCommBox)->bool
     {
         return .value == other.value
     }
@@ -104,7 +104,7 @@ struct RuntimeFullArithBox
 impl RuntimeFullArithBox
 {
     #[Swag.NoInline]
-    mtd(op: Swag.Operator) const opBinary(other: const &RuntimeFullArithBox)->RuntimeFullArithBox
+    mtd(op: Swag.Operator) const opBinary(other: RuntimeFullArithBox)->RuntimeFullArithBox
         where op == .Add or op == .Sub or op == .Mul or op == .Div or op == .Mod
     {
         #static switch op

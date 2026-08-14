@@ -122,6 +122,7 @@ enum class SpecOpKind : uint8_t
     OpSlice,
     OpIndex,
     OpIndexSet,
+    OpIndexPtr,
     OpVisit,
 };
 

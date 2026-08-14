@@ -11,7 +11,7 @@ impl Values
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item))
     {
-        #inject(stmt, item = dref cast(&s32) &.value)     // swc-expected-error {{sema_err_unary_operand_type}}
+        #inject(stmt, item = dref .value)     // swc-expected-error {{sema_err_unary_operand_type}}
     }
 }
 

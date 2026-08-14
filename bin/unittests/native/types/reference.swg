@@ -14,12 +14,12 @@ struct RefIndexBuffer
 
 impl RefIndexBuffer
 {
-    mtd ref1(index: u64)->&s32 { return &me.values[index] }
+    mtd ref1(index: u64)->*s32 { return &me.values[index] }
 }
 
 #test
 {
-    func testRead(x: &Vec2)->s32 { return x.x + x.y; }
+    func testRead(x: *Vec2)->s32 { return x.x + x.y; }
     var v: Vec2 = {x: 8, y: 13}
     var sum     = testRead(&v)
     @assert(sum == 21)
@@ -27,7 +27,7 @@ impl RefIndexBuffer
 
 #test
 {
-    func testWrite(x: &Vec2)
+    func testWrite(x: *Vec2)
     {
         x.x = x.x * 2
         x.y = x.y + 7
@@ -40,7 +40,7 @@ impl RefIndexBuffer
 
 #test
 {
-    func getPtr(x: &s32)->*s32 { return &x; }
+    func getPtr(x: *s32)->*s32 { return x; }
     func writeThrough(p: *s32)
     {
         dref p = 42
@@ -52,32 +52,32 @@ impl RefIndexBuffer
     @assert(v == 42)
 }
 
-func writeScalarRef(target: &s32, value: s32)
+func writeScalarRef(target: *s32, value: s32)
 {
-    target = value
+    dref target = value
 }
 
 #test
 {
     var value:    s32  = 10
-    var valueRef: &s32 = &value
+    var valueRef: *s32 = &value
 
-    valueRef = 42
-    @assert(valueRef == 42)
+    dref valueRef = 42
+    @assert(dref valueRef == 42)
     @assert(value == 42)
 
-    valueRef += 8
-    @assert(valueRef == 50)
+    dref valueRef += 8
+    @assert(dref valueRef == 50)
     @assert(value == 50)
 
     writeScalarRef(&value, 99)
-    @assert(valueRef == 99)
+    @assert(dref valueRef == 99)
     @assert(value == 99)
 }
 
 #test
 {
-    func getPtr(x: &Vec2)->*Vec2 { return &x; }
+    func getPtr(x: *Vec2)->*Vec2 { return x; }
     func writeThrough(p: *Vec2)
     {
         p.x = -3
@@ -90,18 +90,18 @@ func writeScalarRef(target: &s32, value: s32)
     @assert(v.y == 99)
 }
 
-func writeVecRef(target: &Vec2, value: Vec2)
+func writeVecRef(target: *Vec2, value: Vec2)
 {
-    target = value
+    dref target = value
 }
 
 #test
 {
     var value:    Vec2  = {x: 1, y: 2}
-    var valueRef: &Vec2 = &value
+    var valueRef: *Vec2 = &value
     let other:    Vec2  = {x: 30, y: 40}
 
-    valueRef = other
+    dref valueRef = other
     @assert(valueRef.x == 30)
     @assert(valueRef.y == 40)
     @assert(value.x == 30)
@@ -116,11 +116,11 @@ func writeVecRef(target: &Vec2, value: Vec2)
 
 #test
 {
-    func choose(flag: bool, a: &Vec2, b: &Vec2)->*Vec2
+    func choose(flag: bool, a: *Vec2, b: *Vec2)->*Vec2
     {
         if flag do
-            return &a
-        return &b
+            return a
+        return b
     }
     var left:  Vec2 = {x: 100, y: 200}
     var right: Vec2 = {x: 300, y: 400}
@@ -134,12 +134,12 @@ func writeVecRef(target: &Vec2, value: Vec2)
 
 #test
 {
-    func nextDigit(bytes: const [..] u8, index: &u64)->u8
+    func nextDigit(bytes: const [..] u8, index: *u64)->u8
     {
-        if index < @countof(bytes)
+        if dref index < @countof(bytes)
         {
-            let value = bytes[index]
-            index += 1
+            let value = bytes[dref index]
+            dref index += 1
             return value
         }
 
@@ -159,19 +159,19 @@ func writeVecRef(target: &Vec2, value: Vec2)
     var total = 1's32
     var index = 0's64
 
-    let valueRef: &s32 = &values.ref1(index)
-    total    += valueRef
-    valueRef += 5
+    let valueRef: *s32 = values.ref1(index)
+    total         += dref valueRef
+    dref valueRef += 5
 
     @assert(total == 13)
-    @assert(valueRef == 17)
+    @assert(dref valueRef == 17)
     @assert(values.values[0] == 17)
 }
 
 struct A {}
 var gRefTitiCalls: s32
 var gRefTataCalls: s32
-func titi(a: &A) { gRefTitiCalls += 1 }
+func titi(a: *A) { gRefTitiCalls += 1 }
 #test
 {
     var a: A
@@ -180,7 +180,7 @@ func titi(a: &A) { gRefTitiCalls += 1 }
     @assert(gRefTitiCalls == 1)
 }
 
-func tata(a: const &A) { gRefTataCalls += 1 }
+func tata(a: A) { gRefTataCalls += 1 }
 #test
 {
     var a: A
@@ -199,26 +199,26 @@ struct ConstAddrHolder
     value: ConstAddrValue
 }
 
-func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
+func readConstAddr(value: ConstAddrValue)->s32 { return value.x }
 
 #test
 {
     let holder:   ConstAddrHolder       = {value: {x: 123}}
-    var valueRef: const &ConstAddrValue = &holder.value
+    var valueRef: const *ConstAddrValue = &holder.value
 
     @assert(valueRef.x == 123)
     @assert(readConstAddr(&holder.value) == 123)
 }
 
-func inspectConstScalar(value: const &s32, expected: s32)
+func inspectConstScalar(value: s32, expected: s32)
 {
     let ptr = &value
-    #assert(#typeof(ptr) == const *s32)
+    #assert(#typeof(ptr) == *s32)
     @assert(value == expected)
     @assert(dref ptr == expected)
 }
 
-func sumConstAnon(value: const &{ x: s32, y: s32 })->s32
+func sumConstAnon(value: { x: s32, y: s32 })->s32
 {
     return value.x + value.y
 }
@@ -234,19 +234,19 @@ struct RefFloatBox
     value: f32
 }
 
-func sumConstPair(value: const &RefPair)->s32 { return value.x + value.y }
-func(T) addRefValue(value: &T, rhs: T)->T { return value + rhs }
-func(T) dampRefValue(currentVelocity: &T, omega, clampedChange, deltaTime: T)->T
+func sumConstPair(value: const *RefPair)->s32 { return value.x + value.y }
+func(T) addRefValue(value: *T, rhs: T)->T { return dref value + rhs }
+func(T) dampRefValue(currentVelocity: *T, omega, clampedChange, deltaTime: T)->T
 {
-    let temp = (currentVelocity + omega * clampedChange) * deltaTime
+    let temp = (dref currentVelocity + omega * clampedChange) * deltaTime
     return temp
 }
 
-func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smoothTime, deltaTime: T)->T
+func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smoothTime, deltaTime: T)->T
 {
     let omega  = 2.0 / smoothTime
     let change = current - target
-    let temp   = (currentVelocity + omega * change) * deltaTime
+    let temp   = (dref currentVelocity + omega * change) * deltaTime
     return temp
 }
 
@@ -254,22 +254,22 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 {
     var value: s32 = 41
     inspectConstScalar(value, 41)
-    inspectConstScalar(4, 4)
-    inspectConstScalar(value + 1, 42)
 }
 
 #test
 {
-    @assert(sumConstAnon({1, 2}) == 3)
-    @assert(sumConstPair({x: 3, y: 4}) == 7)
+    let tupleValue = {x: 1, y: 2}
+    let pairValue  = RefPair{x: 3, y: 4}
+    @assert(sumConstAnon(tupleValue) == 3)
+    @assert(sumConstPair(&pairValue) == 7)
 }
 
 #test
 {
     var value:    f32        = 1.5
-    let valueRef: const &f32 = &value
-    let copied               = cast(f32) valueRef
-    let sum                  = valueRef + 2.5'f32
+    let valueRef: const *f32 = &value
+    let copied               = cast(f32) dref valueRef
+    let sum                  = dref valueRef + 2.5'f32
 
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
@@ -320,11 +320,11 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 #test
 {
     var grid:     [2, 3] u32
-    var valueRef: &u32 = &grid[1, 2]
+    var valueRef: *u32 = &grid[1, 2]
 
-    valueRef += 1'u32
+    dref valueRef += 1'u32
     @assert(grid[1, 2] == 1'u32)
 
-    valueRef = 7'u32
+    dref valueRef = 7'u32
     @assert(grid[1, 2] == 7'u32)
 }

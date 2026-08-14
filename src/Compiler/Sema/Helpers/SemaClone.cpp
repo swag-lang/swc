@@ -449,6 +449,11 @@ namespace
             if (paramType.isReference() && !paramType.isConst())
                 return targetRef;
 
+            // A mutable non-null pointer parameter writes through to the pointee, exactly
+            // like a mutable reference: inlining must not freeze the bound expression.
+            if (paramType.isValuePointer() && !paramType.isNullable() && !sema.typeMgr().get(paramType.payloadTypeRef()).isConst())
+                return targetRef;
+
             sema.setConstAssignBinding(targetRef, binding.sourceParam);
             if (!paramType.isPointerOrReference() || paramType.isReference())
                 sema.setConstAssignTarget(targetRef);
@@ -630,6 +635,7 @@ namespace
             clonedPayload.runtimeArrayFillCstRef = sourcePayload->runtimeArrayFillCstRef;
         clonedPayload.runtimeSafetyMask |= sourcePayload->runtimeSafetyMask;
         clonedPayload.notNullUnwrap |= sourcePayload->notNullUnwrap;
+        clonedPayload.ufcsReceiverAddress |= sourcePayload->ufcsReceiverAddress;
     }
 
     // Implicit casts (created by Cast::createCast) store part of their semantic
@@ -916,6 +922,17 @@ namespace
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
         else if (!shouldReexpand && sourceHasImplicitCastSubstitute && !sema.hasSubstitute(clonedRef))
             inheritStoredPayload(sema, clonedRef, sourceRef);
+
+        // The clone is an exact resolved replica, and its inherited type state makes sema
+        // treat it as already resolved. The spec-op selection (an index or cast payload)
+        // and the resolved call arguments live in side maps keyed by the node: without
+        // carrying them, codegen would lower the resolved clone through the raw fallback.
+        if (!shouldReexpand)
+        {
+            if (void* semaPayload = sema.semaPayload<void>(sourceRef); semaPayload && !sema.semaPayload<void>(clonedRef))
+                sema.setSemaPayload(clonedRef, semaPayload);
+            sema.copyResolvedCallArguments(clonedRef, sourceRef);
+        }
         if (sema.node(sourceRef).is(AstNodeId::Identifier) &&
             sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
             sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
@@ -2156,14 +2173,6 @@ AstNodeRef AstQualifiedType::semaClone(Sema& sema, const CloneContext& cloneCont
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::QualifiedType>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstQualifiedType>();
     cloned.nodeTypeRef      = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
-    return newRef;
-}
-
-AstNodeRef AstReferenceType::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    const AstNodeRef newRef   = cloneNodeCopy<AstNodeId::ReferenceType>(sema, *this);
-    auto&            cloned   = sema.node(newRef).cast<AstReferenceType>();
-    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

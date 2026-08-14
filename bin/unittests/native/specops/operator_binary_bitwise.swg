@@ -12,7 +12,7 @@ struct(T) GenBitwisePair
 
 impl GenBitwisePair
 {
-    func(op: Swag.Operator) opBinary(const me, other: const &GenBitwisePair'T)->GenBitwisePair'T
+    func(op: Swag.Operator) opBinary(const me, other: GenBitwisePair'T)->GenBitwisePair'T
         where op == .BitAnd or op == .BitOr or op == .BitXor or op == .Shl or op == .Shr
     {
         #static switch op

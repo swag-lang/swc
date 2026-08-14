@@ -11,7 +11,7 @@ struct InlineRectangle
 impl InlineRectangle
 {
     #[Swag.Inline]
-    mtd const opCompare(other: const &InlineRectangle)->s32
+    mtd const opCompare(other: InlineRectangle)->s32
     {
         let swagCmp0 = .x <=> other.x
         if swagCmp0 != 0 do
@@ -33,7 +33,7 @@ impl InlineRectangle
     }
 
     #[Swag.Inline]
-    mtd const opEquals(other: const &InlineRectangle)->bool
+    mtd const opEquals(other: InlineRectangle)->bool
     {
         return .x == other.x and .y == other.y and .width == other.width and .height == other.height
     }

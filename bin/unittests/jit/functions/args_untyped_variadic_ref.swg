@@ -18,7 +18,7 @@ func variadicReferencedValueIsIntact(values: ...)->bool
 }
 
 #[Swag.NoInline]
-func passVariadicReferencedValue(value: const &VariadicReferencedValue)->bool
+func passVariadicReferencedValue(value: VariadicReferencedValue)->bool
 {
     return variadicReferencedValueIsIntact(value)
 }

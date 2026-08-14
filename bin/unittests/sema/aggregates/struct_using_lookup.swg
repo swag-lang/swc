@@ -84,8 +84,8 @@ func semaTest006()
     let basePtr: const *Inner = &out
     #assert(#typeof(basePtr) == const *Inner)
 
-    let baseRef: const &Inner = &out
-    #assert(#typeof(baseRef) == const &Inner)
+    let baseRef: const *Inner = &out
+    #assert(#typeof(baseRef) == const *Inner)
 }
 
 struct Inner2

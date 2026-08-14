@@ -1973,6 +1973,12 @@ namespace
             case AstNodeId::NamedArgument:
                 return expressionEscapeInfoRec(sema, node.cast<AstNamedArgument>().nodeArgRef, budget);
 
+            // An inline expansion substitutes the call with its root block; the
+            // expansion's value flows out of its return statements, so the walk reads
+            // through them to reach the borrow the callee's body hands back.
+            case AstNodeId::ReturnStmt:
+                return expressionEscapeInfoRec(sema, node.cast<AstReturnStmt>().nodeExprRef, budget);
+
             case AstNodeId::MemberAccessExpr:
             {
                 SemaEscapeProjection projection;
@@ -3621,6 +3627,21 @@ namespace SemaEscape
             resolveIterationProjection(sema, borrow.sourceRef, sourceProj, sourceExact);
             if (!iterationMutationHitsSource(sourceProj, sourceExact, receiverProj, receiverExact))
                 continue;
+
+            // The mutation is structural only when it targets the ITERATED COLLECTION
+            // itself. A non-const method owned by another struct mutates one element's
+            // own storage (a String inside an Array'String reached through the loop's
+            // address binding), which the iteration snapshot survives.
+            if (const SymbolStruct* calleeOwner = calledFn.ownerStruct())
+            {
+                const TypeRef sourceTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, borrow.sourceRef));
+                if (sourceTypeRef.isValid())
+                {
+                    const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+                    if (sourceType.isStruct() && &sourceType.payloadSymStruct() != calleeOwner)
+                        continue;
+                }
+            }
 
             // Spare the find-then-remove-then-exit pattern: the loop does not iterate again
             // after the mutation, so the snapshot is never read stale.

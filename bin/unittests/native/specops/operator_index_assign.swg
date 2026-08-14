@@ -73,7 +73,7 @@ struct RuntimeRefIndexAssignBox
 impl RuntimeRefIndexAssignBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32)->&s32
+    mtd opIndexPtr(index: s32)->*s32
     {
         .reads += 1
         return &.values[index]
@@ -98,7 +98,7 @@ struct RuntimeMultiIndexAssignBox
 impl RuntimeMultiIndexAssignBox
 {
     #[Swag.NoInline]
-    mtd opIndex(row: s32, col: s32)->&s32
+    mtd opIndexPtr(row: s32, col: s32)->*s32
     {
         .reads += 1
         return &.values[row * 2 + col]

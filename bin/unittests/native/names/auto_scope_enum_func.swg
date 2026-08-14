@@ -88,9 +88,9 @@ func(T) has(flags, value: T)->bool
     return flags & value != 0
 }
 
-func(T) add(flags: &T, value: T)
+func(T) add(flags: *T, value: T)
 {
-    flags |= value
+    dref flags |= value
 }
 
 struct ConflictingFlagOwner {}

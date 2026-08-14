@@ -32,7 +32,7 @@ func day2B()
 
     for l, gameIdx in lines
     {
-        let first = Tokenize.split(l, ':'u8)
+        let first = Tokenize.split(dref l, ':'u8)
         let sets  = Tokenize.split(first[1], ';'u8)
 
         var game: { r, g, b: s32 }

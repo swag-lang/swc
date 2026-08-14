@@ -55,12 +55,12 @@ func day8A()
         nscreen = screen
         switch
         {
-        case expect re.match(#raw "rect (\d+)x(\d+)", l):
+        case expect re.match(#raw "rect (\d+)x(\d+)", dref l):
             for x in expect StrConv.toS32(re[1]) do
                 for y in expect StrConv.toS32(re[2]) do
                     screen[x, y] = true
 
-        case expect re.match(#raw "rotate column x=(\d+) by (\d+)", l):
+        case expect re.match(#raw "rotate column x=(\d+) by (\d+)", dref l):
             let x = expect StrConv.toS32(re[1])
             for expect StrConv.toS32(re[2])
             {
@@ -69,7 +69,7 @@ func day8A()
                 nscreen = screen
             }
 
-        case expect re.match(#raw "rotate row y=(\d+) by (\d+)", l):
+        case expect re.match(#raw "rotate row y=(\d+) by (\d+)", dref l):
             let y = expect StrConv.toS32(re[1])
             for expect StrConv.toS32(re[2])
             {

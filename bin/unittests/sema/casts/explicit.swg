@@ -149,9 +149,9 @@ func takeStringValue(value: string)->u64
 func semaTest005()
 {
     var text             = "abcd"
-    var textRef: &string = &text
-    let textValue        = cast(string) textRef
-    let textSize         = takeStringValue(textRef)
+    var textRef: *string = &text
+    let textValue        = cast(string) dref textRef
+    let textSize         = takeStringValue(dref textRef)
 
     #assert(#typeof(textValue) == string)
     #assert(#typeof(textSize) == u64)

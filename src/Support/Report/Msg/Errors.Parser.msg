@@ -6,7 +6,7 @@ SWC_DIAG_DEF(parser_err_expected_token_before, Error, "expected '{expect-tok}' b
 SWC_DIAG_DEF(parser_err_expected_token_fam_before, Error, "expected {expect-a-tok-fam} before '{tok}' {because}; found {tok-fam} '{tok}'")
 SWC_DIAG_DEF(parser_err_expected_closing, Error, "expected closing '{expect-tok}' {because}; [help] add '{expect-tok}' to complete this construct")
 SWC_DIAG_DEF(parser_err_expected_closing_before, Error, "expected closing '{expect-tok}' {because} before {tok-fam} '{tok}'; [help] insert '{expect-tok}' to close the current construct")
-SWC_DIAG_DEF(parser_err_invalid_type, Error, "expected a type here; found {tok-fam} '{tok}'; [help] types can start with a builtin type, identifier or qualified name, pointer/reference, array, 'func', 'mtd', 'struct', or 'union'")
+SWC_DIAG_DEF(parser_err_invalid_type, Error, "expected a type here; found {tok-fam} '{tok}'; [help] types can start with a builtin type, identifier or qualified name, pointer, array, 'func', 'mtd', 'struct', or 'union'")
 SWC_DIAG_DEF(parser_err_expected_array_dim, Error, "expected an array dimension or array specifier inside '[]'")
 SWC_DIAG_DEF(parser_err_expected_sep_stmt, Error, "expected ';' to separate statements; [help] insert ';' before the next statement, or move it to a new line")
 SWC_DIAG_DEF(parser_err_empty_literal_suffix, Error, "empty literal suffix after the quote; [help] remove the quote, or add a suffix such as 's32', 'u64', 'f64', 'bool', or 'rune'")
@@ -57,3 +57,4 @@ SWC_DIAG_DEF(parser_err_switch_expected_case, Error, "statement in switch body h
 SWC_DIAG_DEF(parser_err_switch_missing_case, Error, "switch body has no 'case' or 'default' section; [help] add at least one 'case' or 'default' section")
 SWC_DIAG_DEF(parser_err_mixed_destructuring, Error, "destructuring pattern mixes positional and named bindings; [help] use 'field: binding' for every entry, or remove every field name")
 SWC_DIAG_DEF(parser_err_for_selector_removed, Error, "loop selector '{tok}' is no longer supported; [help] iterate an ordinary view, such as 'value.pairs()' or 'value.reversed()'")
+SWC_DIAG_DEF(parser_err_reference_type_removed, Error, "the '&T' reference type has been replaced by the pointer type '*T'; [help] replace '&' with '*' in the type")

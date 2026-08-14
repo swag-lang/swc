@@ -105,9 +105,9 @@ func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
     c.imag = i
 }
 
-func shadowedUfcsAdd(value: &u32, rhs: u32)
+func shadowedUfcsAdd(value: *u32, rhs: u32)
 {
-    value += rhs
+    dref value += rhs
 }
 
 func callShadowedUfcsAdd(shadowedUfcsAdd: u32)->u32

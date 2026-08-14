@@ -13,7 +13,7 @@ struct(T) NativeConditionalIndex
 impl NativeConditionalIndex
 {
     #[Swag.Inline]
-    mtd opIndex(index: u64)->&T
+    mtd opIndexPtr(index: u64)->*T
     {
         return &.values[index]
     }

@@ -181,14 +181,17 @@ AstNodeRef Parser::parseSubType()
 
 AstNodeRef Parser::parseSubTypeNoQualifiers()
 {
-    // Left reference
+    // '&T' references have been removed; '*T' is the single non-null
+    // indirection. Consume the old spelling to issue one focused diagnostic,
+    // then recover as a pointer so parsing can continue without cascades.
     const TokenRef tokAmpRef = consumeIf(TokenId::SymAmpersand);
     if (tokAmpRef.isValid())
     {
+        raiseError(DiagnosticId::parser_err_reference_type_removed, tokAmpRef);
         const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ReferenceType>(tokAmpRef);
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ValuePointerType>(tokAmpRef);
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }

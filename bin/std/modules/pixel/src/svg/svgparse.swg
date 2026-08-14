@@ -1349,7 +1349,7 @@ private impl Parser
         {
             let shape = &.drawing.shapes[first + i]
             for &value in shape.strokePattern do
-                value *= scale
+                dref value *= scale
             shape.strokeOffset *= scale
         }
     }
@@ -1810,7 +1810,7 @@ private impl Parser
                     if gradient
                     {
                         shape.pathList.flatten(.Normal)
-                        shape.fillBrush = .gradientBrush(&gradient.value, &shape)
+                        shape.fillBrush = .gradientBrush(&gradient.value, shape)
                     }
                     else do
                         shape.hasFill = false
@@ -1832,7 +1832,7 @@ private impl Parser
                     if gradient
                     {
                         shape.pathList.flatten(.Normal)
-                        shape.strokeBrush = .gradientBrush(&gradient.value, &shape)
+                        shape.strokeBrush = .gradientBrush(&gradient.value, shape)
                     }
                     else do
                         shape.hasStroke = false
@@ -1880,7 +1880,7 @@ private impl Parser
                 strokeMiter   = src.strokeMiter
                 strokePattern = src.strokePattern
                 for &value in strokePattern do
-                    value *= state.sx
+                    dref value *= state.sx
                 capStyle  = src.capStyle
                 joinStyle = src.joinStyle
                 paintTx   = mapX(state, src.paintTx + offX)
@@ -2040,7 +2040,7 @@ impl Drawing
                     if Math.abs(shape.strokeWidth) > 0.000001
                     {
                         for &value in pen.pattern do
-                            value /= Math.abs(shape.strokeWidth)
+                            dref value /= Math.abs(shape.strokeWidth)
                     }
 
                     pen.dashStyle = .Pattern

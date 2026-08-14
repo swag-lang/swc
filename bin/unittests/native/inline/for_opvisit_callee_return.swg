@@ -33,7 +33,7 @@ impl InlineBug10VisitBytes
 }
 
 #[Swag.Inline]
-func inlineBug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes, minValue: u8)->u64
+func inlineBug10ReverseIndexOfVisitAtLeast(values: InlineBug10VisitBytes, minValue: u8)->u64
 {
     for value, index in (values).reversed()
     {
@@ -46,7 +46,7 @@ func inlineBug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes,
     return Swag.U64.Max
 }
 
-func bug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes, minValue: u8)->u64
+func bug10ReverseIndexOfVisitAtLeast(values: InlineBug10VisitBytes, minValue: u8)->u64
 {
     for value, index in (values).reversed()
     {

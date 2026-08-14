@@ -91,18 +91,18 @@ impl Array
         return @mkslice(buffer + lower, (upper + 1) - lower)
     }
 
-    // Returns a constant reference to the element at the specified index.
+    // Returns the address of the element at the specified index.
     #[Inline]
-    mtd const opIndex(index: u64)->const &T
+    mtd const opIndexPtr(index: u64)->const *T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         let buffer = .buffer!
         return buffer + index
     }
 
-    // Returns a mutable reference to the element at the specified index.
+    // Returns the mutable address of the element at the specified index.
     #[Inline]
-    mtd opIndex(index: u64)->&T
+    mtd opIndexPtr(index: u64)->*T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         let buffer = .buffer!
@@ -187,9 +187,9 @@ impl Array
             let visitIdx = @index
 
             #static if ptr do
-                #inject(stmt, item = cast(&T) scan, index = visitIdx)
+                #inject(stmt, item = cast(*T) scan, index = visitIdx)
             elif Reflection.isStruct(T) do
-                #inject(stmt, item = cast(const &T) scan, index = visitIdx)
+                #inject(stmt, item = cast(const *T) scan, index = visitIdx)
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
@@ -213,20 +213,20 @@ impl Array
         return pairsView(.toSlice())
     }
 
-    // Returns a mutable reference to an element using a single coordinate.
+    // Returns the mutable address of an element using a single coordinate.
     // This can be used to treat the array as a 1D grid.
     #[Inline]
-    mtd ref1(x: u64)->&T
+    mtd ptr1(x: u64)->*T
     {
         Debug.safetyBoundCheck(x < .count, "index out of range")
         let buffer = .buffer!
         return buffer + x
     }
 
-    // Returns a mutable reference to an element using 2D coordinates and a width.
+    // Returns the mutable address of an element using 2D coordinates and a width.
     // This can be used to treat the array as a 2D grid.
     #[Inline]
-    mtd ref2(x, y, w: u64)->&T
+    mtd ptr2(x, y, w: u64)->*T
     {
         Debug.safetyBoundCheck(x + y * w < .count, "index out of range")
         let buffer = .buffer!

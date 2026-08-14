@@ -291,7 +291,7 @@ public func ctxSharedPassMixed(a: s32, b: string, c: CtxAbiPair, d: [2] s32, e: 
     return a + cast(s32) b[0] + c.a + d[1] + cast(s32) (e != null)
 }
 
-public func ctxSharedPassConstRef(value: const &CtxAbiPair)->s32
+public func ctxSharedPassConstRef(value: CtxAbiPair)->s32
 {
     return value.a + value.b
 }

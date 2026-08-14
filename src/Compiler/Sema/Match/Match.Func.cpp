@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
@@ -404,10 +405,24 @@ namespace
             return true;
 
         // Binary operator overloads conceptually consume two operands. Keep the right operand
-        // addressable as well so invalid-but-diagnosed signatures like `other: &T` still
+        // addressable as well so signatures with removed reference syntax still
         // behave consistently with operator syntax while remaining reported to the user.
         const SpecOpKind kind = fn.specOpKind();
         return (kind == SpecOpKind::OpBinary || kind == SpecOpKind::OpBinaryRight) && paramIndex == 1;
+    }
+
+    // The 'me' parameter is the receiver whatever the call syntax: an explicit qualified
+    // call ('Vec2.length(v)') binds it by address exactly as the dotted form does, which
+    // is how the reference world's binds-reference-to-value rule behaved - it never looked
+    // at the call syntax either. Kept apart from allowsImplicitAddressBinding so overload
+    // RANKING is untouched: this only routes the selected binding.
+    bool bindsExplicitMeAddress(Sema& sema, const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isValid() || paramIndex != 0 || fn.parameters().empty())
+            return false;
+
+        const SymbolVariable* firstParam = fn.parameters().front();
+        return firstParam && firstParam->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
     }
 
     TypeRef unwrapAliasEnumOrSelf(Sema& sema, TypeRef typeRef)
@@ -1188,6 +1203,17 @@ namespace
         {
             outRank = ConvRank::Exact;
             return Result::Continue;
+        }
+
+        if (isUfcsArgument && from.isValid() && to.isValid())
+        {
+            const TypeRef fromCheckRef = unwrapAliasEnumOrSelf(sema, from);
+            const TypeRef toCheckRef   = unwrapAliasEnumOrSelf(sema, to);
+            if (fromCheckRef == toCheckRef && sema.typeMgr().get(fromCheckRef).isPointerOrReference())
+            {
+                outRank = ConvRank::Exact;
+                return Result::Continue;
+            }
         }
 
         const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
@@ -1984,6 +2010,8 @@ namespace
         const SemaNodeView receiverView(sema, receiverRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         if (SemaCheck::isReadOnlyParameterPath(sema, receiverRef))
             return true;
+        if (SemaCheck::isImmutableBinding(sema, receiverRef))
+            return true;
         if (receiverView.sym() && receiverView.sym()->isConstant())
             return true;
 
@@ -2447,13 +2475,52 @@ namespace
                 continue;
 
             CastFlags flags = CastFlagsE::AllowCopyToMoveRef;
-            if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
+            if (castTypeRef == paramTypeRef &&
+                (allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg) || bindsExplicitMeAddress(sema, selectedFn, i, appliedUfcsArg)))
                 flags.add(CastFlagsE::UfcsArgument);
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
+            // A UFCS receiver binding a value to a pointer parameter needs no cast node: the
+            // call passes the receiver's address (passUfcsAddressAsPointer), and a cast
+            // substitute would survive a pause and re-type the receiver expression. An
+            // rvalue receiver gets a call-site home the address can point into. The castless
+            // route only holds when the receiver IS the pointee: a 'using' field receiver
+            // needs the cast node carrying the using-path so the call reaches the subobject
+            // (and codegen's address-pass check, which compares the same types, stays in
+            // agreement - a skipped cast it refuses would dereference the receiver).
+            const TypeRef preCastSrcTypeRef = argView.typeRef();
+            if (flags.has(CastFlagsE::UfcsArgument) && sema.typeMgr().get(castTypeRef).isAnyPointer() && preCastSrcTypeRef.isValid())
+            {
+                const TypeRef   preCastSrcCheckRef     = unwrapAliasEnumOrSelf(sema, preCastSrcTypeRef);
+                const TypeInfo& preCastSrcType         = sema.typeMgr().get(preCastSrcCheckRef);
+                const TypeRef   castPointeeTypeRef     = sema.typeMgr().get(castTypeRef).payloadTypeRef();
+                const TypeRef   resolvedPointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), castPointeeTypeRef);
+                const TypeRef   pointeeCheckRef        = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : castPointeeTypeRef;
+
+                // A pointer receiver that IS the parameter's type through an alias needs
+                // no cast either: strictness governs value conversions, not the method
+                // dispatch the alias inherits from its pointee's impl.
+                if (preCastSrcType.isPointerOrReference() && preCastSrcCheckRef == unwrapAliasEnumOrSelf(sema, castTypeRef) && preCastSrcTypeRef != castTypeRef)
+                {
+                    entry.valueRef = argView.nodeRef();
+                    refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
+                    continue;
+                }
+
+                if (!preCastSrcType.isPointerOrReference() && !preCastSrcType.isNull() && preCastSrcCheckRef == pointeeCheckRef)
+                {
+                    if (!sema.isLValue(argView.nodeRef()) && !sema.isGlobalScope())
+                        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, argView.nodeRef(), sema.node(argView.nodeRef()), preCastSrcTypeRef, "__call_arg_ptr_storage"));
+                    entry.valueRef = argView.nodeRef();
+                    refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
+                    continue;
+                }
+            }
+
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
                 SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
+
             entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
         }
@@ -2620,8 +2687,22 @@ namespace
         const SemaNodeView argView = sema.viewType(outResolvedArg.argRef);
         SWC_ASSERT(argView.typeRef().isValid());
 
+        // A const non-null value pointer boxes as its pointee (the codegen packer hands over
+        // the pointee's address), except the implicit receiver, which keeps address identity.
+        TypeRef         boxTypeRef  = argView.typeRef();
+        const TypeRef   unwrapped   = sema.typeMgr().unwrapAliasEnum(sema.ctx(), boxTypeRef);
+        const TypeInfo& unwrappedTy = sema.typeMgr().get(unwrapped.isValid() ? unwrapped : boxTypeRef);
+        if (unwrappedTy.isValuePointer() && !unwrappedTy.isNullable() && unwrappedTy.isConst())
+        {
+            const AstNodeRef   sourceRef  = SemaHelpers::resolveTransparentExprSourceRef(sema, outResolvedArg.argRef);
+            const SemaNodeView sourceView = sema.viewSymbol(sourceRef);
+            const bool         isReceiver = sourceView.sym() && sourceView.sym()->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+            if (!isReceiver)
+                boxTypeRef = unwrappedTy.payloadTypeRef();
+        }
+
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, argView.typeRef(), outResolvedArg.argRef));
+        SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, boxTypeRef, outResolvedArg.argRef));
         outResolvedArg.typeInfoCstRef = typeInfoCstRef;
         return Result::Continue;
     }
@@ -2646,19 +2727,27 @@ namespace
         return !sourceType.isPointerOrReference();
     }
 
-    bool passUfcsAddressAsPointer(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef, AstNodeRef appliedUfcsArg)
+    bool passUfcsAddressAsPointer(Sema& sema, const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef argRef, AstNodeRef appliedUfcsArg)
     {
-        if (argRef.isInvalid() || appliedUfcsArg.isInvalid())
+        if (argRef.isInvalid() || paramIndex != 0)
             return false;
 
-        if (Match::resolveCallArgumentValueRef(sema, argRef) != Match::resolveCallArgumentValueRef(sema, appliedUfcsArg))
+        if (appliedUfcsArg.isInvalid() && !bindsExplicitMeAddress(sema, fn, paramIndex, appliedUfcsArg))
+        {
             return false;
+        }
 
-        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        const TypeRef   paramTypeRef = fn.parameters()[paramIndex]->typeRef();
+        const TypeInfo& paramType    = sema.typeMgr().get(paramTypeRef);
         if (!paramType.isAnyPointer())
             return false;
 
-        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
+        // The finalized argument can be an implicit pointer cast while the applied UFCS
+        // receiver still names the value whose address must be passed. Inspect that
+        // receiver directly; a genuine using-path conversion remains excluded by the
+        // pointee/source type comparison below.
+        const AstNodeRef receiverRef   = appliedUfcsArg.isValid() ? appliedUfcsArg : argRef;
+        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, receiverRef);
         const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
         if (!sourceTypeRef.isValid())
             return false;
@@ -2670,6 +2759,12 @@ namespace
         const TypeInfo& sourceType             = sema.typeMgr().get(sourceTypeToCheck);
         if (sourceType.isPointerOrReference())
             return false;
+
+        // A contextual aggregate literal keeps its provisional aggregate type on the
+        // source node even after the UFCS cast has concretized it to the receiver type.
+        // The literal owns runtime storage, so its address is the pointer argument.
+        if (sourceType.isAggregateStruct() || sourceType.isAggregateArray())
+            return true;
 
         return pointeeTypeToCheck == sourceTypeToCheck;
     }
@@ -2792,11 +2887,27 @@ namespace
                 .passKind                 = passKind,
                 .bindsReferenceToValue    = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
                 .movesValueToParam        = i < numParams && movesValueToParam(sema, selectedFn.parameters()[i]->typeRef(), entry.argRef),
-                .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef, appliedUfcsArg),
+                .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn, i, finalArgRef, appliedUfcsArg),
             };
 
             if (resolvedArg.bindsReferenceToValue)
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
+            if (resolvedArg.passUfcsAddressAsPointer)
+            {
+                // The receiver's address escapes into the pointer parameter, so a
+                // register-allocated scalar or enum source must land in memory first.
+                const SemaNodeView sourceView = sema.viewNodeTypeSymbol(SemaHelpers::resolveTransparentExprSourceRef(sema, finalArgRef));
+                if (sourceView.sym() && sourceView.sym()->isVariable())
+                {
+                    auto& symVar = sourceView.sym()->cast<SymbolVariable>();
+                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                        symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+                }
+                else if (sourceView.typeRef().isValid())
+                {
+                    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, finalArgRef, sema.node(sourceView.nodeRef()), sourceView.typeRef(), "__call_arg_ptr_storage"));
+                }
+            }
             if (resolvedArg.movesValueToParam)
             {
                 SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, entry.argRef, selectedFn.parameters()[i]->typeRef(), AstModifierFlagsE::Move));

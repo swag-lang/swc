@@ -239,7 +239,7 @@ private func mathIsAsciiLetter(c: u8)->bool
     return c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z'
 }
 
-internal func mathStyleScale(style: MathStyle, options: const &MathLayoutOptions)->f32
+internal func mathStyleScale(style: MathStyle, options: MathLayoutOptions)->f32
 {
     switch style
     {

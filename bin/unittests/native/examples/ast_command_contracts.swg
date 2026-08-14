@@ -130,7 +130,7 @@ func appendCommandValidation(buffer: [*] u8, start: u64, contractName: string, t
 
     len = appendAst(buffer, len, "func validate")
     len = appendAst(buffer, len, contractName)
-    len = appendAst(buffer, len, "(command: const &")
+    len = appendAst(buffer, len, "(command: const *")
     len = appendAst(buffer, len, contractName)
     len = appendAst(buffer, len, ")->bool\n{\n")
     len = appendAst(buffer, len, "    var ok = true\n")
@@ -187,7 +187,7 @@ func appendCommandRedaction(buffer: [*] u8, start: u64, contractName: string, ty
 
     len = appendAst(buffer, len, "func redact")
     len = appendAst(buffer, len, contractName)
-    len = appendAst(buffer, len, "(command: const &")
+    len = appendAst(buffer, len, "(command: const *")
     len = appendAst(buffer, len, contractName)
     len = appendAst(buffer, len, ")->")
     len = appendAst(buffer, len, contractName)
@@ -258,7 +258,7 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
 
     len = appendAst(buffer, len, "func invoke")
     len = appendAst(buffer, len, contractName)
-    len = appendAst(buffer, len, "(command: const &")
+    len = appendAst(buffer, len, "(command: const *")
     len = appendAst(buffer, len, contractName)
     len = appendAst(buffer, len, ")")
     if !returnsVoid

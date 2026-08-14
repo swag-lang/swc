@@ -46,18 +46,18 @@ impl Polygon
         path.adoptGeneratedPolygon()
     }
 
-    // Borrows the point at zero-based index `i`.
+    // Borrows the address of the point at zero-based index `i`.
     #[Swag.Inline]
-    mtd pointAt(i: u64)->&Vector2
+    mtd pointAt(i: u64)->*Vector2
     {
         Debug.assert(i < .points.count)
         let points = .points.buffer!
         return points + i
     }
 
-    // Borrows the point at zero-based index `i` as read-only.
+    // Borrows the address of the point at zero-based index `i`, as read-only.
     #[Swag.Inline]
-    mtd const pointAt(i: u64)->const &Vector2
+    mtd const pointAt(i: u64)->const *Vector2
     {
         Debug.assert(i < .points.count)
         let points = .points.buffer!
@@ -328,8 +328,9 @@ impl Polygon
             .add(vec)
         }
 
-        // Closed path needs last point to be the same as the first one
-        let v0 = .pointAt(0)
+        // Closed path needs last point to be the same as the first one; copy it out
+        // before 'add' can reallocate the buffer it points into.
+        let v0 = dref .pointAt(0)
         .add(v0)
 
         // Clipper output contours never self-intersect, so the O(n^2) simplicity

@@ -82,12 +82,12 @@ func day6A1()
     {
         for c, i in l
         {
-            var v: &u32 = &freq[i, c - 'a']
-            v += 1
+            let v = &freq[i, c - 'a']
+            dref v += 1
 
-            if v > best[i]
+            if dref v > best[i]
             {
-                best[i] = v
+                best[i] = dref v
                 pwd[i]  = c
             }
         }

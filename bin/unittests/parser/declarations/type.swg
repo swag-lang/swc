@@ -20,7 +20,7 @@ enum A : [5] A { Z }
 enum A : [5][10] A { Z }
 enum A : [5][10] ****A { Z }
 enum A : [5][..] ****A { Z }
-enum A : &A { Z }
+enum A : *A { Z }
 enum A : #move A { Z }
 enum A : *const *A { Z }
 
@@ -36,12 +36,9 @@ enum A : [5]*A { Z }
 enum A : [5][10]*const A { Z }
 enum A : [/* c */5] A { Z }
 enum A : [5] /* c */ [10] A { Z }
-enum A : &*A { Z }
 enum A : #move *A { Z }
 enum A : [5][..] *const *A { Z }
 enum A : [*] *A { Z }
-enum A : [..] &A { Z }
-enum A : [?] &A { Z }
 
 enum A : [* /* stuck */ ] s32 { Z }
 enum A : [.. /* stuck */ ] s32 { Z }
@@ -49,7 +46,6 @@ enum A : [? /* stuck */ ] s32 { Z }
 
 // Valid: more combos to stress nesting
 enum A : [1][2][3] ***A { Z }
-enum A : & & A { Z }
 enum A : *const [5]A { Z }
 enum A : [5]*const *A { Z }
 

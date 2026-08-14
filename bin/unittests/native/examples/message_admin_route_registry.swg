@@ -200,7 +200,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 
         len = appendAst(&buffer[0], len, "func invokeAdminRoute_")
         len = appendAst(&buffer[0], len, route.handlerName)
-        len = appendAst(&buffer[0], len, "(request: const &AdminRouteRequest_")
+        len = appendAst(&buffer[0], len, "(request: const *AdminRouteRequest_")
         len = appendAst(&buffer[0], len, route.handlerName)
         len = appendAst(&buffer[0], len, ")")
         if typeFunc.returnType != null and typeFunc.returnType != void

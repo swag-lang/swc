@@ -253,7 +253,7 @@ namespace
         TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
         if (func.isConst())
             typeFlags.add(TypeInfoFlagsE::Const);
-        return sema.typeMgr().addType(TypeInfo::makeReference(ownerTypeRef, typeFlags));
+        return sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerTypeRef, typeFlags));
     }
 
     bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)
@@ -424,15 +424,22 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
-    // UFCS receiver: allow taking the address to get a pointer.
-    // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
-    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && dstType.payloadTypeRef() == srcTypeRef && !dstType.isNullable())
+    // UFCS receiver: allow taking the address to get a pointer, directly or through a
+    // 'using' field chain. Whether the value is actually addressable (lvalue) is
+    // validated later by `Cast::cast`.
+    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && !dstType.isNullable() && !srcType.isPointerOrReference())
     {
-        const bool sourceIsConst = srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource);
-        if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
-            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+        bool receiverMatches = dstType.payloadTypeRef() == srcTypeRef;
+        if (!receiverMatches && srcType.isStruct())
+            SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcTypeRef, dstType.payloadTypeRef(), receiverMatches));
+        if (receiverMatches)
+        {
+            const bool sourceIsConst = srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource);
+            if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
-        return Result::Continue;
+            return Result::Continue;
+        }
     }
 
     if (srcType.isFunction() &&

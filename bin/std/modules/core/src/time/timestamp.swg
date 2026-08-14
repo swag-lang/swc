@@ -25,7 +25,7 @@ impl Timestamp
     // Replaces this value with the current wall-clock time.
     mtd setNow()
     {
-        me = now()
+        dref me = now()
     }
 
     // Creates a timestamp from raw ticks since 0001-01-01 00:00:00.

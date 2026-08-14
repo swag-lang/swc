@@ -43,7 +43,7 @@ impl JitBufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = @index)
             }
         }
         else
@@ -123,9 +123,9 @@ impl JitFieldPointerVisits
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(&s32) &(me.first), index = 0'u64)
-            #inject(stmt, item = cast(&s32) &(me.second), index = 1'u64)
-            #inject(stmt, item = cast(&s32) &(me.third), index = 2'u64)
+            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
+            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
+            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
         }
         else
         {
@@ -159,7 +159,7 @@ impl JitConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = @index)
             }
         }
         else
@@ -183,7 +183,7 @@ impl JitReturnVisits
 
         var remain = @countof(.values)
         #scope(Up)
-            for idx in @countof(.values)
+        for idx in @countof(.values)
         {
             #scope(Down)
             {
@@ -213,7 +213,7 @@ impl JitCallSourceVisits
         for idx in .count
         {
             #static if ptr do
-                #inject(stmt, item = cast(const &s32) &me.values[idx], index = idx)
+                #inject(stmt, item = cast(const *s32) &me.values[idx], index = idx)
             else do
                 #inject(stmt, item = me.values[idx], index = idx)
         }
@@ -223,7 +223,7 @@ impl JitCallSourceVisits
 var g_JitCallSource:      JitCallSourceVisits
 var g_JitCallSourceCalls: s32
 
-func jitCallSource()->const &JitCallSourceVisits
+func jitCallSource()->const *JitCallSourceVisits
 {
     g_JitCallSourceCalls += 1
     return g_JitCallSource
@@ -235,7 +235,7 @@ func jitForeachVisitCallSource()->s32
     var sum = 0
 
     for &value, ordinal in jitCallSource() do
-        sum += value + cast(s32) ordinal
+        sum += dref value + cast(s32) ordinal
 
     // The source expression belongs to the loop, not to the visit body: exactly one evaluation.
     return g_JitCallSourceCalls == 1 ? sum : -1
@@ -274,7 +274,7 @@ func jitForeachVisitByAddress()->s32
     var values = JitBufferVisits{}
 
     for &value, ordinal in values do
-        value += cast(s32) (ordinal + 1)
+        dref value += cast(s32) (ordinal + 1)
 
     return values.values[0] + values.values[1] + values.values[2]
 }

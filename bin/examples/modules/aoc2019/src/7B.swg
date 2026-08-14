@@ -36,8 +36,12 @@ Try every combination of the new phase settings on the amplifier feedback for. W
 
 using Core
 
-internal func run(op: &Array's32, input: const [2] s32, ip: &s32)->{ output: s32, stopped: bool }
+internal func run(op: *Array's32, input: const [2] s32, ipp: *s32)->{ output: s32, stopped: bool }
 {
+    // Work on a local instruction pointer, and publish it back on every exit.
+    var ip = dref ipp
+    defer dref ipp = ip
+
     var output    = 0
     var phaseDone = ip != 0
 

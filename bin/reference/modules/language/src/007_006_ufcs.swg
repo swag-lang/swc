@@ -17,7 +17,9 @@ This enables calling standalone functions as if they were instance methods, impr
 /**
 # Static Functions as Methods
 All functions in Swag are static, but UFCS enables them to be invoked with instance-style syntax.
-This improves clarity when working with structs or objects.
+When the first parameter is a pointer to the value's type, the UFCS call takes the value's
+address automatically: 'pt.set(10)' below passes '&pt'. This improves clarity when working
+with structs or objects.
 */
 #test
 {

@@ -46,7 +46,7 @@ func relayUnary(cb: func||(s32)->s32)->func||(s32)->s32 => cb
 
 impl MethodClosureReceiver
 {
-    mtd makeAdder(offset: s32)->func ||(&MethodClosureReceiver, s32)->s32
+    mtd makeAdder(offset: s32)->func ||(*MethodClosureReceiver, s32)->s32
     {
         return mtd|offset|(value: s32)->s32
         {

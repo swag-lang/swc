@@ -362,9 +362,11 @@ namespace
         if (!view.type())
             return nullptr;
 
+        // A reference or a non-null single-value pointer to a container is looked through,
+        // like member access: the operator receiver is the pointed-to object.
         TypeRef         unwrappedTypeRef = view.typeRef();
         const TypeInfo& valueType        = sema.typeMgr().get(unwrappedTypeRef);
-        if (valueType.isReference())
+        if (valueType.isReference() || (valueType.isValuePointer() && !valueType.isNullable()))
             unwrappedTypeRef = unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
         else
             unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
@@ -376,6 +378,19 @@ namespace
             return nullptr;
 
         return &type.payloadSymStruct();
+    }
+
+    // The receiver's mutability for operator selection: a pointer or reference receiver
+    // takes it from the pointee.
+    bool indexReceiverIsConst(Sema& sema, const SemaNodeView& view)
+    {
+        if (!view.type())
+            return false;
+        if (view.type()->isConst())
+            return true;
+        if (view.type()->isReference() || view.type()->isAnyPointer())
+            return sema.typeMgr().get(view.type()->payloadTypeRef()).isConst();
+        return false;
     }
 
     bool canExplicitlySpecializeSpecOp(Sema& sema, const SymbolFunction& symFunc, std::span<const AstNodeRef> genericArgNodes)
@@ -913,12 +928,17 @@ namespace
     {
         auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
         payload->calledFn = &calledFn;
+        // A re-resolved clone (a detached binding expression carried its source's
+        // selection) legitimately replaces the previous selection.
+        sema.clearSemaPayload(indexExprRef);
         sema.setSemaPayload(indexExprRef, payload);
 
         const TypeRef   returnTypeRef = calledFn.returnTypeRef();
         const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
 
-        if (returnType.isReference())
+        // 'opIndexPtr' hands back the element's address, so the indexed expression is an
+        // lvalue of the pointee type, exactly like a reference-returning 'opIndex'.
+        if (returnType.isReference() || calledFn.specOpKind() == SpecOpKind::OpIndexPtr)
         {
             sema.setType(indexExprRef, returnType.payloadTypeRef());
             sema.setIsValue(indexExprRef);
@@ -962,21 +982,30 @@ namespace
             ResolvedCallArgument              resolvedArg;
             resolvedArg.argRef = exprRef;
 
-            const SymbolVariable* receiver = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
-            if (receiver && sema.typeMgr().get(receiver->typeRef()).isReference())
+            const SymbolVariable* receiver     = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
+            const TypeInfo*       receiverType = receiver ? &sema.typeMgr().get(receiver->typeRef()) : nullptr;
+            if (receiverType && (receiverType->isReference() || (receiverType->isValuePointer() && !receiverType->isNullable())))
             {
-                resolvedArg.bindsReferenceToValue = true;
+                // A reference receiver bound the operand's value by materializing it and
+                // taking its address; the pointer-world receiver binds the same way, so a
+                // non-pointer operand passes its ADDRESS (loading its first bytes as the
+                // receiver pointer would index through the operand's leading field).
+                const SemaNodeView operandView       = sema.viewNodeTypeSymbol(exprRef);
+                const bool         operandIsPointee = !operandView.type() ||
+                                              (!operandView.type()->isReference() && !operandView.type()->isAnyPointer());
+                if (receiverType->isReference())
+                    resolvedArg.bindsReferenceToValue = true;
+                else if (operandIsPointee)
+                    resolvedArg.passUfcsAddressAsPointer = true;
 
-                bool               needsRuntimeStorage = !sema.isGlobalScope();
-                const SemaNodeView operandView         = sema.viewNodeTypeSymbol(exprRef);
+                bool needsRuntimeStorage = !sema.isGlobalScope() && (receiverType->isReference() || (operandIsPointee && !sema.isLValue(exprRef)));
                 if (operandView.sym() &&
                     operandView.sym()->isVariable() &&
-                    operandView.type() &&
-                    !operandView.type()->isReference() &&
-                    !operandView.type()->isAnyPointer())
+                    operandIsPointee &&
+                    operandView.type())
                 {
                     auto& symVar = operandView.sym()->cast<SymbolVariable>();
-                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
                     {
                         symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
                         needsRuntimeStorage = false;
@@ -985,7 +1014,7 @@ namespace
 
                 if (needsRuntimeStorage)
                 {
-                    const TypeRef storageTypeRef = sema.typeMgr().get(receiver->typeRef()).payloadTypeRef();
+                    const TypeRef storageTypeRef = receiverType->payloadTypeRef();
                     SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, exprRef, sema.node(exprRef), storageTypeRef, "__call_arg_ref_storage"));
                 }
             }
@@ -1462,10 +1491,35 @@ namespace
             }
         }
 
-        SmallVector<Symbol*> candidates;
+        // A place context needs the element's ADDRESS rather than its value: the base of a
+        // member access, the operand of an address-of, the target of an assignment, or an
+        // element that is indexed again. 'opIndexPtr' is preferred there; a plain read
+        // prefers the value-returning 'opIndex'.
+        bool placeContext = false;
+        if (parentRef.isValid())
+        {
+            const AstNode& parentNode = sema.node(parentRef);
+            if (const auto* memberAccess = parentNode.safeCast<AstMemberAccessExpr>())
+                placeContext = memberAccess->nodeLeftRef == indexExprRef;
+            else if (const auto* unaryExpr = parentNode.safeCast<AstUnaryExpr>())
+                placeContext = unaryExpr->nodeExprRef == indexExprRef && sema.token(unaryExpr->codeRef()).id == TokenId::SymAmpersand;
+            else if (const auto* assignStmt = parentNode.safeCast<AstAssignStmt>())
+                placeContext = assignStmt->nodeLeftRef == indexExprRef;
+            else if (const auto* parentIndex = parentNode.safeCast<AstIndexExpr>())
+                placeContext = parentIndex->nodeExprRef == indexExprRef;
+            else if (const auto* parentIndexList = parentNode.safeCast<AstIndexListExpr>())
+                placeContext = parentIndexList->nodeExprRef == indexExprRef;
+        }
+
+        SmallVector<Symbol*> valueCandidates;
         const IdentifierRef  opIndexId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndex);
-        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opIndexId, std::span<const AstNodeRef>{}, candidates));
-        if (candidates.empty())
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opIndexId, std::span<const AstNodeRef>{}, valueCandidates));
+
+        SmallVector<Symbol*> ptrCandidates;
+        const IdentifierRef  opIndexPtrId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexPtr);
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opIndexPtrId, std::span<const AstNodeRef>{}, ptrCandidates));
+
+        if (valueCandidates.empty() && ptrCandidates.empty())
         {
             if (deferToSimpleAssignWriteSpecOp)
             {
@@ -1476,11 +1530,13 @@ namespace
             return Result::Continue;
         }
 
-        if (deferToSimpleAssignWriteSpecOp && !indexedView.type()->isConst())
+        if (deferToSimpleAssignWriteSpecOp && !indexReceiverIsConst(sema, indexedView))
         {
             SmallVector<Symbol*> mutableCandidates;
             SmallVector<Symbol*> constCandidates;
-            splitMutableReceiverCandidates(sema, candidates.span(), mutableCandidates, constCandidates);
+            splitMutableReceiverCandidates(sema, valueCandidates.span(), mutableCandidates, constCandidates);
+            if (mutableCandidates.empty())
+                splitMutableReceiverCandidates(sema, ptrCandidates.span(), mutableCandidates, constCandidates);
             if (mutableCandidates.empty())
             {
                 auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
@@ -1497,24 +1553,47 @@ namespace
 
         bool            matched  = false;
         SymbolFunction* calledFn = nullptr;
-        if (!indexedView.type()->isConst())
-        {
-            SmallVector<Symbol*> mutableCandidates;
-            SmallVector<Symbol*> constCandidates;
-            splitMutableReceiverCandidates(sema, candidates.span(), mutableCandidates, constCandidates);
 
-            if (!mutableCandidates.empty())
+        // 'opIndexPtr' calls are never const-evaluated: the returned pointer is an address
+        // into runtime storage. They do inline — the call payload then carries the element
+        // address computed by the inlined body, and codegen re-tags it like a reference return.
+        const auto tryResolveIndexSet = [&](SmallVector<Symbol*>& set, bool allowConstEval, bool allowInline) -> Result
+        {
+            if (set.empty() || matched)
+                return Result::Continue;
+
+            if (!indexReceiverIsConst(sema, indexedView))
             {
-                SWC_RESULT(resolveSyntheticCall(sema, sema.node(indexExprRef), mutableCandidates.span(), args.span(), indexedExprRef, true, &matched, true, true, &calledFn));
-                if (matched)
-                    candidates = std::move(mutableCandidates);
-                else if (!constCandidates.empty())
-                    candidates = std::move(constCandidates);
+                SmallVector<Symbol*> mutableCandidates;
+                SmallVector<Symbol*> constCandidates;
+                splitMutableReceiverCandidates(sema, set.span(), mutableCandidates, constCandidates);
+
+                if (!mutableCandidates.empty())
+                {
+                    SWC_RESULT(resolveSyntheticCall(sema, sema.node(indexExprRef), mutableCandidates.span(), args.span(), indexedExprRef, true, &matched, allowConstEval, allowInline, &calledFn));
+                    if (matched)
+                        return Result::Continue;
+                }
+
+                if (!constCandidates.empty())
+                    SWC_RESULT(resolveSyntheticCall(sema, sema.node(indexExprRef), constCandidates.span(), args.span(), indexedExprRef, true, &matched, allowConstEval, allowInline, &calledFn));
+                return Result::Continue;
             }
+
+            return resolveSyntheticCall(sema, sema.node(indexExprRef), set.span(), args.span(), indexedExprRef, true, &matched, allowConstEval, allowInline, &calledFn);
+        };
+
+        if (placeContext)
+        {
+            SWC_RESULT(tryResolveIndexSet(ptrCandidates, false, true));
+            SWC_RESULT(tryResolveIndexSet(valueCandidates, true, true));
+        }
+        else
+        {
+            SWC_RESULT(tryResolveIndexSet(valueCandidates, true, true));
+            SWC_RESULT(tryResolveIndexSet(ptrCandidates, false, true));
         }
 
-        if (!matched)
-            SWC_RESULT(resolveSyntheticCall(sema, sema.node(indexExprRef), candidates.span(), args.span(), indexedExprRef, true, &matched, true, true, &calledFn));
         if (!matched)
         {
             if (deferToSimpleAssignWriteSpecOp)
@@ -1531,7 +1610,7 @@ namespace
         const TypeRef   returnTypeRef = calledFn->returnTypeRef();
         const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
 
-        if (deferToSimpleAssignWriteSpecOp && !returnType.isReference())
+        if (deferToSimpleAssignWriteSpecOp && !returnType.isReference() && calledFn->specOpKind() != SpecOpKind::OpIndexPtr)
         {
             auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
             sema.setSemaPayload(indexExprRef, payload);
@@ -1590,7 +1669,20 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         return Result::Continue;
 
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
-    SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
+
+    // A pointer receiver writes through to the pointee, never to the pointer variable
+    // itself: mutability is then the pointee's const-ness, enforced by operator matching.
+    bool writesThroughPtr = false;
+    if (indexedView.type())
+    {
+        TypeRef indexedTypeRef = unwrapAlias(sema.ctx(), indexedView.typeRef());
+        if (!indexedTypeRef.isValid())
+            indexedTypeRef = indexedView.typeRef();
+        const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
+        writesThroughPtr            = indexedType.isReference() || (indexedType.isValuePointer() && !indexedType.isNullable());
+    }
+    if (!writesThroughPtr)
+        SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
 
     SmallVector<Symbol*> candidates;
     SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, true, candidates));
@@ -1926,8 +2018,21 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     if (!leftView.type())
         return Result::Continue;
 
-    const TypeRef   unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
-    const TypeInfo& leftType         = sema.typeMgr().get(unwrappedTypeRef);
+    TypeRef unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
+    {
+        // A receiver cast left in place by a paused resolution retries with a pointer-typed
+        // left operand: when the other side is not pointer-like, the comparison is a value
+        // question about the pointee. Two pointers keep comparing as addresses, and so
+        // does a pointer against 'null' - an identity question, never the pointee's.
+        const TypeInfo& retryLeftType = sema.typeMgr().get(unwrappedTypeRef);
+        if (retryLeftType.isValuePointer() && !retryLeftType.isNullable())
+        {
+            const SemaNodeView rhsView = sema.viewType(node.nodeRightRef);
+            if (rhsView.type() && !rhsView.type()->isPointerLikeAliasAware(sema.ctx()) && !rhsView.type()->isType() && !rhsView.type()->isNull())
+                unwrappedTypeRef = relationalOperandTypeRef(sema, retryLeftType.payloadTypeRef());
+        }
+    }
+    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
     if (!leftType.isStruct())
         return Result::Continue;
 

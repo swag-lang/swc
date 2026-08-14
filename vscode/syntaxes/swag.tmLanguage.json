@@ -305,7 +305,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\b(opSlice|opBinary|opBinaryRight|opUnary|opAssign|opIndexAssign|opIndexSet|opCast|opCount|opData|opVisit|opInit|opReloc|opEquals|opCompare|opPostCopy|opPostMove|opDrop|opCount|opSet|opSetLiteral|opIndex|opIndexAssign)\\b"
+          "match": "\\b(opSlice|opBinary|opBinaryRight|opUnary|opAssign|opIndexAssign|opIndexSet|opCast|opCount|opData|opVisit|opInit|opReloc|opEquals|opCompare|opPostCopy|opPostMove|opDrop|opCount|opSet|opSetLiteral|opIndex|opIndexPtr|opIndexAssign)\\b"
         }
       ]
     },

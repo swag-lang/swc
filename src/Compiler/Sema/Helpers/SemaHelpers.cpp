@@ -203,6 +203,31 @@ bool SemaHelpers::canUseContextualBinding(Sema& sema, AstNodeRef nodeRef)
     }
 }
 
+bool SemaHelpers::bindingSymbolResolvesStandalone(Sema& sema, const SymbolVariable& symVar)
+{
+    if (symVar.hasGlobalStorage())
+        return true;
+
+    // An instance field only exists relative to a base expression.
+    if (symVar.ownerSymMap() && symVar.ownerSymMap()->isStruct())
+        return false;
+
+    // A parameter resolves positionally in the function whose body is being analyzed.
+    // Another function's parameter - a macro receiver bound at the call site - has no
+    // storage there, and codegen would remap it by name onto an unrelated caller
+    // parameter.
+    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+    {
+        const SymbolFunction* fn = sema.currentFunction();
+        if (!fn)
+            return false;
+        const auto& params = fn->parameters();
+        return std::ranges::find(params, &symVar) != params.end();
+    }
+
+    return true;
+}
+
 bool SemaHelpers::isTransparentExprNode(const AstNode& node)
 {
     return transparentConditionExprOperandRef(node).isValid();

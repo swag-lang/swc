@@ -79,12 +79,12 @@ func loadFonts() fail
     g_HelpFont     = g_Renderer.fonts.createFont(g_TypeFace!, 13)
 }
 
-func cloneImage(image: const &Image)->Image
+func cloneImage(image: Image)->Image
 {
     return Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
 }
 
-func normalizeShowcaseImage(image: const &Image)->Image
+func normalizeShowcaseImage(image: Image)->Image
 {
     var result  = cloneImage(image)
     let maxSide = cast(f32) Math.max(result.width, result.height)
@@ -107,7 +107,7 @@ func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Textur
     card.options  = options
 }
 
-func setImageCard(card: *TextureCard, title, subtitle: string, image: const &Image, options: CardOptions = {})
+func setImageCard(card: *TextureCard, title, subtitle: string, image: Image, options: CardOptions = {})
 {
     setTextureCard(card, title, subtitle, g_Render.addImage(image), options)
 }
@@ -208,7 +208,7 @@ func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angl
     return {x, y, width, height}
 }
 
-func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
+func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: TextureCard)
 {
     if !card.texture.isValid() do
         return
@@ -248,7 +248,7 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
     painter.popClippingRect()
 }
 
-func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
+func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: TextureCard)
 {
     let titleBarRect = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
     let previewRect  = insetRect(rect, 14, CardHeaderHeight + 14, 14, 14)

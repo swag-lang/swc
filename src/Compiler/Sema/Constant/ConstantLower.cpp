@@ -556,6 +556,10 @@ namespace
     {
         SWC_ASSERT(dstBytes.size() == sizeof(uint64_t));
 
+        // A reference bound a value constant by materializing it and taking its address;
+        // a non-null value pointer (a UFCS or method receiver) binds the same way.
+        const bool bindsValueAddress = dstType.isReference() || (dstType.isValuePointer() && !dstType.isNullable());
+
         uint64_t ptr = 0;
         if (cst.isValuePointer())
         {
@@ -565,7 +569,7 @@ namespace
         {
             ptr = cst.getBlockPointer();
         }
-        else if (dstType.isReference())
+        else if (bindsValueAddress)
         {
             const TypeRef pointeeTypeRef = dstType.payloadTypeRef();
             if (pointeeTypeRef.isValid())
@@ -576,8 +580,8 @@ namespace
             }
         }
 
-        SWC_INTERNAL_CHECK(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer() || (dstType.isReference() && ptr != 0) ||
-                           (dstType.isReference() && sema.typeMgr().get(dstType.payloadTypeRef()).sizeOf(sema.ctx()) == 0));
+        SWC_INTERNAL_CHECK(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer() || (bindsValueAddress && ptr != 0) ||
+                           (bindsValueAddress && sema.typeMgr().get(dstType.payloadTypeRef()).sizeOf(sema.ctx()) == 0));
         writeValue(dstBytes, ptr);
         return Result::Continue;
     }
@@ -966,7 +970,6 @@ namespace
 
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
-            case TypeInfoKind::Reference:
             case TypeInfoKind::MoveReference:
             case TypeInfoKind::CString:
             case TypeInfoKind::Function:

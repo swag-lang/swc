@@ -110,20 +110,20 @@ struct NotNullBox
 
 impl NotNullBox
 {
-    mtd const at()->const &NotNullSlot => &.slot
-    mtd atMut()->&NotNullSlot          => &.slot
+    mtd const at()->const *NotNullSlot => &.slot
+    mtd atMut()->*NotNullSlot          => &.slot
 }
 
 func notNullThroughConstRef(box: *NotNullBox)->s32
 {
     let bound = box.at()
-    return bound!.value
+    return (dref bound)!.value
 }
 
 func notNullThroughRef(box: *NotNullBox)->s32
 {
     let bound = box.atMut()
-    return bound!.inner.count == 7 ? bound!.value : -1
+    return (dref bound)!.inner.count == 7 ? (dref bound)!.value : -1
 }
 
 // A cast whose source is asserted first: the assertion binds tighter than the cast.

@@ -98,7 +98,7 @@ private const FrenchStrings = #include(FrenchStringsName)
 private var g_Strings: Strings
 
 // Returns the visible strings of the GUI module in the active language.
-func strings()->const &Strings => &g_Strings
+func strings()->const *Strings => &g_Strings
 
 // One language the interface can present.
 //
@@ -215,7 +215,7 @@ func findLanguage(tag: string)->#null const *Language
 {
     ensureReferenceLanguage()
     for &one in g_Localization.languages where one.tag == tag do
-        return &one
+        return one
     return null
 }
 

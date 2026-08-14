@@ -69,7 +69,7 @@ public impl Image
     }
 
     #[Swag.Inline]
-    internal func sumRect(ii: &Array'f32, w, h, x0, y0, x1, y1: s32)->f32
+    internal func sumRect(ii: *Array'f32, w, h, x0, y0, x1, y1: s32)->f32
     {
         let a = y0 * (w + 1) + x0
         let b = y0 * (w + 1) + x1
@@ -137,7 +137,7 @@ public impl Image
     }
 
     // Sobel on (slightly) blurred luminance (shared by saliency and edge-distance)
-    internal func sobelMagFromLumBlur(lumBlur: &Array'f32, w, h: s32, outEdge: &Array'f32)
+    internal func sobelMagFromLumBlur(lumBlur: *Array'f32, w, h: s32, outEdge: *Array'f32)
     {
         for y in 0 to (h - 1)
         {
@@ -167,7 +167,7 @@ public impl Image
     }
 
     // Build luminance & saturation once (used by saliency and, indirectly, edge)
-    internal mtd const extractLumSat(lum: &Array'f32, sat: &Array'f32)
+    internal mtd const extractLumSat(lum: *Array'f32, sat: *Array'f32)
     {
         var f   = {lum: lum, sat: sat}
         let mec = cast #unconst (*Image) me
@@ -193,10 +193,10 @@ public impl Image
     }
 
     // Correct edge distance map: high away from edges, low near edges
-    internal func buildEdgeDistanceMap(edges: &Array'f32, w, h: s32)->Array'f32
+    internal func buildEdgeDistanceMap(edges: *Array'f32, w, h: s32)->Array'f32
     {
         // blur edge magnitude
-        let B = boxBlurViaIntegral(edges, w, h, 3)
+        let B = boxBlurViaIntegral(dref edges, w, h, 3)
 
         // invert & gently sharpen far-from-edge regions
         var D: retval
@@ -216,7 +216,7 @@ public impl Image
         return D
     }
 
-    internal func estimatePercentiles(buf: &Array'f32, N: s32, pLow, pHigh: f32)->{ a: f32, b: f32 }
+    internal func estimatePercentiles(buf: *Array'f32, N: s32, pLow, pHigh: f32)->{ a: f32, b: f32 }
     {
         const K = 4096's32
         var tmp: Array'f32
@@ -402,7 +402,7 @@ public impl Image
         return pack
     }
 
-    internal func prepareScoreCtx(w, h: s32, pack: &FeaturePack, imgArea: f32, opts: SmartCropSearchOpts, shrinkW: f32)->ScoreCtx
+    internal func prepareScoreCtx(w, h: s32, pack: *FeaturePack, imgArea: f32, opts: SmartCropSearchOpts, shrinkW: f32)->ScoreCtx
     {
         let cx   = w * 0.5
         let cy   = h * 0.5
@@ -425,7 +425,7 @@ public impl Image
         return ctx
     }
 
-    internal func scoreWindow(ctx: &ScoreCtx, x0, y0, cw, ch: s32)->{ score: f32, d2: f32 }
+    internal func scoreWindow(ctx: *ScoreCtx, x0, y0, cw, ch: s32)->{ score: f32, d2: f32 }
     {
         let x1   = x0 + cw
         let y1   = y0 + ch
@@ -470,7 +470,7 @@ public impl Image
         return {w0, h0}
     }
 
-    internal func refinePosition(ctx: &ScoreCtx, bestX, bestY, bestW, bestH: s32, range: s32 = 2)->{ x: s32, y: s32, score: f32, d2: f32 }
+    internal func refinePosition(ctx: *ScoreCtx, bestX, bestY, bestW, bestH: s32, range: s32 = 2)->{ x: s32, y: s32, score: f32, d2: f32 }
     {
         let maxX        = ctx.w - bestW
         let maxY        = ctx.h - bestH
@@ -505,7 +505,7 @@ public impl Image
         return {bx, by, bScore, bD2}
     }
 
-    internal func tryScaledVariants(ctx: &ScoreCtx, aspect, imgAspect: f32, bestX, bestY, bestW, bestH: s32)->{ x: s32, y: s32, w: s32, h: s32, score: f32, d2: f32 }
+    internal func tryScaledVariants(ctx: *ScoreCtx, aspect, imgAspect: f32, bestX, bestY, bestW, bestH: s32)->{ x: s32, y: s32, w: s32, h: s32, score: f32, d2: f32 }
     {
         let scales: [5] f32 = [0.88, 0.94, 1.00, 1.06, 1.12]
 

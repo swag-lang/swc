@@ -21,7 +21,7 @@ func day1B()
     var total = 0
     for l in lines
     {
-        var fuel = expect StrConv.toS32(l)
+        var fuel = expect StrConv.toS32(dref l)
         for
         {
             fuel = (fuel / 3) - 2

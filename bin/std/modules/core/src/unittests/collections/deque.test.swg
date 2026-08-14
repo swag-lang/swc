@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertDeque(values: &Deque's32, expected: const [..] s32)->bool
+func assertDeque(values: Deque's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -25,7 +25,7 @@ func assertDeque(values: &Deque's32, expected: const [..] s32)->bool
     values.pushFront(0)
 
     let expected: [4] s32 = [0, 1, 2, 3]
-    @assert(assertDeque(&values, expected))
+    @assert(assertDeque(values, expected))
     @assert(values.front() == 0 and values.back() == 3)
     values[1] = 10
     @assert(values[1] == 10)

@@ -630,7 +630,7 @@ public impl Reader
     mtd const findChunk(id: Guid128)->#null const *ChunkInfo
     {
         for &chunk in .header.chunks where sameId(chunk.id, id) do
-            return &chunk
+            return chunk
         return null
     }
 
@@ -638,7 +638,7 @@ public impl Reader
     mtd const findRole(roleId: Guid128)->#null const *ChunkInfo
     {
         for &chunk in .header.chunks where sameId(chunk.roleId, roleId) do
-            return &chunk
+            return chunk
         return null
     }
 

@@ -66,7 +66,7 @@ impl CountedBag
 {
     var arr: [3] s32 = [10, 20, 30]
     for &v in arr do
-        v += 1
+        dref v += 1
     @assert(arr[0] == 11 and arr[1] == 21 and arr[2] == 31)
 }
 

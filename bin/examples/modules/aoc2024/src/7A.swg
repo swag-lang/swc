@@ -41,7 +41,7 @@ func day7A()
     var total = 0's64
     for l in lines
     {
-        let split0 = Tokenize.split(l, ":")
+        let split0 = Tokenize.split(dref l, ":")
         let res    = expect StrConv.toS64(split0[0])
         let split1 = Tokenize.split(split0[1], " ")
         let vals   = Slice.map(split1.toSlice(), func(x) => expect StrConv.toS64(x))

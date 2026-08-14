@@ -9,7 +9,7 @@ struct ReferencedFunctionHolder
 
 impl ReferencedFunctionHolder
 {
-    mtd const atFn()->const &ReferencedFunction => &.callback
+    mtd const atFn()->const *ReferencedFunction => &.callback
 }
 
 func referencedFunctionTarget()->s32 => 42
@@ -18,5 +18,5 @@ func referencedFunctionTarget()->s32 => 42
 {
     let holder: ReferencedFunctionHolder = {callback: &referencedFunctionTarget}
     let callback = holder.atFn()
-    @assert(callback() == 42)
+    @assert((dref callback)() == 42)
 }

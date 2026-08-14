@@ -25,7 +25,7 @@ func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
     return bytes
 }
 
-func writeBigU32(buffer: &Array'u8, offset: u64, value: u32)
+func writeBigU32(buffer: *Array'u8, offset: u64, value: u32)
 {
     buffer[offset + 0] = cast(u8) ((value >> 24) & 0xFF)
     buffer[offset + 1] = cast(u8) ((value >> 16) & 0xFF)
@@ -33,12 +33,12 @@ func writeBigU32(buffer: &Array'u8, offset: u64, value: u32)
     buffer[offset + 3] = cast(u8) (value & 0xFF)
 }
 
-func readBigU16(buffer: &Array'u8, offset: u64)->u16
+func readBigU16(buffer: *Array'u8, offset: u64)->u16
 {
     return cast(u16) buffer[offset] << 8 | buffer[offset + 1]
 }
 
-func readBigU32(buffer: &Array'u8, offset: u64)->u32
+func readBigU32(buffer: *Array'u8, offset: u64)->u32
 {
     return cast(u32) buffer[offset] << 24 | cast(u32) buffer[offset + 1] << 16 | cast(u32) buffer[offset + 2] << 8 | buffer[offset + 3]
 }

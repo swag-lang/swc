@@ -116,7 +116,7 @@ enum ForeachIndexedSlot: u8
 
         for &v, i in arr
         {
-            sum += v + cast(s32) i
+            sum += dref v + cast(s32) i
         }
 
         return sum

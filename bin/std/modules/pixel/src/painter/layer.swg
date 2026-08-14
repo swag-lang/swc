@@ -77,7 +77,6 @@ impl Layer
     mtd begin(painter: *Painter, info: LayerBeginInfo)
     {
         Debug.assert(!.active)
-        Debug.assert(painter != null)
         Debug.assert(info.width > 0 and info.height > 0)
 
         .release()

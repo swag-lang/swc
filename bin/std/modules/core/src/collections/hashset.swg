@@ -58,7 +58,7 @@ impl ReversedHashSet
         let table  = .source.constTablePtr()
         var remain = .source.count
         #scope(Up)
-            for offset in .source.capacity
+        for offset in .source.capacity
         {
             let tableIndex = .source.capacity - offset - 1
             if table[tableIndex].hash < 2'u32 do
@@ -67,9 +67,9 @@ impl ReversedHashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
@@ -171,7 +171,7 @@ impl HashSet
         let table  = .constTablePtr()
         var remain = .count
         #scope(Up)
-            for .capacity
+        for .capacity
         {
             let tableIndex = @index
             if table[tableIndex].hash < HashSet.HASH_FIRST do
@@ -180,9 +180,9 @@ impl HashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
@@ -196,7 +196,7 @@ impl HashSet
     // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
     mtd const reversed()->ReversedHashSet'K
     {
-        return {source: &me}
+        return {source: me}
     }
 
     // Computes the hash for a given key.
@@ -372,7 +372,7 @@ impl HashSet
 
     // Internal helper to add a new element with a pre-computed hash.
     #[Discardable, Swag.NoDoc]
-    mtd emplaceInternal(hashVal: u32, key: &K)->*HashSetEntry
+    mtd emplaceInternal(hashVal: u32, key: *K)->*HashSetEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()
@@ -380,20 +380,20 @@ impl HashSet
         var index = cast(u64) hashVal & (.capacity - 1)
         let table = .tablePtr()
 
-        index = .getNewIndex(key, index, hashVal)
+        index = .getNewIndex(dref key, index, hashVal)
         if table[index].hash >= HashSet.HASH_FIRST do
             return table + index
 
         if table[index].hash == HashSet.HASH_FREE
         {
-            table[index].key = #relocate key
+            table[index].key = #relocate dref key
         }
         else
         {
             if table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
             @drop(&table[index].key)
-            table[index].key = #relocate key
+            table[index].key = #relocate dref key
         }
 
         table[index].hash = hashVal

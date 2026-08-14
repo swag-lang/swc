@@ -34,7 +34,7 @@ impl AssignBox
         .setPair(.a << value, .b << value)
     }
 
-    mtd(op: Swag.Operator) opAssign(other: const &AssignBox)
+    mtd(op: Swag.Operator) opAssign(other: AssignBox)
         where op == .AddAssign
     {
         .setPair(.a + other.a, .b + other.b)

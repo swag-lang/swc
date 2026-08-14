@@ -80,39 +80,39 @@ internal impl Bot
         {
             let cpy = .pending
             .pending.clear()
-            execute(cpy)
+            executeLines(cpy)
         }
     }
 }
 
-internal func getBot(x: s32)->&Bot
+internal func getBot(x: s32)->*Bot
 {
     bots.growResize(x + 1)
     bots[x].id = x
-    return bots.ref1(x)
+    return bots.ptr1(x)
 }
 
-internal func execute(lines: Array'String)
+internal func executeLines(lines: Array'String)
 {
     for l in lines
     {
         switch
         {
-        case r0.match(l):
-            let bot: &Bot = &getBot(expect StrConv.toS32(r0[2]))
+        case r0.match(dref l):
+            let bot = getBot(expect StrConv.toS32(r0[2]))
             bot.add(expect StrConv.toS32(r0[1]))
             bot.execute()
 
-        case r1.match(l):
-            let bot: &Bot = &getBot(expect StrConv.toS32(r1[1]))
+        case r1.match(dref l):
+            let bot = getBot(expect StrConv.toS32(r1[1]))
             if bot.count != 2
             {
-                bot.pending.add(l)
+                bot.pending.add(dref l)
                 break
             }
 
-            let low:  &Bot = &getBot(expect StrConv.toS32(r1[3]))
-            let high: &Bot = &getBot(expect StrConv.toS32(r1[5]))
+            let low  = getBot(expect StrConv.toS32(r1[3]))
+            let high = getBot(expect StrConv.toS32(r1[5]))
 
             if r1[2] == "bot" do
                 low.add(bot.eatLow())
@@ -140,7 +140,7 @@ func day10AB()
     expect r0.compile(#raw "value (\d+) goes to bot (\d+)")
     expect r1.compile(#raw "bot (\d+) gives low to (\w+) (\d+) and high to (\w+) (\d+)")
 
-    execute(lines)
+    executeLines(lines)
 
     @assert(result == 47)
     @assert(bots[0].out * bots[1].out * bots[2].out == 2666)

@@ -123,7 +123,7 @@ func findTable(faceData: *FaceImpl, tag: u32)->#null const *TableRecord
     for it in faceData.tables
     {
         if it.tag == tag do
-            return &it
+            return it
     }
 
     return null

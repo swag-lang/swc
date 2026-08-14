@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertStringSetHas(values: const &HashSet'String, expected: string)->bool
+func assertStringSetHas(values: HashSet'String, expected: string)->bool
 {
     for value in values
     {
@@ -14,7 +14,7 @@ func assertStringSetHas(values: const &HashSet'String, expected: string)->bool
     return false
 }
 
-func assertReverseIntSetIteration(values: const &HashSet's32)->bool
+func assertReverseIntSetIteration(values: HashSet's32)->bool
 {
     var forward: Array's32
     for value in values do

@@ -60,7 +60,7 @@ impl ReversedHashTable
         let table  = .source.constTablePtr()
         var remain = .source.count
         #scope(Up)
-            for offset in .source.capacity
+        for offset in .source.capacity
         {
             let tableIndex = .source.capacity - offset - 1
             if table[tableIndex].hash < 2'u32 do
@@ -69,13 +69,13 @@ impl ReversedHashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, value = cast(&V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, value = cast(*V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
             }
@@ -168,7 +168,7 @@ impl HashTable
 
     // Provides read-only access to the value associated with a key.
     // Asserts if the key is not found.
-    mtd const opIndex(key: K)->const &V
+    mtd const opIndexPtr(key: K)->const *V
     {
         let it = .find(key)
         return &it.value
@@ -176,7 +176,7 @@ impl HashTable
 
     // Provides mutable access to the value associated with a key.
     // Asserts if the key is not found. See [[opIndexSet]] for insertion or update.
-    mtd opIndex(key: K)->&V
+    mtd opIndexPtr(key: K)->*V
     {
         let it = .find(key)
         return &it.value
@@ -200,7 +200,7 @@ impl HashTable
         let table  = .constTablePtr()
         var remain = .count
         #scope(Up)
-            for .capacity
+        for .capacity
         {
             let tableIndex = @index
 
@@ -210,13 +210,13 @@ impl HashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(&K) &table[tableIndex].key, value = cast(&V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K) &table[tableIndex].key, value = cast(*V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
             }
@@ -230,7 +230,7 @@ impl HashTable
     // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
     mtd const reversed()->ReversedHashTable'(K, V)
     {
-        return {source: &me}
+        return {source: me}
     }
 
     // Computes the hash for a given key.
@@ -415,7 +415,7 @@ impl HashTable
 
     // Internal helper to add a new element with a pre-computed hash. Use with care.
     #[Discardable, Swag.NoDoc]
-    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->*HashTableEntry
+    mtd emplaceInternal(hashVal: u32, key: *K, value: *V)->*HashTableEntry
         where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
     {
         .grow()
@@ -423,18 +423,18 @@ impl HashTable
         var index = cast(u64) hashVal & (.capacity - 1)
         let table = .tablePtr()
 
-        index = .getNewIndex(key, index, hashVal)
+        index = .getNewIndex(dref key, index, hashVal)
         if table[index].hash >= HashTable.HASH_FIRST
         {
             @drop(&table[index].value)
-            table[index].value = #relocate value
+            table[index].value = #relocate dref value
             return table + index
         }
 
         if table[index].hash == HashTable.HASH_FREE
         {
-            table[index].key   = #relocate key
-            table[index].value = #relocate value
+            table[index].key   = #relocate dref key
+            table[index].value = #relocate dref value
         }
         else
         {
@@ -442,8 +442,8 @@ impl HashTable
                 .deleted -= 1
             @drop(&table[index].key)
             @drop(&table[index].value)
-            table[index].key   = #relocate key
-            table[index].value = #relocate value
+            table[index].key   = #relocate dref key
+            table[index].value = #relocate dref value
         }
 
         table[index].hash = hashVal

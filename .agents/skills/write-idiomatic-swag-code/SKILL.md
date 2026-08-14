@@ -142,8 +142,9 @@ let renderer: IRenderer = &cpu
   cleanup. Order acquisitions so deferred releases naturally run in reverse dependency order.
 - Use `defer` for cleanup, state restoration, and failure-safe unwinding. Keep an explicit `end`
   when it is semantic finalization whose result must be inspected before leaving the scope.
-- Never retain a borrow beyond its owner. Prefer references for non-null borrowed values, nullable
-  pointers only for real absence, and slices instead of pointer/count pairs outside native code.
+- Never retain a borrow beyond its owner. Prefer non-null pointers (`*T`) for borrowed values,
+  nullable pointers (`#null *T`) only for real absence, and slices instead of pointer/count pairs
+  outside native code.
 
 ### Choose `defer` by what the cleanup is for
 
@@ -155,6 +156,23 @@ let renderer: IRenderer = &cpu
   guarded block per operation; do not scatter partial rollbacks through the body.
 - Call the operation directly when its result is part of the logic — a commit whose failure must
   propagate, a close whose error the caller reports. `defer` swallows that.
+
+## Borrow Through Pointers
+
+`*T` is the only borrowed indirection: it is non-null, member access and method calls read
+through it directly, and only a whole-value write needs `dref`.
+
+- Iterate elements as pointers. Over struct elements, `for v in items` binds `const *T` — never
+  a copy — and `for &v in items` binds `*T`. Access members and call methods through the binding
+  directly; write a scalar element with `dref v = value`.
+- Pass structs by value. The ABI hands the callee a const address, so a by-value struct
+  parameter costs no copy. Take `*T` only when the callee mutates the caller's value, and write
+  the whole pointee with `dref`.
+- `me` is a non-null pointer to the receiver. Pass `me` itself where a `*T` is expected; `&me`
+  is the address of the receiver slot, never the object.
+- Index places directly: `items[i].field = x` and `&items[i]` route through the container's
+  `opIndexPtr`. Reach for `frontPtr`/`backPtr`/`peekPtr` when a borrowed element must outlive
+  the expression, and the value forms (`front`, `back`, `peek`) otherwise.
 
 ## Use `with` for Construction, Not for Shorthand
 
@@ -208,8 +226,8 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 
 ## Keep APIs Hard to Misuse
 
-- Prefer values and references at the product layer; isolate raw handles and pointer-heavy shapes
-  in native bindings.
+- Prefer values, slices, and single-value pointers (`*T`) at the product layer; isolate raw
+  handles and block-pointer (`[*] T`) shapes in native bindings.
 - Accept slices for contiguous data and options structs for related optional policy.
 - Keep ownership, nullability, units, failure, and invalidation visible in the type and name.
 - Review the whole operation family before renaming or reshaping one member, then migrate every

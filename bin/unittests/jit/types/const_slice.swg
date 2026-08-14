@@ -51,7 +51,7 @@ func aggregateLiteralRuneSlice(marker: rune)->bool
     #assert(s[1] == 2)
 }
 
-func pickRef(values: const &[..] s32, idx: s32)->s32
+func pickRef(values: [..] s32, idx: s32)->s32
 {
     return values[idx]
 }
@@ -59,16 +59,16 @@ func pickRef(values: const &[..] s32, idx: s32)->s32
 func sliceRefWindow()->u64
 {
     var arr:    [5] s32  = [10, 20, 30, 40, 50]
-    let arrRef: &[5] s32 = &arr
-    let mid              = arrRef[1 to 3]
+    let arrRef: *[5] s32 = &arr
+    let mid              = (dref arrRef)[1 to 3]
     return @countof(mid) + cast(u64) mid[0] + cast(u64) mid[2]
 }
 
 func textRefWindow()->string
 {
     let text = "string"
-    let textRef: const &string = &text
-    return textRef[1 to 3]
+    let textRef: const *string = &text
+    return (dref textRef)[1 to 3]
 }
 
 #test
@@ -77,8 +77,8 @@ func textRefWindow()->string
     {
         var arr:       [3] s32         = [4, 5, 6]
         let values:    [..] s32        = arr
-        let valuesRef: const &[..] s32 = &values
-        return pickRef(valuesRef, 2)
+        let valuesRef: const *[..] s32 = &values
+        return pickRef(dref valuesRef, 2)
     }
 
     const V0 = #run runPickRef()

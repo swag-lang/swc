@@ -437,7 +437,7 @@ func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array'u
     return result
 }
 
-func assertS32Array(values: const &Array's32, expected: const [..] s32)->bool
+func assertS32Array(values: Array's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -451,7 +451,7 @@ func assertS32Array(values: const &Array's32, expected: const [..] s32)->bool
     return true
 }
 
-func assertCompressedBlob(values: const &Array'u8)->bool
+func assertCompressedBlob(values: Array'u8)->bool
 {
     if values.count != 512 do
         return false
@@ -465,7 +465,7 @@ func assertCompressedBlob(values: const &Array'u8)->bool
     return true
 }
 
-func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
+func assertU32Array(values: Array'u32, expected: const [..] u32)->bool
 {
     if values.count != @countof(expected) do
         return false

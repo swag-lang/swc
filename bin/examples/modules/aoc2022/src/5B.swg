@@ -58,7 +58,7 @@ func day5B()
     {
         if moveMode
         {
-            if !expect r.match(#raw "move (\d+) from (\d+) to (\d+)", l) do
+            if !expect r.match(#raw "move (\d+) from (\d+) to (\d+)", dref l) do
                 continue
             let count   = expect StrConv.toU64(r.getCapture(1))
             let colFrom = expect StrConv.toS32(r.getCapture(2)) - 1

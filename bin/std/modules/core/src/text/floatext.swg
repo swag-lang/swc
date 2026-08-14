@@ -217,7 +217,7 @@ impl FloatExt
         let approxExp10 = ((expMin + expMax) / 2 - .exp) * 28 / 93     // log(10)/log(2) is close to 93/28.
         var i           = (approxExp10 - firstPowerOfTen) / stepPowerOfTen
         #scope(Loop)
-            for
+        for
         {
             let exp1 = .exp + powersOfTen[i].exp + 64
             switch
@@ -430,7 +430,7 @@ impl FloatExt
             return true
         }
 
-        if .exp == 0 and dref lower == dref &me and dref lower == dref upper
+        if .exp == 0 and dref lower == dref me and dref lower == dref upper
         {
             // an exact integer.
             var buf: [24] u8

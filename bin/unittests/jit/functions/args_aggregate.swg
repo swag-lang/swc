@@ -126,7 +126,7 @@ struct AbiNested
 
 #test
 {
-    func passConstRef(value: const &AbiPair)->s32 { return value.a + value.b }
+    func passConstRef(value: AbiPair)->s32 { return value.a + value.b }
     const p: AbiPair = {a: 6, b: 7}
     const V          = #run passConstRef(p)
     #assert(V == 13)

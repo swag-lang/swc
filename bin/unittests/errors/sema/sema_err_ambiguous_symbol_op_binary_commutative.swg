@@ -12,7 +12,7 @@ struct AmbiguousCommutativeRight
 
 impl AmbiguousCommutativeLeft
 {
-    mtd(op: Swag.Operator) const opBinary(other: const &AmbiguousCommutativeRight)->AmbiguousCommutativeLeft
+    mtd(op: Swag.Operator) const opBinary(other: AmbiguousCommutativeRight)->AmbiguousCommutativeLeft
     {
         return {value: .value + other.value}
     }
@@ -21,7 +21,7 @@ impl AmbiguousCommutativeLeft
 impl AmbiguousCommutativeRight
 {
     #[Swag.Commutative(.Add)]
-    mtd(op: Swag.Operator) const opBinary(other: const &AmbiguousCommutativeLeft)->AmbiguousCommutativeRight
+    mtd(op: Swag.Operator) const opBinary(other: AmbiguousCommutativeLeft)->AmbiguousCommutativeRight
     {
         return {value: .value + other.value}
     }

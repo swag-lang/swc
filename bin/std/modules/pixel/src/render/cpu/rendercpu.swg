@@ -1441,7 +1441,7 @@ private impl RenderCpu
         }
 
         let bandRows = (bounds.rows() + bandCount - 1) / bandCount
-        var f        = {renderer: &me, batch: batch, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
+        var f        = {renderer: me, batch: batch, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
         Jobs.parallelFor(cast(u32) bandCount, &f)
         {
             if !data do
@@ -1936,7 +1936,7 @@ impl RenderCpu
         .resetDrawState()
         .contentScale = painter.contentScale()
         for &cmd, idx in painter.commandBuffer do
-            .executeCommand(painter, &cmd, cast(u64) idx)
+            .executeCommand(painter, cmd, cast(u64) idx)
     }
 
     // Binds an off-screen target for following direct operations or painter submission.

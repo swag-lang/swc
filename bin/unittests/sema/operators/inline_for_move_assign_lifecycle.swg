@@ -53,14 +53,14 @@ impl InlineForeachMoveValues
         #static if ptr do
             #inject(stmt, item = &me.item, index = 0)
         else do
-            #inject(stmt, item = cast(&InlineForeachMoveTracked) &me.item, index = 0)
+            #inject(stmt, item = cast(*InlineForeachMoveTracked) &me.item, index = 0)
     }
 }
 
 #[Swag.Inline]
-func inlineForeachMoveAssign(dst: &InlineForeachMoveTracked, src: #move InlineForeachMoveTracked)
+func inlineForeachMoveAssign(dst: *InlineForeachMoveTracked, src: #move InlineForeachMoveTracked)
 {
-    dst = #move src
+    dref dst = #move src
 }
 
 func inlineForeachMoveInfo()->InlineForeachMoveInfo
@@ -69,7 +69,7 @@ func inlineForeachMoveInfo()->InlineForeachMoveInfo
     var values = InlineForeachMoveValues{InlineForeachMoveTracked{9}}
     resetInlineForeachMoveLifecycleHooks()
     for value in values do
-        inlineForeachMoveAssign(&dst, #move value)
+        inlineForeachMoveAssign(&dst, #move dref value)
     return {dst.value, values.item.value, InlineForeachMoveDropCount, InlineForeachMoveDropTrace, InlineForeachMovePostMoveCount}
 }
 

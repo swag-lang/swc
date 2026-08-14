@@ -162,8 +162,8 @@ func semaTest011()
 
     for c, i in text
     {
-        var cell: &u32 = &freq[i, c - 'a']
-        cell += 1'u32
+        var cell: *u32 = &freq[i, c - 'a']
+        dref cell += 1'u32
     }
 }
 

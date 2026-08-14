@@ -27,7 +27,6 @@ namespace
             case AstNodeId::QualifiedType:
             case AstNodeId::ArrayType:
             case AstNodeId::SliceType:
-            case AstNodeId::ReferenceType:
             case AstNodeId::MoveRefType:
             case AstNodeId::ValuePointerType:
             case AstNodeId::BlockPointerType:
@@ -1151,12 +1150,6 @@ TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNo
     {
         const TypeRef elementTypeRef = structuralTypeRefFromTypeNode(sema, typedVariadicType->nodeTypeRef);
         return elementTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeTypedVariadic(elementTypeRef)) : TypeRef::invalid();
-    }
-
-    if (const auto* refType = typeNode.safeCast<AstReferenceType>())
-    {
-        const TypeRef pointeeTypeRef = structuralTypeRefFromTypeNode(sema, refType->nodePointeeTypeRef);
-        return pointeeTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeReference(pointeeTypeRef)) : TypeRef::invalid();
     }
 
     if (const auto* moveRefType = typeNode.safeCast<AstMoveRefType>())

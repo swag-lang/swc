@@ -90,7 +90,7 @@ alias ConstF64 = Const'f64
     // Uses 'smoothTime' and 'deltaTime' for frame-rate independent smooth movement.
     // 'currentVelocity' is modified to track the current rate of change.
     // Based on Game Programming Gems 4 Chapter 1.10
-    func(T) smoothDamp(current, target: T, currentVelocity: &T, smoothTime, deltaTime: T)->T
+    func(T) smoothDamp(current, target: T, currentVelocity: *T, smoothTime, deltaTime: T)->T
     {
         // Clamp smoothTime to prevent division by zero and ensure stability
         let smoothTimeActual = Math.max(0.0001, smoothTime)
@@ -113,16 +113,16 @@ alias ConstF64 = Const'f64
         let newTarget     = current - clampedChange
 
         // Calculate new velocity and position
-        let currentVelocityValue = cast(T) currentVelocity
+        let currentVelocityValue = dref currentVelocity
         let temp                 = (currentVelocityValue + omega * clampedChange) * deltaTime
-        currentVelocity = (currentVelocityValue - omega * temp) * exp
+        dref currentVelocity = (currentVelocityValue - omega * temp) * exp
         var result = newTarget + (clampedChange + temp) * exp
 
         // Prevent overshooting
         if (originalTo - current > 0.0) == (result > originalTo)
         {
-            result          = originalTo
-            currentVelocity = (result - originalTo) / deltaTime
+            result               = originalTo
+            dref currentVelocity = (result - originalTo) / deltaTime
         }
 
         return result

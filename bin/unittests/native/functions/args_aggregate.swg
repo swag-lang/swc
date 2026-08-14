@@ -68,7 +68,7 @@ func passMixed(a: s32, b: string, c: AbiPair, d: [2] s32, e: #null *void)->s32
     return a + cast(s32) b[0] + c.a + d[1] + cast(s32) (e != null)
 }
 
-func passConstRef(value: const &AbiPair)->s32
+func passConstRef(value: AbiPair)->s32
 {
     return value.a + value.b
 }

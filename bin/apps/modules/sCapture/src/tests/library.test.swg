@@ -252,8 +252,8 @@ using Swag, Core, File
     {
         for p in paths
         {
-            discard catch File.delete(p)
-            discard catch File.delete(Path.combine(Library.getTrashFolder(), Path.fileName(p)))
+            discard catch File.delete(dref p)
+            discard catch File.delete(Path.combine(Library.getTrashFolder(), Path.fileName(dref p)))
         }
 
         g_Library.files.clear()
@@ -274,8 +274,8 @@ using Swag, Core, File
     @assert(g_Library.files.count == 0)
     for p in paths
     {
-        @assert(!File.exists(p))
-        @assert(File.exists(Path.combine(Library.getTrashFolder(), Path.fileName(p))))
+        @assert(!File.exists(dref p))
+        @assert(File.exists(Path.combine(Library.getTrashFolder(), Path.fileName(dref p))))
     }
 }
 

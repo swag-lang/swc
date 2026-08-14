@@ -289,7 +289,7 @@ impl IActionUI for ActionFile
                 {
                     if !tags.isEmpty() do
                         tags += ", "
-                    tags += tag
+                    tags += dref tag
                 }
 
                 addLine(lt, appStrings().ui_DetailTags, tags)

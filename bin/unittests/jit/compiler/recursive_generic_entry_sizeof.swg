@@ -119,7 +119,7 @@ impl RecursiveAssocTable
     }
 
     #[Discardable]
-    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->#null *RecursiveAssocEntry'(K, V)
+    mtd emplaceInternal(hashVal: u32, key: *K, value: *V)->#null *RecursiveAssocEntry'(K, V)
     {
         .grow()
 
@@ -127,9 +127,9 @@ impl RecursiveAssocTable
         var index = hashVal % .capacity
         while table[index].hash >= 2
         {
-            if table[index].hash == hashVal and table[index].key == key
+            if table[index].hash == hashVal and table[index].key == dref key
             {
-                table[index].value = value
+                table[index].value = dref value
                 return .table + index
             }
 
@@ -137,8 +137,8 @@ impl RecursiveAssocTable
         }
 
         table[index].hash  = hashVal
-        table[index].key   = key
-        table[index].value = value
+        table[index].key   = dref key
+        table[index].value = dref value
         .count             += 1
         return .table + index
     }

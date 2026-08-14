@@ -9,7 +9,7 @@ their surrounding scope. Up to 64 bytes can be captured without heap allocation.
 A by-value capture is a plain byte copy into the closure: the closure never runs
 'opPostCopy' on the way in and never drops the captured value. Only simple types
 (without 'opDrop', 'opPostCopy', or 'opPostMove', and not marked '#[Swag.NoCopy]')
-can therefore be captured by value; other types must be captured by reference
+can therefore be captured by value; other types must be captured by address
 with '&'.
 
 The copy is read-only unless the capture is written 'var'. Because the copy is
@@ -60,9 +60,11 @@ clear callback-local name.
 }
 
 /**
-# Capturing Variables by Reference
+# Capturing Variables by Address
 
-Use '&' to capture by reference; otherwise, capture is by value.
+Use '&' to capture the variable's address; otherwise, capture is by value. An
+'&' capture aliases the outer variable: reads and writes in the closure body
+reach the original storage.
 */
 #test
 {
@@ -78,7 +80,7 @@ Use '&' to capture by reference; otherwise, capture is by value.
 }
 
 /**
-# Aliased Reference Capture
+# Aliased Address Capture
 
 The '&' form can also be used with an alias when the captured expression is
 addressable.

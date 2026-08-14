@@ -33,7 +33,7 @@ struct GeneratedEqualsIgnoresUserCompare
 
 impl GeneratedEqualsIgnoresUserCompare
 {
-    mtd const opCompare(other: const &GeneratedEqualsIgnoresUserCompare)->s32
+    mtd const opCompare(other: GeneratedEqualsIgnoresUserCompare)->s32
     {
         return 0
     }
@@ -52,7 +52,7 @@ struct EqualityOnlyField
 
 impl EqualityOnlyField
 {
-    mtd const opEquals(other: const &EqualityOnlyField)->bool
+    mtd const opEquals(other: EqualityOnlyField)->bool
     {
         return .value == other.value
     }

@@ -92,7 +92,7 @@ impl DynString
         let oldData = .data!
         .data     = null
         .capacity = 0
-        reserve(&me, .count)
+        reserve(me, .count)
         let data = .data!
         for i in .count do
             data[i] = oldData[i]
@@ -113,7 +113,7 @@ impl DynString
         let len = cast(u64) @countof(text)
         if len == 0 do
             return
-        storeBytes(&me, cast(const [*] u8) @dataof(text), len)
+        storeBytes(me, cast(const [*] u8) @dataof(text), len)
     }
 
     // Read a byte: `let c = s[i]`
@@ -137,19 +137,19 @@ impl DynString
     {
         let len = cast(u64) @countof(text)
         if len > 0 do
-            appendBytes(&me, cast(const [*] u8) @dataof(text), len)
+            appendBytes(me, cast(const [*] u8) @dataof(text), len)
     }
 
     // Append: `s += other`
-    mtd(op: Swag.Operator) opAssign(other: const &DynString)
+    mtd(op: Swag.Operator) opAssign(other: DynString)
         where op == .AddAssign
     {
         if other.count > 0 do
-            appendBytes(&me, other.data, other.count)
+            appendBytes(me, other.data, other.count)
     }
 
     // Byte-exact equality: `s == other`
-    mtd opEquals(other: const &DynString)->bool
+    mtd opEquals(other: DynString)->bool
     {
         if .count != other.count do
             return false

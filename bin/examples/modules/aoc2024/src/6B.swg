@@ -126,11 +126,11 @@ func day6B()
         {
             if sx + dx < 0 or sx + dx >= w or sy + dy < 0 or sy + dy >= h
             {
-                arr.ref2(sx, sy, w) = what
+                dref arr.ptr2(sx, sy, w) = what
                 return false
             }
 
-            if arr.ref2(sx + dx, sy + dy, w) == '#'
+            if dref arr.ptr2(sx + dx, sy + dy, w) == '#'
             {
                 if dx == 0 and dy == -1
                 {
@@ -160,13 +160,13 @@ func day6B()
                 continue
             }
 
-            let r: &u8 = &arr.ref2(sx, sy, w)
+            let r = arr.ptr2(sx, sy, w)
 
             if first do
                 what = 'O'
-            elif r == what do
+            elif dref r == what do
                 return true
-            r = what
+            dref r = what
 
             sx += dx
             sy += dy

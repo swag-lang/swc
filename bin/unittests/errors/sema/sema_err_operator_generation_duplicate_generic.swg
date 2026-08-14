@@ -8,7 +8,7 @@ struct(T) DuplicateGeneratedGenericEquals
 
 impl DuplicateGeneratedGenericEquals
 {
-    mtd const opEquals(other: const &DuplicateGeneratedGenericEquals)->bool
+    mtd const opEquals(other: DuplicateGeneratedGenericEquals)->bool
     {
         return .value == other.value
     }

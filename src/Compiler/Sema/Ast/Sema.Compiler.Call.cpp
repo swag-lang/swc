@@ -571,8 +571,8 @@ namespace
             if (!(foundPayload->codeParamVarMask & (1u << slot)))
                 varPtr->addFlag(AstVarDeclFlagsE::Let);
 
-            // A typed '#code' parameter ('#code(line: &String)') types the binding,
-            // which is required for reference bindings and checks the value otherwise.
+            // A typed '#code' parameter ('#code(line: *String)') types the binding,
+            // which is required for pointer bindings and checks the value otherwise.
             if (slot < foundPayload->codeParamTypeNodes.size() && foundPayload->codeParamTypeNodes[slot].isValid() && foundPayload->codeParamSourceAst)
             {
                 const SemaClone::CloneContext typeCloneContext{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, foundPayload->codeParamSourceAst};

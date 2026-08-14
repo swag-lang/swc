@@ -111,33 +111,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   known statically, so it costs nothing, and it is the one case where the "no C promotion" rule and
   the "unsigned wins" rule combine into something neither one predicts.
 
-### F-049 — `for it in x` binds a live view, never a copy
-
-- Area: language
-- Found while: the same pass
-- Observation: the element binding is a reference to the element, for scalars as much as for
-  structs. The reference introduces `&it` as the way to "visit elements by address and modify them"
-  ([005_003_for_elements.swg:148-169](../bin/reference/modules/language/src/005_003_for_elements.swg#L148-L169)),
-  which reads as though the plain form were a copy and `&` opted into indirection. It does not:
-  `&` opts into *mutability*. A plain `it` already sees writes made to the collection during the
-  iteration, which is not what a reader who wrote `for value in values` expects to have signed up
-  for.
-- Evidence: `for it in cells { cells[1].v = 99; seen += it.v }` sums 100, not 3. Identical with a
-  `[2] s32` and a plain `it`. Confirmed under the JIT and the forged binary.
-- Elsewhere: the copy is the default everywhere the sigil exists. C++ `for (auto x : v)` copies and
-  `for (auto& x : v)` is the reference — the `&` selects indirection, which is exactly the reading
-  Swag's `&` invites and does not have. Go's `range` copies the element into the loop variable, and
-  Swift's value semantics make the binding a copy too. Rust splits the difference: `for x in &v`
-  yields a reference *and* the borrow checker rejects the mutation this entry demonstrates, so the
-  aliasing is visible in the type and unobservable in practice. Swag is alone in binding a live
-  reference implicitly and letting the write be read back through it.
-- Next step: this is a documentation fix before it is anything else — say plainly that the binding
-  names the element, and that `&` adds the right to write through it. Then decide whether the
-  invalidation half of the borrow rules should also cover an in-place element write read back
-  through the binding, or whether that is deliberately out of scope.
-- Related: the borrow rules already reject *structural* mutation during iteration
-  ([013_004_borrowing.swg:186-196](../bin/reference/modules/language/src/013_004_borrowing.swg#L186-L196)).
-
 ## Failure handling
 
 ### F-051 — Error propagation has three spellings, one of them invisible and one context-dependent
@@ -413,32 +386,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   parameters), so a reader of the call site knows the keywords are not the ones they look like.
 
 ## Cross-feature semantic consistency
-
-### F-062 — Struct parameters are always const references, and there is no by-value form
-
-- Area: language
-- Found while: the same pass
-- Observation: declaring a struct or tuple type as a parameter is defined to be a const reference
-  ([004_008_references.swg:105-121](../bin/reference/modules/language/src/004_008_references.swg#L105-L121),
-  [006_001_declaration.swg:166-171](../bin/reference/modules/language/src/006_001_declaration.swg#L166-L171)).
-  The signature says `v: Struct3` and means `const &Struct3`, so a callee cannot take a scratch copy
-  it is free to modify, and a caller cannot tell from the signature that the callee sees its
-  storage. A small POD passed to a hot leaf function pays an indirection the signature does not
-  show, which is the opposite of the trade the syntax suggests.
-- Evidence: the reference states it twice, in both chapters, as a property of the declaration rather
-  than of the type.
-- Elsewhere: by-value is the default everywhere, and the reference is what gets a keyword. C++ copies
-  unless the signature says `const&`; Rust moves or copies unless it says `&T`; Go, C# and Swift pass
-  values, with C#'s `in` and Swift's `borrowing` as the opt-in indirections. D is the interesting
-  one: its `in` parameters were redefined to mean `const scope ref`, letting the compiler choose the
-  indirection — the same trade Swag makes — but D kept `in` as a *written* keyword, so the signature
-  still says which contract is in force. Swag has no by-value spelling at all, which is the part
-  none of them share: elsewhere the missing annotation means "copy", here it means "alias".
-- Next step: measure before designing. Instrument or sample the `bin/` call sites where a struct
-  parameter is 16 bytes or less, and check what the backend already does — if it is passing them in
-  registers regardless, this is a documentation gap; if it is not, an explicit by-value spelling is
-  worth a proposal, and it interacts directly with `#move`/`#fwd`
-  ([006_009_custom_copy_and_move.swg](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg)).
 
 ### F-063 — `if let x = f() where cond` reads as a conjunction and is not one
 

@@ -24,8 +24,7 @@
 #test
 {
     var value: s32
-    var ref:   &s32 = &value
-    let bad         = dref ref     // swc-expected-error {{sema_err_unary_operand_type}}
+    let bad = dref value     // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
 #test

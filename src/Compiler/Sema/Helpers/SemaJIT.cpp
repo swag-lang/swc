@@ -751,7 +751,8 @@ namespace
         const TypeRef   receiverParamRef          = receiverParamTypeRef.isValid() ? receiverParamTypeRef : calledFn.parameters().front()->typeRef();
         const TypeRef   receiverType              = normalizedReceiverTypeRef.isValid() ? normalizedReceiverTypeRef : receiverTypeRef;
         const TypeInfo& receiverParam             = sema.typeMgr().get(receiverParamRef);
-        if (!receiverParam.isReference())
+        // The pointer-world receiver binds by address exactly as the reference did.
+        if (!receiverParam.isReference() && !(receiverParam.isValuePointer() && !receiverParam.isNullable()))
             return false;
         if (receiverParam.payloadTypeRef() != receiverType)
             return false;
@@ -893,7 +894,7 @@ namespace
 
             const TypeInfo&     argValueType     = sema.typeMgr().get(argValueTypeRef);
             const ConstantValue argConstantValue = sema.cstMgr().get(argCstRef);
-            if (argValueType.isReference() &&
+            if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
                 !argConstantValue.isBlockPointer())
@@ -983,7 +984,8 @@ namespace
             if (i == 0)
             {
                 const TypeInfo& argValueType = sema.typeMgr().get(argValueTypeRef);
-                if (!argValueType.isReference())
+                // The pointer-world receiver binds by address exactly as the reference did.
+                if (!argValueType.isReference() && !(argValueType.isValuePointer() && !argValueType.isNullable()))
                     return Result::Continue;
 
                 const TypeRef pointeeTypeRef = argValueType.payloadTypeRef();
@@ -1036,7 +1038,7 @@ namespace
 
             const TypeInfo&     argValueType     = sema.typeMgr().get(argValueTypeRef);
             const ConstantValue argConstantValue = sema.cstMgr().get(argCstRef);
-            if (argValueType.isReference() &&
+            if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
                 !argConstantValue.isBlockPointer())

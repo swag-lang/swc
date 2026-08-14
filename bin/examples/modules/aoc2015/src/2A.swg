@@ -23,8 +23,11 @@ internal struct Day2Present
 internal var day2PresentsLoaded = false
 internal var day2Presents: Array'Day2Present
 
-internal func day2ParseNumber(line: string, cursor: &u64)->u32
+internal func day2ParseNumber(line: string, cursorPtr: *u64)->u32
 {
+    var cursor = dref cursorPtr
+    defer dref cursorPtr = cursor
+
     var result = 0'u32
     while cursor < @countof(line) and line[cursor] >= '0' and line[cursor] <= '9'
     {
@@ -51,9 +54,9 @@ internal func day2EnsurePresents()
     for line in lines
     {
         var cursor = 0'u64
-        var x      = day2ParseNumber(line, &cursor)
-        var y      = day2ParseNumber(line, &cursor)
-        var z      = day2ParseNumber(line, &cursor)
+        var x      = day2ParseNumber(dref line, &cursor)
+        var y      = day2ParseNumber(dref line, &cursor)
+        var z      = day2ParseNumber(dref line, &cursor)
         orderMinMax(&x, &y)
         orderMinMax(&y, &z)
         orderMinMax(&x, &y)

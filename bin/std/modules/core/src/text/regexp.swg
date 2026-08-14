@@ -1871,10 +1871,10 @@ impl RegExp
         return pz + 1
     }
 
-    func addParenthesis(uni32: &Array'rune)
+    func addParenthesis(uni32: *Array'rune)
     {
         #[Swag.Discardable]
-        func isEscaped(uni32: &Array'rune, idx: s32)->bool
+        func isEscaped(uni32: *Array'rune, idx: s32)->bool
         {
             var count = 0
             var i     = idx - 1
@@ -1898,7 +1898,7 @@ impl RegExp
                 var iminus = i - 1
 
                 #scope(Loop)
-                    while iminus != -1
+                while iminus != -1
                 {
                     switch uni32[iminus]
                     {
@@ -1956,7 +1956,7 @@ impl RegExp
                 var iplus = i + 4
 
                 #scope(Loop)
-                    while iplus != uni32.count
+                while iplus != uni32.count
                 {
                     switch uni32[iplus]
                     {

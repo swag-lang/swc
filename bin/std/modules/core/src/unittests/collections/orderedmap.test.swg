@@ -22,7 +22,7 @@ struct OrderedMapKey
     {
         keyCode = keyCode * 100 + key
         if index == 1 do
-            @assert(value == "TWENTY")
+            @assert(dref value == "TWENTY")
     }
 
     @assert(keyCode == 102030)

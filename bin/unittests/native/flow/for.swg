@@ -30,18 +30,18 @@ impl FixedCountedLoop
 
 impl StringRefIndexBox
 {
-    mtd opIndex(index: s32)->&string
+    mtd opIndexPtr(index: s32)->*string
     {
         return &.rows[index]
     }
 
-    mtd const opIndex(index: s32)->const &string
+    mtd const opIndexPtr(index: s32)->const *string
     {
         return &.rows[index]
     }
 }
 
-func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
+func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 {
     return value
 }

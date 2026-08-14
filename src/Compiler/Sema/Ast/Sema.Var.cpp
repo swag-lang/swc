@@ -88,16 +88,6 @@ namespace
         return true;
     }
 
-    Result reportConstRefType(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
-    {
-        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_const_ref_type, codeRef, typeRef);
-    }
-
-    Result reportRefMissingInit(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
-    {
-        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_ref_missing_init, codeRef, typeRef);
-    }
-
     bool isRetValTypeNode(const Sema& sema, AstNodeRef nodeTypeRef)
     {
         return nodeTypeRef.isValid() && sema.node(nodeTypeRef).is(AstNodeId::RetValType);
@@ -682,9 +672,6 @@ namespace
             return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
         if (context.nodeTypeRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
-        if (!isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isReference())
-            return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, explicitTypeRef);
-
         isExplicitUndefinedInit = true;
         return Result::Continue;
     }
@@ -863,9 +850,6 @@ namespace
 
         if (!isParameter)
             SWC_RESULT(SemaCheck::noMoveRefType(sema, storageTypeRef, finalTypeErrorRef(sema, context)));
-
-        if (isConst && finalType.isReference())
-            return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
         if (finalType.isCodeBlock())
         {
@@ -1098,10 +1082,6 @@ namespace
         // Variable
         if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructConstInit)
             return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
-        const bool isRefType = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
-        if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
-            return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
-
         const bool isCallerLocation = SemaHelpers::isCallerLocationDefaultInitializer(sema, context.nodeInitRef);
         if (isParameter &&
             context.nodeInitRef.isValid() &&

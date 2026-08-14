@@ -41,7 +41,7 @@ func day5B()
     {
         expect
         {
-            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", l)
+            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", dref l)
             let x0 = StrConv.toS32(r.getCapture(1))
             let y0 = StrConv.toS32(r.getCapture(2))
             let x1 = StrConv.toS32(r.getCapture(3))
@@ -50,11 +50,11 @@ func day5B()
 
         for i in Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + 1
         {
-            let x: u64  = x0 + i * Math.sign(x1 - x0)
-            let y: u64  = y0 + i * Math.sign(y1 - y0)
-            let c: &s32 = &m.ref2(x, y, W)
-            total += (c == 1 ? 1 : 0)
-            c     += 1
+            let x: u64 = x0 + i * Math.sign(x1 - x0)
+            let y: u64 = y0 + i * Math.sign(y1 - y0)
+            let c      = m.ptr2(x, y, W)
+            total  += (dref c == 1 ? 1 : 0)
+            dref c += 1
         }
     }
 

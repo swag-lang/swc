@@ -20,10 +20,10 @@ func day5B()
     var it, step = 0's64
     while it < jumps.count
     {
-        let jit: &s64 = &jumps.ref1(it)
-        it   += jit
-        jit  += -1 + 2 * cast(s64) (jit < 3)
-        step += 1
+        let jit = jumps.ptr1(it)
+        it       += dref jit
+        dref jit += -1 + 2 * cast(s64) (dref jit < 3)
+        step     += 1
     }
 
     @assert(step == 27688760)

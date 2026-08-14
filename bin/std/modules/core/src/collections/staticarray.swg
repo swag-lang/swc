@@ -53,17 +53,17 @@ impl StaticArray
         return @mkslice(&.buffer[lower], (upper + 1) - lower)
     }
 
-    // Returns a constant reference to the element at the specified index.
+    // Returns the address of the element at the specified index.
     #[Inline]
-    mtd const opIndex(index: u64)->const &T
+    mtd const opIndexPtr(index: u64)->const *T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         return &.buffer[index]
     }
 
-    // Returns a mutable reference to the element at the specified index.
+    // Returns the mutable address of the element at the specified index.
     #[Inline]
-    mtd opIndex(index: u64)->&T
+    mtd opIndexPtr(index: u64)->*T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         return &.buffer[index]
@@ -143,9 +143,9 @@ impl StaticArray
             let visitIdx = @index
 
             #static if ptr do
-                #inject(stmt, item = cast(&T) scan, index = visitIdx)
+                #inject(stmt, item = cast(*T) scan, index = visitIdx)
             elif Reflection.isStruct(T) do
-                #inject(stmt, item = cast(const &T) scan, index = visitIdx)
+                #inject(stmt, item = cast(const *T) scan, index = visitIdx)
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }

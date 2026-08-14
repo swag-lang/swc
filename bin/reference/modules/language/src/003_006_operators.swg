@@ -144,7 +144,7 @@ struct Tolerance
 impl Tolerance
 {
     // Two readings one unit apart count as the same reading.
-    mtd const opEquals(other: const &Tolerance)->bool
+    mtd const opEquals(other: Tolerance)->bool
     {
         return .value == other.value or .value + 1 == other.value or .value == other.value + 1
     }

@@ -215,7 +215,7 @@ impl AllocatorPage
 
         .freeList    = 0
         .remoteFree  = 0
-        .key         = allocatorNextKey(cast(u64) &me)
+        .key         = allocatorNextKey(cast(u64) me)
         .areaStart   = start
         .areaEnd     = start + blocks * cast(u64) blockSize
         .carved      = start
@@ -410,7 +410,7 @@ impl AllocatorPage
 
 impl AllocatorSegment
 {
-    mtd segmentBase()->u64 => cast(u64) &me
+    mtd segmentBase()->u64 => cast(u64) me
 
     // The committed extent of one page. The first page shares its unit with the header, which is
     // committed for the segment's whole life, so only the remainder is committed and decommitted.

@@ -8,7 +8,7 @@ struct RuntimeCompareBox
 impl RuntimeCompareBox
 {
     #[Swag.NoInline]
-    mtd const opEquals(other: const &RuntimeCompareBox)->bool
+    mtd const opEquals(other: RuntimeCompareBox)->bool
     {
         return .value == other.value
     }
@@ -20,7 +20,7 @@ impl RuntimeCompareBox
     }
 
     #[Swag.NoInline]
-    mtd const opCompare(other: const &RuntimeCompareBox)->s32
+    mtd const opCompare(other: RuntimeCompareBox)->s32
     {
         if .value < other.value do return -7
         if .value > other.value do return 9

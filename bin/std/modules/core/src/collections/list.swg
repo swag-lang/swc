@@ -41,15 +41,15 @@ impl ReversedList
         var node = .source.tail
         var index: u64
         #scope(Up)
-            while node
+        while node
         {
             let current = node orelse cast(*ListEntry'T) 1'u64
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, item = cast(&T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(T) do
-                    #inject(stmt, item = cast(const &T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(const *T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, item = current.value, node = current, index = index, break = break to Up, continue = break to Down)
             }
@@ -106,15 +106,15 @@ impl List
         var n            = .head
         var ordinal: u64 = 0
         #scope(Up)
-            while n
+        while n
         {
             let node = n orelse cast(*ListEntry'(T)) 1'u64
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, item = cast(&T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(T) do
-                    #inject(stmt, item = cast(const &T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(const *T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, item = node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
             }
@@ -127,7 +127,7 @@ impl List
     // Returns an immutable zero-allocation view that traverses the list from tail to head.
     mtd const reversed()->ReversedList'T
     {
-        return {source: &me}
+        return {source: me}
     }
 
     // Removes and deallocates all elements from the list.

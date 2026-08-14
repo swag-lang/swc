@@ -23,12 +23,12 @@ struct RefIndexBox
 
 impl RefIndexBox
 {
-    mtd opIndex(index: s32)->&s32
+    mtd opIndexPtr(index: s32)->*s32
     {
         return &.buffer[index]
     }
 
-    mtd const opIndex(index: s32)->const &s32
+    mtd const opIndexPtr(index: s32)->const *s32
     {
         return &.buffer[index]
     }

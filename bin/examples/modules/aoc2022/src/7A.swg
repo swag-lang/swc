@@ -86,11 +86,11 @@ func day7A()
 
     for i in @countof(lines)
     {
-        let l: &String = &lines[i]
+        let l = &lines[i]
         if l[0] == '$' do
             l.remove(0, 1)
 
-        let cmd = Tokenize.split(l, ' 'u8)
+        let cmd = Tokenize.split(dref l, ' 'u8)
         switch cmd[0]
         {
         case "cd":

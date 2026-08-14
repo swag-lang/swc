@@ -318,6 +318,20 @@ namespace
         if (indexedType.isVariadic())
             return typeMgr.typeAny();
 
+#if SWC_DEV_MODE
+        {
+            Utf8 detail = std::format("  raw-index fallback on non-indexable type: {}\n  node: {} substitute: {}\n  parents:", indexedType.toName(codeGen.ctx()).c_str(), codeGen.curNodeRef().get(), codeGen.sema().hasSubstitute(codeGen.curNodeRef()) ? 1 : 0);
+            for (size_t up = 0; up < 12; ++up)
+            {
+                const AstNodeRef parentRef = codeGen.visit().parentNodeRef(up);
+                if (parentRef.isInvalid())
+                    break;
+                detail += std::format(" {}({})", parentRef.get(), Ast::nodeIdInfos(codeGen.node(parentRef).id()).name);
+            }
+            detail += "\n";
+            swcAssertDetail("indexable type in the raw-index fallback", __FILE__, __LINE__, detail.view());
+        }
+#endif
         SWC_UNREACHABLE();
     }
 
@@ -566,8 +580,10 @@ namespace
         else
             codeGen.sema().unsetIsLValue(codeGen.curNodeRef());
 
+        // A reference-returning 'opIndex' and a pointer-returning 'opIndexPtr' both hand back
+        // the element's address: the call result register IS the address of the semantic value.
         const TypeInfo& returnType = codeGen.typeMgr().get(calledFn.returnTypeRef());
-        if (returnType.isReference())
+        if (returnType.isReference() || calledFn.specOpKind() == SpecOpKind::OpIndexPtr)
         {
             const CodeGenNodePayload& callPayload = codeGen.payload(codeGen.curNodeRef());
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), callPayload.reg, semanticTypeRef);

@@ -6,7 +6,7 @@
 A pointer to a **single element** is declared using the `*` symbol.
 It represents the memory address of one instance of a given type.
 
-Pointers can reference any type of data and are fundamental for efficient memory access and manipulation.
+Pointers can address any type of data and are fundamental for efficient memory access and manipulation.
 */
 #test
 {
@@ -18,7 +18,7 @@ Pointers can reference any type of data and are fundamental for efficient memory
 # Null Pointers
 
 In Swag, a pointer can be `null`, meaning it does not refer to any valid memory location.
-Null pointers are often used to indicate uninitialized or intentionally empty references.
+Null pointers are often used to indicate uninitialized or intentionally absent values.
 
 It is good practice to check for null pointers before dereferencing them to avoid runtime errors.
 */
@@ -31,8 +31,8 @@ It is good practice to check for null pointers before dereferencing them to avoi
 /**
 # Non-Null by Default
 
-Nullable-capable types — single-value and block pointers, slices, `string`, `cstring`,
-`any`, and `typeinfo` — are non-null by default: a bare `*u8` or `string` cannot be
+Nullable-capable types â€” single-value and block pointers, slices, `string`, `cstring`,
+`any`, and `typeinfo` â€” are non-null by default: a bare `*u8` or `string` cannot be
 initialized with `null` and has no implicit default. A struct field of such a type must
 therefore be supplied by an aggregate initializer unless it declares an explicit non-null
 default. Use `#null` to opt into nullability when null is part of the intended contract.
@@ -89,7 +89,7 @@ narrowing proof, it is dropped as soon as the path is reassigned.
 chain when the tested value is null; `!` claims the value is there and panics under
 `Swag.SafetyWhat.Expect` when it is not. Being postfix, `!` binds tighter than every
 prefix form and chains freely: `p!.count`, `buffer![i]`, `handler!()`. Because it cannot
-produce an absent result, what follows keeps its plain type — `node!.count` is an `s64`,
+produce an absent result, what follows keeps its plain type â€” `node!.count` is an `s64`,
 never a `#null` one, and needs no fallback.
 
 `try`, `catch` and `expect` swallow everything to their right, so a `!` written after one
@@ -154,52 +154,143 @@ region is dead, not wrong.
 }
 
 /**
-# Nullability Through a Reference
+# Reaching Through a Pointer
 
-A reference is transparent, so a binding to a nullable slot — what a container's `opIndex`
-hands back — is exactly as unproven as the slot it names. Every use site looks through the
-reference layer: reaching a member, dereferencing, indexing and calling through such a
-binding all need the same proof they would need on the slot itself, and the postfix `!`
-strips the nullability inside the reference so what follows reads the object.
+A non-null `*T` needs no ceremony at the use site. A member access written on the
+pointer reads the pointed-to object directly, and a method call binds the pointed-to
+object as its receiver. `dref` is reserved for the **whole value**: reading it out in
+one expression, or replacing it in one assignment. Field for field, the code looks the
+same whether a binding holds the object or its address, which is what makes `*T` the
+everyday indirection.
 */
-struct RefSlotDoc
+struct ReachDoc
 {
-    count: s64
+    x, y: s32
 }
 
-alias RefSlot = #null *RefSlotDoc
-
-struct RefSlotBoxDoc
+impl ReachDoc
 {
-    slot: RefSlot
-}
-
-impl RefSlotBoxDoc
-{
-    // What a container's 'opIndex' hands back: a reference to a nullable slot.
-    mtd const at()->const &RefSlot => &.slot
+    mtd shift(dx: s32)
+    {
+        .x += dx
+    }
 }
 
 #test
 {
-    var target: RefSlotDoc
+    var value = ReachDoc{1, 2}
+    let ptr   = &value
+
+    // Members are reached directly through the pointer.
+    @assert(ptr.x == 1)
+    ptr.y = 20
+    @assert(value.y == 20)
+
+    // A method call binds the pointed-to object as its receiver.
+    ptr.shift(10)
+    @assert(value.x == 11)
+
+    // 'dref' reads or replaces the whole pointed value.
+    let copy = dref ptr
+    @assert(copy.y == 20)
+    dref ptr = ReachDoc{7, 8}
+    @assert(value.x == 7)
+}
+
+/**
+# Element Addresses from Containers
+
+Indexing reaches through a pointer the same way: when a `*T` points to a value with
+index operators, indexing the pointer indexes the pointed-to container. And a
+container hands out the address of one of its elements through the `opIndexPtr`
+hook: `&c[i]` is a plain non-null pointer into the container's storage, and
+`c[i].field = x` or `c[i] += 1` writes the element in place. The operator
+overloading chapter describes when each index hook is selected.
+*/
+struct ElemBoxDoc
+{
+    values: [4] s32
+}
+
+impl ElemBoxDoc
+{
+    mtd opIndexPtr(index: u64)->*s32
+    {
+        return &.values[index]
+    }
+}
+
+#test
+{
+    var box: ElemBoxDoc
+
+    // Without a dedicated write operator, assignments go through the element address.
+    box[0] = 41
+    box[0] += 1
+    @assert(box.values[0] == 42)
+
+    // The element address escapes as a plain pointer and stays writable.
+    let p = &box[1]
+    #assert(#typeof(p) == *s32)
+    dref p = 7
+    @assert(box.values[1] == 7)
+
+    // Indexing through a pointer to the container reaches the same hooks.
+    let boxPtr = &box
+    boxPtr[2] = 5
+    @assert(box.values[2] == 5)
+}
+
+/**
+# Pointers to Nullable Slots
+
+Taking an address never invents a proof. The address of a `#null` slot is a non-null
+pointer TO that slot, and the slot's own nullability waits inside: reading the slot
+with `dref` hands back the `#null` value, and every use of that value needs the same
+proof it would need on the slot itself.
+*/
+struct SlotTargetDoc
+{
+    count: s64
+}
+
+alias DocSlot = #null *SlotTargetDoc
+
+struct SlotBoxDoc
+{
+    slot: DocSlot
+}
+
+impl SlotBoxDoc
+{
+    // What a container's 'opIndexPtr' hands back: the address of a slot that can be null.
+    mtd slotPtr()->*DocSlot => &.slot
+}
+
+#test
+{
+    var target: SlotTargetDoc
     target.count = 3
-    var box = RefSlotBoxDoc{slot: &target}
+    var box = SlotBoxDoc{slot: &target}
 
-    // The binding keeps the reference, and the slot's '#null' with it.
-    let bound = box.at()
-    #assert(#typeof(bound) == #type const &RefSlot)
+    // The address itself is non-null; the slot's '#null' waits behind one 'dref'.
+    let bound = box.slotPtr()
+    #assert(#typeof(bound) == #type *DocSlot)
 
-    // 'bound.count' would be rejected: the slot can still be null.
-    @assert(bound!.count == 3)
-    @assert((dref bound!).count == 3)
+    // The slot's value is still nullable: prove it, or assert it with '!'.
+    let slot = dref bound
+    @assert(slot!.count == 3)
+
+    // Writing through the address updates the slot itself.
+    dref bound = null
+    @assert(box.slot == null)
 }
 
 /**
 # Deferred Initialization with `Swag.Late`
 
 The `Swag.Late` attribute declares a **non-null** field or **global variable** whose storage
-starts unset (zero/null) and receives its value during setup — an initialization function,
+starts unset (zero/null) and receives its value during setup â€” an initialization function,
 a constructor, the first stage of `main`. It replaces the `#null ... = null` +
 `!`-at-every-use pattern for values that are guaranteed to be set before first use but
 cannot be initialized at their declaration.
@@ -256,7 +347,7 @@ This allows you to access or modify a variable indirectly via its memory address
 /**
 # Dereferencing a Pointer
 
-To access the value stored at a pointer’s address, use the `dref` intrinsic.
+To access the value stored at a pointerâ€™s address, use the `dref` intrinsic.
 Dereferencing retrieves the data located at the memory address referenced by the pointer.
 */
 #test
@@ -299,7 +390,7 @@ that follows it, exactly one level down.
 /**
 # Multi-Value Pointers
 
-To enable **pointer arithmetic** or reference **contiguous memory blocks**,
+To enable **pointer arithmetic** or address **contiguous memory blocks**,
 use `[*]` instead of `*`.
 
 This type of pointer behaves like a view over multiple elements,

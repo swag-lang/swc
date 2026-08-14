@@ -88,14 +88,14 @@ alias CompoundStrictS32Ptr = [*] s32
     @assert(a == 42's64)
 }
 
-func addAssign(a: &s32, b: s32)
+func addAssign(a: *s32, b: s32)
 {
-    a += b
+    dref a += b
 }
 
-func mulAssign(a: &s32, b: s32)
+func mulAssign(a: *s32, b: s32)
 {
-    a *= b
+    dref a *= b
 }
 
 // Compound assignment through reference parameters
@@ -108,14 +108,14 @@ func mulAssign(a: &s32, b: s32)
     @assert(x == 84)
 }
 
-func addAssignStrict(a: &CompoundStrictS32, b: CompoundStrictS32)
+func addAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
 {
-    a += b
+    dref a += b
 }
 
-func mulAssignStrict(a: &CompoundStrictS32, b: CompoundStrictS32)
+func mulAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
 {
-    a *= b
+    dref a *= b
 }
 
 #test

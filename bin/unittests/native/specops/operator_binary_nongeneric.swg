@@ -15,7 +15,7 @@ struct RuntimeBinaryBox
 impl RuntimeBinaryBox
 {
     #[Swag.NoInline]
-    mtd(op: Swag.Operator) const opBinary(other: const &RuntimeBinaryBox)->RuntimeBinaryBox
+    mtd(op: Swag.Operator) const opBinary(other: RuntimeBinaryBox)->RuntimeBinaryBox
     {
         return {a: .a + other.a, b: .b + other.b, c: .c + other.c, d: .d + other.d}
     }

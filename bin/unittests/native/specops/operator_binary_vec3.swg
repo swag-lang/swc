@@ -13,7 +13,7 @@ struct(T) GenVec3
 
 impl GenVec3
 {
-    func(op: Swag.Operator) opBinary(const me, other: const &GenVec3'T)->GenVec3'T
+    func(op: Swag.Operator) opBinary(const me, other: GenVec3'T)->GenVec3'T
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op

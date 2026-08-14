@@ -13,7 +13,7 @@ struct RuntimeEqualOnlyBox
 impl RuntimeEqualOnlyBox
 {
     #[Swag.NoInline]
-    mtd const opEquals(other: const &RuntimeEqualOnlyBox)->bool
+    mtd const opEquals(other: RuntimeEqualOnlyBox)->bool
     {
         return .a == other.a and .b == other.b
     }
@@ -134,7 +134,7 @@ struct RuntimeTripleEqBox
 impl RuntimeTripleEqBox
 {
     #[Swag.NoInline]
-    mtd const opEquals(other: const &RuntimeTripleEqBox)->bool
+    mtd const opEquals(other: RuntimeTripleEqBox)->bool
     {
         return .value == other.value
     }
@@ -193,7 +193,7 @@ struct RuntimeTripleCmpBox
 impl RuntimeTripleCmpBox
 {
     #[Swag.NoInline]
-    mtd const opCompare(other: const &RuntimeTripleCmpBox)->s32
+    mtd const opCompare(other: RuntimeTripleCmpBox)->s32
     {
         if .value < other.value do return -1
         if .value > other.value do return 1

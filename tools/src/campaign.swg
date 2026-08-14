@@ -375,7 +375,7 @@ private func reportScope(context: *Context, options: *Options, scope: *Scope)
         {
             if @index != 0 do
                 configurations += " "
-            configurations += cfg
+            configurations += dref cfg
         }
 
         reportLine("everything", Format.toString("in %", configurations.toString()).toString(), &reported)
@@ -445,7 +445,7 @@ private func reportNames(context: *Context, label: string, workspace: string, se
             continue
         if !line.isEmpty() do
             line += " "
-        line += name
+        line += dref name
     }
 
     reportLine(label, line.toString(), reported)
@@ -485,7 +485,7 @@ private func reportScripts(context: *Context, scope: *Scope, reported: *bool)
             continue
         if !line.isEmpty() do
             line += " "
-        line += name
+        line += dref name
     }
 
     reportLine("scripts", line.toString(), reported)

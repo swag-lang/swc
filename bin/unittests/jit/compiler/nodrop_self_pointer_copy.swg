@@ -138,7 +138,7 @@ impl InlineBufferText
 
     mtd opDrop()
     {
-        let dropAddr = cast([*] void) &me
+        let dropAddr = cast([*] void) me
         LastInlineBufferTextDropAddr = dropAddr
         if ExpectedInlineBufferTextDropAddr
         {

@@ -89,6 +89,11 @@ namespace SemaHelpers
     void                    clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef);
     bool                    binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
     bool                    canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
+    // Whether a bare identifier carrying this symbol resolves at codegen inside the
+    // function currently being analyzed. An instance field only exists relative to a
+    // base expression, and a parameter of another function (a macro receiver bound at
+    // the call site) has no storage in the caller; neither can be named standalone.
+    bool                    bindingSymbolResolvesStandalone(Sema& sema, const SymbolVariable& symVar);
     bool                    isTransparentExprNode(const AstNode& node);
     AstNodeRef              resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef);
     AstNodeRef              resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef);

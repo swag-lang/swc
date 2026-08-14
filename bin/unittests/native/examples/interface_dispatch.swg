@@ -27,7 +27,7 @@ impl OrderLine
 // Discount rule interface.
 interface IDiscountRule
 {
-    mtd apply(line: &OrderLine)->s32
+    mtd apply(line: *OrderLine)->s32
     mtd tag()->string
 }
 
@@ -36,7 +36,7 @@ struct BulkDiscount {}
 
 impl IDiscountRule for BulkDiscount
 {
-    mtd impl apply(line: &OrderLine)->s32
+    mtd impl apply(line: *OrderLine)->s32
     {
         if line.quantity > 5 do
             return (line.quantity * line.unitCent) / 10
@@ -50,7 +50,7 @@ struct BookDiscount {}
 
 impl IDiscountRule for BookDiscount
 {
-    mtd impl apply(line: &OrderLine)->s32
+    mtd impl apply(line: *OrderLine)->s32
     {
         if line.kind == ProductKind.Book do
             return (line.quantity * line.unitCent) * 15 / 100
@@ -64,12 +64,12 @@ struct FlatDiscount { amountCent: s32 }
 
 impl IDiscountRule for FlatDiscount
 {
-    mtd impl apply(line: &OrderLine)->s32 => me.amountCent
+    mtd impl apply(line: *OrderLine)->s32 => me.amountCent
     mtd impl tag()->string                => "flat"
 }
 
 // Apply all rules to a single line, return best discount.
-func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
+func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 {
     var best: s32 = 0
     for i in @countof(rules)

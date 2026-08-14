@@ -112,7 +112,7 @@ namespace GenericForeachLazyCodegen
         mtd nonNullIndexSum()->u64
         {
             var total = 0'u64
-            for &value, index in .values.toSlice() where value != null do
+            for &value, index in .values.toSlice() where dref value != null do
                 total += index + 1
             return total
         }

@@ -123,6 +123,7 @@ is the ordinal within the view.
 /**
 # Visiting Arrays and Slices
 Use 'for' with a binding to traverse arrays or slices and process each element.
+A scalar element is copied into its binding.
 */
 
 #test
@@ -149,8 +150,38 @@ Element iteration works with multi-dimensional arrays and visits each element in
 }
 
 /**
+# Struct Elements Bind by Address
+A struct element is never copied into its binding: 'for v' binds the element's
+address as a read-only pointer ('const *T'), so member accesses reach the
+collection's storage directly and no per-element lifecycle (copy or drop) runs.
+Use '&' when the loop must write.
+*/
+
+#test
+{
+    struct Point
+    {
+        x, y: s32
+    }
+
+    var points: [2] Point = [{1, 2}, {3, 4}]
+    var sum               = 0
+
+    for p in points
+    {
+        #assert(#typeof(p) == #type const *Point)
+        sum += p.x + p.y
+    }
+
+    @assert(sum == 10)
+}
+
+/**
 # Modifying Elements with '&'
-Prefix the element name with '&' to visit elements by address and modify them in place.
+Prefix the element name with '&' to bind the element's **mutable address**: the
+binding is a non-null pointer into the collection ('const *T' when the collection
+itself is constant). Members of a struct element are reached directly through the
+binding; the whole element is read or written with 'dref'.
 */
 
 #test
@@ -160,8 +191,9 @@ Prefix the element name with '&' to visit elements by address and modify them in
 
     for &it in array
     {
-        result += it
-        it     = 555
+        #assert(#typeof(it) == *s32)
+        result  += dref it
+        dref it = 555
     }
 
     @assert(result == 1 + 2 + 3 + 4)
@@ -169,6 +201,26 @@ Prefix the element name with '&' to visit elements by address and modify them in
     @assert(array[0, 1] == 555)
     @assert(array[1, 0] == 555)
     @assert(array[1, 1] == 555)
+}
+
+/**
+The same '&' binding replaces a struct element in one write.
+*/
+
+#test
+{
+    struct Point
+    {
+        x, y: s32
+    }
+
+    var points: [2] Point = [{1, 2}, {3, 4}]
+
+    for &p, index in points do
+        dref p = Point{cast(s32) index, cast(s32) index}
+
+    @assert(points[0].x == 0 and points[0].y == 0)
+    @assert(points[1].x == 1 and points[1].y == 1)
 }
 
 /**

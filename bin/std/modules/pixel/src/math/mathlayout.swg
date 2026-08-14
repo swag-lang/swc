@@ -43,7 +43,7 @@ private func mathResolveFont(baseFont: *Font, variant: MathFontVariant, text: st
     return baseFont.owner.createFont(baseFont.cache.typeFace, baseFont.size, baseFont.renderMode(), bold, italic)
 }
 
-private func mathRuleThickness(font: *Font, options: const &MathLayoutOptions, scale: f32)->f32
+private func mathRuleThickness(font: *Font, options: MathLayoutOptions, scale: f32)->f32
 {
     return Math.max(options.minRuleThickness, cast(f32) font.size * options.ruleThicknessEm * scale)
 }
@@ -135,7 +135,7 @@ private func mathAddText(node: *MathNode, text: string, font: *Font, scale, x, b
     node.draws.add({text: text, pos: {x, baseline}, font: font, scale: scale})
 }
 
-private func mathLayoutSymbol(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutSymbol(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     var scale = mathStyleScale(style, options)
     if node.flag
@@ -155,7 +155,7 @@ private func mathLayoutSymbol(node: *MathNode, font: *Font, style: MathStyle, va
     mathAddText(node, node.text.toString(), drawFont, scale, 0, 0)
 }
 
-private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let em            = cast(f32) font.size * mathStyleScale(style, options)
     var x             = 0.0'f32
@@ -190,7 +190,7 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
     }
 }
 
-private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let childStyle = mathCrampedStyle(style)
     let scale      = mathStyleScale(style, options)
@@ -220,7 +220,7 @@ private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, 
     }
 }
 
-private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let scale = mathStyleScale(style, options)
     let em    = cast(f32) font.size * scale
@@ -262,7 +262,7 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
     }
 }
 
-private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let base = node.children[0]
     mathLayoutNode(base, font, style, variant, options)
@@ -453,7 +453,7 @@ private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHei
     return result
 }
 
-private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let body = node.children[0]
     mathLayoutNode(body, font, style, variant, options)
@@ -519,7 +519,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
     }
 }
 
-private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let base = node.children[0]
     mathLayoutNode(base, font, style, variant, options)
@@ -614,7 +614,7 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     }
 }
 
-private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     var cellStyle = style
     if style == .Display do
@@ -687,7 +687,7 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
     node.metrics.descent = axisY + totalHeight * 0.5
 }
 
-private func mathLayoutNode(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
+private func mathLayoutNode(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     mathPrepareNode(node, style)
 
@@ -739,7 +739,7 @@ private func mathStrokePath(painter: *Painter, path: *LinePath, color: Color, li
     painter.drawPath(path, pen)
 }
 
-private func mathDrawPath(painter: *Painter, draw: const &MathDrawPath, x, baseline: f32, color: Color)
+private func mathDrawPath(painter: *Painter, draw: MathDrawPath, x, baseline: f32, color: Color)
 {
     let l = x + draw.rect.x
     let t = baseline + draw.rect.y

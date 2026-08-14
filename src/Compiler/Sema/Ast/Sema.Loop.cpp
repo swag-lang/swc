@@ -334,8 +334,9 @@ namespace
         return Result::Continue;
     }
 
-    Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
+    Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef, bool& outBindsValueAddress)
     {
+        outBindsValueAddress = false;
         bool sourceIsConst = false;
         bool sourceIsEnum  = false;
 
@@ -398,21 +399,24 @@ namespace
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))
         {
-            // '&name' binds a mutable reference to the element (const when the source is).
+            // '&name' binds the element's address (const when the source is).
             TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
             if (sourceIsConst || sourceIsEnum)
                 typeFlags.add(TypeInfoFlagsE::Const);
-            valueTypeRef = sema.typeMgr().addType(TypeInfo::makeReference(valueTypeRef, typeFlags));
+            valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, typeFlags));
         }
         else if (valueTypeRef.isValid())
         {
             // A struct element never binds by copy: the by-value form aliases the
-            // element through a const reference (mutation goes through '&name').
+            // element through its const address (mutation goes through '&name').
             TypeRef rawValueTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), valueTypeRef);
             if (!rawValueTypeRef.isValid())
                 rawValueTypeRef = valueTypeRef;
             if (sema.typeMgr().get(rawValueTypeRef).isStruct())
-                valueTypeRef = sema.typeMgr().addType(TypeInfo::makeReference(valueTypeRef, TypeInfoFlagsE::Const));
+            {
+                valueTypeRef         = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, TypeInfoFlagsE::Const));
+                outBindsValueAddress = true;
+            }
         }
 
         return Result::Continue;
@@ -480,12 +484,15 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     {
         SWC_RESULT(validateForeachAliasCount(sema, *this));
 
-        const SemaNodeView exprView     = sema.viewTypeConstant(nodeExprRef);
-        TypeRef            valueTypeRef = TypeRef::invalid();
-        TypeRef            indexTypeRef = TypeRef::invalid();
-        auto&              pl           = ensureLoopSemaPayload(sema, sema.curNodeRef());
-        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+        const SemaNodeView exprView          = sema.viewTypeConstant(nodeExprRef);
+        TypeRef            valueTypeRef      = TypeRef::invalid();
+        TypeRef            indexTypeRef      = TypeRef::invalid();
+        bool               bindsValueAddress = false;
+        auto&              pl                = ensureLoopSemaPayload(sema, sema.curNodeRef());
+        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef, bindsValueAddress));
         pl.indexTypeRef = indexTypeRef;
+        if (bindsValueAddress)
+            sema.node(sema.curNodeRef()).cast<AstForeachStmt>().addFlag(AstForeachStmtFlagsE::BindsValueAddress);
 
         // Track the iterated storage so a structural mutation of it inside the body is
         // flagged (iterator invalidation). Null for ranges/temporaries with no storage root.
@@ -500,9 +507,16 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         // binding is a const-reference alias into the same storage.
         if (!hasFlag(AstForeachStmtFlagsE::IndexOnly) && !symbols.empty() && symbols.front()->isVariable())
         {
-            const auto& valueVar = symbols.front()->cast<SymbolVariable>();
-            if (hasFlag(AstForeachStmtFlagsE::ByAddress) || sema.typeMgr().get(valueVar.typeRef()).isReference())
+            auto& valueVar = symbols.front()->cast<SymbolVariable>();
+            if (hasFlag(AstForeachStmtFlagsE::ByAddress) || bindsValueAddress || sema.typeMgr().get(valueVar.typeRef()).isReference())
+            {
+                // The alias is an immutable binding: reassigning the slot would silently
+                // retarget the alias rather than write the element, exactly what the
+                // 'let' rule exists to refuse. Element writes go through 'dref'. The
+                // custom-visit path already behaves this way ('#inject' let aliases).
+                valueVar.addExtraFlag(SymbolVariableFlagsE::Let);
                 SemaEscape::bindForeachAddressAlias(sema, valueVar, nodeExprRef);
+            }
         }
 
         const size_t stateIndex = symbols.size();
@@ -561,9 +575,10 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
         SWC_RESULT(validateForeachAliasCount(sema, *this));
 
-        TypeRef valueTypeRef = TypeRef::invalid();
-        TypeRef indexTypeRef = TypeRef::invalid();
-        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+        TypeRef valueTypeRef      = TypeRef::invalid();
+        TypeRef indexTypeRef      = TypeRef::invalid();
+        bool    bindsValueAddress = false;
+        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef, bindsValueAddress));
     }
 
     if (childRef == nodeWhereRef)

@@ -6,7 +6,7 @@ using Swag
 //
 // A comparator returns a negative value when its left operand has higher priority than its right
 // operand. Call [[PriorityQueue.initialize]] before the first operation to select the ordering
-// explicitly. Growth can invalidate every reference borrowed from the queue.
+// explicitly. Growth can invalidate every pointer borrowed from the queue.
 struct(T) PriorityQueue
 {
     private
@@ -56,7 +56,7 @@ impl PriorityQueue
     }
 
     #[Swag.NoDoc]
-    mtd const compareItems(left, right: const &T)->s32
+    mtd const compareItems(left, right: T)->s32
     {
         if .comparator do
             return (cast(func(const *T, const *T)->s32) .comparator!)(&left, &right)
@@ -83,19 +83,20 @@ impl PriorityQueue
         }
     }
 
-    // Returns a mutable reference to the highest-priority element and asserts if the queue is empty.
+    // Returns a pointer to the highest-priority element and asserts if the queue is empty.
     // Mutating it in a way that changes its priority violates the heap ordering.
-    mtd peek()->&T
+    mtd peekPtr()->*T
     {
         Debug.assert(.count > 0, "priority queue is empty")
         return &.items[0]
     }
 
-    // Returns an immutable reference to the highest-priority element and asserts if the queue is empty.
-    mtd const peek()->const &T
+    // Returns a copy of the highest-priority element and asserts if the queue is empty.
+    mtd const peek()->T
     {
         Debug.assert(.count > 0, "priority queue is empty")
-        return &.items[0]
+        let result: retval = .items[0]
+        return result
     }
 
     // Removes and returns the highest-priority element and asserts if the queue is empty.

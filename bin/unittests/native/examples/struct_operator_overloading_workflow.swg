@@ -59,7 +59,7 @@ impl WorkflowAssignBox
     }
 
     #[Swag.NoInline]
-    mtd(op: Swag.Operator) opAssign(other: const &WorkflowAssignBox)
+    mtd(op: Swag.Operator) opAssign(other: WorkflowAssignBox)
         where op == .AddAssign
     {
         .setPair(.a + other.a, .b + other.b)

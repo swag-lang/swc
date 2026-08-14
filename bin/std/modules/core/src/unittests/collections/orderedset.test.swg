@@ -41,7 +41,7 @@ using Swag
 
     var result: String
     for key in set do
-        result += key
+        result += dref key
     @assert(result == "gammabetaalpha")
 
     var copy = set

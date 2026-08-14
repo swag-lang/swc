@@ -11,13 +11,14 @@ struct MyStruct
 # The 'opVisit' Iteration Hook
 
 'opVisit' is the single custom iteration hook. It is a macro generic over the
-compile-time boolean 'ptr': 'ptr' is true for a loop binding introduced by '&'.
+compile-time boolean 'ptr': 'ptr' is true for a loop binding introduced by '&',
+and the hook then injects the element's address ('*T') instead of its value.
 There is no traversal selector or direction argument. Alternative traversals
 are ordinary borrowed views returned by functions or methods.
 
 The '#code' parameters are the values made available to loop destructuring.
 A loop may bind any prefix of them, or discard a position with '?'. Struct
-values are borrowed read-only by default; scalar values are copied.
+values are handed out by read-only address; scalar values are copied.
 */
 impl MyStruct
 {
@@ -83,7 +84,7 @@ impl MyStruct
     // Returns a zero-allocation borrowed view with reverse traversal.
     mtd const reversed()->ReversedMyStruct
     {
-        return {source: &me}
+        return {source: me}
     }
 }
 
@@ -119,7 +120,7 @@ impl SliceStruct
         for index in @countof(me.buffer)
         {
             #static if ptr do
-                #inject(stmt, item = cast(&s32) &me.buffer[index], index = index)
+                #inject(stmt, item = cast(*s32) &me.buffer[index], index = index)
             else do
                 #inject(stmt, item = me.buffer[index], index = index)
         }
@@ -129,15 +130,17 @@ impl SliceStruct
 /**
 # Visiting by Address
 
-The '&' binding selects 'ptr == true', allowing the hook to expose mutable
-elements. Without '&', scalar elements are copied into the loop binding.
+The '&' binding selects 'ptr == true', and the hook answers with the element's
+mutable address: the loop binding is a non-null pointer, and the loop body
+writes the element through 'dref'. Without '&', scalar elements are copied
+into the loop binding.
 */
 #test
 {
     var values = SliceStruct{}
 
     for &value, index in values do
-        value += cast(s32) index
+        dref value += cast(s32) index
 
     @assert(values.buffer[0] == 1)
     @assert(values.buffer[4] == 9)

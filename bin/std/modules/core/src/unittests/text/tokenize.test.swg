@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertStringArray(values: const &Array'(string), expected: const [..] string)->bool
+func assertStringArray(values: Array'(string), expected: const [..] string)->bool
 {
     if values.count != @countof(expected) do
         return false

@@ -544,13 +544,51 @@ namespace
         return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
     }
 
+    // The pointer-world receiver: a non-null value-pointer parameter binding a value
+    // source takes the value's ADDRESS, exactly like a castless UFCS receiver. Without
+    // it the call would load the value's first bytes as the receiver pointer.
+    bool structOpCastPassesAddressAsPointer(Sema& sema, const SymbolFunction& calledFn, AstNodeRef sourceArgRef)
+    {
+        if (sourceArgRef.isInvalid() || calledFn.parameters().empty())
+            return false;
+
+        const TypeRef receiverTypeRef = calledFn.parameters().front()->typeRef();
+        if (!receiverTypeRef.isValid())
+            return false;
+
+        const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
+        if (!receiverType.isValuePointer() || receiverType.isNullable())
+            return false;
+
+        const TypeRef sourceTypeRef = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type).typeRef();
+        if (!sourceTypeRef.isValid())
+            return true;
+
+        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+        return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
+    }
+
     Result buildStructOpCastResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, AstNodeRef sourceArgRef, const SymbolFunction& calledFn)
     {
         ResolvedCallArgument resolvedArg;
-        resolvedArg.argRef                = sourceArgRef;
-        resolvedArg.bindsReferenceToValue = structOpCastBindsReferenceToValue(sema, calledFn, sourceArgRef);
+        resolvedArg.argRef                   = sourceArgRef;
+        resolvedArg.bindsReferenceToValue    = structOpCastBindsReferenceToValue(sema, calledFn, sourceArgRef);
+        resolvedArg.passUfcsAddressAsPointer = structOpCastPassesAddressAsPointer(sema, calledFn, sourceArgRef);
         if (!calledFn.parameters().empty())
             SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters().front()->typeRef(), sourceArgRef));
+        if (resolvedArg.passUfcsAddressAsPointer)
+        {
+            // The receiver's address escapes into the pointer parameter, so a
+            // register-allocated scalar or enum source must land in memory first.
+            const SemaNodeView sourceView = sema.viewNodeTypeSymbol(SemaHelpers::resolveTransparentExprSourceRef(sema, sourceArgRef));
+            if (sourceView.sym() && sourceView.sym()->isVariable())
+            {
+                auto& symVar = sourceView.sym()->cast<SymbolVariable>();
+                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                    symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            }
+        }
 
         outResolvedArgs.push_back(resolvedArg);
         return Result::Continue;
@@ -661,7 +699,9 @@ namespace
     Result buildStructSetResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SymbolFunction& calledFn, TypeRef dstTypeRef, AstNodeRef sourceArgRef, SymbolVariable* storageSym, ConstantRef receiverInitCstRef)
     {
         const AstNodeRef receiverRef = makeStructSetReceiverRef(sema, dstTypeRef, sourceArgRef, storageSym, receiverInitCstRef);
-        outResolvedArgs.push_back({.argRef = receiverRef, .bindsReferenceToValue = true});
+        outResolvedArgs.push_back({.argRef                   = receiverRef,
+                                   .bindsReferenceToValue    = true,
+                                   .passUfcsAddressAsPointer = structOpCastPassesAddressAsPointer(sema, calledFn, receiverRef)});
         outResolvedArgs.push_back({.argRef = sourceArgRef});
         if (calledFn.parameters().size() > 1)
             SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters()[1]->typeRef(), sourceArgRef));
@@ -750,7 +790,7 @@ namespace
         castRequest.failure.optTypeRef = underlyingTypeRef;
     }
 
-    bool shouldRouteEnumViaUnderlying(const CastRequest& castRequest, const TypeInfo& srcType, const TypeInfo& dstType)
+    bool shouldRouteEnumViaUnderlying(const CastRequest& castRequest, TypeRef srcTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
     {
         if (!srcType.isEnum())
             return false;
@@ -759,6 +799,10 @@ namespace
         if (dstType.isEnum() && castRequest.kind != CastKind::Explicit)
             return false;
         if (dstType.isReference())
+            return false;
+        // A pointer to the enum itself binds the enum object — the UFCS receiver shape —
+        // never a conversion through the underlying scalar.
+        if (dstType.isAnyPointer() && dstType.payloadTypeRef() == srcTypeRef)
             return false;
         if (dstType.isAny())
             return false;
@@ -1355,10 +1399,10 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             return Result::Continue;
     }
 
-    // Pointer to ref
+    // Pointer to internal move reference
     if (srcType.isAnyPointer())
     {
-        // A nullable pointer cannot silently bind to a non-null reference (e.g. `var q: &T = nullableP`).
+        // A nullable pointer cannot silently bind to an internal non-null move reference.
         // The only exception is a UFCS receiver: calling a method on a `#null` pointer just dereferences it
         // (C-like, may fault at runtime if actually null), so it is allowed without a guard.
         if (srcType.isNullable() && !castRequest.flags.has(CastFlagsE::UfcsArgument))
@@ -1523,7 +1567,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castAggregateStructToAggregateStruct(sema, castRequest, srcTypeRef, dstTypeRef, srcType, dstType);
     else if (castRequest.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
-    else if (shouldRouteEnumViaUnderlying(castRequest, srcType, dstType))
+    else if (shouldRouteEnumViaUnderlying(castRequest, srcTypeRef, srcType, dstType))
         res = castFromEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
         res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);

@@ -45,7 +45,7 @@ func day4B()
 
     for l in lines
     {
-        let first = Tokenize.split(l, ':'u8)
+        let first = Tokenize.split(dref l, ':'u8)
         let game  = Tokenize.split(first[1], '|'u8)
         let val0  = Tokenize.split(game[0], ' 'u8)
         let val1  = Tokenize.split(game[1], ' 'u8)

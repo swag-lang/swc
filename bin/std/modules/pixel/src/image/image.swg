@@ -223,7 +223,7 @@ impl Image
     {
         Debug.assert(stride > 0)
 
-        let self: const &Image = me
+        let self: const *Image = me
         var p = {image: self, userData: pixelUserData}
         Jobs.parallelVisit(@mkslice(cast([*] u8) self.pixels.buffer!, self.pixels.count), cast(u32) (.bytesPerPixel * stride), &p)
         {

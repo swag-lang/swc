@@ -64,7 +64,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     #assert(#typeof(constFromDeref) == const IAction)
     @assert(rawFromDeref != null)
 
-    let constRef: const &UndoAction = &local
+    let constRef: const *UndoAction = &local
     let constFromRef                = @mkinterface(constRef, UndoAction, IAction)
     let rawFromRef                  = cast(const *UndoAction) @dataof(constFromRef)
     #assert(#typeof(constFromRef) == const IAction)

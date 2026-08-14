@@ -551,7 +551,7 @@ impl Color
         // Iterate until we reach or exceed required contrast
         while contrast < requiredContrast and steps < maxSteps
         {
-            me       = .adjustBrightness(direction)
+            dref me  = .adjustBrightness(direction)
             contrast = .contrastRatio(target)
             steps    += 1
         }

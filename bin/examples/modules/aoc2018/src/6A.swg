@@ -64,7 +64,7 @@ func day6A()
     var coords: Array'{ x, y: s32 }
     for l in lines
     {
-        let split = Tokenize.split(l, ','u8)
+        let split = Tokenize.split(dref l, ','u8)
         let vx    = expect StrConv.toS32(Latin1.trim(split[0]))
         let vy    = expect StrConv.toS32(Latin1.trim(split[1]))
         coords.add({vx, vy})
@@ -88,7 +88,7 @@ func day6A()
             let y = i / W
             let d = Math.abs(c.x - x) + Math.abs(c.y - y)
 
-            var r: &Claim = &arr.ref2(x, y, W)
+            let r = arr.ptr2(x, y, W)
             if d < r.d or !r.who
             {
                 let border = cast(s32) (!x or !y or x == W - 1 or y == W - 1)
@@ -99,7 +99,7 @@ func day6A()
                     borders[r.who - 1] -= border
                 }
 
-                r = {d, cast(s32) who + 1}
+                dref r = {d, cast(s32) who + 1}
 
                 count[who]   += 1
                 borders[who] += border

@@ -37,16 +37,19 @@ Once your Intcode computer is fully functional, the BOOST program should report 
 
 using Core
 
-private func run(op: &Array's64, input: s64)->s64
+private func run(op: *Array's64, input: s64)->s64
 {
     var output, ip, base = 0's64
 
     #[Swag.Mixin]
-    func val(offset: u64)->&s64
+    func valp(offset: u64)->*s64
     {
         op.resize(Math.max(op.count, offset + 1))
         return op.buffer! + offset
     }
+
+    #[Swag.Mixin]
+    func val(offset: u64)->s64 => dref valp(offset)
 
     while op[ip] != 99
     {
@@ -62,16 +65,16 @@ private func run(op: &Array's64, input: s64)->s64
         switch inst
         {
         case 1:
-            val(param2) = val(param0) + val(param1)
-            ip          += 4
+            dref valp(param2) = val(param0) + val(param1)
+            ip                += 4
 
         case 2:
-            val(param2) = val(param0) * val(param1)
-            ip          += 4
+            dref valp(param2) = val(param0) * val(param1)
+            ip                += 4
 
         case 3:
-            val(param0) = input
-            ip          += 2
+            dref valp(param0) = input
+            ip                += 2
 
         case 4:
             output = val(param0)
@@ -84,12 +87,12 @@ private func run(op: &Array's64, input: s64)->s64
             ip = !val(param0) ? val(param1) : ip + 3
 
         case 7:
-            val(param2) = val(param0) < val(param1) ? 1 : 0
-            ip          += 4
+            dref valp(param2) = val(param0) < val(param1) ? 1 : 0
+            ip                += 4
 
         case 8:
-            val(param2) = val(param0) == val(param1) ? 1 : 0
-            ip          += 4
+            dref valp(param2) = val(param0) == val(param1) ? 1 : 0
+            ip                += 4
 
         case 9:
             base += val(param0)

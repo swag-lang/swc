@@ -40,7 +40,7 @@ struct(T) Vector3
 
 impl Vector3
 {
-    func dot(a: const &Vector3'T, b: const &Vector3'T)->T
+    func dot(a: Vector3'T, b: Vector3'T)->T
     {
         return a.x * b.x + a.y * b.y + a.z * b.z
     }

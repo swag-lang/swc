@@ -51,8 +51,6 @@ namespace
             case TokenId::KwdConst:
             case TokenId::ModifierNullable:
             case TokenId::SymAsterisk:
-            case TokenId::SymAmpersand:
-            case TokenId::SymAmpersandAmpersand:
             case TokenId::SymLeftBracket:
                 return true;
 
@@ -962,7 +960,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdStruct:
         case TokenId::KwdUnion:
         case TokenId::SymAsterisk:
-        case TokenId::SymAmpersand:
         case TokenId::ModifierNullable:
             return parseType();
 

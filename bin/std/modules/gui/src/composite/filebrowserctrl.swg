@@ -249,7 +249,7 @@ private impl FileBrowserCtrl
         for &v in volumes
         {
             v.removeBack()
-            var icon = .app().directoryIcon(v, true)
+            var icon = .app().directoryIcon(v.toString(), true)
             icon.color = Pixel.Argb.White
             .addLocationLine(v.toString(), v.toString(), icon)
         }
@@ -415,7 +415,7 @@ private impl FileBrowserCtrl
                     }
                     else
                     {
-                        if .options.mode == .SelectFolder do
+                        if fileBrowser.options.mode == .SelectFolder do
                             continue
                     }
 
@@ -984,7 +984,7 @@ impl FileBrowserCtrl
             return paths.count == 1 and File.exists(paths[0])
 
         case .SelectFiles:
-            for path in paths where !File.exists(path) do
+            for path in paths where !File.exists(path.toString()) do
                 return false
             return true
 

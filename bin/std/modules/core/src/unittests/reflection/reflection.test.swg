@@ -33,7 +33,7 @@ impl ReflectionProbe
     }
 }
 
-alias ReflectionProbePingFn = func(&ReflectionProbe)->s32
+alias ReflectionProbePingFn = func(*ReflectionProbe)->s32
 
 struct PodProbe
 {
@@ -125,7 +125,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     if method.name != "ping" or
        pointedType.kind != .Func or
        @countof(methodType.parameters) != 1 or
-       methodType.parameters![0].pointedType != #type &ReflectionProbe or
+       methodType.parameters![0].pointedType != #type *ReflectionProbe or
        methodType.returnType != s32 or
        method.value == null or
        Reflection.findMethod(type, "visitMacro") != null do

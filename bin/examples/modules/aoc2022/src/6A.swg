@@ -34,9 +34,9 @@ using Core
 
 func day6A()
 {
-    let dataPath     = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
-    let lines        = expect File.readAllLines(dataPath)
-    let str: &String = &lines[0]
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
+    let lines    = expect File.readAllLines(dataPath)
+    let str      = &lines[0]
 
     for i in 0 to str.length - 4
     {

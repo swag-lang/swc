@@ -3,7 +3,7 @@
 /**
 # Borrowing
 
-A **view** is a value that reads storage it does not own: a pointer, a reference, a
+A **view** is a value that reads storage it does not own: a pointer, a
 slice, a 'string', an 'any', an interface, a closure capturing by address. Swag has one
 rule about views, and the compiler enforces it on every program:
 

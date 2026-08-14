@@ -25,7 +25,7 @@ func day9B()
 
     for l in lines
     {
-        discard r.match(l)
+        discard r.match(dref l)
         town.add(r[1], town.count, updateValue: false)
         town.add(r[2], town.count, updateValue: false)
         dist.add(town.find(r[1]).value << 32 | town.find(r[2]).value, expect StrConv.toU64(r[3]))

@@ -38,7 +38,7 @@ struct SemaInlinePayload
     // Declared '#code' parameter names of the callee ('stmt: #code(v, dbl)'), in slot
     // order. Fallback names for slots with no call-site alias/binder, and the naming
     // contract for '#inject' value bindings. Bit k of the mask: parameter k is 'var'.
-    // When a parameter is typed ('#code(line: &String)'), its type node (owned by
+    // When a parameter is typed ('#code(line: *String)'), its type node (owned by
     // codeParamSourceAst) types the synthesized binding declaration.
     SmallVector2<IdentifierRef> codeParamNames;
     SmallVector2<AstNodeRef>    codeParamTypeNodes;

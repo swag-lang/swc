@@ -30,7 +30,7 @@ impl Complex
     //   (a+bi) + (c+di) = (a+c) + (b+d)i
     //   (a+bi) - (c+di) = (a-c) + (b-d)i
     //   (a+bi) * (c+di) = (ac-bd) + (ad+bc)i
-    func(op: Swag.Operator) opBinary(const me, other: const &Complex'T)->Complex'T
+    func(op: Swag.Operator) opBinary(const me, other: Complex'T)->Complex'T
         where op == .Add or op == .Sub or op == .Mul
     {
         #static switch op

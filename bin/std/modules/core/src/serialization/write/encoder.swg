@@ -252,7 +252,7 @@ impl Encoder
             let itf = @mkinterface(data, type, ISerialize)
             if itf != null
             {
-                if itf.write(cast(IEncoder) dref &me) do
+                if itf.write(cast(IEncoder) dref me) do
                     return
             }
 
@@ -269,7 +269,7 @@ impl Encoder
             let plan = planFor(structType)
             for &pf in plan.fields
             {
-                if !itf or !itf.writeElement(pf.value, cast(#null const [*] u8) data + pf.value.offset, cast(IEncoder) dref &me)
+                if !itf or !itf.writeElement(pf.value, cast(#null const [*] u8) data + pf.value.offset, cast(IEncoder) dref me)
                 {
                     .writeTypeValue(pf.value, cast(#null const [*] u8) data + pf.value.offset)
                 }

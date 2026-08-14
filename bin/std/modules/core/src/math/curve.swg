@@ -349,7 +349,7 @@ impl Curve
     //
     // The table is built once, before any application code runs, and never changes afterwards, so
     // an evaluator that only reads a preset neither owns a curve nor rebuilds one.
-    func shared(preset: CurvePreset)->const &Curve => &g_CurvePresets[preset]
+    func shared(preset: CurvePreset)->const *Curve => &g_CurvePresets[preset]
 
     // Returns the curve of the `cubic-bezier(x1, y1, x2, y2)` form used by style sheets.
     //

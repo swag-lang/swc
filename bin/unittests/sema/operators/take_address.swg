@@ -2,9 +2,9 @@
 
 func functionAddressAsPointer()->s32 => 0
 
-func functionAddressReturnedReference(value: &s32)->&s32
+func functionAddressReturnedReference(value: *s32)->*s32
 {
-    return &value
+    return value
 }
 
 func semaTest001()
@@ -89,27 +89,27 @@ func semaTest009()
 
 func semaTest010()
 {
-    func refPtr(x: &s32)->*s32
+    func refPtr(x: *s32)->*s32
     {
-        let p = &x
+        let p = x
         #assert(#typeof(p) == *s32)
         return p
     }
 
-    func constRefPtr(x: const &s32)->const *s32
+    func constRefPtr(x: s32)->s32
     {
-        let p = &x
-        #assert(#typeof(p) == const *s32)
+        let p = x
+        #assert(#typeof(p) == s32)
         return p
     }
 
     var x: s32
-    var r: &s32 = &x
-    let p       = &r
+    var r: *s32 = &x
+    let p       = r
     #assert(#typeof(p) == *s32)
 
-    var cr: const &s32 = &x
-    let cp             = &cr
+    var cr: const *s32 = &x
+    let cp             = cr
     #assert(#typeof(cp) == const *s32)
 }
 
@@ -129,6 +129,6 @@ func semaTest012()
     #assert(#typeof(p) == const *void)
 
     var value: s32
-    let rp = &functionAddressReturnedReference(&value)
+    let rp = functionAddressReturnedReference(&value)
     #assert(#typeof(rp) == *s32)
 }

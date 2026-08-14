@@ -22,7 +22,7 @@ func day4B()
     var total = 0
     for l in lines
     {
-        let s = Tokenize.split(l, " ")
+        let s = Tokenize.split(dref l, " ")
 
         // The set owns its keys: 'str' is rebuilt on every word and released with the
         // iteration, so a set of views would be left pointing at freed buffers.

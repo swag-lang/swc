@@ -376,9 +376,12 @@ namespace
         const SymbolVariable&    valueSym     = symbols[0]->cast<SymbolVariable>();
         const CodeGenNodePayload valuePayload = resolveForeachVariablePayload(codeGen, valueSym);
 
-        // Struct elements bind through a const reference: like the '&name' form, the
+        // Struct elements bind through their const address: like the '&name' form, the
         // binding stores the element address (no copy, no per-iteration lifecycle).
+        // Sema marks that decision with BindsValueAddress when it synthesizes the
+        // pointer-typed binding.
         const bool bindsElementAddress = node.hasFlag(AstForeachStmtFlagsE::ByAddress) ||
+                                         node.hasFlag(AstForeachStmtFlagsE::BindsValueAddress) ||
                                          codeGen.typeMgr().get(valueSym.typeRef()).isReference();
         if (bindsElementAddress)
         {

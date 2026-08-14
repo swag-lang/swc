@@ -238,11 +238,15 @@ namespace
         SWC_ASSERT(rightSym != nullptr);
         if (!rightSym)
             return Result::Error;
-        const auto& semaSymVar  = rightSym->cast<SymbolVariable>();
-        TypeRef     leftTypeRef = leftPayload.effectiveTypeRef(leftTypeView.typeRef());
-        leftTypeRef             = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, leftTypeRef);
+        const auto&   semaSymVar         = rightSym->cast<SymbolVariable>();
+        const TypeRef preOverrideTypeRef = leftPayload.effectiveTypeRef(leftTypeView.typeRef());
+        TypeRef       leftTypeRef        = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, preOverrideTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
+        // The receiver override above resolves the concrete struct for FIELD lookup, but the
+        // payload still carries the receiver's indirection: a pointer receiver dereferences.
+        const TypeInfo& preOverrideInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, preOverrideTypeRef));
+        const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : preOverrideInfo;
 
         // Runtime member accesses inside generic instances must use the field symbol of the active
         // specialization. Reusing the root generic field leaks stale offsets and field types into
@@ -259,7 +263,7 @@ namespace
             resolveStructMemberPath(codeGen, leftTypeRef, symVar, usingPath);
 
         MicroReg baseAddressReg = leftPayload.reg;
-        if (leftTypeInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())
+        if (indirectionInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())
         {
             // Member access through a pointer/reference or `typeinfo` works on the pointee object, not
             // on the storage that currently holds that pointer value.
@@ -271,7 +275,7 @@ namespace
 
             // One indirection per layer beyond the first: a reference bound to a pointer
             // slot yields the slot address, and the slot yields the object.
-            for (uint32_t remaining = memberAccessDerefDepth(codeGen, leftTypeInfo); remaining > 1; --remaining)
+            for (uint32_t remaining = memberAccessDerefDepth(codeGen, indirectionInfo); remaining > 1; --remaining)
             {
                 const MicroReg nextReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(nextReg, baseAddressReg, 0, MicroOpBits::B64);

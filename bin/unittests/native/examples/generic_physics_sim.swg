@@ -22,7 +22,7 @@ impl Vec2
         return {x: -me.x, y: -me.y}
     }
 
-    func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
+    func(op: Swag.Operator) opBinary(const me, other: Vec2)->Vec2
         where op == .Add or op == .Sub or op == .Mul
     {
         #static switch op
@@ -53,7 +53,7 @@ impl Vec2
         }
     }
 
-    func dot(a: const &Vec2, b: const &Vec2)->T
+    func dot(a: Vec2, b: Vec2)->T
     {
         return a.x * b.x + a.y * b.y
     }
@@ -63,24 +63,24 @@ impl Vec2
         return me.x * me.x + me.y * me.y
     }
 
-    func lerp(a: const &Vec2, b: const &Vec2, t: T)->Vec2
+    func lerp(a: Vec2, b: Vec2, t: T)->Vec2
     {
         let one: T = 1
         return {x: a.x * (one - t) + b.x * t,
                 y: a.y * (one - t) + b.y * t}
     }
 
-    func min(a: const &Vec2, b: const &Vec2)->Vec2
+    func min(a: Vec2, b: Vec2)->Vec2
     {
         return {x: @min(a.x, b.x), y: @min(a.y, b.y)}
     }
 
-    func max(a: const &Vec2, b: const &Vec2)->Vec2
+    func max(a: Vec2, b: Vec2)->Vec2
     {
         return {x: @max(a.x, b.x), y: @max(a.y, b.y)}
     }
 
-    func clamp(v: const &Vec2, lo: const &Vec2, hi: const &Vec2)->Vec2
+    func clamp(v: Vec2, lo: Vec2, hi: Vec2)->Vec2
     {
         return {x: @min(@max(v.x, lo.x), hi.x),
                 y: @min(@max(v.y, lo.y), hi.y)}
@@ -113,13 +113,13 @@ impl AABB
         return {x: me.width() / 2, y: me.height() / 2}
     }
 
-    func contains(const me, point: const &Vec2)->bool
+    func contains(const me, point: Vec2)->bool
     {
         return point.x >= me.lo.x and point.x <= me.hi.x and
                point.y >= me.lo.y and point.y <= me.hi.y
     }
 
-    func overlaps(const me, other: const &AABB)->bool
+    func overlaps(const me, other: AABB)->bool
     {
         return me.lo.x <= other.hi.x and me.hi.x >= other.lo.x and
                me.lo.y <= other.hi.y and me.hi.y >= other.lo.y
@@ -131,13 +131,13 @@ impl AABB
                 hi: {x: me.hi.x + margin, y: me.hi.y + margin}}
     }
 
-    func merge(a: const &AABB, b: const &AABB)->AABB
+    func merge(a: AABB, b: AABB)->AABB
     {
         return {lo: Vec2.min(&a.lo, &b.lo),
                 hi: Vec2.max(&a.hi, &b.hi)}
     }
 
-    func(op: Swag.Operator) opBinary(const me, offset: const &Vec2)->AABB
+    func(op: Swag.Operator) opBinary(const me, offset: Vec2)->AABB
         where op == .Add or op == .Sub
     {
         #static switch op
@@ -180,7 +180,7 @@ impl Particle
         return {pos: newPos, vel: newVel, acc: me.acc, mass: me.mass}
     }
 
-    func applyForce(const me, force: const &Vec2)->Particle
+    func applyForce(const me, force: Vec2)->Particle
     {
         let newAcc = me.acc + force * (1 / me.mass)
         return {pos: me.pos, vel: me.vel, acc: newAcc, mass: me.mass}

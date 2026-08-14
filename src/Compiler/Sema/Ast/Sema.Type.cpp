@@ -249,15 +249,6 @@ Result AstBlockPointerType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstReferenceType::semaPostNode(Sema& sema) const
-{
-    const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
-    const TypeInfo     ty      = TypeInfo::makeReference(view.typeRef());
-    const TypeRef      typeRef = sema.typeMgr().addType(ty);
-    sema.setType(sema.curNodeRef(), typeRef);
-    return Result::Continue;
-}
-
 Result AstMoveRefType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
@@ -305,7 +296,6 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::Array:
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
-            case TypeInfoKind::Reference:
             case TypeInfoKind::MoveReference:
             case TypeInfoKind::Slice:
             case TypeInfoKind::CString:
@@ -357,9 +347,6 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             break;
         case TypeInfoKind::BlockPointer:
             typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(qualifiedType.payloadTypeRef(), typeFlags));
-            break;
-        case TypeInfoKind::Reference:
-            typeRef = typeMgr.addType(TypeInfo::makeReference(qualifiedType.payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::MoveReference:
             typeRef = typeMgr.addType(TypeInfo::makeMoveReference(qualifiedType.payloadTypeRef(), typeFlags));

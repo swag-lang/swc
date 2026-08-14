@@ -23,7 +23,7 @@ impl Vec2
         return {x: -me.x, y: -me.y}
     }
 
-    func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
+    func(op: Swag.Operator) opBinary(const me, other: Vec2)->Vec2
         where op == .Add or op == .Sub
     {
         #static switch op
@@ -43,7 +43,7 @@ impl Vec2
         return {x: me.x * scalar, y: me.y * scalar}
     }
 
-    func dot(a: const &Vec2, b: const &Vec2)->T
+    func dot(a: Vec2, b: Vec2)->T
     {
         return a.x * b.x + a.y * b.y
     }
@@ -114,7 +114,7 @@ impl Mat2
     }
 
     // Linear transform: M * v
-    func transform(const me, v: const &Vec2)->Vec2
+    func transform(const me, v: Vec2)->Vec2
     {
         return {x: me.a * v.x + me.b * v.y,
                 y: me.c * v.x + me.d * v.y}
@@ -127,7 +127,7 @@ impl Mat2
     }
 
     // Mat2 +/- Mat2, Mat2 * Mat2
-    func(op: Swag.Operator) opBinary(const me, other: const &Mat2)->Mat2
+    func(op: Swag.Operator) opBinary(const me, other: Mat2)->Mat2
         where op == .Add or op == .Sub or op == .Mul
     {
         #static switch op
@@ -158,19 +158,19 @@ impl Mat2
     }
 
     // Build from column vectors
-    func fromCols(c0: const &Vec2, c1: const &Vec2)->Mat2
+    func fromCols(c0: Vec2, c1: Vec2)->Mat2
     {
         return {a: c0.x, b: c1.x, c: c0.y, d: c1.y}
     }
 
     // Build from row vectors
-    func fromRows(r0: const &Vec2, r1: const &Vec2)->Mat2
+    func fromRows(r0: Vec2, r1: Vec2)->Mat2
     {
         return {a: r0.x, b: r0.y, c: r1.x, d: r1.y}
     }
 
     // Outer product: v * w^T
-    func outer(v: const &Vec2, w: const &Vec2)->Mat2
+    func outer(v: Vec2, w: Vec2)->Mat2
     {
         return {a: v.x * w.x, b: v.x * w.y,
                 c: v.y * w.x, d: v.y * w.y}
@@ -203,14 +203,14 @@ impl AffineMap
         return {mat: {a: sx, b: zx, c: zy, d: sy}, offset: {x: zx, y: zy}}
     }
 
-    func apply(const me, p: const &Vec2)->Vec2
+    func apply(const me, p: Vec2)->Vec2
     {
         let transformed = me.mat.transform(p)
         return transformed + me.offset
     }
 
     // Compose: (A after B).  apply(compose(a, b), p) == apply(a, apply(b, p))
-    func compose(a: const &AffineMap, b: const &AffineMap)->AffineMap
+    func compose(a: AffineMap, b: AffineMap)->AffineMap
     {
         let newMat     = a.mat * b.mat
         let rotatedOff = a.mat.transform(&b.offset)

@@ -58,7 +58,7 @@ impl CollMutVec
         for idx in me.count
         {
             #static if ptr do
-                #inject(stmt, item = cast(&s32) &me.buffer[idx], index = idx)
+                #inject(stmt, item = cast(*s32) &me.buffer[idx], index = idx)
             else do
                 #inject(stmt, item = me.buffer[idx], index = idx)
         }
@@ -85,7 +85,7 @@ func collMutRemoveDuringIter()
     v.add(2)
     for &x in v
     {
-        x += 1
+        dref x += 1
         v.remove()     // swc-expected-error {{sanity_err_collection_mutated}}
     }
 }

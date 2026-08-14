@@ -3,10 +3,10 @@
 /**
 # The 'any' Type in Swag
 
-'any' is a dynamically typed reference that can point to a value of any concrete type.
+'any' is a dynamically typed view that can point to a value of any concrete type.
 
 > WARNING:
-> 'any' is **not** a variant. It holds a reference to an existing value plus its runtime type
+> 'any' is **not** a variant. It holds the address of an existing value plus its runtime type
 > info. Assigning to an 'any' never copies the value, so an 'any' is a view for the purposes
 > of the borrow rules, and must not outlive the storage it refers to. See the 'Borrowing'
 > section.
@@ -45,8 +45,8 @@ Use '@dataof' to access a pointer to the underlying value stored inside 'any'.
 /**
 # Type Information and 'any'
 
-'#typeof' on an 'any' yields 'any' (the reference type).
-Use '@kindof' to get the concrete runtime type of the referenced value.
+'#typeof' on an 'any' yields 'any' (the type of the view itself).
+Use '@kindof' to get the concrete runtime type of the viewed value.
 */
 
 #test
@@ -62,7 +62,7 @@ Use '@kindof' to get the concrete runtime type of the referenced value.
 /**
 # Retrieving Values from 'any'
 
-You can retrieve the stored value directly or as a constant reference.
+You can retrieve the stored value directly or through a constant pointer.
 */
 
 #test
@@ -74,9 +74,7 @@ You can retrieve the stored value directly or as a constant reference.
     let b = cast(s32) a     // Get the value itself
     @assert(b == 42)
 
-    let c = cast(const &s32) a     // Get a constant reference to the value
     let d = cast(const *s32) a     // Get a constant pointer to the value
-    @assert(c == 42)
     @assert(dref d == 42)
 }
 

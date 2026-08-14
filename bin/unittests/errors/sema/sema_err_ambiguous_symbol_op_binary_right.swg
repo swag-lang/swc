@@ -12,7 +12,7 @@ struct AmbiguousBinaryRight
 
 impl AmbiguousBinaryLeft
 {
-    mtd(op: Swag.Operator) const opBinary(other: const &AmbiguousBinaryRight)->AmbiguousBinaryLeft
+    mtd(op: Swag.Operator) const opBinary(other: AmbiguousBinaryRight)->AmbiguousBinaryLeft
     {
         return {value: .value + other.value}
     }
@@ -20,7 +20,7 @@ impl AmbiguousBinaryLeft
 
 impl AmbiguousBinaryRight
 {
-    mtd(op: Swag.Operator) const opBinaryRight(other: const &AmbiguousBinaryLeft)->AmbiguousBinaryRight
+    mtd(op: Swag.Operator) const opBinaryRight(other: AmbiguousBinaryLeft)->AmbiguousBinaryRight
     {
         return {value: other.value + .value}
     }

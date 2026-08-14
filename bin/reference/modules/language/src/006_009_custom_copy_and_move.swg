@@ -89,10 +89,10 @@ concerned: the source is reset to its defaults, which is defined behavior.
 # Move Semantics in Functions
 
 Move semantics can be expressed in function parameters by prefixing the parameter type with '#move'.
-At the call site, prefix the argument with '#move' to pass it as a move reference.
+At the call site, prefix the argument with '#move' to hand the value over instead of copying it.
 
 A '#move' parameter also accepts a plain (copyable) value: the compiler then materializes a
-temporary copy at the call site and passes it as the move reference. A single '#move' function
+temporary copy at the call site and moves from that temporary. A single '#move' function
 therefore serves both call styles — including through lambdas, function pointers and interface
 methods — at the price of one extra copy on the copy path. This works for structs, for plain
 scalar values (integers, floats, bool, rune, enums), and for untyped literals alike.
@@ -100,7 +100,7 @@ scalar values (integers, floats, bool, rune, enums), and for untyped literals al
 Conversely, an explicit '#move' argument is always honored. Passed to a '#move' parameter, it
 is the zero-cost transfer above. Passed to a BY-VALUE parameter, the source is moved into a
 call-site temporary that the callee borrows: the caller drops the temporary right after the
-call, and the source is consumed. Passed to a reference or pointer parameter, it is a
+call, and the source is consumed. Passed to a pointer parameter, it is a
 compile-time error — the transfer would be silently ignored. On by-value scalars, '#move' is
 accepted and equivalent to a plain pass.
 
@@ -119,9 +119,9 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
 #test
 {
     // One declaration, two variants: 'assign(&v, x)' copies, 'assign(&v, #move x)' moves.
-    func assign(assignTo: &Vector3, from: #fwd Vector3)
+    func assign(assignTo: *Vector3, from: #fwd Vector3)
     {
-        assignTo = #fwd from
+        dref assignTo = #fwd from
     }
 
     var a = Vector3{1, 2, 3}
@@ -132,7 +132,7 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
     @assert(b.x == 2 and b.y == 3 and b.z == 4)     // +1 via 'opPostCopy'.
     @assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
 
-    // Move path: '#move' passes 'a' as a move reference.
+    // Move path: '#move' transfers 'a' into the parameter.
     assign(&b, #move a)
     @assert(b.x == 3 and b.y == 4 and b.z == 5)           // +2 via 'opPostMove'.
     @assert(a.x == 666 and a.y == 666 and a.z == 666)     // 'a' reset to defaults after move.
@@ -142,9 +142,9 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
 {
     // A single '#move' function also accepts both call styles: a plain argument is
     // copied into a call-site temporary, then moved from it.
-    func assign(assignTo: &Vector3, from: #move Vector3)
+    func assign(assignTo: *Vector3, from: #move Vector3)
     {
-        assignTo = #move from
+        dref assignTo = #move from
     }
 
     var a = Vector3{1, 2, 3}

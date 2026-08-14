@@ -67,7 +67,7 @@ func splitLines(src: string)->Array'(string)
     return result
 }
 
-private func addSplitPart(result: &Array'(string), value: string, removeEmpty: bool)
+private func addSplitPart(result: *Array'(string), value: string, removeEmpty: bool)
 {
     if removeEmpty and !@countof(value) do
         return

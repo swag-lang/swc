@@ -34,7 +34,7 @@ impl ShelfBins
 {
     mtd const reversed()->ReversedShelfBins
     {
-        return {source: &me}
+        return {source: me}
     }
 
     #[Swag.Macro]
@@ -43,10 +43,10 @@ impl ShelfBins
         #static if ptr
         {
 
-            #inject(stmt, item = cast(&s32) &(me.morning), index = 0'u64)
-            #inject(stmt, item = cast(&s32) &(me.lunch), index = 1'u64)
-            #inject(stmt, item = cast(&s32) &(me.afternoon), index = 2'u64)
-            #inject(stmt, item = cast(&s32) &(me.evening), index = 3'u64)
+            #inject(stmt, item = cast(*s32) &(me.morning), index = 0'u64)
+            #inject(stmt, item = cast(*s32) &(me.lunch), index = 1'u64)
+            #inject(stmt, item = cast(*s32) &(me.afternoon), index = 2'u64)
+            #inject(stmt, item = cast(*s32) &(me.evening), index = 3'u64)
         }
         else
         {
@@ -115,7 +115,7 @@ func reverseCode(bins: ShelfBins)->s32
     for &writeUnits, slot in bins
     {
         if slot != 1'u64 do
-            writeUnits += 3 + cast(s32) slot
+            dref writeUnits += 3 + cast(s32) slot
     }
 
     @assert(bins.morning == 5)

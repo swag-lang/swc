@@ -107,11 +107,11 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     discard catch validateStrings'TestStrings("helo Bonjour\n") as err
     @assert(err != null)
     @assert(err is Core.Errors.SyntaxError)
-    @assert((cast(const &Core.Errors.SyntaxError) err).line == 1)
+    @assert((cast(const *Core.Errors.SyntaxError) err).line == 1)
 
     discard catch validateStrings'TestStrings("hello ok\n1bad value\n") as err2
     @assert(err2 != null)
-    @assert((cast(const &Core.Errors.SyntaxError) err2).line == 2)
+    @assert((cast(const *Core.Errors.SyntaxError) err2).line == 2)
 }
 
 // A theme sheet drives colors, metrics, and atlas rects, with '$' references.

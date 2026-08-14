@@ -28,14 +28,14 @@ struct RuntimeRefIndexBox
 impl RuntimeRefIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32)->&s32
+    mtd opIndexPtr(index: s32)->*s32
     {
         .reads += 1
         return &.buffer[index]
     }
 
     #[Swag.NoInline]
-    mtd const opIndex(index: s32)->const &s32
+    mtd const opIndexPtr(index: s32)->const *s32
     {
         return &.buffer[index]
     }
@@ -190,12 +190,12 @@ func readRuntimeIndexedSlot(holder: *RuntimeIndexedHolder, slot: RuntimeIndexedS
     return holder.state.values[slot]
 }
 
-func readStrictRuntimeIndexedSlot(values: const &[RuntimeIndexedSlot] bool, slot: StrictRuntimeIndexedSlot)->bool
+func readStrictRuntimeIndexedSlot(values: [RuntimeIndexedSlot] bool, slot: StrictRuntimeIndexedSlot)->bool
 {
     return values[slot]
 }
 
-func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideIndexedSlot)->bool
+func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot)->bool
 {
     return values[cast(u64) slot]
 }

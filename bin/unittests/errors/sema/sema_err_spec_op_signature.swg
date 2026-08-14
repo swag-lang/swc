@@ -23,6 +23,8 @@ impl GenericMissingConstUnaryMe
 struct BadMultiIndexGet {}
 struct BadMultiIndexSet {}
 struct BadMultiIndexAssign {}
+struct BadIndexPtrValueReturn {}
+struct BadIndexPtrNullableReturn {}
 
 impl BadMultiIndexGet
 {
@@ -37,6 +39,17 @@ impl BadMultiIndexSet
 impl BadMultiIndexAssign
 {
     mtd(op: Swag.Operator) opIndexAssign(row: s32, col: u32, value: s32) {}     // swc-expected-error {{sema_err_spec_op_signature}}
+}
+
+// 'opIndexPtr' must hand back a non-null single-value pointer: the element's address.
+impl BadIndexPtrValueReturn
+{
+    mtd opIndexPtr(index: u64)->s32 { return 0 }     // swc-expected-error {{sema_err_spec_op_signature}}
+}
+
+impl BadIndexPtrNullableReturn
+{
+    mtd opIndexPtr(index: u64)->#null *s32 { return null }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 #test

@@ -945,6 +945,11 @@ impl Volume
         .scalarsDirty = false
     }
 
+    mtd hasPendingChanges()->bool
+    {
+        return .touched.count != 0 or .removed.count != 0 or .scalarsDirty
+    }
+
     // Makes every pending change durable.
     //
     // The common path appends one journal record, which is a single small write
@@ -956,7 +961,7 @@ impl Volume
         try .requireWritable()
         if !.dirty do
             return
-        if !.touched.count and !.removed.count and !.scalarsDirty do
+        if !.hasPendingChanges() do
             return .checkpoint()
         if .sequence - .checkpointAt >= JournalCapacity do
             return .checkpoint()
@@ -1062,6 +1067,18 @@ impl Volume
     {
         let id = .nodeLookup.childId(parentId, name)
         return id != Swag.U64.Max ? .nodeById(id) : null
+    }
+
+    mtd firstChild(parentId: u64)->#null *Node
+    {
+        let id = .nodeLookup.firstChildId(parentId)
+        return id ? .nodeById(id) : null
+    }
+
+    mtd nextSibling(id: u64)->#null *Node
+    {
+        let nextId = .nodeLookup.nextSiblingId(id)
+        return nextId ? .nodeById(nextId) : null
     }
 
     mtd resolve(path: string)->#null *Node
@@ -1299,7 +1316,10 @@ impl Volume
         return cast(u32) count
     }
 
-    mtd createNode(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
+    // Creates an in-memory node and leaves its journal commit to the caller.
+    // The WinFsp lifecycle uses this to combine create, initial writes, and
+    // cleanup metadata into one durable record.
+    mtd createNodePending(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
     {
         try .requireWritable()
         let {parent, name} = .resolveParent(path)
@@ -1333,6 +1353,13 @@ impl Volume
         Debug.assert(indexed)
         .touch(result)
         .scalarsDirty = true
+        return result
+    }
+
+    // Creates one node as a complete durable volume operation.
+    mtd createNode(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
+    {
+        let result = try .createNodePending(path, directory, attributes, security)
         .commit()
         return result
     }

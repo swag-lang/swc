@@ -7,11 +7,24 @@ func childIndexKey(parentId: u64, name: string)->String
     return Format.toString("%:%", parentId, folded)
 }
 
+struct NodeIndexChildList
+{
+    firstId: u64
+    lastId:  u64
+}
+
+struct NodeIndexSiblingLinks
+{
+    previousId: u64
+    nextId:     u64
+}
+
 struct NodeIndex
 {
-    byId:        HashTable'(u64, u64)
-    byParent:    HashTable'(String, u64)
-    childCounts: HashTable'(u64, u64)
+    byId:       HashTable'(u64, u64)
+    byParent:   HashTable'(String, u64)
+    childLists: HashTable'(u64, NodeIndexChildList)
+    siblings:   HashTable'(u64, NodeIndexSiblingLinks)
 }
 
 impl NodeIndex
@@ -26,8 +39,20 @@ impl NodeIndex
             if .byParent.contains(key) do
                 return false
             .byParent.add(#move key, node.id)
-            let count = .childCounts.findOrAdd(node.parentId)
-            count.value += 1
+
+            let children = .childLists.findOrAdd(node.parentId)
+            var links: NodeIndexSiblingLinks
+            links.previousId = children.value.lastId
+            if children.value.lastId
+            {
+                let previous = .siblings.tryFind(children.value.lastId)
+                Debug.assert(previous != null)
+                previous!.value.nextId = node.id
+            }
+            else do
+                children.value.firstId = node.id
+            children.value.lastId = node.id
+            .siblings.add(node.id, links)
         }
 
         .byId.add(node.id, index)
@@ -41,13 +66,33 @@ impl NodeIndex
             return
 
         .byParent.remove(childIndexKey(node.parentId, node.name.toString()))
-        let count = .childCounts.tryFind(node.parentId)
-        if !count do
-            return
-        Debug.assert(count!.value != 0)
-        count.value -= 1
-        if !count.value do
-            .childCounts.remove(node.parentId)
+        let links    = .siblings.tryFind(node.id)
+        let children = .childLists.tryFind(node.parentId)
+        Debug.assert(links != null and children != null)
+
+        let previousId = links!.value.previousId
+        let nextId     = links!.value.nextId
+        if previousId
+        {
+            let previous = .siblings.tryFind(previousId)
+            Debug.assert(previous != null)
+            previous!.value.nextId = nextId
+        }
+        else do
+            children!.value.firstId = nextId
+
+        if nextId
+        {
+            let next = .siblings.tryFind(nextId)
+            Debug.assert(next != null)
+            next!.value.previousId = previousId
+        }
+        else do
+            children!.value.lastId = previousId
+
+        .siblings.remove(node.id)
+        if !children!.value.firstId do
+            .childLists.remove(node.parentId)
     }
 
     mtd updateNodePosition(nodeId, index: u64)
@@ -71,8 +116,19 @@ impl NodeIndex
 
     mtd hasChildren(id: u64)->bool
     {
-        let entry = .childCounts.tryFind(id)
-        return entry != null and entry!.value != 0
+        return .firstChildId(id) != 0
+    }
+
+    mtd firstChildId(parentId: u64)->u64
+    {
+        let entry = .childLists.tryFind(parentId)
+        return entry ? entry!.value.firstId : 0
+    }
+
+    mtd nextSiblingId(id: u64)->u64
+    {
+        let entry = .siblings.tryFind(id)
+        return entry ? entry!.value.nextId : 0
     }
 
     mtd changeParent(node: *Node, parentId: u64, name: string)->bool

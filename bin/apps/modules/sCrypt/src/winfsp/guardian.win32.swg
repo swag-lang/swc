@@ -218,7 +218,7 @@ namespace WinFsp
         if result < 0
         {
             endWinFspLog(logHandle)
-            failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%", Format.toString("%{X}", cast(u32) result), winFspLogDetail()))
+            failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%", Format.toString("%{X}", statusBits(result)), winFspLogDetail()))
         }
 
         g_WinFsp.registered = true
@@ -228,7 +228,7 @@ namespace WinFsp
         traceWinFspStage("FspFsctlStartService returned")
         endWinFspLog(logHandle)
         if startStatus < 0 do
-            failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%", cast(u32) startStatus, winFspLogDetail()))
+            failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%", statusBits(startStatus), winFspLogDetail()))
     }
 }
 

@@ -6,12 +6,15 @@ using Core
 struct DirectoryCapture
 {
     names: Array'String
+    limit: u64     // Zero accepts every entry; a non-zero value models a full WinFsp buffer.
 }
 
 func captureDirectoryEntry(context: #null *void, name: #null const [*] u8, info: const *WinFsp.FileInfo)->u8
 {
     discard info
     let capture = cast(*DirectoryCapture) context!
+    if capture.limit and capture.names.count >= capture.limit do
+        return 0
     capture.names.add(WinFsp.cString(name))
     return 1
 }
@@ -31,6 +34,7 @@ func statusForError(kind: ErrorKind)->s32
 
 #test
 {
+    @assert(WinFsp.statusBits(cast #bit (s32) 0x80070430'u32) == 0x80070430)
     @assert(statusForError(.InvalidInput) == WinFsp.StatusInvalidParameter)
     @assert(statusForError(.NotFound) == WinFsp.StatusObjectNameNotFound)
     @assert(statusForError(.AlreadyExists) == WinFsp.StatusObjectNameCollision)
@@ -63,14 +67,20 @@ func statusForError(kind: ErrorKind)->s32
     @assert(WinFsp.cString(&label[0]) == "sCrypt")
     @assert(WinFsp.callbackSetVolumeLabel(context, @dataof("Private")) == WinFsp.StatusSuccess)
 
-    var directoryId, fileId: u64
-    var info:                WinFsp.FileInfo
+    var directoryId, fileId, secondFileId, thirdFileId: u64
+    var info: WinFsp.FileInfo
+    let sequenceBeforeCreate = volume.sequence
     @assert(WinFsp.callbackCreate(context, @dataof("\\docs"), 1, FileAttributeDirectory, 0, null, 0, &directoryId, &info) == WinFsp.StatusSuccess)
     @assert(info.fileAttributes & FileAttributeDirectory)
+    @assert(volume.sequence == sequenceBeforeCreate and volume.hasPendingChanges())
+    WinFsp.callbackCleanup(context, directoryId, 0)
+    @assert(volume.sequence == sequenceBeforeCreate + 1 and !volume.hasPendingChanges())
 
     let security: [4] u8 = [10, 20, 30, 40]
     @assert(WinFsp.callbackCreate(context, @dataof("\\docs\\data.bin"), 0, FileAttributeNormal, 0, &security[0], #sizeof(security), &fileId, &info) == WinFsp.StatusSuccess)
     @assert(info.indexNumber == fileId and info.fileSize == 0)
+    @assert(WinFsp.callbackCreate(context, @dataof("\\docs\\second.bin"), 0, FileAttributeNormal, 0, null, 0, &secondFileId, &info) == WinFsp.StatusSuccess)
+    @assert(WinFsp.callbackCreate(context, @dataof("\\docs\\third.bin"), 0, FileAttributeNormal, 0, null, 0, &thirdFileId, &info) == WinFsp.StatusSuccess)
 
     var lookupId: u64
     @assert(WinFsp.callbackLookup(context, @dataof("\\DOCS\\DATA.BIN"), &lookupId, &info) == WinFsp.StatusSuccess)
@@ -126,6 +136,17 @@ func statusForError(kind: ErrorKind)->s32
     @assert(complete == 1 and captured(&childCapture, ".") and captured(&childCapture, "..") and captured(&childCapture, "data.bin"))
     @assert(WinFsp.callbackGetDirInfoByName(context, directoryId, @dataof("DATA.BIN"), &info) == WinFsp.StatusSuccess)
 
+    var firstPage: DirectoryCapture
+    firstPage.limit = 3
+    complete        = 0
+    @assert(WinFsp.callbackReadDirectory(context, directoryId, null, &captureDirectoryEntry, &firstPage, &complete) == WinFsp.StatusSuccess)
+    @assert(!complete and firstPage.names.count == 3 and firstPage.names[2] == "data.bin")
+
+    var secondPage: DirectoryCapture
+    complete = 0
+    @assert(WinFsp.callbackReadDirectory(context, directoryId, @dataof("data.bin"), &captureDirectoryEntry, &secondPage, &complete) == WinFsp.StatusSuccess)
+    @assert(complete and secondPage.names.count == 2 and secondPage.names[0] == "second.bin" and secondPage.names[1] == "third.bin")
+
     @assert(WinFsp.callbackCanDelete(context, directoryId) == WinFsp.StatusDirectoryNotEmpty)
     @assert(WinFsp.callbackCanDelete(context, 1) == WinFsp.StatusAccessDenied)
     @assert(WinFsp.callbackRead(context, directoryId, &destination[0], 0, 1, &transferred) == WinFsp.StatusFileIsDirectory)
@@ -134,6 +155,8 @@ func statusForError(kind: ErrorKind)->s32
 
     @assert(WinFsp.callbackRename(context, fileId, @dataof("\\docs\\data.bin"), @dataof("\\docs\\renamed.bin"), 0) == WinFsp.StatusSuccess)
     WinFsp.callbackCleanup(context, fileId, WinFsp.CleanupDelete)
+    WinFsp.callbackCleanup(context, secondFileId, WinFsp.CleanupDelete)
+    WinFsp.callbackCleanup(context, thirdFileId, WinFsp.CleanupDelete)
     @assert(WinFsp.callbackCanDelete(context, directoryId) == WinFsp.StatusSuccess)
     WinFsp.callbackCleanup(context, directoryId, WinFsp.CleanupDelete)
     volume.close()

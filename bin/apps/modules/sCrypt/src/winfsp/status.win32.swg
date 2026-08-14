@@ -22,6 +22,11 @@ namespace WinFsp
     const StatusNotADirectory       = cast #bit (s32) 0xC0000103'u32
     const StatusIoDeviceError       = cast #bit (s32) 0xC0000185'u32
 
+    // HRESULT and NTSTATUS values use the high bit to mark failure. Formatting
+    // that signed ABI value as hexadecimal must preserve its bits rather than
+    // perform a checked numeric conversion to an unsigned integer.
+    func statusBits(status: s32)->u32 => cast #bit (u32) status
+
     func statusFromError(err: #null any, fallback = StatusIoDeviceError)->s32
     {
         switch err

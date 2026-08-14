@@ -103,7 +103,7 @@ namespace WinFsp
         var securityBytes = @mkslice(cast(const [*] u8) @dataof(""), 0)
         if securitySize do
             securityBytes = @mkslice(cast(const [*] u8) security!, securitySize)
-        let id = catch volume.createNode(name, directory != 0, attributes, securityBytes) as err
+        let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) as err
         if err != null do
             return statusFromError(err)
         dref nodeId = id
@@ -160,11 +160,15 @@ namespace WinFsp
             node.lastWriteTime = now
         if (flags & CleanupSetChangeTime) != 0 do
             node.changeTime = now
-        if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit | CleanupSetLastAccessTime | CleanupSetLastWriteTime | CleanupSetChangeTime)) != 0
-        {
+        if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit | CleanupSetLastAccessTime | CleanupSetLastWriteTime | CleanupSetChangeTime)) != 0 do
             volume.touch(nodeId)
+
+        // A create is intentionally pending until cleanup so its initial data
+        // and timestamps share one journal record. Cleanup has no result
+        // channel, just as before, so an explicit Flush remains the path that
+        // reports a durability failure to Windows.
+        if volume.hasPendingChanges() do
             discard catch volume.commit()
-        }
     }
 
     func callbackRead(context: #null *void, nodeId: u64, buffer: #null *void, offset: u64, length: u32, transferred: *u32)->s32
@@ -367,43 +371,49 @@ namespace WinFsp
         if !directory!.isDirectory() do
             return StatusNotADirectory
 
-        let markerName  = cString(marker)
-        var afterMarker = !@countof(markerName)
-        var info: FileInfo
-        if nodeId != 1
+        let markerName = cString(marker)
+        var info:  FileInfo
+        var child: #null *Node
+        if !@countof(markerName)
         {
-            if afterMarker
+            if nodeId != 1
             {
                 discard fillInfo(volume, nodeId, &info)
                 if !emit(emitContext, @dataof("."), &info) do
                     return StatusSuccess
-            }
-            elif sameName(markerName, ".") do
-                afterMarker = true
 
-            let parentId = directory!.parentId
-            if afterMarker
-            {
+                let parentId = directory!.parentId
                 discard fillInfo(volume, parentId, &info)
                 if !emit(emitContext, @dataof(".."), &info) do
                     return StatusSuccess
             }
-            elif sameName(markerName, "..") do
-                afterMarker = true
+
+            child = volume.firstChild(nodeId)
+        }
+        elif nodeId != 1 and sameName(markerName, ".")
+        {
+            let parentId = directory!.parentId
+            discard fillInfo(volume, parentId, &info)
+            if !emit(emitContext, @dataof(".."), &info) do
+                return StatusSuccess
+            child = volume.firstChild(nodeId)
+        }
+        elif nodeId != 1 and sameName(markerName, "..") do
+            child = volume.firstChild(nodeId)
+        else
+        {
+            let markerNode = volume.findChild(nodeId, markerName)
+            if markerNode do
+                child = volume.nextSibling(markerNode!.id)
         }
 
-        for child in volume.nodes where child.parentId == nodeId and child.id != nodeId
+        while child
         {
-            if !afterMarker
-            {
-                if sameName(markerName, child.name) do
-                    afterMarker = true
-                continue
-            }
-
-            discard fillInfo(volume, child.id, &info)
-            if !emit(emitContext, child.name.buffer, &info) do
+            let current = child!
+            discard fillInfo(volume, current.id, &info)
+            if !emit(emitContext, current.name.buffer, &info) do
                 return StatusSuccess
+            child = volume.nextSibling(current.id)
         }
 
         dref complete = 1

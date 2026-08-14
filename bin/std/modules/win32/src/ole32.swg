@@ -289,8 +289,8 @@ struct IEnumFORMATETCVtbl
 // Reports whether two interface identifiers name the same interface.
 func isEqualGuid(a, b: GUID)->bool
 {
-    let tailA = (cast(const *u64) &a.Data4[0])[]
-    let tailB = (cast(const *u64) &b.Data4[0])[]
+    let tailA = (&a.Data4[0])[as u64]
+    let tailB = (&b.Data4[0])[as u64]
     return a.Data1 == b.Data1 and
            a.Data2 == b.Data2 and
            a.Data3 == b.Data3 and

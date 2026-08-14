@@ -110,7 +110,7 @@ internal impl Properties
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(item.line, (cast(*String) data!)[])
+        with let ed = EditBox.create(item.line, data![as String])
         {
             if me.kind == .Panel
             {
@@ -165,7 +165,7 @@ internal impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(item.line, (cast(*string) data!)[])
+        with let ed = EditBox.create(item.line, data![as string])
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

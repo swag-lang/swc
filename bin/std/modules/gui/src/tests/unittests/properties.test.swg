@@ -1316,7 +1316,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     // The default value comes from a real default-constructed instance of the struct.
     @assert(countItem.defaultData != null)
-    @assert(((cast(*s32) countItem.defaultData!)[]) == 42)
+    @assert(countItem.defaultData![as s32] == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     @assert(!countItem.isModified)
@@ -1399,7 +1399,7 @@ impl IPropertyNotify for PropDefaultCustom
     let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))!
 
     // Value equals the declared default (5), but the override forces "modified".
-    @assert(((cast(*s32) valItem.data!)[]) == 5)
+    @assert(valItem.data![as s32] == 5)
     @assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
@@ -1528,16 +1528,16 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(!prop.canUndo() and !prop.canRedo())
 
     // Writing the same value back records nothing.
-    (cast(*s32) it.data!)[] = 42
+    it.data![as s32] = 42
     prop.commitItemChange(it)
     @assert(!prop.canUndo())
 
     // Two real edits.
-    (cast(*s32) it.data!)[] = 100
+    it.data![as s32] = 100
     prop.commitItemChange(it)
     @assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
 
-    (cast(*s32) it.data!)[] = 7
+    it.data![as s32] = 7
     prop.commitItemChange(it)
     @assert(data.count == 7)
 
@@ -1554,7 +1554,7 @@ impl IPropertyNotify for PropDefaultCustom
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
-    (cast(*s32) it.data!)[] = 55
+    it.data![as s32] = 55
     prop.commitItemChange(it)
     @assert(data.count == 55 and !prop.canRedo())
     prop.undo()
@@ -1574,7 +1574,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(MultiTile.name))!
 
-    (cast(*String) it.data!)[] = "beta"
+    it.data![as String] = "beta"
     prop.commitItemChange(it)
     @assert(data.name == "beta")
 
@@ -1599,7 +1599,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
 
-    (cast(*s32) it.data!)[] = 100     // edit instance 0; hasChanged propagates
+    it.data![as s32] = 100     // edit instance 0; hasChanged propagates
     prop.commitItemChange(it)
     @assert(t0.count == 100 and t1.count == 100)
 
@@ -1621,7 +1621,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.focusNavigation()
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
-    (cast(*s32) it.data!)[] = 100
+    it.data![as s32] = 100
     prop.commitItemChange(it)
     @assert(data.count == 100)
 

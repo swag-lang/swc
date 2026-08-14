@@ -67,7 +67,7 @@ internal impl Properties
             let s0 = cast(*String) item.dataInstances[0]!
             for i in 1 until n
             {
-                if ((cast(*String) item.dataInstances[i]!)[]) != s0[] do
+                if item.dataInstances[i]![as String] != s0[] do
                     return true
             }
 
@@ -98,7 +98,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for i in 1 until n do
-                (cast(*String) item.dataInstances[i]!)[] = (cast(*String) item.dataInstances[0]!)[]
+                item.dataInstances[i]![as String] = item.dataInstances[0]![as String]
             return
         }
 
@@ -167,7 +167,7 @@ internal impl Properties
     {
         let n = .instanceCount(item)
         for k in n do
-            (cast(*f32) (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset)!)[] = val
+            (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset)![as f32] = val
     }
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
@@ -215,10 +215,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: return cast(u64) (cast(*u8) addr!)[]
-        case 2: return cast(u64) (cast(*u16) addr!)[]
-        case 4: return cast(u64) (cast(*u32) addr!)[]
-        case 8: return (cast(*u64) addr!)[]
+        case 1: return cast(u64) addr![as u8]
+        case 2: return cast(u64) addr![as u16]
+        case 4: return cast(u64) addr![as u32]
+        case 8: return addr![as u64]
         }
 
         return 0
@@ -228,10 +228,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: (cast(*u8) addr!)[] = cast(u8) val
-        case 2: (cast(*u16) addr!)[] = cast(u16) val
-        case 4: (cast(*u32) addr!)[] = cast(u32) val
-        case 8: (cast(*u64) addr!)[] = val
+        case 1: addr![as u8] = cast(u8) val
+        case 2: addr![as u16] = cast(u16) val
+        case 4: addr![as u32] = cast(u32) val
+        case 8: addr![as u64] = val
         }
     }
 }

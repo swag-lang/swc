@@ -16,7 +16,7 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 {
     if type.kind == .Native and (cast(const *Swag.TypeInfoNative) type).nativeKind == .Any
     {
-        __setErr((cast(*any) data)[])
+        __setErr(data[as any])
         return
     }
 

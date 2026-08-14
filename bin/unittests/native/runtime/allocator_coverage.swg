@@ -255,7 +255,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     // 'second' is now the head and its stored link must decode to 'first'.
     @assert(page.decode(page.freeList) == cast(u64) second)
-    let storedLink = (cast(*u64) second)[]
+    let storedLink = second[as u64]
     @assert(storedLink != cast(u64) first)
     @assert(page.decode(storedLink) == cast(u64) first)
 

@@ -134,17 +134,17 @@ impl Decoder
             let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case .Bool:       (cast(*bool) data)[] = .serializer.readNative'bool()
-            case .U8:         (cast(*u8) data)[] = .serializer.readNative'u8()
-            case .U16:        (cast(*u16) data)[] = .serializer.readNative'u16()
-            case .U32, .Rune: (cast(*u32) data)[] = .serializer.readNative'u32()
-            case .U64:        (cast(*u64) data)[] = .serializer.readNative'u64()
-            case .S8:         (cast(*s8) data)[] = .serializer.readNative's8()
-            case .S16:        (cast(*s16) data)[] = .serializer.readNative's16()
-            case .S32:        (cast(*s32) data)[] = .serializer.readNative's32()
-            case .S64:        (cast(*s64) data)[] = .serializer.readNative's64()
-            case .F32:        (cast(*f32) data)[] = .serializer.readNative'f32()
-            case .F64:        (cast(*f64) data)[] = .serializer.readNative'f64()
+            case .Bool:       data[as bool] = .serializer.readNative'bool()
+            case .U8:         data[as u8] = .serializer.readNative'u8()
+            case .U16:        data[as u16] = .serializer.readNative'u16()
+            case .U32, .Rune: data[as u32] = .serializer.readNative'u32()
+            case .U64:        data[as u64] = .serializer.readNative'u64()
+            case .S8:         data[as s8] = .serializer.readNative's8()
+            case .S16:        data[as s16] = .serializer.readNative's16()
+            case .S32:        data[as s32] = .serializer.readNative's32()
+            case .S64:        data[as s64] = .serializer.readNative's64()
+            case .F32:        data[as f32] = .serializer.readNative'f32()
+            case .F64:        data[as f64] = .serializer.readNative'f64()
             }
 
             return
@@ -154,7 +154,7 @@ impl Decoder
         {
             let crc      = .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
-            (cast(*#null typeinfo) data)[] = typeType
+            data[as #null typeinfo] = typeType
             return
         }
 

@@ -346,7 +346,7 @@ internal impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            opt = (cast(*EncodeOptions) @dataof(options)!)[]
+            opt = @dataof(options)![as EncodeOptions]
         }
 
         .stream      = result

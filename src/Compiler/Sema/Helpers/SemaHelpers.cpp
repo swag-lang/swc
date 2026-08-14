@@ -21,6 +21,12 @@ namespace
             case AstNodeId::AutoCastExpr:
                 return node.cast<AstAutoCastExpr>().nodeExprRef;
             case AstNodeId::CastExpr:
+                // 'expr[as T]' shares the cast node but is a dereference, not a conversion: its
+                // operand is the pointer, not the value. Looking through it reports the pointer as
+                // the expression's source, which makes a receiver's address stop travelling into
+                // the 'me' parameter of a method or operator call on the opened place.
+                if (node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
+                    return AstNodeRef::invalid();
                 return node.cast<AstCastExpr>().nodeExprRef;
             case AstNodeId::AsCastExpr:
                 return node.cast<AstAsCastExpr>().nodeExprRef;

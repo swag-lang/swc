@@ -75,26 +75,26 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
 
             if enumType.rawType == string
             {
-                (cast(*string) patch)[] = (cast(const *string) enumValue)[]
+                patch[as string] = enumValue[as string]
             }
             elif !enumFlags
             {
                 switch enumType.sizeof
                 {
-                case 1: (cast(*u8) patch)[] = (cast(const *u8) enumValue)[]
-                case 2: (cast(*u16) patch)[] = (cast(const *u16) enumValue)[]
-                case 4: (cast(*u32) patch)[] = (cast(const *u32) enumValue)[]
-                case 8: (cast(*u64) patch)[] = (cast(const *u64) enumValue)[]
+                case 1: patch[as u8] = enumValue[as u8]
+                case 2: patch[as u16] = enumValue[as u16]
+                case 4: patch[as u32] = enumValue[as u32]
+                case 8: patch[as u64] = enumValue[as u64]
                 }
             }
             else
             {
                 switch enumType.sizeof
                 {
-                case 1: (cast(*u8) patch)[] |= (cast(const *u8) enumValue)[]
-                case 2: (cast(*u16) patch)[] |= (cast(const *u16) enumValue)[]
-                case 4: (cast(*u32) patch)[] |= (cast(const *u32) enumValue)[]
-                case 8: (cast(*u64) patch)[] |= (cast(const *u64) enumValue)[]
+                case 1: patch[as u8] |= enumValue[as u8]
+                case 2: patch[as u16] |= enumValue[as u16]
+                case 4: patch[as u32] |= enumValue[as u32]
+                case 8: patch[as u64] |= enumValue[as u64]
                 }
             }
 
@@ -177,80 +177,80 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
         {val, eat, ovf} = parseS8(one)
         if ovf do
             fail OverflowError{}
-        (cast(*s8) patch)[] = val
+        patch[as s8] = val
 
     case .S16:
         var val: s16 = undefined
         {val, eat, ovf} = parseS16(one)
         if ovf do
             fail OverflowError{}
-        (cast(*s16) patch)[] = val
+        patch[as s16] = val
 
     case .S32:
         var val: s32 = undefined
         {val, eat, ovf} = parseS32(one)
         if ovf do
             fail OverflowError{}
-        (cast(*s32) patch)[] = val
+        patch[as s32] = val
 
     case .S64:
         var val: s64 = undefined
         {val, eat, ovf} = parseS64(one)
         if ovf do
             fail OverflowError{}
-        (cast(*s64) patch)[] = val
+        patch[as s64] = val
 
     case .U8:
         var val: u8 = undefined
         {val, eat, ovf} = parseU8(one)
         if ovf do
             fail OverflowError{}
-        (cast(*u8) patch)[] = val
+        patch[as u8] = val
 
     case .U16:
         var val: u16 = undefined
         {val, eat, ovf} = parseU16(one)
         if ovf do
             fail OverflowError{}
-        (cast(*u16) patch)[] = val
+        patch[as u16] = val
 
     case .U32:
         var val: u32 = undefined
         {val, eat, ovf} = parseU32(one)
         if ovf do
             fail OverflowError{}
-        (cast(*u32) patch)[] = val
+        patch[as u32] = val
 
     case .U64:
         var val: u64 = undefined
         {val, eat, ovf} = parseU64(one)
         if ovf do
             fail OverflowError{}
-        (cast(*u64) patch)[] = val
+        patch[as u64] = val
 
     case .F32:
         var val: f32 = undefined
         {val, eat, ovf} = parseF32(one)
         if ovf do
             fail OverflowError{}
-        (cast(*f32) patch)[] = val
+        patch[as f32] = val
 
     case .F64:
         var val: f64 = undefined
         {val, eat, ovf} = parseF64(one)
         if ovf do
             fail OverflowError{}
-        (cast(*f64) patch)[] = val
+        patch[as f64] = val
 
     case .Bool:
         var val: bool = undefined
-        {val, eat}            = parseBool(one)
-        (cast(*bool) patch)[] = val
+        {val, eat}     = parseBool(one)
+        patch[as bool] = val
 
     case .Rune:
         var val: rune = undefined
-        {val, eat}            = parseRune(one)
-        (cast(*rune) patch)[] = val
+        {val, eat}     = parseRune(one)
+        patch[as rune] = val
 
     default:
         fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}

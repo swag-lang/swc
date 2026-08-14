@@ -287,7 +287,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         if Reflection.isBool(typeField) and
            (itp + 1 == maxItp or isOption(allArgs[itp + 1].value, options))
         {
-            (cast(*bool) addr)[] = true
+            addr[as bool] = true
         }
 
         // All types supported by 'Parse.pokeValue'

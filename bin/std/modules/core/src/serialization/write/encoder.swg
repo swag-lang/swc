@@ -156,17 +156,17 @@ impl Encoder
             let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case .Bool:       .serializer.writeNative((cast(const *bool) data)[])
-            case .U8:         .serializer.writeNative((cast(const *u8) data)[])
-            case .U16:        .serializer.writeNative((cast(const *u16) data)[])
-            case .U32, .Rune: .serializer.writeNative((cast(const *u32) data)[])
-            case .U64:        .serializer.writeNative((cast(const *u64) data)[])
-            case .S8:         .serializer.writeNative((cast(const *s8) data)[])
-            case .S16:        .serializer.writeNative((cast(const *s16) data)[])
-            case .S32:        .serializer.writeNative((cast(const *s32) data)[])
-            case .S64:        .serializer.writeNative((cast(const *s64) data)[])
-            case .F32:        .serializer.writeNative((cast(const *f32) data)[])
-            case .F64:        .serializer.writeNative((cast(const *f64) data)[])
+            case .Bool:       .serializer.writeNative(data[as bool])
+            case .U8:         .serializer.writeNative(data[as u8])
+            case .U16:        .serializer.writeNative(data[as u16])
+            case .U32, .Rune: .serializer.writeNative(data[as u32])
+            case .U64:        .serializer.writeNative(data[as u64])
+            case .S8:         .serializer.writeNative(data[as s8])
+            case .S16:        .serializer.writeNative(data[as s16])
+            case .S32:        .serializer.writeNative(data[as s32])
+            case .S64:        .serializer.writeNative(data[as s64])
+            case .F32:        .serializer.writeNative(data[as f32])
+            case .F64:        .serializer.writeNative(data[as f64])
             }
 
             return
@@ -174,7 +174,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = (cast(const *#null typeinfo) data!)[]
+            let typeType = data![as #null typeinfo]
             .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }
@@ -189,7 +189,7 @@ impl Encoder
             var objType, itfType: #null typeinfo
             if itf.itable
             {
-                objType = (cast(const *typeinfo) itf.itable!)[]
+                objType = itf.itable![as typeinfo]
                 itfType = type
             }
 

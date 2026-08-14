@@ -390,7 +390,7 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
         let owned = Memory.new'String()
         owned[] = value
         pool.add(owned)
-        (cast(*string) (data + safeField.offset))[] = owned.toString()
+        (data + safeField.offset)[as string] = owned.toString()
     }
 }
 

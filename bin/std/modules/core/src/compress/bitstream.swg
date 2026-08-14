@@ -62,7 +62,7 @@ impl BitStream
         // This avoids the per-byte loop for the bulk of the stream.
         if .numBits <= 56 and .curByte + 8 <= @countof(.stream)
         {
-            let chunk = (cast(const *u64) .currentPointer()!)[]
+            let chunk = .currentPointer()![as u64]
             .codeBuffer |= chunk << #wrap .numBits
             let nbytes = (64 - cast(u64) .numBits) >> 3
             .curByte += nbytes

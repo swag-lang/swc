@@ -63,3 +63,42 @@
     const V = #run derefCastWrite()
     #assert(V == 0x0102_03FF'u32)
 }
+
+struct DerefPlaceReceiver
+{
+    seen: s64
+}
+
+impl DerefPlaceReceiver
+{
+    #[Swag.Implicit]
+    mtd opSet(value: string) { .seen = cast(s64) @countof(value) }
+
+    mtd record(value: s64) { .seen = value }
+}
+
+#test
+{
+    func derefCastMethodReceiver()->s64
+    {
+        var slot: DerefPlaceReceiver
+        let p = cast(*void) &slot
+        p[as DerefPlaceReceiver].record(11)
+        return slot.seen
+    }
+    const V = #run derefCastMethodReceiver()
+    #assert(V == 11)
+}
+
+#test
+{
+    func derefCastOpSetReceiver()->s64
+    {
+        var slot: DerefPlaceReceiver
+        let p = cast(*void) &slot
+        p[as DerefPlaceReceiver] = "beta"
+        return slot.seen
+    }
+    const V = #run derefCastOpSetReceiver()
+    #assert(V == 4)
+}

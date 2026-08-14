@@ -104,7 +104,7 @@ public impl ByteStream
     {
         if .seek + #sizeof(T) > .length() do
             fail OverflowError{"byte stream overflow"}
-        let val = (cast(const *T) (.data() + .seek))[]
+        let val = (.data() + .seek)[as T]
         .seek += #sizeof(T)
         return val
     }

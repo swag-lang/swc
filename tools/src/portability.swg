@@ -65,6 +65,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
     "bin/std/modules/audio/src/driver/xaudio2.swg",
     "bin/apps/modules/sCapture/src/screenshot/screenshot.win32.swg",
+    "bin/apps/modules/sCrypt/src/autounmount.win32.swg",
     "bin/apps/modules/sCrypt/src/tests/integration.win32.swg"]
 
 // A named backend directory owns every file below it; it is stronger evidence than a suffix and

@@ -443,6 +443,12 @@ namespace
 
     AstNodeRef markConstParamBindingTarget(Sema& sema, const SemaClone::ParamBinding& binding, AstNodeRef targetRef)
     {
+        // A mutable materialized home is the callee's own copy: writing it can never
+        // reach the caller's expression, so the by-value parameter keeps the mutable
+        // local semantics it has in the non-inlined function.
+        if (binding.mutableHomeUse)
+            return targetRef;
+
         if (binding.sourceParam != nullptr && targetRef.isValid())
         {
             const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
@@ -2318,6 +2324,18 @@ AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) 
     newPtr->modifierFlags     = modifierFlags;
     newPtr->nodeTypeRef       = cloneNodeRef(sema, nodeTypeRef, inlineContext);
     newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, inlineContext);
+    // A synthesized type-pinning cast (createCastNode) has no type AST: its target type
+    // lives in the node payload only. Carry it onto the clone, or the pin evaporates on
+    // the first re-clone and the operand re-derives without the proof the pin recorded.
+    if (nodeTypeRef.isInvalid() && newPtr->nodeTypeRef.isInvalid())
+    {
+        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, inlineContext, nodeRef(cloneSourceAst(sema, inlineContext)));
+        if (storedView && storedView->typeRef.isValid())
+        {
+            sema.setType(newRef, storedView->typeRef);
+            sema.setIsValue(sema.node(newRef));
+        }
+    }
     return newRef;
 }
 

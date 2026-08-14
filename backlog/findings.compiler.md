@@ -241,3 +241,33 @@ Entries are sorted by identifier, ascending; position carries no priority.
   and its constant payload appears to be consumed by the aggregate-literal storage machinery
   before the set call reads it. Reduce with the probe above, fix on master, and let the campaign
   branch inherit the fix.
+
+### F-134 — Release-config sema re-checking under auto-inline loses implicit pointer levels and narrowing
+
+- Area: compiler
+- Found while: running the first `tests.swgs dm --all-cfg` since the noref campaign, after replacing
+  the dereference spelling with the postfix `[]`.
+- Observation: the `-bc release` pass of the sema suite stops on four errors that fast-debug never
+  sees; all four sit inside bodies that release auto-inlines. Three lose an implicit conversion when
+  the inline binding substitutes the caller expression for a parameter: a UFCS receiver bound to a
+  `*u32` parameter loses its implicit address-of, so the body's whole-value deref reports "cannot
+  dereference type 'u32'" ([ufcs.swg:110](../bin/unittests/sema/functions/ufcs.swg#L110)); `&value`
+  on an inlined by-value scalar parameter answers `const *s32` instead of `*s32`
+  ([reference.swg:46](../bin/unittests/sema/types/reference.swg#L46)); a method receiver reports
+  "expression has type 'ReceiverLifecycleTracked', but this context needs a pointer type"
+  ([lifecycle.swg:783](../bin/unittests/sema/intrinsics/lifecycle.swg#L783)). The fourth loses a
+  narrowing fact: `with holder.ptr = &point` re-clones the nullable member path for the block's
+  uses and the re-sema'd clone no longer sees the assignment's non-null proof
+  ([with.swg:175](../bin/unittests/sema/flow/with.swg#L175)).
+- Evidence: one-file probe — `func shadowedUfcsAdd(value: *u32, rhs: u32) { value[] += rhs }`
+  called as `value.shadowedUfcsAdd(41)` — passes `-bc fast-debug`, fails `-bc release` with
+  "cannot dereference type 'u32'"; the diagnostic's second span points at the call-site receiver,
+  proving the operand was substituted. The deref-spelling change is not the cause: no inline-path
+  code discriminates the spelling, so the removed prefix form took the same route — it was simply
+  never exercised, `--all-cfg` not having run since parameters became pointers.
+- Next step: in `SemaInline.cpp`, `bindingArgumentRef`/`bindingValueArgumentRef` substitute the
+  resolved argument expression without replaying the call's implicit conversions (address-of for
+  UFCS receivers and pointer parameters, const adjustment, narrowing facts); either replay those
+  conversions on the bound expression or route type-changing bindings to the materialized-binding
+  path. Reduce each of the four suite sites onto the probe, fix, and re-run
+  `tests.swgs dm --all-cfg`.

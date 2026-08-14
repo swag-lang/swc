@@ -36,14 +36,14 @@ func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
 
         while size - offset >= MemoryVectorSize
         {
-            let sourceVector = (cast(const *MemoryVector) (source + offset))[]
-            (cast(*MemoryVector) (target + offset))[] = sourceVector
+            let sourceVector = (source + offset)[as MemoryVector]
+            (target + offset)[as MemoryVector] = sourceVector
             offset += MemoryVectorSize
         }
 
         while size - offset >= MemoryWordSize
         {
-            (cast(*u64) (target + offset))[] = (cast(const *u64) (source + offset))[]
+            (target + offset)[as u64] = (source + offset)[as u64]
             offset += MemoryWordSize
         }
     }
@@ -86,14 +86,14 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
         while offset >= MemoryVectorSize
         {
             offset -= MemoryVectorSize
-            let sourceVector = (cast(const *MemoryVector) (source + offset))[]
-            (cast(*MemoryVector) (target + offset))[] = sourceVector
+            let sourceVector = (source + offset)[as MemoryVector]
+            (target + offset)[as MemoryVector] = sourceVector
         }
 
         while offset >= MemoryWordSize
         {
             offset -= MemoryWordSize
-            (cast(*u64) (target + offset))[] = (cast(const *u64) (source + offset))[]
+            (target + offset)[as u64] = (source + offset)[as u64]
         }
     }
 
@@ -132,13 +132,13 @@ func @memset(dst: #null [*] void, value: u8, size: u64)
 
     while size - offset >= MemoryVectorSize
     {
-        (cast(*MemoryVector) (target + offset))[] = vector
+        (target + offset)[as MemoryVector] = vector
         offset += MemoryVectorSize
     }
 
     while size - offset >= MemoryWordSize
     {
-        (cast(*u64) (target + offset))[] = word
+        (target + offset)[as u64] = word
         offset += MemoryWordSize
     }
 
@@ -191,8 +191,8 @@ func @memcmp(left, right: #null const [*] void, size: u64)->s32
 
         while size - offset >= MemoryWordSize
         {
-            let leftWord  = (cast(const *u64) (leftBytes + offset))[]
-            let rightWord = (cast(const *u64) (rightBytes + offset))[]
+            let leftWord  = (leftBytes + offset)[as u64]
+            let rightWord = (rightBytes + offset)[as u64]
             if leftWord != rightWord
             {
                 for index in MemoryWordSize

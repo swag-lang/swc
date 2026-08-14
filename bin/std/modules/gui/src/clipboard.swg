@@ -10,14 +10,14 @@ public func addTypedValue(value: *void, type: typeinfo)
     switch type
     {
     case string:
-        return addString((cast(*string) value)[])
+        return addString(value[as string])
 
     case Core.String:
         let str = cast(*Core.String) value
         return addString(str.toString())
 
     case Pixel.Image:
-        return addImage((cast(*Pixel.Image) value)[])
+        return addImage(value[as Pixel.Image])
     }
 
     var buf:    ConcatBuffer
@@ -55,11 +55,11 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
     switch type
     {
     case Core.String:
-        (cast(*Core.String) value)[] = getString()
+        value[as Core.String] = getString()
         return true
 
     case Pixel.Image:
-        (cast(*Pixel.Image) value)[] = getImage()
+        value[as Pixel.Image] = getImage()
         return true
     }
 

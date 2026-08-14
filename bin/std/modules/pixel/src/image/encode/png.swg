@@ -161,7 +161,7 @@ impl Encoder
     func writeU32(dst: [*] u8, val: u32)
     {
         let v = Math.nativeToBigEndian(val)
-        (cast(*u32) dst)[] = v
+        dst[as u32] = v
     }
 
     mtd writeData(buf: const [*] u8, bytes: u32)
@@ -264,7 +264,7 @@ internal impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            .userOptions = (cast(*EncodeOptions) @dataof(options)!)[]
+            .userOptions = @dataof(options)![as EncodeOptions]
         }
 
         // unsupported pixel format

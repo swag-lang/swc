@@ -156,7 +156,7 @@ public impl Argb
     {
         let t = #typeof(Argb)
         for it in t.values where it.name == name do
-            return (cast(const *Argb) it.value!)[]
+            return it.value![as Argb]
         return Argb.Black
     }
 }

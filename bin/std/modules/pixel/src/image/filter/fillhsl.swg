@@ -38,7 +38,7 @@ impl Image
         case .HueVert:
             .visitPixels(&swapRB)
             {
-                let swapRB  = (cast(*bool) userData!)[]
+                let swapRB  = userData![as bool]
                 let factor0 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, 1, 0.5)
                 if swapRB
@@ -91,7 +91,7 @@ impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let swapRB  = params.swapRB
                 let factor0 = y / cast(f32) image.height
                 let col     = Color.fromHsl(params.hsl.h, factor0, 0.5)
@@ -145,7 +145,7 @@ impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let swapRB  = params.swapRB
                 let factor0 = y / cast(f32) image.height
                 let col     = Color.fromHsl(params.hsl.h, 1, factor0)
@@ -199,7 +199,7 @@ impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, factor1, 0.5)
@@ -224,7 +224,7 @@ impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, 1, factor1)
@@ -249,7 +249,7 @@ impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 var l       = 0.5 + ((1 - factor0) * 0.5)
@@ -276,7 +276,7 @@ impl Image
             var pms = {fixedRed: color.r / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
                 let col     = Color.fromRgbF32(params.fixedRed, factor0, factor1)
@@ -301,7 +301,7 @@ impl Image
             var pms = {fixedGreen: color.g / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
                 let col     = Color.fromRgbF32(factor0, params.fixedGreen, factor1)
@@ -326,7 +326,7 @@ impl Image
             var pms = {fixedBlue: color.b / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(*#decltype(pms)) userData!)[]
+                let params  = userData![as #decltype(pms)]
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
                 let col     = Color.fromRgbF32(factor0, factor1, params.fixedBlue)

@@ -79,7 +79,7 @@ internal impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            userOptions = (cast(*EncodeOptions) @dataof(options)!)[]
+            userOptions = @dataof(options)![as EncodeOptions]
         }
 
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do

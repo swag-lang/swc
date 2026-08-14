@@ -85,7 +85,7 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = 12
-    let boxed    = (cast(*AnyCastStrictAny) &raw)[]
+    let boxed    = (&raw)[as AnyCastStrictAny]
 
     @assert(cast(s32) boxed == 12)
 }
@@ -100,7 +100,7 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = 42
-    let boxed    = (cast(*AnyCastStrictAny) &raw)[]
+    let boxed    = (&raw)[as AnyCastStrictAny]
     let refValue = cast(const *s32) boxed
     let ptrValue = cast(const *s32) boxed
 
@@ -111,7 +111,7 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = AnyCastDerived{base: {value: 9}, extra: 2}
-    let boxed    = (cast(*AnyCastStrictAny) &raw)[]
+    let boxed    = (&raw)[as AnyCastStrictAny]
     let baseRef  = cast(const *AnyCastBase) boxed
     let basePtr  = cast(const *AnyCastBase) boxed
 

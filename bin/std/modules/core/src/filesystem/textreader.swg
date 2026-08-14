@@ -37,8 +37,8 @@ impl TextReader
             if .encodingType == .Utf8
             {
                 let buffer = .buffer.buffer!
-                (cast(*u32) buffer)[] = 0
-                .buffer.count         = .stream.read(buffer, .buffer.capacity)
+                buffer[as u32] = 0
+                .buffer.count  = .stream.read(buffer, .buffer.capacity)
 
                 // BOM
                 if .buffer.count >= 3 and .buffer[0] == 0xEF and .buffer[1] == 0xBB and .buffer[2] == 0xBF do
@@ -100,7 +100,7 @@ public impl TextReader
             // u64 by u64
             while ptr + 8'u64 <= ptrE
             {
-                let c64 = (cast(*u64) ptr)[]
+                let c64 = ptr[as u64]
                 if Math.hasByte(c64, '\r') or Math.hasByte(c64, '\n') do
                     break
                 ptr += 8

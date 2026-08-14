@@ -222,7 +222,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
     if block.count < #sizeof(UINT) do
         return
 
-    let count = cast(u64) (cast(const *UINT) block.buffer!)[]
+    let count = cast(u64) block.buffer![as UINT]
     if !count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count do
         return
 
@@ -583,7 +583,7 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
         return null
     }
 
-    (cast(*UINT) base!)[] = cast(UINT) count
+    base![as UINT] = cast(UINT) count
 
     let descriptors = cast([*] FILEDESCRIPTORW) (base! + #sizeof(UINT))
     for i in count

@@ -230,7 +230,7 @@ func matchReferenceValue(value: s32)->bool
 {
     var value: s32 = 42
     var raw:   any = @mkany(&value, s32)
-    let boxed      = (cast(*CompareStrictAny) &raw)[]
+    let boxed      = (&raw)[as CompareStrictAny]
 
     @assert(boxed == s32)
     @assert(s32 == boxed)

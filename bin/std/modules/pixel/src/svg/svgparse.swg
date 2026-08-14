@@ -331,7 +331,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     {
         if it.name and !Latin1.compare(it.name!, text, ignoreCase: true)
         {
-            result.color = Color.fromArgb((cast(const *Argb) it.value!)[])
+            result.color = Color.fromArgb(it.value![as Argb])
             return result
         }
     }

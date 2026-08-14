@@ -210,7 +210,7 @@ internal impl IImageDecoder for Decoder
         if countof < #sizeof(IconDir) do
             fail InvalidFormatError{"invalid source buffer"}
 
-        let dir = (cast(const *IconDir) base)[]
+        let dir = base[as IconDir]
         if dir.type != 1 and dir.type != 2 do
             fail InvalidFormatError{"not an icon"}
         if dir.count == 0 do
@@ -224,7 +224,7 @@ internal impl IImageDecoder for Decoder
         var found:     bool
         for i in dir.count
         {
-            let entry = (cast(const *IconDirEntry) (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry)))[]
+            let entry = (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))[as IconDirEntry]
             let area  = cast(u64) dimFromByte(entry.width) * cast(u64) dimFromByte(entry.height)
             let score = (area << 16) + entry.bitCount
             if !found or score > bestScore
@@ -253,7 +253,7 @@ internal impl IImageDecoder for Decoder
         if imgLen < #sizeof(DibHeader) do
             fail InvalidFormatError{"invalid source buffer"}
 
-        let dib = (cast(const *DibHeader) imgPtr)[]
+        let dib = imgPtr[as DibHeader]
         if dib.size < #sizeof(DibHeader) do
             fail UnsupportedFormatError{"unsupported icon header"}
         if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do

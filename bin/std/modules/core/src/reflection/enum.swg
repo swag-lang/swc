@@ -45,11 +45,11 @@ func enumName(type: #null typeinfo, valueAddress: #null const *void, fullyQualif
     var val1s: #null string
     switch rawType.sizeof
     {
-    case 1:  val1 = cast(u64) (cast(const *u8) safeValue)[]
-    case 2:  val1 = cast(u64) (cast(const *u16) safeValue)[]
-    case 4:  val1 = cast(u64) (cast(const *u32) safeValue)[]
-    case 8:  val1 = cast(u64) (cast(const *u64) safeValue)[]
-    case 16: val1s = (cast(const *#null string) safeValue)[]
+    case 1:  val1 = cast(u64) safeValue[as u8]
+    case 2:  val1 = cast(u64) safeValue[as u16]
+    case 4:  val1 = cast(u64) safeValue[as u32]
+    case 8:  val1 = cast(u64) safeValue[as u64]
+    case 16: val1s = safeValue[as #null string]
     default: return result
     }
 
@@ -66,11 +66,11 @@ func enumName(type: #null typeinfo, valueAddress: #null const *void, fullyQualif
         var val2s: #null string
         switch rawType.sizeof
         {
-        case 1:  val2 = cast(u64) (cast(const *u8) safeItValue)[]
-        case 2:  val2 = cast(u64) (cast(const *u16) safeItValue)[]
-        case 4:  val2 = cast(u64) (cast(const *u32) safeItValue)[]
-        case 8:  val2 = cast(u64) (cast(const *u64) safeItValue)[]
-        case 16: val2s = (cast(const *#null string) safeItValue)[]
+        case 1:  val2 = cast(u64) safeItValue[as u8]
+        case 2:  val2 = cast(u64) safeItValue[as u16]
+        case 4:  val2 = cast(u64) safeItValue[as u32]
+        case 8:  val2 = cast(u64) safeItValue[as u64]
+        case 16: val2s = safeItValue[as #null string]
         }
 
         // For a normal enum, stop if this is a match

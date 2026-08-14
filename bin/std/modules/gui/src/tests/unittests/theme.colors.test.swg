@@ -158,13 +158,13 @@ using Swag, Core
 
     for field in darkStruct.fields
     {
-        let a = (cast(const *Pixel.Color) (cast(const [*] u8) &dark + field.offset))[]
-        let b = (cast(const *Pixel.Color) (cast(const [*] u8) &light + field.offset))[]
+        let a = (cast(const [*] u8) &dark + field.offset)[as Pixel.Color]
+        let b = (cast(const [*] u8) &light + field.offset)[as Pixel.Color]
         if a.a == 0 or b.a == 0 do
             continue
 
-        let ba = (cast(const *Pixel.Color) (cast(const [*] u8) &brandA + field.offset))[]
-        let bb = (cast(const *Pixel.Color) (cast(const [*] u8) &brandB + field.offset))[]
+        let ba = (cast(const [*] u8) &brandA + field.offset)[as Pixel.Color]
+        let bb = (cast(const [*] u8) &brandB + field.offset)[as Pixel.Color]
         if ba != bb
         {
             brandParts += 1

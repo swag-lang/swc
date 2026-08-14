@@ -93,7 +93,7 @@ impl MainWnd
 
                 if f.isInside(pt)
                 {
-                    (cast(*u32) pix)[] = p.argb
+                    pix[as u32] = p.argb
                     break
                 }
             }
@@ -149,7 +149,7 @@ impl MainWnd
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
                         pix32     += y1 * undo.newImg.width * undo.newImg.bytesPerPixel
-                        col1.argb = (cast(*u32) pix32!)[]
+                        col1.argb = pix32![as u32]
                         break
                     }
 
@@ -166,7 +166,7 @@ impl MainWnd
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
                         pix32     += y2 * undo.newImg.width * undo.newImg.bytesPerPixel
-                        col2.argb = (cast(*u32) pix32!)[]
+                        col2.argb = pix32![as u32]
                         break
                     }
 
@@ -212,15 +212,15 @@ impl MainWnd
                             if xx < pmask.width and yy < pmask.height
                             {
                                 var pix1 = pmask.pixels.buffer! + xx * pmask.bytesPerPixel
-                                pix1                 += yy * pmask.width * pmask.bytesPerPixel
-                                (cast(*u32) pix1!)[] = 0xFFFFFFFF
+                                pix1          += yy * pmask.width * pmask.bytesPerPixel
+                                pix1![as u32] = 0xFFFFFFFF
                             }
                         }
 
                         var fVert = (y - y1) / cast(f32) (y2 - y1)
                         fVert = Math.clamp(fVert, 0, 1)
                         let col = Color.lerp(col1, col2, fVert)
-                        (cast(*u32) pix)[] = col.argb
+                        pix[as u32] = col.argb
                     }
 
                     break

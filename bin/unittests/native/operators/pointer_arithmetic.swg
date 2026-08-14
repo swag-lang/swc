@@ -77,9 +77,9 @@ alias PointerArithmeticStrictU8     = u8
     let p4            = 4 + base
     let p1            = p4 - 3
 
-    @assert((cast([*] s32) p2)[] == 30)
-    @assert((cast([*] s32) p4)[] == 50)
-    @assert((cast([*] s32) p1)[] == 20)
+    @assert(p2[as s32] == 30)
+    @assert(p4[as s32] == 50)
+    @assert(p1[as s32] == 20)
     @assert((p4 - base) == 4)
     @assert((p2 - p1) == 1)
 }

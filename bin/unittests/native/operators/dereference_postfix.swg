@@ -99,3 +99,58 @@
     let p = &f
     @assert(p[as u32] == 0x3F80_0000)
 }
+
+struct DerefPlaceReceiver
+{
+    seen: s64
+}
+
+impl DerefPlaceReceiver
+{
+    #[Swag.Implicit]
+    mtd opSet(value: string) { .seen = cast(s64) @countof(value) }
+
+    mtd(op: Swag.Operator) opAssign(value: s64)
+        where op == .AddAssign
+    {
+        .seen += value
+    }
+
+    mtd record(value: s64) { .seen = value }
+}
+
+// A method call on the reinterpreted place receives the place itself as 'me'
+#test
+{
+    var slot: DerefPlaceReceiver
+    let p = cast(*void) &slot
+    p[as DerefPlaceReceiver].record(11)
+    @assert(slot.seen == 11)
+}
+
+// A member write through the reinterpreted place
+#test
+{
+    var slot: DerefPlaceReceiver
+    let p = cast(*void) &slot
+    p[as DerefPlaceReceiver].seen = 5
+    @assert(slot.seen == 5)
+}
+
+// An assignment routed through the implicit 'opSet' of the reinterpreted place
+#test
+{
+    var slot: DerefPlaceReceiver
+    let p = cast(*void) &slot
+    p[as DerefPlaceReceiver] = "beta"
+    @assert(slot.seen == 4)
+}
+
+// A compound assignment routed through 'opAssign' of the reinterpreted place
+#test
+{
+    var slot: DerefPlaceReceiver
+    let p = cast(*void) &slot
+    p[as DerefPlaceReceiver] += 3
+    @assert(slot.seen == 3)
+}

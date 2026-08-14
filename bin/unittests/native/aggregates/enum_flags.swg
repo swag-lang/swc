@@ -169,7 +169,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 {
     var values:   RefTestFlagBuffer
     let firstRef: *RefTestFlags = values.refAt(0)
-    firstRef[]    = RefTestFlags.A | RefTestFlags.B
+    firstRef[]       = RefTestFlags.A | RefTestFlags.B
     values.values[0] = RefTestFlags.A | RefTestFlags.B
     values.values[1] = RefTestFlags.B | RefTestFlags.C
 

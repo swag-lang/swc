@@ -73,7 +73,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
     var result: u32
     while index[] < @countof(bytes) and isDigit(bytes[index[]])
     {
-        result     = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
         index[] += 1
     }
 

@@ -173,19 +173,19 @@ func day10A()
         switch
         {
         case one & .East:
-            visitX += 1
+            visitX               += 1
             mp(visitX, visitY)[] &= ~.West
 
         case one & .West:
-            visitX -= 1
+            visitX               -= 1
             mp(visitX, visitY)[] &= ~.East
 
         case one & .North:
-            visitY -= 1
+            visitY               -= 1
             mp(visitX, visitY)[] &= ~.South
 
         case one & .South:
-            visitY += 1
+            visitY               += 1
             mp(visitX, visitY)[] &= ~.North
         }
 

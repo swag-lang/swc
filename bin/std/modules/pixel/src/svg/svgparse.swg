@@ -244,8 +244,8 @@ private func scanCssComponent(value: string, pos: *u64, scale: f32)->f32
     var result = scanNumber(value, pos)
     if pos[] < @countof(value) and value[pos[]] == '%'
     {
-        result   *= 0.01 * scale
-        pos[] += 1
+        result *= 0.01 * scale
+        pos[]  += 1
     }
 
     return Math.clamp(result, 0, scale)

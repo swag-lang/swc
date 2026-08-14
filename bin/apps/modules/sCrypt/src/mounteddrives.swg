@@ -3,15 +3,15 @@ using Core, Gui
 // One drive sCrypt currently exposes, and the container behind it.
 struct MountedDrive
 {
-    volume:        #null *MountedVault     // Live mount, owned by this entry until it is unmounted.
-    path:          String                  // Container file the drive reads and writes.
-    drive:         String                  // Stable backend destination identifier persisted by sCrypt.
-    mountLabel:    String                  // Host-facing destination name shown in the mounted list.
-    needsPassword: bool                    // Whether a password was needed to open the container.
-    readOnly:      bool                    // Whether the drive was mounted for reading alone.
-    atStartup:     bool                    // Whether sCrypt mounts this container again the next time it starts.
-    totalBytes:     u64                    // Capacity exposed by the mounted filesystem.
-    availableBytes: u64                   // Free capacity observed when the row was last refreshed.
+    volume:         #null *MountedVault     // Live mount, owned by this entry until it is unmounted.
+    path:           String                  // Container file the drive reads and writes.
+    drive:          String                  // Stable backend destination identifier persisted by sCrypt.
+    mountLabel:     String                  // Host-facing destination name shown in the mounted list.
+    needsPassword:  bool                    // Whether a password was needed to open the container.
+    readOnly:       bool                    // Whether the drive was mounted for reading alone.
+    atStartup:      bool                    // Whether sCrypt mounts this container again the next time it starts.
+    totalBytes:     u64                     // Capacity exposed by the mounted filesystem.
+    availableBytes: u64                     // Free capacity observed when the row was last refreshed.
 }
 
 // Columns of the mounted-drives list, in the order `MountedDrives.create` adds them.
@@ -20,11 +20,11 @@ struct MountedDrive
 // column is the check box, and the heading above it is what says what checking one means.
 internal enum MountedColumn
 {
-    Startup     // Whether the drive comes back the next time sCrypt starts.
-    Drive       // Drive letter the volume appears on.
-    Size        // Total virtual capacity.
-    Available   // Capacity not currently occupied.
-    Vault       // Container file behind the drive.
+    Startup       // Whether the drive comes back the next time sCrypt starts.
+    Drive         // Drive letter the volume appears on.
+    Size          // Total virtual capacity.
+    Available     // Capacity not currently occupied.
+    Vault         // Container file behind the drive.
 }
 
 // The third card of the window: the drives sCrypt currently exposes.
@@ -126,10 +126,11 @@ impl MountedDrives
         {
             if one.volume
             {
-                let space          = one.volume!.space()
+                let space = one.volume!.space()
                 one.totalBytes     = space.total
                 one.availableBytes = space.available
             }
+
             let line = .list.createLine("")
             line.canCheck = true
 

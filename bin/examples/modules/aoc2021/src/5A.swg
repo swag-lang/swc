@@ -76,8 +76,8 @@ func day5A()
             for x in cast(u64) x0 to cast(u64) x1
             {
                 let c = m.ptr2(x, yy0, W)
-                total  += (c[] == 1 ? 1 : 0)
-                c[] += 1
+                total += (c[] == 1 ? 1 : 0)
+                c[]   += 1
             }
         }
         elif y0 != y1
@@ -86,8 +86,8 @@ func day5A()
             for y in cast(u64) y0 to cast(u64) y1
             {
                 let c = m.ptr2(xx0, y, W)
-                total  += (c[] == 1 ? 1 : 0)
-                c[] += 1
+                total += (c[] == 1 ? 1 : 0)
+                c[]   += 1
             }
         }
     }

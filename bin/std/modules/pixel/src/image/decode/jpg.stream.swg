@@ -472,7 +472,7 @@ impl Decoder
         for n
         {
             ps[] = c
-            ps      += 1
+            ps   += 1
         }
     }
 

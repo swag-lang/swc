@@ -681,7 +681,7 @@ impl MainWindow
         .languageChoice.dockStyle   = .Right
         .languageChoice.anchorStyle = .Bottom
         .languageChoice.maxSize.y   = .themeMetrics().comboBox_Height
-        .languageChoice.sigChanged += func|window = me|(combo, index)
+        .languageChoice.sigChanged  += func|window = me|(combo, index)
         {
             discard combo
             window.chooseLanguage(index)
@@ -1696,9 +1696,10 @@ impl MainWindow
             .readOnly      = me.operation.readOnly
             .atStartup     = known != Swag.U64.Max
         }
+
         if .operation.volume
         {
-            let space           = .operation.volume!.space()
+            let space = .operation.volume!.space()
             entry.totalBytes     = space.total
             entry.availableBytes = space.available
         }

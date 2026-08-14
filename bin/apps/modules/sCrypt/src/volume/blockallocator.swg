@@ -75,7 +75,7 @@ impl BlockAllocator
         if .free.count and .free.back().first + .free.back().count == first
         {
             .free.backPtr().count += count
-            .freeBlocksCount += count
+            .freeBlocksCount      += count
             return
         }
 

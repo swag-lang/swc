@@ -302,9 +302,9 @@ impl Decoder
             scanLineOfs[] = .scanLine0.buffer
         }
 
-        scanLineLen[] = .realDestBytesPerScanLine
-        .mcuLinesLeft    -= 1
-        .totalLinesLeft  -= 1
+        scanLineLen[]   = .realDestBytesPerScanLine
+        .mcuLinesLeft   -= 1
+        .totalLinesLeft -= 1
 
         return Okay
     }
@@ -459,7 +459,7 @@ impl Decoder
         .inBufOfs -= 1
         let inBufOfs = .inBufOfs!
         inBufOfs[] = q
-        .inBufLeft    += 1
+        .inBufLeft += 1
     }
 
     mtd fixInBuffer()

@@ -416,7 +416,7 @@ impl GenericScopedVisits
     for &value, ordinal in values
     {
         #assert(#typeof(value) == #type *s32)
-        value[] += cast(s32) (ordinal + 1)
+        value[]    += cast(s32) (ordinal + 1)
         mutatedSum += value[]
     }
 

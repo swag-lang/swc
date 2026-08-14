@@ -154,7 +154,7 @@ func day6A()
 
         if arr.ptr2(sx, sy, w)[] != 'O'
         {
-            total += 1
+            total                 += 1
             arr.ptr2(sx, sy, w)[] = 'O'
         }
     }

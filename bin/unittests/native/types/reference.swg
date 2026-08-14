@@ -160,7 +160,7 @@ func writeVecRef(target: *Vec2, value: Vec2)
     var index = 0's64
 
     let valueRef: *s32 = values.ref1(index)
-    total         += valueRef[]
+    total      += valueRef[]
     valueRef[] += 5
 
     @assert(total == 13)

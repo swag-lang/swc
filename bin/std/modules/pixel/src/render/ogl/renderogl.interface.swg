@@ -46,7 +46,7 @@ impl IRenderer for RenderOgl
         }
 
         let storage = Memory.new'OglContext()
-        storage[]  = ogl
+        storage[]     = ogl
         .contextCount += 1
         return {renderHandle, storage, width, height}
     }

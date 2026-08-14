@@ -105,8 +105,8 @@ using Swag, Core
     f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(app)
     {
         frames[] += 1
-        g_Width     = 42
-        g_Height    = 27
+        g_Width  = 42
+        g_Height = 27
         if !didClick[]
         {
             @assert(host.clickModalButton(Dialog.BtnOk))

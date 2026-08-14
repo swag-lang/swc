@@ -121,7 +121,7 @@ alias ConstF64 = Const'f64
         // Prevent overshooting
         if (originalTo - current > 0.0) == (result > originalTo)
         {
-            result               = originalTo
+            result            = originalTo
             currentVelocity[] = (result - originalTo) / deltaTime
         }
 

@@ -172,7 +172,7 @@ impl Image
         }
 
         .freeWorkingBuffer()
-        .workingBuffer      = Memory.new'Image()
+        .workingBuffer   = Memory.new'Image()
         .workingBuffer[] = Image.create(newWidth, newHeight, newPixelFormat)
     }
 
@@ -266,7 +266,7 @@ impl Image
         {
         case 24:
             (cast(*u16) pixDst)[] = (cast(*u16) pixSrc)[]
-            pixDst[2]              = pixSrc[2]
+            pixDst[2]             = pixSrc[2]
 
         case 32:
             (cast(*u32) pixDst)[] = (cast(*u32) pixSrc)[]

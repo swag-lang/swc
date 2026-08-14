@@ -75,7 +75,7 @@ public impl ByteStream
             wb.reserve(seek + #sizeof(T))
         let buffer = wb.buffer!
         var ptr    = cast(*T) (buffer + seek)
-        ptr[] = val
+        ptr[]    = val
         seek     += #sizeof(T)
         wb.count = Math.max(wb.count, seek)
     }

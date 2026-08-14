@@ -274,7 +274,7 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
             if c > 1.0 do
                 c = 1.0
             dst[] = cast(u8) (c * 255.0 + 0.5)
-            dst      += 1
+            dst   += 1
         }
     }
 

@@ -12,7 +12,7 @@ func num(b: const [..] u8, p: *u64)->u32
     var n: u32
     while p[] < @countof(b) and b[p[]] >= '0'u8 and b[p[]] <= '9'u8
     {
-        n      = n * 10 + (b[p[]] - '0'u8)
+        n   = n * 10 + (b[p[]] - '0'u8)
         p[] += 1
     }
     if p[] < @countof(b) do p[] += 1

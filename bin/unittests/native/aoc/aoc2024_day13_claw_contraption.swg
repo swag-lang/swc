@@ -70,7 +70,7 @@ func parseNum(bytes: const [..] u8, pos: *u32)->s64
     var neg = false
     if pos[] < @countof(bytes) and bytes[pos[]] == '-'
     {
-        neg      = true
+        neg   = true
         pos[] += 1
     }
 
@@ -79,7 +79,7 @@ func parseNum(bytes: const [..] u8, pos: *u32)->s64
     {
         if pos[] >= @countof(bytes) or bytes[pos[]] < '0' or bytes[pos[]] > '9' do
             break
-        val      = val * 10 + cast(s64) (bytes[pos[]] - '0')
+        val   = val * 10 + cast(s64) (bytes[pos[]] - '0')
         pos[] += 1
     }
     return neg ? -val : val

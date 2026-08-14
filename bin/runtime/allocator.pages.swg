@@ -315,9 +315,9 @@ impl AllocatorPage
 
             let next = (cast(*u64) block)[]
             (cast(*u64) block)[] = .freeList
-            .freeList             = list
-            list                  = next
-            taken                 += 1
+            .freeList            = list
+            list                 = next
+            taken                += 1
         }
 
         @assert(.used >= taken)
@@ -334,7 +334,7 @@ impl AllocatorPage
 
         .lockRemote()
         (cast(*u64) address)[] = .remoteFree
-        .remoteFree             = encoded
+        .remoteFree            = encoded
         .unlockRemote()
     }
 
@@ -402,7 +402,7 @@ impl AllocatorPage
     mtd releaseBlock(address: u64)
     {
         (cast(*u64) address)[] = .freeList
-        .freeList               = .encode(address)
+        .freeList              = .encode(address)
         @assert(.used > 0)
         .used -= 1
     }

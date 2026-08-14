@@ -127,7 +127,7 @@ func parseU64(bytes: const [..] u8, pos: *u32)->u64
     var value: u64
     while pos[] < @countof(bytes) and isDigit(bytes[pos[]])
     {
-        value    = value * 10 + cast(u64) (bytes[pos[]] - '0')
+        value = value * 10 + cast(u64) (bytes[pos[]] - '0')
         pos[] += 1
     }
 

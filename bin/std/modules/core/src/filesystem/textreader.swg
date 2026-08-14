@@ -38,7 +38,7 @@ impl TextReader
             {
                 let buffer = .buffer.buffer!
                 (cast(*u32) buffer)[] = 0
-                .buffer.count          = .stream.read(buffer, .buffer.capacity)
+                .buffer.count         = .stream.read(buffer, .buffer.capacity)
 
                 // BOM
                 if .buffer.count >= 3 and .buffer[0] == 0xEF and .buffer[1] == 0xBB and .buffer[2] == 0xBF do

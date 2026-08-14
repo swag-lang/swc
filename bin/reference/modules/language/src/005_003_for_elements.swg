@@ -192,8 +192,8 @@ binding; the whole element is read or written with '[]'.
     for &it in array
     {
         #assert(#typeof(it) == *s32)
-        result  += it[]
-        it[] = 555
+        result += it[]
+        it[]   = 555
     }
 
     @assert(result == 1 + 2 + 3 + 4)

@@ -62,7 +62,7 @@ func parseS32(bytes: const [..] u8, pos: *u32)->s32
     var neg = false
     if pos[] < @countof(bytes) and bytes[pos[]] == '-'
     {
-        neg      = true
+        neg   = true
         pos[] += 1
     }
 
@@ -74,7 +74,7 @@ func parseS32(bytes: const [..] u8, pos: *u32)->s32
         let ch = bytes[pos[]]
         if ch < '0' or ch > '9' do
             break
-        val      = val * 10 + cast(s32) (ch - '0')
+        val   = val * 10 + cast(s32) (ch - '0')
         pos[] += 1
     }
 

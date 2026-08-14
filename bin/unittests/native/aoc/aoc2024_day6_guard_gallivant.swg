@@ -256,9 +256,9 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
     var dir = Direction.Up
 
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
-    visited[startIndex]  = 1'u8
-    outVisitedCount[] = 1'u32
-    trace                = appendIndex(trace, startIndex)
+    visited[startIndex] = 1'u8
+    outVisitedCount[]   = 1'u32
+    trace               = appendIndex(trace, startIndex)
 
     while true
     {
@@ -286,9 +286,9 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
         y = nextY
         if visited[nextIndex] == 0'u8
         {
-            visited[nextIndex]   = 1'u8
-            outVisitedCount[] += 1'u32
-            trace                = appendIndex(trace, nextIndex)
+            visited[nextIndex] = 1'u8
+            outVisitedCount[]  += 1'u32
+            trace              = appendIndex(trace, nextIndex)
         }
     }
 

@@ -383,7 +383,7 @@ without a chain of pointer casts.
 
     var value = 0's32
     let vp    = &value
-    vp[as u32] = 0xFFFF_FFFF              // Writes through the reinterpreted place
+    vp[as u32] = 0xFFFF_FFFF     // Writes through the reinterpreted place
     @assert(value == -1)
 }
 

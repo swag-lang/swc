@@ -114,8 +114,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     defer discard catch File.delete(path)
 
     const DataBlockCount = 512'u64
-    var volume            = expect Volume.create(path, testPassword(), DataOffset + (DataBlockCount + 16) * BlockRecordSize)
-    let fileId            = expect volume.createNode("\\large.bin", false, FileAttributeNormal, emptyBytes())
+    var volume = expect Volume.create(path, testPassword(), DataOffset + (DataBlockCount + 16) * BlockRecordSize)
+    let fileId = expect volume.createNode("\\large.bin", false, FileAttributeNormal, emptyBytes())
     var source: Array'u8
     source.resize(DataBlockCount * BlockSize)
     for byte, i in source do

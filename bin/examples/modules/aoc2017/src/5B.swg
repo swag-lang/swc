@@ -21,9 +21,9 @@ func day5B()
     while it < jumps.count
     {
         let jit = jumps.ptr1(it)
-        it       += jit[]
+        it    += jit[]
         jit[] += -1 + 2 * cast(s64) (jit[] < 3)
-        step     += 1
+        step  += 1
     }
 
     @assert(step == 27688760)

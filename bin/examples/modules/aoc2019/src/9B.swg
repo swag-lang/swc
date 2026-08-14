@@ -66,15 +66,15 @@ private func run(op: *Array's64, input: s64)->s64
         {
         case 1:
             valp(param2)[] = val(param0) + val(param1)
-            ip                += 4
+            ip             += 4
 
         case 2:
             valp(param2)[] = val(param0) * val(param1)
-            ip                += 4
+            ip             += 4
 
         case 3:
             valp(param0)[] = input
-            ip                += 2
+            ip             += 2
 
         case 4:
             output = val(param0)
@@ -88,11 +88,11 @@ private func run(op: *Array's64, input: s64)->s64
 
         case 7:
             valp(param2)[] = val(param0) < val(param1) ? 1 : 0
-            ip                += 4
+            ip             += 4
 
         case 8:
             valp(param2)[] = val(param0) == val(param1) ? 1 : 0
-            ip                += 4
+            ip             += 4
 
         case 9:
             base += val(param0)

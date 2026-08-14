@@ -43,7 +43,7 @@ impl Decoder
         }
 
         // Clear extra bits to the left
-        key        &= (1'u32 << keySize) - 1
+        key     &= (1'u32 << keySize) - 1
         shift[] = cast(u8) ((shift[] + keySize) % 8)
         return cast(u16) key
     }

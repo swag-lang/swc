@@ -13,7 +13,7 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
     {
         let tmpValue = orgValue
         orgValue /= 10
-        ptr[] = conv[35 + (tmpValue - (orgValue * 10))]
+        ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
         if !orgValue do
             break
@@ -22,21 +22,21 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
     if value < 0
     {
         ptr[] = '-'
-        ptr      += 1
+        ptr   += 1
     }
 
     let retVal = ptr
     ptr[] = 0
-    ptr      -= 1
+    ptr   -= 1
 
     var ptr1 = result
     while ptr1 < ptr
     {
         let tmpChar = ptr[]
         ptr[]  = ptr1[]
-        ptr       -= 1
+        ptr    -= 1
         ptr1[] = tmpChar
-        ptr1      += 1
+        ptr1   += 1
     }
 
     return retVal
@@ -53,7 +53,7 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
     {
         let tmpValue = orgValue
         orgValue /= 10
-        ptr[] = conv[35 + (tmpValue - (orgValue * 10))]
+        ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
         if !orgValue do
             break
@@ -61,16 +61,16 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
 
     let retVal = ptr
     ptr[] = 0
-    ptr      -= 1
+    ptr   -= 1
 
     var ptr1 = result
     while ptr1 < ptr
     {
         let tmpChar = ptr[]
         ptr[]  = ptr1[]
-        ptr       -= 1
+        ptr    -= 1
         ptr1[] = tmpChar
-        ptr1      += 1
+        ptr1   += 1
     }
 
     return retVal
@@ -88,7 +88,7 @@ func __ftoa(result: [*] u8, value: f64)
         if value < 0
         {
             n[] = '-'
-            n      += 1
+            n   += 1
         }
 
         n[0] = '0'

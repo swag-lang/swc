@@ -9,7 +9,7 @@
 func(T) swap(x, y: *T)
 {
     var tmp: T = undefined
-    tmp    = #relocate x[]
+    tmp = #relocate x[]
     x[] = #relocate y[]
     y[] = #relocate tmp
     @memset(cast([*] void) &tmp, 0, #sizeof(T))

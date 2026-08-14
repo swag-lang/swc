@@ -298,47 +298,47 @@ impl CaptureClipboardForm
         case .Arrow:
             let form = Memory.new'FormArrow()
             form[] = .arrow
-            result    = form
+            result = form
 
         case .Draw:
             let form = Memory.new'FormDraw()
             form[] = .draw
-            result    = form
+            result = form
 
         case .Image:
             let form = Memory.new'FormImage()
             form[] = .image
-            result    = form
+            result = form
 
         case .Line:
             let form = Memory.new'FormLine()
             form[] = .line
-            result    = form
+            result = form
 
         case .Polygon:
             let form = Memory.new'FormPolygon()
             form[] = .polygon
-            result    = form
+            result = form
 
         case .Shape:
             let form = Memory.new'FormShape()
             form[] = .shape
-            result    = form
+            result = form
 
         case .Step:
             let form = Memory.new'FormStep()
             form[] = .step
-            result    = form
+            result = form
 
         case .Text:
             let form = Memory.new'FormText()
             form[] = .text
-            result    = form
+            result = form
 
         case .Callout:
             let form = Memory.new'FormCallout()
             form[] = .callout
-            result    = form
+            result = form
 
         case .None:
             return result

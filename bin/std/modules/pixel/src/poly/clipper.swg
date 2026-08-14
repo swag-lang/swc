@@ -2210,8 +2210,8 @@ impl Transform
     {
         if .currentLM == .minimaList.count or .minimaList[.currentLM].y != y do
             return false
-        locMin[] = &.minimaList[.currentLM]
-        .currentLM  += 1
+        locMin[]   = &.minimaList[.currentLM]
+        .currentLM += 1
         return true
     }
 

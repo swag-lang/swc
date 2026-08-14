@@ -120,9 +120,9 @@ struct Volume
     nodes:         Array'Node
     nodeLookup:    NodeIndex
     blocks:        BlockAllocator
-    ioLock:        Sync.Mutex         // Serializes the shared seek-based container stream.
-    accessLock:    Sync.RWLock        // Protects nodes and allocation across concurrent host callbacks.
-    touched:       Array'u64     // Nodes changed since the last journal record.
+    ioLock:        Sync.Mutex      // Serializes the shared seek-based container stream.
+    accessLock:    Sync.RWLock     // Protects nodes and allocation across concurrent host callbacks.
+    touched:       Array'u64       // Nodes changed since the last journal record.
     touchedSet:    HashSet'u64
     removed:       Array'u64     // Nodes deleted since the last journal record.
     scalarsDirty:  bool          // Whether a scalar such as the label or the next identifier changed.
@@ -764,6 +764,7 @@ impl Volume
             if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
                 failWith("The container is truncated or unreadable.", .Io)
         }
+
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
@@ -806,9 +807,9 @@ impl Volume
         {
             if !committed
             {
-                .blocks.free   = #move previousFree
+                .blocks.free            = #move previousFree
                 .blocks.freeBlocksCount = previousFreeBlocksCount
-                .metadataPages = #move previousPages
+                .metadataPages          = #move previousPages
             }
         }
 
@@ -1158,6 +1159,7 @@ impl Volume
             if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
                 failWith("The container is truncated or unreadable.", .Io)
         }
+
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
@@ -1193,8 +1195,8 @@ impl Volume
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
         Jobs.parallelFor(cast(u32) count, &batch) #code(jobIndex, data)
         {
-            let batch       = cast(*CryptoBatch) data!
-            let index       = cast(u64) jobIndex
+            let batch        = cast(*CryptoBatch) data!
+            let index        = cast(u64) jobIndex
             let recordOffset = index * BlockRecordSize
             let plainOffset  = index * BlockSize
             let nonce        = batch.records[recordOffset until recordOffset + Crypto.NonceSize]
@@ -1262,6 +1264,7 @@ impl Volume
                 updated.add(mapping[])
                 continue
             }
+
             if mapping.logical >= end
             {
                 if !inserted
@@ -1269,6 +1272,7 @@ impl Volume
                     updated.add({logical, physical, count})
                     inserted = true
                 }
+
                 updated.add(mapping[])
                 continue
             }
@@ -1287,6 +1291,7 @@ impl Volume
                     updated.add({logical, physical, count})
                     inserted = true
                 }
+
                 updated.add({end, mapping.physical + end - mapping.logical, mappingEnd - end})
             }
         }
@@ -1341,7 +1346,7 @@ impl Volume
             let node = .nodeById(nodeId)!
             .replaceBlockRun(node, logical + doneBlocks, allocated.first, allocated.count)
             .touch(nodeId)
-            published   = true
+            published  = true
             doneBlocks += allocated.count
         }
     }
@@ -1368,12 +1373,14 @@ impl Volume
                 node.blocks.removeAtOrdered(index)
                 continue
             }
+
             if mapping.logical + mapping.count > keepBlocks
             {
                 let removed = mapping.logical + mapping.count - keepBlocks
                 .blocks.deferReleaseRun(mapping.physical + mapping.count - removed, removed)
                 node.blocks[index].count -= removed
             }
+
             break
         }
 

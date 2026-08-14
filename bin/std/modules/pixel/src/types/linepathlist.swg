@@ -41,7 +41,7 @@ impl LinePathList
         for p, i in .paths
         {
             var ptr = Memory.new'LinePath()
-            ptr[]  = p[]
+            ptr[]     = p[]
             .paths[i] = ptr
         }
     }

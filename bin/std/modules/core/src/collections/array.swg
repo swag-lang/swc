@@ -598,7 +598,7 @@ impl Array
             for sliceCount
             {
                 destPtr[] = #nodrop vals[@index]
-                destPtr      += 1
+                destPtr   += 1
             }
         }
         else

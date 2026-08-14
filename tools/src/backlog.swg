@@ -126,7 +126,7 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
                 errors += 1
             }
 
-            previous        = parsed.value
+            previous     = parsed.value
             maxFinding[] = Math.max(maxFinding[], parsed.value)
         }
         else do

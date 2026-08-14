@@ -323,7 +323,7 @@ private func comQueryInterface(itf: *IDropTarget, riid: const *GUID, ppv: *LPVOI
 
     let target = dropTargetOf(itf)
     target.refCount += 1
-    ppv[]        = cast([*] void) itf
+    ppv[]           = cast([*] void) itf
     return S_OK
 }
 
@@ -518,9 +518,9 @@ private func buildHDrop(data: *DragData)->HGLOBAL
     {
         let wide = Utf16.fromUtf8(f.toString())
         Memory.copy(cursor, wide.buffer, wide.count * 2)
-        cursor      += wide.count
+        cursor   += wide.count
         cursor[] = 0
-        cursor      += 1
+        cursor   += 1
     }
 
     cursor[] = 0
@@ -1017,7 +1017,7 @@ private func enumClone(itf: *IEnumFORMATETC, ppenum: *LPVOID)->HRESULT
     res.lpVtbl  = &g_FormatEnumVtbl
     res.formats = obj.formats
     res.index   = obj.index
-    ppenum[] = cast([*] void) res
+    ppenum[]    = cast([*] void) res
     return S_OK
 }
 

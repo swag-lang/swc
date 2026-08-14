@@ -244,12 +244,12 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
 
     case .Bool:
         var val: bool = undefined
-        {val, eat}             = parseBool(one)
+        {val, eat}            = parseBool(one)
         (cast(*bool) patch)[] = val
 
     case .Rune:
         var val: rune = undefined
-        {val, eat}             = parseRune(one)
+        {val, eat}            = parseRune(one)
         (cast(*rune) patch)[] = val
 
     default:

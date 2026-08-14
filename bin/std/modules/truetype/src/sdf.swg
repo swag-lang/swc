@@ -76,7 +76,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
             let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
             let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
             dst[] = cast(u8) Math.round(value)
-            dst      += 1
+            dst   += 1
         }
     }
 

@@ -205,7 +205,7 @@ impl Deflate
         d.totalLzBytes += 1
         let lzCodeBufAddr = d.lzCodeBufAddr!
         lzCodeBufAddr[] = lit
-        d.lzCodeBufAddr    += 1
+        d.lzCodeBufAddr += 1
         let lzFlags = d.lzFlags!
         lzFlags[] = cast(u8) (lzFlags[] >> 1)
 
@@ -236,7 +236,7 @@ impl Deflate
         d.lzCodeBufAddr  += 3
 
         let lzFlags = d.lzFlags!
-        lzFlags[]   = cast(u8) ((lzFlags[] >> 1) | 0x80)
+        lzFlags[]      = cast(u8) ((lzFlags[] >> 1) | 0x80)
         d.numFlagsLeft -= 1
         if d.numFlagsLeft == 0
         {
@@ -320,7 +320,7 @@ impl Deflate
             {
                 matchDistAddr[] = dist
                 matchLenAddr[]  = probeLen
-                matchLen           = probeLen
+                matchLen        = probeLen
                 if matchLen == maxMatchLen do
                     return
                 c0 = d.dict[pos + matchLen]
@@ -344,7 +344,7 @@ impl Deflate
             {
                 let outputBufAddr = d.outputBufAddr!
                 outputBufAddr[] = cast(u8) d.bitBuffer
-                d.outputBufAddr    += 1
+                d.outputBufAddr += 1
             }
 
             d.bitBuffer >>= 8
@@ -869,7 +869,7 @@ impl Deflate
 
         let numFlagsLeft = cast(u8) d.numFlagsLeft
         let lzFlags      = d.lzFlags!
-        lzFlags[]    = cast(u8) (lzFlags[] >> numFlagsLeft)
+        lzFlags[]       = cast(u8) (lzFlags[] >> numFlagsLeft)
         d.lzCodeBufAddr -= (d.numFlagsLeft == 8) ? 1 : 0
 
         .putBits(finish ? 1 : 0, 1)

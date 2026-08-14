@@ -117,7 +117,7 @@ func refIndexSentinelSum(values: *LoopRefIndexContainer, index: *s32)->s32
     var result = 0
     while values[index[]] != 99
     {
-        result     += values[index[] + 1]
+        result  += values[index[] + 1]
         index[] += 2
     }
 

@@ -80,7 +80,7 @@ func rejectFreeBorrowed()
 {
     var p = cast(*s32) myAlloc(4)
     myFree(p, 4)
-    p      = cast(*s32) myAlloc(4)
+    p   = cast(*s32) myAlloc(4)
     p[] = 3
     @assert(p[] == 3)
     myFree(p, 4)

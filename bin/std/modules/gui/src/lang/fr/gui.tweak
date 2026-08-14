@@ -9,6 +9,7 @@ dlg_ConfirmTitle Veuillez confirmer
 dlg_ConfirmText  Voulez-vous continuer ?
 dlg_ErrorTitle   Erreur
 dlg_InfoTitle    Information
+dlg_MultiLineHint Appuyez sur Maj+Entrée pour ajouter une nouvelle ligne
 
 fileDlg_TitleSaveFile     Enregistrer un fichier
 fileDlg_TitleSelectFile   Sélectionner un fichier

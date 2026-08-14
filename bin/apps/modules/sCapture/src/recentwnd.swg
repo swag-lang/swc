@@ -34,6 +34,7 @@ struct RecentInfos
     selected:       bool
     linkedUpToDate: bool
     linked:         String
+    showLinked:     bool = true
 }
 
 struct RecentView
@@ -218,7 +219,7 @@ impl IWnd for RecentView
             }
         }
 
-        if infos.linked != null
+        if infos.showLinked and infos.linked != null
         {
             let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
             painter.fillRoundRect({rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)

@@ -16,7 +16,7 @@ struct FormText
     // dresses them. A face picked above an empty box asks a question in the wrong order.
     #[Name("Text"), MultiLine]
     text: String
-    #[Name("Font"), FontName]
+    #[Name("Font"), FontName, After("alignVert")]
     fontName: String
     #[Name("Font Style")]
     fontStyle = FontFamilyStyle.Regular
@@ -183,7 +183,7 @@ impl IForm for FormText
         // the size the document uses fills its cell edge to edge and is cut by it, which reads
         // as a broken preset rather than as a big one.
         let bSize = BaseForm.adaptSize(.borderSize, MinTextBorderSize, MaxTextBorderSize, cxtCpy, 2, 4)
-        let fSize = BaseForm.adaptSize(.fontSize, MinFontSize, MaxFontSize, cxtCpy, 12, 24)
+        let fSize = BaseForm.adaptSize(.fontSize, MinFontSize, MaxFontSize, cxtCpy, 16, 28)
         let sSize = BaseForm.adaptSize(.boldSize, MinBoldSize, MaxBoldSize, cxtCpy, 1, 2)
         let z     = cxt.z
 

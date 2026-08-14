@@ -1947,7 +1947,9 @@ impl Wnd
         // focused subtree; its releaseFocus must then see that the keyboard has already left it,
         // instead of recursively starting a second transition through a tree being dismantled.
         let lastSurface = last ? last.surface : null
+        srfn.app.nativeFocusTransition = true
         srfn.setFocus()
+        srfn.app.nativeFocusTransition = false
         srfn.app.keyboardFocusWnd = me
         srfn.noteFocus(me)
 

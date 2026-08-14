@@ -712,6 +712,31 @@ impl Surface
         .focusIndex = FocusOrder.collect(root).indexOf(wnd)
     }
 
+    // Removes the logical keyboard focus when the native surface loses it, while retaining the
+    // recorded stop for [[Gui.Surface.restoreFocus]]. The native transition cannot be vetoed, so
+    // it emits `Lost` directly after publishing that no window currently owns the keyboard.
+    internal mtd loseKeyboardFocus()
+    {
+        let focused = .app.keyboardFocusWnd
+        if !focused or focused.surface != me do
+            return
+
+        .app.keyboardFocusWnd = null
+        focused.invalidate()
+        focused.ownerNotifyEvent(.ChildFocusChanged)
+
+        var evt = FocusEvent{kind: FocusEvent.Kind.Lost}
+        focused.sendEvent(&evt)
+
+        // A Lost callback may deliberately put the keyboard somewhere else. That transition
+        // owns the resulting focus and the surfaces it already invalidated.
+        if .app.keyboardFocusWnd do
+            return
+
+        .defaultButton?.invalidate()
+        .wnd.ownerNotifyEvent(.ChildFocusChanged)
+    }
+
     // Gives the keyboard back to where it stood on this surface, and reports whether it landed.
     //
     // The control it left is preferred, and it is recognized by comparing it against the stops

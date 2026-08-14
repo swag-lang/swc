@@ -296,7 +296,7 @@ impl IActionUI for ActionFile
             }
 
             if capture.rating do
-                addLine(lt, appStrings().ui_DetailRating, Format.toString("%/5", capture.rating))
+                addLine(lt, appStrings().ui_DetailRating, ratingStars(capture.rating))
             addLine(lt, appStrings().ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
             lt.computeLayout()
             discard dlg.doModal()

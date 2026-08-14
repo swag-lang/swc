@@ -16,6 +16,8 @@ using Swag, Core
     let dlg = EditDlg.createSingleLine(&host.surface, options)
 
     @assert(dlg.surface!.flags.has(.SmallCaption))
+    @assert(dlg.label.preferredSize.y < 40)
+    @assert(Math.abs(dlg.label.margin.w - dlg.themeMetrics().dialog_BtnPadding) < 0.5)
     let metrics       = dlg.themeMetrics()
     let contentHeight = dlg.edit!.position.height + dlg.label.position.height + dlg.label.margin.w
     var expected      = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
@@ -55,10 +57,11 @@ using Swag, Core
 
     var options: EditDlgOptions
     options.title        = "Description"
-    options.message      = "Describe the change."
     options.editorHeight = 150
     let dlg = EditDlg.createMultiLine(&host.surface, options)
 
+    @assert(dlg.label.name.raw == strings().dlg_MultiLineHint)
+    @assert(dlg.label.position.bottom() <= dlg.richEdit!.position.y + 0.5)
     let metrics       = dlg.themeMetrics()
     let contentHeight = dlg.richEdit!.position.height + dlg.label.position.height + dlg.label.margin.w
     let visibleHeight = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize + metrics.wnd_SmallCaptionCY

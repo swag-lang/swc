@@ -21,6 +21,7 @@ struct Strings
         dlg_ConfirmText:  string = "Do you want to continue?"     // Default question of a confirmation dialog.
         dlg_ErrorTitle:   string = "Error"                        // Title of an error dialog.
         dlg_InfoTitle:    string = "Information"                  // Title of an informational dialog.
+        dlg_MultiLineHint: string = "Press Shift+Enter to add a new line"     // Keyboard hint above a multi-line dialog editor.
 
         fileDlg_TitleSaveFile:     string = "Save File"                                   // File dialog title when saving a file.
         fileDlg_TitleSelectFile:   string = "Select File"                                 // File dialog title when picking one file.

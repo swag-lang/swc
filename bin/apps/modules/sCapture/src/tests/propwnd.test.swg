@@ -80,6 +80,8 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     // What the form says comes before how it is set: the box the words are typed in stands
     // above the face they are set in.
     @assert(testItemIndex(prop, #nameof(FormText.text)) < testItemIndex(prop, #nameof(FormText.fontName)))
+    @assert(testItemIndex(prop, #nameof(FormText.alignVert)) < testItemIndex(prop, #nameof(FormText.fontName)))
+    @assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(FormText.fontSize)))
 
     // Most specific first: the text form's own fields come before the shared BaseForm
     // block, even though the language declares 'using base' first

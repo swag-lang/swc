@@ -301,6 +301,34 @@ internal impl Properties
             }
         }
 
+        // A presentation dependency moves only the reflected row. Keeping the declaration intact
+        // is essential for structures whose field order is also their persisted binary schema.
+        for fieldIdx in @countof(typeStruct.fields)
+        {
+            let after = Reflection.attributeValue(tsFields[fieldIdx], Properties.After, "field")
+            if after == null do
+                continue
+
+            let afterName = attributeString(after)
+            var curPos    = Swag.U64.Max
+            var afterPos  = Swag.U64.Max
+            for value, pos in walkOrder
+            {
+                if value == fieldIdx do
+                    curPos = pos
+                if tsFields[value].name == afterName do
+                    afterPos = pos
+            }
+
+            if curPos == Swag.U64.Max or afterPos == Swag.U64.Max or curPos == afterPos do
+                continue
+
+            walkOrder.removeAtOrdered(curPos)
+            if curPos < afterPos do
+                afterPos -= 1
+            walkOrder.insertAt(afterPos + 1, fieldIdx)
+        }
+
         for idx in walkOrder
         {
             let value = tsFields[idx]

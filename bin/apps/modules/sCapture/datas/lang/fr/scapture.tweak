@@ -12,7 +12,8 @@ ui_AllCaptures         Tous les éléments
 ui_ImageBadge          IMAGE
 ui_CommaSeparatedTags  Étiquettes séparées par des virgules
 ui_Search              Rechercher
-ui_BarSize             Taille
+ui_BarView             Affichage
+ui_Overlays            Surimpressions
 ui_BarSort             Tri
 ui_BarFilter           Filtre
 ui_BarFolders          Dossiers
@@ -124,6 +125,8 @@ act_Rating2            2 étoiles
 act_Rating3            3 étoiles
 act_Rating4            4 étoiles
 act_Rating5            5 étoiles
+act_ShowRatings        Notes
+act_ShowLinkMarkers    Marqueurs de lien
 act_BrowseFolder       Parcourir un dossier...
 act_OpenLibraryFolder  Ouvrir le dossier de la bibliothèque
 act_ChooseLibraryFolder Utiliser un autre dossier de bibliothèque...

@@ -634,9 +634,8 @@ impl PropWnd
     func editText(main: *MainWnd, curText: String)->String
     {
         var editOptions: EditDlgOptions
-        editOptions.title   = appStrings().dlg_TitleEnterText
-        editOptions.message = "Press Shift+Enter to add a new line"
-        editOptions.text    = curText.toString()
+        editOptions.title = appStrings().dlg_TitleEnterText
+        editOptions.text  = curText.toString()
         let dlg = EditDlg.createMultiLine(main.surface!, editOptions)
         if main.inPlaceEdit do
             dlg.surface?.setTopMost()

@@ -584,6 +584,15 @@ impl MenuCtrl
         p.endModal       = true
         p.endModalResult = result
 
+        // A transient root disappears in the same input event as its selected leaf. Mark it
+        // visually hidden now, but leave teardown to doModal: unregistering it while its mouse
+        // event is still being dispatched can prevent the selected command from being posted.
+        if !p.bar
+        {
+            p.wndFlags.add(.Hidden)
+            p.parent!.invalidate()
+        }
+
         if result != null do
             .sigCommandSelected.call(me, result!)
 
@@ -1170,7 +1179,20 @@ public impl MenuCtrl
             .paddingSel = 0
         }
 
-        .fitPosInParent(simX: true, simY: true)
+        let anchored = pos == .AnchorTopCenter or pos == .AnchorBottomCenter
+        .fitPosInParent(simX: !anchored, simY: true)
+
+        if anchored and .position.x < 0
+        {
+            var fitted = .position
+            fitted.x = 0
+            .setPosition(fitted)
+        }
+
+        // Fitting a centred popup near the right edge moves the body, not its attachment point.
+        // Recompute the notch from the original anchor so it remains directly under the button.
+        if anchored do
+            .anchorPosition = Math.clamp(pt.x - .position.x, 0.0, .position.width)
 
         .bringToFront()
         .show()
@@ -1184,6 +1206,10 @@ public impl MenuCtrl
             srf.app.runFrame()
         .app().inModalLoop -= 1
 
+        // setEndModal can suppress the root before this loop resumes. Clear that presentation-only
+        // flag so hide performs the normal focus, input and registration teardown exactly once.
+        if .wndFlags.has(.Hidden) do
+            .wndFlags.remove(.Hidden)
         .hideSubVisible()
         .hide()
 

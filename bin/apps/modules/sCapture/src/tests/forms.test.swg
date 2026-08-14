@@ -64,8 +64,18 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     line.borderSize = 5
     line.startSize  = 4
     line.endSize    = 20
+    line.endCap     = .RoundAnchor
     let lineItf: IForm = &line
     @assert(BaseForm.paintOverdraw(lineItf, false) == 52)
+
+    // FormArrow embeds FormLine but has its own runtime type. Its arrowhead must reserve the
+    // same layer margin instead of falling back to the ordinary-stroke extent.
+    var arrow: FormArrow
+    arrow.borderSize = 5
+    arrow.endSize    = 8
+    arrow.endCap     = .ArrowAnchor
+    let arrowItf: IForm = &arrow
+    @assert(BaseForm.paintOverdraw(arrowItf, false) == 22)
 }
 
 // Rectangle-like forms normalize negative sizes and keep their base geometry coherent.

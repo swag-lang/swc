@@ -77,7 +77,11 @@ public impl EditDlg
         dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         dlg.sendResizeEvent()
-        dlg.applyOptions(options)
+
+        var appliedOptions = options
+        if !@countof(appliedOptions.message) do
+            appliedOptions.message = strings().dlg_MultiLineHint
+        dlg.applyOptions(appliedOptions)
         return dlg
     }
 
@@ -85,8 +89,15 @@ public impl EditDlg
     // surface: the message can grow the surface, so centering must come last.
     private mtd applyOptions(options: EditDlgOptions)
     {
-        if @countof(options.message) do
-            .setMessage(options.message)
+        if @countof(options.message)
+        {
+            // A one-line prompt needs one line of explanation, not the taller band that keeps a
+            // rich editor's keyboard hint easy to scan above a large text area.
+            let messageHeight = .edit ? cast(s32) Math.ceil(.font().regular!.height) : 40
+            .setMessage(options.message, messageHeight)
+            if .edit do
+                .label.margin.w = .themeMetrics().dialog_BtnPadding
+        }
         .setText(options.text)
         if options.selectAll
         {

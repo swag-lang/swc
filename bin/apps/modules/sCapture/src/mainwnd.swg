@@ -308,6 +308,8 @@ impl IWnd for MainWnd
                 .serialize("MainWnd.libraryShowUnlinked", &me.libWnd.showUnLinkedImage)
                 .serialize("MainWnd.libraryShowCurrentLinked", &me.libWnd.showUpToDateLinkedImage)
                 .serialize("MainWnd.libraryShowChangedLinked", &me.libWnd.showUnSavedLinkedImage)
+                .serialize("MainWnd.libraryShowRatingOverlay", &me.libWnd.showRatingOverlay)
+                .serialize("MainWnd.libraryShowLinkOverlay", &me.libWnd.showLinkOverlay)
                 .serialize("MainWnd.RightBar.Pane0", &me .quickStyleBar.items[0]!.size)
                 .serialize("MainWnd.RightBar.Pane1", &me .quickStyleBar.items[1]!.size)
                 .serialize("MainWnd.captureOptions", &me.captureOptions)
@@ -890,13 +892,13 @@ impl MainWnd
         }
 
         // Capture is the primary Voltage action. Library is the equally explicit secondary
-        // destination: its labeled toggle marks library mode with the active rule.
+        // destination: its labeled toggle uses a full neutral fill when library mode is active.
         .captureBtn = PushButton.create(verbs, "", {0, 0, 104, RailCellSize - 8}, ActionCapture.DoIt, .Strong)
 
         .libraryBtn = IconButton.create(verbs, .icon(.Library, RailGlyphSize), {0, 0, 148, RailCellSize - 8}, ActionGlobal.ShowLibrary, .Toggle | .CenterContent)
         .libraryBtn.setText(appStrings().act_Library)
         .libraryBtn.setTextPosition(.Right)
-        .libraryBtn.setCheckIndicator(.Bottom)
+        .libraryBtn.setCheckIndicator(.None)
 
         with .commandReadouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, CommandRowHeight})
         {

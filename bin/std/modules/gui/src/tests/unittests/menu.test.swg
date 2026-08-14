@@ -194,6 +194,13 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 
     var didOpen:  bool
     var didClick: bool
+    var hidTogether: bool
+    sub.sigCommandSelected += func|popup, sub, hidTogether = &hidTogether|(menu, id)
+    {
+        discard menu
+        discard id
+        hidTogether[] = popup.isHidden() and sub.isHidden()
+    }
     host.app.sigFrame += func|host = &host, opened = &didOpen, clicked = &didClick|(app)
     {
         if !opened[]
@@ -213,8 +220,38 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(result == Menu_Open)
     @assert(didOpen)
     @assert(didClick)
+    @assert(hidTogether)
     @assert(host.app.mouseCaptureWnd == null)
 
+    host.pump()
+}
+
+// A centred popup fitted at the right edge keeps its notch under the requested anchor.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Actual Size", Menu_Open)
+    popup.addItem("Fit To View", Menu_Quit)
+
+    let anchor = Math.Point{310, 40}
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, anchor, checked = &checked|(app)
+    {
+        if checked[] do
+            return
+
+        @assert(popup.position.right() <= host.root.position.width)
+        @assert(Math.abs(popup.position.x + popup.anchorPosition - anchor.x) < 0.5)
+        @assert(host.clickPopupMenuItem(Menu_Open))
+        checked[] = true
+    }
+
+    @assert(popup.doModal(anchor, .AnchorTopCenter, autoDestroy: true) == Menu_Open)
+    @assert(checked)
     host.pump()
 }
 

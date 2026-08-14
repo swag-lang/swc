@@ -117,6 +117,38 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(!card.submit.hasVisibleFocus())
 }
 
+// Native surface deactivation removes the logical focus and its caret, then activation restores
+// the recorded stop instead of leaving a control painted as active in a background application.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+    defer host.shutdown()
+
+    let edit = EditBox.create(&host.root, "text", {10, 10, 180, 24})
+    var lostCount: u32
+    edit.sigFocusLost += func|lostCount = &lostCount|(ed)
+    {
+        discard ed
+        lostCount[] += 1
+    }
+
+    edit.setFocus()
+    @assert(edit.hasFocus())
+    @assert(edit.timerCaret != null)
+
+    host.surface.loseKeyboardFocus()
+    @assert(host.app.keyboardFocusWnd == null)
+    @assert(!edit.hasFocus())
+    @assert(edit.timerCaret == null)
+    @assert(host.surface.focusWnd == cast(#null *Wnd) edit)
+    @assert(lostCount == 1)
+
+    @assert(host.surface.restoreFocus())
+    @assert(edit.hasFocus())
+    @assert(edit.timerCaret != null)
+}
+
 // A hidden or disabled control hands the keyboard to what follows it.
 #test
 {

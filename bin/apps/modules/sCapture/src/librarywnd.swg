@@ -67,7 +67,7 @@ struct LibraryWnd
         sideBar:        *Wnd
         listCtrl:       *ListCtrl
         commandBar:     *StackLayoutCtrl
-        previewSizeBtn: *IconButton
+        viewBtn:        *IconButton
         sortBtn:        *IconButton
         filterBtn:      *IconButton
         folderBtn:      *IconButton
@@ -103,6 +103,8 @@ struct LibraryWnd
     showLinkedImage:          bool = true
     showUnSavedLinkedImage:   bool = true
     showUnLinkedImage:        bool = true
+    showRatingOverlay:        bool = true
+    showLinkOverlay:          bool = true
 }
 
 impl IWnd for LibraryWnd
@@ -121,10 +123,10 @@ impl LibraryWnd
 {
     mtd applyLanguage()
     {
-        if !@isset(.previewSizeBtn) do
+        if !@isset(.viewBtn) do
             return
 
-        .previewSizeBtn.setText(appStrings().ui_BarSize)
+        .viewBtn.setText(appStrings().ui_BarView)
         .sortBtn.setText(appStrings().ui_BarSort)
         .filterBtn.setText(appStrings().ui_BarFilter)
         .folderBtn.setText(appStrings().ui_BarFolders)
@@ -621,6 +623,7 @@ impl LibraryWnd
         .registerAction'ActionLibFilter()
         .registerAction'ActionLibSel()
         .registerAction'ActionLibTrash()
+        .registerAction'ActionLibView()
 
         .registerKeyShortcut(.None, .Left, ActionLibSel.Left)
         .registerKeyShortcut(.None, .Right, ActionLibSel.Right)
@@ -1205,11 +1208,12 @@ impl LibraryWnd
             .backgroundStyle = .Window
         }
 
-        // Image Size
-        with res.previewSizeBtn = IconButton.create(res.commandBar, res.theme().icon(.Search, LibGlyphSize), {0, 0, 0, LibBarHeight})
+        // View: thumbnail size and optional information painted over thumbnails share
+        // one menu, because both control presentation rather than library contents.
+        with res.viewBtn = IconButton.create(res.commandBar, res.main.icon(.ViewMedium, LibGlyphSize), {0, 0, 0, LibBarHeight})
         {
             .preferredSize.x = 0
-            .setText(appStrings().ui_BarSize)
+            .setText(appStrings().ui_BarView)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -1222,6 +1226,14 @@ impl LibraryWnd
                     .addItem(ActionRecentSize.LibSmall)
                     .addItem(ActionRecentSize.LibMedium)
                     .addItem(ActionRecentSize.LibBig)
+                    .addSeparator()
+
+                    with let overlays = MenuCtrl.createPopup(menu, owner: res)
+                    {
+                        .addItem(ActionLibView.Ratings)
+                        .addItem(ActionLibView.LinkMarkers)
+                        menu.addPopup(appStrings().ui_Overlays, overlays)
+                    }
                 }
 
                 discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)

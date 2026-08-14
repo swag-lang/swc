@@ -23,6 +23,18 @@ using Swag, Core, File
     @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall))
     @assert(f.main.libWnd.previewSize == .Small)
 
+    var overlayEvt = Gui.Testing.commandState(ActionLibView.Ratings)
+    @assert(Gui.Testing.actionUpdate'ActionLibView(libWnd, ActionLibView.Ratings, &overlayEvt))
+    @assert(overlayEvt.checked)
+    @assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.Ratings))
+    @assert(!f.main.libWnd.showRatingOverlay)
+    @assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.LinkMarkers))
+    @assert(!f.main.libWnd.showLinkOverlay)
+
+    @assert(ratingStars(0) == "☆☆☆☆☆")
+    @assert(ratingStars(3) == "★★★☆☆")
+    @assert(ratingStars(5) == "★★★★★")
+
     with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
     {
         .dockStyle = .Bottom
@@ -573,7 +585,7 @@ using Swag, Core, File
     @assert(lib.searchEdit.position.right() == lib.commandBar.paddedClientRect().right())
     @assert(lib.listCtrl.scrollWnd.scrollSize.x <= lib.listCtrl.listView.paddedClientRect().width)
     @assert(lib.commandBar.children.count == 7)
-    @assert(lib.sortBtn.position.x - lib.previewSizeBtn.position.right() == LibButtonGap)
+    @assert(lib.sortBtn.position.x - lib.viewBtn.position.right() == LibButtonGap)
     @assert(lib.filterBtn.position.x - lib.sortBtn.position.right() == LibButtonGap)
     @assert(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
 

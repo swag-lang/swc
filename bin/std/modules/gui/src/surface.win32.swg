@@ -208,6 +208,16 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             surface.app.setActivated(wParam ? true : false)
             return 0
 
+        case WM_KILLFOCUS:
+            if !surface.app.nativeFocusTransition do
+                surface.loseKeyboardFocus()
+            return 0
+
+        case WM_SETFOCUS:
+            if !surface.app.nativeFocusTransition do
+                discard surface.restoreFocus()
+            return 0
+
         case WM_SETTINGCHANGE:
             surface.app.refreshSystemMotionPreference()
             return 0

@@ -1,5 +1,20 @@
 using Threading, Time
 
+// Five positions communicate a rating at a glance and keep the same visual vocabulary
+// in thumbnails, details and the context menu.
+func ratingStars(rating: u8)->String
+{
+    var result: String
+    var idx: u8
+    while idx < 5
+    {
+        result += (idx < rating ? "★" : "☆")
+        idx += 1
+    }
+
+    return result
+}
+
 internal var g_UpdatingLib: bool
 internal var g_DirtyList: bool = true
 internal const ItemMargin = 8.0
@@ -166,11 +181,11 @@ impl IWnd for LibraryView
                     with let rating = MenuCtrl.createPopup(menu, owner: me)
                     {
                         .addItem(appStrings().act_NoRating, "sCapture.library.rating.0", checked: focusedCapture and focusedCapture.rating == 0)
-                        .addItem(appStrings().act_Rating1, "sCapture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
-                        .addItem(appStrings().act_Rating2, "sCapture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
-                        .addItem(appStrings().act_Rating3, "sCapture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
-                        .addItem(appStrings().act_Rating4, "sCapture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
-                        .addItem(appStrings().act_Rating5, "sCapture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
+                        .addItem(ratingStars(1), "sCapture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
+                        .addItem(ratingStars(2), "sCapture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
+                        .addItem(ratingStars(3), "sCapture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
+                        .addItem(ratingStars(4), "sCapture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
+                        .addItem(ratingStars(5), "sCapture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
                         menu.addPopup(appStrings().act_Rating, rating)
                     }
 
@@ -260,6 +275,7 @@ impl IWnd for LibraryView
             {
                 infos.linkedUpToDate = capture.linkedUpToDate
                 infos.linked         = capture.linkedImage
+                infos.showLinked     = .libWnd.showLinkOverlay
             }
 
             RecentView.IWnd.paintRecent(me, painter, it.texture, it.rect, infos)
@@ -293,14 +309,18 @@ impl IWnd for LibraryView
                 painter.drawString(rc.x + 6, rc.y + 2, text, font, .themeColors().label_TextLight)
             }
 
-            if capture and (capture.favorite or capture.rating)
+            if capture and (capture.favorite or (capture.rating and .libWnd.showRatingOverlay))
             {
-                let font = me .theme().res.fontDefaultFs.regular!
+                let font = me .theme().res.fontDefault.bold!
                 var text: String
                 if capture.favorite do
-                    text = "★"
-                if capture.rating do
-                    text = Format.toString("% %/5", text, capture.rating)
+                    text = "♥"
+                if capture.rating and .libWnd.showRatingOverlay
+                {
+                    if !text.isEmpty() do
+                        text += " "
+                    text += ratingStars(capture.rating)
+                }
                 let ms = Painter.measureString(text, font)
                 painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
             }

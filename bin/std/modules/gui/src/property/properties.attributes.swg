@@ -32,6 +32,10 @@ impl Properties
     // Replaces the reflected field name with a presentation label.
     attr Name(name: string)
 
+    // Displays the field immediately after another field of the same reflected structure.
+    // This changes presentation order only; the declaration and serialization layout stay intact.
+    attr After(field: string)
+
     // Adds explanatory text below the field label.
     attr Description(desc: string)
 

@@ -111,12 +111,14 @@ impl BaseForm
             return QuickPaintOverdraw
 
         let base   = cast(*BaseForm) @dataof(itf)
+        let type   = @kindof(itf)
         var extent = base.borderSize * 1.5
-        if @kindof(itf) == FormLine
+        if type == FormLine or type == FormArrow
         {
-            let line     = cast(*FormLine) base
-            let capScale = Math.max(2.0, Math.max(line.startSize, line.endSize))
-            extent = Math.max(extent, base.borderSize * 0.5 * capScale)
+            let line = cast(*FormLine) base
+            let beg  = Painter.capStyleExtent(line.beginCap, base.borderSize, line.startSize)
+            let end  = Painter.capStyleExtent(line.endCap, base.borderSize, line.endSize)
+            extent = Math.max(extent, Math.max(Math.max(beg.w, beg.l), Math.max(end.w, end.l)))
         }
 
         return Math.ceil(extent + 2)

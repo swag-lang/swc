@@ -1,5 +1,29 @@
 using Core
 
+// Bounds one encrypted host transfer. Large enough to amortize system calls and small enough to
+// keep temporary ciphertext away from the heap's large-allocation path.
+const MaximumIoBatchBlocks = 256'u64
+
+struct CryptoBatch
+{
+    keys:        const *Crypto.Keys = undefined
+    physical:    u64
+    records:     [..] u8
+    plain:       [..] u8
+    error:       #null any
+    errorLock:   Sync.Mutex
+    invalidTags: s32
+}
+
+private func keepFirstBatchError(batch: *CryptoBatch, err: #null any)
+{
+    if err == null do
+        return
+    Sync.scopedLock(&batch.errorLock)
+    if batch.error == null do
+        batch.error = err
+}
+
 // Serialized timestamps use 100-nanosecond ticks since 1601-01-01 UTC.
 // Keeping the epoch in the format layer preserves compatibility with existing volumes.
 const VolumeTimestampEpoch = 504_911_232_000_000_000'u64
@@ -96,6 +120,8 @@ struct Volume
     nodes:         Array'Node
     nodeLookup:    NodeIndex
     blocks:        BlockAllocator
+    ioLock:        Sync.Mutex         // Serializes the shared seek-based container stream.
+    accessLock:    Sync.RWLock        // Protects nodes and allocation across concurrent host callbacks.
     touched:       Array'u64     // Nodes changed since the last journal record.
     touchedSet:    HashSet'u64
     removed:       Array'u64     // Nodes deleted since the last journal record.
@@ -719,9 +745,10 @@ impl Volume
         {
             for mapping in node.blocks
             {
-                if mapping.physical >= .blockCount do
+                if mapping.physical >= .blockCount or !mapping.count or mapping.count > .blockCount - mapping.physical do
                     failWith("A block mapping falls outside the container.", .Corrupted)
-                used.set(mapping.physical, true)
+                for physical in mapping.physical until mapping.physical + mapping.count do
+                    used.set(physical, true)
             }
         }
 
@@ -732,8 +759,11 @@ impl Volume
     {
         Debug.assert(@countof(destination) == BlockSize)
         var record: [BlockRecordSize] u8
-        if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
-            failWith("The container is truncated or unreadable.", .Io)
+        {
+            Sync.scopedLock(&.ioLock)
+            if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
+                failWith("The container is truncated or unreadable.", .Io)
+        }
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
@@ -749,6 +779,7 @@ impl Volume
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
         try Crypto.seal(&.keys, MetadataPageKind, physical, source, nonce, ciphertext, tag)
+        Sync.scopedLock(&.ioLock)
         .file.writeAllAt(DataOffset + physical * BlockRecordSize, record)
     }
 
@@ -768,6 +799,7 @@ impl Volume
         previousPages.add(.metadataPages.toSlice())
         var previousFree: Array'FreeExtent
         previousFree.add(.blocks.free.toSlice())
+        let previousFreeBlocksCount = .blocks.freeBlocksCount
 
         var committed = false
         defer
@@ -775,6 +807,7 @@ impl Volume
             if !committed
             {
                 .blocks.free   = #move previousFree
+                .blocks.freeBlocksCount = previousFreeBlocksCount
                 .metadataPages = #move previousPages
             }
         }
@@ -845,6 +878,7 @@ impl Volume
         let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + @countof(plain)]
         let tag        = record[HeaderRecordPrefixSize + @countof(plain) until used]
         try Crypto.seal(&.keys, recordKind, recordId, plain, nonce, ciphertext, tag)
+        Sync.scopedLock(&.ioLock)
         .file.writeAllAt(offset, record.toSlice())
         .file.flush()
     }
@@ -1119,8 +1153,11 @@ impl Volume
     {
         Debug.assert(@countof(destination) == BlockSize)
         var record: [BlockRecordSize] u8
-        if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
-            failWith("The container is truncated or unreadable.", .Io)
+        {
+            Sync.scopedLock(&.ioLock)
+            if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
+                failWith("The container is truncated or unreadable.", .Io)
+        }
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
@@ -1132,14 +1169,141 @@ impl Volume
     {
         @memset(@dataof(destination), 0, @countof(destination))
         let search = node.blockSearch(logical)
-        if search.found do
-            .readPhysical(node.blocks[search.index].physical, destination)
+        if search.found
+        {
+            let mapping = node.blocks[search.index]
+            .readPhysical(mapping.physical + logical - mapping.logical, destination)
+        }
+    }
+
+    mtd readPhysicalRun(physical: u64, destination: [..] u8) fail
+    {
+        Debug.assert(@countof(destination) != 0 and @countof(destination) % BlockSize == 0)
+        let count = @countof(destination) / BlockSize
+        Debug.assert(count <= MaximumIoBatchBlocks)
+
+        var records: Array'u8
+        records.resize(count * BlockRecordSize)
+        {
+            Sync.scopedLock(&.ioLock)
+            if !.file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice()) do
+                failWith("The container is truncated or unreadable.", .Io)
+        }
+
+        var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
+        Jobs.parallelFor(cast(u32) count, &batch) #code(jobIndex, data)
+        {
+            let batch       = cast(*CryptoBatch) data!
+            let index       = cast(u64) jobIndex
+            let recordOffset = index * BlockRecordSize
+            let plainOffset  = index * BlockSize
+            let nonce        = batch.records[recordOffset until recordOffset + Crypto.NonceSize]
+            let ciphertext   = batch.records[recordOffset + Crypto.NonceSize until recordOffset + Crypto.NonceSize + BlockSize]
+            let tag          = batch.records[recordOffset + Crypto.NonceSize + BlockSize until recordOffset + BlockRecordSize]
+            let opened       = catch Crypto.open(batch.keys, DataKind, batch.physical + index, nonce, ciphertext, tag, batch.plain[plainOffset until plainOffset + BlockSize]) as openError
+            keepFirstBatchError(batch, openError)
+            if openError == null and !opened do
+                Atomic.add(&batch.invalidTags, 1)
+        }
+
+        if batch.error != null do
+            fail batch.error!
+        if batch.invalidTags do
+            failWith("An encrypted data block is damaged.", .Corrupted)
+    }
+
+    mtd writePhysicalRun(physical: u64, source: const [..] u8) fail
+    {
+        Debug.assert(@countof(source) != 0 and @countof(source) % BlockSize == 0)
+        let count = @countof(source) / BlockSize
+        Debug.assert(count <= MaximumIoBatchBlocks)
+
+        var records: Array'u8
+        records.resize(count * BlockRecordSize)
+        Core.Crypto.randomBytes(records.toSlice())
+
+        var plain = @mkslice(cast #unconst ([*] u8) @dataof(source), @countof(source))
+        var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: plain}
+        Jobs.parallelFor(cast(u32) count, &batch) #code(jobIndex, data)
+        {
+            let batch        = cast(*CryptoBatch) data!
+            let index        = cast(u64) jobIndex
+            let recordOffset = index * BlockRecordSize
+            let plainOffset  = index * BlockSize
+            let nonce        = batch.records[recordOffset until recordOffset + Crypto.NonceSize]
+            let ciphertext   = batch.records[recordOffset + Crypto.NonceSize until recordOffset + Crypto.NonceSize + BlockSize]
+            let tag          = batch.records[recordOffset + Crypto.NonceSize + BlockSize until recordOffset + BlockRecordSize]
+            discard catch Core.Crypto.chacha20Poly1305Seal(batch.keys.record, nonce, batch.plain[plainOffset until plainOffset + BlockSize], Crypto.associatedData(DataKind, batch.physical + index), ciphertext, tag) as sealError
+            keepFirstBatchError(batch, sealError)
+        }
+
+        if batch.error != null do
+            fail batch.error!
+
+        Sync.scopedLock(&.ioLock)
+        .file.writeAllAt(DataOffset + physical * BlockRecordSize, records.toSlice())
+    }
+
+    // Replaces a logical range with one physical run and defers the old physical ranges until
+    // the metadata commit makes the new mapping durable.
+    mtd replaceBlockRun(node: *Node, logical, physical, count: u64)
+    {
+        Debug.assert(count != 0 and logical <= Swag.U64.Max - count)
+        let end = logical + count
+        var updated: Array'BlockMapping
+        updated.reserve(node.blocks.count + 2)
+        var inserted = false
+
+        for mapping in node.blocks
+        {
+            let mappingEnd = mapping.logical + mapping.count
+            if mappingEnd <= logical
+            {
+                updated.add(dref mapping)
+                continue
+            }
+            if mapping.logical >= end
+            {
+                if !inserted
+                {
+                    updated.add({logical, physical, count})
+                    inserted = true
+                }
+                updated.add(dref mapping)
+                continue
+            }
+
+            if mapping.logical < logical do
+                updated.add({mapping.logical, mapping.physical, logical - mapping.logical})
+
+            let overlapFirst = Math.max(mapping.logical, logical)
+            let overlapEnd   = Math.min(mappingEnd, end)
+            .blocks.deferReleaseRun(mapping.physical + overlapFirst - mapping.logical, overlapEnd - overlapFirst)
+
+            if mappingEnd > end
+            {
+                if !inserted
+                {
+                    updated.add({logical, physical, count})
+                    inserted = true
+                }
+                updated.add({end, mapping.physical + end - mapping.logical, mappingEnd - end})
+            }
+        }
+
+        if !inserted do
+            updated.add({logical, physical, count})
+
+        node.blocks.clear()
+        for mapping in updated do
+            node.appendMapping(dref mapping)
     }
 
     mtd writeBlock(nodeId, logical: u64, source: const [..] u8) fail
     {
         Debug.assert(@countof(source) == BlockSize)
-        let physical  = try .blocks.allocate()
+        let allocated = try .blocks.allocateRun(1)
+        let physical  = allocated.first
         var published = false
         defer
         {
@@ -1147,30 +1311,45 @@ impl Volume
                 .blocks.release(physical)
         }
 
-        var record: [BlockRecordSize] u8
-        let nonce      = record[0 until Crypto.NonceSize]
-        let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
-        let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
-        try Crypto.seal(&.keys, DataKind, physical, source, nonce, ciphertext, tag)
-        .file.writeAllAt(DataOffset + physical * BlockRecordSize, record)
+        try .writePhysicalRun(physical, source)
 
-        let node   = .nodeById(nodeId)!
-        let search = node.blockSearch(logical)
-        if search.found
-        {
-            .blocks.deferRelease(node.blocks[search.index].physical)
-            node.blocks[search.index].physical = physical
-        }
-        else do
-            node.blocks.insertAt(search.index, BlockMapping{logical, physical})
+        let node = .nodeById(nodeId)!
+        .replaceBlockRun(node, logical, physical, 1)
         .touch(nodeId)
         published = true
+    }
+
+    mtd writeFullBlocks(nodeId, logical: u64, source: const [..] u8) fail
+    {
+        Debug.assert(@countof(source) != 0 and @countof(source) % BlockSize == 0)
+        var doneBlocks = 0'u64
+        let blockCount = @countof(source) / BlockSize
+        while doneBlocks < blockCount
+        {
+            let requested = Math.min(blockCount - doneBlocks, MaximumIoBatchBlocks)
+            let allocated = try .blocks.allocateRun(requested)
+            var published = false
+            defer
+            {
+                if !published do
+                    .blocks.releaseRun(allocated.first, allocated.count)
+            }
+
+            let firstByte = doneBlocks * BlockSize
+            let byteCount = allocated.count * BlockSize
+            try .writePhysicalRun(allocated.first, source[firstByte until firstByte + byteCount])
+            let node = .nodeById(nodeId)!
+            .replaceBlockRun(node, logical + doneBlocks, allocated.first, allocated.count)
+            .touch(nodeId)
+            published   = true
+            doneBlocks += allocated.count
+        }
     }
 
     mtd freeNodeBlocks(node: *Node)
     {
         for mapping in node.blocks do
-            .blocks.deferRelease(mapping.physical)
+            .blocks.deferReleaseRun(mapping.physical, mapping.count)
         node.blocks.clear()
         .touch(node.id)
     }
@@ -1182,10 +1361,20 @@ impl Volume
         while index
         {
             index -= 1
-            if node.blocks[index].logical < keepBlocks do
-                break
-            .blocks.deferRelease(node.blocks[index].physical)
-            node.blocks.removeAtOrdered(index)
+            let mapping = node.blocks[index]
+            if mapping.logical >= keepBlocks
+            {
+                .blocks.deferReleaseRun(mapping.physical, mapping.count)
+                node.blocks.removeAtOrdered(index)
+                continue
+            }
+            if mapping.logical + mapping.count > keepBlocks
+            {
+                let removed = mapping.logical + mapping.count - keepBlocks
+                .blocks.deferReleaseRun(mapping.physical + mapping.count - removed, removed)
+                node.blocks[index].count -= removed
+            }
+            break
         }
 
         .touch(node.id)
@@ -1202,7 +1391,8 @@ impl Volume
             return
         var block: [BlockSize] u8
         defer Core.Crypto.secureClear(block)
-        .readPhysical(node.blocks[search.index].physical, block)
+        let mapping = node.blocks[search.index]
+        .readPhysical(mapping.physical + logical - mapping.logical, block)
         let end = Math.min(newSize, (logical + 1) * BlockSize)
         @memset(&block[oldSize % BlockSize], 0, end - oldSize)
         .writeBlock(nodeId, logical, block)
@@ -1245,6 +1435,30 @@ impl Volume
             let logical  = absolute / BlockSize
             let inBlock  = absolute % BlockSize
             let chunk    = Math.min(count - done, BlockSize - inBlock)
+
+            if !inBlock and chunk == BlockSize
+            {
+                let remainingBlocks = (count - done) / BlockSize
+                let search          = validNode.blockSearch(logical)
+                if search.found
+                {
+                    let mapping       = validNode.blocks[search.index]
+                    let mappingOffset = logical - mapping.logical
+                    let batchBlocks   = Math.min(Math.min(remainingBlocks, mapping.count - mappingOffset), MaximumIoBatchBlocks)
+                    let batchBytes    = batchBlocks * BlockSize
+                    .readPhysicalRun(mapping.physical + mappingOffset, destination[done until done + batchBytes])
+                    done += batchBytes
+                    continue
+                }
+
+                let nextLogical = search.index < validNode.blocks.count ? validNode.blocks[search.index].logical : logical + remainingBlocks
+                let holeBlocks  = Math.min(remainingBlocks, nextLogical - logical)
+                let holeBytes   = holeBlocks * BlockSize
+                @memset(@dataof(destination) + done, 0, holeBytes)
+                done += holeBytes
+                continue
+            }
+
             var block: [BlockSize] u8
             .readBlock(validNode, logical, block)
             @memcpy(@dataof(destination) + done, &block[inBlock], chunk)
@@ -1295,7 +1509,16 @@ impl Volume
             let logical  = absolute / BlockSize
             let inBlock  = absolute % BlockSize
             let chunk    = Math.min(count - done, BlockSize - inBlock)
-            let current  = .nodeById(nodeId)!
+
+            if !inBlock and chunk == BlockSize
+            {
+                let fullBytes = (count - done) / BlockSize * BlockSize
+                .writeFullBlocks(nodeId, logical, source[done until done + fullBytes])
+                done += fullBytes
+                continue
+            }
+
+            let current = .nodeById(nodeId)!
             var block: [BlockSize] u8
             if inBlock or chunk != BlockSize do
                 .readBlock(current, logical, block)

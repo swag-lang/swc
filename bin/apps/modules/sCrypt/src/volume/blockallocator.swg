@@ -1,22 +1,5 @@
 using Core
 
-// Returns an unbiased cryptographically secure value in `[0, limit)`.
-//
-// Reducing every 64-bit value modulo `limit` would favor the first remainders unless the range
-// divides 2^64. Rejecting that short prefix leaves an exact multiple of `limit` candidates.
-private func secureRandomBelow(limit: u64)->u64 fail
-{
-    Debug.assert(limit != 0)
-    let threshold = (Swag.U64.Max % limit + 1) % limit
-    while true
-    {
-        var candidate: u64
-        try Core.Crypto.randomBytes(@mkslice(cast([*] u8) &candidate, #sizeof(candidate)))
-        if candidate >= threshold do
-            return candidate % limit
-    }
-}
-
 struct FreeExtent
 {
     first: u64
@@ -25,8 +8,9 @@ struct FreeExtent
 
 struct BlockAllocator
 {
-    free:         Array'FreeExtent
-    deferredFree: Array'u64
+    free:            Array'FreeExtent
+    deferredFree:    Array'FreeExtent
+    freeBlocksCount: u64
 }
 
 impl BlockAllocator
@@ -36,6 +20,7 @@ impl BlockAllocator
         Debug.assert(!.free.count and !.deferredFree.count)
         if blockCount do
             .free.add({0, blockCount})
+        .freeBlocksCount = blockCount
     }
 
     // Rebuilds the free list as the complement of the blocks `used` marks.
@@ -47,6 +32,7 @@ impl BlockAllocator
     {
         .free.clear()
         .deferredFree.clear()
+        .freeBlocksCount = 0
 
         var first = 0'u64
         var index = 0'u64
@@ -72,6 +58,8 @@ impl BlockAllocator
 
         if inRun do
             .free.add({first, blockCount - first})
+        for extent in .free do
+            .freeBlocksCount += extent.count
     }
 
     // Adds the blocks `[first, first + count)` to the free list.
@@ -87,92 +75,89 @@ impl BlockAllocator
         if .free.count and .free.back().first + .free.back().count == first
         {
             .free.backPtr().count += count
+            .freeBlocksCount += count
             return
         }
 
         Debug.assert(!.free.count or .free.back().first + .free.back().count < first)
         .free.add({first, count})
+        .freeBlocksCount += count
     }
 
-    // Removes the block at `offset` in the flattened free list.
-    mtd allocateAtOffset(offset: u64)->u64
+    // Takes up to `maximumCount` adjacent blocks from the highest free extent.
+    //
+    // The container is randomized before use, so allocating it in runs reveals no plaintext.
+    // Keeping one logical transfer physically adjacent is what lets the host combine its I/O and
+    // keeps the node map proportional to extents rather than to every 4 KiB block.
+    mtd allocateRun(maximumCount: u64)->FreeExtent fail
     {
-        Debug.assert(offset < .freeBlockCount())
-        var remaining = offset
-        var index     = 0'u64
-        while remaining >= .free[index].count
-        {
-            remaining -= .free[index].count
-            index     += 1
-        }
+        if !.free.count do
+            failWith("The virtual disk is full.", .DiskFull)
+        Debug.assert(maximumCount != 0)
 
-        let extent = .free[index]
-        let result = extent.first + remaining
-        if !remaining
-        {
-            .free[index].first += 1
-            .free[index].count -= 1
-            if !.free[index].count do
-                .free.removeAtOrdered(index)
-        }
-        elif remaining + 1 == extent.count do
-            .free[index].count -= 1
-        else
-        {
-            .free[index].count = remaining
-            .free.insertAt(index + 1, {result + 1, extent.count - remaining - 1})
-        }
-
+        let index  = .free.count - 1
+        let count  = Math.min(maximumCount, .free[index].count)
+        let result = FreeExtent{.free[index].first, count}
+        .free[index].first += count
+        .free[index].count -= count
+        if !.free[index].count do
+            .free.removeAtOrdered(index)
+        .freeBlocksCount -= count
         return result
     }
 
     mtd allocate()->u64 fail
     {
-        if !.free.count do
-            failWith("The virtual disk is full.", .DiskFull)
-
-        // Choose among blocks rather than extents: every free physical position has the same
-        // probability, whatever fragmentation did to the shape of the free list.
-        return .allocateAtOffset(try secureRandomBelow(.freeBlockCount()))
+        return (try .allocateRun(1)).first
     }
 
-    mtd release(block: u64)
+    mtd releaseRun(first, count: u64)
     {
+        if !count do
+            return
         var index = 0'u64
-        while index < .free.count and .free[index].first < block do
+        while index < .free.count and .free[index].first < first do
             index += 1
 
-        if index and .free[index - 1].first + .free[index - 1].count == block
+        if index and .free[index - 1].first + .free[index - 1].count == first
         {
-            .free[index - 1].count += 1
-            if index < .free.count and block + 1 == .free[index].first
+            .free[index - 1].count += count
+            if index < .free.count and first + count == .free[index].first
             {
                 .free[index - 1].count += .free[index].count
                 .free.removeAtOrdered(index)
             }
-
-            return
         }
-
-        if index < .free.count and block + 1 == .free[index].first
+        elif index < .free.count and first + count == .free[index].first
         {
-            .free[index].first -= 1
-            .free[index].count += 1
-            return
+            .free[index].first -= count
+            .free[index].count += count
         }
+        else do
+            .free.insertAt(index, {first, count})
+        .freeBlocksCount += count
+    }
 
-        .free.insertAt(index, {block, 1})
+    mtd release(block: u64)
+    {
+        .releaseRun(block, 1)
+    }
+
+    mtd deferReleaseRun(first, count: u64)
+    {
+        if count do
+            .deferredFree.add({first, count})
     }
 
     mtd deferRelease(block: u64)
     {
-        .deferredFree.add(block)
+        .deferReleaseRun(block, 1)
     }
 
     mtd publishDeferred()
     {
-        for block in .deferredFree do
-            .release(block)
+        for extent in .deferredFree do
+            .releaseRun(extent.first, extent.count)
     }
 
     mtd completeCommit()
@@ -182,9 +167,6 @@ impl BlockAllocator
 
     mtd freeBlockCount()->u64
     {
-        var result = 0'u64
-        for extent in .free do
-            result += extent.count
-        return result
+        return .freeBlocksCount
     }
 }

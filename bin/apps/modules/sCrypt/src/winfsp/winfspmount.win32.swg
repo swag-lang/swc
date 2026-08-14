@@ -99,7 +99,9 @@ namespace WinFsp
 
             let fileSystem = .fileSystem!
             fileSystem.userContext = .context
-            (g_WinFsp.setGuard)(fileSystem, 1)
+            // WinFsp keeps namespace mutations ordered while reads and file I/O may proceed on
+            // different dispatcher threads. Volume callbacks add their own short-lived data lock.
+            (g_WinFsp.setGuard)(fileSystem, 0)
             let mountPoint16 = Utf16.toZeroTerminated(mountPoint)
             traceWinFspStage("calling FspFileSystemSetMountPoint")
             var status = (g_WinFsp.setMountPoint)(fileSystem, @dataof(mountPoint16))

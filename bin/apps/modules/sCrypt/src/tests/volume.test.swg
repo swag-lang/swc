@@ -106,6 +106,45 @@ func thirdPassword()->const [..] u8
 // A container large enough to hold more metadata than one header slot can.
 func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
+// A sequential file remains one mapping extent. In particular, changing only its name must fit
+// the journal instead of checkpointing the complete node table again.
+#test
+{
+    let path = testContainerPath("large-rename")
+    defer discard catch File.delete(path)
+
+    const DataBlockCount = 512'u64
+    var volume            = expect Volume.create(path, testPassword(), DataOffset + (DataBlockCount + 16) * BlockRecordSize)
+    let fileId            = expect volume.createNode("\\large.bin", false, FileAttributeNormal, emptyBytes())
+    var source: Array'u8
+    source.resize(DataBlockCount * BlockSize)
+    for byte, i in source do
+        source[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+
+    @assert(expect volume.writeNode(fileId, 0, source.toSlice(), false, false) == source.count)
+    expect volume.commit()
+    @assert(volume.nodeById(fileId)!.blocks.count == 1)
+    @assert(volume.nodeById(fileId)!.blocks[0].count == DataBlockCount)
+
+    let checkpoint = volume.checkpointAt
+    let sequence   = volume.sequence
+    expect volume.renameNode(fileId, "\\renamed.bin", false)
+    @assert(volume.checkpointAt == checkpoint)
+    @assert(volume.sequence == sequence + 1)
+    volume.close()
+
+    var reopened = expect Volume.open(path, testPassword())
+    let node     = reopened.resolve("\\renamed.bin")
+    @assert(node != null and node!.blocks.count == 1)
+    var first: [BlockSize] u8
+    var last:  [BlockSize] u8
+    @assert(expect reopened.readNode(node!.id, 0, first) == BlockSize)
+    @assert(expect reopened.readNode(node!.id, (DataBlockCount - 1) * BlockSize, last) == BlockSize)
+    @assert(sameTestBytes(first, source[until BlockSize]))
+    @assert(sameTestBytes(last, source[(DataBlockCount - 1) * BlockSize until DataBlockCount * BlockSize]))
+    reopened.close()
+}
+
 #test
 {
     let path = testContainerPath("lifecycle")

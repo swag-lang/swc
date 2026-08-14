@@ -677,8 +677,10 @@ impl MainWindow
         let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
         titleRow.dockStyle = .Top
 
-        .languageChoice            = ComboBox.create(titleRow, flags: .TransparentBackground)
-        .languageChoice.dockStyle  = .Right
+        .languageChoice             = ComboBox.create(titleRow, flags: .TransparentBackground)
+        .languageChoice.dockStyle   = .Right
+        .languageChoice.anchorStyle = .Bottom
+        .languageChoice.maxSize.y   = .themeMetrics().comboBox_Height
         .languageChoice.sigChanged += func|window = me|(combo, index)
         {
             discard combo
@@ -1693,6 +1695,12 @@ impl MainWindow
             .needsPassword = me.operation.usedPassword
             .readOnly      = me.operation.readOnly
             .atStartup     = known != Swag.U64.Max
+        }
+        if .operation.volume
+        {
+            let space           = .operation.volume!.space()
+            entry.totalBytes     = space.total
+            entry.availableBytes = space.available
         }
 
         // The letter is remembered as the one actually used, so a startup vault comes back on

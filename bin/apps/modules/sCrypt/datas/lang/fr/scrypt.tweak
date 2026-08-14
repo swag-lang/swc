@@ -41,6 +41,8 @@ ui_MountDrive          Monter
 ui_Unmount             Démonter
 ui_ColStartup          AU DÉMARRAGE
 ui_ColDrive            LECTEUR
+ui_ColSize             TAILLE
+ui_ColAvailable        DISPONIBLE
 ui_ColVault            COFFRE
 ui_Desktop             Bureau
 ui_LanguageSystem      Langue du système

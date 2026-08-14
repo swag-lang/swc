@@ -10,6 +10,8 @@ struct MountedDrive
     needsPassword: bool                    // Whether a password was needed to open the container.
     readOnly:      bool                    // Whether the drive was mounted for reading alone.
     atStartup:     bool                    // Whether sCrypt mounts this container again the next time it starts.
+    totalBytes:     u64                    // Capacity exposed by the mounted filesystem.
+    availableBytes: u64                   // Free capacity observed when the row was last refreshed.
 }
 
 // Columns of the mounted-drives list, in the order `MountedDrives.create` adds them.
@@ -20,6 +22,8 @@ internal enum MountedColumn
 {
     Startup     // Whether the drive comes back the next time sCrypt starts.
     Drive       // Drive letter the volume appears on.
+    Size        // Total virtual capacity.
+    Available   // Capacity not currently occupied.
     Vault       // Container file behind the drive.
 }
 
@@ -50,9 +54,11 @@ impl MountedDrives
 {
     // Width of the two columns whose content has a known shape. The vault name takes what they
     // leave, because it is the one column a reader actually needs wide.
-    const StartupColumnWidth = 92'f32
-    const DriveColumnWidth   = 78'f32
-    const MinimumVaultWidth  = 120'f32
+    const StartupColumnWidth   = 92'f32
+    const DriveColumnWidth     = 78'f32
+    const SizeColumnWidth      = 92'f32
+    const AvailableColumnWidth = 104'f32
+    const MinimumVaultWidth    = 120'f32
 
     // Side of the padlock a read-only drive carries, at the row size of the chart.
     const LockIconSize = 16'f32
@@ -86,6 +92,8 @@ impl MountedDrives
 
         list.addColumn(appStrings().ui_ColStartup, StartupColumnWidth)
         list.addColumn(appStrings().ui_ColDrive, DriveColumnWidth)
+        list.addColumn(appStrings().ui_ColSize, SizeColumnWidth)
+        list.addColumn(appStrings().ui_ColAvailable, AvailableColumnWidth)
         list.addColumn(appStrings().ui_ColVault, MinimumVaultWidth)
 
         // Only a read-only drive carries a padlock, and the lane it stands in is reserved on every
@@ -116,6 +124,12 @@ impl MountedDrives
         .list.clear()
         for &one in .drives
         {
+            if one.volume
+            {
+                let space          = one.volume!.space()
+                one.totalBytes     = space.total
+                one.availableBytes = space.available
+            }
             let line = .list.createLine("")
             line.canCheck = true
 
@@ -126,6 +140,8 @@ impl MountedDrives
             if one.readOnly do
                 driveIcon = .list.theme().icon(ThemeIcons.Lock, LockIconSize)
             line.setItem(cast(u32) MountedColumn.Drive, one.mountLabel.toString(), driveIcon)
+            line.setItem(cast(u32) MountedColumn.Size, capacityText(one.totalBytes).toString())
+            line.setItem(cast(u32) MountedColumn.Available, capacityText(one.availableBytes).toString())
             line.setItem(cast(u32) MountedColumn.Vault, Path.fileName(one.path.toString()) orelse one.path.toString())
         }
 
@@ -195,9 +211,11 @@ impl MountedDrives
     mtd retranslate()
     {
         .card.setTexts(appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
-        .list.header.itemAt(cast(u32) MountedColumn.Startup).name = appStrings().ui_ColStartup
-        .list.header.itemAt(cast(u32) MountedColumn.Drive).name   = appStrings().ui_ColDrive
-        .list.header.itemAt(cast(u32) MountedColumn.Vault).name   = appStrings().ui_ColVault
+        .list.header.itemAt(cast(u32) MountedColumn.Startup).name   = appStrings().ui_ColStartup
+        .list.header.itemAt(cast(u32) MountedColumn.Drive).name     = appStrings().ui_ColDrive
+        .list.header.itemAt(cast(u32) MountedColumn.Size).name      = appStrings().ui_ColSize
+        .list.header.itemAt(cast(u32) MountedColumn.Available).name = appStrings().ui_ColAvailable
+        .list.header.itemAt(cast(u32) MountedColumn.Vault).name     = appStrings().ui_ColVault
         .list.header.invalidate()
 
         .empty.setText(appStrings().ui_NoDriveMounted)

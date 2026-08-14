@@ -26,27 +26,12 @@ locally.
 ### T-087 — No block cache
 
 - Owner: sCrypt
-- Problem: `Volume.readPhysical` reads 4124 bytes, decrypts, and verifies the tag on every single
-  call, with no memory between calls. An unaligned write costs a read, a decrypt, an encrypt and a
-  write. A sequential 1 MiB read is 256 separate 4 KiB I/O operations that are never coalesced.
+- Problem: `Volume.readPhysical` decrypts and verifies the tag on every call, with no memory
+  between calls. Repeated reads still pay authentication and decryption, and an unaligned write
+  still costs a read, a decrypt, an encrypt and a write.
 - Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount.
 - Related: a bounded cache is also the natural place to put an explicit memory budget, which any
-  later working-set investigation will need. See T-248 and T-249 for the independent throughput
-  work around it.
-
-### T-248 — Physical block I/O is never coalesced
-
-- Owner: sCrypt
-- Coalesce physically contiguous encrypted blocks into bounded reads and writes without requiring
-  them to be resident in T-087's cache.
-- Related: T-087, T-249
-
-### T-249 — Block decryption is not batched
-
-- Owner: sCrypt
-- Decrypt independent blocks in bounded `Jobs` batches while preserving request ordering and
-  cancellation.
-- Related: T-087, T-248, T-260
+  later working-set investigation will need.
 
 ## Tier A — Cryptographic throughput
 
@@ -209,22 +194,15 @@ locally.
 
 ## Tier B — Filesystem concurrency
 
-### T-097 — Filesystem callbacks use one coarse lock
+### T-097 — Filesystem mutations still use one volume-wide lock
 
 - Owner: sCrypt
-- Problem: WinFsp runs under the coarse guard strategy, so every callback is serialized and all
-  encryption for a large copy sits on one thread.
-- Fix: replace the coarse guard with per-node locks plus a metadata lock.
-- Sequencing: after T-087, and only alongside a concurrent stress test. Getting this wrong is a
-  correctness failure, not a performance regression.
-- Related: T-260
-
-### T-260 — Large sCrypt operations do not parallelize block encryption
-
-- Owner: sCrypt
-- Parallelize independent block encryption through bounded `Jobs` batches after the locking model
-  is safe, with cancellation and deterministic error propagation.
-- Related: T-097, T-249
+- Problem: WinFsp now uses its fine guard, reads can proceed concurrently, and large transfers run
+  bounded parallel crypto batches. Mutating callbacks still take one volume-wide exclusive lock,
+  so writes to independent files cannot overlap.
+- Fix: replace the exclusive side with per-node locks plus a metadata lock.
+- Sequencing: only alongside a concurrent stress test. Getting this wrong is a correctness failure,
+  not a performance regression.
 
 ---
 

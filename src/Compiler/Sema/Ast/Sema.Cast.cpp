@@ -87,8 +87,43 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+namespace
+{
+    // 'expr[as T]' reinterprets the pointed storage as a T and opens it: the result is
+    // an lvalue place of T. Write protection through a const source follows the same
+    // source-inspection route as the plain dereference.
+    Result semaDerefPlace(Sema& sema, AstCastExpr& node)
+    {
+        const SemaNodeView exprView = sema.viewNodeTypeConstantSymbol(node.nodeExprRef);
+        const SemaNodeView typeView = sema.viewType(node.nodeTypeRef);
+
+        SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
+        SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
+
+        const TypeRef   srcResolvedTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), exprView.typeRef());
+        const TypeInfo& srcType            = sema.typeMgr().get(srcResolvedTypeRef.isValid() ? srcResolvedTypeRef : exprView.typeRef());
+        if (!srcType.isAnyPointer())
+            return SemaError::raiseDerefOperandType(sema, sema.curNodeRef(), exprView.nodeRef(), exprView.typeRef());
+
+        // Use-site nullability: narrowing was already applied to the live view, so a
+        // remaining '#null' means no dominating test proves this dereference safe.
+        if (srcType.isNullable() && (!exprView.hasConstant() || exprView.cst()->isNull()))
+            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, exprView.nodeRef(), exprView.typeRef());
+
+        const TypeRef resultTypeRef = typeView.typeRef();
+        SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeTypeRef));
+        sema.setType(sema.curNodeRef(), resultTypeRef);
+        sema.setIsValue(node);
+        sema.setIsLValue(node);
+        return Result::Continue;
+    }
+}
+
 Result AstCastExpr::semaPostNode(Sema& sema)
 {
+    if (hasFlag(AstCastExprFlagsE::DerefPlace))
+        return semaDerefPlace(sema, *this);
+
     if (!hasFlag(AstCastExprFlagsE::Explicit))
         return Result::Continue;
 

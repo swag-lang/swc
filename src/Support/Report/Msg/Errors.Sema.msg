@@ -69,6 +69,7 @@ SWC_DIAG_DEF(sema_err_negate_unsigned, Error, "cannot negate an unsigned type '{
 SWC_DIAG_DEF(sema_err_signed_unsigned, Error, "cannot cast '{value}' to '{requested-type}'; value is out of the target type's range")
 SWC_DIAG_DEF(sema_err_signed_unsigned, Error, "argument {index} for call to '{sym}' cannot cast '{value}' to '{requested-type}'; value is out of the target type's range")
 SWC_DIAG_DEF(sema_err_unary_operand_type, Error, "unary operator '{tok}' cannot be applied to type '{type}'")
+SWC_DIAG_DEF(sema_err_deref_operand_type, Error, "cannot dereference type '{type}'")
 SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "binary operator '{tok}' cannot be applied to types '{left}' and '{right}'")
 SWC_DIAG_DEF(sema_err_compare_operand_type, Error, "cannot compare '{left}' with '{right}' using '{tok}'")
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "constant '{sym}' is missing an initializer; [help] initialize it at the declaration")

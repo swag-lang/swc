@@ -1173,8 +1173,14 @@ namespace
                 }
 
                 case AstNodeId::UnaryExpr:
-                    addRole(span.minPiece, FormatRoleE::UnaryOp);
+                {
+                    // The postfix place-deref 'expr[]' starts at its operand; only the
+                    // prefix spellings mark a unary operator piece.
+                    const NodeSpan operandSpan = spanOf(node.cast<AstUnaryExpr>().nodeExprRef);
+                    if (span.valid() && (!operandSpan.valid() || operandSpan.minPiece != span.minPiece))
+                        addRole(span.minPiece, FormatRoleE::UnaryOp);
                     break;
+                }
 
                 case AstNodeId::RangeExpr:
                 {
@@ -1199,6 +1205,11 @@ namespace
 
                 case AstNodeId::CastExpr:
                 {
+                    // 'expr[as T]' has no 'cast' keyword to mark: the pieces are the
+                    // operand's own and the bracket pair formats like an index.
+                    if (node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
+                        break;
+
                     addRole(span.minPiece, FormatRoleE::CastKeyword);
                     if (span.valid())
                     {

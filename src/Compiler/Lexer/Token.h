@@ -146,6 +146,9 @@ struct Token
     static bool isOpArithmeticOrBitwise(TokenId id) { return toKind(id).hasAny(TokenIdKindE::OpArithmetic | TokenIdKindE::OpBitwise); }
     static bool isOpEquality(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpEquality); }
     static bool isOpOrdering(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpOrdering); }
+    // The operator token of a dereference unary node: the 'dref' keyword, or the '['
+    // carried by the postfix place-deref 'expr[]'.
+    static bool isDeref(TokenId id) { return id == TokenId::KwdDRef || id == TokenId::SymLeftBracket; }
     static bool isOpRelational(TokenId id) { return toKind(id).hasAny(TokenIdKindE::OpEquality | TokenIdKindE::OpOrdering); }
     static bool isOpLogical(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpLogical); }
     static bool isOpAssign(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpAssign); }

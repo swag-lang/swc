@@ -1825,6 +1825,23 @@ Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    // 'expr[as T]' opens the pointed storage as a T: publish the pointee address as an
+    // lvalue place of T, never a value conversion.
+    if (hasFlag(AstCastExprFlagsE::DerefPlace))
+    {
+        MicroBuilder&      builder      = codeGen.builder();
+        CodeGenNodePayload childPayload = codeGen.payload(nodeExprRef);
+        TypeRef            operandTypeRef = codeGen.viewType(nodeExprRef).typeRef();
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
+
+        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        if (childPayload.isAddress())
+            builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     return emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef());
 }
 

@@ -42,6 +42,16 @@ func nullableUseSiteDeref(p: #null *s32)->s32
     return dref p     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
+func nullableUseSitePostfixDeref(p: #null *s32)->s32
+{
+    return p[]     // swc-expected-error {{sema_err_nullable_deref}}
+}
+
+func nullableUseSiteDerefCast(p: #null *s32)->u32
+{
+    return p[as u32]     // swc-expected-error {{sema_err_nullable_deref}}
+}
+
 func nullableUseSiteIndexBlock(p: #null [*] s32)->s32
 {
     return p[0]     // swc-expected-error {{sema_err_nullable_index}}

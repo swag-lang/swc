@@ -42,7 +42,7 @@ struct S
 
 #test
 {
-    const V = #run dref @compiler     // swc-expected-error {{sema_err_unary_operand_type}}
+    const V = #run dref @compiler     // swc-expected-error {{sema_err_deref_operand_type}}
 }
 
 #test

@@ -645,10 +645,10 @@ namespace
             {
                 const auto& unary = node.cast<AstUnaryExpr>();
 
-                // 'dref ptr' designates the pointee storage, not the pointer variable: it is
-                // a borrow root only when the pointer itself borrows a tracked local. A heap
-                // or caller-owned pointee is not a borrow root.
-                if (sema.token(node.codeRef()).id == TokenId::KwdDRef)
+                // A dereference designates the pointee storage, not the pointer variable: it
+                // is a borrow root only when the pointer itself borrows a tracked local. A
+                // heap or caller-owned pointee is not a borrow root.
+                if (Token::isDeref(sema.token(node.codeRef()).id))
                 {
                     outWholeVariable = false;
                     return carrierBaseStorageRoot(sema, unary.nodeExprRef, forAssignment, depth);
@@ -1811,7 +1811,7 @@ namespace
             case AstNodeId::IndexListExpr:
                 return destinationBaseVariable(sema, node.cast<AstIndexListExpr>().nodeExprRef, depth + 1);
             case AstNodeId::UnaryExpr:
-                if (sema.token(node.codeRef()).id == TokenId::KwdDRef)
+                if (Token::isDeref(sema.token(node.codeRef()).id))
                     return destinationBaseVariable(sema, node.cast<AstUnaryExpr>().nodeExprRef, depth + 1);
                 return nullptr;
             default:

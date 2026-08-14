@@ -216,6 +216,7 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::SymTilde:
             return codeGenUnaryBitwiseNot(codeGen, nodeExprRef);
         case TokenId::KwdDRef:
+        case TokenId::SymLeftBracket:
             return codeGenUnaryDeref(codeGen, nodeExprRef);
         case TokenId::SymAmpersand:
             return codeGenUnaryTakeAddress(codeGen, nodeExprRef);

@@ -283,7 +283,7 @@ namespace
     bool isDerefConstSource(Sema& sema, const AstUnaryExpr& node)
     {
         const Token& tok = sema.token(node.codeRef());
-        if (tok.id != TokenId::KwdDRef)
+        if (!Token::isDeref(tok.id))
             return false;
 
         const SemaNodeView sourceView = sema.viewTypeSymbol(node.nodeExprRef);
@@ -341,6 +341,12 @@ namespace
             return isConstIndexedSource(sema, resolvedRef);
         if (node.is(AstNodeId::UnaryExpr))
             return isDerefConstSource(sema, node.cast<AstUnaryExpr>());
+        // 'expr[as T]' writes through the source pointer like a plain dereference.
+        if (node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
+        {
+            const SemaNodeView sourceView = sema.viewTypeSymbol(node.cast<AstCastExpr>().nodeExprRef);
+            return isConstSourceViewImpl(sema, sourceView);
+        }
         return false;
     }
 

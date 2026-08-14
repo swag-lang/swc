@@ -179,6 +179,20 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 
 #test
 {
+    var value           = 1's32
+    let ptr: const *s32 = &value
+    ptr[] = 2's32     // swc-expected-error {{sema_err_assign_to_const}}
+}
+
+#test
+{
+    var value           = 1's32
+    let ptr: const *s32 = &value
+    ptr[as u32] = 2'u32     // swc-expected-error {{sema_err_assign_to_const}}
+}
+
+#test
+{
     var data:   [2] ConstAssignPair        = [{value: 1}, {value: 2}]
     let values: const [..] ConstAssignPair = cast(const [..] ConstAssignPair) data
     values[0].value = 9     // swc-expected-error {{sema_err_assign_to_const}}

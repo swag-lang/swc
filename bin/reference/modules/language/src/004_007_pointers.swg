@@ -358,6 +358,49 @@ Dereferencing retrieves the data located at the memory address referenced by the
 }
 
 /**
+# The Postfix Dereference
+
+`expr[]` is the postfix spelling of the same dereference: empty brackets open the
+pointed storage as a read/write place. Being postfix, it composes left-to-right with
+member and index access, which keeps a chain readable where the prefix form would
+need parentheses.
+*/
+#test
+{
+    var value = 42
+    let ptr   = &value
+    @assert(ptr[] == 42)     // Reads like 'dref ptr'
+    ptr[] = 7                // Replaces the whole pointed value
+    @assert(value == 7)
+
+    // Being postfix, it chains without parentheses.
+    var grid: [2, 3] s32
+    let gp = &grid
+    gp[][1, 2] = 5
+    @assert(grid[1, 2] == 5)
+}
+
+/**
+# Reinterpreting the Pointed Storage
+
+`expr[as T]` opens the same place but types it as a `T`: the pointed storage is
+reinterpreted, never converted. The result is a read/write place of type `T`, so both
+reads and writes go through it. The classic use is reaching the bit pattern of a value
+without a chain of pointer casts.
+*/
+#test
+{
+    var f = 1.0'f32
+    let p = &f
+    @assert(p[as u32] == 0x3F80_0000)     // The float's bit pattern, not a conversion
+
+    var value = 0's32
+    let vp    = &value
+    vp[as u32] = 0xFFFF_FFFF              // Writes through the reinterpreted place
+    @assert(value == -1)
+}
+
+/**
 # Pointers to Const Data
 
 `const` qualifies the **pointed-to data**, never the pointer itself. Written just before

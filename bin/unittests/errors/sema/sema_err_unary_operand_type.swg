@@ -23,12 +23,6 @@
 
 #test
 {
-    var value: s32
-    let bad = dref value     // swc-expected-error {{sema_err_unary_operand_type}}
-}
-
-#test
-{
     // '#move' on a raw pointer is ambiguous (move the pointer or the pointee?): use 'dref'.
     func takeMove(v: #move s32) {}
     var value: s32

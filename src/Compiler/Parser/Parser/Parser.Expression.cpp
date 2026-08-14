@@ -1160,10 +1160,27 @@ AstNodeRef Parser::parseErrorManagementExpr()
 AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 {
     const TokenRef openRef = consumeAssert(TokenId::SymLeftBracket);
+
+    // 'expr[]' opens the pointed box: the whole-value read/write place, the postfix
+    // spelling of the dereference.
     if (is(TokenId::SymRightBracket))
     {
-        raiseError(DiagnosticId::parser_err_empty_indexing, ref());
-        return AstNodeRef::invalid();
+        consume();
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(openRef);
+        nodePtr->nodeExprRef             = nodeRef;
+        return nodeParent;
+    }
+
+    // 'expr[as T]' reinterprets the pointed storage as a T and opens it.
+    if (is(TokenId::KwdAs))
+    {
+        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>(consume());
+        nodePtr->addFlag(AstCastExprFlagsE::Explicit);
+        nodePtr->addFlag(AstCastExprFlagsE::DerefPlace);
+        nodePtr->nodeTypeRef = parseType();
+        nodePtr->nodeExprRef = nodeRef;
+        expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
+        return nodeParent;
     }
 
     const TokenRef tokStart = ref();

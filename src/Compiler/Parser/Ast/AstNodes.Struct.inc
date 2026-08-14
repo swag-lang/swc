@@ -901,6 +901,9 @@ enum class AstCastExprFlagsE : AstNode::ParserFlags
 {
     Zero     = 0,
     Explicit = 1 << 0,
+    // 'expr[as T]': reinterpret the pointed storage as a T and open it. The node is an
+    // lvalue place of T, never a value conversion.
+    DerefPlace = 1 << 1,
 };
 
 struct AstCastExpr : AstNodeT<AstNodeId::CastExpr, AstCastExprFlagsE>

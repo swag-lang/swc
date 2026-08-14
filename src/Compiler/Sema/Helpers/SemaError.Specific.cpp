@@ -219,6 +219,15 @@ Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
     return Result::Error;
 }
 
+Result SemaError::raiseDerefOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_deref_operand_type, atNodeRef, ReportLocation::Token);
+    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+    addTypedOperandSpan(sema, diag.last(), nodeValueRef, targetTypeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols)
 {
     TaskContext& ctx  = sema.ctx();

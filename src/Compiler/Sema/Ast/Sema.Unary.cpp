@@ -442,7 +442,7 @@ namespace
     {
         const TypeInfo& type = sema.typeMgr().get(derefOperandTypeRef(sema, view));
         if (!type.isAnyPointer())
-            return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
+            return SemaError::raiseDerefOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
 
         // Use-site nullability: narrowing was already applied to the live view, so a
         // remaining '#null' means no dominating test proves this dereference safe. A
@@ -560,11 +560,15 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     SemaNodeView view = sema.viewNodeTypeConstantSymbol(nodeExprRef);
     const Token& tok  = sema.token(codeRef());
 
+    // The postfix 'expr[]' spelling carries the '[' token and behaves exactly like the
+    // prefix dereference: normalize the operator once for every decision below.
+    const TokenId opId = Token::isDeref(tok.id) ? TokenId::KwdDRef : tok.id;
+
     // Function declarations are addressable even if they are not plain value expressions.
-    const bool takesFunctionAddress = tok.id == TokenId::SymAmpersand && isFunctionAddressOperand(view);
+    const bool takesFunctionAddress = opId == TokenId::SymAmpersand && isFunctionAddressOperand(view);
     if (!takesFunctionAddress)
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-    if (tok.id == TokenId::SymBang)
+    if (opId == TokenId::SymBang)
     {
         SWC_RESULT(readReferenceValue(sema, view));
         SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, view));
@@ -577,17 +581,17 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         return Result::Continue;
 
     // Force types
-    SWC_RESULT(promote(sema, tok.id, view));
+    SWC_RESULT(promote(sema, opId, view));
 
     // Type-check
-    SWC_RESULT(check(sema, tok.id, *this, view));
+    SWC_RESULT(check(sema, opId, *this, view));
 
     // Taking the address of a constant array element: the element value was
     // constant-folded during index resolution, but the array data lives in the
     // data segment so the address is valid. Replace the scalar constant on the
     // index node with its type so codegen emits the element address instead of
     // the folded value.
-    if (tok.id == TokenId::SymAmpersand && view.cstRef().isValid() && isAddressableConstantIndex(sema, view))
+    if (opId == TokenId::SymAmpersand && view.cstRef().isValid() && isAddressableConstantIndex(sema, view))
     {
         const TypeRef childTypeRef = view.typeRef();
         sema.setType(view.nodeRef(), childTypeRef);
@@ -602,15 +606,15 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     }
 
     // Constant folding ('#move' never folds: it needs the operand's storage address)
-    if (view.cstRef().isValid() && tok.id != TokenId::ModifierMove && tok.id != TokenId::ModifierFwd)
+    if (view.cstRef().isValid() && opId != TokenId::ModifierMove && opId != TokenId::ModifierFwd)
     {
         ConstantRef result;
-        SWC_RESULT(constantFold(sema, result, tok.id, *this, view));
+        SWC_RESULT(constantFold(sema, result, opId, *this, view));
         sema.setConstant(sema.curNodeRef(), result);
         return Result::Continue;
     }
 
-    switch (tok.id)
+    switch (opId)
     {
         case TokenId::KwdDRef:
             return semaDRef(sema, *this, view);

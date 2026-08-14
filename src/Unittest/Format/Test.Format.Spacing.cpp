@@ -417,6 +417,24 @@ SWC_TEST_BEGIN(FormatSpacing_AfterUnaryOperator)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatSpacing_PostfixDereference)
+{
+    // The postfix place-deref 'p[]' and the reinterpreting 'p[as T]' start at their
+    // operand piece: neither unary-operator nor cast-keyword spacing applies to them.
+    static constexpr std::string_view SOURCE =
+        "func bar(p: *s32)\n"
+        "{\n"
+        "    var x = p[]\n"
+        "    p[] = 1\n"
+        "    var y = p[as u32]\n"
+        "}\n";
+
+    FormatOptions options;
+    options.spaceAfterUnaryOperator = true;
+    return checkSpacingRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatSpacing_BeforeParenthesesControl)
 {
     // Swag forbids a blank before call / declaration parentheses, so the

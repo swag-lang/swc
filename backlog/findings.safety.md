@@ -146,3 +146,31 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `bin/unittests/sanity`, next to the pointer cases that already pass.
 - Related: the reference now states on both the `any` page and the intrinsics page that an `any` is
   a non-owning view, so what is missing here is the rule that enforces it.
+
+### F-135 — Borrow-escape analysis misreads a stores-into-parameter call once its callee is auto-inlined
+
+- Area: safety
+- Found while: the first `tests.swgs dm --all-cfg` run to reach the sanity suite in `release`
+  since the noref campaign; the defect predates that campaign's follow-up fixes (verified by
+  rebuilding the compiler at the commit before them and reproducing identically).
+- Observation: `container.add(&item)`, where `add` stores its parameter into the receiver, is
+  analyzed correctly in `fast-debug` but not in `release`, where auto-inlining materializes the
+  callee body at the call site. Two symptoms appear together in
+  [borrow_escape.swg](../bin/unittests/sanity/borrow_escape.swg): the GLOBAL-container case
+  (`borrowEscapePairGlobal`, line 1139) still reports, but anchors its span inside the callee body
+  (`.slot = item`, line 1130) instead of the call site the test marks; and the LOCAL-container
+  case (`borrowEscapePairLocal`, line 1147), documented as legitimately silent because the
+  container and the borrow share a scope, raises `sanity_err_borrow_scope_escape` — the
+  destination is judged to outlive the source although both are declared in the same block.
+- Evidence: `swc tools/unittests.swgs dm sanity -bc release` stops on those two errors;
+  `-bc fast-debug` is clean. The scope comparison is
+  [SemaEscape.cpp:2281](../src/Compiler/Sema/Helpers/SemaEscape.cpp#L2281)
+  (`srcDepth > dstDepth` from `Sema::variableScopeDepth`), so the inlined body's deeper scope
+  appears to perturb the depth recorded for one of the two variables. A one-file reduction of the
+  local case alone does NOT reproduce, so the trigger needs the surrounding file's other cases —
+  most likely a depth entry recorded for a reused symbol.
+- Next step: dump `variableScopeDepth` for the source and destination symbols at
+  `storeOrReportDestinationInfo` while compiling the suite file in `release`, and determine
+  whether the inlined body re-registers a depth for the caller's locals (or for the materialized
+  argument binding that stands in for the parameter). Fix the depth bookkeeping, then re-run
+  `unittests.swgs dm sanity -bc release`.

@@ -2132,7 +2132,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <h3 id="guide_Collections_and_borrowing_Ordering_and_ranges">Ordering and ranges</h3>
 <p>Ordered collections and priority queues take an explicit comparator. Its arguments are borrowed. Return a negative value when the left argument belongs before the right argument, zero when their ordering keys are equal, and a positive value otherwise.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> ranking: <span class="SFct">OrderedMap</span>'(<span class="STpe">u32</span>, <span class="SCst"><a href="#Core_String">String</a></span>)
-ranking.<span class="SFct">initialize</span>(<span class="SKwd">func</span>(left, right: <span class="SKwd">const</span> *<span class="STpe">u32</span>)-&gt;<span class="STpe">s32</span> =&gt; <span class="SKwd">dref</span> left &lt;=&gt; <span class="SKwd">dref</span> right)
+ranking.<span class="SFct">initialize</span>(<span class="SKwd">func</span>(left, right: <span class="SKwd">const</span> *<span class="STpe">u32</span>)-&gt;<span class="STpe">s32</span> =&gt; left[] &lt;=&gt; right[])
 ranking.<span class="SFct">add</span>(<span class="SNum">20</span>, <span class="SStr">"silver"</span>)
 ranking.<span class="SFct">add</span>(<span class="SNum">10</span>, <span class="SStr">"gold"</span>)
 
@@ -2140,7 +2140,7 @@ ranking.<span class="SFct">add</span>(<span class="SNum">10</span>, <span class=
     <span class="SCst"><a href="#namespace_Core_Console">Console</a></span>.<span class="SFct">printLn</span>(entry.key, <span class="SStr">": "</span>, entry.value)
 
 <span class="SKwd">var</span> work: <span class="SFct">PriorityQueue</span>'<span class="STpe">u32</span>
-work.<span class="SFct">initialize</span>(<span class="SKwd">func</span>(left, right: <span class="SKwd">const</span> *<span class="STpe">u32</span>)-&gt;<span class="STpe">s32</span> =&gt; <span class="SKwd">dref</span> left &lt;=&gt; <span class="SKwd">dref</span> right)
+work.<span class="SFct">initialize</span>(<span class="SKwd">func</span>(left, right: <span class="SKwd">const</span> *<span class="STpe">u32</span>)-&gt;<span class="STpe">s32</span> =&gt; left[] &lt;=&gt; right[])
 work.<span class="SFct">push</span>(<span class="SNum">30</span>)
 work.<span class="SFct">push</span>(<span class="SNum">10</span>)
 <span class="SKwd">let</span> first = work.<span class="SFct">pop</span>()
@@ -2276,7 +2276,7 @@ options.recurse = <span class="SKwd">true</span>
 <span class="SKwd">var</span> encoder: <span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SFct">Encoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SCst"><a href="#namespace_Core_Serialization_Write">Write</a></span>.<span class="SCst">Json</span>
 encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <span class="SKwd">var</span> output: <span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>
-<span class="SKwd">try</span> encoder.<span class="SFct">writeAll</span>(&amp;output, <span class="SKwd">dref</span> settings)
+<span class="SKwd">try</span> encoder.<span class="SFct">writeAll</span>(&amp;output, settings[])
 </span></div>
 <p>Malformed UTF-8, invalid escapes and numbers, duplicate properties, trailing commas, excessive nesting, and data after the root value fail with a <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a>. The decoder owns the returned struct; release it with <a href="#Core_Memory_delete">Core.Memory.delete</a>. Because JSON has no representation for NaN or infinity, the writer emits <span class="code-inline">null</span> for non-finite floating-point values.</p>
 <h3 id="guide_JSON_and_globalization_Culture-aware_presentation">Culture-aware presentation</h3>
@@ -25405,7 +25405,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.129</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.133</div>
 </footer>
 </section>
 </main>

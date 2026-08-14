@@ -788,7 +788,7 @@ indent-style = spaces
 <p><span class="code-inline">foreach</span> is no longer part of the language; the compiler recognizes it only to produce a migration diagnostic that points to <span class="code-inline">for</span>.</p>
 <p><span class="code-inline">verify</span> is no longer part of the language either, and is now an ordinary identifier. It used to be accepted on function declarations but was never executed. Express a compile-time overload contract with a <span class="code-inline">where</span> constraint, and a runtime precondition with ordinary code.</p>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
-<div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">dref</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
 <span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span>  <span class="SKwd">undefined</span>
 </span></div>
 <p><span class="code-inline">not</span> is reserved for future use.</p>
@@ -3364,7 +3364,7 @@ indent-style = spaces
 
 </span></div>
 <h3 id="_004_007_pointers_swg_Reaching_Through_a_Pointer">Reaching Through a Pointer</h3>
-<p>A non-null <span class="code-inline">*T</span> needs no ceremony at the use site. A member access written on the pointer reads the pointed-to object directly, and a method call binds the pointed-to object as its receiver. <span class="code-inline">dref</span> is reserved for the <b>whole value</b>: reading it out in one expression, or replacing it in one assignment. Field for field, the code looks the same whether a binding holds the object or its address, which is what makes <span class="code-inline">*T</span> the everyday indirection.</p>
+<p>A non-null <span class="code-inline">*T</span> needs no ceremony at the use site. A member access written on the pointer reads the pointed-to object directly, and a method call binds the pointed-to object as its receiver. The postfix <span class="code-inline">[]</span> opens the <b>whole value</b>: reading it out in one expression, or replacing it in one assignment. Field for field, the code looks the same whether a binding holds the object or its address, which is what makes <span class="code-inline">*T</span> the everyday indirection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ReachDoc</span>
 {
     x, y: <span class="STpe">s32</span>
@@ -3392,10 +3392,10 @@ indent-style = spaces
     ptr.<span class="SFct">shift</span>(<span class="SNum">10</span>)
     <span class="SItr">@assert</span>(value.x == <span class="SNum">11</span>)
 
-    <span class="SCmt">// 'dref' reads or replaces the whole pointed value.</span>
-    <span class="SKwd">let</span> copy = <span class="SKwd">dref</span> ptr
+    <span class="SCmt">// '[]' reads or replaces the whole pointed value.</span>
+    <span class="SKwd">let</span> copy = ptr[]
     <span class="SItr">@assert</span>(copy.y == <span class="SNum">20</span>)
-    <span class="SKwd">dref</span> ptr = <span class="SCst">ReachDoc</span>{<span class="SNum">7</span>, <span class="SNum">8</span>}
+    ptr[] = <span class="SCst">ReachDoc</span>{<span class="SNum">7</span>, <span class="SNum">8</span>}
     <span class="SItr">@assert</span>(value.x == <span class="SNum">7</span>)
 }
 
@@ -3427,7 +3427,7 @@ indent-style = spaces
     <span class="SCmt">// The element address escapes as a plain pointer and stays writable.</span>
     <span class="SKwd">let</span> p = &amp;box[<span class="SNum">1</span>]
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(p) == *<span class="STpe">s32</span>)
-    <span class="SKwd">dref</span> p = <span class="SNum">7</span>
+    p[] = <span class="SNum">7</span>
     <span class="SItr">@assert</span>(box.values[<span class="SNum">1</span>] == <span class="SNum">7</span>)
 
     <span class="SCmt">// Indexing through a pointer to the container reaches the same hooks.</span>
@@ -3438,7 +3438,7 @@ indent-style = spaces
 
 </span></div>
 <h3 id="_004_007_pointers_swg_Pointers_to_Nullable_Slots">Pointers to Nullable Slots</h3>
-<p>Taking an address never invents a proof. The address of a <span class="code-inline">#null</span> slot is a non-null pointer TO that slot, and the slot's own nullability waits inside: reading the slot with <span class="code-inline">dref</span> hands back the <span class="code-inline">#null</span> value, and every use of that value needs the same proof it would need on the slot itself.</p>
+<p>Taking an address never invents a proof. The address of a <span class="code-inline">#null</span> slot is a non-null pointer TO that slot, and the slot's own nullability waits inside: reading the slot with <span class="code-inline">[]</span> hands back the <span class="code-inline">#null</span> value, and every use of that value needs the same proof it would need on the slot itself.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SlotTargetDoc</span>
 {
     count: <span class="STpe">s64</span>
@@ -3463,16 +3463,16 @@ indent-style = spaces
     target.count = <span class="SNum">3</span>
     <span class="SKwd">var</span> box = <span class="SCst">SlotBoxDoc</span>{slot: &amp;target}
 
-    <span class="SCmt">// The address itself is non-null; the slot's '#null' waits behind one 'dref'.</span>
+    <span class="SCmt">// The address itself is non-null; the slot's '#null' waits behind one '[]'.</span>
     <span class="SKwd">let</span> bound = box.<span class="SFct">slotPtr</span>()
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(bound) == <span class="SItr">#type</span> *<span class="SCst">DocSlot</span>)
 
     <span class="SCmt">// The slot's value is still nullable: prove it, or assert it with '!'.</span>
-    <span class="SKwd">let</span> slot = <span class="SKwd">dref</span> bound
+    <span class="SKwd">let</span> slot = bound[]
     <span class="SItr">@assert</span>(slot!.count == <span class="SNum">3</span>)
 
     <span class="SCmt">// Writing through the address updates the slot itself.</span>
-    <span class="SKwd">dref</span> bound = <span class="SKwd">null</span>
+    bound[] = <span class="SKwd">null</span>
     <span class="SItr">@assert</span>(box.slot == <span class="SKwd">null</span>)
 }
 
@@ -3522,23 +3522,46 @@ indent-style = spaces
 
 </span></div>
 <h3 id="_004_007_pointers_swg_Dereferencing_a_Pointer">Dereferencing a Pointer</h3>
-<p>To access the value stored at a pointerâ€™s address, use the <span class="code-inline">dref</span> intrinsic. Dereferencing retrieves the data located at the memory address referenced by the pointer.</p>
+<p>To access the value stored at a pointer's address, write <span class="code-inline">[]</span> after the pointer: empty brackets open the pointed storage as a read/write place. Being postfix, the dereference composes left-to-right with member and index access, so a chain stays readable without parentheses.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> value = <span class="SNum">42</span>
     <span class="SKwd">let</span> ptr   = &amp;value
-    <span class="SItr">@assert</span>(<span class="SKwd">dref</span> ptr == <span class="SNum">42</span>)     <span class="SCmt">// Access the value stored at the pointer</span>
+    <span class="SItr">@assert</span>(ptr[] == <span class="SNum">42</span>)     <span class="SCmt">// Reads the value stored at the pointer</span>
+    ptr[] = <span class="SNum">7</span>                <span class="SCmt">// Replaces the whole pointed value</span>
+    <span class="SItr">@assert</span>(value == <span class="SNum">7</span>)
+
+    <span class="SCmt">// Being postfix, it chains without parentheses.</span>
+    <span class="SKwd">var</span> grid: [<span class="SNum">2</span>, <span class="SNum">3</span>] <span class="STpe">s32</span>
+    <span class="SKwd">let</span> gp = &amp;grid
+    gp[][<span class="SNum">1</span>, <span class="SNum">2</span>] = <span class="SNum">5</span>
+    <span class="SItr">@assert</span>(grid[<span class="SNum">1</span>, <span class="SNum">2</span>] == <span class="SNum">5</span>)
+}
+
+</span></div>
+<h3 id="_004_007_pointers_swg_Reinterpreting_the_Pointed_Storage">Reinterpreting the Pointed Storage</h3>
+<p><span class="code-inline">expr[as T]</span> opens the same place but types it as a <span class="code-inline">T</span>: the pointed storage is reinterpreted, never converted. The result is a read/write place of type <span class="code-inline">T</span>, so both reads and writes go through it. The classic use is reaching the bit pattern of a value without a chain of pointer casts.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> f = <span class="SNum">1.0</span>'<span class="STpe">f32</span>
+    <span class="SKwd">let</span> p = &amp;f
+    <span class="SItr">@assert</span>(p[<span class="SLgc">as</span> <span class="STpe">u32</span>] == <span class="SNum">0x3F80_0000</span>)     <span class="SCmt">// The float's bit pattern, not a conversion</span>
+
+    <span class="SKwd">var</span> value = <span class="SNum">0</span>'<span class="STpe">s32</span>
+    <span class="SKwd">let</span> vp    = &amp;value
+    vp[<span class="SLgc">as</span> <span class="STpe">u32</span>] = <span class="SNum">0xFFFF_FFFF</span>     <span class="SCmt">// Writes through the reinterpreted place</span>
+    <span class="SItr">@assert</span>(value == -<span class="SNum">1</span>)
 }
 
 </span></div>
 <h3 id="_004_007_pointers_swg_Pointers_to_Const_Data">Pointers to Const Data</h3>
-<p><span class="code-inline">const</span> qualifies the <b>pointed-to data</b>, never the pointer itself. Written just before a <span class="code-inline">*</span>, it makes whatever that <span class="code-inline">*</span> points to read-only, so <span class="code-inline">const *u8</span> is a pointer to a read-only <span class="code-inline">u8</span> and assigning through <span class="code-inline">dref</span> is rejected. The pointer variable stays free to point somewhere else; <span class="code-inline">let</span> is what makes a pointer itself immutable.</p>
+<p><span class="code-inline">const</span> qualifies the <b>pointed-to data</b>, never the pointer itself. Written just before a <span class="code-inline">*</span>, it makes whatever that <span class="code-inline">*</span> points to read-only, so <span class="code-inline">const *u8</span> is a pointer to a read-only <span class="code-inline">u8</span> and assigning through <span class="code-inline">[]</span> is rejected. The pointer variable stays free to point somewhere else; <span class="code-inline">let</span> is what makes a pointer itself immutable.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> str            = <span class="SStr">"string"</span>
     <span class="SKwd">let</span> ptr: <span class="SKwd">const</span> *<span class="STpe">u8</span> = <span class="SItr">@dataof</span>(str)
-    <span class="SItr">@assert</span>(<span class="SKwd">dref</span> ptr == '<span class="SFct">s</span>')     <span class="SCmt">// Reading through the pointer is fine,</span>
-<span class="SCmt">// but assigning to 'dref ptr' would be rejected</span>
+    <span class="SItr">@assert</span>(ptr[] == '<span class="SFct">s</span>')     <span class="SCmt">// Reading through the pointer is fine,</span>
+<span class="SCmt">// but assigning to 'ptr[]' would be rejected</span>
 }
 
 </span></div>
@@ -3591,7 +3614,7 @@ indent-style = spaces
     <span class="SKwd">let</span> value2 = ptr[<span class="SNum">1</span>]
     <span class="SItr">@assert</span>(value2 == <span class="SNum">2</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(value2) == <span class="STpe">s32</span>)
-    <span class="SKwd">let</span> value = <span class="SKwd">dref</span> ptr
+    <span class="SKwd">let</span> value = ptr[]
     <span class="SItr">@assert</span>(value == <span class="SNum">1</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(value) == <span class="STpe">s32</span>)
 }
@@ -3630,7 +3653,7 @@ indent-style = spaces
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
     <span class="SKwd">let</span> ptr    = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>) <span class="SItr">@dataof</span>(a)
-    <span class="SItr">@assert</span>(<span class="SKwd">dref</span> ptr == <span class="SNum">6</span>)
+    <span class="SItr">@assert</span>(ptr[] == <span class="SNum">6</span>)
 }
 
 </span></div>
@@ -3661,7 +3684,7 @@ indent-style = spaces
     <span class="SItr">@assert</span>(b == <span class="SNum">42</span>)
 
     <span class="SKwd">let</span> d = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>) a     <span class="SCmt">// Get a constant pointer to the value</span>
-    <span class="SItr">@assert</span>(<span class="SKwd">dref</span> d == <span class="SNum">42</span>)
+    <span class="SItr">@assert</span>(d[] == <span class="SNum">42</span>)
 }
 
 </span></div>
@@ -4379,7 +4402,7 @@ indent-style = spaces
     }
 
     <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
-    <span class="SKwd">var</span> sum = <span class="SNum">0</span>
+    <span class="SKwd">var</span> sum               = <span class="SNum">0</span>
 
     <span class="SLgc">for</span> p <span class="SLgc">in</span> points
     {
@@ -4392,7 +4415,7 @@ indent-style = spaces
 
 </span></div>
 <h3 id="_005_003_for_elements_swg_Modifying_Elements_with____">Modifying Elements with <span class="code-inline">&amp;</span></h3>
-<p>Prefix the element name with <span class="code-inline">&amp;</span> to bind the element's <b>mutable address</b>: the binding is a non-null pointer into the collection ('const *T' when the collection itself is constant). Members of a struct element are reached directly through the binding; the whole element is read or written with <span class="code-inline">dref</span>.</p>
+<p>Prefix the element name with <span class="code-inline">&amp;</span> to bind the element's <b>mutable address</b>: the binding is a non-null pointer into the collection ('const *T' when the collection itself is constant). Members of a struct element are reached directly through the binding; the whole element is read or written with <span class="code-inline">[]</span>.</p>
 <div class="code-block"><span class="SCde">
 <span class="SFct">#test</span>
 {
@@ -4402,8 +4425,8 @@ indent-style = spaces
     <span class="SLgc">for</span> &amp;it <span class="SLgc">in</span> array
     {
         <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(it) == *<span class="STpe">s32</span>)
-        result  += <span class="SKwd">dref</span> it
-        <span class="SKwd">dref</span> it = <span class="SNum">555</span>
+        result += it[]
+        it[]   = <span class="SNum">555</span>
     }
 
     <span class="SItr">@assert</span>(result == <span class="SNum">1</span> + <span class="SNum">2</span> + <span class="SNum">3</span> + <span class="SNum">4</span>)
@@ -4426,7 +4449,7 @@ indent-style = spaces
     <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
 
     <span class="SLgc">for</span> &amp;p, index <span class="SLgc">in</span> points <span class="SLgc">do</span>
-        <span class="SKwd">dref</span> p = <span class="SCst">Point</span>{<span class="SKwd">cast</span>(<span class="STpe">s32</span>) index, <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index}
+        p[] = <span class="SCst">Point</span>{<span class="SKwd">cast</span>(<span class="STpe">s32</span>) index, <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index}
 
     <span class="SItr">@assert</span>(points[<span class="SNum">0</span>].x == <span class="SNum">0</span> <span class="SLgc">and</span> points[<span class="SNum">0</span>].y == <span class="SNum">0</span>)
     <span class="SItr">@assert</span>(points[<span class="SNum">1</span>].x == <span class="SNum">1</span> <span class="SLgc">and</span> points[<span class="SNum">1</span>].y == <span class="SNum">1</span>)
@@ -4998,7 +5021,7 @@ indent-style = spaces
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SCmp">#scope</span>(<span class="SCst">Up</span>)
-        <span class="SLgc">for</span> <span class="SNum">10</span>
+    <span class="SLgc">for</span> <span class="SNum">10</span>
     {
         <span class="SLgc">for</span> <span class="SNum">10</span>
         {
@@ -5957,13 +5980,13 @@ indent-style = spaces
 
 </span></div>
 <h3 id="_006_008_custom_iteration_swg_Visiting_by_Address">Visiting by Address</h3>
-<p>The <span class="code-inline">&amp;</span> binding selects 'ptr == true', and the hook answers with the element's mutable address: the loop binding is a non-null pointer, and the loop body writes the element through <span class="code-inline">dref</span>. Without <span class="code-inline">&amp;</span>, scalar elements are copied into the loop binding.</p>
+<p>The <span class="code-inline">&amp;</span> binding selects 'ptr == true', and the hook answers with the element's mutable address: the loop binding is a non-null pointer, and the loop body writes the element through <span class="code-inline">[]</span>. Without <span class="code-inline">&amp;</span>, scalar elements are copied into the loop binding.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> values = <span class="SCst">SliceStruct</span>{}
 
     <span class="SLgc">for</span> &amp;value, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
-        <span class="SKwd">dref</span> value += <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index
+        value[] += <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index
 
     <span class="SItr">@assert</span>(values.buffer[<span class="SNum">0</span>] == <span class="SNum">1</span>)
     <span class="SItr">@assert</span>(values.buffer[<span class="SNum">4</span>] == <span class="SNum">9</span>)
@@ -6056,7 +6079,7 @@ indent-style = spaces
     <span class="SCmt">// One declaration, two variants: 'assign(&amp;v, x)' copies, 'assign(&amp;v, #move x)' moves.</span>
     <span class="SKwd">func</span> <span class="SFct">assign</span>(assignTo: *<span class="SCst">Vector3</span>, from: <span class="SItr">#fwd</span> <span class="SCst">Vector3</span>)
     {
-        <span class="SKwd">dref</span> assignTo = <span class="SItr">#fwd</span> from
+        assignTo[] = <span class="SItr">#fwd</span> from
     }
 
     <span class="SKwd">var</span> a = <span class="SCst">Vector3</span>{<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>}
@@ -6079,7 +6102,7 @@ indent-style = spaces
     <span class="SCmt">// copied into a call-site temporary, then moved from it.</span>
     <span class="SKwd">func</span> <span class="SFct">assign</span>(assignTo: *<span class="SCst">Vector3</span>, from: <span class="SItr">#move</span> <span class="SCst">Vector3</span>)
     {
-        <span class="SKwd">dref</span> assignTo = <span class="SItr">#move</span> from
+        assignTo[] = <span class="SItr">#move</span> from
     }
 
     <span class="SKwd">var</span> a = <span class="SCst">Vector3</span>{<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>}
@@ -7939,7 +7962,7 @@ indent-style = spaces
 
     <span class="SKwd">func</span> <span class="SFct">releaseResource</span>(resource: *<span class="STpe">bool</span>)
     {
-        <span class="SKwd">dref</span> resource = <span class="SKwd">false</span>
+        resource[] = <span class="SKwd">false</span>
     }
 
     <span class="SKwd">func</span> <span class="SFct">isResourceCreated</span>(b: <span class="STpe">bool</span>) =&gt; b
@@ -7970,7 +7993,7 @@ indent-style = spaces
 
     <span class="SKwd">func</span> <span class="SFct">releaseResource</span>(resource: *<span class="STpe">bool</span>)
     {
-        <span class="SKwd">dref</span> resource = <span class="SKwd">false</span>
+        resource[] = <span class="SKwd">false</span>
     }
 
     <span class="SKwd">func</span> <span class="SFct">isResourceCreated</span>(b: <span class="STpe">bool</span>) =&gt; b
@@ -8438,7 +8461,7 @@ indent-style = spaces
 <p>'catch e else { H }' runs the anonymous handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. <span class="code-inline">H</span> cannot inspect the error (capture it with 'as err' for that); it is evaluated lazily — only on the failure path — and may divert control flow (e.g. an early <span class="code-inline">return</span>). To read the caught error, use the 'as err' capture form instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
-    <span class="SKwd">dref</span> out = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) <span class="SFct">count</span>(name)
+    out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) <span class="SFct">count</span>(name)
 }
 
 <span class="SFct">#test</span>
@@ -8894,10 +8917,10 @@ indent-style = spaces
     }
 
     <span class="SKwd">let</span> p = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>) <span class="SFct">exampleAlloc</span>(<span class="SNum">4</span>)!
-    <span class="SKwd">dref</span> p = <span class="SNum">1</span>
+    p[] = <span class="SNum">1</span>
     <span class="SFct">exampleFree</span>(p, <span class="SNum">4</span>)
 
-<span class="SCmt">// let x = dref p       // Uncomment: error, use of a freed pointer (proven)</span>
+<span class="SCmt">// let x = p[]       // Uncomment: error, use of a freed pointer (proven)</span>
 <span class="SCmt">// exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)</span>
 }
 
@@ -9875,7 +9898,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
         <span class="SCmt">// Define a scope label used as the break target</span>
         <span class="SCmp">#scope</span>(<span class="SCst">ScopeTarget</span>)
 
-            <span class="SLgc">for</span> count
+        <span class="SLgc">for</span> count
         {
             <span class="SLgc">for</span> count
             {
@@ -9908,7 +9931,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
         <span class="SCmt">// Label for controlling the outer loop</span>
         <span class="SCmp">#scope</span>(<span class="SCst">Outer</span>)
 
-            <span class="SLgc">for</span> count
+        <span class="SLgc">for</span> count
         {
             <span class="SLgc">for</span> count
             {
@@ -10184,7 +10207,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.129</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.133</div>
 </footer>
 </section>
 </main>
@@ -10686,6 +10709,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Deferred Initialization with Swag.Late|_004_007_pointers_swg_Deferred_Initialization_with__Swag_Late_|",
 "h|Taking the Address of a Variable|_004_007_pointers_swg_Taking_the_Address_of_a_Variable|",
 "h|Dereferencing a Pointer|_004_007_pointers_swg_Dereferencing_a_Pointer|",
+"h|Reinterpreting the Pointed Storage|_004_007_pointers_swg_Reinterpreting_the_Pointed_Storage|",
 "h|Pointers to Const Data|_004_007_pointers_swg_Pointers_to_Const_Data|",
 "h|Combining const with Pointers|_004_007_pointers_swg_Combining__const__with_Pointers|",
 "h|Multi-Value Pointers|_004_007_pointers_swg_Multi-Value_Pointers|",

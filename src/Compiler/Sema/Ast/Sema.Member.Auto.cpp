@@ -202,7 +202,14 @@ namespace
         if (typeRef != normalizedTypeRef)
         {
             const TypeInfo& sourceType = sema.typeMgr().get(typeRef);
-            if (sourceType.isAlias() && sourceType.payloadSymAlias().isStrict())
+            // A strict alias keeps its identity on the value it names, so a member
+            // selected FROM that value carries it. An alias of a POINTER is a different
+            // shape: the member is reached by dereferencing, and belongs to the pointee,
+            // never to the alias. Re-typing it as the alias would make '.x * .x' compare
+            // two pointers.
+            const TypeRef aliasUnderlyingTypeRef = sourceType.isAlias() ? sourceType.payloadSymAlias().underlyingTypeRef() : TypeRef::invalid();
+            const bool    aliasIsIndirection     = aliasUnderlyingTypeRef.isValid() && sema.typeMgr().get(aliasUnderlyingTypeRef).isPointerOrReference();
+            if (sourceType.isAlias() && sourceType.payloadSymAlias().isStrict() && !aliasIsIndirection)
                 resultTypeRef = typeRef;
         }
 

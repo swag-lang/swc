@@ -2557,6 +2557,24 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             return Result::Continue;
     }
 
+    // A call reached through '?.' is guarded: its receiver's null test must skip the
+    // whole call. Inlining replaces the call node itself, so the member access that
+    // carries the guard is never lowered and the body runs on a null receiver. The
+    // real call keeps the short circuit. Macros and mixins cannot fall back to one and
+    // expand as before.
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    {
+        const AstNodeRef guardedRef         = sema.node(callRef).is(AstNodeId::CallExpr) ? sema.node(callRef).cast<AstCallExpr>().nodeExprRef : AstNodeRef::invalid();
+        const AstNodeRef resolvedGuardedRef = guardedRef.isValid() ? sema.viewZero(guardedRef).nodeRef() : AstNodeRef::invalid();
+        for (const AstNodeRef candidateRef : {guardedRef, resolvedGuardedRef})
+        {
+            if (candidateRef.isValid() &&
+                sema.node(candidateRef).is(AstNodeId::MemberAccessExpr) &&
+                sema.node(candidateRef).cast<AstMemberAccessExpr>().hasFlag(AstMemberAccessExprFlagsE::OptionalAccess))
+                return Result::Continue;
+        }
+    }
+
     // A plain value bound to a '#move' parameter (copy-to-move), and an explicit '#move'
     // argument bound to a by-value parameter (move-to-value), are materialized as call-site
     // temporaries by the real call path; the inline binder has no equivalent, so keep those

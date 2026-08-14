@@ -15,6 +15,12 @@ struct CryptoBatch
     invalidTags: s32
 }
 
+// Original block map of one node while a shrink is still reversible in memory.
+struct BlockMapBackup
+{
+    blocks: Array'BlockMapping
+}
+
 private func keepFirstBatchError(batch: *CryptoBatch, err: #null any)
 {
     if err == null do
@@ -103,30 +109,32 @@ impl VolumeProgress
 #[Swag.NoCopy]
 struct Volume
 {
-    file:          File.FileStream
-    keys:          Crypto.Keys
-    master:        [Crypto.MasterKeySize] u8
-    path:          String
-    label:         String
-    containerSize: u64
-    blockCount:    u64
-    sequence:      u64     // Sequence of the last durable change, checkpoint or journal record.
-    checkpointAt:  u64     // Sequence of the last checkpoint; journal records above it are live.
-    nextNodeId:    u64
-    activeSlot:    u32
-    keySlotMask:   u32           // Which key slots hold a password; kept in the encrypted header, never in the slot area.
-    metadataPages: Array'u64     // Physical blocks holding the metadata image, in order.
-    metadataSize:  u64           // Exact byte count of that image.
-    nodes:         Array'Node
-    nodeLookup:    NodeIndex
-    blocks:        BlockAllocator
-    ioLock:        Sync.Mutex      // Serializes the shared seek-based container stream.
-    accessLock:    Sync.RWLock     // Protects nodes and allocation across concurrent host callbacks.
-    touched:       Array'u64       // Nodes changed since the last journal record.
-    touchedSet:    HashSet'u64
-    removed:       Array'u64     // Nodes deleted since the last journal record.
-    scalarsDirty:  bool          // Whether a scalar such as the label or the next identifier changed.
-    dirty:         bool          // Whether anything at all is not yet in a checkpoint.
+    file:               File.FileStream
+    keys:               Crypto.Keys
+    master:             [Crypto.MasterKeySize] u8
+    path:               String
+    label:              String
+    containerSize:      u64
+    blockCount:         u64
+    sequence:           u64     // Sequence of the last durable change, checkpoint or journal record.
+    checkpointAt:       u64     // Sequence of the last checkpoint; journal records above it are live.
+    nextNodeId:         u64
+    activeSlot:         u32
+    keySlotMask:        u32           // Which key slots hold a password; kept in the encrypted header, never in the slot area.
+    metadataPages:      Array'u64     // Physical blocks holding the metadata image, in order.
+    metadataSize:       u64           // Exact byte count of that image.
+    nodes:              Array'Node
+    nodeLookup:         NodeIndex
+    blocks:             BlockAllocator
+    ioLock:             Sync.Mutex      // Serializes the shared seek-based container stream.
+    accessLock:         Sync.RWLock     // Protects nodes and allocation across concurrent host callbacks.
+    touched:            Array'u64       // Nodes changed since the last journal record.
+    touchedSet:         HashSet'u64
+    metadataTouched:    Array'u64     // Nodes whose block map and security data did not change.
+    metadataTouchedSet: HashSet'u64
+    removed:            Array'u64     // Nodes deleted since the last journal record.
+    scalarsDirty:       bool          // Whether a scalar such as the label or the next identifier changed.
+    dirty:              bool          // Whether anything at all is not yet in a checkpoint.
 
     #static if #command == Swag.CompilerCommand.Test
     {
@@ -339,6 +347,15 @@ impl Volume
         discard catch result.restore(validHeader.plain.toSlice()) as parseError
         if parseError != null do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+
+        // A shrink publishes its authenticated geometry before truncating the now-unused tail.
+        // If the process stopped between those steps, the next writable open completes the
+        // truncation; a read-only open simply ignores the unauthenticated excess bytes.
+        if !readOnly and result.file.size() > result.containerSize
+        {
+            result.file.resize(result.containerSize)
+            result.file.flush()
+        }
 
         completed = true
         return result
@@ -566,6 +583,148 @@ impl Volume
         committed = true
     }
 
+    // Changes the physical capacity in either direction.
+    mtd resize(requestedSize: u64, progress: #null *VolumeProgress = null) fail
+    {
+        if requestedSize > .containerSize
+        {
+            try .grow(requestedSize, progress)
+            return
+        }
+
+        try .shrink(requestedSize, progress)
+    }
+
+    // Moves every live data block below the new end, checkpoints the smaller authenticated
+    // geometry, then truncates the tail. Until the checkpoint lands, every old mapping and the
+    // old file length remain valid; after it lands, an interrupted truncation is completed by
+    // [[Volume.open]].
+    mtd shrink(requestedSize: u64, progress: #null *VolumeProgress = null) fail
+    {
+        try .requireWritable()
+        if requestedSize < MinimumSize do
+            failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
+        if requestedSize >= .containerSize do
+            failWith("Shrinking needs a smaller container size.", .InvalidInput)
+
+        let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
+        if newBlockCount >= .blockCount do
+            failWith("The requested size does not remove a single block.", .InvalidInput)
+
+        // Start from one durable image. The relocation itself writes only into free blocks and
+        // therefore changes nothing the active header can reach until the final checkpoint.
+        try .checkpoint()
+
+        var previousMaps: Array'BlockMapBackup
+        previousMaps.reserve(.nodes.count)
+        for node in .nodes
+        {
+            var backup: BlockMapBackup
+            backup.blocks.add(node.blocks.toSlice())
+            previousMaps.add(#move backup)
+        }
+
+        var previousFree: Array'FreeExtent
+        previousFree.add(.blocks.free.toSlice())
+        let previousFreeBlocksCount = .blocks.freeBlocksCount
+        let previousSize            = .containerSize
+        let previousBlockCount      = .blockCount
+
+        var committed = false
+        defer
+        {
+            if !committed
+            {
+                for &node, index in .nodes do
+                    node.blocks = #move previousMaps[index].blocks
+                .blocks.free            = #move previousFree
+                .blocks.freeBlocksCount = previousFreeBlocksCount
+                .containerSize          = previousSize
+                .blockCount             = previousBlockCount
+                .scalarsDirty           = false
+                .dirty                  = false
+            }
+        }
+
+        var blocksToMove = 0'u64
+        for node in .nodes
+        {
+            for mapping in node.blocks
+            {
+                if mapping.physical >= newBlockCount do
+                    blocksToMove += mapping.count
+                elif mapping.physical + mapping.count > newBlockCount do
+                    blocksToMove += mapping.physical + mapping.count - newBlockCount
+            }
+        }
+
+        if progress do
+            progress!.setTotal(blocksToMove * BlockSize)
+
+        var moved = 0'u64
+        var plain: Array'u8
+        plain.resize(MaximumIoBatchBlocks * BlockSize)
+        defer Core.Crypto.secureClear(plain.toSlice())
+
+        for &node in .nodes
+        {
+            var updated: Array'BlockMapping
+            updated.reserve(node.blocks.count + 2)
+            for mapping in node.blocks
+            {
+                var logical  = mapping.logical
+                var physical = mapping.physical
+                var count    = mapping.count
+
+                if physical < newBlockCount
+                {
+                    let kept = Math.min(count, newBlockCount - physical)
+                    updated.add({logical, physical, kept})
+                    logical  += kept
+                    physical += kept
+                    count    -= kept
+                }
+
+                while count
+                {
+                    if progress and progress!.isCanceled() do
+                        failWith("Resizing the container was canceled.", .Canceled)
+
+                    let destination = try .blocks.allocateRunBelow(newBlockCount, Math.min(count, MaximumIoBatchBlocks))
+                    let bytes       = destination.count * BlockSize
+                    try .readPhysicalRun(physical, plain[until bytes])
+                    try .writePhysicalRun(destination.first, plain[until bytes])
+                    updated.add({logical, destination.first, destination.count})
+
+                    logical  += destination.count
+                    physical += destination.count
+                    count    -= destination.count
+                    moved    += bytes
+                    if progress do
+                        progress!.publish(moved)
+                }
+            }
+
+            node.blocks.clear()
+            for mapping in updated do
+                node.appendMapping(mapping[])
+        }
+
+        .containerSize = requestedSize
+        .blockCount    = newBlockCount
+        .blocks.trim(newBlockCount)
+        .scalarsDirty = true
+        .dirty        = true
+        try .checkpoint()
+        .blocks.trim(newBlockCount)
+
+        // From this point the smaller geometry is durable. Leaving the physical tail in place on
+        // a truncation error is recoverable and must not resurrect the old mappings in memory.
+        committed = true
+        .file.resize(requestedSize)
+        .file.flush()
+    }
+
     mtd readHeader(slot: u32)->HeaderCandidate fail
     {
         var result: retval
@@ -653,14 +812,16 @@ impl Volume
         .checkpointAt = .sequence
         if .sequence == Swag.U64.Max do
             failWith("The container sequence can no longer advance.", .Corrupted)
-        let storedSize = reader.readLittleEndian'u64()
+        let physicalSize = .containerSize
+        let storedSize   = reader.readLittleEndian'u64()
         .blockCount   = reader.readLittleEndian'u64()
         .nextNodeId   = reader.readLittleEndian'u64()
         .label        = reader.readSizedString(MaximumLabelSize)
         .keySlotMask  = reader.readLittleEndian'u32()
         .metadataSize = reader.readLittleEndian'u64()
-        if storedSize != .containerSize or .blockCount != (.containerSize - DataOffset) / BlockRecordSize do
+        if storedSize < MinimumSize or storedSize > physicalSize or .blockCount != (storedSize - DataOffset) / BlockRecordSize do
             failWith("The container geometry does not match its size.", .Corrupted)
+        .containerSize = storedSize
 
         let expectedPages = (.metadataSize + BlockSize - 1) / BlockSize
         if expectedPages > .blockCount do
@@ -937,11 +1098,34 @@ impl Volume
     mtd touch(id: u64)
     {
         .dirty = true
+        if .metadataTouchedSet.contains(id)
+        {
+            .metadataTouchedSet.remove(id)
+            for value, i in .metadataTouched
+            {
+                if value == id
+                {
+                    .metadataTouched.removeAtOrdered(i)
+                    break
+                }
+            }
+        }
+
         if !.touchedSet.contains(id)
         {
             .touchedSet.add(id)
             .touched.add(id)
         }
+    }
+
+    // Records a namespace, attribute, or timestamp change without serializing the file's data map.
+    mtd touchMetadata(id: u64)
+    {
+        .dirty = true
+        if .touchedSet.contains(id) or .metadataTouchedSet.contains(id) do
+            return
+        .metadataTouchedSet.add(id)
+        .metadataTouched.add(id)
     }
 
     // Records that `id` was deleted, and withdraws any pending change to it.
@@ -956,6 +1140,19 @@ impl Volume
                 if value == id
                 {
                     .touched.removeAtOrdered(i)
+                    break
+                }
+            }
+        }
+
+        if .metadataTouchedSet.contains(id)
+        {
+            .metadataTouchedSet.remove(id)
+            for value, i in .metadataTouched
+            {
+                if value == id
+                {
+                    .metadataTouched.removeAtOrdered(i)
                     break
                 }
             }
@@ -976,13 +1173,15 @@ impl Volume
     {
         .touched.clear()
         .touchedSet.clear()
+        .metadataTouched.clear()
+        .metadataTouchedSet.clear()
         .removed.clear()
         .scalarsDirty = false
     }
 
     mtd hasPendingChanges()->bool
     {
-        return .touched.count != 0 or .removed.count != 0 or .scalarsDirty
+        return .touched.count != 0 or .metadataTouched.count != 0 or .removed.count != 0 or .scalarsDirty
     }
 
     // Makes every pending change durable.
@@ -1010,7 +1209,16 @@ impl Volume
                 upserted.add(node!)
         }
 
-        var plain = JournalRecord.encode(.sequence + 1, .nextNodeId, .label, .removed.toSlice(), upserted.toSlice())
+        var metadata: Array'(*Node)
+        metadata.reserve(.metadataTouched.count)
+        for id in .metadataTouched
+        {
+            let node = .nodeById(id)
+            if node do
+                metadata.add(node!)
+        }
+
+        var plain = JournalRecord.encode(.sequence + 1, .nextNodeId, .label, .removed.toSlice(), upserted.toSlice(), metadata.toSlice())
         defer Core.Crypto.secureClear(plain.toSlice())
 
         // A change that does not fit one record is rare — a file with a very
@@ -1086,6 +1294,26 @@ impl Volume
             .nodes.add(#move copy)
             if !.nodeLookup.add(&.nodes[target], target) do
                 failWith("A journal record contains a duplicate entry.", .Corrupted)
+        }
+
+        for patch in record.metadata
+        {
+            let node = .nodeById(patch.id)
+            if !node do
+                failWith("A journal metadata change names an entry that does not exist.", .Corrupted)
+            let validNode = node!
+            if patch.id != RootNodeId
+            {
+                let parent = .nodeById(patch.parentId)
+                if !parent or !parent!.isDirectory() or !.nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
+                    failWith("A journal metadata change has an invalid destination.", .Corrupted)
+            }
+
+            validNode.attributes     = patch.attributes
+            validNode.creationTime   = patch.creationTime
+            validNode.lastAccessTime = patch.lastAccessTime
+            validNode.lastWriteTime  = patch.lastWriteTime
+            validNode.changeTime     = patch.changeTime
         }
 
         .nextNodeId = record.nextNodeId
@@ -1675,7 +1903,7 @@ impl Volume
         let indexUpdated = .nodeLookup.changeParent(updated, destinationParentId, name)
         Debug.assert(indexUpdated)
         updated.changeTime = volumeTimeNow()
-        .touch(id)
+        .touchMetadata(id)
         .commit()
     }
 

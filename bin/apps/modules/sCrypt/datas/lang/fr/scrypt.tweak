@@ -6,13 +6,16 @@ ui_Subtitle            Un stockage chiffré qui se présente et se comporte comm
 ui_CreateCardTitle     Créer un nouveau coffre
 ui_CreateCardHelp      Choisissez une capacité fixe. Le conteneur complet est randomisé avant d'être prêt.
 ui_MountCardTitle      Ouvrir un coffre existant
-ui_MountCardHelp       Déverrouillez un conteneur et exposez-le sur une lettre de lecteur disponible. Agrandir le coffre et changer son mot de passe demandent ce même mot de passe.
+ui_MountCardHelp       Déverrouillez un conteneur et exposez-le sur une lettre de lecteur disponible. Redimensionner le coffre et changer son mot de passe demandent ce même mot de passe.
 ui_MountedCardTitle    Lecteurs montés
+ui_OptionsCardTitle    Démontage automatique
 ui_MountedCardHelp     Tous les lecteurs actuellement exposés par sCrypt. Cochez-en un pour qu'il soit remonté au prochain démarrage de sCrypt.
 ui_CreateTab           Créer
 ui_OpenTab             Ouvrir
 ui_MountedTab          Montés
+ui_OptionsTab          Options
 ui_NoDriveMounted      Aucun lecteur monté.
+ui_OptionsCardHelp     Choisissez quand fermer automatiquement les lecteurs protégés. Fermer sCrypt démonte toujours tous les lecteurs.
 ui_ContainerFile       FICHIER CONTENEUR
 ui_Browse              Parcourir
 ui_FixedCapacity       CAPACITÉ FIXE
@@ -30,11 +33,19 @@ ui_DriveLetter         LETTRE DE LECTEUR
 ui_DriveHelp           Le lecteur est disponible pour Windows tant que sCrypt s'exécute, et apparaît sous Montés.
 ui_ReadOnly            Monter en lecture seule
 ui_ReadOnlyHelp        Le lecteur s'ouvre en lecture seule : rien ne peut ajouter au coffre, le modifier ni en supprimer tant qu'il est monté.
+ui_UnmountOnLock       Démonter au verrouillage de Windows
+ui_UnmountOnLockHelp   Les lecteurs protégés se ferment dès que la session Windows actuelle est verrouillée.
+ui_UnmountOnSuspend    Démonter avant la mise en veille
+ui_UnmountOnSuspendHelp Les lecteurs protégés se ferment lorsque Windows met l'ordinateur en veille.
+ui_UnmountOnIdle       Démonter après une période d'inactivité
+ui_UnmountOnIdleHelp   Les lecteurs protégés se ferment lorsque Windows n'a reçu aucune entrée clavier ou souris pendant la durée choisie.
+ui_IdleTimeout         DÉLAI D'INACTIVITÉ
+ui_Minutes             % minutes
 ui_RemovePasswordHelp  Laissez vide pour supprimer le mot de passe. Le coffre s'ouvrira alors sans mot de passe.
-ui_CurrentCapacityHelp Actuellement %. Un coffre ne peut que grandir.
+ui_CurrentCapacityHelp Actuellement %. Le réduire déplace chaque bloc utilisé qui ne tiendrait plus.
 ui_CreateVault         Créer le coffre chiffré
 ui_StopCreating        Arrêter la création
-ui_StopGrowing         Arrêter l'agrandissement
+ui_StopResizing        Arrêter le redimensionnement
 ui_ChangePassword      Mot de passe…
 ui_Resize              Capacité…
 ui_MountDrive          Monter
@@ -49,12 +60,12 @@ ui_LanguageSystem      Langue du système
 dlg_TitleCreate        Créer un conteneur sCrypt
 dlg_TitleOpen          Ouvrir un conteneur chiffré
 dlg_TitlePassword      Changer le mot de passe du coffre
-dlg_TitleResize        Agrandir le coffre
+dlg_TitleResize        Redimensionner le coffre
 dlg_TitleUnlock        Déverrouiller %
 dlg_BtnCreate          Créer
 dlg_BtnOpen            Ouvrir
 dlg_BtnApply           Appliquer
-dlg_BtnGrow            Agrandir
+dlg_BtnGrow            Redimensionner
 dlg_BtnSkip            Ignorer
 msg_Ready              Prêt — créez un coffre ou choisissez-en un à ouvrir.
 msg_OperationStopped   L'opération s'est arrêtée.
@@ -84,12 +95,14 @@ msg_Mounted            Lecteur chiffré monté sur %.
 msg_MountedReadOnly    Lecteur chiffré monté en lecture seule sur %.
 msg_UnmountSyncStopped Le lecteur a été démonté, mais la synchronisation finale s'est arrêtée.
 msg_Unmounted          Lecteur démonté en toute sécurité.
-msg_OnlyGrows          Un coffre ne peut que grandir. Choisissez une capacité supérieure à l'actuelle.
-msg_Growing            Randomisation de l'espace ajouté... %{#0} %%
-msg_GrowCanceled       Agrandissement arrêté. Le coffre a conservé sa taille précédente.
-msg_GrowStopped        L'agrandissement s'est arrêté.
-msg_GrowFailed         Impossible d'agrandir le conteneur.
-msg_Grown              Le coffre contient désormais %.
+msg_SameCapacity       Choisissez une capacité différente de l'actuelle.
+msg_Resizing           Redimensionnement du conteneur... %{#0} %%
+msg_ResizeCanceled     Redimensionnement arrêté. Le coffre a conservé sa taille précédente.
+msg_ResizeStopped      Le redimensionnement s'est arrêté.
+msg_ResizeFailed       Impossible de redimensionner le conteneur.
+msg_Resized            Le coffre contient désormais %.
+msg_AutoUnmounted      Les lecteurs protégés ont été démontés automatiquement.
+msg_AutoUnmountStopped Les lecteurs protégés ont été démontés, mais la synchronisation finale s'est arrêtée.
 msg_ChangingPassword   Réécriture de l'emplacement de clé...
 msg_PasswordChanged    Le coffre s'ouvre désormais avec le nouveau mot de passe.
 msg_PasswordRemoved    Le mot de passe a été supprimé. Le coffre s'ouvre désormais sans mot de passe.

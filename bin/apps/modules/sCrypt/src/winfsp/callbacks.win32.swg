@@ -173,7 +173,7 @@ namespace WinFsp
         if (flags & CleanupSetChangeTime) != 0 do
             node.changeTime = now
         if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit | CleanupSetLastAccessTime | CleanupSetLastWriteTime | CleanupSetChangeTime)) != 0 do
-            volume.touch(nodeId)
+            volume.touchMetadata(nodeId)
 
         // A create is intentionally pending until cleanup so its initial data
         // and timestamps share one journal record. Cleanup has no result
@@ -300,7 +300,7 @@ namespace WinFsp
             validNode.lastWriteTime = lastWriteTime
         if changeTime do
             validNode.changeTime = changeTime
-        volume.touch(nodeId)
+        volume.touchMetadata(nodeId)
         return fillInfo(volume, nodeId, info)
     }
 

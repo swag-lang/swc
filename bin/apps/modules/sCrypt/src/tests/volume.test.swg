@@ -147,6 +147,46 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
 #test
 {
+    // A rename is namespace metadata, even when the file itself has enough disjoint runs to make
+    // a full-node journal entry overflow. It must append one small record instead of checkpointing
+    // the complete node table while Explorer waits under the namespace lock.
+    let path = testContainerPath("fragmented-rename")
+    defer discard catch File.delete(path)
+    let salvaged = testContainerPath("fragmented-rename-salvaged")
+    defer discard catch File.delete(salvaged)
+
+    const RunCount = 180'u64
+    var volume    = expect Volume.create(path, testPassword(), pagingContainerSize())
+    let directory = expect volume.createNode("\\destination", true, FileAttributeDirectory, emptyBytes())
+    discard directory
+    let fileId                = expect volume.createNode("\\fragmented.bin", false, FileAttributeNormal, emptyBytes())
+    var block: [BlockSize] u8 = [0x5A]
+    for index in RunCount do
+        @assert(expect volume.writeNode(fileId, index * 2 * BlockSize, block, false, false) == BlockSize)
+    expect volume.commit()
+    @assert(volume.nodeById(fileId)!.blocks.count == RunCount)
+
+    let checkpoint = volume.checkpointAt
+    let sequence   = volume.sequence
+    expect volume.renameNode(fileId, "\\destination\\moved.bin", false)
+    @assert(volume.checkpointAt == checkpoint)
+    @assert(volume.sequence == sequence + 1)
+
+    // Copy the still-mounted image to model a process stopping before close consolidates it.
+    snapshotContainer(salvaged, path)
+    volume.close()
+
+    var recovered = expect Volume.open(salvaged, testPassword())
+    let moved     = recovered.resolve("\\destination\\moved.bin")
+    @assert(moved != null and moved!.blocks.count == RunCount)
+    var readBack: [BlockSize] u8
+    @assert(expect recovered.readNode(moved!.id, (RunCount - 1) * 2 * BlockSize, readBack) == BlockSize)
+    @assert(sameTestBytes(block, readBack))
+    recovered.close()
+}
+
+#test
+{
     let path = testContainerPath("lifecycle")
     defer discard catch File.delete(path)
 
@@ -508,7 +548,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let wrongSlot = (expected + 1) % JournalCapacity
     var removed:  Array'u64
     var upserted: Array'(*Node)
-    let plain     = JournalRecord.encode(expected, volume.nextNodeId, volume.label, removed.toSlice(), upserted.toSlice())
+    var metadata: Array'(*Node)
+    let plain     = JournalRecord.encode(expected, volume.nextNodeId, volume.label, removed.toSlice(), upserted.toSlice(), metadata.toSlice())
     expect volume.writeFramedRecord(JournalAreaOffset + wrongSlot * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, wrongSlot, plain.toSlice())
     volume.close()
 
@@ -854,6 +895,82 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(reopened.containerSize == MinimumSize)
     @assert(reopened.resolve("\\kept.bin") != null)
     reopened.close()
+}
+
+#test
+{
+    // Shrinking evacuates live blocks and metadata pages from the discarded tail before the
+    // authenticated geometry changes. The file and its payload survive the round trip.
+    let path = testContainerPath("shrink")
+    defer discard catch File.delete(path)
+
+    const InitialSize = MinimumSize + 128 * BlockRecordSize
+    var volume   = expect Volume.create(path, testPassword(), InitialSize)
+    let fillerId = expect volume.createNode("\\filler.bin", false, FileAttributeNormal, emptyBytes())
+    var filler: Array'u8
+    filler.resize(MinimumBlocks * BlockSize)
+    @assert(expect volume.writeNode(fillerId, 0, filler.toSlice(), false, false) == filler.count)
+    expect volume.commit()
+    let fileId = expect volume.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
+    var payload: [2 * BlockSize] u8
+    for &value, index in payload do
+        value[] = cast(u8) (index % 251)
+    @assert(expect volume.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
+    expect volume.deleteNode(fillerId)
+
+    // Allocation starts at the high end, so this file really occupies the part being removed.
+    let before = volume.nodeById(fileId)!
+    @assert(before.blocks.count and before.blocks[0].physical >= (MinimumSize - DataOffset) / BlockRecordSize)
+
+    expect volume.resize(MinimumSize)
+    @assert(volume.containerSize == MinimumSize)
+    @assert(volume.blockCount == (MinimumSize - DataOffset) / BlockRecordSize)
+    volume.close()
+    @assert(expect File.info(path).size == MinimumSize)
+
+    var reopened = expect Volume.open(path, testPassword())
+    var readBack: [2 * BlockSize] u8
+    @assert(expect reopened.readNode(reopened.resolve("\\kept.bin")!.id, 0, readBack) == #sizeof(readBack))
+    @assert(sameTestBytes(payload, readBack))
+    reopened.close()
+
+    // This is the recoverable state left by a process that stopped after publishing the smaller
+    // header but before truncating. The next writable open completes that last step.
+    var tail = expect File.open(path, .Open, .ReadWrite, .Read)
+    expect tail.resize(InitialSize)
+    tail.close()
+    var recovered = expect Volume.open(path, testPassword())
+    @assert(recovered.containerSize == MinimumSize)
+    recovered.close()
+    @assert(expect File.info(path).size == MinimumSize)
+}
+
+#test
+{
+    // Cancellation before the first relocation leaves both the authenticated geometry and the
+    // physical file length unchanged.
+    let path = testContainerPath("shrinkcancel")
+    defer discard catch File.delete(path)
+
+    const InitialSize = MinimumSize + 64 * BlockRecordSize
+    var volume   = expect Volume.create(path, testPassword(), InitialSize)
+    let fillerId = expect volume.createNode("\\filler.bin", false, FileAttributeNormal, emptyBytes())
+    var filler: Array'u8
+    filler.resize(MinimumBlocks * BlockSize)
+    @assert(expect volume.writeNode(fillerId, 0, filler.toSlice(), false, false) == filler.count)
+    expect volume.commit()
+    let fileId = expect volume.createNode("\\tail.bin", false, FileAttributeNormal, emptyBytes())
+    var payload: [BlockSize] u8 = [7]
+    @assert(expect volume.writeNode(fileId, 0, payload, false, false) == BlockSize)
+    expect volume.deleteNode(fillerId)
+
+    var progress: VolumeProgress
+    progress.cancel()
+    discard catch volume.resize(MinimumSize, &progress) as cancelError
+    @assert(cancelError != null and (cast(Error) cancelError).kind == .Canceled)
+    @assert(volume.containerSize == InitialSize)
+    volume.close()
+    @assert(expect File.info(path).size == InitialSize)
 }
 
 // A container opened read only refuses every change, and the refusal is the file handle's.

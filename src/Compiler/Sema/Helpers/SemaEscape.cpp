@@ -3213,64 +3213,67 @@ namespace SemaEscape
         return Result::Continue;
     }
 
-    // Does a deferred-call binding carry anything that can reach this frame? A snapshot
-    // holding nothing but routes back to globals does not: it was captured so the
-    // invalidation check can follow the payload, and reading it as "derives from local
-    // storage" would silence real escapes through a global's buffer.
-    static bool deferredCallCarriesFrameBorrow(const SemaEscapeInfo& info)
+    namespace
     {
-        for (const auto& snapshot : info.deferredCalls)
+        // Does a deferred-call binding carry anything that can reach this frame? A snapshot
+        // holding nothing but routes back to globals does not: it was captured so the
+        // invalidation check can follow the payload, and reading it as "derives from local
+        // storage" would silence real escapes through a global's buffer.
+        bool deferredCallCarriesFrameBorrow(const SemaEscapeInfo& info)
         {
-            if (!snapshot)
-                continue;
-            if (!snapshot->edges.empty())
-                return true;
-            for (const SemaEscapeDeferredCheck& check : snapshot->checks)
+            for (const auto& snapshot : info.deferredCalls)
             {
-                if (!check.staticSource)
+                if (!snapshot)
+                    continue;
+                if (!snapshot->edges.empty())
                     return true;
+                for (const SemaEscapeDeferredCheck& check : snapshot->checks)
+                {
+                    if (!check.staticSource)
+                        return true;
+                }
             }
+
+            return false;
         }
 
-        return false;
-    }
-
-    // Whether the base pointer of an assignment destination provably derives from
-    // frame-local storage: a local pointer that borrows a local, or an opaque pointer
-    // handed out by a call on local storage ('root.pool.newPtr()'). Storing a frame-local's
-    // borrow into such a destination stays within the frame (a self-reference), unlike a
-    // parameter/global pointer (caller-visible) or an opaque pointer of unknown origin (a
-    // heap block from an external allocator), which must still be reported.
-    bool destinationBaseIsFrameLocalPointer(Sema& sema, AstNodeRef leftRef)
-    {
-        AstNodeRef ref   = sema.viewZero(leftRef).nodeRef();
-        uint32_t   guard = 8;
-        while (ref.isValid() && guard--)
+        // Whether the base pointer of an assignment destination provably derives from
+        // frame-local storage: a local pointer that borrows a local, or an opaque pointer
+        // handed out by a call on local storage ('root.pool.newPtr()'). Storing a frame-local's
+        // borrow into such a destination stays within the frame (a self-reference), unlike a
+        // parameter/global pointer (caller-visible) or an opaque pointer of unknown origin (a
+        // heap block from an external allocator), which must still be reported.
+        bool destinationBaseIsFrameLocalPointer(Sema& sema, AstNodeRef leftRef)
         {
-            const AstNode& node = sema.node(ref);
-            if (node.is(AstNodeId::MemberAccessExpr))
+            AstNodeRef ref   = sema.viewZero(leftRef).nodeRef();
+            uint32_t   guard = 8;
+            while (ref.isValid() && guard--)
             {
-                ref = sema.viewZero(node.cast<AstMemberAccessExpr>().nodeLeftRef).nodeRef();
-                continue;
+                const AstNode& node = sema.node(ref);
+                if (node.is(AstNodeId::MemberAccessExpr))
+                {
+                    ref = sema.viewZero(node.cast<AstMemberAccessExpr>().nodeLeftRef).nodeRef();
+                    continue;
+                }
+                if (node.is(AstNodeId::IndexExpr))
+                {
+                    ref = sema.viewZero(node.cast<AstIndexExpr>().nodeExprRef).nodeRef();
+                    continue;
+                }
+                break;
             }
-            if (node.is(AstNodeId::IndexExpr))
-            {
-                ref = sema.viewZero(node.cast<AstIndexExpr>().nodeExprRef).nodeRef();
-                continue;
-            }
-            break;
+
+            const SymbolVariable* baseVar = ref.isValid() ? identifierVariable(sema, ref) : nullptr;
+            if (!baseVar)
+                return false;
+
+            const SemaEscapeInfo* info = sema.variableEscapeInfo(*baseVar);
+            if (!info)
+                return false;
+            if (info->isLocalBorrow())
+                return true;
+            return info->isDeferredCallBorrow() && deferredCallCarriesFrameBorrow(*info);
         }
-
-        const SymbolVariable* baseVar = ref.isValid() ? identifierVariable(sema, ref) : nullptr;
-        if (!baseVar)
-            return false;
-
-        const SemaEscapeInfo* info = sema.variableEscapeInfo(*baseVar);
-        if (!info)
-            return false;
-        if (info->isLocalBorrow())
-            return true;
-        return info->isDeferredCallBorrow() && deferredCallCarriesFrameBorrow(*info);
     }
 
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef)

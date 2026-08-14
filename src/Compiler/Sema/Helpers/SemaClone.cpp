@@ -162,6 +162,14 @@ namespace
             sema.setFoldedTypedConst(clonedRef);
     }
 
+    void inheritStoredPayloadUnderSubstitute(Sema& sema, AstNodeRef clonedRef, AstNodeRef sourceRef)
+    {
+        const AstNodeRef substituteRef = sema.viewZero(clonedRef).nodeRef();
+        SWC_ASSERT(substituteRef.isValid() && substituteRef != clonedRef);
+        inheritStoredPayload(sema, clonedRef, sourceRef);
+        sema.setSubstitute(clonedRef, substituteRef);
+    }
+
     std::optional<NodePayload::StoredView> sourceStoredView(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef)
     {
         if (sourceRef.isInvalid())
@@ -926,8 +934,13 @@ namespace
         activeSourceRefSet.insert(sourceRef);
         if (!shouldReexpand && !sourceHasImplicitCastSubstitute)
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
-        else if (!shouldReexpand && sourceHasImplicitCastSubstitute && !sema.hasSubstitute(clonedRef))
-            inheritStoredPayload(sema, clonedRef, sourceRef);
+        else if (!shouldReexpand && sourceHasImplicitCastSubstitute)
+        {
+            if (sema.hasSubstitute(clonedRef))
+                inheritStoredPayloadUnderSubstitute(sema, clonedRef, sourceRef);
+            else
+                inheritStoredPayload(sema, clonedRef, sourceRef);
+        }
 
         // The clone is an exact resolved replica, and its inherited type state makes sema
         // treat it as already resolved. The spec-op selection (an index or cast payload)
@@ -974,8 +987,13 @@ namespace
             const bool sourceChildHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceChildRef, resolvedChildRef);
             if (!shouldReexpandChild && !sourceChildHasImplicitCastSubstitute)
                 sema.inheritPayload(sema.node(clonedChildRef), sourceChildRef);
-            else if (!shouldReexpandChild && sourceChildHasImplicitCastSubstitute && !sema.hasSubstitute(clonedChildRef))
-                inheritStoredPayload(sema, clonedChildRef, sourceChildRef);
+            else if (!shouldReexpandChild && sourceChildHasImplicitCastSubstitute)
+            {
+                if (sema.hasSubstitute(clonedChildRef))
+                    inheritStoredPayloadUnderSubstitute(sema, clonedChildRef, sourceChildRef);
+                else
+                    inheritStoredPayload(sema, clonedChildRef, sourceChildRef);
+            }
 
             if (!shouldReexpandChild &&
                 resolvedChildRef.isValid() &&

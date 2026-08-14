@@ -140,8 +140,8 @@ ConstantValue::ConstantValue()
 {
 }
 
-template<typename OTHER>
-void ConstantValue::constructPayloadFrom(OTHER&& other)
+template<bool MOVE_AGGREGATE, typename OTHER>
+void ConstantValue::constructPayloadFrom(OTHER& other)
 {
     switch (kind_)
     {
@@ -186,7 +186,10 @@ void ConstantValue::constructPayloadFrom(OTHER&& other)
             break;
         case ConstantKind::AggregateStruct:
         case ConstantKind::AggregateArray:
-            std::construct_at(&payloadAggregate_.val, std::forward<OTHER>(other).payloadAggregate_.val);
+            if constexpr (MOVE_AGGREGATE)
+                std::construct_at(&payloadAggregate_.val, std::move(other.payloadAggregate_.val));
+            else
+                std::construct_at(&payloadAggregate_.val, other.payloadAggregate_.val);
             break;
         default:
             SWC_UNREACHABLE();
@@ -199,7 +202,7 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
     dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
     payloadBorrowed_(other.payloadBorrowed_)
 {
-    constructPayloadFrom(other);
+    constructPayloadFrom<false>(other);
 }
 
 ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
@@ -208,7 +211,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
     payloadBorrowed_(other.payloadBorrowed_)
 {
-    constructPayloadFrom(std::move(other));
+    constructPayloadFrom<true>(other);
 
     other.kind_ = ConstantKind::Invalid;
     other.dataSegmentRef_.store(packDataSegmentRef({}), std::memory_order_relaxed);

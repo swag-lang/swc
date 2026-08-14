@@ -161,7 +161,7 @@ SWC_TEST_BEGIN(Compiler_DocMarkdownRendersCompleteLists)
         return Result::Error;
     if (!html.contains("A nested code item:\n<div class=\"code-block\"><span class=\"SCde\">payload\n</span></div>\n</li>"))
         return Result::Error;
-    if (!html.contains("<div class=\"description-list-title\"><p><span class=\"code-inline\">fmt</span></p></div>"))
+    if (!html.contains(R"(<div class="description-list-title"><p><span class="code-inline">fmt</span></p></div>)"))
         return Result::Error;
     if (!html.contains("<div class=\"description-list-block\">\n<p>Selects the output format.</p>\n</div>"))
         return Result::Error;
@@ -468,17 +468,17 @@ func hidden(value: s32)->s32
         return Result::Error;
 
     // Generic roots publish their fields and methods even when no concrete instance exists.
-    const size_t genericItem       = content.find("id=\"Compiler_doc_test_DocApi_GenericBox\"");
-    const size_t genericFields     = content.find("<h3>Fields</h3>", genericItem);
-    const size_t genericAlpha      = content.find(">alpha<", genericFields);
-    const size_t genericInterp     = content.find(">interpolation<", genericFields);
-    const size_t genericInWeight   = content.find(">inWeight<", genericFields);
-    const size_t genericValue      = content.find(">value</a>", genericFields);
-    const size_t genericZeta       = content.find(">zeta<", genericFields);
-    const size_t genericTableEnd   = content.find("</table>", genericFields);
-    const size_t genericDetail     = content.find("The detailed field description remains with its owner.", genericTableEnd);
-    const size_t genericHeading    = content.find("id=\"Compiler_doc_test_DocApi_GenericBox_value_Semantics\"", genericTableEnd);
-    const size_t genericMethod     = content.find("id=\"Compiler_doc_test_DocApi_GenericBox_get\"");
+    const size_t genericItem     = content.find("id=\"Compiler_doc_test_DocApi_GenericBox\"");
+    const size_t genericFields   = content.find("<h3>Fields</h3>", genericItem);
+    const size_t genericAlpha    = content.find(">alpha<", genericFields);
+    const size_t genericInterp   = content.find(">interpolation<", genericFields);
+    const size_t genericInWeight = content.find(">inWeight<", genericFields);
+    const size_t genericValue    = content.find(">value</a>", genericFields);
+    const size_t genericZeta     = content.find(">zeta<", genericFields);
+    const size_t genericTableEnd = content.find("</table>", genericFields);
+    const size_t genericDetail   = content.find("The detailed field description remains with its owner.", genericTableEnd);
+    const size_t genericHeading  = content.find("id=\"Compiler_doc_test_DocApi_GenericBox_value_Semantics\"", genericTableEnd);
+    const size_t genericMethod   = content.find("id=\"Compiler_doc_test_DocApi_GenericBox_get\"");
     if (genericItem == std::string::npos || genericFields == std::string::npos || genericAlpha == std::string::npos || genericInterp == std::string::npos || genericInWeight == std::string::npos || genericValue == std::string::npos || genericZeta == std::string::npos || genericTableEnd == std::string::npos || genericDetail == std::string::npos || genericHeading == std::string::npos || genericMethod == std::string::npos)
         return Result::Error;
     if (!(genericAlpha < genericInterp && genericInterp < genericInWeight && genericInWeight < genericValue && genericValue < genericZeta && genericZeta < genericTableEnd) || genericDetail < genericTableEnd)
@@ -500,7 +500,7 @@ func hidden(value: s32)->s32
     const size_t nextItem       = content.find("<div class=\"api-item ", orderedItem + 1);
     if (orderedItem == std::string::npos || orderedSummary == std::string::npos || orderedCode == std::string::npos || orderedSummary > orderedCode || (nextItem != std::string::npos && orderedCode > nextItem))
         return Result::Error;
-    if (!content.contains("<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\">"))
+    if (!content.contains(R"(<link rel="stylesheet" type="text/css" href="style.css">)"))
         return Result::Error;
 
     // A page owns everything it needs. It carries exactly one script, the one that searches the

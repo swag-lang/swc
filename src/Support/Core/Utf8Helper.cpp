@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Support/Report/Assert.h"
+#include <cmath>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -229,7 +230,7 @@ Utf8 Utf8Helper::formatFixedDecimal(const double value, const uint32_t precision
         return result;
     }
 
-    const uint64_t scaledValue = static_cast<uint64_t>(magnitude * static_cast<double>(scale) + 0.5);
+    const uint64_t scaledValue = static_cast<uint64_t>(std::round(magnitude * static_cast<double>(scale)));
     const uint64_t wholePart   = scaledValue / scale;
     const uint64_t decimalPart = scaledValue % scale;
     result += std::to_string(wholePart);

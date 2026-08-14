@@ -39,7 +39,8 @@ namespace
                     return;
                 segments.push_back({segmentStart, model.prevPiece(i)});
                 separators.push_back(i);
-                keys.push_back(std::move(key));
+                keys.emplace_back();
+                keys.back().swap(key);
                 segmentStart = INVALID_PIECE;
                 continue;
             }

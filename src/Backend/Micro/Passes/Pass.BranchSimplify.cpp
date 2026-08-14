@@ -752,7 +752,10 @@ namespace
                 if (boolReg.isValid() && extOps[0].reg != chainReg)
                     continue;
                 if (!boolReg.isValid())
-                    boolReg = extOps[0].reg, chainReg = extOps[0].reg;
+                {
+                    boolReg  = extOps[0].reg;
+                    chainReg = extOps[0].reg;
+                }
                 curRef  = storage.findPreviousInstructionRef(curRef);
                 curInst = curRef.isValid() ? storage.ptr(curRef) : nullptr;
                 if (!curInst)

@@ -247,16 +247,16 @@ namespace
     // deriving their debug info from it.
     struct DivisionExpansionEmitter
     {
-        MicroStorage&        storage;
-        MicroOperandStorage& operands;
+        MicroStorage*        storage;
+        MicroOperandStorage* operands;
         MicroInstrRef        beforeRef;
         MicroOpBits          opBits;
-        uint32_t&            nextVirtualIntRegIndex;
+        uint32_t*            nextVirtualIntRegIndex;
 
         MicroReg allocVirtualReg() const
         {
-            SWC_ASSERT(nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
-            return MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            SWC_ASSERT(*nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
+            return MicroReg::virtualIntReg((*nextVirtualIntRegIndex)++);
         }
 
         void emitLoadImm(MicroReg reg, uint64_t value) const
@@ -265,7 +265,7 @@ namespace
             ops[0].reg    = reg;
             ops[1].opBits = opBits;
             ops[2].setImmediateValue(ApInt(value, getNumBits(opBits)));
-            storage.insertDerivedBefore(operands, beforeRef, MicroInstrOpcode::LoadRegImm, ops);
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadRegImm, ops);
         }
 
         void emitCopy(MicroReg dst, MicroReg src) const
@@ -274,7 +274,7 @@ namespace
             ops[0].reg    = dst;
             ops[1].reg    = src;
             ops[2].opBits = opBits;
-            storage.insertDerivedBefore(operands, beforeRef, MicroInstrOpcode::LoadRegReg, ops);
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadRegReg, ops);
         }
 
         void emitOpRegImm(MicroReg reg, MicroOp op, uint64_t value) const
@@ -284,7 +284,7 @@ namespace
             ops[1].opBits  = opBits;
             ops[2].microOp = op;
             ops[3].setImmediateValue(ApInt(value, getNumBits(opBits)));
-            storage.insertDerivedBefore(operands, beforeRef, MicroInstrOpcode::OpBinaryRegImm, ops);
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegImm, ops);
         }
 
         void emitOpRegReg(MicroReg dst, MicroReg src, MicroOp op) const
@@ -294,7 +294,7 @@ namespace
             ops[1].reg     = src;
             ops[2].opBits  = opBits;
             ops[3].microOp = op;
-            storage.insertDerivedBefore(operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, ops);
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, ops);
         }
 
         // dst = dst / C for a non-power-of-two unsigned constant.
@@ -397,7 +397,7 @@ namespace
         if (nextVirtualIntRegIndex == 0)
             nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-        const DivisionExpansionEmitter emitter{storage, operands, instRef, opBits, nextVirtualIntRegIndex};
+        const DivisionExpansionEmitter emitter{&storage, &operands, instRef, opBits, &nextVirtualIntRegIndex};
 
         if (!isSigned)
         {

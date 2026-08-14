@@ -1,6 +1,6 @@
 # Campaign Prompts
 
-Six long-running campaigns, one prompt each, ready to copy into a fresh session. They are not
+Seven long-running campaigns, one prompt each, ready to copy into a fresh session. They are not
 tasks: each one is a target that takes many rounds to reach, and each prompt is written to keep an
 agent working through the rounds instead of stopping at the first thing that does not work.
 
@@ -18,15 +18,17 @@ re-measuring.
 | [4. Compilation speed](#4-compilation-speed) | The fastest thing that does this work |
 | [5. Compiler memory](#5-compiler-memory) | A fraction of the resident set, at the same speed |
 | [6. Repository health reset](#6-repository-health-reset) | Restore a clean, current, all-green baseline |
+| [7. Compiler code cleanup](#7-compiler-code-cleanup) | Eliminate every actionable Rider clang-tidy diagnostic |
 
 Campaigns 3, 4 and 5 constrain each other on purpose: shrinking the sources must not cost speed,
 speed must not cost memory, and memory must not cost speed. Run them one at a time, and let each
 one re-measure the other two's numbers before claiming a win.
 
-Campaigns 1 through 5 run in their own worktree, never in the main checkout. Campaign 6 runs
-directly on `master`; each prompt states its own rule. For the isolated campaigns, the worktree
-is not a formality. A campaign spans many rounds, keeps binaries and measurements around, and
-reverts whole rounds; a shared tree picks up foreign uncommitted edits from other sessions, and
+Campaigns 1 through 5 and campaign 7 run in their own worktree, never in the main checkout.
+Campaign 6 runs directly on `master`; each prompt states its own rule. For the isolated campaigns,
+the worktree is not a formality. A campaign spans many rounds, keeps binaries and measurements
+around, and reverts whole rounds; a shared tree picks up foreign uncommitted edits from other
+sessions, and
 MSBuild's incremental build then links someone else's in-flight code into the binary being
 measured. The failures that produces look exactly like the bug the campaign was chasing.
 
@@ -846,4 +848,135 @@ and successful rerun. At the end, report the final commit(s), every validation c
 backlog entries removed/moved/updated, documentation regenerated, formatting performed, temporary
 targets removed, and any external blocker. The final statement "ready for new work" is allowed only
 when every end condition above is true.
+```
+
+---
+
+## 7. Compiler code cleanup
+
+```
+You are running an exhaustive C++ code-cleanup campaign on the swc compiler. Read AGENTS.md and
+the skills it points to first, especially modify-swag-codebase and its
+references/cpp-coding-rules.md. This is an implementation campaign, not an audit: every actionable
+problem the configured Rider clang-tidy pass reports in project-owned compiler code must be fixed,
+validated, and removed from the next report.
+
+WORK IN A SEPARATE WORKTREE
+
+Do not run this campaign in the main checkout. Record the starting commit and status, then create
+an isolated branch and worktree from that exact commit:
+
+  git worktree add -b codex/compiler-cleanup ../swc-compiler-cleanup HEAD
+
+Never copy uncommitted changes from the main checkout into it. The worktree keeps the large
+inspection cache, generated reports, compiler binaries, and mechanical cleanup edits isolated from
+unrelated work. Keep reports and downloaded command-line tools under the ignored .tmp directory.
+
+RUN THE SAME PASS AS RIDER
+
+Do not guess a convenient clang-tidy preset. Reproduce the effective configuration used by Rider's
+Inspect Code action:
+
+  1. Identify the installed Rider version and its bundled clang-tidy version.
+  2. Read the solution, personal, and Rider global DotSettings layers. Record the configured
+     CppClangTidy Checks value, inspection severity overrides, excluded paths, and any explicit
+     clang-tidy configuration file.
+  3. Use the matching JetBrains.ReSharper.GlobalTools version and run InspectCode on swc.sln with
+     --no-build, --severity=HINT, the effective settings, absolute paths, and a SARIF output under
+     .tmp. Use a bounded job count so the machine remains responsive.
+  4. Confirm from the process list or debug log that InspectCode actually launches clang-tidy and
+     loads the C++ project. A zero-result report produced without clang-tidy workers is not a clean
+     baseline.
+  5. Restrict conclusions to project-owned compiler sources under src/. Exclude vendored mimalloc
+     code and generated output. Do not edit third-party sources to make the report green.
+
+If InspectCode is unavailable, reconstruct its clang-tidy command from Rider logs and settings,
+including checks disabled by inspection severity. Running a bare clang-tidy -checks=* is not
+equivalent when Rider has appended disabled checks or supplied a different compilation database.
+
+BASELINE
+
+Parse the SARIF before editing. Produce a table grouped by rule with the count, affected files,
+severity, and whether fixes are offered. Separate CppClangTidy diagnostics from native ReSharper
+C++ inspections: the clang-tidy set is the required gate; native inspections are fixed when they
+identify a real defect or a clear violation of the repository's C++ rules, but they must not
+silently expand the campaign into cosmetic churn.
+
+Inspect representative instances of every rule before applying any fix-it. Automatic fixes are a
+starting point, not authority: several enabled checks can propose overlapping edits, and a fix
+that shortens code can still violate the repository's performance, ownership, or readability
+rules.
+
+THE LOOP
+
+Work one coherent rule family at a time:
+
+  1. Read all occurrences and the surrounding implementation. Classify each diagnostic as a real
+     defect, a safe maintainability improvement, or a demonstrated false positive.
+  2. Fix the root cause. Preserve semantics, hot-path cost, allocation behavior, object layout,
+     const correctness, and ownership. Share duplicated behavior at the owning abstraction; do not
+     add file-local helpers before searching for an existing equivalent.
+  3. Never silence a real issue with NOLINT, a ReSharper directive, a cast, an unused read, an
+     empty branch, or a broader exclusion. A suppression is allowed only for a demonstrated tool
+     false positive or a deliberate low-level construct, must target one rule at the narrowest
+     location, and must explain the invariant that makes the code safe.
+  4. Format only the touched C++ files with the repository clang-format configuration and inspect
+     the diff. Reject unrelated formatting and line-ending churn.
+  5. Rerun InspectCode on the affected files or project and prove that the targeted diagnostics
+     disappeared without creating new ones. Keep a live before/after count by rule.
+  6. When a diagnostic exposes a behavioral compiler defect, add the regression test at the real
+     boundary before considering it fixed. A downstream discovery needs the required suite test in
+     bin/unittests unless it genuinely cannot be reduced.
+
+Prefer small reviewable rounds. Do not apply every available fix-it across src/ in one command:
+bulk edits hide semantic changes, create conflicting rewrites, and make it impossible to attribute
+a regression. Do not stop after fixing only warnings; HINT, SUGGESTION, WARNING, and ERROR severities
+all belong to the configured pass and must be triaged.
+
+VERSION AND VALIDATION
+
+Any change under src/ requires one SWC_BUILD_NUM increment in src/Main/Version.h for the campaign,
+not one increment per file. Before every compiler build or project test, follow the cross-agent
+serialization rules in modify-swag-codebase; a separate worktree does not grant a separate build or
+test slot.
+
+After each risky rule family, run the narrowest focused C++ or Swag regression test. Once the final
+inspection report is clean, run the complete C++ validation sequence required by the skill:
+
+  1. Build DevMode.
+  2. swc tools/tests.swgs dm
+  3. swc tools/tests.swgs dm --all-cfg
+  4. Build Release, including swc.exe.
+  5. swc tools/tests.swgs
+  6. swc tools/tests.swgs --all-cfg
+
+Stop at the first test failure, release the shared test slot, fix the cause, rerun the focused
+reproducer, and then restart the affected aggregate validation. If cleanup touches sema, codegen,
+or a micro pass in a way that could affect performance, compare compile time and peak memory on the
+same representative workspace before and after; code cleanup may not cost a compiler cycle or byte.
+Treat every failure found by this ladder as part of the campaign, even when it predates or is
+unrelated to a clang-tidy edit: reduce it, fix its root cause, and rerun the affected validation.
+
+THE CAMPAIGN MAY END ONLY WHEN
+
+  - A fresh full InspectCode report using the recorded Rider clang-tidy profile contains zero
+    actionable diagnostics in project-owned src/ code.
+  - Every remaining suppression or excluded diagnostic is individually justified as a false
+    positive or intentional low-level construct; there are no blanket suppressions added by the
+    campaign.
+  - The DevMode and Release validation ladders, including every build configuration, are green
+    after the last source edit.
+  - SWC_BUILD_NUM is incremented exactly once, git diff --check is clean, and the final diff has no
+    generated files, temporary reports, vendored edits, line-ending-only changes, or misplaced test
+    output.
+
+The campaign does not end because the report is smaller, because only hints remain, because an
+automatic fix is unavailable, because a diagnostic predates the campaign, or because one check is
+noisy. Demonstrate false positives precisely; fix everything else.
+
+REPORT
+
+Report the worktree path and branch, Rider/InspectCode/clang-tidy versions, effective checks and
+exclusions, baseline and final counts by rule, files changed, suppressions retained or added with
+their justification, SWC_BUILD_NUM change, and every validation command with its result.
 ```

@@ -195,7 +195,7 @@ namespace
     void mimallocOutputWithStack(const char* msg, void*)
     {
         if (msg)
-            fputs(msg, stderr);
+            (void) fputs(msg, stderr);
 
         static thread_local bool inStackDump = false;
         if (inStackDump || !msg)
@@ -206,7 +206,7 @@ namespace
         inStackDump = true;
         std::array<uintptr_t, 32> frames{};
         const uint32_t            numFrames = Os::captureCallStack(frames, 1);
-        fputs("mimalloc report stack trace:\n", stderr);
+        (void) fputs("mimalloc report stack trace:\n", stderr);
         for (uint32_t i = 0; i < numFrames; ++i)
         {
             Os::ResolvedAddress resolved;

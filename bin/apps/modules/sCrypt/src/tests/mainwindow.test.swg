@@ -81,6 +81,8 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     @assert(activeLanguage() == ReferenceLanguage)
     @assert(window.createButton.text() == "Create encrypted vault")
     @assert(window.language == ReferenceLanguage)
+    @assert(window.languageChoice.position.height == host.theme.metrics.comboBox_Height)
+    @assert(window.languageChoice.position.y == window.languageChoice.parent!.clientRect().y)
 }
 
 // A card's form has to end inside the card, in every language.
@@ -151,6 +153,8 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     // The third card follows too, headings and all.
     @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Startup).name.raw == "AU DÉMARRAGE")
+    @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Size).name.raw == "TAILLE")
+    @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Available).name.raw == "DISPONIBLE")
     @assert(window.mountedDrives.empty.text() == "Aucun lecteur monté.")
 
     window.chooseLanguage(1)
@@ -540,8 +544,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
     @assert(!window.mountedDrives.unmountButton.isEnabled())
 
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false})
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("mount-y"), String.from("Y:"), false, false, true})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("mount-y"), String.from("Y:"), false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
     window.mountedDrives.refresh()
 
     @assert(window.mountedDrives.list.isLocallyVisible())
@@ -553,6 +557,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(!window.mountedDrives.list.isLineChecked(0))
     @assert(window.mountedDrives.list.isLineChecked(1))
     @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Drive).name.raw == "Y:")
+    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Size).name.raw == "2 GiB")
+    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Available).name.raw == "1536 MiB")
     @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Vault).name.raw == "two.scrypt")
 
     // The list opens on its first row, so the one action of the card is live straight away.
@@ -576,7 +582,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false})
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false, 0, 0})
     window.mountedDrives.refresh()
 
     window.mountedDrives.list.setLineChecked(0, true)
@@ -588,7 +594,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     discard window.mountedDrives.detach(0)
     @assert(window.startupVaults.count == 1)
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, true})
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
     @assert(window.startupVaults.isEmpty())

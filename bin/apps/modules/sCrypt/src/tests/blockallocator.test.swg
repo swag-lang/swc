@@ -3,9 +3,8 @@
 
 using Core
 
-// Allocation covers every free block once, but no longer reveals creation order by walking the
-// container from its first block upward. A sequential result has probability 1/64! under the
-// CSPRNG, so seeing it is a regression to the old lowest-block policy rather than a random event.
+// Large requests stay contiguous and the free count remains an owned scalar rather than a scan
+// of the extent list.
 #test
 {
     const BlockCount = 64'u64
@@ -13,40 +12,29 @@ using Core
     var allocator: BlockAllocator
     allocator.initialize(BlockCount)
 
-    var seen: BitArray
-    seen.resize(BlockCount)
-    var differsFromSequential: bool
-    for expected in BlockCount
-    {
-        let block = expect allocator.allocate()
-        @assert(block < BlockCount)
-        @assert(!seen.get(block))
-        seen.set(block, true)
-        if block != expected do
-            differsFromSequential = true
-    }
-
-    @assert(differsFromSequential)
+    let first  = expect allocator.allocateRun(48)
+    let second = expect allocator.allocateRun(48)
+    @assert(first.first == 0 and first.count == 48)
+    @assert(second.first == 48 and second.count == 16)
     @assert(allocator.freeBlockCount() == 0)
     discard catch allocator.allocate() as fullError
     @assert(fullError != null)
+
+    allocator.releaseRun(first.first, first.count)
+    allocator.releaseRun(second.first, second.count)
+    @assert(allocator.freeBlockCount() == BlockCount)
+    @assert(allocator.free.count == 1 and allocator.free[0].count == BlockCount)
 }
 
-// Removing a block from the middle of an extent leaves both sides available and lets release
-// merge them back into one run.
+// A small low-address hole left by an old metadata page does not split a large transfer while a
+// contiguous tail can satisfy it.
 #test
 {
     var allocator: BlockAllocator
-    allocator.initialize(8)
+    allocator.initialize(16)
 
-    let removed = allocator.allocateAtOffset(3)
-    @assert(removed == 3)
-    @assert(allocator.free.count == 2)
-    @assert(allocator.free[0].first == 0 and allocator.free[0].count == 3)
-    @assert(allocator.free[1].first == 4 and allocator.free[1].count == 4)
-    @assert(allocator.freeBlockCount() == 7)
-    allocator.release(removed)
-    @assert(allocator.freeBlockCount() == 8)
-    @assert(allocator.free.count == 1)
-    @assert(allocator.free[0].first == 0 and allocator.free[0].count == 8)
+    let occupied = expect allocator.allocateRun(4)
+    allocator.release(occupied.first)
+    let data = expect allocator.allocateRun(8)
+    @assert(data.first == 4 and data.count == 8)
 }

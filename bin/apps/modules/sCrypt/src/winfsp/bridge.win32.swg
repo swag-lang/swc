@@ -37,6 +37,8 @@ namespace WinFsp
     func copySecurity(fileSystem: *FspFileSystem, nodeId: u64, security: #null *void, securitySize: *u64)->s32
     {
         let context = mountContext(fileSystem)
+        context.volume.accessLock.lockShared()
+        defer context.volume.accessLock.unlockShared()
         let node    = context.volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
@@ -185,12 +187,17 @@ namespace WinFsp
     {
         let context = mountContext(fileSystem)
         let nodeId  = idFromContext(fileContext)
-        let node    = context.volume.nodeById(nodeId)
-        if !node do
-            return StatusObjectNameNotFound
+        var stored: Array'u8
+        {
+            context.volume.accessLock.lockShared()
+            defer context.volume.accessLock.unlockShared()
+            let node = context.volume.nodeById(nodeId)
+            if !node do
+                return StatusObjectNameNotFound
+            stored.add(node!.security.toSlice())
+        }
 
-        let stored = node!.security.toSlice()
-        let input  = @countof(stored) ? cast(#null const *void) @dataof(stored) : context.defaultSecurity
+        let input = stored.count ? cast(#null const *void) stored.buffer : context.defaultSecurity
         var updated: #null *void
         let status = (g_WinFsp.setSecurityDescriptor)(input, information, modification, &updated)
         if status != StatusSuccess do

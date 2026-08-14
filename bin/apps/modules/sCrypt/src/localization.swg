@@ -54,6 +54,8 @@ struct AppStrings
     ui_Unmount:             string = "Unmount"
     ui_ColStartup:          string = "AT STARTUP"
     ui_ColDrive:            string = "DRIVE"
+    ui_ColSize:             string = "SIZE"
+    ui_ColAvailable:        string = "AVAILABLE"
     ui_ColVault:            string = "VAULT"
     ui_Desktop:             string = "Desktop"
     ui_LanguageSystem:      string = "System language"

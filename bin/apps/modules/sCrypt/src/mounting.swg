@@ -11,6 +11,13 @@ struct MountDestination
     label: String
 }
 
+// Capacity currently exposed by one live mount.
+struct MountedVaultSpace
+{
+    total:     u64
+    available: u64
+}
+
 // One live host filesystem mount.
 //
 // The backend owns the object behind `handle`. Keeping that representation opaque lets the
@@ -37,6 +44,12 @@ impl MountedVault
         let handle = .handle!
         .handle = null
         unmountVaultNative(handle)
+    }
+
+    mtd space()->MountedVaultSpace
+    {
+        Debug.assert(.handle != null)
+        return mountedVaultSpaceNative(.handle!)
     }
 
     mtd opDrop() { discard catch .close() }

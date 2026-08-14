@@ -4,6 +4,7 @@ struct BlockMapping
 {
     logical:  u64
     physical: u64
+    count:    u64
 }
 
 struct Node
@@ -32,41 +33,30 @@ impl Node
         while low < high
         {
             let middle = low + (high - low) / 2
-            if .blocks[middle].logical < logical do
+            if .blocks[middle].logical + .blocks[middle].count <= logical do
                 low = middle + 1
             else do
                 high = middle
         }
 
-        return {low < .blocks.count and .blocks[low].logical == logical, low}
+        return {low < .blocks.count and .blocks[low].logical <= logical, low}
     }
 
-    // Length of the run of contiguous mappings starting at `index`.
-    //
-    // Block mappings are stored as runs, so a defragmented file costs one
-    // record instead of one per block.
-    mtd const runLength(index: u64)->u64
+    // Adds one mapping while preserving the canonical coalesced representation.
+    mtd appendMapping(mapping: BlockMapping)
     {
-        var result = 1'u64
-        while index + result < .blocks.count and
-              .blocks[index + result].logical == .blocks[index].logical + result and
-              .blocks[index + result].physical == .blocks[index].physical + result do
-            result += 1
-        return result
-    }
-
-    // Number of runs the block mappings collapse into.
-    mtd const runCount()->u64
-    {
-        var result = 0'u64
-        var index  = 0'u64
-        while index < .blocks.count
+        if !mapping.count do
+            return
+        if .blocks.count
         {
-            result += 1
-            index  += .runLength(index)
+            let previous = .blocks.backPtr()
+            if previous.logical + previous.count == mapping.logical and previous.physical + previous.count == mapping.physical
+            {
+                previous.count += mapping.count
+                return
+            }
         }
-
-        return result
+        .blocks.add(mapping)
     }
 
     // Writes this node into a metadata image or a journal record. Both use the
@@ -85,15 +75,12 @@ impl Node
         writer.writeLittleEndian(cast(u32) .security.count)
         writer.writeBytes(.security.toSlice())
 
-        writer.writeLittleEndian(.runCount())
-        var index = 0'u64
-        while index < .blocks.count
+        writer.writeLittleEndian(.blocks.count)
+        for mapping in .blocks
         {
-            let count = .runLength(index)
-            writer.writeLittleEndian(.blocks[index].logical)
-            writer.writeLittleEndian(.blocks[index].physical)
-            writer.writeLittleEndian(count)
-            index += count
+            writer.writeLittleEndian(mapping.logical)
+            writer.writeLittleEndian(mapping.physical)
+            writer.writeLittleEndian(mapping.count)
         }
     }
 
@@ -125,18 +112,18 @@ impl Node
         if runCount > blockCount do
             failWith("An entry declares more block runs than the container holds.", .Corrupted)
 
-        var mapped = 0'u64
+        var mapped          = 0'u64
+        var previousLogical = 0'u64
         for runCount
         {
             let logical  = reader.readLittleEndian'u64()
             let physical = reader.readLittleEndian'u64()
             let count    = reader.readLittleEndian'u64()
-            if !count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped do
+            if !count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped or logical > Swag.U64.Max - count or (result.blocks.count and logical < previousLogical) do
                 failWith("A block run falls outside the container.", .Corrupted)
 
-            result.blocks.reserve(result.blocks.count + count)
-            for i in count do
-                result.blocks.add({logical + i, physical + i})
+            result.appendMapping({logical, physical, count})
+            previousLogical = logical + count
             mapped += count
         }
 

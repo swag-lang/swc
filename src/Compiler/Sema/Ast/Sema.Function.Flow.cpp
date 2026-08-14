@@ -1441,6 +1441,11 @@ namespace
             SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
+
+            // Capture argument borrows before inlining can replace the call. An ordinary inline
+            // body is re-analyzed with caller symbols, but the callee summary remains the source
+            // of truth for whether one argument is stored through another.
+            SemaEscape::noteCallArguments(sema, sema.curNodeRef());
             SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg, sourceArgs.span()));
         }
 
@@ -1448,11 +1453,6 @@ namespace
             return Result::Continue;
         if (sema.hasSubstitute(sema.curNodeRef()))
             return Result::Continue;
-
-        // A callee that stores one of its arguments makes any borrowed argument escape
-        // whatever happens to the call result: judged against the callee's summary
-        // once the whole module is analyzed.
-        SemaEscape::noteCallArguments(sema, sema.curNodeRef());
 
         SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
 

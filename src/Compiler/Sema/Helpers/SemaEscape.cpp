@@ -2207,6 +2207,26 @@ namespace
         return type.isReference() ? type.payloadTypeRef() : typeRef;
     }
 
+    bool callerBorrowHandledByInlineSummary(Sema& sema, const SymbolVariable& sourceVar)
+    {
+        const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        if (!inlinePayload)
+            return false;
+
+        for (const SemaInlinePayload* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
+        {
+            const SymbolFunction* sourceFunction = payload->sourceFunction;
+            if (!sourceFunction ||
+                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
+                sourceVar.isFunctionLocalVariable(*sourceFunction) ||
+                sourceFunction->containsLocalVariable(sourceVar))
+                return false;
+        }
+
+        return true;
+    }
+
     Result reportBorrowEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
     {
         if (info.isTemporaryBorrow() || info.isMaterializedBorrow())
@@ -2230,6 +2250,8 @@ namespace
 
         if (!info.isLocalBorrow())
             return Result::Continue;
+        if (callerBorrowHandledByInlineSummary(sema, *info.sourceVar))
+            return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sanity_err_borrow_escape, atNodeRef);
         diag.addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
@@ -2246,6 +2268,9 @@ namespace
 
     Result reportBorrowScopeEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, const SymbolVariable& dstVar)
     {
+        if (callerBorrowHandledByInlineSummary(sema, *info.sourceVar))
+            return Result::Continue;
+
         auto diag = SemaError::report(sema, DiagnosticId::sanity_err_borrow_scope_escape, atNodeRef);
         diag.addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_VALUE, dstVar.name(sema.ctx()));

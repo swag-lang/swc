@@ -9,10 +9,10 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
+#include <RestartManager.h>
 #include <cwctype>
 #include <dbghelp.h>
 #include <psapi.h>
-#include <RestartManager.h>
 
 #pragma comment(lib, "Psapi.lib")
 #pragma comment(lib, "Rstrtmgr.lib")
@@ -157,10 +157,12 @@ namespace
             if (!state.module)
                 return false;
 
-            state.symSetOptions        = reinterpret_cast<decltype(state.symSetOptions)>(GetProcAddress(state.module, "SymSetOptions"));
-            state.symInitialize        = reinterpret_cast<decltype(state.symInitialize)>(GetProcAddress(state.module, "SymInitialize"));
-            state.symFromAddr          = reinterpret_cast<decltype(state.symFromAddr)>(GetProcAddress(state.module, "SymFromAddr"));
-            state.symGetLineFromAddr64 = reinterpret_cast<decltype(state.symGetLineFromAddr64)>(GetProcAddress(state.module, "SymGetLineFromAddr64"));
+            // Win32 exposes every dynamically loaded function as FARPROC even though these
+            // exports have the exact signatures declared in DbgHelpState.
+            state.symSetOptions        = reinterpret_cast<decltype(state.symSetOptions)>(GetProcAddress(state.module, "SymSetOptions"));               // NOLINT(clang-diagnostic-cast-function-type-strict)
+            state.symInitialize        = reinterpret_cast<decltype(state.symInitialize)>(GetProcAddress(state.module, "SymInitialize"));               // NOLINT(clang-diagnostic-cast-function-type-strict)
+            state.symFromAddr          = reinterpret_cast<decltype(state.symFromAddr)>(GetProcAddress(state.module, "SymFromAddr"));                   // NOLINT(clang-diagnostic-cast-function-type-strict)
+            state.symGetLineFromAddr64 = reinterpret_cast<decltype(state.symGetLineFromAddr64)>(GetProcAddress(state.module, "SymGetLineFromAddr64")); // NOLINT(clang-diagnostic-cast-function-type-strict)
             if (!state.symSetOptions || !state.symInitialize || !state.symFromAddr || !state.symGetLineFromAddr64)
             {
                 FreeLibrary(state.module);

@@ -69,6 +69,26 @@ namespace
         return node.is(AstNodeId::CharacterLiteral) || node.is(AstNodeId::BoolLiteral);
     }
 
+    bool isInlineContextualLambdaArg(Sema& sema, AstNodeRef exprRef)
+    {
+        for (uint32_t depth = 0; depth < 8 && exprRef.isValid(); ++depth)
+        {
+            const AstNode& node = sema.node(exprRef);
+            if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+                return true;
+            if (const auto* castNode = node.safeCast<AstCastExpr>())
+                exprRef = castNode->nodeExprRef;
+            else if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
+                exprRef = autoCastNode->nodeExprRef;
+            else if (const auto* parenNode = node.safeCast<AstParenExpr>())
+                exprRef = parenNode->nodeExprRef;
+            else
+                return false;
+        }
+
+        return false;
+    }
+
     TypeRef inlineContextualBindingTypeRef(Sema& sema, const SymbolVariable& param, AstNodeRef exprRef)
     {
         const TypeRef paramTypeRef = param.typeRef();
@@ -84,7 +104,7 @@ namespace
             return TypeRef::invalid();
         const AstNode& exprNode   = sema.node(exprRef);
         const bool     isCastExpr = exprNode.is(AstNodeId::CastExpr) || exprNode.is(AstNodeId::AutoCastExpr);
-        if (!isCastExpr && !isInlineCoercibleLiteralArg(exprNode) && !SemaHelpers::canUseContextualBinding(sema, exprRef))
+        if (!isCastExpr && !isInlineCoercibleLiteralArg(exprNode) && !isInlineContextualLambdaArg(sema, exprRef) && !SemaHelpers::canUseContextualBinding(sema, exprRef))
             return TypeRef::invalid();
 
         return paramTypeRef;
@@ -527,6 +547,42 @@ namespace
         return resolvedRef;
     }
 
+    AstNodeRef castExpressionRef(const AstNode& node)
+    {
+        if (const auto* castNode = node.safeCast<AstCastExpr>())
+            return castNode->nodeExprRef;
+        if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
+            return autoCastNode->nodeExprRef;
+        return AstNodeRef::invalid();
+    }
+
+    AstNodeRef castInlinedValueSourceRef(Sema& sema, const AstNode& castNode)
+    {
+        AstNodeRef exprRef = castExpressionRef(castNode);
+        for (uint32_t depth = 0; depth < 8 && exprRef.isValid(); ++depth)
+        {
+            const AstNode& exprNode = sema.node(exprRef);
+            if (exprNode.is(AstNodeId::EmbeddedBlock))
+            {
+                const SemaInlinePayload* inlinePayload = sema.inlinePayload(exprRef);
+                if (inlinePayload && inlinePayload->callRef.isValid())
+                    return inlinePayload->callRef;
+                return AstNodeRef::invalid();
+            }
+
+            if (isInlineReexpandableExpr(exprNode))
+            {
+                const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+                if (resolvedRef.isValid() && resolvedRef != exprRef && sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock))
+                    return exprRef;
+            }
+
+            exprRef = castExpressionRef(exprNode);
+        }
+
+        return AstNodeRef::invalid();
+    }
+
     AstNodeRef referenceBindingArgumentRef(Sema& sema, AstNodeRef argRef)
     {
         const AstNodeRef sourceRef = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
@@ -684,7 +740,13 @@ namespace
             {
                 const AstNode& resolvedArgNode = sema.node(resolvedArgRef);
                 if (resolvedArgNode.is(AstNodeId::CastExpr) || resolvedArgNode.is(AstNodeId::AutoCastExpr))
-                    argValueRef = resolvedArgRef;
+                {
+                    const AstNodeRef inlinedSourceRef = castInlinedValueSourceRef(sema, resolvedArgNode);
+                    if (inlinedSourceRef.isValid() && param.typeRef().isValid())
+                        argValueRef = Cast::createCastNode(sema, param.typeRef(), inlinedSourceRef);
+                    else
+                        argValueRef = resolvedArgRef;
+                }
             }
         }
 
@@ -1776,6 +1838,7 @@ namespace
         bool forVariadic      = false;
         bool forAddress       = false;
         bool forNarrowFact    = false;
+        bool forContextLambda = false;
     };
 
     InlineBindingMaterialization classifyInlineBinding(Sema& sema, const InlineBindingContext& context, const SemaClone::ParamBinding& binding, const SymbolVariable& param)
@@ -1834,6 +1897,7 @@ namespace
         mat.forVariadic      = !isCaptured && forceMaterializeInlineVariadicBinding(sema, sourceAst, bodyRef, binding, paramType);
         mat.forAddress       = !isCaptured && mat.hasAddressUse && (!mat.bindsByAddress || !sema.isLValue(binding.exprRef));
         mat.forNarrowFact    = mat.narrowDependent && !mat.bindsByAddress;
+        mat.forContextLambda = isInlineContextualLambdaArg(sema, binding.exprRef);
 
         // A reference bound to a stable lvalue survives an index or foreach use as it
         // stands; every other such use needs a home.
@@ -1847,6 +1911,7 @@ namespace
                             mat.forVariadic ||
                             mat.forAddress ||
                             mat.forNarrowFact ||
+                            mat.forContextLambda ||
                             (!isCaptured && binding.forceMaterialize && !paramType.isAnyVariadic()) ||
                             (!isCaptured && !canBindReferenceDirectly && inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, bodyRef, binding.idRef)) ||
                             (!isCaptured && inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, bodyRef, binding)) ||
@@ -1862,8 +1927,9 @@ namespace
     // Emit the prefix `let` that homes the argument, and rebind the binding to it.
     Result emitInlineBindingHome(Sema& sema, const InlineBindingContext& context, SmallVector<AstNodeRef>& outStatements, SemaClone::ParamBinding& ioBinding, const SymbolVariable& param, const InlineBindingMaterialization& mat)
     {
-        const TypeInfo& paramType    = param.type(sema.ctx());
-        const TokenRef  paramNameRef = materializedInlineBindingTokRef(sema, param, ioBinding.exprRef);
+        const TypeInfo& paramType        = param.type(sema.ctx());
+        const TokenRef  paramNameRef     = materializedInlineBindingTokRef(sema, param, ioBinding.exprRef);
+        const bool      contextualLambda = isInlineContextualLambdaArg(sema, ioBinding.exprRef);
 
         AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, ioBinding.exprRef);
         if (clonedInitRef.isInvalid())
@@ -1904,21 +1970,26 @@ namespace
         // non-null - a false use-site nullability error. Pinning to the parameter type
         // restores the non-null contract the argument was validated against, reusing the
         // same proven type-clone/cast mechanism as the cases below.
-        else if (!mat.homesAddress && !paramType.isAnyVariadic() && (mat.forRuntimeSafety || mat.forNarrowFact || isInlineCoercibleLiteralArg(sema.node(ioBinding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, ioBinding.exprRef)))
+        else if (!mat.homesAddress && !paramType.isAnyVariadic() && (mat.forRuntimeSafety || mat.forNarrowFact || isInlineCoercibleLiteralArg(sema.node(ioBinding.exprRef)) || contextualLambda || SemaHelpers::canUseContextualBinding(sema, ioBinding.exprRef)))
         {
             AstNodeRef materializedTypeRef = AstNodeRef::invalid();
             // A synthesized receiver has no declaration to clone a type node from.
-            if (const auto* paramDecl = param.decl() ? param.decl()->safeCast<AstSingleVarDecl>() : nullptr)
+            if (const auto* paramDecl = param.decl() ? param.decl()->safeCast<AstSingleVarDecl>() : nullptr;
+                paramDecl && paramDecl->nodeTypeRef.isValid())
             {
                 const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, context.sourceAst};
                 materializedTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);
             }
             if (materializedTypeRef.isInvalid())
-                clonedInitRef = Cast::createCastNode(sema, param.typeRef(), clonedInitRef);
+            {
+                if (contextualLambda)
+                    declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, param.typeRef());
+                else
+                    clonedInitRef = Cast::createCastNode(sema, param.typeRef(), clonedInitRef);
+            }
             else
                 declPtr->nodeTypeRef = materializedTypeRef;
         }
-
         declPtr->nodeInitRef            = clonedInitRef;
         SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, param, paramNameRef, *declPtr, materializedAsLet);
         sema.setSymbol(declRef, materializedSym);

@@ -604,10 +604,9 @@ namespace
     class TreeBuilder
     {
     public:
-        TreeBuilder(SlpFunctionContext& fn, BlockScan& scan, VectorPlan& plan, bool nonDestructive) :
-            fn_(fn),
-            scan_(scan),
-            plan_(plan),
+        TreeBuilder(BlockScan& scan, VectorPlan& plan, bool nonDestructive) :
+            scan_(&scan),
+            plan_(&plan),
             nonDestructive_(nonDestructive)
         {
         }
@@ -616,35 +615,35 @@ namespace
         // tuple.ids[i], or K_INVALID_ID when the tuple cannot be vectorized.
         uint32_t build(const TupleKey& tuple, uint32_t depth)
         {
-            if (depth > K_MAX_TREE_DEPTH || plan_.totalInstrs() > K_MAX_PLAN_INSTRS)
+            if (depth > K_MAX_TREE_DEPTH || plan_->totalInstrs() > K_MAX_PLAN_INSTRS)
                 return K_INVALID_ID;
 
-            const auto memoIt = plan_.tupleRegs.find(tuple);
-            if (memoIt != plan_.tupleRegs.end())
+            const auto memoIt = plan_->tupleRegs.find(tuple);
+            if (memoIt != plan_->tupleRegs.end())
                 return memoIt->second;
 
             // A permutation of an already-built tuple is one shuffle.
             const TupleKey sorted = sortedKeyOf(tuple);
-            const auto     permIt = plan_.tuplesBySortedKey.find(sorted);
-            if (permIt != plan_.tuplesBySortedKey.end())
+            const auto     permIt = plan_->tuplesBySortedKey.find(sorted);
+            if (permIt != plan_->tuplesBySortedKey.end())
             {
                 for (const TupleKey& candidate : permIt->second)
                 {
                     uint8_t control = 0;
                     if (!shuffleControlFor(tuple, candidate, control))
                         continue;
-                    const uint32_t srcReg = plan_.tupleRegs.at(candidate);
+                    const uint32_t srcReg = plan_->tupleRegs.at(candidate);
                     const uint32_t dstReg = allocReg();
-                    plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = srcReg, .imm = control});
+                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = srcReg, .imm = control});
                     remember(tuple, dstReg);
                     return dstReg;
                 }
             }
 
-            const SlpValue& n0 = scan_.values.get(tuple.ids[0]);
-            const SlpValue& n1 = scan_.values.get(tuple.ids[1]);
-            const SlpValue& n2 = scan_.values.get(tuple.ids[2]);
-            const SlpValue& n3 = scan_.values.get(tuple.ids[3]);
+            const SlpValue& n0 = scan_->values.get(tuple.ids[0]);
+            const SlpValue& n1 = scan_->values.get(tuple.ids[1]);
+            const SlpValue& n2 = scan_->values.get(tuple.ids[2]);
+            const SlpValue& n3 = scan_->values.get(tuple.ids[3]);
             if (n0.kind != n1.kind || n0.kind != n2.kind || n0.kind != n3.kind)
                 return K_INVALID_ID;
 
@@ -693,14 +692,14 @@ namespace
                     const uint32_t dstReg = allocReg();
                     if (nonDestructive_)
                     {
-                        plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = dstReg, .src = lhsReg, .src2 = rhsReg, .op = vecOp});
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = dstReg, .src = lhsReg, .src2 = rhsReg, .op = vecOp});
                     }
                     else
                     {
-                        plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
-                        plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = rhsReg, .op = vecOp});
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = rhsReg, .op = vecOp});
                     }
-                    plan_.arithmeticOps++;
+                    plan_->arithmeticOps++;
                     remember(tuple, dstReg);
                     return dstReg;
                 }
@@ -725,7 +724,7 @@ namespace
                             const MicroOp  shiftOp = n0.op == LaneOp::ShiftLeft ? MicroOp::VecShiftLeft32 : MicroOp::VecShiftRight32;
                             const uint32_t dstReg  = allocReg();
                             emitShift(dstReg, lhsReg, shiftOp, n0.imm);
-                            plan_.arithmeticOps++;
+                            plan_->arithmeticOps++;
                             remember(tuple, dstReg);
                             return dstReg;
                         }
@@ -744,13 +743,13 @@ namespace
                             if (nonDestructive_)
                             {
                                 const uint32_t orReg = allocReg();
-                                plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = orReg, .src = leftReg, .src2 = rightReg, .op = MicroOp::VecOr});
-                                plan_.arithmeticOps += 3;
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = orReg, .src = leftReg, .src2 = rightReg, .op = MicroOp::VecOr});
+                                plan_->arithmeticOps += 3;
                                 remember(tuple, orReg);
                                 return orReg;
                             }
-                            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = leftReg, .src = rightReg, .op = MicroOp::VecOr});
-                            plan_.arithmeticOps += 3;
+                            plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = leftReg, .src = rightReg, .op = MicroOp::VecOr});
+                            plan_->arithmeticOps += 3;
                             remember(tuple, leftReg);
                             return leftReg;
                         }
@@ -771,24 +770,24 @@ namespace
         }
 
     private:
-        uint32_t allocReg() const { return plan_.nextPlanReg++; }
+        uint32_t allocReg() const { return plan_->nextPlanReg++; }
 
         // A shift by an immediate, in whichever form the target offers.
         void emitShift(uint32_t dstReg, uint32_t srcReg, MicroOp shiftOp, uint64_t imm) const
         {
             if (nonDestructive_)
             {
-                plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegImm, .dst = dstReg, .src = srcReg, .op = shiftOp, .imm = imm});
+                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegImm, .dst = dstReg, .src = srcReg, .op = shiftOp, .imm = imm});
                 return;
             }
-            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = srcReg});
-            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = dstReg, .op = shiftOp, .imm = imm});
+            plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = srcReg});
+            plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = dstReg, .op = shiftOp, .imm = imm});
         }
 
         void remember(const TupleKey& tuple, uint32_t reg) const
         {
-            plan_.tupleRegs.emplace(tuple, reg);
-            plan_.tuplesBySortedKey[sortedKeyOf(tuple)].push_back(tuple);
+            plan_->tupleRegs.emplace(tuple, reg);
+            plan_->tuplesBySortedKey[sortedKeyOf(tuple)].push_back(tuple);
         }
 
         uint32_t buildLoad(const TupleKey& tuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const
@@ -805,7 +804,7 @@ namespace
             std::ranges::sort(sorted);
             for (uint32_t lane = 1; lane < K_LANE_COUNT; ++lane)
             {
-                if (sorted[lane] != sorted[0] + lane * K_LANE_BYTES)
+                if (sorted[lane] != sorted[0] + static_cast<uint64_t>(lane) * K_LANE_BYTES)
                     return K_INVALID_ID;
             }
 
@@ -817,21 +816,21 @@ namespace
                 SlpValue v;
                 v.kind             = SlpValueKind::Load;
                 v.loadRootKey      = n0.loadRootKey;
-                v.loadOffset       = sorted[0] + lane * K_LANE_BYTES;
+                v.loadOffset       = sorted[0] + static_cast<uint64_t>(lane) * K_LANE_BYTES;
                 v.loadEpoch        = 0;
-                straight.ids[lane] = scan_.values.intern(v);
+                straight.ids[lane] = scan_->values.intern(v);
             }
 
             uint32_t   straightReg = K_INVALID_ID;
-            const auto straightIt  = plan_.tupleRegs.find(straight);
-            if (straightIt != plan_.tupleRegs.end())
+            const auto straightIt  = plan_->tupleRegs.find(straight);
+            if (straightIt != plan_->tupleRegs.end())
             {
                 straightReg = straightIt->second;
             }
             else
             {
                 straightReg = allocReg();
-                plan_.loads.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadVec, .dst = straightReg, .rootKey = n0.loadRootKey, .baseOffset = sorted[0]});
+                plan_->loads.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadVec, .dst = straightReg, .rootKey = n0.loadRootKey, .baseOffset = sorted[0]});
                 remember(straight, straightReg);
             }
 
@@ -843,15 +842,14 @@ namespace
                 return K_INVALID_ID;
 
             const uint32_t dstReg = allocReg();
-            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = straightReg, .imm = control});
+            plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Shuffle, .dst = dstReg, .src = straightReg, .imm = control});
             remember(tuple, dstReg);
             return dstReg;
         }
 
-        SlpFunctionContext& fn_;
-        BlockScan&          scan_;
-        VectorPlan&         plan_;
-        bool                nonDestructive_ = false;
+        BlockScan*  scan_           = nullptr;
+        VectorPlan* plan_           = nullptr;
+        bool        nonDestructive_ = false;
     };
 
     // ------------------------------------------------------------------
@@ -863,8 +861,8 @@ namespace
     {
     public:
         DeletionOracle(SlpFunctionContext& fn, const std::unordered_set<uint32_t>& deletedStoreRefs) :
-            fn_(fn),
-            deletedStoreRefs_(deletedStoreRefs)
+            fn_(&fn),
+            deletedStoreRefs_(&deletedStoreRefs)
         {
         }
 
@@ -878,7 +876,7 @@ namespace
             // phi uses are rejected outright below.
             states_[valueId] = State::InProgress;
 
-            const MicroSsaState::ValueInfo* info = fn_.ssa->valueInfo(valueId);
+            const MicroSsaState::ValueInfo* info = fn_->ssa->valueInfo(valueId);
             if (!info)
             {
                 states_[valueId] = State::Live;
@@ -894,7 +892,7 @@ namespace
                     // including scratch values nothing reads on the next
                     // iteration; the recursion is optimistic on phi cycles,
                     // which is exact when no external use pins them.
-                    const MicroSsaState::PhiInfo* phi = fn_.ssa->phiInfo(use.phiIndex);
+                    const MicroSsaState::PhiInfo* phi = fn_->ssa->phiInfo(use.phiIndex);
                     if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE || !isValueDead(phi->resultValueId))
                     {
                         states_[valueId] = State::Live;
@@ -903,7 +901,7 @@ namespace
                     continue;
                 }
 
-                if (deletedStoreRefs_.contains(use.instRef.get()))
+                if (deletedStoreRefs_->contains(use.instRef.get()))
                     continue;
 
                 if (!isInstructionDead(use.instRef))
@@ -919,7 +917,7 @@ namespace
 
         bool isInstructionDead(MicroInstrRef instRef)
         {
-            const MicroInstr* inst = fn_.storage->ptr(instRef);
+            const MicroInstr* inst = fn_->storage->ptr(instRef);
             if (!inst)
                 return false;
 
@@ -934,19 +932,19 @@ namespace
             }
 
             if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(*fn_.storage, *fn_.operands, instRef))
+                !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(*fn_->storage, *fn_->operands, instRef))
             {
                 return false;
             }
 
-            const MicroInstrUseDef useDef = inst->collectUseDef(*fn_.operands, fn_.encoder);
+            const MicroInstrUseDef useDef = inst->collectUseDef(*fn_->operands, fn_->encoder);
             if (useDef.defs.empty())
                 return false;
 
             for (const MicroReg defReg : useDef.defs)
             {
                 uint32_t defValueId = MicroSsaState::K_INVALID_VALUE;
-                if (!fn_.ssa->defValue(defReg, instRef, defValueId))
+                if (!fn_->ssa->defValue(defReg, instRef, defValueId))
                     return false;
                 if (!isValueDead(defValueId))
                     return false;
@@ -963,8 +961,8 @@ namespace
             Live,
         };
 
-        SlpFunctionContext&                 fn_;
-        const std::unordered_set<uint32_t>& deletedStoreRefs_;
+        SlpFunctionContext*                 fn_               = nullptr;
+        const std::unordered_set<uint32_t>* deletedStoreRefs_ = nullptr;
         std::unordered_map<uint32_t, State> states_;
     };
 
@@ -1308,7 +1306,7 @@ namespace
 
     bool vectorizeBlock(SlpFunctionContext& fn, std::span<const BlockInstr> blockInstrs)
     {
-        if (blockInstrs.size() < K_LANE_COUNT * 2)
+        if (blockInstrs.size() < static_cast<size_t>(K_LANE_COUNT) * 2)
             return false;
 
         BlockScan scan;
@@ -1373,7 +1371,7 @@ namespace
 
         // Build the seed groups: complete 16-byte chunks of candidates.
         VectorPlan             plan;
-        TreeBuilder            builder(fn, scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary());
+        TreeBuilder            builder(scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary());
         std::vector<SeedGroup> groups;
 
         for (auto& [rootKey, candidates] : candidatesByRoot)
@@ -1386,7 +1384,7 @@ namespace
                 bool contiguous = true;
                 for (uint32_t lane = 1; lane < K_LANE_COUNT; ++lane)
                 {
-                    if (candidates[index + lane].offset != candidates[index].offset + lane * K_LANE_BYTES)
+                    if (candidates[index + lane].offset != candidates[index].offset + static_cast<uint64_t>(lane) * K_LANE_BYTES)
                     {
                         contiguous = false;
                         break;
@@ -1429,7 +1427,7 @@ namespace
         for (const SeedGroup& group : vectorized)
         {
             for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
-                vectorizedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + lane * K_LANE_BYTES));
+                vectorizedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + static_cast<uint64_t>(lane) * K_LANE_BYTES));
         }
 
         std::unordered_set<uint32_t> deletedStoreRefs;

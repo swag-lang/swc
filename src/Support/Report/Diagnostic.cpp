@@ -25,22 +25,15 @@ namespace
         DiagnosticSeverity severity     = DiagnosticSeverity::Error;
     };
 
-    constexpr size_t DIAGNOSTIC_MESSAGE_COUNT =
-        0
-#define SWC_DIAG_DEF(id, sev, msg) +1
-#include "Support/Report/Msg/Errors.msg"
-#include "Support/Report/Msg/Notes.msg"
-#undef SWC_DIAG_DEF
-        ;
-
-    static_assert(DIAGNOSTIC_MESSAGE_COUNT <= std::numeric_limits<uint16_t>::max());
-
-    constexpr std::array<std::string_view, DIAGNOSTIC_MESSAGE_COUNT> DIAGNOSTIC_MESSAGES = {{
+    constexpr auto DIAGNOSTIC_MESSAGES = std::to_array<std::string_view>({
 #define SWC_DIAG_DEF(id, sev, msg) msg,
 #include "Support/Report/Msg/Errors.msg"
 #include "Support/Report/Msg/Notes.msg"
 #undef SWC_DIAG_DEF
-    }};
+    });
+
+    constexpr size_t DIAGNOSTIC_MESSAGE_COUNT = DIAGNOSTIC_MESSAGES.size();
+    static_assert(DIAGNOSTIC_MESSAGE_COUNT <= std::numeric_limits<uint16_t>::max());
 
     struct DiagnosticMessageDefinition
     {

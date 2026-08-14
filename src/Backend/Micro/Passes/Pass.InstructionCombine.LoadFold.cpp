@@ -480,7 +480,8 @@ namespace InstructionCombine
                 }
                 else if (cmpBits == MicroOpBits::B64)
                 {
-                    if (static_cast<int64_t>(immU64) != static_cast<int64_t>(static_cast<int32_t>(immU64)))
+                    const uint64_t signExtended = static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(immU64)));
+                    if (immU64 != signExtended)
                         return false;
                 }
 

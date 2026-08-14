@@ -1438,7 +1438,7 @@ namespace
             if (ec)
                 return false;
 
-            entries.push_back(std::format("{}\t{}\t{}", Utf8(it->path().lexically_relative(srcDir)).c_str(), fileSize, writeTime.time_since_epoch().count()));
+            entries.emplace_back(std::format("{}\t{}\t{}", Utf8(it->path().lexically_relative(srcDir)).c_str(), fileSize, writeTime.time_since_epoch().count()));
         }
 
         // The order a directory is walked in is not part of what it holds.

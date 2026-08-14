@@ -769,7 +769,6 @@ Utf8 TypeInfo::toFamily(const TaskContext& ctx) const
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
             return "pointer";
-            return "reference";
         case TypeInfoKind::MoveReference:
             return "move reference";
         case TypeInfoKind::Int:

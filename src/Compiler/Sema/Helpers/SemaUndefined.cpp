@@ -102,8 +102,8 @@ namespace
     {
     public:
         Walker(Sema& sema, const SymbolFunction& sym, bool checkReturnContract) :
-            sema_(sema),
-            sym_(sym)
+            sema_(&sema),
+            sym_(&sym)
         {
             returnContract_ = checkReturnContract && isNullableTypeRef(sym.returnTypeRef());
         }
@@ -118,9 +118,9 @@ namespace
             if (returnContract_ && returnSeen_ && !mayReturnNull_ && !aborted_)
             {
                 hadError_ = true;
-                auto diag = SemaError::report(sema_, DiagnosticId::sema_err_nullable_return_contract, sym_);
-                SemaError::setReportArguments(sema_, diag, &sym_);
-                diag.report(sema_.ctx());
+                auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_nullable_return_contract, *sym_);
+                SemaError::setReportArguments(*sema_, diag, sym_);
+                diag.report(sema_->ctx());
             }
 
             // A local annotated '#null' whose every incoming value is provably
@@ -132,9 +132,9 @@ namespace
                     if (!local.sawValue || local.keepNull)
                         continue;
                     hadError_ = true;
-                    auto diag = SemaError::report(sema_, DiagnosticId::sema_err_nullable_local_contract, *local.sym);
-                    SemaError::setReportArguments(sema_, diag, local.sym);
-                    diag.report(sema_.ctx());
+                    auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_nullable_local_contract, *local.sym);
+                    SemaError::setReportArguments(*sema_, diag, local.sym);
+                    diag.report(sema_->ctx());
                 }
             }
 
@@ -142,8 +142,8 @@ namespace
         }
 
     private:
-        Sema&                   sema_;
-        const SymbolFunction&   sym_;
+        Sema*                   sema_ = nullptr;
+        const SymbolFunction*   sym_  = nullptr;
         std::vector<TrackedVar> vars_;
         std::vector<BreakCtx*>  breakables_;
         SmallVector<int32_t, 4> withTargets_; // tracked index or -1, innermost last
@@ -190,7 +190,7 @@ namespace
             if (ref.isInvalid())
                 return false;
 
-            const AstNode& node = sema_.node(ref);
+            const AstNode& node = sema_->node(ref);
             switch (node.id())
             {
                 case AstNodeId::UnaryExpr:
@@ -205,7 +205,7 @@ namespace
                 case AstNodeId::CallExpr:
                 case AstNodeId::IntrinsicCallExpr:
                 {
-                    const SemaNodeView view = sema_.viewSymbol(ref);
+                    const SemaNodeView view = sema_->viewSymbol(ref);
                     Symbol*            sym  = view.hasSymbol() ? view.singleSymbol() : nullptr;
                     return sym && sym->isFunction() && isNonNullPointerLikeTypeRef(sym->cast<SymbolFunction>().returnTypeRef());
                 }
@@ -239,7 +239,7 @@ namespace
         {
             if (ref.isInvalid())
                 return ref;
-            const AstNodeRef resolved = sema_.viewZero(ref).nodeRef();
+            const AstNodeRef resolved = sema_->viewZero(ref).nodeRef();
             return resolved.isValid() ? resolved : ref;
         }
 
@@ -250,7 +250,7 @@ namespace
             const SourceCodeRef& codeRef = node.codeRef();
             if (!codeRef.isValid())
                 return fallback;
-            return sema_.token(codeRef).id;
+            return sema_->token(codeRef).id;
         }
 
         // Skips wrappers that are transparent for data flow. Resolution cycles
@@ -276,7 +276,7 @@ namespace
                     return ref;
                 if (!cycles)
                     seen.push_back(ref);
-                const AstNode& node = sema_.node(ref);
+                const AstNode& node = sema_->node(ref);
                 switch (node.id())
                 {
                     case AstNodeId::ParenExpr:
@@ -308,7 +308,7 @@ namespace
         {
             if (ref.isInvalid())
                 return nullptr;
-            const SemaNodeView view = sema_.viewSymbol(ref);
+            const SemaNodeView view = sema_->viewSymbol(ref);
             Symbol*            sym  = view.hasSymbol() ? view.singleSymbol() : nullptr;
             if (!sym || !sym->isVariable())
                 return nullptr;
@@ -348,7 +348,7 @@ namespace
             SmallVector<const Symbol*, 4> fieldChain; // outermost access last
             for (uint32_t guard = 0; guard < 64; guard++)
             {
-                const AstNode& node = sema_.node(ref);
+                const AstNode& node = sema_->node(ref);
                 switch (node.id())
                 {
                     case AstNodeId::Identifier:
@@ -368,7 +368,7 @@ namespace
                     {
                         const auto&        member   = node.cast<AstMemberAccessExpr>();
                         const Symbol*      fieldSym = nullptr;
-                        const SemaNodeView view     = sema_.viewSymbol(member.nodeRightRef);
+                        const SemaNodeView view     = sema_->viewSymbol(member.nodeRightRef);
                         if (view.hasSymbol())
                             fieldSym = view.singleSymbol();
                         fieldChain.push_back(fieldSym);
@@ -386,7 +386,7 @@ namespace
                         out.varIndex                  = withTargets_.back();
                         const auto&        autoMember = node.cast<AstAutoMemberAccessExpr>();
                         const AstNodeRef   identRef   = autoMember.nodeIdentRef.isValid() ? autoMember.nodeIdentRef : ref;
-                        const SemaNodeView view       = sema_.viewSymbol(identRef);
+                        const SemaNodeView view       = sema_->viewSymbol(identRef);
                         const Symbol*      fieldSym   = view.hasSymbol() ? view.singleSymbol() : nullptr;
                         out.fieldIndex                = fieldIndexOf(vars_[out.varIndex], fieldSym);
                         return true;
@@ -430,15 +430,15 @@ namespace
             hadError_ = true;
 
             const DiagnosticId id   = fieldIndex >= 0 ? DiagnosticId::sema_err_undefined_field_use : DiagnosticId::sema_err_undefined_use;
-            auto               diag = SemaError::report(sema_, id, atRef);
-            SemaError::setReportArguments(sema_, diag, var.sym);
+            auto               diag = SemaError::report(*sema_, id, atRef);
+            SemaError::setReportArguments(*sema_, diag, var.sym);
             if (fieldIndex >= 0 && var.fieldStruct)
-                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_.ctx())});
+                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_->ctx())});
             // A span must stay within the element's source view (inlined bodies can
             // place the declaration in another file).
-            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_.node(atRef).codeRef().srcViewRef)
-                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared with undefined content here");
-            diag.report(sema_.ctx());
+            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
+                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared with undefined content here");
+            diag.report(sema_->ctx());
         }
 
         void reportLateRead(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
@@ -449,13 +449,13 @@ namespace
             errorCount_++;
             hadError_ = true;
 
-            auto diag = SemaError::report(sema_, DiagnosticId::sema_err_late_read_never_set, atRef);
-            SemaError::setReportArguments(sema_, diag, var.sym);
+            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_late_read_never_set, atRef);
+            SemaError::setReportArguments(*sema_, diag, var.sym);
             if (fieldIndex >= 0 && var.fieldStruct)
-                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_.ctx())});
-            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_.node(atRef).codeRef().srcViewRef)
-                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared here");
-            diag.report(sema_.ctx());
+                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_->ctx())});
+            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
+                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared here");
+            diag.report(sema_->ctx());
         }
 
         void reportDrop(AstNodeRef atRef, TrackedVar& var)
@@ -466,11 +466,11 @@ namespace
             errorCount_++;
             hadError_ = true;
 
-            auto diag = SemaError::report(sema_, DiagnosticId::sema_err_undefined_drop, atRef);
-            SemaError::setReportArguments(sema_, diag, var.sym);
-            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_.node(atRef).codeRef().srcViewRef)
-                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared with undefined content here");
-            diag.report(sema_.ctx());
+            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_undefined_drop, atRef);
+            SemaError::setReportArguments(*sema_, diag, var.sym);
+            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
+                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared with undefined content here");
+            diag.report(sema_->ctx());
         }
 
         // -------------------------------------------------------------------------
@@ -513,11 +513,11 @@ namespace
         {
             if (!typeRef.isValid())
                 return false;
-            const TypeInfo& type = sema_.typeMgr().get(typeRef);
+            const TypeInfo& type = sema_->typeMgr().get(typeRef);
             if (type.isNullable())
                 return true;
-            const TypeRef unwrapped = sema_.typeMgr().unwrapAliasEnum(sema_.ctx(), typeRef);
-            return unwrapped.isValid() && sema_.typeMgr().get(unwrapped).isNullable();
+            const TypeRef unwrapped = sema_->typeMgr().unwrapAliasEnum(sema_->ctx(), typeRef);
+            return unwrapped.isValid() && sema_->typeMgr().get(unwrapped).isNullable();
         }
 
         bool isNonNullPointerLikeTypeRef(TypeRef typeRef) const
@@ -525,10 +525,10 @@ namespace
             if (!typeRef.isValid() || isNullableTypeRef(typeRef))
                 return false;
             TypeRef       finalTypeRef = typeRef;
-            const TypeRef unwrapped    = sema_.typeMgr().unwrapAliasEnum(sema_.ctx(), typeRef);
+            const TypeRef unwrapped    = sema_->typeMgr().unwrapAliasEnum(sema_->ctx(), typeRef);
             if (unwrapped.isValid())
                 finalTypeRef = unwrapped;
-            const TypeInfo& type = sema_.typeMgr().get(finalTypeRef);
+            const TypeInfo& type = sema_->typeMgr().get(finalTypeRef);
             return type.isPointerLike() || type.isReference();
         }
 
@@ -553,9 +553,9 @@ namespace
         {
             if (!typeRef.isValid())
                 return false;
-            const TypeInfo& type = sema_.typeMgr().get(typeRef);
-            if (const TypeRef unwrapped = type.unwrap(sema_.ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid() && unwrapped != typeRef)
-                return sema_.typeMgr().get(unwrapped).isArray();
+            const TypeInfo& type = sema_->typeMgr().get(typeRef);
+            if (const TypeRef unwrapped = type.unwrap(sema_->ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid() && unwrapped != typeRef)
+                return sema_->typeMgr().get(unwrapped).isArray();
             return type.isArray();
         }
 
@@ -573,7 +573,7 @@ namespace
             {
                 const uint64_t fieldBit = 1ull << path.fieldIndex;
                 if (state.getMust(path.varIndex) & fieldBit)
-                    SemaHelpers::clearLateFieldReadGuard(sema_, atRef);
+                    SemaHelpers::clearLateFieldReadGuard(*sema_, atRef);
                 else if (!(state.getMay(path.varIndex) & fieldBit))
                 {
                     reportLateRead(atRef, var, path.fieldIndex);
@@ -701,14 +701,14 @@ namespace
             const TypeRef typeRef    = symVar.typeRef();
             if (typeRef.isValid())
             {
-                const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(sema_.ctx(), typeRef);
+                const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), typeRef);
                 var.typeHasDrop                         = lifecycle.hasDrop;
 
-                const TypeInfo& type           = sema_.typeMgr().get(typeRef);
+                const TypeInfo& type           = sema_->typeMgr().get(typeRef);
                 TypeRef         storageTypeRef = typeRef;
-                if (const TypeRef unwrapped = type.unwrap(sema_.ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid())
+                if (const TypeRef unwrapped = type.unwrap(sema_->ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid())
                     storageTypeRef = unwrapped;
-                const TypeInfo& storageType = sema_.typeMgr().get(storageTypeRef);
+                const TypeInfo& storageType = sema_->typeMgr().get(storageTypeRef);
 
                 var.isArray = storageType.isArray();
                 if (storageType.isStruct())
@@ -729,13 +729,13 @@ namespace
                             for (uint32_t i = 0; i < var.fieldCount; i++)
                             {
                                 const TypeRef fieldTypeRef = symStruct.fields()[i]->typeRef();
-                                if (fieldTypeRef.isValid() && TypeGen::lifecycleFlagsOfTypeRef(sema_.ctx(), fieldTypeRef).hasDrop)
+                                if (fieldTypeRef.isValid() && TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), fieldTypeRef).hasDrop)
                                     var.dropMask |= 1ull << i;
                             }
                         }
                         if (!explicitUndef)
                         {
-                            symStruct.computeImplicitDefaultFlags(sema_);
+                            symStruct.computeImplicitDefaultFlags(*sema_);
                             if (symStruct.hasImplicitUndefinedDefault())
                             {
                                 tracked = true;
@@ -787,7 +787,7 @@ namespace
 
         void trackDeclNode(FlowState& state, AstNodeRef declRef, bool hasInitExpr)
         {
-            const SemaNodeView view = sema_.viewSymbol(declRef);
+            const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
             SmallVector<Symbol*> symbols;
@@ -809,7 +809,7 @@ namespace
             if (deferDepth_ || inlineDepth_ || varBase->nodeTypeRef.isInvalid())
                 return;
 
-            const SemaNodeView view = sema_.viewSymbol(declRef);
+            const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
             SmallVector<Symbol*> symbols;
@@ -847,7 +847,7 @@ namespace
         void noteNullableLocalWrite(AstNodeRef targetRef, AstNodeRef valueRef, bool escape)
         {
             const AstNodeRef identRef = unwrap(targetRef);
-            if (identRef.isInvalid() || sema_.node(identRef).isNot(AstNodeId::Identifier))
+            if (identRef.isInvalid() || sema_->node(identRef).isNot(AstNodeId::Identifier))
                 return;
             const int32_t index = nullableLocalIndex(identifierVariable(identRef));
             if (index < 0)
@@ -862,7 +862,7 @@ namespace
 
         void collectChildren(const AstNode& node, SmallVector<AstNodeRef>& out) const
         {
-            Ast::nodeIdInfos(node.id()).collectChildren(out, sema_.ast(), node);
+            Ast::nodeIdInfos(node.id()).collectChildren(out, sema_->ast(), node);
         }
 
         // Marks every tracked variable referenced anywhere in a subtree as escaped:
@@ -872,7 +872,7 @@ namespace
             if (ref.isInvalid() || depth > 256 || aborted_)
                 return;
             ref                 = resolve(ref);
-            const AstNode& node = sema_.node(ref);
+            const AstNode& node = sema_->node(ref);
             if (node.is(AstNodeId::Identifier))
             {
                 const SymbolVariable* symVar = identifierVariable(ref);
@@ -916,13 +916,13 @@ namespace
                     return FlowExit::Normal;
                 ref = rawRef;
             }
-            const AstNode& node = sema_.node(ref);
+            const AstNode& node = sema_->node(ref);
 
             // A subtree folded to a compile-time constant performs no runtime access:
             // '#typeof(v.field)', '#assert(...)' operands and friends read types, not
             // memory. The 'undefined' poison constant is NOT a folded value: it marks
             // exactly the reads this analysis exists to catch.
-            const SemaNodeView cstView = sema_.viewConstant(ref);
+            const SemaNodeView cstView = sema_->viewConstant(ref);
             if (cstView.hasConstant() && cstView.cst() && !cstView.cst()->isUndefined())
                 return FlowExit::Normal;
 
@@ -932,7 +932,7 @@ namespace
             // effects on the pre-call state before walking the expansion.
             if (rawRef != ref)
             {
-                const AstNode& rawNode = sema_.node(rawRef);
+                const AstNode& rawNode = sema_->node(rawRef);
                 if ((rawNode.is(AstNodeId::CallExpr) || rawNode.is(AstNodeId::IntrinsicCallExpr)) &&
                     node.isNot(AstNodeId::CallExpr) && node.isNot(AstNodeId::IntrinsicCallExpr))
                     applyCallArguments(rawRef, rawNode, state);
@@ -940,7 +940,7 @@ namespace
 
             // An inline/mixin expansion is a region of its own: a 'return' inside it
             // resumes the caller's flow right after the expansion.
-            const bool inlineRoot = sema_.hasInlinePayload(ref) || (rawRef != ref && sema_.hasInlinePayload(rawRef));
+            const bool inlineRoot = sema_->hasInlinePayload(ref) || (rawRef != ref && sema_->hasInlinePayload(rawRef));
             if (inlineRoot)
                 inlineDepth_++;
 
@@ -1373,7 +1373,7 @@ namespace
         {
             walk(switchStmt.nodeExprRef, state);
 
-            const SwitchPayload* payload    = sema_.semaPayload<SwitchPayload>(switchRef);
+            const SwitchPayload* payload    = sema_->semaPayload<SwitchPayload>(switchRef);
             bool                 exhaustive = payload && (payload->isComplete || payload->firstDefaultRef.isValid());
 
             BreakCtx ctx;
@@ -1394,11 +1394,11 @@ namespace
                     if (childRef.isInvalid())
                         continue;
                     const AstNodeRef caseRef = resolve(childRef);
-                    if (sema_.node(caseRef).isNot(AstNodeId::SwitchCaseStmt))
+                    if (sema_->node(caseRef).isNot(AstNodeId::SwitchCaseStmt))
                         continue;
-                    const auto&             caseStmt = sema_.node(caseRef).cast<AstSwitchCaseStmt>();
+                    const auto&             caseStmt = sema_->node(caseRef).cast<AstSwitchCaseStmt>();
                     SmallVector<AstNodeRef> matchExprs;
-                    AstNode::collectChildren(matchExprs, sema_.ast(), caseStmt.spanExprRef);
+                    AstNode::collectChildren(matchExprs, sema_->ast(), caseStmt.spanExprRef);
                     if (matchExprs.empty() && caseStmt.nodeWhereRef.isInvalid())
                     {
                         exhaustive = true;
@@ -1416,10 +1416,10 @@ namespace
                 if (childRef.isInvalid())
                     continue;
                 const AstNodeRef caseRef = resolve(childRef);
-                if (sema_.node(caseRef).isNot(AstNodeId::SwitchCaseStmt))
+                if (sema_->node(caseRef).isNot(AstNodeId::SwitchCaseStmt))
                     continue;
 
-                const auto& caseStmt = sema_.node(caseRef).cast<AstSwitchCaseStmt>();
+                const auto& caseStmt = sema_->node(caseRef).cast<AstSwitchCaseStmt>();
 
                 FlowState caseState = state;
                 if (hasFellState)
@@ -1480,7 +1480,7 @@ namespace
             if (leftRef.isInvalid())
                 return FlowExit::Normal;
 
-            const AstNode& leftNode = sema_.node(leftRef);
+            const AstNode& leftNode = sema_->node(leftRef);
 
             // Multi-assign / destructuring: every element is a whole definition (the
             // list lowering never drops destinations).
@@ -1491,7 +1491,7 @@ namespace
                 for (const AstNodeRef elementRef : elements)
                 {
                     const AstNodeRef resolvedRef = resolve(elementRef);
-                    if (resolvedRef.isInvalid() || sema_.node(resolvedRef).is(AstNodeId::AssignIgnore))
+                    if (resolvedRef.isInvalid() || sema_->node(resolvedRef).is(AstNodeId::AssignIgnore))
                         continue;
                     AccessPath path;
                     if (accessPath(resolvedRef, path))
@@ -1574,7 +1574,7 @@ namespace
                         // Initialized on every path: a normal reassignment.
                     }
                     else if (!(mayBits & fieldBit) && sameLoop)
-                        sema_.ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::UndefinedInit);
+                        sema_->ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::UndefinedInit);
                     else
                         reportDrop(assignRef, var);
                 }
@@ -1591,7 +1591,7 @@ namespace
                 }
                 else if ((mayBits & var.dropMask) == 0 && sameLoop)
                 {
-                    sema_.ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::UndefinedInit);
+                    sema_->ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::UndefinedInit);
                 }
                 else
                 {
@@ -1608,12 +1608,12 @@ namespace
         bool applyCallArguments(AstNodeRef callRef, const AstNode& node, FlowState& state)
         {
             SmallVector<ResolvedCallArgument> args;
-            sema_.appendResolvedCallArguments(callRef, args);
+            sema_->appendResolvedCallArguments(callRef, args);
 
             // The resolved callee, for fallible detection and parameter types.
             const SymbolFunction* calledFn = nullptr;
             {
-                const SemaNodeView view = sema_.viewSymbol(callRef);
+                const SemaNodeView view = sema_->viewSymbol(callRef);
                 Symbol*            sym  = view.hasSymbol() ? view.singleSymbol() : nullptr;
                 if (sym && sym->isFunction())
                     calledFn = &sym->cast<SymbolFunction>();
@@ -1622,7 +1622,7 @@ namespace
                     const AstNodeRef   calleeRef  = node.is(AstNodeId::CallExpr)
                                                         ? node.cast<AstCallExpr>().nodeExprRef
                                                         : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
-                    const SemaNodeView calleeView = sema_.viewSymbol(resolve(calleeRef));
+                    const SemaNodeView calleeView = sema_->viewSymbol(resolve(calleeRef));
                     Symbol*            calleeSym  = calleeView.hasSymbol() ? calleeView.singleSymbol() : nullptr;
                     if (calleeSym && calleeSym->isFunction())
                         calledFn = &calleeSym->cast<SymbolFunction>();
@@ -1664,7 +1664,7 @@ namespace
                         const SymbolVariable* param = calledFn->parameters()[index];
                         if (param && param->typeRef().isValid())
                         {
-                            const TypeInfo& paramType = sema_.typeMgr().get(param->typeRef());
+                            const TypeInfo& paramType = sema_->typeMgr().get(param->typeRef());
                             // Arrays and slices are passed by address: the callee can
                             // fill them (out-parameter shape).
                             takesAddress = paramType.isPointerOrReference() || paramType.isSlice() || paramType.isArray();
@@ -1685,7 +1685,7 @@ namespace
                 const AstNodeRef resolvedCalleeRef = resolve(calleeRef);
                 if (resolvedCalleeRef.isValid())
                 {
-                    const AstNode& calleeNode = sema_.node(resolvedCalleeRef);
+                    const AstNode& calleeNode = sema_->node(resolvedCalleeRef);
                     if (calleeNode.is(AstNodeId::MemberAccessExpr))
                     {
                         AccessPath path;

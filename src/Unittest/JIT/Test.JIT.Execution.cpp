@@ -377,12 +377,12 @@ namespace
         {
             const MicroReg laneReg  = MicroReg::virtualIntReg(laneBase + lane * 2);
             const MicroReg otherReg = MicroReg::virtualIntReg(laneBase + lane * 2 + 1);
-            builder.emitLoadRegMem(laneReg, basePtr, lane * 4, MicroOpBits::B32);
-            builder.emitLoadRegMem(otherReg, basePtr, 16 + lane * 4, MicroOpBits::B32);
+            builder.emitLoadRegMem(laneReg, basePtr, static_cast<uint64_t>(lane) * 4, MicroOpBits::B32);
+            builder.emitLoadRegMem(otherReg, basePtr, 16 + static_cast<uint64_t>(lane) * 4, MicroOpBits::B32);
             builder.emitOpBinaryRegReg(laneReg, otherReg, MicroOp::Add, MicroOpBits::B32);
-            builder.emitOpBinaryRegMem(laneReg, basePtr, 32 + lane * 4, MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegMem(laneReg, basePtr, 32 + static_cast<uint64_t>(lane) * 4, MicroOp::Xor, MicroOpBits::B32);
             builder.emitOpBinaryRegImm(laneReg, ApInt(7, 8), MicroOp::RotateLeft, MicroOpBits::B32);
-            builder.emitLoadMemReg(basePtr, 48 + lane * 4, laneReg, MicroOpBits::B32);
+            builder.emitLoadMemReg(basePtr, 48 + static_cast<uint64_t>(lane) * 4, laneReg, MicroOpBits::B32);
         }
 
         // The packed replacement writes flags at the insertion point, which

@@ -15,6 +15,7 @@
 #include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
+#include <limits>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -470,7 +471,8 @@ namespace
         const auto& dstFields = dstStruct.fields();
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
-        srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
+        constexpr size_t K_INVALID_FIELD_INDEX = std::numeric_limits<size_t>::max();
+        srcToDst.assign(srcTypes.size(), K_INVALID_FIELD_INDEX);
         std::vector dstUsed(dstFields.size(), false);
         std::vector dstFieldInitRefs(dstFields.size(), AstNodeRef::invalid());
 
@@ -522,7 +524,7 @@ namespace
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
             const size_t dstIndex = srcToDst[i];
-            if (dstIndex == static_cast<size_t>(-1) || !dstFields[dstIndex])
+            if (dstIndex == K_INVALID_FIELD_INDEX || !dstFields[dstIndex])
                 continue;
             if (!SemaAccess::canAccessMember(*args.sema, *dstFields[dstIndex], siteViewRef) || !SemaAccess::canWriteMember(*args.sema, *dstFields[dstIndex], siteViewRef))
                 return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_struct_cast_field_access, dstFields[dstIndex]->name(args.sema->ctx()));

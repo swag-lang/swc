@@ -16,7 +16,8 @@ SWC_TEST_BEGIN(Utf8_MoveOperationsTransferStorage)
     Utf8 constructed(std::move(source));
     if (constructed.size() != 256 || constructed.front() != 'a')
         return Result::Error;
-    if (constructed.data() != sourceData || !source.empty())
+    // Utf8 move operations promise an empty source; these assertions test that contract.
+    if (constructed.data() != sourceData || !source.empty()) // NOLINT(bugprone-use-after-move)
         return Result::Error;
 
     Utf8        assignedSource(512, 'b');
@@ -26,7 +27,7 @@ SWC_TEST_BEGIN(Utf8_MoveOperationsTransferStorage)
     assigned = std::move(assignedSource);
     if (assigned.size() != 512 || assigned.front() != 'b')
         return Result::Error;
-    if (assigned.data() != assignedSourceData || !assignedSource.empty())
+    if (assigned.data() != assignedSourceData || !assignedSource.empty()) // NOLINT(bugprone-use-after-move)
         return Result::Error;
 }
 SWC_TEST_END()

@@ -3,8 +3,25 @@
 using Core, Pixel, Gui, Audio
 
 private const ViewerPluginApiVersion = 3'u32
-private const WaveformPointCount = 2048'u64
 private const SoundGlyphSize = 18.0
+
+// Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
+// has to stay ahead of the widest plot a window can give it; past that the columns repeat.
+private const WaveformPointCount = 4096'u64
+
+// Air around the plot, and the band the time scale is read in.
+private const WaveformInsetX = 24.0
+private const WaveformInsetY = 32.0
+private const WaveformScaleHeight = 26.0
+private const WaveformTickHeight = 5.0
+
+// Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
+// body the ear hears. Drawing both is what separates a waveform from a silhouette.
+internal struct WaveformPoint
+{
+    peak: f32     // Loudest absolute level of the slice.
+    body: f32     // Mean absolute level of the slice.
+}
 
 private var g_SoundEngineUsers: u32
 private var g_SoundPluginOwnsEngine: bool
@@ -69,7 +86,7 @@ internal func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFile
     return 0
 }
 
-internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'f32
+internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
 {
     var result: retval
     if !@countof(bytes) or !channels do
@@ -88,6 +105,7 @@ internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, c
         let first = point * frameCount / pointCount
         let last  = Math.max((point + 1) * frameCount / pointCount, first + 1)
         var peak  = 0'f32
+        var sum   = 0'f32
         for frame in first until last
         {
             var mixed = 0'f32
@@ -98,10 +116,12 @@ internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, c
             }
 
             mixed /= channels
-            peak  = Math.max(peak, Math.abs(mixed))
+            let level = Math.abs(mixed)
+            peak = Math.max(peak, level)
+            sum += level
         }
 
-        result[point] = peak
+        result[point] = {peak, sum / cast(f32) (last - first)}
     }
 
     return result
@@ -114,11 +134,94 @@ internal func soundDurationText(seconds: f32)->String
     return Format.toString("%{f2} s", seconds)
 }
 
-private struct SoundWaveformView
+internal struct SoundWaveformView
 {
     using wnd: Wnd
-    samples:   Array'f32
+    samples:   Array'WaveformPoint
+    duration:  f32
     progress:  f32
+}
+
+// Returns the interval a time scale is graduated at, so the marks land on numbers a reader
+// already thinks in rather than on an even division of whatever the duration happens to be.
+internal func waveformTickStep(duration: f32, plotWidth: f32)->f32
+{
+    const Steps: [14] f32 = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600]
+
+    // One mark every 120 pixels or so keeps the scale readable at any width, and each label needs
+    // the room its own digits take.
+    let wanted = duration * 120 / Math.max(plotWidth, 1)
+    for step in Steps where step >= wanted do
+        return step
+    return Steps[@countof(Steps) - 1]
+}
+
+// Formats one graduation of the time scale, in the shortest spelling its step allows.
+internal func waveformTickText(seconds, step: f32)->String
+{
+    if seconds >= 60
+    {
+        let minutes = cast(u32) (seconds / 60)
+        let rest    = cast(u32) Math.round(seconds - cast(f32) minutes * 60)
+        return Format.toString("%:%{02}", minutes, rest)
+    }
+
+    if step < 1 do
+        return Format.toString("%{f2}", seconds)
+    return Format.toString("%", cast(u32) Math.round(seconds))
+}
+
+private impl SoundWaveformView
+{
+    // Returns the band the wave is drawn in, above the band the time scale is read in.
+    mtd const plotRect()->Math.Rectangle
+    {
+        let rect = .clientRect()
+        return {rect.x + WaveformInsetX,
+                rect.y + WaveformInsetY,
+                Math.max(rect.width - 2 * WaveformInsetX, 1),
+                Math.max(rect.height - 2 * WaveformInsetY - WaveformScaleHeight, 1)}
+    }
+
+    // Draws the graduated scale under the wave, skipping any mark whose label would touch the one
+    // before it.
+    mtd paintTimeScale(painter: *Painter, plot: Math.Rectangle)
+    {
+        if .duration <= 0 do
+            return
+
+        let resolved = .font().regular
+        if !resolved do
+            return
+
+        let font    = resolved!
+        let colors  = .themeColors()
+        let step    = waveformTickStep(.duration, plot.width)
+        let baseY   = plot.bottom()
+        var written = plot.x - 1
+
+        painter.drawLine(plot.x, baseY, plot.right(), baseY, colors.border, 1)
+
+        var seconds = 0'f32
+        while seconds <= .duration
+        {
+            let x = plot.x + plot.width * (seconds / .duration)
+            painter.drawLine(x, baseY, x, baseY + WaveformTickHeight, colors.border, 1)
+
+            // The last graduation is pulled back inside the plot rather than dropped: a scale that
+            // stops naming its end reads as a scale that was cut off.
+            let text  = waveformTickText(seconds, step)
+            let width = Painter.measureString(text.toString(), font).width
+            let left  = Math.min(x, plot.right() - width)
+            if left > written
+            {
+                painter.drawString(left, baseY + WaveformTickHeight + 4, text.toString(), font, colors.label_TextFaint)
+                written = left + width + 12
+            }
+
+            seconds += step
+        }
+    }
 }
 
 private impl IWnd for SoundWaveformView
@@ -126,24 +229,60 @@ private impl IWnd for SoundWaveformView
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
-        let rect    = .clientRect()
-        let center  = rect.vertCenter()
-        painter.drawLine(rect.x, center, rect.right(), center, .themeColors().label_TextFaint, 1)
+        let colors  = .themeColors()
+        let plot    = .plotRect()
+        let center  = plot.vertCenter()
+
+        painter.setParams(.Antialiased)
+        .paintTimeScale(painter, plot)
+
+        // The silence line is under the wave, and only shows where the wave has nothing to say.
+        painter.drawLine(plot.x, center, plot.right(), center, colors.border, 1)
         if !.samples.count do
             return
 
-        let width = cast(u64) Math.max(rect.width, 1)
-        for x in width
+        // The wave is ink, in the four weights that carry two readings at once. Across a column,
+        // the transient reaches further than the body the ear hears; along the file, what has been
+        // played is the stronger pair. The accent stays for the play head alone: a waveform washed
+        // in it would be a window of accent pointing at nothing.
+        let ink      = colors.label_Text
+        let playBody = Color.lerp(colors.view_Bk, ink, 0.92)
+        let playPeak = Color.lerp(colors.view_Bk, ink, 0.5)
+        let restBody = Color.lerp(colors.view_Bk, ink, 0.55)
+        let restPeak = Color.lerp(colors.view_Bk, ink, 0.28)
+
+        let columns  = cast(u64) Math.max(plot.width, 1)
+        let playHead = Math.clamp(.progress, 0, 1) * plot.width
+        let scale    = plot.height * 0.5 - 1
+
+        for column in columns
         {
-            let index     = Math.min(x * .samples.count / width, .samples.count - 1)
-            let amplitude = .samples[index] * rect.height * 0.42
-            painter.drawLine(rect.x + x, center - amplitude, rect.x + x, center + amplitude, .themeColors().richColor1, 1)
+            let first = column * .samples.count / columns
+            let last  = Math.max((column + 1) * .samples.count / columns, first + 1)
+            var peak  = 0'f32
+            var body  = 0'f32
+            for index in first until Math.min(last, .samples.count)
+            {
+                peak = Math.max(peak, .samples[index].peak)
+                body = Math.max(body, .samples[index].body)
+            }
+
+            // A slice of near silence still gets its pixel: a wave broken into a comb reads as a
+            // rendering fault rather than as a quiet passage.
+            let peakHeight = Math.max(peak * scale, 0.5)
+            let bodyHeight = Math.max(body * scale, 0.5)
+            let played     = cast(f32) column < playHead
+            let x          = plot.x + cast(f32) column
+
+            painter.fillRect(x, center - peakHeight, 1, peakHeight * 2, played ? playPeak : restPeak)
+            painter.fillRect(x, center - bodyHeight, 1, bodyHeight * 2, played ? playBody : restBody)
         }
 
+        // The play head is a rule, and it runs into the scale so the time it is at can be read.
         if .progress > 0
         {
-            let playX = rect.x + rect.width * Math.clamp(.progress, 0, 1)
-            painter.drawLine(playX, rect.y, playX, rect.bottom(), .themeColors().activeRail, 2)
+            let x = plot.x + playHead
+            painter.drawLine(x, plot.y, x, plot.bottom() + WaveformTickHeight, colors.hilight, 1)
         }
     }
 }
@@ -315,7 +454,6 @@ internal impl SoundPluginView
         result.waveform                 = Wnd.create'SoundWaveformView(result, "sFileScope.sound.waveform")
         result.waveform.dockStyle       = .Center
         result.waveform.backgroundStyle = .View
-        result.waveform.padding         = {32, 32, 32, 32}
 
         let sound = catch SoundFile.load(fileName) as loadError
         if loadError != null
@@ -329,9 +467,10 @@ internal impl SoundPluginView
             return result
         }
 
-        result.sound            = #move sound
-        result.duration         = result.sound.durationInSeconds()
-        result.waveform.samples = buildWaveform(result.sound.preloadedData(), result.sound.sampleEncoding(), result.sound.numChannels())
+        result.sound             = #move sound
+        result.duration          = result.sound.durationInSeconds()
+        result.waveform.samples  = buildWaveform(result.sound.preloadedData(), result.sound.sampleEncoding(), result.sound.numChannels())
+        result.waveform.duration = result.duration
         let durationText = soundDurationText(result.duration)
         result.details = Format.toString("% Hz · % channel% · % bit · %", result.sound.sampleRateHz(), result.sound.numChannels(), result.sound.numChannels() == 1 ? "" : "s", result.sound.sampleStorageBits(), durationText)
         result.engineReady = acquireSoundEngine()

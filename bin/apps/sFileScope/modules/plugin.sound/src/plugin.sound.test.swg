@@ -12,20 +12,61 @@ private const TinyWav: [48] u8 = [
     0x04, 0x00, 0x00, 0x00, 0x00, 0x80, 0xFF, 0x80,
 ]
 
+// Builds a 16-bit mono WAV whose loudness moves the way real material does, so the picture the
+// plot is judged on shows what the plot is for: bursts that decay, a transient above the body of
+// each one, and silences between them.
 private func previewWav()->Array'u8
 {
-    const SampleCount = 800'u64
+    const SampleRate  = 11_025'u64
+    const FrameCount  = SampleRate * 2 + SampleRate / 2
+    const PayloadSize = FrameCount * 2
+
     var result: retval
-    result.resize(44 + SampleCount)
+    result.resize(44 + PayloadSize)
     for value, index in TinyWav[0 until 44] do
         result[index] = value
-    result[4]  = 0x44
-    result[5]  = 0x03
-    result[40] = 0x20
-    result[41] = 0x03
-    for index in SampleCount do
-        result[44 + index] = cast(u8) ((index % 64) * 4)
+
+    writeU32(&result, 4, cast(u32) (36 + PayloadSize))
+    result[22] = 1                                            // One channel.
+    writeU32(&result, 24, cast(u32) SampleRate)               // Frames per second.
+    writeU32(&result, 28, cast(u32) (SampleRate * 2))         // Bytes per second.
+    result[32] = 2                                            // Bytes per frame.
+    result[34] = 16                                           // Bits per sample.
+    writeU32(&result, 40, cast(u32) PayloadSize)
+
+    for frame in FrameCount
+    {
+        let seconds  = cast(f32) frame / cast(f32) SampleRate
+        let burst    = cast(u64) (seconds * 4)
+        let inBurst  = seconds * 4 - cast(f32) burst
+        var envelope = 0'f32
+        if inBurst < 0.72 do
+            envelope = (1 - inBurst / 0.72) * (0.35 + 0.16 * cast(f32) (burst % 5))
+
+        // The carrier alone would make peak and body the same reading. The click on the first
+        // frames of a burst is what separates them, which is the whole point of the two weights.
+        let carrier  = Math.sin(seconds * (520 + 90 * cast(f32) burst) * 6.2831855)
+        let click    = inBurst < 0.01 ? (frame & 1 ? 0.9'f32 : -0.9) : 0
+        let value    = Math.clamp(carrier * envelope + click * envelope, -1, 1)
+        let quantized = cast(s16) (value * 32_000)
+        writeU16(&result, 44 + frame * 2, cast #bit (u16) quantized)
+    }
+
     return result
+}
+
+private func writeU16(bytes: *Array'u8, offset: u64, value: u16)
+{
+    bytes[offset]     = cast(u8) (value & 0xFF)
+    bytes[offset + 1] = cast(u8) (value >> 8)
+}
+
+private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
+{
+    bytes[offset]     = cast(u8) (value & 0xFF)
+    bytes[offset + 1] = cast(u8) ((value >> 8) & 0xFF)
+    bytes[offset + 2] = cast(u8) ((value >> 16) & 0xFF)
+    bytes[offset + 3] = cast(u8) ((value >> 24) & 0xFF)
 }
 
 #test
@@ -60,9 +101,15 @@ private func previewWav()->Array'u8
     let view     = SoundPluginView.create(&host.root, commands, fileName)
     @assert(view.engineReady and view.playButton.isEnabled())
     @assert(view.waveform.samples.count == 4)
+    // A second file opened after the engine exists must decode exactly like the first one: the
+    // waveform of every file but the first went missing when a failure inside the engine was
+    // swallowed on its way out of the module.
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     let replacement         = SoundPluginView.create(&host.root, replacementCommands, fileName)
     @assert(replacement.engineReady and replacement.playButton.isEnabled())
+    @assert(replacement.waveform.samples.count == view.waveform.samples.count)
+    @assert(replacement.duration == view.duration)
+    @assert(replacement.details == view.details)
 
     view.togglePlayback()
     @assert(view.playing and view.voice != null)
@@ -98,6 +145,11 @@ private func previewWav()->Array'u8
     let view = SoundPluginView.create(&host.root, commandBar, fileName)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Right
+
+    // Photographed mid-playback: the picture has to show the played part apart from the rest, the
+    // play head between them, and the graduated scale under both.
+    view.elapsed = view.duration * 0.38
+    view.updatePlaybackUi()
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
 
@@ -109,22 +161,52 @@ private func previewWav()->Array'u8
 {
     let samples = buildWaveform([0'u8, 128'u8, 255'u8], .Pcm8, 1)
     @assert(samples.count == 3)
-    @assert(samples[0] == 1 and samples[1] == 0 and samples[2] > 0.99)
+    @assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
+    @assert(samples[0].body == samples[0].peak)
 }
 
 #test
 {
     let samples = buildWaveform([0'u8, 0x80'u8, 0'u8, 0'u8, 0xFF'u8, 0x7F'u8], .Pcm16, 1)
     @assert(samples.count == 3)
-    @assert(samples[0] == 1 and samples[1] == 0 and samples[2] > 0.99)
+    @assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
 }
 
-// Reproduces the asset reported with sFileScope when the adjacent examples workspace is present.
-// Its metadata and waveform must not depend on whether a playback device can be opened.
+// One slice covering several frames reports the loudest of them and the mean of them, and the two
+// are only equal when the slice is flat.
+#test
+{
+    var payload: Array'u8
+    payload.resize(8)
+    for index in payload.count do
+        payload[index] = index == 0 ? 255'u8 : 128'u8
+
+    let samples = buildWaveform(payload.toSlice(), .Pcm8, 1)
+    @assert(samples.count == 8)
+    @assert(samples[0].peak > 0.99 and samples[0].body > 0.99)
+
+    let single = buildWaveform(payload.toSlice()[0 until 4], .Pcm8, 1)
+    @assert(single.count == 4)
+    @assert(single[0].peak > 0.99 and single[1].peak == 0)
+}
+
+// The time scale is graduated on numbers a reader thinks in, and its labels shorten with the step.
+#test
+{
+    @assert(waveformTickStep(4.2, 640) == 1)
+    @assert(waveformTickStep(0.7, 640) == 0.25)
+    @assert(waveformTickStep(600, 640) == 120)
+    @assert(waveformTickText(2, 1) == "2")
+    @assert(waveformTickText(0.5, 0.25) == "0.50")
+    @assert(waveformTickText(95, 30) == "1:35")
+}
+
+// Reads a real asset of the repository rather than a generated one. Its metadata and waveform must
+// not depend on whether a playback device can be opened.
 #test
 {
     let sourceDirectory = Path.directoryName(#curlocation.fileName)!
-    let pacmanWav       = Path.combine(sourceDirectory, "../../../../../../../swag/bin/examples/scripts/datas/pacman/audio/pacman_beginning.wav")
+    let pacmanWav       = Path.combine(sourceDirectory, "../../../../../examples/scripts/datas/pacman/audio/pacman_beginning.wav")
     if !File.exists(pacmanWav) do
         return
 
@@ -134,9 +216,9 @@ private func previewWav()->Array'u8
     @assert(sound.sampleStorageBits() == 8)
     @assert(sound.durationInSeconds() > 4.2 and sound.durationInSeconds() < 4.3)
     let waveform = buildWaveform(sound.preloadedData(), sound.sampleEncoding(), sound.numChannels())
-    @assert(waveform.count == 2_048)
+    @assert(waveform.count == 4_096)
     var visible: bool
-    for sample in waveform where sample > 0.05
+    for sample in waveform where sample.peak > 0.05 and sample.body > 0
     {
         visible = true
         break
@@ -150,5 +232,6 @@ private func previewWav()->Array'u8
     let view = SoundPluginView.create(&host.root, commands, pacmanWav.toString())
     @assert(view.details.indexOf("11025") != Swag.U64.Max)
     @assert(view.details.indexOf("8 bit") != Swag.U64.Max)
-    @assert(view.waveform.samples.count == 2_048)
+    @assert(view.waveform.samples.count == 4_096)
+    @assert(view.waveform.duration == view.duration)
 }

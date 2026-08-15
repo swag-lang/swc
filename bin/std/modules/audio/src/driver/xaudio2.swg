@@ -4,6 +4,20 @@ using Swag, Core, Core.Errors, Win32, XAudio2
 
 func hresultErrorId(result: HRESULT)->u64 => cast(u64) cast #bit (u32) result
 
+// Reports whether a `CoInitializeEx` result leaves the calling thread inside an apartment the
+// engine can work in.
+//
+// `S_FALSE` means the thread was already initialized the same way, and `RPC_E_CHANGED_MODE` means
+// it was already initialized the other way — which is what a window does, since showing a surface
+// that accepts a drop starts OLE and OLE is apartment threaded. XAudio2 runs in either apartment,
+// so both are usable and only a real failure is one.
+internal func comApartmentIsUsable(result: HRESULT)->bool => result == S_OK or result == S_FALSE or result == RPC_E_CHANGED_MODE
+
+// Reports whether this `CoInitializeEx` result is the one that must be balanced with
+// `CoUninitialize`. A refused mode change took no reference, so releasing it would close an
+// apartment the caller still owns.
+internal func comOwnsInitialization(result: HRESULT)->bool => result == S_OK or result == S_FALSE
+
 struct XAudio2DriverNative
 {
     xAudio2:        #null *IXAudio2
@@ -25,13 +39,10 @@ impl XAudio2DriverNative
 
         if initCOM
         {
-            result = CoInitializeEx(null, 0)
-
-            // COM returns S_FALSE when the apartment was already initialized; it is still a
-            // successful initialization and still requires CoUninitialize.
-            if result != S_OK and result != S_FALSE do
+            result = CoInitializeEx(null, COINIT_MULTITHREADED)
+            if !comApartmentIsUsable(result) do
                 fail SystemError{"failed to initialize COM", errorID: hresultErrorId(result)}
-            .hasInitCOM = true
+            .hasInitCOM = comOwnsInitialization(result)
         }
 
         result = XAudio2Create(&.xAudio2, 0)

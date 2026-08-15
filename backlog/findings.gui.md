@@ -298,3 +298,29 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the popup list, the menu popup, and the automatic label height — for that pattern, and either
   round out through one shared helper or measure the second axis after committing the first. Prove
   it the way `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
+
+### F-142 — A tooltip shown over a plugin-owned button comes up empty and the process dies
+
+- Area: std/gui
+- Found while: playing a WAV in sFileScope. Pressing the play button and leaving the pointer on it
+  kills the application about 300 ms later — the delay a tooltip waits before it appears.
+- Observation: the tip does appear, as an empty box the size of no text at all, and the process is
+  gone a moment later with `0xC0000005`. Everything the plugin does completes first: the voice is
+  created, `play()` reports no error, `updatePlaybackUi` returns, and the waveform repaints. Moving
+  the pointer off the button immediately after the click makes the same run survive its whole
+  playback, so the tip is the trigger, not the audio.
+- Evidence: only a surface that keeps rendering reaches this — the tip is armed by
+  `ToolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)` in
+  [application.swg](../bin/std/modules/gui/src/application.swg) and fired by `ToolTip.update(dt)`,
+  which the application only runs while frames run. The sound plugin holds a 33 ms timer while it
+  plays, which is what makes it show there and not over the same buttons before playback. The
+  suspect is the hand-off in [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg): `update` takes
+  `let copy = pending[]` and passes `copy.str` into `show`, whose first act is `ToolTip.hide()` —
+  which frees `g_Pending`, the value that slice was measured against. `show` then builds the rich
+  edit from a `String` local that dies when `show` returns, while the tip window it created outlives
+  it. Reassigning `Wnd.toolTip` on a hovered `PushButton` or `IconButton` in a plain window does not
+  reproduce it, which is why the timer and the plugin boundary are both in the picture.
+- Next step: drive the same sequence from a headless host so the tip can be photographed — arm it,
+  run frames until `ToolTip.update` fires, and read the text the rich edit ended up with. Then
+  detach the pending request in `update` before calling `show`, and check whether what `show` hands
+  `RichEditCtrl.setText` is a copy or a view of a local.

@@ -23,9 +23,9 @@ impl DriverNative
 {
     mtd createNative(kind: DriverKind = .Default) fail
     {
-        .kind = resolveKind(kind)
+        let resolved = resolveKind(kind)
 
-        switch .kind
+        switch resolved
         {
         case .NoSound:
             .noSound.createNoSound()
@@ -41,6 +41,11 @@ impl DriverNative
         default:
             fail UnsupportedFormatError{"audio driver is not available"}
         }
+
+        // The driver names its backend only once it has one. A backend that gives up half way
+        // otherwise leaves a driver that says XAudio2 while 'isCreated' is false, which is what
+        // the next caller reads and believes.
+        .kind = resolved
     }
 
     mtd destroyNative()

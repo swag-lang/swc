@@ -156,3 +156,54 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: embedding `#move` in an aggregate call argument or one branch of a conditional expression passes semantic analysis, then the DevMode compiler asserts while preparing the materialized value
 - Evidence: `blocks.add(MarkdownBlock{kind, #move text})` and `var value = condition ? String.from("rule") : #move block.text` both assert at `CodeGenCallHelpers.Call.cpp:1062` because `argConstView.cstRef().isValid()` does not hold; assigning the moved field through an ordinary statement before the call compiles in both cases
 - Next step: reduce both patterns into `bin/unittests/native`, then trace why their moved subexpressions reach `appendPreparedFixedArg` without a valid constant reference and make the original expressions compile without changing ownership
+
+## Failure propagation across module boundaries
+
+### F-140 — A failure raised in a standard-library module is lost inside a plugin loaded at run time
+
+- Area: compiler
+- Found while: the sFileScope sound plugin played nothing and lost its waveform on every file but
+  the first. The proximate cause was an audio-engine failure that never reached the plugin's
+  `catch`; the class it belongs to is this one.
+- Observation: when the call chain is entered from a shared library the host opened with
+  `Core.NativeLibrary.load` rather than through its import table, a `fail` raised inside a
+  standard-library module does not reach a `catch` in the plugin, and the caller reads the capture
+  as null. Worse, the raised state is not cleared either: every later fallible call inside that
+  standard-library module returns immediately, so a function that cannot fail from where the caller
+  stands hands back a zero-initialized `retval` and reports no error at all.
+- Evidence: `plugin.sound.dll` calls `Audio.createEngine`, which fails inside `audio.dll` while
+  initializing COM. `catch createEngine(kind) as createError` in the plugin reports
+  `createError == null` while `isEngineCreated()` is false and `activeDriverKind()` is already
+  `XAudio2` — the driver stopped half way through `Driver.create`. From that point every
+  `SoundFile.load` in the same process returns a `SoundFile` with a zero sample rate, zero channels
+  and no payload, again with a null capture, which is what emptied the waveform. Two smaller probes
+  from inside the same plugin: `catch File.info("C:/definitely-missing-file.bin") as err` never
+  reaches its next statement and the process exits, and `SoundFile.load` on a missing path walks
+  past a failed `File.openRead` into `Wav.load`, where `FileStream.position` panics on a stream that
+  was never opened. The same three shapes are correct in a script, in an executable module, and in
+  `bin/unittests/workspace`, where `catch ctxSharedRaiseSystemError() as raised` already passes —
+  those all reach the DLL through the import table.
+- Next step: reproduce outside the application by adding a third module to
+  `bin/unittests/workspace` that the consumer opens with `NativeLibrary.load` instead of importing,
+  and have it call a fallible `core` function that fails. Then compare what the runtime error state
+  is stored in on each side of that boundary against the import-table case — the suspect is the
+  module-local copy a run-time-loaded module gets instead of the process-wide one.
+
+### F-141 — A `defer #fail` added to `Driver.create` makes unrelated audio tests fail
+
+- Area: compiler
+- Found while: making a failed audio-engine creation leave a clean driver behind
+- Observation: adding `defer #fail .destroyNative()` immediately before `.createNative(kind)` in
+  `Driver.create` ([driver.swg](../bin/std/modules/audio/src/driver/driver.swg)) turns 7 of the 26
+  audio tests red, all of them reporting `audio engine is already created` from an
+  `expect createNoSoundEngine()` in a *later* test. Nothing in those tests fails, so the deferred
+  call should never run; the engine nevertheless survives a `destroyEngine()` it should not.
+- Evidence: `swc tools/std.swgs test -m audio -bc debug` passes 26/26 without that one line and
+  fails 7 with it, with the whole rest of the change in place. A reduced case — a `fail` method
+  holding `defer #fail cleanup()` that returns normally, then one that fails — runs the cleanup 0
+  times and then 1 time, which is correct, so the reduction does not reproduce. The shipped fix
+  avoids the defer by naming the backend only after it exists, in `DriverNative.createNative`.
+- Next step: put the line back and bisect what makes this frame different from the reduced one:
+  `Driver.create` is a method on a global, its `destroy` ends with `@drop(me, 1)` / `@init(me, 1)`,
+  and it starts a thread between the defer and the end of the function. Dump the emitted unwind
+  records for both shapes and compare which one the `@init` at the end of `destroy` runs against.

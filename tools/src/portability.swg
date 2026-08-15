@@ -65,6 +65,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/pixel/src/text/fontfamily.win32.swg",
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
     "bin/std/modules/audio/src/driver/xaudio2.swg",
+    "bin/std/modules/audio/src/unittests/driver.xaudio2.win32.test.swg",
     "bin/apps/sSnapForge/modules/sSnapForge/src/screenshot/screenshot.win32.swg",
     "bin/apps/sVaultDrive/modules/sVaultDrive/src/autounmount.win32.swg",
     "bin/apps/sVaultDrive/modules/sVaultDrive/src/tests/integration.win32.swg"]

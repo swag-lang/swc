@@ -134,7 +134,10 @@ namespace
             return false;
         if (!aliasType(sema, targetLeftView).isIntLike() || !aliasType(sema, nodeRightView).isIntLike())
             return false;
-        return SemaHelpers::binaryOpNeedsOverflowSafety(Token::canonicalBinary(op), node.modifierFlags);
+        const TokenId binaryOp = Token::canonicalBinary(op);
+        if (binaryOp == TokenId::SymLowerLower || binaryOp == TokenId::SymGreaterGreater)
+            return !aliasType(sema, nodeRightView).isIntLikeUnsigned();
+        return SemaHelpers::binaryOpNeedsOverflowSafety(binaryOp, node.modifierFlags);
     }
 
     void markAssignmentTargetAddressableStorage(const SemaNodeView& leftView)

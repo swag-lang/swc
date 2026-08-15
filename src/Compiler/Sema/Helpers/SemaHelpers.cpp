@@ -153,10 +153,6 @@ bool SemaHelpers::binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFl
         case TokenId::SymPercent:
             return !modifierFlags.has(AstModifierFlagsE::Wrap);
 
-        case TokenId::SymLowerLower:
-        case TokenId::SymGreaterGreater:
-            return true;
-
         default:
             return false;
     }

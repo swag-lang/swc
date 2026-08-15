@@ -442,22 +442,38 @@ namespace
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
         materializeArithmeticOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, encodeCtx.operationTypeRef);
 
-        MicroReg rightReg;
-        materializeArithmeticOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.operationTypeRef);
-
         if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
         {
-            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, node.nodeRightRef, nodePayload.reg, rightReg, operationType, opBits, tokId, node.modifierFlags.has(AstModifierFlagsE::Wrap)));
-        }
-        else if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
-        {
-            SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, nodePayload.reg, rightReg, op, opBits, tokId == TokenId::SymPercent));
+            const TypeInfo&   countType = codeGen.typeMgr().get(encodeCtx.rightOperandTypeRef);
+            const MicroOpBits countBits = CodeGenTypeHelpers::numericBits(countType);
+            MicroReg          countReg;
+            materializeArithmeticOperand(countReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.rightOperandTypeRef);
+
+            CodeGenSafety::ShiftIntLikeContext shiftCtx;
+            shiftCtx.countOperandRef = node.nodeRightRef;
+            shiftCtx.valueReg        = nodePayload.reg;
+            shiftCtx.countReg        = countReg;
+            shiftCtx.valueType       = &operationType;
+            shiftCtx.countType       = &countType;
+            shiftCtx.valueBits       = opBits;
+            shiftCtx.countBits       = countBits;
+            shiftCtx.op              = tokId;
+            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, shiftCtx));
         }
         else
         {
-            codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
-            if (hasSafety)
-                SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, tokId, isSigned));
+            MicroReg rightReg;
+            materializeArithmeticOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.operationTypeRef);
+            if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
+            {
+                SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, nodePayload.reg, rightReg, op, opBits, tokId == TokenId::SymPercent));
+            }
+            else
+            {
+                codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
+                if (hasSafety)
+                    SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, tokId, isSigned));
+            }
         }
 
         convertArithmeticOperand(nodePayload.reg, codeGen, encodeCtx.operationTypeRef, encodeCtx.resultTypeRef);

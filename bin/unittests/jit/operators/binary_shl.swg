@@ -32,6 +32,19 @@
 
 #test
 {
+    #[Swag.Safety(.Overflow, true)]
+    func shiftLeftTruncates(a: u8, b: u64)->u8 { return a << b }
+
+    const V0 = #run shiftLeftTruncates(0x80'u8, 1'u64)
+    const V1 = #run shiftLeftTruncates(1'u8, 8'u64)
+    const V2 = #run shiftLeftTruncates(1'u8, 256'u64)
+    #assert(V0 == 0'u8)
+    #assert(V1 == 0'u8)
+    #assert(V2 == 0'u8)
+}
+
+#test
+{
     func shiftLeftTooFew(a: u32, b: u32)->u32 { return a << b }
     const V = #run shiftLeftTooFew(21'u32)     // swc-expected-error {{sema_err_too_few_arguments}}
 }
@@ -43,12 +56,12 @@
 #test
 {
     let n = 18'u32
-    // A constant shift widens its value but keeps the LEFT operand's SIGN; the
-    // (unsigned) shift amount must not flip a signed left to unsigned.
+    // The shift keeps the LEFT operand's type; the unsigned amount must not
+    // widen it or flip a signed value to unsigned.
     #assert(#typeof(1's32 << n) == s32)
     #assert(#typeof(1'u32 << n) == u32)
-    #assert(#typeof(1's16 << n) == s32)     // widened, still SIGNED (was wrongly u32)
-    #assert(#typeof(1'u16 << n) == u32)     // widened, unsigned
+    #assert(#typeof(1's16 << n) == s16)
+    #assert(#typeof(1'u16 << n) == u16)
 }
 
 #test

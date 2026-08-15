@@ -44,6 +44,38 @@ bitwise AND, OR, XOR, and bit shifting.
 }
 
 /**
+## Shift Semantics
+
+The result of 'value << count' or 'value >> count' has exactly the type and bit
+width of 'value'. The count is an independent integer operand: it keeps its own
+width and signedness and is never narrowed to the value's type.
+
+A left shift discards bits that leave the value's width. This truncation is the
+ordinary meaning of '<<' and is not an overflow, even when overflow safety is
+enabled. A right shift fills with zero for an unsigned value and copies the sign
+bit for a signed value.
+
+Counts greater than or equal to the value's bit width are defined. Both left
+shift and unsigned right shift produce zero. Signed right shift produces zero
+for a non-negative value and '-1' for a negative value.
+
+A negative count is invalid. A constant negative count is diagnosed at compile
+time; a runtime signed count panics when overflow safety is enabled. '#wrap' is
+accepted on a shift for source compatibility, but it does not change these
+rules because ordinary left shift already truncates discarded bits.
+*/
+#test
+{
+    let count: u64 = 256
+
+    @assert(0x81'u8 << 1 == 0x02'u8)
+    @assert(0x81'u8 << count == 0'u8)
+    @assert(0x81'u8 >> count == 0'u8)
+    @assert(-128's8 >> count == -1's8)
+    #assert(#typeof(1'u8 << count) == u8)
+}
+
+/**
 # Assignment Operators
 
 Assignment operators perform an operation and immediately assign the result to

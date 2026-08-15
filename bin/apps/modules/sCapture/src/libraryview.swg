@@ -891,6 +891,11 @@ impl LibraryView
         }
 
         // Add items
+        // 'items' only borrows pointers owned by 'allItems'. Drop those borrows before their
+        // owners so filter() never snapshots selection state through destroyed LibraryItems.
+        .items.clear()
+        .hotItem = Swag.U32.Max
+        .clearSelection()
         .allItems.clear()
         .allItems.reserve(res.count)
         for fi in res
@@ -902,9 +907,6 @@ impl LibraryView
 
         .filter()
         .sort()
-
-        .hotItem = Swag.U32.Max
-        .clearSelection()
 
         // Launch thread to read all captures
         try .startLoading()

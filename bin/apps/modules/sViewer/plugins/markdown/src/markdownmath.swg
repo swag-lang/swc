@@ -5,17 +5,7 @@ using Core
 func renderMarkdownMath(source: string)->String
 {
     var result = String.from(Latin1.trim(source))
-    for replacement in [
-        {"\\alpha", "α"}, {"\\beta", "β"}, {"\\gamma", "γ"}, {"\\delta", "δ"}, {"\\epsilon", "ε"},
-        {"\\theta", "θ"}, {"\\lambda", "λ"}, {"\\mu", "μ"}, {"\\pi", "π"}, {"\\rho", "ρ"},
-        {"\\sigma", "σ"}, {"\\tau", "τ"}, {"\\phi", "φ"}, {"\\omega", "ω"}, {"\\Gamma", "Γ"},
-        {"\\Delta", "Δ"}, {"\\Theta", "Θ"}, {"\\Lambda", "Λ"}, {"\\Pi", "Π"}, {"\\Sigma", "Σ"},
-        {"\\Phi", "Φ"}, {"\\Omega", "Ω"}, {"\\times", "×"}, {"\\cdot", "·"}, {"\\pm", "±"},
-        {"\\leq", "≤"}, {"\\geq", "≥"}, {"\\neq", "≠"}, {"\\approx", "≈"}, {"\\infty", "∞"},
-        {"\\sum", "∑"}, {"\\prod", "∏"}, {"\\int", "∫"}, {"\\partial", "∂"}, {"\\nabla", "∇"},
-        {"\\rightarrow", "→"}, {"\\leftarrow", "←"}, {"\\Rightarrow", "⇒"}, {"\\Leftarrow", "⇐"},
-        {"\\in", "∈"}, {"\\notin", "∉"}, {"\\subset", "⊂"}, {"\\subseteq", "⊆"}, {"\\cup", "∪"}, {"\\cap", "∩"}
-    ]
+    for replacement in [{"\\alpha", "α"}, {"\\beta", "β"}, {"\\gamma", "γ"}, {"\\delta", "δ"}, {"\\epsilon", "ε"}, {"\\theta", "θ"}, {"\\lambda", "λ"}, {"\\mu", "μ"}, {"\\pi", "π"}, {"\\rho", "ρ"}, {"\\sigma", "σ"}, {"\\tau", "τ"}, {"\\phi", "φ"}, {"\\omega", "ω"}, {"\\Gamma", "Γ"}, {"\\Delta", "Δ"}, {"\\Theta", "Θ"}, {"\\Lambda", "Λ"}, {"\\Pi", "Π"}, {"\\Sigma", "Σ"}, {"\\Phi", "Φ"}, {"\\Omega", "Ω"}, {"\\times", "×"}, {"\\cdot", "·"}, {"\\pm", "±"}, {"\\leq", "≤"}, {"\\geq", "≥"}, {"\\neq", "≠"}, {"\\approx", "≈"}, {"\\infty", "∞"}, {"\\sum", "∑"}, {"\\prod", "∏"}, {"\\int", "∫"}, {"\\partial", "∂"}, {"\\nabla", "∇"}, {"\\rightarrow", "→"}, {"\\leftarrow", "←"}, {"\\Rightarrow", "⇒"}, {"\\Leftarrow", "⇐"}, {"\\in", "∈"}, {"\\notin", "∉"}, {"\\subset", "⊂"}, {"\\subseteq", "⊆"}, {"\\cup", "∪"}, {"\\cap", "∩"}]
     {
         result.replace(replacement.item0, replacement.item1)
     }

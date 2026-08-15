@@ -27,6 +27,7 @@ private func htmlCssColor(value: string)->Color
         if parseError == null and !parsed.ovf and parsed.eat == 6 do
             return Color.fromArgb(0xFF000000'u32 | cast(u32) parsed.value)
     }
+
     if @countof(trimmed) == 4 and trimmed[0] == '#'
     {
         let parsed = catch StrConv.parseX64(trimmed[1 to]) as parseError
@@ -41,18 +42,19 @@ private func htmlCssColor(value: string)->Color
 
     switch trimmed
     {
-    case "black":       return Argb.Black
-    case "white":       return Argb.White
-    case "red":         return Argb.Red
-    case "green":       return Argb.Green
-    case "blue":        return Argb.Blue
+    case "black":        return Argb.Black
+    case "white":        return Argb.White
+    case "red":          return Argb.Red
+    case "green":        return Argb.Green
+    case "blue":         return Argb.Blue
     case "gray", "grey": return Argb.Gray
-    case "yellow":      return Argb.Yellow
-    case "orange":      return Argb.Orange
-    case "purple":      return Argb.Purple
-    case "tomato":      return Argb.Tomato
-    case "transparent": return Argb.Zero
+    case "yellow":       return Argb.Yellow
+    case "orange":       return Argb.Orange
+    case "purple":       return Argb.Purple
+    case "tomato":       return Argb.Tomato
+    case "transparent":  return Argb.Zero
     }
+
     return {}
 }
 
@@ -85,21 +87,31 @@ private func applyHtmlDeclarations(style: *HtmlCssStyle, declarations: string)
             let color = htmlCssColor(value.toString())
             if color.a do
                 style.color = color
+
         case "background", "background-color":
             let color = htmlCssColor(value.toString())
             if color.a do
                 style.background = color
-        case "font-size": style.fontSize = htmlCssSize(value.toString())
-        case "max-width": style.maxWidth = htmlCssSize(value.toString())
-        case "font-weight": style.bold = value == "bold" or value == "600" or value == "700" or value == "800" or value == "900"
-        case "font-style": style.italic = value == "italic" or value == "oblique"
+
+        case "font-size":
+            style.fontSize = htmlCssSize(value.toString())
+
+        case "max-width":
+            style.maxWidth = htmlCssSize(value.toString())
+
+        case "font-weight":
+            style.bold = value == "bold" or value == "600" or value == "700" or value == "800" or value == "900"
+
+        case "font-style":
+            style.italic = value == "italic" or value == "oblique"
+
         case "text-align":
             style.hasAlign = true
             switch value.toString()
             {
-            case "center": style.align = .Center
+            case "center":       style.align = .Center
             case "right", "end": style.align = .Right
-            default: style.align = .Left
+            default:             style.align = .Left
             }
         }
     }
@@ -138,10 +150,13 @@ func parseHtmlCss(source: string)->Array'HtmlCssRule
                 if @countof(clean) and !Utf8.startsWith(clean, "@") do
                     result.add(HtmlCssRule{String.from(clean), declarations})
             }
+
             pos = close + 1
         }
+
         scan = styleEnd + 7
     }
+
     return result
 }
 
@@ -153,6 +168,7 @@ private func htmlLastSimpleSelector(selector: string)->string
         if value == ' ' or value == '>' do
             start = index + 1
     }
+
     return Latin1.trim(selector[start to])
 }
 
@@ -185,6 +201,7 @@ private func htmlCssMatches(selector, tagName, tag: string)->bool
             return true
         return false
     }
+
     return Utf8.compare(simple, tagName, .Latin1NoCase) == 0
 }
 

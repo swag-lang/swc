@@ -1,9 +1,23 @@
 #global using Core, Pixel, Gui
 
-const AppIcon           = #include("../datas/appicon.png")
+const AppIcon            = #include("../datas/appicon.png")
 const DefaultPluginIndex = #include("../datas/plugins/index.viewer")
 
 var g_App: Application
+
+func viewerStartupFile(arguments: const [..] string)->String
+{
+    if @countof(arguments) <= 1 do
+        return {}
+
+    for argument in arguments[1 until @countof(arguments)]
+    {
+        if Path.isValidPathName(argument) and File.exists(argument) do
+            return String.from(argument)
+    }
+
+    return {}
+}
 
 private func registerViewerFileTypes(index: const *ViewerPluginIndex)
 {
@@ -22,7 +36,7 @@ private func registerViewerFileTypes(index: const *ViewerPluginIndex)
 {
     let pluginDirectory = Path.combine(Path.directoryName(Env.executablePath()) orelse ".", "plugins")
     let pluginIndexFile = Path.combine(pluginDirectory, "index.viewer")
-    let index = File.exists(pluginIndexFile) ? try ViewerPluginIndex.load(pluginIndexFile) : try ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, pluginDirectory)
+    let index           = File.exists(pluginIndexFile) ? try ViewerPluginIndex.load(pluginIndexFile) : try ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, pluginDirectory)
 
     // Installers opt into registry work once. Normal viewing never pays for dozens of file-type
     // registrations, which keeps both cold and warm launches on the shortest path.
@@ -45,14 +59,9 @@ private func registerViewerFileTypes(index: const *ViewerPluginIndex)
 
     surface.show()
 
-    for arg in Env.arguments()
-    {
-        if Path.isValidPathName(arg) and File.exists(arg)
-        {
-            window.queueFile(arg)
-            break
-        }
-    }
+    let startupFile = viewerStartupFile(Env.arguments())
+    if !startupFile.isEmpty() do
+        window.queueFile(startupFile.toString())
 
     discard g_App.run()
 }

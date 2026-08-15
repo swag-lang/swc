@@ -1,6 +1,6 @@
 #global private
 
-func shiftLeftU8ByU64(value: u8, count: u64)->u8 => value << count
+func shiftLeftU8ByU64(value: u8, count: u64)->u8  => value << count
 func shiftRightU8ByU64(value: u8, count: u64)->u8 => value >> count
 func shiftRightS8ByU64(value: s8, count: u64)->s8 => value >> count
 
@@ -73,8 +73,8 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
 
 #test
 {
-    var left:  u8 = 0x81
-    var right: s8 = -128
+    var left:  u8  = 0x81
+    var right: s8  = -128
     let count: u64 = 256
 
     left  <<= count

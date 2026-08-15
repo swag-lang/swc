@@ -17,6 +17,7 @@ internal func htmlTagName(tag: string)->String
         if after != Swag.U64.Max do
             result = result[0 until after]
     }
+
     return result
 }
 
@@ -55,7 +56,7 @@ internal func htmlAttribute(tag, wanted: string)->String
         if index >= @countof(tag) do
             return ""
 
-        let quote = tag[index]
+        let quote      = tag[index]
         var valueStart = index
         var valueEnd   = index
         if quote == '\'' or quote == '"'
@@ -78,6 +79,7 @@ internal func htmlAttribute(tag, wanted: string)->String
         if name == wanted do
             return viewerRichText(tag[valueStart until valueEnd], true)
     }
+
     return ""
 }
 
@@ -97,6 +99,7 @@ private func htmlHasAttribute(tag, wanted: string)->bool
             return true
         start = found + 1
     }
+
     return false
 }
 
@@ -124,12 +127,13 @@ private impl HtmlRenderState
         if .output.isEmpty() do
             return
         var existing = 0'u32
-        var index = .output.length
+        var index    = .output.length
         while index and .output[index - 1] == '\n'
         {
             existing += 1
             index    -= 1
         }
+
         for count - Math.min(count, existing) do
             .output += "\n"
     }
@@ -141,7 +145,7 @@ private impl HtmlRenderState
         if .pendingSpace and !.endsWithNewLine() do
             .output += " "
         .pendingSpace = false
-        .output      += value
+        .output       += value
     }
 
     mtd appendText(value: string)
@@ -152,7 +156,7 @@ private impl HtmlRenderState
             if !.preDepth and Latin1.isSpace(value[index])
             {
                 .pendingSpace = !.endsWithNewLine()
-                index += 1
+                index         += 1
                 continue
             }
 
@@ -193,6 +197,7 @@ private impl HtmlRenderState
             .listOrdered.removeBack()
             .listCounter.removeBack()
         }
+
         .lineBreak(2)
     }
 
@@ -204,11 +209,12 @@ private impl HtmlRenderState
             for .listOrdered.count - 1 do
                 .output += "  "
         }
+
         if .listOrdered.count and .listOrdered.back()
         {
             let index = .listCounter.count - 1
             .listCounter[index] += 1
-            .output += Format.toString("  <p3>%.</p> ", .listCounter[index])
+            .output             += Format.toString("  <p3>%.</p> ", .listCounter[index])
         }
         else do
             .output += "  <p1>•</p> "
@@ -225,41 +231,92 @@ private func renderHtmlTag(state: *HtmlRenderState, tag: string)
     let name = htmlTagName(tag)
     switch name.toString()
     {
-    case "b", "strong":              state.appendVisible("<b>")
-    case "/b", "/strong":            state.appendVisible("</b>")
-    case "i", "em", "cite", "var":  state.appendVisible("<i>")
-    case "/i", "/em", "/cite", "/var": state.appendVisible("</i>")
-    case "u", "ins":                 state.appendVisible("<u>")
-    case "/u", "/ins":               state.appendVisible("</u>")
+    case "b", "strong":
+        state.appendVisible("<b>")
 
-    case "h1": state.lineBreak(2); state.appendVisible("<p1><b>")
-    case "h2": state.lineBreak(2); state.appendVisible("<p2><b>")
-    case "h3", "h4", "h5", "h6": state.lineBreak(2); state.appendVisible("<p3><b>")
-    case "/h1", "/h2", "/h3", "/h4", "/h5", "/h6": state.appendVisible("</b></p>"); state.lineBreak(2)
+    case "/b", "/strong":
+        state.appendVisible("</b>")
 
-    case "p", "div", "section", "article", "header", "footer", "main", "nav", "aside": state.lineBreak()
-    case "/p", "/div", "/section", "/article", "/header", "/footer", "/main", "/nav", "/aside": state.lineBreak(2)
-    case "br": state.lineBreak()
-    case "hr": state.lineBreak(); state.appendVisible("<p3>------------------------</p>"); state.lineBreak(2)
+    case "i", "em", "cite", "var":
+        state.appendVisible("<i>")
 
-    case "ul": state.openList(false)
-    case "ol": state.openList(true)
-    case "/ul", "/ol": state.closeList()
-    case "li": state.listItem()
-    case "/li": state.lineBreak()
+    case "/i", "/em", "/cite", "/var":
+        state.appendVisible("</i>")
 
-    case "blockquote": state.lineBreak(); state.appendVisible("<p3>></p> <i>")
-    case "/blockquote": state.appendVisible("</i>"); state.lineBreak(2)
+    case "u", "ins":
+        state.appendVisible("<u>")
 
-    case "pre": state.lineBreak(); state.appendVisible("<p2>"); state.preDepth += 1
+    case "/u", "/ins":
+        state.appendVisible("</u>")
+
+    case "h1":
+        state.lineBreak(2)
+        state.appendVisible("<p1><b>")
+
+    case "h2":
+        state.lineBreak(2)
+        state.appendVisible("<p2><b>")
+
+    case "h3", "h4", "h5", "h6":
+        state.lineBreak(2)
+        state.appendVisible("<p3><b>")
+
+    case "/h1", "/h2", "/h3", "/h4", "/h5", "/h6":
+        state.appendVisible("</b></p>")
+        state.lineBreak(2)
+
+    case "p", "div", "section", "article", "header", "footer", "main", "nav", "aside":
+        state.lineBreak()
+
+    case "/p", "/div", "/section", "/article", "/header", "/footer", "/main", "/nav", "/aside":
+        state.lineBreak(2)
+
+    case "br":
+        state.lineBreak()
+
+    case "hr":
+        state.lineBreak()
+        state.appendVisible("<p3>------------------------</p>")
+        state.lineBreak(2)
+
+    case "ul":
+        state.openList(false)
+
+    case "ol":
+        state.openList(true)
+
+    case "/ul", "/ol":
+        state.closeList()
+
+    case "li":
+        state.listItem()
+
+    case "/li":
+        state.lineBreak()
+
+    case "blockquote":
+        state.lineBreak()
+        state.appendVisible("<p3>></p> <i>")
+
+    case "/blockquote":
+        state.appendVisible("</i>")
+        state.lineBreak(2)
+
+    case "pre":
+        state.lineBreak()
+        state.appendVisible("<p2>")
+        state.preDepth += 1
+
     case "/pre":
         if state.preDepth do
             state.preDepth -= 1
         state.appendVisible("</p>")
         state.lineBreak(2)
+
     case "code", "kbd", "samp":
         if !state.preDepth do
             state.appendVisible("<p2>")
+
     case "/code", "/kbd", "/samp":
         if !state.preDepth do
             state.appendVisible("</p>")
@@ -267,6 +324,7 @@ private func renderHtmlTag(state: *HtmlRenderState, tag: string)
     case "a":
         state.anchorHref = htmlAttribute(tag, "href")
         state.appendVisible("<u>")
+
     case "/a":
         state.appendVisible("</u>")
         if !state.anchorHref.isEmpty()
@@ -286,6 +344,7 @@ private func renderHtmlTag(state: *HtmlRenderState, tag: string)
             state.appendVisible(": ")
             state.appendVisible(alt.toString())
         }
+
         state.appendVisible("]</p>")
         if !src.isEmpty()
         {
@@ -294,32 +353,73 @@ private func renderHtmlTag(state: *HtmlRenderState, tag: string)
             state.appendVisible("</url>)")
         }
 
-    case "table": state.lineBreak(2)
-    case "/table": state.lineBreak(2)
-    case "caption": state.lineBreak(); state.appendVisible("<p2><b>")
-    case "/caption": state.appendVisible("</b></p>"); state.lineBreak()
-    case "tr": state.lineBreak(); state.tableCell = 0
-    case "/tr": state.lineBreak()
+    case "table":
+        state.lineBreak(2)
+
+    case "/table":
+        state.lineBreak(2)
+
+    case "caption":
+        state.lineBreak()
+        state.appendVisible("<p2><b>")
+
+    case "/caption":
+        state.appendVisible("</b></p>")
+        state.lineBreak()
+
+    case "tr":
+        state.lineBreak()
+        state.tableCell = 0
+
+    case "/tr":
+        state.lineBreak()
+
     case "th":
         if state.tableCell do
             state.appendVisible("  <p3>|</p>  ")
         state.appendVisible("<b>")
-    case "/th": state.appendVisible("</b>"); state.tableCell += 1
+
+    case "/th":
+        state.appendVisible("</b>")
+        state.tableCell += 1
+
     case "td":
         if state.tableCell do
             state.appendVisible("  <p3>|</p>  ")
-    case "/td": state.tableCell += 1
 
-    case "dl": state.lineBreak()
-    case "/dl": state.lineBreak(2)
-    case "dt": state.lineBreak(); state.appendVisible("<b>")
-    case "/dt": state.appendVisible("</b>"); state.lineBreak()
-    case "dd": state.appendVisible("    ")
-    case "/dd": state.lineBreak()
+    case "/td":
+        state.tableCell += 1
 
-    case "summary": state.lineBreak(); state.appendVisible("<p1>></p> <b>")
-    case "/summary": state.appendVisible("</b>"); state.lineBreak()
-    case "details", "/details": state.lineBreak()
+    case "dl":
+        state.lineBreak()
+
+    case "/dl":
+        state.lineBreak(2)
+
+    case "dt":
+        state.lineBreak()
+        state.appendVisible("<b>")
+
+    case "/dt":
+        state.appendVisible("</b>")
+        state.lineBreak()
+
+    case "dd":
+        state.appendVisible("    ")
+
+    case "/dd":
+        state.lineBreak()
+
+    case "summary":
+        state.lineBreak()
+        state.appendVisible("<p1>></p> <b>")
+
+    case "/summary":
+        state.appendVisible("</b>")
+        state.lineBreak()
+
+    case "details", "/details":
+        state.lineBreak()
 
     case "input":
         let inputType = htmlAttribute(tag, "type")
@@ -330,9 +430,7 @@ private func renderHtmlTag(state: *HtmlRenderState, tag: string)
     }
 }
 
-struct HtmlTextRenderer
-{
-}
+struct HtmlTextRenderer {}
 
 impl HtmlTextRenderer
 {
@@ -359,6 +457,7 @@ impl HtmlTextRenderer
                 index = endComment == Swag.U64.Max ? @countof(source) : endComment + 3
                 continue
             }
+
             if Utf8.startsWith(source[index to], "<![CDATA[")
             {
                 let endCdata = Utf8.indexOf(source, "]]>", index + 9)
@@ -381,12 +480,13 @@ impl HtmlTextRenderer
             if htmlHiddenElement(name.toString())
             {
                 let closingName = Format.toString("</%", name)
-                let closing = Utf8.indexOf(source, closingName.toString(), close + 1, .Latin1NoCase)
+                let closing     = Utf8.indexOf(source, closingName.toString(), close + 1, .Latin1NoCase)
                 if closing == Swag.U64.Max
                 {
                     index = @countof(source)
                     continue
                 }
+
                 let closingEnd = Utf8.indexOf(source, '>'rune, closing + @countof(closingName))
                 index = closingEnd == Swag.U64.Max ? @countof(source) : closingEnd + 1
                 continue

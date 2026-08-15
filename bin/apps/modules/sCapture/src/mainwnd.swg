@@ -999,6 +999,7 @@ impl MainWnd
                 btn.updateFlags(.IconOnly)
                 btn.setAllPaddings({0, 0, RailCellPadding, 0})
             }
+
             btn.position.width  = width
             btn.position.height = RailCellSize
         }

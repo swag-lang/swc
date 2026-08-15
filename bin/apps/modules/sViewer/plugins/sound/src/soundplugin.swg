@@ -30,6 +30,7 @@ internal func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFile
         let raw = cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
         return Math.clamp(cast #bit (f32) raw, -1, 1)
     }
+
     return 0
 }
 
@@ -51,7 +52,7 @@ internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, c
     {
         let first = point * frameCount / pointCount
         let last  = Math.max((point + 1) * frameCount / pointCount, first + 1)
-        var peak = 0'f32
+        var peak  = 0'f32
         for frame in first until last
         {
             var mixed = 0'f32
@@ -60,19 +61,22 @@ internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, c
                 let offset = frame * bytesPerFrame + channel * bytesPerSample
                 mixed += soundSample(bytes, offset, encoding)
             }
+
             mixed /= channels
-            peak = Math.max(peak, Math.abs(mixed))
+            peak  = Math.max(peak, Math.abs(mixed))
         }
+
         result[point] = peak
     }
+
     return result
 }
 
 private struct SoundWaveformView
 {
     using wnd: Wnd
-    samples:  Array'f32
-    progress: f32
+    samples:   Array'f32
+    progress:  f32
 }
 
 private impl IWnd for SoundWaveformView
@@ -89,10 +93,11 @@ private impl IWnd for SoundWaveformView
         let width = cast(u64) Math.max(rect.width, 1)
         for x in width
         {
-            let index = Math.min(x * .samples.count / width, .samples.count - 1)
+            let index     = Math.min(x * .samples.count / width, .samples.count - 1)
             let amplitude = .samples[index] * rect.height * 0.42
             painter.drawLine(rect.x + x, center - amplitude, rect.x + x, center + amplitude, .themeColors().richColor1, 1)
         }
+
         if .progress > 0
         {
             let playX = rect.x + rect.width * Math.clamp(.progress, 0, 1)
@@ -155,6 +160,7 @@ internal impl SoundPluginView
             catch .voice!.play()
             .playing = true
         }
+
         .updatePlaybackUi()
     }
 
@@ -177,6 +183,7 @@ internal impl IWnd for SoundPluginView
             evt.accepted = false
             return
         }
+
         if !.playing do
             return
         .elapsed += 0.033
@@ -185,6 +192,7 @@ internal impl IWnd for SoundPluginView
             .stopPlayback()
             return
         }
+
         .updatePlaybackUi()
     }
 
@@ -196,11 +204,13 @@ internal impl IWnd for SoundPluginView
             .removeTimer(.timer!)
             .timer = null
         }
+
         if .voice
         {
             .voice!.destroy()
             .voice = null
         }
+
         if .engineReady
         {
             destroyEngine()
@@ -224,21 +234,22 @@ internal impl SoundPluginView
         let result = Wnd.create'SoundPluginView(contentParent, "sViewer.sound")
         result.backgroundStyle = .View
 
-        result.commands = Wnd.create'Wnd(commandParent, {0, 0, 158, 32})
+        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 168, 36})
         result.commands.backgroundStyle = .Window
-        with result.playButton = PushButton.create(result.commands, "Play", {0, 0, 76, 32})
+        with result.playButton = PushButton.create(result.commands, "Play", {0, 0, 80, 36})
         {
-            .dockStyle = .Left
+            .dockStyle  = .Left
             .sigPressed += func|view = result|(button)
             {
                 discard button
                 view.togglePlayback()
             }
         }
-        with result.stopButton = PushButton.create(result.commands, "Stop", {0, 0, 76, 32})
+
+        with result.stopButton = PushButton.create(result.commands, "Stop", {0, 0, 80, 36})
         {
             .dockStyle = .Left
-            .margin.x  = 4
+            .margin.x  = 8
             .enable(false)
             .sigPressed += func|view = result|(button)
             {
@@ -248,24 +259,24 @@ internal impl SoundPluginView
         }
 
         let header = Wnd.create'Wnd(result, {0, 0, 0, 112})
-        header.dockStyle = .Top
+        header.dockStyle       = .Top
         header.backgroundStyle = .Window
-        header.padding = {32, 20, 32, 16}
+        header.padding         = {32, 20, 32, 16}
 
         let baseName = Path.fileName(fileName) orelse fileName
-        result.titleLabel = Label.create(header, baseName, {0, 0, 0, 36})
+        result.titleLabel           = Label.create(header, baseName, {0, 0, 0, 36})
         result.titleLabel.dockStyle = .Top
         result.titleLabel.style.setFont(result.theme().createDefaultFont(22, .Bold), .Regular)
         result.titleLabel.setTextAlignment(.Left, .Center)
 
-        result.infoLabel = Label.create(header, "Loading WAV…", {0, 0, 0, 28}, null, .SecondaryText)
+        result.infoLabel           = Label.create(header, "Loading WAV…", {0, 0, 0, 28}, null, .SecondaryText)
         result.infoLabel.dockStyle = .Top
         result.infoLabel.setTextAlignment(.Left, .Center)
 
-        result.waveform = Wnd.create'SoundWaveformView(result, "sViewer.sound.waveform")
-        result.waveform.dockStyle = .Center
+        result.waveform                 = Wnd.create'SoundWaveformView(result, "sViewer.sound.waveform")
+        result.waveform.dockStyle       = .Center
         result.waveform.backgroundStyle = .View
-        result.waveform.padding = {32, 32, 32, 32}
+        result.waveform.padding         = {32, 32, 32, 32}
 
         catch createEngine() as createError
         if createError != null
@@ -274,6 +285,7 @@ internal impl SoundPluginView
             result.applyLayout()
             return result
         }
+
         result.engineReady = true
 
         let sound = catch SoundFile.load(fileName) as loadError
@@ -283,8 +295,9 @@ internal impl SoundPluginView
             result.applyLayout()
             return result
         }
-        result.sound    = #move sound
-        result.duration = result.sound.durationInSeconds()
+
+        result.sound            = #move sound
+        result.duration         = result.sound.durationInSeconds()
         result.waveform.samples = buildWaveform(result.sound.preloadedData(), result.sound.sampleEncoding(), result.sound.numChannels())
         result.infoLabel.setText(Format.toString("% Hz  ·  % channel%  ·  % bit  ·  % s", result.sound.sampleRateHz(), result.sound.numChannels(), result.sound.numChannels() == 1 ? "" : "s", result.sound.sampleStorageBits(), result.duration).toString())
         result.timer = result.addTimer(33'ms)

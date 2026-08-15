@@ -5,11 +5,11 @@ func ratingLabel(rating: u8)->String
 {
     switch rating
     {
-    case 0: return appStrings().act_NoRating
-    case 1: return appStrings().act_Rating1
-    case 2: return appStrings().act_Rating2
-    case 3: return appStrings().act_Rating3
-    case 4: return appStrings().act_Rating4
+    case 0:  return appStrings().act_NoRating
+    case 1:  return appStrings().act_Rating1
+    case 2:  return appStrings().act_Rating2
+    case 3:  return appStrings().act_Rating3
+    case 4:  return appStrings().act_Rating4
     default: return appStrings().act_Rating5
     }
 }
@@ -18,7 +18,7 @@ internal var g_UpdatingLib: bool
 internal var g_DirtyList: bool = true
 internal const ItemMargin = 8.0
 internal const RatingGlyphSize = 12.0
-internal const RatingGlyphGap  = 2.0
+internal const RatingGlyphGap = 2.0
 
 // How often the visible set is rebuilt while the previews are still streaming in. Each
 // loaded capture marks the list dirty, so without a cadence the rebuild runs on every
@@ -326,7 +326,7 @@ impl IWnd for LibraryView
             {
                 let font = me .theme().res.fontDefault.bold!
                 let text = "♥"
-                let ms = Painter.measureString(text, font)
+                let ms   = Painter.measureString(text, font)
                 painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
             }
 
@@ -482,6 +482,7 @@ impl LibraryView
                     it.capture.previewBytes.clear()
                     it.capture.preview = capture.preview
                 }
+
                 if it.capture and it.texture.isValid()
                 {
                     .app().renderer.removeTexture(&it.texture)
@@ -650,6 +651,7 @@ impl LibraryView
                     if !capture.previewBytes.isEmpty() do
                         capture.preview = {}
                 }
+
                 width  = capture.width
                 height = capture.height
             }

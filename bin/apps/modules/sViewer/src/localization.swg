@@ -5,19 +5,19 @@ using Core, Gui
 // Visible strings of sViewer.
 struct AppStrings
 {
-    ui_WindowTitle:  string = "sViewer — Universal viewer"
-    ui_Open:         string = "Open"
-    ui_Previous:     string = "Previous file"
-    ui_Next:         string = "Next file"
-    ui_Viewer:       string = "Viewer"
-    ui_DropTitle:    string = "Drop a file to view it"
-    ui_DropHelp:     string = "Text, Markdown, HTML, images, WAV audio, and hexadecimal bytes."
-    ui_Ready:        string = "Ready"
-    ui_Unsupported:  string = "No installed plugin can show this file."
-    ui_OpenStopped:  string = "The file could not be shown."
-    dlg_TitleOpen:   string = "Open a file"
-    dlg_ButtonOpen:  string = "Open"
-    dlg_AllFiles:    string = "All files"
+    ui_WindowTitle: string = "sViewer — Universal viewer"
+    ui_Open:        string = "Open"
+    ui_Previous:    string = "Previous file"
+    ui_Next:        string = "Next file"
+    ui_Viewer:      string = "Viewer"
+    ui_DropTitle:   string = "Drop a file to view it"
+    ui_DropHelp:    string = "Text, Markdown, HTML, images, WAV audio, and hexadecimal bytes."
+    ui_Ready:       string = "Ready"
+    ui_Unsupported: string = "No installed plugin can show this file."
+    ui_OpenStopped: string = "The file could not be shown."
+    dlg_TitleOpen:  string = "Open a file"
+    dlg_ButtonOpen: string = "Open"
+    dlg_AllFiles:   string = "All files"
 }
 
 private const FrenchStringsName = "lang/fr/sviewer.tweak"

@@ -28,7 +28,7 @@ impl StrictAliasVec2
 #test
 {
     var v: StrictAliasVec2 = {x: 6, y: 8}
-    let p                  = cast(StrictAliasVec2Ptr) &v
+    let p = cast(StrictAliasVec2Ptr) &v
 
     #assert(#typeof(p) == StrictAliasVec2Ptr)
     @assert(p.length2() == 100)
@@ -42,7 +42,7 @@ impl StrictAliasVec2
 #test
 {
     var v: StrictAliasVec2 = {x: 3, y: 4}
-    let p                  = cast(StrictAliasVec2Ptr) &v
+    let p = cast(StrictAliasVec2Ptr) &v
 
     #assert(#typeof(p.x) == s32)
     @assert(p.x * p.y == 12)

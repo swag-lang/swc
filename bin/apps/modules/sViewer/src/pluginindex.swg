@@ -3,10 +3,10 @@ using Core, Core.Errors, Gui
 // One viewer plugin associated with a set of lowercase filename extensions.
 struct ViewerPluginSpec
 {
-    id:          String          // Stable plugin identifier used to reuse a loaded library.
-    displayName: String          // Name shown in the viewer selector.
-    library:     String          // Library filename relative to the index directory.
-    extensions:  Array'String    // Lowercase extensions, or `*` for a viewer available to every file.
+    id:          String           // Stable plugin identifier used to reuse a loaded library.
+    displayName: String           // Name shown in the viewer selector.
+    library:     String           // Library filename relative to the index directory.
+    extensions:  Array'String     // Lowercase extensions, or `*` for a viewer available to every file.
 }
 
 // Selects whether one available viewer is implemented by the host or a plugin.
@@ -27,8 +27,8 @@ struct ViewerChoice
 // Lightweight format index read before any plugin library is loaded.
 struct ViewerPluginIndex
 {
-    directory: String                    // Directory containing the index and plugin libraries.
-    specs:     Array'ViewerPluginSpec    // Plugin declarations in selection order.
+    directory: String                     // Directory containing the index and plugin libraries.
+    specs:     Array'ViewerPluginSpec     // Plugin declarations in selection order.
 }
 
 impl ViewerPluginIndex
@@ -64,6 +64,7 @@ impl ViewerPluginIndex
                 spec.displayName = spec.id
                 spec.library     = Latin1.trim(fields[1])
             }
+
             if spec.id.isEmpty() or spec.displayName.isEmpty() or spec.library.isEmpty() do
                 fail InvalidFormatError{"plugin index id, display name, and library cannot be empty"}
 
@@ -103,6 +104,7 @@ impl ViewerPluginIndex
             if !wildcard and supported[] == extension do
                 return true
         }
+
         return false
     }
 
@@ -137,6 +139,7 @@ impl ViewerPluginIndex
             for supported in spec.extensions where supported[] != "*" and supported[] == extension do
                 return true
         }
+
         return false
     }
 }
@@ -144,10 +147,10 @@ impl ViewerPluginIndex
 // One plugin library already needed by this process.
 struct LoadedViewerPlugin
 {
-    id:      String               // Matching [[ViewerPluginSpec.id]].
-    library: NativeLibrary        // Library kept open while plugin-created windows may exist.
-    create:  ViewerPluginCreate = undefined   // Borrowed entry point owned by `library`.
-    next:    #null *LoadedViewerPlugin         // Next library loaded by this manager.
+    id:      String                             // Matching [[ViewerPluginSpec.id]].
+    library: NativeLibrary                      // Library kept open while plugin-created windows may exist.
+    create:  ViewerPluginCreate = undefined     // Borrowed entry point owned by `library`.
+    next:    #null *LoadedViewerPlugin          // Next library loaded by this manager.
 }
 
 // Loads plugins on first use and keeps them alive for their views.
@@ -167,6 +170,7 @@ impl ViewerPluginManager
             Memory.delete(item)
             item = next
         }
+
         .first = null
     }
 

@@ -6,8 +6,8 @@ using Core, Pixel, Gui
 #test
 {
     let source = "<style>body{background:#101820;color:#f0f0f0;max-width:760px}h1{font-size:34px;color:#f7f900}.lead{font-size:19px;text-align:center}</style><main><h1>Styled page</h1><p class=\"lead\">CSS is applied.</p><blockquote>Readable quote</blockquote><pre>let value = 42</pre></main>"
-    let rules = parseHtmlCss(source)
-    let body  = htmlBodyCssStyle(source, rules.toSlice())
+    let rules  = parseHtmlCss(source)
+    let body   = htmlBodyCssStyle(source, rules.toSlice())
     let blocks = parseHtmlBlocks(source, rules.toSlice())
     @assert(rules.count == 3)
     @assert(body.background.a == 255 and body.maxWidth == 760)
@@ -34,4 +34,30 @@ using Core, Pixel, Gui
     host.settleAnimations(view, 4)
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "sviewer.html.document")
+}
+
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sviewer_html_stream_%.html", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String = "<main>"
+    for 2_000 do
+        source += "<h2>Streamed heading</h2><p>A paragraph stays on disk until the viewport approaches it.</p>"
+    source += "</main>"
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let view = HtmlPluginView.create(&host.root, fileName)
+    view.resize(960, 680)
+    view.applyLayout()
+    view.layoutDocument()
+    view.streamStep()
+
+    @assert(!view.blocks.isEmpty())
+    @assert(view.stream.isOpen())
+    @assert(expect view.stream.position() < source.length)
 }

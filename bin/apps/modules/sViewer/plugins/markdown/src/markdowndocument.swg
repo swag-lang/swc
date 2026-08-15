@@ -28,11 +28,11 @@ private func markdownVisualHeading(level: u32)->MarkdownBlockKind
 {
     switch level
     {
-    case 1: return .Heading1
-    case 2: return .Heading2
-    case 3: return .Heading3
-    case 4: return .Heading4
-    case 5: return .Heading5
+    case 1:  return .Heading1
+    case 2:  return .Heading2
+    case 3:  return .Heading3
+    case 4:  return .Heading4
+    case 5:  return .Heading5
     default: return .Heading6
     }
 }
@@ -61,8 +61,9 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
         {
             metadata += lines[index]
             metadata += "\n"
-            index += 1
+            index    += 1
         }
+
         if index < lines.count do
             index += 1
         appendMarkdownBlock(&result, .Metadata, #move metadata)
@@ -93,10 +94,12 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                     index += 1
                     break
                 }
-                code += viewerRichText(lines[index])
-                code += "\n"
+
+                code  += viewerRichText(lines[index])
+                code  += "\n"
                 index += 1
             }
+
             appendMarkdownBlock(&result, .Code, #move code)
             continue
         }
@@ -107,7 +110,7 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
             var line = trimmed[2 to]
             if Utf8.endsWith(line, "$$") and @countof(line) >= 2
             {
-                math = Latin1.trim(line[0 until @countof(line) - 2])
+                math  = Latin1.trim(line[0 until @countof(line) - 2])
                 index += 1
             }
             else
@@ -119,12 +122,14 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 {
                     if !math.isEmpty() do
                         math += "\n"
-                    math += Latin1.trim(lines[index])
+                    math  += Latin1.trim(lines[index])
                     index += 1
                 }
+
                 if index < lines.count do
                     index += 1
             }
+
             appendMarkdownBlock(&result, .Math, #move math)
             continue
         }
@@ -146,6 +151,7 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 index += 2
                 continue
             }
+
             if Utf8.contains(raw, '|'rune) and markdownTableSeparator(lines[index + 1])
             {
                 var table = renderMarkdownTableLine(raw, true)
@@ -156,6 +162,7 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                     table += renderMarkdownTableLine(lines[index], false)
                     index += 1
                 }
+
                 appendMarkdownBlock(&result, .Table, #move table)
                 continue
             }
@@ -186,18 +193,20 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 var content = current.content
                 if Utf8.startsWith(content, "[ ] ")
                 {
-                    list += "☐ "
+                    list    += "☐ "
                     content = content[4 to]
                 }
                 elif Utf8.startsWith(content, "[x] ") or Utf8.startsWith(content, "[X] ")
                 {
-                    list += "<p1>☒</p> "
+                    list    += "<p1>☒</p> "
                     content = content[4 to]
                 }
-                list += renderMarkdownInline(content)
-                list += "\n"
+
+                list  += renderMarkdownInline(content)
+                list  += "\n"
                 index += 1
             }
+
             appendMarkdownBlock(&result, .List, #move list)
             continue
         }
@@ -213,6 +222,7 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 quote += renderMarkdownInline(content)
                 index += 1
             }
+
             appendMarkdownBlock(&result, .Quote, #move quote)
             continue
         }
@@ -228,9 +238,11 @@ func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 break
             paragraph += markdownHardBreak(lines[index - 1]) ? "\n" : " "
             paragraph += next
-            index += 1
+            index     += 1
         }
+
         appendMarkdownBlock(&result, .Paragraph, renderMarkdownInline(paragraph.toString()))
     }
+
     return result
 }

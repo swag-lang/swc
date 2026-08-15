@@ -17,18 +17,18 @@ struct ImageView
 
         public readonly
         {
-            zoom:      f32 = 1     // Requested scale outside fitted mode.
-            isFitted:  bool = true // Whether the image is scaled to the available viewport.
-            panOffset: Math.Point  // Image-centre offset from the viewport centre, in logical units.
-            movie:     Movie       // GIF playback state, or an empty movie for a still image.
+            zoom:      f32  = 1        // Requested scale outside fitted mode.
+            isFitted:  bool = true     // Whether the image is scaled to the available viewport.
+            panOffset: Math.Point      // Image-centre offset from the viewport centre, in logical units.
+            movie:     Movie           // GIF playback state, or an empty movie for a still image.
         }
 
         internal
         {
-            image:           Image         // Still image owned by the view.
-            uploadedTexture: Texture       // Renderer texture for the current still or movie frame.
-            isPanning:       bool          // Whether the left mouse button currently pans the image.
-            lastPointer:     Math.Point    // Previous surface position of a pan gesture.
+            image:           Image          // Still image owned by the view.
+            uploadedTexture: Texture        // Renderer texture for the current still or movie frame.
+            isPanning:       bool           // Whether the left mouse button currently pans the image.
+            lastPointer:     Math.Point     // Previous surface position of a pan gesture.
         }
     }
 }
@@ -162,7 +162,7 @@ impl IWnd for ImageView
                 return
             }
 
-            .panOffset += evt.surfacePos - .lastPointer
+            .panOffset   += evt.surfacePos - .lastPointer
             .lastPointer = evt.surfacePos
             .invalidate()
 
@@ -295,7 +295,7 @@ impl ImageView
         if .uploadedTexture.isValid() do
             .app().renderer.removeTexture(&.uploadedTexture)
         .uploadedTexture = .app().renderer.addImage(.image)
-        .panOffset = {}
+        .panOffset       = {}
         .sigZoomChanged.call(me)
         .invalidate()
     }

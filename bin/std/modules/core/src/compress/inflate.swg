@@ -388,8 +388,8 @@ impl Inflate
                 while dst < end
                 {
                     (obuf + dst)[as u64] = (obuf + from)[as u64]
-                    dst  += 8
-                    from += 8
+                    dst                  += 8
+                    from                 += 8
                 }
 
                 count = end

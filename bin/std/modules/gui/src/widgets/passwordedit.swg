@@ -29,14 +29,14 @@ struct PasswordEdit
 
         internal
         #[Swag.Late]
-        edit:          *EditBox          // Mask-only child owned by this control.
-        revealButton:  #null *IconButton // Optional press-and-hold reveal action.
-        storage:       [1024] u8         // Fixed storage avoids reallocating plaintext through a general allocator.
-        byteCount:     u64               // Number of occupied plaintext bytes.
-        runeCount:     u64               // Number of entered Unicode code points.
-        savedSelBeg:   u64               // Mask selection start saved while plaintext is visible.
-        savedSelEnd:   u64               // Mask selection end saved while plaintext is visible.
-        isRevealed:    bool              // Whether the child currently contains plaintext for painting.
+        edit:         *EditBox              // Mask-only child owned by this control.
+        revealButton: #null *IconButton     // Optional press-and-hold reveal action.
+        storage:      [1024] u8             // Fixed storage avoids reallocating plaintext through a general allocator.
+        byteCount:    u64                   // Number of occupied plaintext bytes.
+        runeCount:    u64                   // Number of entered Unicode code points.
+        savedSelBeg:  u64                   // Mask selection start saved while plaintext is visible.
+        savedSelEnd:  u64                   // Mask selection end saved while plaintext is visible.
+        isRevealed:   bool                  // Whether the child currently contains plaintext for painting.
     }
 }
 
@@ -337,10 +337,11 @@ public impl PasswordEdit
             let buttonSide = Math.max(pos.height - 4, 0)
             let iconSize   = Math.min(buttonSide * 0.5, 16)
             let reveal     = IconButton.create(result, result.theme().icon(.Eye, iconSize), flags: .IconOnly | .Overlay)
-            reveal.focusPolicy = .None
-            reveal.hookOnEvent = func|password = result|(wnd, evt) => password.handleRevealEvent(wnd, evt)
+            reveal.focusPolicy  = .None
+            reveal.hookOnEvent  = func|password = result|(wnd, evt) => password.handleRevealEvent(wnd, evt)
             result.revealButton = reveal
         }
+
         result.layoutChildren()
         return result
     }

@@ -21,7 +21,7 @@ internal func renderMarkdownInline(text: string)->String
         if text[index] == '\\' and index + 1 < @countof(text)
         {
             result += viewerRichText(text[index + 1 until index + 2])
-            index += 2
+            index  += 2
             continue
         }
 
@@ -38,7 +38,7 @@ internal func renderMarkdownInline(text: string)->String
                     result += "]</p> (<url>"
                     result += viewerRichText(text[labelEnd + 2 until urlEnd])
                     result += "</url>)"
-                    index = urlEnd + 1
+                    index  = urlEnd + 1
                     continue
                 }
             }
@@ -57,7 +57,7 @@ internal func renderMarkdownInline(text: string)->String
                     result += "</u> (<url>"
                     result += viewerRichText(text[labelEnd + 2 until urlEnd])
                     result += "</url>)"
-                    index = urlEnd + 1
+                    index  = urlEnd + 1
                     continue
                 }
             }
@@ -74,7 +74,7 @@ internal func renderMarkdownInline(text: string)->String
                     result += "<url>"
                     result += viewerRichText(target)
                     result += "</url>"
-                    index = end + 1
+                    index  = end + 1
                     continue
                 }
             }
@@ -88,7 +88,7 @@ internal func renderMarkdownInline(text: string)->String
                 result += "<i><p2>"
                 result += viewerRichText(renderMarkdownMath(text[index + 1 until end]).toString())
                 result += "</p></i>"
-                index = end + 1
+                index  = end + 1
                 continue
             }
         }
@@ -101,7 +101,7 @@ internal func renderMarkdownInline(text: string)->String
                 result += "<p3>"
                 result += renderMarkdownInline(text[index + 2 until end])
                 result += "</p>"
-                index = end + 2
+                index  = end + 2
                 continue
             }
         }
@@ -114,7 +114,7 @@ internal func renderMarkdownInline(text: string)->String
                 result += "<b><p1>"
                 result += renderMarkdownInline(text[index + 2 until end])
                 result += "</p></b>"
-                index = end + 2
+                index  = end + 2
                 continue
             }
         }
@@ -128,7 +128,7 @@ internal func renderMarkdownInline(text: string)->String
                 result += "<b>"
                 result += renderMarkdownInline(text[index + 2 until end])
                 result += "</b>"
-                index = end + 2
+                index  = end + 2
                 continue
             }
         }
@@ -142,7 +142,7 @@ internal func renderMarkdownInline(text: string)->String
                 result += "<i>"
                 result += renderMarkdownInline(text[index + 1 until end])
                 result += "</i>"
-                index = end + 1
+                index  = end + 1
                 continue
             }
         }
@@ -155,7 +155,7 @@ internal func renderMarkdownInline(text: string)->String
                 result += "<p2>"
                 result += viewerRichText(text[index + 1 until end])
                 result += "</p>"
-                index = end + 1
+                index  = end + 1
                 continue
             }
         }
@@ -169,8 +169,9 @@ internal func renderMarkdownInline(text: string)->String
         }
 
         result += viewerRichText(text[index until index + 1])
-        index += 1
+        index  += 1
     }
+
     return result
 }
 
@@ -231,8 +232,8 @@ internal func markdownSetextLevel(line: string)->u32
 internal func markdownRule(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
-    var marker = 0'u8
-    var count  = 0'u32
+    var marker  = 0'u8
+    var count   = 0'u32
     for value in trimmed
     {
         if value == ' ' do
@@ -245,6 +246,7 @@ internal func markdownRule(line: string)->bool
             return false
         count += 1
     }
+
     return count >= 3
 }
 
@@ -260,8 +262,9 @@ internal func markdownListItem(line: string)->MarkdownListInfo
     while index < @countof(line) and (line[index] == ' ' or line[index] == '\t')
     {
         result.indent += line[index] == '\t' ? 4 : 1
-        index += 1
+        index         += 1
     }
+
     if index >= @countof(line) do
         return result
 
@@ -282,6 +285,7 @@ internal func markdownListItem(line: string)->MarkdownListInfo
         result.marker  = line[digitStart until index]
         result.content = line[index + 2 to]
     }
+
     return result
 }
 
@@ -298,6 +302,7 @@ internal func markdownTableSeparator(line: string)->bool
         elif value != '|' and value != ':' and value != ' ' do
             return false
     }
+
     return dashCount >= 3
 }
 
@@ -320,6 +325,7 @@ internal func renderMarkdownTableLine(line: string, header: bool)->String
             result += "</b>"
         first = false
     }
+
     return result
 }
 
@@ -337,17 +343,15 @@ internal func markdownFence(line: string)->MarkdownFenceInfo
     return result
 }
 
-struct MarkdownTextRenderer
-{
-}
+struct MarkdownTextRenderer {}
 
 impl MarkdownTextRenderer
 {
     func render(source: string)->String
     {
         var result: retval
-        let lines = Tokenize.splitLines(source)
-        var index = 0'u64
+        let lines       = Tokenize.splitLines(source)
+        var index       = 0'u64
         var fenceMarker = 0'u8
         while index < lines.count
         {
@@ -359,7 +363,7 @@ impl MarkdownTextRenderer
                 if !fenceMarker
                 {
                     fenceMarker = fence.marker
-                    result += "\n<p2>"
+                    result      += "\n<p2>"
                     if @countof(fence.info)
                     {
                         result += "<b>CODE · "
@@ -371,8 +375,9 @@ impl MarkdownTextRenderer
                 else
                 {
                     fenceMarker = 0
-                    result += "</p>\n\n"
+                    result      += "</p>\n\n"
                 }
+
                 index += 1
                 continue
             }
@@ -382,7 +387,7 @@ impl MarkdownTextRenderer
                 result += "    "
                 result += viewerRichText(rawLine)
                 result += "\n"
-                index += 1
+                index  += 1
                 continue
             }
 
@@ -391,7 +396,7 @@ impl MarkdownTextRenderer
             {
                 let palette = heading.level == 1 ? 1 : (heading.level == 2 ? 2 : 3)
                 result += Format.toString("\n<p%><b>%</b></p>\n\n", palette, renderMarkdownInline(heading.text))
-                index += 1
+                index  += 1
                 continue
             }
 
@@ -401,20 +406,22 @@ impl MarkdownTextRenderer
                 if setext and @countof(trimmed)
                 {
                     result += Format.toString("\n<p%><b>%</b></p>\n\n", setext, renderMarkdownInline(trimmed))
-                    index += 2
+                    index  += 2
                     continue
                 }
+
                 if Utf8.contains(rawLine, '|'rune) and markdownTableSeparator(lines[index + 1])
                 {
                     result += renderMarkdownTableLine(rawLine, true)
                     result += "\n"
-                    index += 2
+                    index  += 2
                     while index < lines.count and Utf8.contains(lines[index], '|'rune) and @countof(Latin1.trim(lines[index]))
                     {
                         result += renderMarkdownTableLine(lines[index], false)
                         result += "\n"
-                        index += 1
+                        index  += 1
                     }
+
                     result += "\n"
                     continue
                 }
@@ -423,7 +430,7 @@ impl MarkdownTextRenderer
             if markdownRule(rawLine)
             {
                 result += "\n<p3>------------------------</p>\n\n"
-                index += 1
+                index  += 1
                 continue
             }
 
@@ -439,17 +446,18 @@ impl MarkdownTextRenderer
                 var content = item.content
                 if Utf8.startsWith(content, "[ ] ")
                 {
-                    result += "[ ] "
+                    result  += "[ ] "
                     content = content[4 to]
                 }
                 elif Utf8.startsWith(content, "[x] ") or Utf8.startsWith(content, "[X] ")
                 {
-                    result += "<p1>[x]</p> "
+                    result  += "<p1>[x]</p> "
                     content = content[4 to]
                 }
+
                 result += renderMarkdownInline(content)
                 result += "\n"
-                index += 1
+                index  += 1
                 continue
             }
 
@@ -462,19 +470,20 @@ impl MarkdownTextRenderer
                     depth += 1
                     quote = Latin1.trim(quote[1 to])
                 }
+
                 for depth do
                     result += "<p3>></p> "
                 result += "<i>"
                 result += renderMarkdownInline(quote)
                 result += "</i>\n"
-                index += 1
+                index  += 1
                 continue
             }
 
             if !@countof(trimmed)
             {
                 result += "\n"
-                index += 1
+                index  += 1
                 continue
             }
 
@@ -491,8 +500,9 @@ impl MarkdownTextRenderer
                     break
                 paragraph += markdownHardBreak(lines[index - 1]) ? "\n" : " "
                 paragraph += next
-                index += 1
+                index     += 1
             }
+
             result += renderMarkdownInline(paragraph.toString())
             result += "\n"
         }

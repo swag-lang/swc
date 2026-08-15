@@ -24,23 +24,29 @@ struct HtmlBlock
     style: HtmlCssStyle
 }
 
+struct HtmlBlockParseResult
+{
+    blocks:   Array'HtmlBlock
+    consumed: u64
+}
+
 private func htmlBlockKind(name: string)->HtmlBlockKind
 {
     switch name
     {
-    case "h1": return .Heading1
-    case "h2": return .Heading2
-    case "h3": return .Heading3
-    case "h4": return .Heading4
-    case "h5": return .Heading5
-    case "h6": return .Heading6
-    case "ul", "ol": return .List
+    case "h1":         return .Heading1
+    case "h2":         return .Heading2
+    case "h3":         return .Heading3
+    case "h4":         return .Heading4
+    case "h5":         return .Heading5
+    case "h6":         return .Heading6
+    case "ul", "ol":   return .List
     case "blockquote": return .Quote
-    case "pre": return .Code
-    case "table": return .Table
-    case "details": return .Details
-    case "hr": return .Rule
-    default: return .Paragraph
+    case "pre":        return .Code
+    case "table":      return .Table
+    case "details":    return .Details
+    case "hr":         return .Rule
+    default:           return .Paragraph
     }
 }
 
@@ -50,10 +56,11 @@ private func htmlIsBlock(name: string)->bool
     {
     case "h1", "h2", "h3", "h4", "h5", "h6", "p", "ul", "ol", "blockquote", "pre", "table", "details", "figure", "hr": return true
     }
+
     return false
 }
 
-func parseHtmlBlocks(source: string, rules: const [..] HtmlCssRule)->Array'HtmlBlock
+func parseHtmlBlockChunk(source: string, rules: const [..] HtmlCssRule, final: bool)->HtmlBlockParseResult
 {
     var result: retval
     var index = 0'u64
@@ -70,22 +77,27 @@ func parseHtmlBlocks(source: string, rules: const [..] HtmlCssRule)->Array'HtmlB
         let name = htmlTagName(tag)
         if name.isEmpty() or tag[0] == '/'
         {
-            index = close + 1
+            index           = close + 1
+            result.consumed = index
             continue
         }
+
         if name == "script" or name == "style" or name == "head"
         {
             let closing = Format.toString("</%", name)
-            let end = Utf8.indexOf(source, closing.toString(), close + 1, .Latin1NoCase)
+            let end     = Utf8.indexOf(source, closing.toString(), close + 1, .Latin1NoCase)
             if end == Swag.U64.Max do
                 break
             let endClose = Utf8.indexOf(source, '>'rune, end)
-            index = endClose == Swag.U64.Max ? @countof(source) : endClose + 1
+            index           = endClose == Swag.U64.Max ? @countof(source) : endClose + 1
+            result.consumed = index
             continue
         }
+
         if !htmlIsBlock(name.toString())
         {
-            index = close + 1
+            index           = close + 1
+            result.consumed = index
             continue
         }
 
@@ -93,42 +105,53 @@ func parseHtmlBlocks(source: string, rules: const [..] HtmlCssRule)->Array'HtmlB
         if name != "hr"
         {
             let closing = Format.toString("</%", name)
-            let end = Utf8.indexOf(source, closing.toString(), close + 1, .Latin1NoCase)
+            let end     = Utf8.indexOf(source, closing.toString(), close + 1, .Latin1NoCase)
             if end == Swag.U64.Max
             {
                 index = close + 1
                 continue
             }
+
             let endClose = Utf8.indexOf(source, '>'rune, end)
             fragmentEnd = endClose == Swag.U64.Max ? @countof(source) : endClose + 1
         }
 
-        let kind = htmlBlockKind(name.toString())
+        let kind     = htmlBlockKind(name.toString())
         let rendered = kind == .Rule ? String.from("────────────") : HtmlTextRenderer.render(source[open until fragmentEnd])
-        let text = String.from(Latin1.trim(rendered.toString()))
+        let text     = String.from(Latin1.trim(rendered.toString()))
         if !text.isEmpty()
         {
             var block: HtmlBlock
             block.kind  = kind
             block.text  = #move text
             block.style = htmlCssStyle(tag, name.toString(), rules)
-            result.add(#move block)
+            result.blocks.add(#move block)
         }
-        index = fragmentEnd
+
+        index           = fragmentEnd
+        result.consumed = index
     }
 
-    if result.isEmpty()
+    if final and result.consumed < @countof(source)
     {
-        let rendered = HtmlTextRenderer.render(source)
+        let rendered = HtmlTextRenderer.render(source[result.consumed to])
         if !rendered.isEmpty()
         {
             var block: HtmlBlock
             block.kind = .Paragraph
             block.text = #move rendered
-            result.add(#move block)
+            result.blocks.add(#move block)
         }
+
+        result.consumed = @countof(source)
     }
+
     return result
+}
+
+func parseHtmlBlocks(source: string, rules: const [..] HtmlCssRule)->Array'HtmlBlock
+{
+    return parseHtmlBlockChunk(source, rules, final: true).blocks
 }
 
 func htmlBodyCssStyle(source: string, rules: const [..] HtmlCssRule)->HtmlCssStyle

@@ -114,7 +114,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         while i + 8 <= count
         {
             (dst + i)[as u64] = (src + i)[as u64] ^ (&block[i])[as u64]
-            i += 8
+            i                 += 8
         }
 
         while i < count

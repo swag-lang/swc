@@ -1950,7 +1950,7 @@ impl Wnd
         srfn.app.nativeFocusTransition = true
         srfn.setFocus()
         srfn.app.nativeFocusTransition = false
-        srfn.app.keyboardFocusWnd = me
+        srfn.app.keyboardFocusWnd      = me
         srfn.noteFocus(me)
 
         if last

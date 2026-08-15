@@ -151,6 +151,7 @@ public func runApps(context: *Context, options: *Options)->s32 fail
         let moduleDir = Path.combine(context.workspacePath("apps").toString(), "modules", "sViewer")
         return try testViewerPlugins(context, options, moduleDir.toString())
     }
+
     if command != "build" do
         return 0
 
@@ -186,6 +187,7 @@ private func testViewerPlugins(context: *Context, options: *Options, moduleDir: 
         if code != 0 do
             return code
     }
+
     return 0
 }
 
@@ -259,7 +261,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     if name != "sCrypt" do
         return 0
 
-    let vendor    = Path.combine(moduleDir.toString(), "vendor", "winfsp")
+    let vendor = Path.combine(moduleDir.toString(), "vendor", "winfsp")
 
     try copyBeside(Path.combine(vendor.toString(), "runtime", "winfsp-x64.dll").toString(), appDir.toString(), "winfsp-x64.dll")
     try copyBeside(Path.combine(vendor.toString(), "runtime", "winfsp-x64.sys").toString(), appDir.toString(), "winfsp-x64.sys")

@@ -98,6 +98,7 @@ public impl EditDlg
             if .edit do
                 .label.margin.w = .themeMetrics().dialog_BtnPadding
         }
+
         .setText(options.text)
         if options.selectAll
         {

@@ -3,9 +3,9 @@
 using Core, Pixel, Gui
 
 private const ViewerPluginApiVersion = 2'u32
-private const ImageGlyphSize         = 18.0
-private const ImageCommandWidth      = 350.0
-private const GifCommandWidth        = 570.0
+private const ImageGlyphSize = 18.0
+private const ImageCommandWidth = 362.0
+private const GifCommandWidth = 590.0
 
 private struct ImagePluginView
 {
@@ -41,7 +41,7 @@ private impl ImagePluginView
 
     mtd showPlayback()
     {
-        .commands.resize(GifCommandWidth, 32)
+        .commands.resize(GifCommandWidth, 36)
         .playButton.show()
         .timeline.show()
         .frameLabel.show()
@@ -62,15 +62,27 @@ private impl IWnd for ImagePluginView
 
         switch evt.key
         {
-        case .Add, .OemPlus: .imageView.zoomIn()
-        case .Subtract, .OemMinus: .imageView.zoomOut()
-        case .D0 where evt.modifiers.has(.Control): .imageView.actualSize()
-        case .F: .imageView.zoomToFit()
-        case .R: .imageView.rotateClockwise()
+        case .Add, .OemPlus:
+            .imageView.zoomIn()
+
+        case .Subtract, .OemMinus:
+            .imageView.zoomOut()
+
+        case .D0 where evt.modifiers.has(.Control):
+            .imageView.actualSize()
+
+        case .F:
+            .imageView.zoomToFit()
+
+        case .R:
+            .imageView.rotateClockwise()
+
         case .Space where .imageView.movie.frameCount > 1:
             .imageView.setPaused(!.imageView.movie.isPaused)
             .refreshFrame()
-        default: evt.accepted = false
+
+        default:
+            evt.accepted = false
         }
     }
 }
@@ -82,15 +94,15 @@ private impl ImagePluginView
         let result = Wnd.create'ImagePluginView(contentParent, "sViewer.image")
         result.backgroundStyle = .View
 
-        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, ImageCommandWidth, 32})
+        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, ImageCommandWidth, 36})
         {
             .backgroundStyle = .Window
         }
 
-        with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 34, 32})
+        with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
         {
-            .dockStyle = .Left
-            .toolTip   = "Zoom out"
+            .dockStyle  = .Left
+            .toolTip    = "Zoom out"
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -98,11 +110,11 @@ private impl ImagePluginView
             }
         }
 
-        with let zoomIn = IconButton.create(result.commands, result.theme().icon(.ZoomIn, ImageGlyphSize), {0, 0, 34, 32})
+        with let zoomIn = IconButton.create(result.commands, result.theme().icon(.ZoomIn, ImageGlyphSize), {0, 0, 36, 36})
         {
-            .dockStyle = .Left
-            .margin.z  = 4
-            .toolTip   = "Zoom in"
+            .dockStyle  = .Left
+            .margin.z   = 8
+            .toolTip    = "Zoom in"
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -110,11 +122,11 @@ private impl ImagePluginView
             }
         }
 
-        with let fit = PushButton.create(result.commands, "Fit", {0, 0, 48, 32})
+        with let fit = PushButton.create(result.commands, "Fit", {0, 0, 48, 36})
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = "Fit image"
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = "Fit image"
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -122,11 +134,11 @@ private impl ImagePluginView
             }
         }
 
-        with let actual = PushButton.create(result.commands, "100%", {0, 0, 58, 32})
+        with let actual = PushButton.create(result.commands, "100%", {0, 0, 58, 36})
         {
-            .dockStyle = .Left
-            .margin.x  = 4
-            .toolTip   = "Actual size"
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = "Actual size"
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -134,11 +146,11 @@ private impl ImagePluginView
             }
         }
 
-        with let rotate = IconButton.create(result.commands, result.theme().icon(.Redo, ImageGlyphSize), {0, 0, 34, 32})
+        with let rotate = IconButton.create(result.commands, result.theme().icon(.Redo, ImageGlyphSize), {0, 0, 36, 36})
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = "Rotate clockwise"
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = "Rotate clockwise"
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -146,7 +158,7 @@ private impl ImagePluginView
             }
         }
 
-        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Pause, ImageGlyphSize), {0, 0, 34, 32})
+        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Pause, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .margin.x  = 10
@@ -160,7 +172,7 @@ private impl ImagePluginView
             }
         }
 
-        with result.timeline = Slider.create(result.commands, {0, 0, 128, 32})
+        with result.timeline = Slider.create(result.commands, {0, 0, 128, 36})
         {
             .dockStyle = .Left
             .margin    = {6, 1, 6, 1}
@@ -171,21 +183,21 @@ private impl ImagePluginView
             }
         }
 
-        with result.frameLabel = Label.create(result.commands, "", {0, 0, 58, 32}, null, .SecondaryText)
+        with result.frameLabel = Label.create(result.commands, "", {0, 0, 58, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
             .setTextAlignment(.Center, .Center)
             .hide()
         }
 
-        with result.zoomLabel = Label.create(result.commands, "100%", {0, 0, 70, 32}, null, .SecondaryText)
+        with result.zoomLabel = Label.create(result.commands, "100%", {0, 0, 70, 36}, null, .SecondaryText)
         {
             .dockStyle = .Right
             .setTextAlignment(.Right, .Center)
         }
 
-        result.imageView           = ImageView.create(result)
-        result.imageView.dockStyle = .Center
+        result.imageView                = ImageView.create(result)
+        result.imageView.dockStyle      = .Center
         result.imageView.sigZoomChanged += func|view = result|(imageView)
         {
             discard imageView
@@ -238,7 +250,7 @@ func sViewerPluginCreate(contentParent, commandParent: *Wnd, fileName: string, a
 {
     if apiVersion != ViewerPluginApiVersion do
         return null
-    let view  = ImagePluginView.create(contentParent, commandParent, fileName)
+    let view = ImagePluginView.create(contentParent, commandParent, fileName)
     commands[] = view.commands
     return view
 }

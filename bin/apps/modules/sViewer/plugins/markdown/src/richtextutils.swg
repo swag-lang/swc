@@ -17,6 +17,7 @@ func viewerRichLiteral(text: string)->String
         else do
             result += value
     }
+
     return result
 }
 
@@ -35,19 +36,45 @@ func viewerDecodedEntity(source: string, start: u64)->{ value: String, eat: u64 
     let entity = source[start + 1 until close]
     switch entity
     {
-    case "amp":    result.value = "&"
-    case "lt":     result.value = "‹"
-    case "gt":     result.value = "›"
-    case "quot":   result.value = "\""
-    case "apos":   result.value = "'"
-    case "nbsp":   result.value = " "
-    case "ndash":  result.value = "–"
-    case "mdash":  result.value = "—"
-    case "hellip": result.value = "…"
-    case "bull":   result.value = "•"
-    case "copy":   result.value = "©"
-    case "reg":    result.value = "®"
-    case "trade":  result.value = "™"
+    case "amp":
+        result.value = "&"
+
+    case "lt":
+        result.value = "‹"
+
+    case "gt":
+        result.value = "›"
+
+    case "quot":
+        result.value = "\""
+
+    case "apos":
+        result.value = "'"
+
+    case "nbsp":
+        result.value = " "
+
+    case "ndash":
+        result.value = "–"
+
+    case "mdash":
+        result.value = "—"
+
+    case "hellip":
+        result.value = "…"
+
+    case "bull":
+        result.value = "•"
+
+    case "copy":
+        result.value = "©"
+
+    case "reg":
+        result.value = "®"
+
+    case "trade":
+        result.value = "™"
+
     default:
         if @countof(entity) < 2 or entity[0] != '#' do
             return result
@@ -69,6 +96,7 @@ func viewerDecodedEntity(source: string, start: u64)->{ value: String, eat: u64 
                 return result
             number = parsed.value
         }
+
         let character = cast(rune) number
         if !Utf8.isValidRune(character) do
             return result
@@ -109,5 +137,6 @@ func viewerRichText(text: string, decodeEntities = false)->String
             result += text[index]
         index += 1
     }
+
     return result
 }

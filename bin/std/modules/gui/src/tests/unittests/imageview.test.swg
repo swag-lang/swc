@@ -10,7 +10,7 @@ using Swag, Core, Pixel
     host.setup(320, 220)
     defer host.shutdown()
 
-    let view = ImageView.create(&host.root, {0, 0, 300, 200})
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
     image.fill(Argb.White)
     view.setImage(image)

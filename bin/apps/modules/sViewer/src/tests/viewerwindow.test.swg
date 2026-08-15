@@ -5,6 +5,41 @@ using Core, Pixel, Gui
 
 #test
 {
+    let executable         = Env.executablePath()
+    let direct: [1] string = [executable]
+    @assert(viewerStartupFile(direct).isEmpty())
+
+    let withFile: [2] string = [executable, executable]
+    @assert(viewerStartupFile(withFile) == executable)
+}
+
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sviewer_text_stream_%.txt", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for 2_000 do
+        source += "A source line that stays readable while the rest remains on disk.\n"
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let view     = BasicTextView.create(&host.root, commands, fileName)
+    view.resize(800, 520)
+    view.applyLayout()
+
+    let loaded = view.editor.text()
+    @assert(@countof(loaded) <= 16 * 1024)
+    @assert(view.stream.isOpen())
+    @assert(expect view.stream.position() < view.fileSize)
+}
+
+#test
+{
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()

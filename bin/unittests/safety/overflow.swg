@@ -815,7 +815,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
     func shlAssignWideCount()->u8
     {
-        var value: u8 = 1
+        var value: u8  = 1
         let count: u64 = 256
         value <<= count
         return value
@@ -830,7 +830,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
     func shrAssignUnsignedValueNegCount()->u8
     {
-        var value: u8 = 1
+        var value: u8  = 1
         let count: s64 = -1
         value >>= count     // swc-expected-error {{safety_err_runtime}}
         return value

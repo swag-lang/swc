@@ -12,15 +12,15 @@ struct Strings
 {
     public
     {
-        dlg_Ok:           string = "OK"                           // Confirmation button of a dialog.
-        dlg_Cancel:       string = "Cancel"                       // Cancel button of a dialog.
-        dlg_Yes:          string = "Yes"                          // Positive answer button.
-        dlg_No:           string = "No"                           // Negative answer button.
-        dlg_Close:        string = "Close"                        // Close button of an informational dialog.
-        dlg_ConfirmTitle: string = "Please confirm"               // Title of a confirmation dialog.
-        dlg_ConfirmText:  string = "Do you want to continue?"     // Default question of a confirmation dialog.
-        dlg_ErrorTitle:   string = "Error"                        // Title of an error dialog.
-        dlg_InfoTitle:    string = "Information"                  // Title of an informational dialog.
+        dlg_Ok:            string = "OK"                                      // Confirmation button of a dialog.
+        dlg_Cancel:        string = "Cancel"                                  // Cancel button of a dialog.
+        dlg_Yes:           string = "Yes"                                     // Positive answer button.
+        dlg_No:            string = "No"                                      // Negative answer button.
+        dlg_Close:         string = "Close"                                   // Close button of an informational dialog.
+        dlg_ConfirmTitle:  string = "Please confirm"                          // Title of a confirmation dialog.
+        dlg_ConfirmText:   string = "Do you want to continue?"                // Default question of a confirmation dialog.
+        dlg_ErrorTitle:    string = "Error"                                   // Title of an error dialog.
+        dlg_InfoTitle:     string = "Information"                             // Title of an informational dialog.
         dlg_MultiLineHint: string = "Press Shift+Enter to add a new line"     // Keyboard hint above a multi-line dialog editor.
 
         fileDlg_TitleSaveFile:     string = "Save File"                                   // File dialog title when saving a file.

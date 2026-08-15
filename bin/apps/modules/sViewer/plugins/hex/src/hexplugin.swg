@@ -24,6 +24,7 @@ internal func formatHexPage(bytes: const [..] u8, baseOffset: u64)->String
             if column == 7 do
                 result += " "
         }
+
         result += " │"
         for column in HexLineSize
         {
@@ -33,9 +34,11 @@ internal func formatHexPage(bytes: const [..] u8, baseOffset: u64)->String
             let value = bytes[index]
             result += value >= 32 and value < 127 ? value : '.'
         }
+
         result += "│\n"
-        line += HexLineSize
+        line   += HexLineSize
     }
+
     return result
 }
 
@@ -45,7 +48,7 @@ internal struct HexPluginView
 
     #[Swag.Late]
     {
-        commands:      *Wnd
+        commands:       *Wnd
         previousButton: *IconButton
         nextButton:     *IconButton
         offsetLabel:    *Label
@@ -75,6 +78,7 @@ internal impl HexPluginView
             .editor.setText("The file could not be read.")
             return
         }
+
         discard catch stream.seek(.Begin, .offset)
 
         let wanted = Math.min(HexPageSize, .fileSize - .offset)
@@ -86,6 +90,7 @@ internal impl HexPluginView
             .editor.setText("The file could not be read.")
             return
         }
+
         bytes.resize(read)
         .editor.setText(formatHexPage(bytes.toSlice(), .offset).toString())
         .updateCommands()
@@ -122,43 +127,45 @@ internal impl HexPluginView
     {
         let result = Wnd.create'HexPluginView(contentParent, "sViewer.hex")
         result.backgroundStyle = .View
-        result.fileName = fileName
+        result.fileName        = fileName
         let info = catch File.info(fileName) as infoError
         if infoError == null do
             result.fileSize = info.size
 
-        result.commands = Wnd.create'Wnd(commandParent, {0, 0, 218, 32})
+        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 224, 36})
         result.commands.backgroundStyle = .Window
 
-        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, 16), {0, 0, 32, 32})
+        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, 18), {0, 0, 36, 36})
         {
-            .dockStyle = .Left
-            .toolTip   = "Previous 64 KiB"
+            .dockStyle  = .Left
+            .toolTip    = "Previous 64 KiB"
             .sigPressed += func|view = result|(button)
             {
                 discard button
                 view.movePage(-1)
             }
         }
-        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, 16), {0, 0, 32, 32})
+
+        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, 18), {0, 0, 36, 36})
         {
-            .dockStyle = .Left
-            .margin.x  = 4
-            .toolTip   = "Next 64 KiB"
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = "Next 64 KiB"
             .sigPressed += func|view = result|(button)
             {
                 discard button
                 view.movePage(1)
             }
         }
-        with result.offsetLabel = Label.create(result.commands, "", {0, 0, 144, 32}, null, .SecondaryText)
+
+        with result.offsetLabel = Label.create(result.commands, "", {0, 0, 144, 36}, null, .SecondaryText)
         {
             .dockStyle = .Right
             .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setTextAlignment(.Right, .Center)
         }
 
-        result.editor = RichEditCtrl.create(result)
+        result.editor           = RichEditCtrl.create(result)
         result.editor.dockStyle = .Center
         result.editor.setFlags(.ReadOnly)
         result.editor.marginLeft  = 12

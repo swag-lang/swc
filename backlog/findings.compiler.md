@@ -149,10 +149,10 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Aggregate construction
 
-### F-139 — A moved field in an aggregate call argument asserts in CodeGen
+### F-139 — A moved subexpression in a materialized value asserts in CodeGen
 
 - Area: compiler
 - Found while: building the dedicated sViewer Markdown plugin
-- Observation: passing an aggregate literal with a `#move` field directly to `Array.add` passes semantic analysis, then the DevMode compiler asserts while preparing the fixed call argument
-- Evidence: `blocks.add(MarkdownBlock{kind, #move text})` asserts at `CodeGenCallHelpers.Call.cpp:1062` because `argConstView.cstRef().isValid()` does not hold; constructing a named `MarkdownBlock`, assigning `block.text = #move text`, then calling `blocks.add(#move block)` compiles
-- Next step: reduce the pattern into `bin/unittests/native`, then trace why aggregate-field move lowering reaches `appendPreparedFixedArg` without a valid constant reference and make the original direct construction compile without changing ownership
+- Observation: embedding `#move` in an aggregate call argument or one branch of a conditional expression passes semantic analysis, then the DevMode compiler asserts while preparing the materialized value
+- Evidence: `blocks.add(MarkdownBlock{kind, #move text})` and `var value = condition ? String.from("rule") : #move block.text` both assert at `CodeGenCallHelpers.Call.cpp:1062` because `argConstView.cstRef().isValid()` does not hold; assigning the moved field through an ordinary statement before the call compiles in both cases
+- Next step: reduce both patterns into `bin/unittests/native`, then trace why their moved subexpressions reach `appendPreparedFixedArg` without a valid constant reference and make the original expressions compile without changing ownership

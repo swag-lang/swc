@@ -1,7 +1,7 @@
 using Core, Pixel, Gui
 
-const ViewerBarHeight    = 40.0
-const ViewerGlyphSize   = 20.0
+const ViewerBarHeight = 52.0
+const ViewerGlyphSize = 20.0
 
 struct ViewerWindow
 {
@@ -9,28 +9,28 @@ struct ViewerWindow
 
     #[Swag.Late]
     {
-        commandBar:             *Wnd
-        previousButton:         *IconButton
-        nextButton:             *IconButton
-        openButton:             *IconButton
-        viewerCombo:            *ComboBox
-        titleLabel:             *Label
-        emptyLabel:             *Label
+        commandBar:     *Wnd
+        previousButton: *IconButton
+        nextButton:     *IconButton
+        openButton:     *IconButton
+        viewerCombo:    *ComboBox
+        titleLabel:     *Label
+        emptyLabel:     *Label
     }
 
-    index:          ViewerPluginIndex
-    plugins:        ViewerPluginManager
-    currentView:    #null *Wnd
+    index:           ViewerPluginIndex
+    plugins:         ViewerPluginManager
+    currentView:     #null *Wnd
     currentCommands: #null *Wnd
-    choices:        Array'ViewerChoice
+    choices:         Array'ViewerChoice
     activeChoiceIndex = Swag.U32.Max
-    startupTimer:   #null *Timer
-    pendingFile:    String
-    currentFile:    String
-    siblings:       Array'String
-    siblingIndex:   u64
-    siblingsDirty = true
-    fileDlgState:   FileDlgState
+    startupTimer:    #null *Timer
+    pendingFile:     String
+    currentFile:     String
+    siblings:        Array'String
+    siblingIndex:    u64
+    siblingsDirty     = true
+    fileDlgState:    FileDlgState
 }
 
 impl IWnd for ViewerWindow
@@ -112,10 +112,10 @@ impl ViewerWindow
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
-            .padding         = {8, 4, 8, 4}
+            .padding         = {16, 8, 16, 8}
         }
 
-        with result.previousButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 34, 32})
+        with result.previousButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .toolTip   = appStrings().ui_Previous
@@ -127,10 +127,10 @@ impl ViewerWindow
             }
         }
 
-        with result.nextButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 34, 32})
+        with result.nextButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
-            .margin.z  = 4
+            .margin.z  = 8
             .toolTip   = appStrings().ui_Next
             .enable(false)
             .sigPressed += func|window = result|(button)
@@ -140,11 +140,11 @@ impl ViewerWindow
             }
         }
 
-        with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 34, 32})
+        with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 36, 36})
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = appStrings().ui_Open
+            .dockStyle  = .Left
+            .margin.x   = 16
+            .toolTip    = appStrings().ui_Open
             .sigPressed += func|window = result|(button)
             {
                 discard button
@@ -152,10 +152,10 @@ impl ViewerWindow
             }
         }
 
-        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 156, 32})
+        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 172, 36})
         {
             .dockStyle = .Right
-            .margin.x  = 8
+            .margin.x  = 16
             .toolTip   = appStrings().ui_Viewer
             .hide()
             .sigChanged += func|window = result|(combo, index)
@@ -211,11 +211,13 @@ impl ViewerWindow
             .currentCommands.destroy()
             .currentCommands = null
         }
+
         if .currentView
         {
             .currentView.destroy()
             .currentView = null
         }
+
         .emptyLabel.setText(message)
         .emptyLabel.show()
         .currentFile.clear()
@@ -239,7 +241,7 @@ impl ViewerWindow
             return false
 
         var nextCommands: #null *Wnd
-        var nextView: #null *Wnd
+        var nextView:     #null *Wnd
         let choice = &.choices[index]
         if choice.kind == .BasicText
         {
@@ -263,9 +265,9 @@ impl ViewerWindow
             .currentCommands.destroy()
         if .currentView do
             .currentView.destroy()
-        .currentView       = nextView
-        .currentCommands   = nextCommands
-        .activeChoiceIndex = index
+        .currentView            = nextView
+        .currentCommands        = nextCommands
+        .activeChoiceIndex      = index
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .Right
@@ -295,7 +297,7 @@ impl ViewerWindow
         if pathError != null do
             absolute = fileName
         .currentFile = #move absolute
-        .choices = .index.choices(.currentFile.toString())
+        .choices     = .index.choices(.currentFile.toString())
         .viewerCombo.clear()
         for choice in .choices do
             .viewerCombo.addItem(choice.name.toString())
@@ -310,12 +312,14 @@ impl ViewerWindow
                 selected = cast(u32) index
                 break
             }
+
             if !.activateChoice(selected)
             {
                 .showEmpty(appStrings().ui_Unsupported)
                 return
             }
         }
+
         .emptyLabel.hide()
 
         .siblingsDirty = true
@@ -355,6 +359,7 @@ impl ViewerWindow
             .siblingIndex = i
             break
         }
+
         .siblingsDirty = false
     }
 

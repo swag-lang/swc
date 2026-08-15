@@ -71,10 +71,10 @@ struct Application
         // Focus tracking, moved by the windows themselves as events are dispatched.
         internal
         {
-            keyboardFocusWnd:     #null *Wnd     // Window currently holding the keyboard focus.
-            mouseCaptureWnd:      #null *Wnd     // Window currently holding the mouse capture.
-            mouseEnterWnd:        #null *Wnd     // Window the mouse last entered.
-            nativeFocusTransition: bool          // Whether a logical focus move is synchronously changing the native focus.
+            keyboardFocusWnd:      #null *Wnd     // Window currently holding the keyboard focus.
+            mouseCaptureWnd:       #null *Wnd     // Window currently holding the mouse capture.
+            mouseEnterWnd:         #null *Wnd     // Window the mouse last entered.
+            nativeFocusTransition: bool           // Whether a logical focus move is synchronously changing the native focus.
         }
 
         // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the

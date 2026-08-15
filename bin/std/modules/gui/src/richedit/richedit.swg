@@ -40,19 +40,20 @@ struct RichEditCtrl
 {
     public
     {
-        using frameWnd:       FrameWnd                           // Embedded frame wnd state.
-        flags = RichEditFlags.None                               // Active editor behavior flags.
-        lineSpacing:          f32                                // Extra vertical spacing, in logical pixels, between display lines.
-        overwriteMode:        bool                               // Whether typed text replaces the rune under the caret.
-        tabSize:              s32 = 4                            // Width of a tab stop in space advances.
-        marginLeft:           f32                                // Blank space between the view and the left text edge.
-        marginRight:          f32                                // Blank space between the right text edge and the view.
-        lexer:                #null IRichEditLexer               // Optional lexer responsible for assigning style indices.
-        form  = RichEditForm.RichEditCtrl                        // Current theme treatment.
-        sigIsReadOnly:        SigArray'func||(*bool)             // Lets owners impose read-only state in addition to `flags`.
-        sigChanged:           SigArray'func||(*RichEditCtrl)     // Emitted after document content changes.
-        sigModified:          SigArray'func||(*RichEditCtrl)     // Emitted when the modified state toggles.
-        backgroundColorModel: String                             // Optional theme color expression used for the editor background.
+        using frameWnd:           FrameWnd                                                   // Embedded frame wnd state.
+        flags = RichEditFlags.None                                                           // Active editor behavior flags.
+        lineSpacing:              f32                                                        // Extra vertical spacing, in logical pixels, between display lines.
+        overwriteMode:            bool                                                       // Whether typed text replaces the rune under the caret.
+        tabSize:                  s32 = 4                                                    // Width of a tab stop in space advances.
+        marginLeft:               f32                                                        // Blank space between the view and the left text edge.
+        marginRight:              f32                                                        // Blank space between the right text edge and the view.
+        lexer:                    #null IRichEditLexer                                       // Optional lexer responsible for assigning style indices.
+        form  = RichEditForm.RichEditCtrl                                                    // Current theme treatment.
+        sigIsReadOnly:            SigArray'func||(*bool)                                     // Lets owners impose read-only state in addition to `flags`.
+        sigChanged:               SigArray'func||(*RichEditCtrl)                             // Emitted after document content changes.
+        sigModified:              SigArray'func||(*RichEditCtrl)                             // Emitted when the modified state toggles.
+        sigScrollPositionChanged: SigArray'func||(*RichEditCtrl, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
+        backgroundColorModel:     String                                                     // Optional theme color expression used for the editor background.
 
         // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill
         // these in to give the control its syntax colors.
@@ -298,6 +299,7 @@ impl RichEditCtrl
             {
                 if op.y != np.y do
                     ed.dirtyFirstLineView = true
+                ed.sigScrollPositionChanged.call(ed, op, np)
             }
 
             .edView             = .scrollWnd.createView'RichEditView()
@@ -378,6 +380,12 @@ impl RichEditCtrl
         .sigIsReadOnly.call(&ro)
         return ro or .flags.has(.ReadOnly)
     }
+
+    // Returns the current viewport origin in document coordinates.
+    mtd const scrollPosition()->Math.Point => .scrollWnd.scrollPosition()
+
+    // Returns the complete scrollable document rectangle.
+    mtd const scrollableClientRect()->Math.Rectangle => .scrollWnd.scrollableClientRect()
 
     // Simulate a keyboard character pressed
     mtd charPressed(key: Input.Key, ch: rune, modifiers: Input.KeyModifiers)

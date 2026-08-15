@@ -86,7 +86,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     var noisy: Array'u8
-    var seed  = 0x2545F491'u32
+    var seed = 0x2545F491'u32
     for i in 40000
     {
         seed ^= seed << #wrap 13

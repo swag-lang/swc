@@ -38,3 +38,28 @@ using Core, Pixel, Gui
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "sviewer.markdown.document")
 }
+
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sviewer_markdown_stream_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for 2_000 do
+        source += "## Streamed heading\n\nA paragraph stays on disk until the viewport approaches it.\n\n"
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let view = MarkdownPluginView.create(&host.root, fileName)
+    view.resize(960, 680)
+    view.applyLayout()
+    view.layoutDocument()
+    view.streamStep()
+
+    @assert(!view.blocks.isEmpty())
+    @assert(view.stream.isOpen())
+    @assert(expect view.stream.position() < source.length)
+}

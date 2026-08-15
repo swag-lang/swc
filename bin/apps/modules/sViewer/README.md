@@ -20,18 +20,20 @@ Several lines may claim the same extension. The combo lists format-specific plug
 the combo replaces only the current view; it does not reopen the window or reload unrelated DLLs.
 
 Basic text belongs to the host rather than a plugin. It is available for every file, displays
-valid UTF-8 as read-only fixed-width text, and is the source view for Markdown and HTML. Binary
-content directs the reader to the hexadecimal alternative instead of guessing an encoding.
+valid UTF-8 as read-only fixed-width text, and is the source view for Markdown and HTML. It reads
+small UTF-8 segments on demand and stays about two viewports ahead, so source files do not need to
+fit in memory before their first screen appears. Binary content directs the reader to the
+hexadecimal alternative instead of guessing an encoding.
 
 ## Shipped plugins
 
-- `markdown` builds a centered reading column with separate typography and spacing for headings,
+- `markdown` streams a centered reading column with separate typography and spacing for headings,
   prose, quotes, lists, fenced code, tables, rules, metadata, and display math. It supports task
   lists, autolinks, images, inline code, emphasis, highlight, strike-like secondary text, entities,
   and inline TeX notation for common symbols and operators. Display TeX uses Pixel's native math
   layout for fractions, roots, scripts, scalable delimiters, operators, matrices, cases, and aligned
   expressions. The renderer is offline and executes no embedded HTML or script.
-- `html` renders document blocks into a centered page, keeps links explicit, and applies useful CSS
+- `html` streams document blocks into a centered page, keeps links explicit, and applies useful CSS
   from style sheets and inline declarations: tag, class, id and simple descendant selectors;
   foreground and background colors; font sizes, weights and styles; alignment; and body width.
   Head, script, style, template, and embedded-document content never executes.

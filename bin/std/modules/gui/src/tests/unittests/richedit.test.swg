@@ -59,6 +59,31 @@ using Swag, Core
     @assert(ed.text() == "")
 }
 
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    defer host.shutdown()
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
+    var notified: bool
+    ed.sigScrollPositionChanged += func|&notified|(ctrl, oldPosition, newPosition)
+    {
+        discard ctrl
+        discard oldPosition
+        notified = newPosition.y > 0
+    }
+
+    for 80 do
+        ed.addText("one line\n")
+    host.settleAnimations(ed)
+    @assert(ed.scrollableClientRect().height > ed.paddedClientRect().height)
+
+    ed.scrollWnd.setScrollPos(0, 40)
+    @assert(ed.scrollPosition().y > 0)
+    @assert(notified)
+}
+
 // selectAll selects the whole content.
 #test
 {

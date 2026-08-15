@@ -192,8 +192,8 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     sub.addItem("Open", Menu_Open)
     popup.addPopup("More", sub)
 
-    var didOpen:  bool
-    var didClick: bool
+    var didOpen:     bool
+    var didClick:    bool
     var hidTogether: bool
     sub.sigCommandSelected += func|popup, sub, hidTogether = &hidTogether|(menu, id)
     {

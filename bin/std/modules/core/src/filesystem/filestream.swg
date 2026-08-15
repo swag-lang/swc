@@ -165,6 +165,48 @@ impl FileStream
         return .read(@dataof(buffer), @countof(buffer))
     }
 
+    // Reads the next bounded UTF-8 segment without splitting an encoded rune.
+    //
+    // The stream position advances by the returned byte count. `maxBytes` needs at least four
+    // bytes, so every UTF-8 rune can make progress. A malformed sequence at the current position
+    // leaves that position unchanged and reports [[Core.Errors.InvalidFormatError]]. An empty
+    // result means end of file.
+    mtd readUtf8Chunk(maxBytes: u64)->String fail
+    {
+        if maxBytes < 4 do
+            fail Errors.BadParameterError{"UTF-8 chunk size needs at least four bytes"}
+
+        let start    = .position()
+        let fileSize = .size()
+        if start >= fileSize do
+            return {}
+        let remaining = fileSize - start
+
+        let target = Math.min(maxBytes, remaining)
+        let probe  = target <= Swag.U64.Max - 3 ? Math.min(target + 3, remaining) : remaining
+        var bytes: Array'u8
+        bytes.resize(probe)
+        let count = .read(bytes.toSlice())
+        bytes.resize(count)
+        if !count do
+            return {}
+
+        var accepted = Math.min(target, count)
+        let shortest = accepted > 3 ? accepted - 3 : 0
+        while accepted > shortest and !Utf8.isValid(bytes.toSlice()[0 until accepted]) do
+            accepted -= 1
+
+        if !accepted or !Utf8.isValid(bytes.toSlice()[0 until accepted])
+        {
+            .seek(.Begin, start)
+            fail Errors.InvalidFormatError{"file content is not valid UTF-8"}
+        }
+
+        if accepted != count do
+            .seek(.Begin, start + accepted)
+        return String.from(@mkstring(bytes.buffer!, accepted))
+    }
+
     // Writes at most the size of `buffer` and returns the number of bytes written.
     mtd write(buffer: const [..] u8)->u64 fail
     {

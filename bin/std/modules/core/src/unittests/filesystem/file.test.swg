@@ -68,6 +68,46 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     stream.close()
 }
 
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_utf8_chunks.tmp")
+    defer discard catch File.delete(fileName)
+
+    let content = "abcé◆xyz"
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) @dataof(content), @countof(content)))
+
+    var stream = expect File.openRead(fileName)
+    defer stream.close()
+
+    var recovered: String
+    while true
+    {
+        let chunk = expect stream.readUtf8Chunk(4)
+        if chunk.isEmpty() do
+            break
+        @assert(@countof(chunk) <= 4)
+        @assert(Utf8.isValid(chunk.toSlice()))
+        recovered += chunk
+    }
+
+    @assert(recovered == content)
+}
+
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_invalid_utf8_chunk.tmp")
+    defer discard catch File.delete(fileName)
+
+    discard expect File.writeAllBytes(fileName, ['a'u8, 0xFF'u8, 'b'u8])
+    var stream = expect File.openRead(fileName)
+    defer stream.close()
+
+    @assert((expect stream.readUtf8Chunk(16)) == "a")
+    discard catch stream.readUtf8Chunk(16) as err
+    @assert(err is Errors.InvalidFormatError)
+    @assert(expect stream.position() == 1)
+}
+
 // Offsets are 64-bit all the way down to the platform call. Everything from 2 GB upward has bit 31
 // set, which a 32-bit signed distance cannot carry, so these are the offsets a container-sized file
 // actually lives at. Seeking never allocates a byte, so the file stays empty throughout.

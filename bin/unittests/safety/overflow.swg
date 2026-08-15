@@ -550,114 +550,123 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Shift left overflow (bit loss) â€” signed
+// Shift left truncation â€” signed
 // =============================================
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowS8(a, count: s8)->s8
+    func shlTruncatesS8(a, count: s8)->s8
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowS8(64's8, 1's8)
+    const value = #run shlTruncatesS8(64's8, 1's8)
+    @assert(value == -128's8)
 }
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowS16(a, count: s16)->s16
+    func shlTruncatesS16(a, count: s16)->s16
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowS16(16384's16, 1's16)
+    const value = #run shlTruncatesS16(16384's16, 1's16)
+    @assert(value == -32768's16)
 }
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowS32(a, count: s32)->s32
+    func shlTruncatesS32(a, count: s32)->s32
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowS32(1073741824's32, 1's32)
+    const value = #run shlTruncatesS32(1073741824's32, 1's32)
+    @assert(value == -2147483648's32)
 }
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowS64(a, count: s64)->s64
+    func shlTruncatesS64(a, count: s64)->s64
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowS64(4611686018427387904's64, 1's64)
+    const value = #run shlTruncatesS64(4611686018427387904's64, 1's64)
+    @assert(value == -9223372036854775808's64)
 }
 
 // =============================================
-// Shift left overflow (bit loss) â€” unsigned
+// Shift left truncation â€” unsigned
 // =============================================
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowU8(a, count: u8)->u8
+    func shlTruncatesU8(a, count: u8)->u8
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowU8(128'u8, 1'u8)
+    const value = #run shlTruncatesU8(128'u8, 1'u8)
+    @assert(value == 0'u8)
 }
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowU16(a, count: u16)->u16
+    func shlTruncatesU16(a, count: u16)->u16
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowU16(32768'u16, 1'u16)
+    const value = #run shlTruncatesU16(32768'u16, 1'u16)
+    @assert(value == 0'u16)
 }
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowU32(a, count: u32)->u32
+    func shlTruncatesU32(a, count: u32)->u32
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowU32(2147483648'u32, 1'u32)
+    const value = #run shlTruncatesU32(2147483648'u32, 1'u32)
+    @assert(value == 0'u32)
 }
 
 #test
 {
     #[Swag.Safety(.Overflow, true)]
-    func shlOverflowU64(a, count: u64)->u64
+    func shlTruncatesU64(a, count: u64)->u64
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
-    const value = #run shlOverflowU64(9223372036854775808'u64, 1'u64)
+    const value = #run shlTruncatesU64(9223372036854775808'u64, 1'u64)
+    @assert(value == 0'u64)
 }
 
-// Shift left with count >= bit width (non-zero value triggers overflow)
+// Shift left with count >= bit width
 #test
 {
     #[Swag.Safety(.Overflow, true)]
     func shlLargeCountS8(a, count: s8)->s8
     {
-        return a << count     // swc-expected-error {{safety_err_runtime}}
+        return a << count
     }
 
     const value = #run shlLargeCountS8(1's8, 8's8)
+    @assert(value == 0's8)
 }
 
-// Shift left with count >= bit width and zero value: no overflow
+// Shift left with count >= bit width and zero value
 #test
 {
     #[Swag.Safety(.Overflow, true)]
@@ -764,6 +773,70 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shrNegCountS64(42's64, -1's64)
+}
+
+// The count's signedness is independent from the shifted value's signedness.
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func shlUnsignedValueNegCount(a: u8, count: s64)->u8
+    {
+        return a << count     // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run shlUnsignedValueNegCount(1'u8, -1's64)
+}
+
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func shrUnsignedValueNegCount(a: u8, count: s64)->u8
+    {
+        return a >> count     // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run shrUnsignedValueNegCount(1'u8, -1's64)
+}
+
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func shrSignedValueWideCount(a: s8, count: u64)->s8
+    {
+        return a >> count
+    }
+
+    const value = #run shrSignedValueWideCount(-128's8, 0xFFFF_FFFF_FFFF_FFFF'u64)
+    @assert(value == -1's8)
+}
+
+#test
+{
+    #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
+    func shlAssignWideCount()->u8
+    {
+        var value: u8 = 1
+        let count: u64 = 256
+        value <<= count
+        return value
+    }
+
+    const value = #run shlAssignWideCount()
+    @assert(value == 0'u8)
+}
+
+#test
+{
+    #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
+    func shrAssignUnsignedValueNegCount()->u8
+    {
+        var value: u8 = 1
+        let count: s64 = -1
+        value >>= count     // swc-expected-error {{safety_err_runtime}}
+        return value
+    }
+
+    const value = #run shrAssignUnsignedValueNegCount()
 }
 
 // =============================================
@@ -877,27 +950,29 @@ func opaqueS64(v: s64)->s64
 #test
 {
     #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
-    func shlAssignOverflowS8()->s8
+    func shlAssignTruncatesS8()->s8
     {
         var v: s8 = 64
-        v <<= 1     // swc-expected-error {{safety_err_runtime}}
+        v <<= 1
         return v
     }
 
-    const value = #run shlAssignOverflowS8()
+    const value = #run shlAssignTruncatesS8()
+    @assert(value == -128's8)
 }
 
 #test
 {
     #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
-    func shlAssignOverflowU8()->u8
+    func shlAssignTruncatesU8()->u8
     {
         var v: u8 = 128
-        v <<= 1     // swc-expected-error {{safety_err_runtime}}
+        v <<= 1
         return v
     }
 
-    const value = #run shlAssignOverflowU8()
+    const value = #run shlAssignTruncatesU8()
+    @assert(value == 0'u8)
 }
 
 #test
@@ -1347,7 +1422,7 @@ func opaqueS64(v: s64)->s64
     @assert(value == 0'u8)
 }
 
-// #wrap suppresses bit-loss on << but negative count still errors
+// #wrap is redundant on << and a negative count still errors.
 #test
 {
     #[Swag.Safety(.Overflow, true)]
@@ -1359,7 +1434,7 @@ func opaqueS64(v: s64)->s64
     const value = #run shlWrapNegCount(1's8, -1's8)
 }
 
-// #wrap on << suppresses bit-loss: overflow that would normally error is allowed
+// #wrap on << keeps the ordinary truncating result.
 #test
 {
     #[Swag.Safety(.Overflow, true)]
@@ -1372,7 +1447,7 @@ func opaqueS64(v: s64)->s64
     @assert(value == -128's8)
 }
 
-// #wrap on <<= suppresses bit-loss
+// #wrap on <<= keeps the ordinary truncating result.
 #test
 {
     #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]

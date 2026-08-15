@@ -289,21 +289,37 @@ namespace
         const MicroReg leftReg = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
         builder.emitLoadRegMem(leftReg, targetPayload.reg, 0, encodeCtx.opBits);
 
-        const MicroReg rightReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
-
         if (assignOp == TokenId::SymLowerLowerEqual || assignOp == TokenId::SymGreaterGreaterEqual)
         {
-            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, node.nodeRightRef, leftReg, rightReg, targetType, encodeCtx.opBits, Token::assignToBinary(assignOp), node.modifierFlags.has(AstModifierFlagsE::Wrap)));
-        }
-        else if (isSigned && (assignOp == TokenId::SymSlashEqual || assignOp == TokenId::SymPercentEqual))
-        {
-            SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, leftReg, rightReg, op, encodeCtx.opBits, assignOp == TokenId::SymPercentEqual));
+            const TypeRef     countTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
+            const TypeInfo&   countType    = codeGen.typeMgr().get(countTypeRef);
+            const MicroOpBits countBits    = CodeGenTypeHelpers::numericBits(countType);
+            const MicroReg    countReg     = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, countTypeRef);
+
+            CodeGenSafety::ShiftIntLikeContext shiftCtx;
+            shiftCtx.countOperandRef = node.nodeRightRef;
+            shiftCtx.valueReg        = leftReg;
+            shiftCtx.countReg        = countReg;
+            shiftCtx.valueType       = &targetType;
+            shiftCtx.countType       = &countType;
+            shiftCtx.valueBits       = encodeCtx.opBits;
+            shiftCtx.countBits       = countBits;
+            shiftCtx.op              = Token::assignToBinary(assignOp);
+            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, shiftCtx));
         }
         else
         {
-            builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
-            if (hasSafety)
-                SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, binaryOp, isSigned));
+            const MicroReg rightReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
+            if (isSigned && (assignOp == TokenId::SymSlashEqual || assignOp == TokenId::SymPercentEqual))
+            {
+                SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, leftReg, rightReg, op, encodeCtx.opBits, assignOp == TokenId::SymPercentEqual));
+            }
+            else
+            {
+                builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
+                if (hasSafety)
+                    SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, binaryOp, isSigned));
+            }
         }
 
         builder.emitLoadMemReg(targetPayload.reg, 0, leftReg, encodeCtx.opBits);

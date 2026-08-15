@@ -690,145 +690,73 @@ Result CodeGenSafety::emitIntArithmeticOverflowCheck(CodeGen& codeGen, const Ast
     }
 }
 
-Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, const AstNodeRef rightOperandRef, const MicroReg valueReg, const MicroReg rightReg, const TypeInfo& operationType, const MicroOpBits opBits, const TokenId shiftTokId, const bool allowWrap)
+Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, const ShiftIntLikeContext& shiftCtx)
 {
-    SWC_ASSERT(shiftTokId == TokenId::SymLowerLower || shiftTokId == TokenId::SymGreaterGreater);
+    SWC_ASSERT(shiftCtx.op == TokenId::SymLowerLower || shiftCtx.op == TokenId::SymGreaterGreater);
+    SWC_ASSERT(shiftCtx.valueType && shiftCtx.countType);
+    SWC_ASSERT(shiftCtx.valueBits != MicroOpBits::Zero && shiftCtx.countBits != MicroOpBits::Zero);
 
-    const bool     isLeftShift   = shiftTokId == TokenId::SymLowerLower;
-    const bool     isSigned      = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
-    const bool     hasSafety     = hasOverflowRuntimeSafety(codeGen);
-    const bool     checkOverflow = isLeftShift && hasSafety && !allowWrap;
-    MicroBuilder&  builder       = codeGen.builder();
-    const MicroOp  shiftOp       = isLeftShift ? MicroOp::ShiftLeft : (isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
-    const uint64_t bitWidth      = getNumBits(opBits);
+    const bool     isLeftShift = shiftCtx.op == TokenId::SymLowerLower;
+    const bool     valueSigned = shiftCtx.valueType->isIntLike() && !shiftCtx.valueType->isIntLikeUnsigned();
+    const bool     countSigned = shiftCtx.countType->isIntLike() && !shiftCtx.countType->isIntLikeUnsigned();
+    const bool     hasSafety   = hasOverflowRuntimeSafety(codeGen);
+    MicroBuilder&  builder     = codeGen.builder();
+    const MicroOp  shiftOp     = isLeftShift ? MicroOp::ShiftLeft : (valueSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
+    const uint64_t bitWidth    = getNumBits(shiftCtx.valueBits);
 
-    // Constant shift amount in [0, bitWidth): the result is exactly the shift, so
-    // there is no large-count case (>= width -> 0/saturate) and no negative-count
-    // case to guard. Emit the bare shift and skip the runtime guard the general
-    // paths below produce (a materialized count + width compare + conditional
-    // move), which is provably dead for a compile-time-constant amount. The shift
-    // amount being statically non-negative also makes the signed negative-count
-    // check unnecessary. NOTE: only when checkOverflow is off — the overflow
-    // safety check inspects the *value* shifted out, which a constant amount does
-    // not make redundant.
-    if (!checkOverflow && rightOperandRef.isValid())
+    // A constant non-negative count below the value width needs neither the
+    // negative-count guard nor the language-level large-count selection.
+    if (shiftCtx.countOperandRef.isValid())
     {
-        const SemaNodeView rightConstView = codeGen.viewConstant(rightOperandRef);
+        const SemaNodeView rightConstView = codeGen.viewConstant(shiftCtx.countOperandRef);
         if (rightConstView.hasConstant())
         {
             const ConstantValue& rightConst = codeGen.cstMgr().get(rightConstView.cstRef());
             if (rightConst.isInt())
             {
                 const ApsInt& amount = rightConst.getInt();
-                if (!amount.isNegative() && amount.as64() < bitWidth)
+                if (!amount.isNegative() && amount.fits64() && amount.as64() < bitWidth)
                 {
-                    builder.emitOpBinaryRegReg(valueReg, rightReg, shiftOp, opBits);
+                    builder.emitOpBinaryRegReg(shiftCtx.valueReg, shiftCtx.countReg, shiftOp, shiftCtx.valueBits);
                     return Result::Continue;
                 }
             }
         }
     }
 
-    const MicroReg countReg64  = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
+    const MicroReg countReg64  = widenIntRegTo64(codeGen, shiftCtx.countReg, *shiftCtx.countType, shiftCtx.countBits);
     MicroReg       originalReg = MicroReg::invalid();
-    if (checkOverflow || (!isLeftShift && isSigned))
+    if (!isLeftShift && valueSigned)
     {
         originalReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(originalReg, valueReg, opBits);
+        builder.emitLoadRegReg(originalReg, shiftCtx.valueReg, shiftCtx.valueBits);
     }
 
-    if (!checkOverflow)
+    MicroReg stableCountReg64 = countReg64;
+    if (stableCountReg64 == shiftCtx.valueReg)
     {
-        MicroReg stableCountReg64 = countReg64;
-        if (stableCountReg64 == valueReg)
-        {
-            stableCountReg64 = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(stableCountReg64, countReg64, MicroOpBits::B64);
-        }
-
-        MicroLabelRef doneLabel = MicroLabelRef::invalid();
-        if (isSigned)
-        {
-            const MicroLabelRef nonNegative = builder.createLabel();
-            doneLabel                       = builder.createLabel();
-            builder.emitCmpRegImm(rightReg, ApInt(0, 64), opBits);
-            builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, nonNegative);
-            if (hasSafety)
-                SWC_RESULT(emitNegativeShiftCheck(codeGen, node));
-            builder.emitOpBinaryRegReg(valueReg, rightReg, shiftOp, opBits);
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-            builder.placeLabel(nonNegative);
-        }
-
-        builder.emitOpBinaryRegReg(valueReg, rightReg, shiftOp, opBits);
-        emitLargeShiftCountSelect(codeGen, valueReg, stableCountReg64, originalReg, opBits, bitWidth, !isLeftShift && isSigned);
-        if (doneLabel.isValid())
-            builder.placeLabel(doneLabel);
-        return Result::Continue;
+        stableCountReg64 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(stableCountReg64, countReg64, MicroOpBits::B64);
     }
 
-    const MicroLabelRef nonNegative = builder.createLabel();
-    const MicroLabelRef normalLabel = builder.createLabel();
-    const MicroLabelRef largeLabel  = builder.createLabel();
-    const MicroLabelRef doneLabel   = builder.createLabel();
-
-    if (isSigned)
+    MicroLabelRef doneLabel = MicroLabelRef::invalid();
+    if (countSigned)
     {
-        builder.emitCmpRegImm(rightReg, ApInt(0, 64), opBits);
+        const MicroLabelRef nonNegative = builder.createLabel();
+        doneLabel                       = builder.createLabel();
+        builder.emitCmpRegImm(shiftCtx.countReg, ApInt(0, 64), shiftCtx.countBits);
         builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, nonNegative);
         if (hasSafety)
             SWC_RESULT(emitNegativeShiftCheck(codeGen, node));
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, normalLabel);
+        builder.emitOpBinaryRegReg(shiftCtx.valueReg, shiftCtx.countReg, shiftOp, shiftCtx.valueBits);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
         builder.placeLabel(nonNegative);
     }
 
-    builder.emitCmpRegImm(countReg64, ApInt(bitWidth, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, largeLabel);
-
-    builder.placeLabel(normalLabel);
-    builder.emitOpBinaryRegReg(valueReg, rightReg, shiftOp, opBits);
-    if (checkOverflow)
-    {
-        const MicroReg reverseReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(reverseReg, valueReg, opBits);
-        builder.emitOpBinaryRegReg(reverseReg, rightReg, isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight, opBits);
-        builder.emitCmpRegReg(reverseReg, originalReg, opBits);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-        SWC_RESULT(emitOverflowCheck(codeGen, node));
-    }
-
-    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-    builder.placeLabel(largeLabel);
-
-    if (isLeftShift)
-    {
-        if (checkOverflow)
-        {
-            const MicroLabelRef zeroLabel = builder.createLabel();
-            builder.emitCmpRegImm(originalReg, ApInt(0, 64), opBits);
-            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, zeroLabel);
-            SWC_RESULT(emitOverflowCheck(codeGen, node));
-            builder.placeLabel(zeroLabel);
-        }
-
-        builder.emitClearReg(valueReg, opBits);
-    }
-    else if (isSigned)
-    {
-        const MicroLabelRef negativeLabel = builder.createLabel();
-        builder.emitCmpRegImm(originalReg, ApInt(0, 64), opBits);
-        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, negativeLabel);
-        builder.emitClearReg(valueReg, opBits);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-        builder.placeLabel(negativeLabel);
-        builder.emitLoadRegImm(valueReg, ApInt(std::numeric_limits<uint64_t>::max(), 64), opBits);
-    }
-    else
-    {
-        builder.emitClearReg(valueReg, opBits);
-    }
-
-    builder.placeLabel(doneLabel);
+    builder.emitOpBinaryRegReg(shiftCtx.valueReg, shiftCtx.countReg, shiftOp, shiftCtx.valueBits);
+    emitLargeShiftCountSelect(codeGen, shiftCtx.valueReg, stableCountReg64, originalReg, shiftCtx.valueBits, bitWidth, !isLeftShift && valueSigned);
+    if (doneLabel.isValid())
+        builder.placeLabel(doneLabel);
     return Result::Continue;
 }
 

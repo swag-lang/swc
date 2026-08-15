@@ -248,6 +248,10 @@ for value in values.reversed() {}
 '#wrap' opts one arithmetic operation into wrapping behavior. Broader runtime
 guard policy uses 'Swag.Safety' on a scope, and module defaults live in 'BuildCfg':
 
+Left shift is already truncating: bits shifted out of the left operand are
+discarded without an overflow panic. '#wrap' remains accepted on '<<' and
+'<<=' for compatibility, but it does not change their result or count rules.
+
 ```swag
 #[Swag.Safety(.Overflow, false)]
 {

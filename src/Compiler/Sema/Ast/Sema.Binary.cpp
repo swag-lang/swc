@@ -80,6 +80,8 @@ namespace
             return false;
         if (!aliasType(sema, nodeLeftView).isIntLike() || !aliasType(sema, nodeRightView).isIntLike())
             return false;
+        if (op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater)
+            return !aliasType(sema, nodeRightView).isIntLikeUnsigned();
         return SemaHelpers::binaryOpNeedsOverflowSafety(op, node.modifierFlags);
     }
 
@@ -178,11 +180,11 @@ namespace
         const bool promote         = node.modifierFlags.has(AstModifierFlagsE::Promote);
         const bool hasAliasOperand = (nodeLeftView.type() && nodeLeftView.type()->isAlias()) ||
                                      (nodeRightView.type() && nodeRightView.type()->isAlias());
-        // A shift keeps the left operand's type, and its sign is restored a few lines below, so
-        // the promotion here only widens the operands. Its result is not the expression's type
-        // and must not be range-checked as one.
-        const bool isShift = op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater;
-        if (!keepEnumRes && !hasAliasOperand)
+        // A concrete shift operates and folds at the left operand's exact width.
+        // Unsized operands retain the usual constant-promotion path.
+        const bool isShift               = op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater;
+        const bool preserveShiftLeftType = isShift && leftType.isInt() && !leftType.isIntUnsized();
+        if (!keepEnumRes && !hasAliasOperand && !preserveShiftLeftType)
         {
             if (!leftType.isScalarNumeric() || !rightType.isScalarNumeric())
                 return Result::Continue;
@@ -193,25 +195,9 @@ namespace
         const ConstantValue& rightCst    = sema.cstMgr().get(rightCstRef);
         const TypeInfo&      leftCstType = leftCst.type(sema.ctx());
 
-        // A shift's result type is the LEFT operand's type; the shift amount must
-        // never re-sign it. Promotion above widens the value (so e.g. `1'u16 << 16`
-        // can hold 65536) but unifies the SIGN with the count, which would turn
-        // `1's32 << someUnsignedConst` unsigned and silently make a later arithmetic
-        // `>>` a logical shift. Restore the left operand's sign while keeping the
-        // promoted width.
-        TypeRef shiftStorageRef = TypeRef::invalid();
-        if ((op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater) &&
-            !shouldKeepLeftAliasResult(nodeLeftView) &&
-            leftType.isInt() && !leftType.isIntUnsized() &&
-            leftCstType.isInt() && !leftCstType.isIntUnsized() &&
-            leftType.payloadIntSign() != leftCstType.payloadIntSign())
-        {
-            shiftStorageRef = sema.typeMgr().typeInt(leftCstType.payloadIntBits(), leftType.payloadIntSign());
-        }
-
-        const TypeInfo& storageType = shiftStorageRef.isValid()
-                                          ? sema.typeMgr().get(shiftStorageRef)
-                                          : (shouldKeepLeftAliasResult(nodeLeftView) ? aliasType(sema, nodeLeftView) : leftCstType);
+        // A concrete shift keeps the left operand's storage type. The count's
+        // type influences validity only, never the result type.
+        const TypeInfo& storageType = preserveShiftLeftType || shouldKeepLeftAliasResult(nodeLeftView) ? leftType : leftCstType;
 
         // Wrap and promote modifiers can only be applied to int-like values.
         if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
@@ -261,16 +247,10 @@ namespace
                 val1.setSigned(true);
                 val2.setSigned(true);
             }
-            else if (op == TokenId::SymGreaterGreater && storageType.isInt())
+            else if (isShift && storageType.isInt())
             {
-                // A right shift is arithmetic or logical according to the LEFT operand's sign,
-                // which is the shift's storage (result) type restored above — NOT the promoted
-                // constant's sign. promoteConstants unifies the left operand's sign with the shift
-                // count (typically unsigned), so without re-applying the storage sign here a
-                // const-folded `signed >> count` would shift the now-unsigned value logically.
-                // This only surfaces once the expression is const-foldable (e.g. the left operand
-                // becomes constant after the function is inlined), mirroring the existing
-                // left-shift sign fix above.
+                // Shift direction and result width belong to the left operand;
+                // the count keeps its independent width and signedness.
                 val1.setSigned(storageType.payloadIntSign() == TypeInfo::Sign::Signed);
             }
 

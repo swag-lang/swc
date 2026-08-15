@@ -95,18 +95,10 @@ namespace Math
 
             if (!right.fits64())
             {
-                if (!options.clampShiftCount || options.shiftBitWidth == 0)
-                {
-                    if (options.ignoreShiftOverflow)
-                    {
-                        outAmount = 0;
-                        return FoldStatus::Ok;
-                    }
-
-                    return FoldStatus::Overflow;
-                }
-
-                outAmount = options.shiftBitWidth - 1;
+                if (options.clampShiftCount && options.shiftBitWidth != 0)
+                    outAmount = options.shiftBitWidth - 1;
+                else
+                    outAmount = std::numeric_limits<uint64_t>::max();
                 return FoldStatus::Ok;
             }
 
@@ -120,7 +112,8 @@ namespace Math
     FoldStatus foldBinaryInt(ApsInt& outResult, const ApsInt& left, const ApsInt& right, FoldBinaryOp op, const FoldBinaryIntOptions& options)
     {
         outResult = left;
-        if (op != FoldBinaryOp::ShiftArithmeticRight && outResult.isUnsigned() != right.isUnsigned())
+        const bool isShift = op == FoldBinaryOp::ShiftLeft || op == FoldBinaryOp::ShiftRight || op == FoldBinaryOp::ShiftArithmeticRight;
+        if (!isShift && outResult.isUnsigned() != right.isUnsigned())
             return FoldStatus::Unsupported;
 
         bool overflow = false;

@@ -30,11 +30,12 @@ with 'buildCfg.safetyGuards'.
 # Overflow Safety
 Example:
 #[Swag.Safety(.Overflow, true)]
-When enabled, Swag panics on arithmetic overflow or when bits are lost
-during integer conversions.
+When enabled, Swag panics on arithmetic overflow, on a runtime negative shift
+count, or when bits are lost during integer conversions.
 
-Operators that can overflow include '+ - * << >>' and compound forms
-'+= -= *= <<= >>='.
+Operators that can overflow include '+ - *' and compound forms '+= -= *='.
+Shifts have defined truncating and large-count behavior; overflow safety only
+guards their negative signed counts.
 */
 #test
 {
@@ -47,6 +48,7 @@ Operators that can overflow include '+ - * << >>' and compound forms
 ## Disabling Overflow Safety with '#wrap'
 
 Use '#wrap' on the operation if overflow is expected and should not panic.
+It is unnecessary for shifts, whose discarded bits already truncate normally.
 */
 #test
 {

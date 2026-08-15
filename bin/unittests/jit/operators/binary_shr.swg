@@ -32,6 +32,19 @@
 
 #test
 {
+    func shiftRightMixedUnsigned(a: u8, b: u64)->u8 { return a >> b }
+    func shiftRightMixedSigned(a: s8, b: u64)->s8 { return a >> b }
+
+    const V0 = #run shiftRightMixedUnsigned(0x80'u8, 256'u64)
+    const V1 = #run shiftRightMixedSigned(-128's8, 256'u64)
+    const V2 = #run shiftRightMixedUnsigned(0x80'u8, 0x1_0000_0000'u64)
+    #assert(V0 == 0'u8)
+    #assert(V1 == -1's8)
+    #assert(V2 == 0'u8)
+}
+
+#test
+{
     func shiftRightTooFew(a: u32, b: u32)->u32 { return a >> b }
     const V = #run shiftRightTooFew(168'u32)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

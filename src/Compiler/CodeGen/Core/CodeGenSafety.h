@@ -16,6 +16,18 @@ struct CodeGenNodePayload;
 
 namespace CodeGenSafety
 {
+    struct ShiftIntLikeContext
+    {
+        AstNodeRef      countOperandRef;
+        MicroReg        valueReg;
+        MicroReg        countReg;
+        const TypeInfo* valueType = nullptr;
+        const TypeInfo* countType = nullptr;
+        MicroOpBits     valueBits = MicroOpBits::Zero;
+        MicroOpBits     countBits = MicroOpBits::Zero;
+        TokenId         op        = TokenId::Invalid;
+    };
+
     using LoadNumericOperandFn        = void (*)(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef);
     using MaterializeNumericOperandFn = void (*)(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef);
 
@@ -37,7 +49,7 @@ namespace CodeGenSafety
     Result emitOverflowCheck(CodeGen& codeGen, const AstNode& node);
     Result emitOverflowTrapOnFailure(CodeGen& codeGen, const AstNode& node, MicroCond successCond);
     Result emitIntArithmeticOverflowCheck(CodeGen& codeGen, const AstNode& node, TokenId binaryTokId, bool isSigned);
-    Result emitShiftIntLike(CodeGen& codeGen, const AstNode& node, AstNodeRef rightOperandRef, MicroReg valueReg, MicroReg rightReg, const TypeInfo& operationType, MicroOpBits opBits, TokenId shiftTokId, bool allowWrap);
+    Result emitShiftIntLike(CodeGen& codeGen, const AstNode& node, const ShiftIntLikeContext& shiftCtx);
     Result emitSignedDivOrModIntLike(CodeGen& codeGen, const AstNode& node, MicroReg leftReg, MicroReg rightReg, MicroOp op, MicroOpBits opBits, bool zeroOnOverflow);
     Result emitIntLikeCastOverflowCheck(CodeGen& codeGen, const AstNode& node, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);
     Result emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const AstNode& node, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);

@@ -59,3 +59,36 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `Scc.Writer`, which halves the save; then measure whether the remaining `backImg` deflate is
   small enough, or whether the save must move off the interface thread (which needs a snapshot of
   the form list to stay race-free).
+
+### F-137 — Loading a capture blocks the interface for the duration of one inflate
+
+- Area: apps/sCapture, std/core (Compress)
+- Found while: investigating the lag felt when clicking a capture in the recent strip. This is the
+  load counterpart of [F-126](#f-126--the-one-second-auto-save-freezes-the-interface-for-the-duration-of-a-full-deflate);
+  both come from the same decision to deflate raw pixels.
+- Observation: `RecentView.select` calls `Capture.load` synchronously on the interface thread, and
+  the whole cost of that load is inflating the background chunk. Nothing is shown in the meantime,
+  although the capture's own preview is already decoded and on screen in the strip that was just
+  clicked.
+- Evidence: measured 2026-08-15, release config, on `8_9_2025_15_43_58.scapture` (13.5 MB on disk,
+  a photograph, 2341x1903 BGRA8). Whole load 431 ms, of which the background chunk is 388 ms
+  (12.8 MB read 12 ms, inflate ~350 ms, decoded CRC-32 ~25 ms); the TagBin decode of the image is
+  9 ms, the model chunk 0.2 ms, the header 0.6 ms, the preview PNG 5 ms. The library holds 746
+  captures, 4.01 GB on disk for 5.77 GB of decoded pixels, 7 MB of pixels per capture on average
+  and 47 MB at worst — so the average click pays ~170 ms and the worst ~1.2 s.
+- Evidence that deflate is a bad trade on this content: a screen grab of a photograph does not
+  compress. This payload goes 17.0 -> 12.8 MB (1.33x) at BestSpeed, and only 12.5 MB (1.36x) at
+  Default or BestCompression; the whole library averages 1.44x. Re-encoding the same pixels as
+  PNG gives 11.0 MB but decodes in 377-409 ms, because PNG is the same inflate plus unfiltering.
+  So the current format spends ~350 ms of load to save ~30% of disk.
+- Next step: four independent levers, in decreasing value and increasing cost.
+  (1) Do not block the click: keep the preview on screen and swap in the full capture when the
+  decode lands, which removes the *felt* lag whatever the codec does. (2) Keep the last few
+  decoded captures alive in `RecentView`, since clicking back and forth through the history is
+  exactly the gesture that reloads what was just discarded. (3) Make the chunk codec a decision
+  instead of a constant: `Scc` already dispatches on a codec id, so a fast byte-oriented codec
+  (LZ4-class, decoding at GB/s for a ratio near 1.2) or plain stored bytes for payloads that do
+  not compress would cut the load to the read itself. Existing files keep loading through the
+  deflate path, so this is additive. (4) Make inflate itself fast — see
+  [F-136](findings.optimization.md#f-136--inflate-runs-at-40-mbs-about-six-times-under-a-reference-zlib),
+  which is the lever that also pays for every PNG the application decodes.

@@ -168,3 +168,37 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the four MSDF coverage taps, validating against the pixel image goldens and refreshing them
   deliberately if bytes move. Replace the bilinear `lerpColor` chain with integer arithmetic
   under the same golden policy.
+
+## Decompression
+
+### F-136 — Inflate runs at 40 MB/s, about six times under a reference zlib
+
+- Area: std/core (Compress), compiler/backend
+- Found while: explaining why clicking a large capture in sCapture's recent strip stalls the
+  interface (see [F-137](findings.scapture.md#f-137--loading-a-capture-blocks-the-interface-for-the-duration-of-one-inflate)).
+  Inflate is that stall almost entirely, and it is not specific to sCapture: `Image.decode` of a
+  PNG runs through the same loop.
+- Observation: `Compress.Inflate` sustains 39-49 MB/s of output. Reference implementations of the
+  same algorithm run at 250-400 MB/s (zlib) and beyond (libdeflate). The gap is not the payload:
+  raising the *compression* level barely moves it (39 MB/s at BestSpeed, 49 MB/s at Default), so
+  it is the decode loop itself, not the symbol mix.
+- Evidence: measured 2026-08-15, release config, on the 12.8 MB deflate payload of
+  `8_9_2025_15_43_58.scapture` (17.0 MB of BGRA8 out). Core inflate 352-455 ms, best 342 ms.
+  On the same payload and in the same process: `Hash.Crc32.compute` 649-792 MB/s,
+  `Hash.Adler32` 821-1110 MB/s, `Memory.copy` 6.7 GB/s. `Image.decode` of the same pixels
+  re-encoded as PNG takes 377-409 ms, which is the same loop paying the same price.
+- Evidence that the hot loop is where it goes: a prototype in the scratchpad kept the bit cursor
+  (`codeBuffer`, `numBits`, `curByte`) in locals for the whole block instead of reaching through
+  `me` on every symbol, inlined the Huffman fast-path decode instead of calling a `fail` method
+  per symbol, refilled once per length/distance pair, and copied back-references eight bytes at a
+  time instead of calling `Memory.copy` for a five-byte match. Byte-identical output, 259-309 ms
+  against 352-455 ms — about 1.5x, and no more. So the bookkeeping is real but it is not the
+  whole gap.
+- Next step: the remaining 4x is worth a measurement before a rewrite. Count symbols and match
+  lengths on this payload to get cycles per symbol, then compare the emitted loop against what
+  clang-cl produces for the equivalent C (see
+  [the clang answer-sheet note](findings.compiler.md)); a loop this small with this many live
+  values is exactly the shape the boundary-flush and interval-allocator work addresses. If the
+  emitted code is the ceiling, the algorithmic move is zlib's two-level decode table, which
+  removes the `reverse16` + linear `maxCode` walk that every code longer than nine bits still
+  pays.

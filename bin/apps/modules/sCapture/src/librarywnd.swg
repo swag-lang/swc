@@ -349,17 +349,15 @@ impl LibraryWnd
         return result
     }
 
-    mtd const namedFiltersEqual(a, b: const *Array'LibraryNamedFilter)->bool
+    mtd const namedFiltersEqual(a, b: const [..] LibraryNamedFilter)->bool
     {
-        let valuesA = a[]
-        let valuesB = b[]
-        if valuesA.count != valuesB.count do
+        if @countof(a) != @countof(b) do
             return false
-        for value, i in valuesA
+        for value, i in a
         {
-            if value.count != valuesB[i].count or
-               Utf8.compare(value.name.toSlice(), valuesB[i].name.toSlice(), .Latin1NoCase) != 0 or
-               value.executable != valuesB[i].executable
+            if value.count != b[i].count or
+               Utf8.compare(value.name.toSlice(), b[i].name.toSlice(), .Latin1NoCase) != 0 or
+               value.executable != b[i].executable
             {
                 return false
             }
@@ -559,7 +557,7 @@ impl LibraryWnd
 
         let applications = .collectNamedFilters(true)
         let tags         = .collectNamedFilters(false)
-        if !force and .namedFiltersEqual(&.sidebarApplications, &applications) and .namedFiltersEqual(&.sidebarTags, &tags) do
+        if !force and .namedFiltersEqual(.sidebarApplications.toSlice(), applications.toSlice()) and .namedFiltersEqual(.sidebarTags.toSlice(), tags.toSlice()) do
             return
 
         .sidebarApplications = applications

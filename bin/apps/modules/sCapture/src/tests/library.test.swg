@@ -3,6 +3,17 @@
 
 using Swag, Core, File
 
+struct LibraryRejectAllocator {}
+
+impl IAllocator for LibraryRejectAllocator
+{
+    mtd impl alloc(request: *AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *AllocatorRequest) { request.address = null }
+    mtd impl free(request: *AllocatorRequest) {}
+    mtd impl freeAll(request: *AllocatorRequest) {}
+    mtd impl assertAllocated(request: *AllocatorRequest) {}
+}
+
 // Library actions can be exercised against an empty headless library window:
 // sorting/filtering and command states do not require scanning the user's files.
 #test
@@ -614,6 +625,22 @@ using Swag, Core, File
     @assert(lib.sidebarApplications[0].executable == Env.executablePath())
     @assert(lib.sidebarApplications[0].count == 1)
     @assert(lib.sidebarTags.count == 2)
+
+    // Comparing unchanged filters only borrows their elements. A copied array would try to
+    // allocate through its retained allocator and turn this no-op refresh into a panic.
+    let applicationsAllocator       = lib.sidebarApplications.allocator
+    let tagsAllocator               = lib.sidebarTags.allocator
+    var rejectAllocator: LibraryRejectAllocator
+    let reject:          IAllocator = &rejectAllocator
+    lib.sidebarApplications.allocator = reject
+    lib.sidebarTags.allocator         = reject
+    defer
+    {
+        lib.sidebarApplications.allocator = applicationsAllocator
+        lib.sidebarTags.allocator         = tagsAllocator
+    }
+
+    lib.refreshAutomaticFilters()
 
     for i in lib.listCtrl.lineCount()
     {

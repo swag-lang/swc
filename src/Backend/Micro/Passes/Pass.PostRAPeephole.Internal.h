@@ -27,12 +27,16 @@ namespace PostRaPeephole
     struct Context : MicroPeephole::RewriteQueue<Action>
     {
         const Encoder* encoder = nullptr;
+        MicroReg       stackPointer   = MicroReg::invalid();
+        MicroReg       framePointer   = MicroReg::invalid();
+        MicroReg       localStackBase = MicroReg::invalid();
 
         // Copy/const forwarding is only run while this is set (the first
         // post-RA sweep). See MicroPassContext::isFirstOptimizationSweep.
         bool allowForwarding = true;
 
         bool claimAll(std::initializer_list<MicroInstrRef> refs);
+        bool isPrivateFrameBase(MicroReg reg) const;
     };
 
     using PatternFn = bool (*)(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -53,6 +57,9 @@ namespace PostRaPeephole
     bool tryFoldCopyIntoVecShiftImm(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldLoadIntoFloatBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryUseSelfOperandForFloatBinary(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
+    bool tryEraseOverwrittenStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
+    bool tryEraseRedundantStoreReload(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
+    bool tryForwardStoredValueToReload(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
 
     // Walks forward from `fromRef`: the register is dead iff the next thing that
     // touches it is a redefinition, with no read in between.

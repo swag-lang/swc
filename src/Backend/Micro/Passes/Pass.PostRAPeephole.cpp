@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
@@ -37,6 +38,9 @@ namespace
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoFloatBinary);
+        r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);
+        r.add(MicroInstrOpcode::LoadMemReg, tryEraseRedundantStoreReload);
+        r.add(MicroInstrOpcode::LoadMemReg, tryForwardStoredValueToReload);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
@@ -73,9 +77,13 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
 
     Context ctx;
+    const CallConv& conv = CallConv::get(context.callConvKind);
     ctx.storage         = context.instructions;
     ctx.operands        = context.operands;
     ctx.encoder         = context.encoder;
+    ctx.stackPointer    = conv.stackPointer;
+    ctx.framePointer    = conv.framePointer;
+    ctx.localStackBase  = context.debugStackBasePhysReg;
     ctx.allowForwarding = context.isFirstOptimizationSweep;
 
     runPerInstructionPatterns(ctx);

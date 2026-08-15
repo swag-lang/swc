@@ -782,6 +782,41 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
     }
 }
 
+void MicroRegisterAllocationPass::computeGlobalAccessBenefits(std::vector<uint64_t>& outBenefit) const
+{
+    // Once a boundary-crossing value is given a stable register, every use and
+    // definition in its live range can stay there. Rank those accesses by the
+    // loop depth at which they execute. Boundary count alone cannot distinguish
+    // a loop cursor used on every iteration from a hoisted address that merely
+    // remains live across the same boundaries.
+    constexpr uint64_t K_DEPTH_WEIGHT     = 10;
+    constexpr uint32_t K_MAX_WEIGHT_DEPTH = 9;
+
+    outBenefit.assign(denseVirtualRegs_.regs().size(), 0);
+
+    for (uint32_t idx = 0; idx < instructionUseDefs_.size(); ++idx)
+    {
+        const uint32_t depth = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
+        uint64_t       weight = 1;
+        for (uint32_t level = 0; level < std::min(depth, K_MAX_WEIGHT_DEPTH); ++level)
+            weight *= K_DEPTH_WEIGHT;
+
+        const auto addAccess = [&](const MicroReg reg) {
+            if (!reg.isVirtual())
+                return;
+
+            const uint32_t denseIndex = denseVirtualRegs_.find(reg);
+            if (denseIndex != MicroDenseRegIndex::K_INVALID_INDEX && denseIndex < outBenefit.size())
+                outBenefit[denseIndex] += weight;
+        };
+
+        for (const MicroReg reg : instructionUseDefs_[idx].uses)
+            addAccess(reg);
+        for (const MicroReg reg : instructionUseDefs_[idx].defs)
+            addAccess(reg);
+    }
+}
+
 bool MicroRegisterAllocationPass::intervalHasCall(const uint32_t lo, const uint32_t hi) const
 {
     for (uint32_t idx = lo; idx <= hi && idx < instructionCount_; ++idx)
@@ -1077,6 +1112,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
     std::vector<uint64_t> benefits;
     computeGlobalBenefits(benefits);
+    std::vector<uint64_t> accessBenefits;
+    computeGlobalAccessBenefits(accessBenefits);
 
     // Fixed-point scale for the density ranking below, so the comparison
     // stays in integers.
@@ -1091,9 +1128,10 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
     struct GlobalCandidate
     {
-        uint32_t denseIndex = 0;
-        uint64_t benefit    = 0;
-        uint64_t rawBenefit = 0;
+        uint32_t denseIndex    = 0;
+        uint64_t density       = 0;
+        uint64_t rawBenefit    = 0;
+        uint64_t accessBenefit = 0;
     };
     SmallVector<GlobalCandidate> candidates;
 
@@ -1105,30 +1143,41 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         if (virtualSpanLo_[denseIndex] > virtualSpanHi_[denseIndex])
             continue;
 
-        // Rank by what the reservation earns per unit of register-time, not by
-        // what it earns outright. A register is held for the whole hull, holes
-        // included, so a value that crosses many boundaries while spread over
-        // the entire function costs far more than it returns: it denies the
-        // local allocator a register everywhere in exchange for savings in one
-        // place. Ranking on the raw count selects exactly those, because a long
-        // life is what makes a value cross many boundaries in the first place.
+        // Density remains the admission threshold for span-scoped registers.
+        // A register is held for the whole hull, holes included, so a value
+        // that crosses many boundaries while spread over the entire function
+        // can otherwise deny the local allocator a register everywhere in
+        // exchange for savings in one place.
         const uint64_t spanLength = virtualSpanHi_[denseIndex] - virtualSpanLo_[denseIndex] + 1;
         const uint64_t density    = benefits[denseIndex] * K_DENSITY_SCALE / spanLength;
         if (!density)
             continue;
 
-        candidates.push_back({.denseIndex = denseIndex, .benefit = density, .rawBenefit = benefits[denseIndex]});
+        candidates.push_back({
+            .denseIndex    = denseIndex,
+            .density       = density,
+            .rawBenefit    = benefits[denseIndex],
+            .accessBenefit = accessBenefits[denseIndex],
+        });
     }
     if (candidates.empty())
         return;
 
-    std::ranges::stable_sort(candidates, [](const GlobalCandidate& a, const GlobalCandidate& b) { return a.benefit > b.benefit; });
+    // Grant the scarce carriers to values accessed most often in the hottest
+    // loops. Density breaks ties without pushing long-lived cursors behind
+    // short-lived values that are merely carried across the same back-edge.
+    std::ranges::stable_sort(candidates, [](const GlobalCandidate& a, const GlobalCandidate& b) {
+        if (a.accessBenefit != b.accessBenefit)
+            return a.accessBenefit > b.accessBenefit;
+        return a.density > b.density;
+    });
 
     // Supply and budget are two different things. Widening which registers may be granted (below)
     // is worth it for the values that dominate a hot loop; handing one to every candidate that
     // merely earns something starves the local allocator instead, because a hull holds its
     // register across its holes as well.
-    const uint64_t spanScopedMinDensity = candidates.front().benefit / K_SPAN_SCOPED_DENSITY_DIVISOR;
+    const auto maxDensityIt = std::ranges::max_element(candidates, {}, &GlobalCandidate::density);
+    const uint64_t spanScopedMinDensity = maxDensityIt->density / K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     // The local allocator must keep enough of each class to satisfy the worst
     // single instruction â€” its register operands plus what a destructive
@@ -1168,6 +1217,30 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         const bool     isFloat = vreg.isVirtualFloat();
         const uint32_t lo      = virtualSpanLo_[cand.denseIndex];
         const uint32_t hi      = std::min(virtualSpanHi_[cand.denseIndex], instructionCount_ ? instructionCount_ - 1 : 0);
+
+        // The ABI keeps one callee-saved register outside both allocation
+        // pools specifically for the local-stack base. Put that value in its
+        // dedicated register instead of consuming one of the general global
+        // carriers while the dedicated register sits idle.
+        const MicroReg localStackBaseReg = conv_->preferredLocalStackBaseReg();
+        const bool     isLocalStackBase   = context_->debugStackBaseVirtualReg.isValid() &&
+                                           vreg == context_->debugStackBaseVirtualReg;
+        if (isLocalStackBase &&
+            localStackBaseReg.isValid() &&
+            !isPhysRegForbiddenForVirtual(vreg, localStackBaseReg) &&
+            !concreteClaimsOverlap(localStackBaseReg, lo, hi) &&
+            !globalRangesOverlap(localStackBaseReg, lo, hi))
+        {
+            addGlobalRange(localStackBaseReg, lo, hi, cand.denseIndex);
+            appendUniqueReg(context_->globalReservedRegs, localStackBaseReg);
+
+            auto& regState  = states_[cand.denseIndex];
+            regState.pinned = true;
+            regState.mapped = false;
+            regState.phys   = localStackBaseReg;
+            context_->debugStackBasePhysReg = localStackBaseReg;
+            continue;
+        }
 
         std::vector<uint32_t>& reserved           = isFloat ? reservedFloat : reservedInt;
         std::vector<uint32_t>& reservedPersistent = isFloat ? reservedFloatPersistent : reservedIntPersistent;
@@ -1311,7 +1384,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
                     const bool persistentPick  = isPersistentPhysReg(reg);
                     const bool benefitClears   = persistentPick ? cand.rawBenefit >= K_PERSISTENT_MIN_RAW_BENEFIT
-                                                                : cand.benefit >= spanScopedMinDensity;
+                                                                : cand.density >= spanScopedMinDensity;
                     const bool spanScopedGrant = benefitClears &&
                                                  (!crossesCall || persistentPick) &&
                                                  context_->encoder &&

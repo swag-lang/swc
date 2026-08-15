@@ -418,6 +418,19 @@ namespace
         b.emitRet();
     }
 
+    void buildLocalStackBaseAcrossBoundary(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv&     conv        = CallConv::get(callConvKind);
+        const MicroLabelRef resumeLabel = b.createLabel();
+
+        constexpr MicroReg stackBase = MicroReg::virtualIntReg(7700);
+        b.emitLoadRegReg(stackBase, conv.stackPointer, MicroOpBits::B64);
+        b.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, resumeLabel);
+        b.placeLabel(resumeLabel);
+        b.emitLoadRegReg(conv.intReturn, stackBase, MicroOpBits::B64);
+        b.emitRet();
+    }
+
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -663,6 +676,35 @@ SWC_TEST_BEGIN(MicroReg_SameClassMatchesVirtualAndPhysicalRegisters)
         return Result::Error;
     if (MicroReg::virtualFloatReg(0).isSameClass(MicroReg::intReg(0)))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_UsesDedicatedLocalStackBaseRegister)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        const CallConv& conv                  = CallConv::get(callConvKind);
+        const MicroReg preferredStackBaseReg = conv.preferredLocalStackBaseReg();
+        if (!preferredStackBaseReg.isValid())
+            continue;
+
+        constexpr MicroReg stackBase = MicroReg::virtualIntReg(7700);
+        MicroBuilder       builder(ctx);
+        buildLocalStackBaseAcrossBoundary(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind             = callConvKind;
+        passCtx.debugStackBaseVirtualReg = stackBase;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+        if (passCtx.debugStackBasePhysReg != preferredStackBaseReg)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

@@ -386,6 +386,88 @@ namespace
 
         diag.report(sema.ctx());
     }
+
+    // The global storage an assignment target ultimately writes into, or null when the target is
+    // not rooted at a global.
+    const SymbolVariable* assignedGlobalRoot(Sema& sema, AstNodeRef nodeRef)
+    {
+        while (true)
+        {
+            const AstNodeRef resolvedRef = resolveNodeRefForCheck(sema, nodeRef);
+            if (resolvedRef.isInvalid())
+                return nullptr;
+
+            const AstNode& node = sema.node(resolvedRef);
+            if (node.is(AstNodeId::ParenExpr))
+            {
+                nodeRef = node.cast<AstParenExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::MemberAccessExpr))
+            {
+                nodeRef = node.cast<AstMemberAccessExpr>().nodeLeftRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::IndexExpr))
+            {
+                nodeRef = node.cast<AstIndexExpr>().nodeExprRef;
+                continue;
+            }
+
+            const Symbol* sym = sema.view(resolvedRef, SemaNodeViewPartE::Symbol).singleSymbol();
+            if (!sym || !sym->isVariable())
+                return nullptr;
+
+            const auto& symVar = sym->cast<SymbolVariable>();
+            return symVar.hasGlobalStorage() ? &symVar : nullptr;
+        }
+    }
+
+    // Whether the enclosing function only ever runs at compile time. Its writes land in the
+    // compiler's own copy of the data segments, and only the segments emitted verbatim carry
+    // them into the artifact.
+    bool inCompileTimeExecutedFunction(const Sema& sema)
+    {
+        const SymbolFunction* symFn = sema.currentFunction();
+        if (!symFn)
+            return false;
+
+        const AstNode* decl = symFn->decl();
+        if (!decl)
+            return false;
+        if (decl->is(AstNodeId::CompilerRunBlock) || decl->is(AstNodeId::CompilerRunExpr))
+            return true;
+        if (!decl->is(AstNodeId::CompilerFunc))
+            return false;
+
+        const TokenId tokenId = sema.token(decl->codeRef()).id;
+        return tokenId == TokenId::CompilerRun || tokenId == TokenId::CompilerAst || tokenId == TokenId::CompilerFuncMessage;
+    }
+
+    // A global written by compile-time execution keeps that value only when its storage is emitted
+    // verbatim. The zero segment becomes '.bss', which carries a size and no bytes, so the write
+    // reaches the JIT half of the build and disappears from the artifact - the two halves of the
+    // language would then disagree about what '#run' can establish. '= undefined' is the spelling
+    // that puts a global in the initialized segment, which is what makes the write survive.
+    Result checkCompileTimeGlobalWrite(Sema& sema, AstNodeRef leftExprRef)
+    {
+        if (!inCompileTimeExecutedFunction(sema))
+            return Result::Continue;
+
+        const SymbolVariable* symVar = assignedGlobalRoot(sema, leftExprRef);
+        if (!symVar || symVar->globalStorageKind() != DataSegmentKind::GlobalZero)
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compile_time_global_write_dropped, leftExprRef);
+        diag.addArgument(Diagnostic::ARG_SYM, symVar->name(sema.ctx()));
+        diag.addNote(DiagnosticId::sema_note_global_declared_here);
+        diag.last().addArgument(Diagnostic::ARG_SYM, symVar->name(sema.ctx()));
+        diag.last().addSpan(symVar->codeRange(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
 }
 
 Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
@@ -735,7 +817,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
         return Result::Error;
     }
 
-    return Result::Continue;
+    return checkCompileTimeGlobalWrite(sema, leftExprRef);
 }
 
 bool SemaCheck::isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)

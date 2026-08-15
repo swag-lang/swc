@@ -1834,7 +1834,11 @@ Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
         TypeRef            operandTypeRef = codeGen.viewType(nodeExprRef).typeRef();
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
 
-        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        // The place is T, whatever the expression around it converts that T into. A conversion
+        // substitutes this node, so the live view would answer with the converted type and the
+        // place would then be read at the converted width - eight bytes out of a four-byte object
+        // for 's32' reaching an 's64' context.
+        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), codeGen.transparentPayloadTypeRef());
         if (childPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
         else

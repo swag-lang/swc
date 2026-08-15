@@ -275,11 +275,12 @@ namespace
         TaskContext& ctx = sema.ctx();
         assertRuntimePayloadSize<Runtime::Slice<std::byte>>(payload.srcBytes);
 
-        auto&           dstSlice       = writable<Runtime::Slice<std::byte>>(payload.dstBytes);
-        const auto&     srcSlice       = readable<Runtime::Slice<std::byte>>(payload.srcBytes);
-        const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
-        const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
-        const uint64_t  elementSize    = elementType.sizeOf(ctx);
+        auto&       dstSlice = writable<Runtime::Slice<std::byte>>(payload.dstBytes);
+        const auto& srcSlice = readable<Runtime::Slice<std::byte>>(payload.srcBytes);
+
+        // A null slice materializes nothing, so its element type is never laid out here. Asking for
+        // that layout first asks a struct sema has not finished for its size, which is how the
+        // '#null' slice field of an implicit struct default tripped the layout assertion.
         if (!srcSlice.ptr && !srcSlice.count)
         {
             dstSlice.ptr   = nullptr;
@@ -287,6 +288,9 @@ namespace
             return Result::Continue;
         }
 
+        const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
+        const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(ctx);
         if (!srcSlice.count || !elementSize)
         {
             const auto [dataOffset, dataStorage] = segment.reserveBytes(1, elementType.alignOf(ctx), true);

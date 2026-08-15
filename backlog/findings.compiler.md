@@ -32,30 +32,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   type-erased drop the `@gvtd` table already builds — reuse that shape rather than inventing a
   second one.
 
-### F-021 — A `#run` block cannot initialize a zero-segment global
-
-- Area: compiler
-- Found while: the language reference's `Swag.Late` page, whose `#run` set a global and whose
-  `@isset` then failed in the native build only. The page now sets the global from a setup
-  function, which is what the attribute is for.
-- Observation: a global written by a `#run` block keeps its value into the emitted binary only
-  when the global was declared with an initializer. Without one it lives in the zero segment,
-  which the native backend emits as `.bss`, so every compile-time write is dropped. The JIT run of
-  the same `#test` sees the values, so the two halves of the language disagree about what `#run`
-  can establish.
-- Evidence: a module with `var zero: s32` and `var init: s32 = 1`, both assigned in one `#run`,
-  prints `zero 7 / init 9` under the JIT and `zero 0 / init 9` from the produced executable. Same
-  split for a struct global and for a `#[Swag.Late]` pointer. `dataSectionName` maps
-  `DataSegmentKind::GlobalZero` to `.bss`
-  ([DebugRecordCollector.cpp:50](../src/Backend/Debug/DebugRecordCollector.cpp#L50)).
-- Next step: decide the rule before touching the backend, because the scalar half is the easy
-  half. Promoting a written zero-segment global to initialized data is mechanical; a *pointer*
-  written at `#run` time holds a compiler host address, and emitting those bytes verbatim would
-  ship a wild pointer — worse than the current zero. Persisting them needs the store to record a
-  `DataSegmentRelocation` at the written offset, which nothing does today because the write comes
-  from JIT-executed code rather than from a sema-built initializer. Either instrument those stores
-  or reject a `#run` write to a global that no initializer placed in the initialized segment.
-
 ## Published symbols, imports, and name resolution
 
 ### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
@@ -170,32 +146,3 @@ Entries are sorted by identifier, ascending; position carries no priority.
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
-
-### F-128 — A fallible rune return can fail during backend lowering
-
-- Area: compiler
-- Found while: implementing the JSON Unicode escape decoder for T-029
-- Observation: a function returning `rune fail` reaches an internal compiler error when a branch executes `fail`; returning `u32 fail` and casting the successful value at the caller compiles.
-- Evidence: `Json.readUnicodeEscape()->rune fail` in `bin/std/modules/core/src/serialization/read/json.swg` failed with `cannot materialize the synthesized zero fallible result payload` at its first `fail` expression in DevMode; changing only its result type to `u32` made the same body compile.
-- Next step: reduce this to a native compiler-suite case with a standalone fallible function returning `rune`, then repair synthesized result initialization in backend lowering.
-
-### F-132 — A constant source through a non-ConstExpr implicit opSet in an aggregate literal is lost
-
-- Area: compiler
-- Found while: the noref campaign's core native run, reducing the angle literal failure.
-- Observation: an aggregate-literal field converted through an `#[Implicit]` `opSet` that is NOT
-  `#[ConstExpr]` reads the wrong value when the source is a constant. The compile-time fold
-  rightly declines, and the runtime Set-cast lowering then reads the source from uninitialized
-  storage instead of materializing the constant. A runtime source through the same shape works,
-  and a `#[ConstExpr]` `opSet` folds correctly.
-- Evidence: `struct Angle { radians: f32 }` with `#[Swag.Implicit, Swag.Inline] mtd opSet(v: f32)`
-  and `let holder = Holder{angle: 1.5}` asserts `radians == 1.5` false in fast-debug, JIT and
-  native alike; the unoptimized micro shows the inlined-set body reading `[frame+0]`, a slot
-  nothing wrote, while the 1.5 constant is loaded into a float register and dropped. The master
-  reference compiler (build of 2026-08-13) fails the identical probe, so this predates the noref
-  campaign and is not a pointer-receiver regression.
-- Next step: in `emitStructSetCast` (CodeGen.Cast.cpp), trace the source argument's payload when
-  it is a constant: `appendResolvedCallArguments` hands `codeGenCallExprCommon` the literal node,
-  and its constant payload appears to be consumed by the aggregate-literal storage machinery
-  before the set call reads it. Reduce with the probe above, fix on master, and let the campaign
-  branch inherit the fix.

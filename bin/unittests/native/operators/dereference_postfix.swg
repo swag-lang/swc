@@ -100,6 +100,47 @@
     @assert(p[as u32] == 0x3F80_0000)
 }
 
+// A conversion around 'expr[as T]' converts the T that was read; it never widens the read
+// itself. The conversion substitutes the dereference node, so a place typed from the live
+// view would answer with the converted type and open an eight-byte window on a four-byte
+// object - reading past the storage and returning whatever followed it.
+func derefPlaceWidenS32(data: const *void)->s64
+{
+    return data[as s32]
+}
+
+func derefPlaceWidenU32(data: const *void)->u64
+{
+    return data[as u32]
+}
+
+func derefPlaceWidenF32(data: const *void)->f64
+{
+    return data[as f32]
+}
+
+#test
+{
+    var value: s32 = -7
+    @assert(derefPlaceWidenS32(&value) == -7)
+
+    var bits: u32 = 0xFFFF_FFFF
+    @assert(derefPlaceWidenU32(&bits) == 0xFFFF_FFFF)
+
+    var single: f32 = 1.5
+    @assert(derefPlaceWidenF32(&single) == 1.5)
+}
+
+// The same conversion inside the caller's frame, where the neighbouring storage is a known
+// value rather than whatever the stack held.
+#test
+{
+    var pair:    [2] s32 = [-7, 0x7FFF_FFFF]
+    let p                = &pair[0]
+    let widened: s64     = p[as s32]
+    @assert(widened == -7)
+}
+
 struct DerefPlaceReceiver
 {
     seen: s64

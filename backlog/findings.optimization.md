@@ -179,8 +179,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   96 MB/s on the payload below. What this entry keeps is the part the source could not reach:
   the same algorithm compiled by clang-cl runs at 139 MB/s, so 1.45x is left on the table and
   all of it is in the emitted code.
-- Observation, from `#[Swag.PrintMicro("post-emit")]` on the block loop against clang-cl's
-  assembly for a line-by-line C transcription of it:
+- Observation: comparing `#[Swag.PrintMicro("post-emit")]` on the block loop against clang-cl's
+  assembly for a line-by-line C transcription of it shows three things.
   - **Every loop-carried local is a stack slot.** The bit buffer, the bit count, the source
     cursor, the output cursor and the decoded symbol are each loaded and stored on every symbol;
     a table entry read once in the source is stored to a stack temporary and re-loaded twice.

@@ -86,6 +86,25 @@ namespace
         return AstNodeRef::invalid();
     }
 
+    // A named argument copies the payload of the value it wraps when it resolves, and that happens
+    // before the enclosing literal converts the value to the field type. When that conversion is a
+    // runtime one the value node is substituted by a cast, and the constant the wrapper kept is no
+    // longer what the field holds: codegen emits a constant node and skips its children, so the
+    // conversion is never lowered. Re-run the inheritance against the substituted value.
+    void refreshNamedArgumentPayload(Sema& sema, AstNodeRef fieldNodeRef)
+    {
+        if (fieldNodeRef.isInvalid() || !sema.ast().hasNode(fieldNodeRef))
+            return;
+
+        AstNode& fieldNode = sema.node(fieldNodeRef);
+        if (fieldNode.isNot(AstNodeId::NamedArgument))
+            return;
+
+        const AstNodeRef resolvedArgRef = sema.viewZero(fieldNode.cast<AstNamedArgument>().nodeArgRef).nodeRef();
+        sema.inheritPayload(fieldNode, resolvedArgRef);
+        sema.copyResolvedCallArguments(fieldNodeRef, resolvedArgRef);
+    }
+
     const Token* safeToken(const Sema& sema, const SourceCodeRef& codeRef, const SourceView** outSrcView = nullptr)
     {
         SourceCodeRange codeRange;
@@ -286,7 +305,9 @@ namespace
             return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
 
         SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        return Cast::castIfNeeded(*args.sema, valueView, dstElemType, args.castRequest->kind, args.castRequest->flags);
+        SWC_RESULT(Cast::castIfNeeded(*args.sema, valueView, dstElemType, args.castRequest->kind, args.castRequest->flags));
+        refreshNamedArgumentPayload(*args.sema, fieldNodeRef);
+        return Result::Continue;
     }
 
     Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)

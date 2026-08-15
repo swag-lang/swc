@@ -1004,9 +1004,13 @@ impl MainWnd
         }
 
         .toolRail.position.width = width
+
+        // The rail width is assigned directly, so arrange its rows explicitly. The main layout
+        // then gives the editor its final rectangle and sends its single required resize event.
         .toolRail.sendResizeEvent()
-        .editWnd.sendResizeEvent()
         .applyLayout()
+        .toolRail.invalidate()
+        .editWnd.invalidate()
     }
 
     // Creates an icon descriptor for an application glyph at `size` logical pixels.

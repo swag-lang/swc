@@ -64,6 +64,18 @@ namespace
                 outPayload.setIsValue();
                 return true;
 
+            // 'char' and 'rune' are integer-like at the type level but carry their own constant
+            // kinds, so they never reach the 'Int' arm.
+            case ConstantKind::Char:
+                builder.emitLoadRegImm(outPayload.reg, ApInt(cst.getChar(), 64), MicroOpBits::B64);
+                outPayload.setIsValue();
+                return true;
+
+            case ConstantKind::Rune:
+                builder.emitLoadRegImm(outPayload.reg, ApInt(cst.getRune(), 64), MicroOpBits::B64);
+                outPayload.setIsValue();
+                return true;
+
             case ConstantKind::Int:
             {
                 const ApsInt& val = cst.getInt();

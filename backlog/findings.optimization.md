@@ -171,34 +171,39 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Decompression
 
-### F-136 — Inflate runs at 40 MB/s, about six times under a reference zlib
+### F-136 — A hot loop's locals all live in stack slots, and every variable shift carries a width guard
 
-- Area: std/core (Compress), compiler/backend
-- Found while: explaining why clicking a large capture in sCapture's recent strip stalls the
-  interface (see [F-137](findings.scapture.md#f-137--loading-a-capture-blocks-the-interface-for-the-duration-of-one-inflate)).
-  Inflate is that stall almost entirely, and it is not specific to sCapture: `Image.decode` of a
-  PNG runs through the same loop.
-- Observation: `Compress.Inflate` sustains 39-49 MB/s of output. Reference implementations of the
-  same algorithm run at 250-400 MB/s (zlib) and beyond (libdeflate). The gap is not the payload:
-  raising the *compression* level barely moves it (39 MB/s at BestSpeed, 49 MB/s at Default), so
-  it is the decode loop itself, not the symbol mix.
+- Area: compiler/backend
+- Found while: making `Compress.Inflate` fast. The library side of that is done — the block loop
+  now keeps its cursors in locals and refills branchlessly, and it went from 43-54 MB/s to
+  96 MB/s on the payload below. What this entry keeps is the part the source could not reach:
+  the same algorithm compiled by clang-cl runs at 139 MB/s, so 1.45x is left on the table and
+  all of it is in the emitted code.
+- Observation, from `#[Swag.PrintMicro("post-emit")]` on the block loop against clang-cl's
+  assembly for a line-by-line C transcription of it:
+  - **Every loop-carried local is a stack slot.** The bit buffer, the bit count, the source
+    cursor, the output cursor and the decoded symbol are each loaded and stored on every symbol;
+    a table entry read once in the source is stored to a stack temporary and re-loaded twice.
+    clang keeps all of them in registers and touches the stack zero times per symbol.
+  - **The prologue materializes ~25 field addresses and spills them all**, one
+    `load_addr_reg_mem` + `load_mem_reg [rsp+N]` pair each, for the fields of the two structs
+    the loop reads.
+  - **Every variable shift costs seven instructions instead of one.** The language defines a
+    shift count at or past the width as zero, so `CodeGenSafety::emitShiftIntLike` emits a
+    materialized count, a width compare and a conditional move for every non-constant count —
+    and the count then has to reach `cl`, which costs a further save/restore of `rcx` because
+    the allocator does not model the fixed register. There are four to six of them per symbol.
 - Evidence: measured 2026-08-15, release config, on the 12.8 MB deflate payload of
-  `8_9_2025_15_43_58.scapture` (17.0 MB of BGRA8 out). Core inflate 352-455 ms, best 342 ms.
-  On the same payload and in the same process: `Hash.Crc32.compute` 649-792 MB/s,
-  `Hash.Adler32` 821-1110 MB/s, `Memory.copy` 6.7 GB/s. `Image.decode` of the same pixels
-  re-encoded as PNG takes 377-409 ms, which is the same loop paying the same price.
-- Evidence that the hot loop is where it goes: a prototype in the scratchpad kept the bit cursor
-  (`codeBuffer`, `numBits`, `curByte`) in locals for the whole block instead of reaching through
-  `me` on every symbol, inlined the Huffman fast-path decode instead of calling a `fail` method
-  per symbol, refilled once per length/distance pair, and copied back-references eight bytes at a
-  time instead of calling `Memory.copy` for a five-byte match. Byte-identical output, 259-309 ms
-  against 352-455 ms — about 1.5x, and no more. So the bookkeeping is real but it is not the
-  whole gap.
-- Next step: the remaining 4x is worth a measurement before a rewrite. Count symbols and match
-  lengths on this payload to get cycles per symbol, then compare the emitted loop against what
-  clang-cl produces for the equivalent C (see
-  [the clang answer-sheet note](findings.compiler.md)); a loop this small with this many live
-  values is exactly the shape the boundary-flush and interval-allocator work addresses. If the
-  emitted code is the ceiling, the algorithmic move is zlib's two-level decode table, which
-  removes the `reverse16` + linear `maxCode` walk that every code longer than nine bits still
-  pays.
+  `8_9_2025_15_43_58.scapture` (17.0 MB out, 14.76 M symbols, 1.21 bytes per symbol — a stored
+  photograph, so the loop runs about once per output byte). Swag block loop 619 instructions
+  against clang's 411 for the same function. Best times on that payload: clang-cl `/O2` 122 ms,
+  Swag 176 ms. Per symbol that is 33 cycles against 48 at 4 GHz.
+- Not the cause, ruled out by measurement: the decode table. zlib's two-level table, written in
+  C beside the current design and run on the same payload, came out at 123 ms against 122 ms —
+  identical. Only 6.7% of length codes and no distance code at all miss the nine-bit fast table
+  on this data, so the `reverse16` fallback is not worth removing. Do not spend the rewrite.
+- Next step: the shift guard is the cheap half and is self-contained. Skip it when the count is
+  provably in range — the count being `x & K` with `K` below the width covers the common idiom,
+  and `emitShiftIntLike` already has the constant-count fast path to extend. The register half
+  is [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers) seen from a second
+  workload: a loop with ten live scalars and fifteen usable registers that spills all ten.

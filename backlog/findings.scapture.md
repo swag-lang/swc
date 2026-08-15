@@ -76,12 +76,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
   9 ms, the model chunk 0.2 ms, the header 0.6 ms, the preview PNG 5 ms. The library holds 746
   captures, 4.01 GB on disk for 5.77 GB of decoded pixels, 7 MB of pixels per capture on average
   and 47 MB at worst — so the average click pays ~170 ms and the worst ~1.2 s.
+- Since then (lever 4 below): the `Compress.Inflate` block loop was rewritten and the same load
+  measures ~210 ms, the background chunk 200 ms. Halved, still blocking, still the whole load.
 - Evidence that deflate is a bad trade on this content: a screen grab of a photograph does not
   compress. This payload goes 17.0 -> 12.8 MB (1.33x) at BestSpeed, and only 12.5 MB (1.36x) at
   Default or BestCompression; the whole library averages 1.44x. Re-encoding the same pixels as
   PNG gives 11.0 MB but decodes in 377-409 ms, because PNG is the same inflate plus unfiltering.
   So the current format spends ~350 ms of load to save ~30% of disk.
-- Next step: four independent levers, in decreasing value and increasing cost.
+- Next step: three levers remain, in decreasing value and increasing cost.
   (1) Do not block the click: keep the preview on screen and swap in the full capture when the
   decode lands, which removes the *felt* lag whatever the codec does. (2) Keep the last few
   decoded captures alive in `RecentView`, since clicking back and forth through the history is
@@ -89,6 +91,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   instead of a constant: `Scc` already dispatches on a codec id, so a fast byte-oriented codec
   (LZ4-class, decoding at GB/s for a ratio near 1.2) or plain stored bytes for payloads that do
   not compress would cut the load to the read itself. Existing files keep loading through the
-  deflate path, so this is additive. (4) Make inflate itself fast — see
-  [F-136](findings.optimization.md#f-136--inflate-runs-at-40-mbs-about-six-times-under-a-reference-zlib),
-  which is the lever that also pays for every PNG the application decodes.
+  deflate path, so this is additive.
+  A fourth lever, making inflate itself fast, was taken and is where the halving above came from;
+  what is left of it is a backend matter, in
+  [F-136](findings.optimization.md#f-136--a-hot-loops-locals-all-live-in-stack-slots-and-every-variable-shift-carries-a-width-guard).

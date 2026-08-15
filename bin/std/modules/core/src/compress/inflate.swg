@@ -192,21 +192,98 @@ impl Inflate
         return ht.value[b1]
     }
 
+    // Decodes one deflate block into 'dest'.
+    //
+    // A stream that does not compress spends this loop once per output byte — a
+    // screen grab of a photograph runs it fifteen million times for seventeen
+    // megabytes — so both cursors live in locals for the whole block. Reaching
+    // through 'me' for the bit cursor and through 'dest' for the output cursor on
+    // every symbol is what the loop cannot afford; 'me' and 'dest' are resynced
+    // whenever anything else has to see them.
     mtd parseBlock(repeatHt, repeatZ: *HuffmanTable, dest: *Array'u8) fail
     {
         let startBufCount = dest.count
 
-        // Hoist the output cursor into locals so the literal hot path is just a bounds
-        // check + raw store + increment, instead of a full 'dest.add' (which re-loads the
-        // array fields through the pointer and calls grow/initNewSlots for every byte).
-        // 'dest.count' is resynced before any operation that reads it (back-refs, checksum).
+        var cb  = .stream.codeBuffer
+        var nb  = cast(u32) .stream.numBits
+        var cur = .stream.curByte
+
+        let src  = @dataof(.stream.stream)
+        let srcN = @countof(.stream.stream)
+
+        // Highest cursor from which an eight-byte load stays in bounds, expressed as
+        // an exclusive bound so a source shorter than eight bytes simply has none.
+        let fastLimit = srcN >= 8 ? srcN - 7 : 0
+
         var count = dest.count
         var buf   = dest.buffer
         var cap   = dest.capacity
 
+        // The refill below assumes at most 63 buffered bits: with 64 its byte advance
+        // would underflow. Hand the top byte back to the source to get there.
+        if nb >= 64
+        {
+            cb  &= 0x00FFFFFFFFFFFFFF
+            nb  -= 8
+            cur -= 1
+        }
+
         for
         {
-            var value = try .decode(repeatHt)
+            // Refill to at least 56 bits with one unaligned 64-bit load, no branch and
+            // no masking. The bits left above 'nb' are the source bits that follow, so
+            // the next refill ORs the very same values back over them; every consumer
+            // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
+            if cur < fastLimit
+            {
+                cb  |= (src! + cur)[as u64] << #wrap nb
+                cur += cast(u64) ((63 - nb) >> 3)
+                nb  |= 56
+            }
+            elif nb <= 56
+            {
+                // The byte-wise refill ORs into the buffer, so it needs the stricter
+                // "nothing above numBits" invariant back before it runs.
+                if nb != 64 do
+                    cb &= (1'u64 << nb) - 1
+                .stream.codeBuffer = cb
+                .stream.numBits    = cast(u8) nb
+                .stream.curByte    = cur
+                .stream.refill(56)
+                if .stream.numBits == 255 do
+                    fail InvalidFormatError{"malformed"}
+                cb  = .stream.codeBuffer
+                nb  = cast(u32) .stream.numBits
+                cur = .stream.curByte
+            }
+
+            var value: u32
+            let b = repeatHt.fast[cb & FastMask]
+            if b
+            {
+                let s = cast(u32) (b >> FastBits)
+                cb    >>= s
+                nb    -= s
+                value = b & 511
+            }
+            else
+            {
+                let k = reverse16(cast(u16) (cb & 0xFFFF), 16)
+                var s = HuffmanFastBits + 1
+                while k >= repeatHt.maxCode[s] do
+                    s += 1
+                if s >= 16 do
+                    fail InvalidFormatError{"bad huffman code"}
+                let b1 = (k >> (16 - s)) - repeatHt.firstCode[s] + repeatHt.firstSymbol[s]
+                if b1 >= @countof(repeatHt.size) do
+                    fail InvalidFormatError{"bad huffman code"}
+                if repeatHt.size[b1] != s do
+                    fail InvalidFormatError{"bad huffman code"}
+                cb    >>= s
+                nb    -= cast(u32) s
+                value = repeatHt.value[b1]
+            }
+
             if value < 256
             {
                 if count >= cap
@@ -223,70 +300,116 @@ impl Inflate
                 continue
             }
 
-            dest.count = count
-
-            // End of block. Update checksum
             if value == 256
             {
-                let newSlice = @mkslice(dest.buffer + startBufCount, dest.count - startBufCount)
+                if nb != 64 do
+                    cb &= (1'u64 << nb) - 1
+                .stream.codeBuffer = cb
+                .stream.numBits    = cast(u8) nb
+                .stream.curByte    = cur
+                dest.count         = count
+
+                let newSlice = @mkslice(dest.buffer + startBufCount, count - startBufCount)
                 .adler.update(newSlice)
                 return
             }
 
             value -= 257
-            var length = LengthBase[value]
-            if LengthExtra[value] > 0 do
-                length += cast(u16) .stream.readBits(LengthExtra[value])
-
-            value = try .decode(repeatZ)
-            var distance = DistBase[value]
-            if DistExtra[value] > 0 do
-                distance += cast(u16) .stream.readBits(DistExtra[value])
-
-            if dest.count < distance do
-                fail InvalidFormatError{"bad distance"}
-            if length <= 0 do
-                continue
-
-            dest.grow(dest.count + length)
-
-            if distance == 1
+            var length = cast(u64) LengthBase[value]
+            let lextra = cast(u32) LengthExtra[value]
+            if lextra
             {
-                // Repeat the last byte 'length' times
-                let buffer = dest.buffer!
-                let b      = buffer[dest.count - 1]
-                Memory.set(buffer + dest.count, b, cast(u64) length)
-                dest.count += length
+                length += cb & ((1'u64 << lextra) - 1)
+                cb     >>= lextra
+                nb     -= lextra
             }
-            elif distance >= length
+
+            var dvalue: u32
+            let d = repeatZ.fast[cb & FastMask]
+            if d
             {
-                // Copy an already decoded sequence of bytes. The source aliases 'dest'
-                // own buffer, so a direct memory copy is used here: routing this through
-                // 'dest.add(slice)' would hit its self-aliasing guard and allocate a
-                // temporary array for every back-reference. Capacity is ensured by 'grow' above.
-                let buffer = dest.buffer!
-                Memory.copy(buffer + dest.count, buffer + dest.count - distance, cast(u64) length)
-                dest.count += length
+                let s = cast(u32) (d >> FastBits)
+                cb     >>= s
+                nb     -= s
+                dvalue = d & 511
             }
             else
             {
-                // Overlapping back-reference: grow once, then copy forward so each byte
-                // naturally references previously written output (handles distance < length)
-                dest.grow(dest.count + length)
-                let buffer = dest.buffer!
-                let start  = dest.count
-                for i in cast(u64) length
-                {
-                    buffer[start + i] = buffer[start + i - distance]
-                }
-
-                dest.count += length
+                let k = reverse16(cast(u16) (cb & 0xFFFF), 16)
+                var s = HuffmanFastBits + 1
+                while k >= repeatZ.maxCode[s] do
+                    s += 1
+                if s >= 16 do
+                    fail InvalidFormatError{"bad huffman code"}
+                let b1 = (k >> (16 - s)) - repeatZ.firstCode[s] + repeatZ.firstSymbol[s]
+                if b1 >= @countof(repeatZ.size) do
+                    fail InvalidFormatError{"bad huffman code"}
+                if repeatZ.size[b1] != s do
+                    fail InvalidFormatError{"bad huffman code"}
+                cb     >>= s
+                nb     -= cast(u32) s
+                dvalue = repeatZ.value[b1]
             }
 
-            // Back-ref may have reallocated and advanced the buffer; refresh the locals.
-            count = dest.count
-            buf   = dest.buffer
-            cap   = dest.capacity
+            var distance = cast(u64) DistBase[dvalue]
+            let dextra   = cast(u32) DistExtra[dvalue]
+            if dextra
+            {
+                distance += cb & ((1'u64 << dextra) - 1)
+                cb       >>= dextra
+                nb       -= dextra
+            }
+
+            if count < distance do
+                fail InvalidFormatError{"bad distance"}
+            if !length do
+                continue
+
+            // Eight bytes of slack past the match let the copy below run in whole
+            // words and overshoot the last one; the overshoot is inside the buffer
+            // and the next symbol overwrites it.
+            if count + length + 8 > cap
+            {
+                dest.count = count
+                dest.grow(count + length + 8)
+                buf = dest.buffer
+                cap = dest.capacity
+            }
+
+            let obuf = buf!
+            var from = count - distance
+            if distance >= 8
+            {
+                // Non-overlapping in eight-byte steps. The source aliases the output,
+                // which is why this is a raw word copy rather than 'dest.add(slice)':
+                // that path sees the aliasing and allocates a temporary per match.
+                let end = count + length
+                var dst = count
+                while dst < end
+                {
+                    (obuf + dst)[as u64] = (obuf + from)[as u64]
+                    dst  += 8
+                    from += 8
+                }
+
+                count = end
+            }
+            elif distance == 1
+            {
+                Memory.set(obuf + count, obuf[count - 1], length)
+                count += length
+            }
+            else
+            {
+                // Overlapping: copy forward one byte at a time so each byte reads
+                // output the loop has already written.
+                for i in length
+                {
+                    obuf[count] = obuf[from]
+                    count       += 1
+                    from        += 1
+                }
+            }
         }
     }
 

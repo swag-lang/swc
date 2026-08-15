@@ -13,6 +13,7 @@ struct ViewerWindow
         previousButton:         *IconButton
         nextButton:             *IconButton
         openButton:             *IconButton
+        viewerCombo:            *ComboBox
         titleLabel:             *Label
         emptyLabel:             *Label
     }
@@ -21,6 +22,8 @@ struct ViewerWindow
     plugins:        ViewerPluginManager
     currentView:    #null *Wnd
     currentCommands: #null *Wnd
+    choices:        Array'ViewerChoice
+    activeChoiceIndex = Swag.U32.Max
     startupTimer:   #null *Timer
     pendingFile:    String
     currentFile:    String
@@ -149,6 +152,19 @@ impl ViewerWindow
             }
         }
 
+        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 156, 32})
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
+            .toolTip   = appStrings().ui_Viewer
+            .hide()
+            .sigChanged += func|window = result|(combo, index)
+            {
+                discard combo
+                window.selectViewer(index)
+            }
+        }
+
         with result.titleLabel = Label.create(result.commandBar, "sViewer")
         {
             .dockStyle = .Center
@@ -203,6 +219,10 @@ impl ViewerWindow
         .emptyLabel.setText(message)
         .emptyLabel.show()
         .currentFile.clear()
+        .choices.clear()
+        .viewerCombo.clear()
+        .viewerCombo.hide()
+        .activeChoiceIndex = Swag.U32.Max
         .siblings.clear()
         .siblingsDirty = true
         .titleLabel.setText("sViewer")
@@ -211,6 +231,56 @@ impl ViewerWindow
         .previousButton.enable(false)
         .nextButton.enable(false)
         .applyLayout()
+    }
+
+    mtd activateChoice(index: u32)->bool
+    {
+        if index >= .choices.count do
+            return false
+
+        var nextCommands: #null *Wnd
+        var nextView: #null *Wnd
+        let choice = &.choices[index]
+        if choice.kind == .BasicText
+        {
+            let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
+            nextView     = basic
+            nextCommands = basic.commands
+        }
+        else
+        {
+            let spec = &.index.specs[choice.specIndex]
+            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands) as pluginError
+            if pluginError != null or !nextView
+            {
+                if nextCommands do
+                    nextCommands!.destroy()
+                return false
+            }
+        }
+
+        if .currentCommands do
+            .currentCommands.destroy()
+        if .currentView do
+            .currentView.destroy()
+        .currentView       = nextView
+        .currentCommands   = nextCommands
+        .activeChoiceIndex = index
+        .currentView!.dockStyle = .Center
+        if .currentCommands do
+            .currentCommands!.dockStyle = .Right
+        .viewerCombo.setSelectedIndex(index, notify: false)
+        .applyLayout()
+        .invalidate()
+        return true
+    }
+
+    mtd selectViewer(index: u32)
+    {
+        if index == .activeChoiceIndex do
+            return
+        if !.activateChoice(index) and .activeChoiceIndex != Swag.U32.Max do
+            .viewerCombo.setSelectedIndex(.activeChoiceIndex, notify: false)
     }
 
     mtd openFile(fileName: string)
@@ -224,28 +294,30 @@ impl ViewerWindow
         var absolute = catch Path.absolute(fileName) as pathError
         if pathError != null do
             absolute = fileName
-        var nextCommands: #null *Wnd
-        let nextView: #null *Wnd = catch .plugins.createView(me, .commandBar, absolute.toString(), &.index, &nextCommands) as pluginError
-        if pluginError != null or !nextView
-        {
-            if nextCommands do
-                nextCommands!.destroy()
-            .showEmpty(appStrings().ui_Unsupported)
-            return
-        }
+        .currentFile = #move absolute
+        .choices = .index.choices(.currentFile.toString())
+        .viewerCombo.clear()
+        for choice in .choices do
+            .viewerCombo.addItem(choice.name.toString())
+        .viewerCombo.show()
 
-        if .currentCommands do
-            .currentCommands.destroy()
-        if .currentView do
-            .currentView.destroy()
-        .currentView     = nextView
-        .currentCommands = nextCommands
-        .currentView!.dockStyle = .Center
-        if .currentCommands do
-            .currentCommands!.dockStyle = .Right
+        var selected = 0'u32
+        if !.activateChoice(selected)
+        {
+            for choice, index in .choices where choice.kind == .BasicText
+            {
+                discard choice
+                selected = cast(u32) index
+                break
+            }
+            if !.activateChoice(selected)
+            {
+                .showEmpty(appStrings().ui_Unsupported)
+                return
+            }
+        }
         .emptyLabel.hide()
 
-        .currentFile  = #move absolute
         .siblingsDirty = true
         let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
         .surface!.setTitle(Format.toString("% — sViewer", baseName))
@@ -274,7 +346,7 @@ impl ViewerWindow
         let files = catch Directory.enumerateFiles(folder) as listError
         if listError != null do
             return
-        for file in files where !file.isDirectory() and .index.explicitlySupports(file.fullname.toString()) do
+        for file in files where !file.isDirectory() do
             .siblings.add(file.fullname)
         .siblings.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
 

@@ -23,6 +23,7 @@ using Core, Pixel, Gui
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
     @assert(window.plugins.first == null)
+    @assert(!window.viewerCombo.isLocallyVisible())
     Testing.assertContentFits(window)
 }
 

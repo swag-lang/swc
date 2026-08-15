@@ -162,7 +162,11 @@ public func runApps(context: *Context, options: *Options)->s32 fail
 // shipped renderer.
 private func testViewerPlugins(context: *Context, options: *Options, moduleDir: string)->s32 fail
 {
-    for pluginName in ["image", "text"]
+    let audioCode = try buildViewerAudioRuntime(context, options)
+    if audioCode != 0 do
+        return audioCode
+
+    for pluginName in ["image", "markdown", "html", "hex", "sound"]
     {
         let pluginDir = Path.combine(moduleDir, "plugins", pluginName)
         if !holdsTestSource(Path.combine(pluginDir.toString(), "src").toString()) do
@@ -276,6 +280,10 @@ private func packageApplication(context: *Context, options: *Options, name: stri
 // selects it for the opened extension, which keeps future plugin accumulation off the hot path.
 private func packageViewerPlugins(context: *Context, options: *Options, moduleDir, appDir: string)->s32 fail
 {
+    let audioCode = try buildViewerAudioRuntime(context, options)
+    if audioCode != 0 do
+        return audioCode
+
     let outputDir = Path.combine(appDir, "plugins")
     if !Directory.exists(outputDir) do
         try Directory.create(outputDir)
@@ -287,11 +295,12 @@ private func packageViewerPlugins(context: *Context, options: *Options, moduleDi
     {
         var extension = String.from(Path.extension(file.fullname.toString()) orelse "")
         extension = extension.toLower()
-        if extension == ".lib" or extension == ".swgsrc" do
+        let name = Path.fileName(file.fullname.toString()) orelse ""
+        if extension == ".lib" or extension == ".swgsrc" or (Utf8.startsWith(name, "sviewer_") and (extension == ".dll" or extension == ".pdb")) do
             try File.delete(file.fullname.toString())
     }
 
-    for pluginName in ["image", "text"]
+    for pluginName in ["image", "markdown", "html", "hex", "sound"]
     {
         let pluginDir = Path.combine(moduleDir, "plugins", pluginName)
         let paths     = context.artifactPaths(Format.toString("apps/sViewer-plugin-%", pluginName).toString(), "shared-library", options.buildCfg.toString())
@@ -313,8 +322,27 @@ private func packageViewerPlugins(context: *Context, options: *Options, moduleDi
             try copyBeside(pdbPath.toString(), outputDir.toString(), pdbName.toString())
     }
 
+    // The host does not import audio itself, so publishing the application cannot infer the
+    // runtime needed by the lazily loaded sound plugin. Package that standard module explicitly.
+    let audioPaths = context.artifactPaths("std/audio", "shared-library", options.buildCfg.toString())
+    try copyBeside(Path.combine(audioPaths.outDir.toString(), "audio.dll").toString(), appDir, "audio.dll")
+    let audioPdb = Path.combine(audioPaths.outDir.toString(), "audio.pdb")
+    if File.exists(audioPdb) do
+        try copyBeside(audioPdb.toString(), appDir, "audio.pdb")
+
     try copyBeside(Path.combine(moduleDir, "datas", "plugins", "index.viewer").toString(), outputDir.toString(), "index.viewer")
     return 0
+}
+
+// Builds the runtime imported only by the lazy sound plugin and publishes its API for plugin tests.
+private func buildViewerAudioRuntime(context: *Context, options: *Options)->s32 fail
+{
+    var arguments: Arguments
+    arguments.add(["build", "--workspace", context.workspacePath("std").toString()])
+    arguments.add(["--workspace-module", "audio", "--build-cfg", options.buildCfg.toString()])
+    options.appendWorkspace(&arguments)
+    options.appendExtra(&arguments)
+    return try context.runCompiler(arguments)
 }
 
 private func copyBeside(source: string, directory: string, name: string) fail

@@ -2,7 +2,7 @@
 
 using Core
 
-private func htmlTagName(tag: string)->String
+internal func htmlTagName(tag: string)->String
 {
     var result = String.from(Latin1.trim(tag))
     result = result.toLower()
@@ -20,7 +20,7 @@ private func htmlTagName(tag: string)->String
     return result
 }
 
-private func htmlAttribute(tag, wanted: string)->String
+internal func htmlAttribute(tag, wanted: string)->String
 {
     var index = 0'u64
     while index < @countof(tag) and !Latin1.isSpace(tag[index]) do

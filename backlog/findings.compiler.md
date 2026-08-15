@@ -146,3 +146,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
+
+## Aggregate construction
+
+### F-139 — A moved field in an aggregate call argument asserts in CodeGen
+
+- Area: compiler
+- Found while: building the dedicated sViewer Markdown plugin
+- Observation: passing an aggregate literal with a `#move` field directly to `Array.add` passes semantic analysis, then the DevMode compiler asserts while preparing the fixed call argument
+- Evidence: `blocks.add(MarkdownBlock{kind, #move text})` asserts at `CodeGenCallHelpers.Call.cpp:1062` because `argConstView.cstRef().isValid()` does not hold; constructing a named `MarkdownBlock`, assigning `block.text = #move text`, then calling `blocks.add(#move block)` compiles
+- Next step: reduce the pattern into `bin/unittests/native`, then trace why aggregate-field move lowering reaches `appendPreparedFixedArg` without a valid constant reference and make the original direct construction compile without changing ownership

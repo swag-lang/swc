@@ -7,8 +7,8 @@
         .moduleVersion   = #swcversion
         .moduleRevision  = #swcrevision
         .moduleBuildNum  = #swcbuildnum
-        .moduleNamespace = "SViewerText"
+        .moduleNamespace = "SViewerHtml"
         .backendKind     = .SharedLibrary
-        .name            = "sviewer.text"
+        .name            = "sviewer.html"
     }
 }

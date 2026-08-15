@@ -12,7 +12,7 @@ private func markdownUnderscoreCanOpen(text: string, index: u64)->bool
     return index == 0 or !Latin1.isWord(text[index - 1])
 }
 
-private func renderMarkdownInline(text: string)->String
+internal func renderMarkdownInline(text: string)->String
 {
     var result: retval
     var index = 0'u64
@@ -80,6 +80,45 @@ private func renderMarkdownInline(text: string)->String
             }
         }
 
+        if text[index] == '$'
+        {
+            let end = Utf8.indexOf(text, '$'rune, index + 1)
+            if end != Swag.U64.Max and end > index + 1
+            {
+                result += "<i><p2>"
+                result += viewerRichText(renderMarkdownMath(text[index + 1 until end]).toString())
+                result += "</p></i>"
+                index = end + 1
+                continue
+            }
+        }
+
+        if index + 1 < @countof(text) and text[index] == '~' and text[index + 1] == '~'
+        {
+            let end = Utf8.indexOf(text, "~~", index + 2)
+            if end != Swag.U64.Max
+            {
+                result += "<p3>"
+                result += renderMarkdownInline(text[index + 2 until end])
+                result += "</p>"
+                index = end + 2
+                continue
+            }
+        }
+
+        if index + 1 < @countof(text) and text[index] == '=' and text[index + 1] == '='
+        {
+            let end = Utf8.indexOf(text, "==", index + 2)
+            if end != Swag.U64.Max
+            {
+                result += "<b><p1>"
+                result += renderMarkdownInline(text[index + 2 until end])
+                result += "</p></b>"
+                index = end + 2
+                continue
+            }
+        }
+
         if index + 1 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*') or (text[index] == '_' and text[index + 1] == '_' and markdownUnderscoreCanOpen(text, index)))
         {
             let marker = text[index until index + 2]
@@ -135,13 +174,13 @@ private func renderMarkdownInline(text: string)->String
     return result
 }
 
-private struct MarkdownHeadingInfo
+internal struct MarkdownHeadingInfo
 {
     level: u32
     text:  string = ""
 }
 
-private struct MarkdownListInfo
+internal struct MarkdownListInfo
 {
     found:   bool
     ordered: bool
@@ -150,14 +189,14 @@ private struct MarkdownListInfo
     indent:  u32
 }
 
-private struct MarkdownFenceInfo
+internal struct MarkdownFenceInfo
 {
     found:  bool
     marker: u8
     info:   string = ""
 }
 
-private func markdownHeading(line: string)->MarkdownHeadingInfo
+internal func markdownHeading(line: string)->MarkdownHeadingInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
@@ -176,7 +215,7 @@ private func markdownHeading(line: string)->MarkdownHeadingInfo
     return result
 }
 
-private func markdownSetextLevel(line: string)->u32
+internal func markdownSetextLevel(line: string)->u32
 {
     let trimmed = Latin1.trim(line)
     if @countof(trimmed) < 3 do
@@ -189,7 +228,7 @@ private func markdownSetextLevel(line: string)->u32
     return marker == '=' ? 1 : 2
 }
 
-private func markdownRule(line: string)->bool
+internal func markdownRule(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
     var marker = 0'u8
@@ -209,12 +248,12 @@ private func markdownRule(line: string)->bool
     return count >= 3
 }
 
-private func markdownHardBreak(line: string)->bool
+internal func markdownHardBreak(line: string)->bool
 {
     return @countof(line) >= 2 and line[@countof(line) - 1] == ' ' and line[@countof(line) - 2] == ' '
 }
 
-private func markdownListItem(line: string)->MarkdownListInfo
+internal func markdownListItem(line: string)->MarkdownListInfo
 {
     var result: retval
     var index = 0'u64
@@ -246,7 +285,7 @@ private func markdownListItem(line: string)->MarkdownListInfo
     return result
 }
 
-private func markdownTableSeparator(line: string)->bool
+internal func markdownTableSeparator(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
     if !Utf8.contains(trimmed, '|'rune) do
@@ -262,7 +301,7 @@ private func markdownTableSeparator(line: string)->bool
     return dashCount >= 3
 }
 
-private func renderMarkdownTableLine(line: string, header: bool)->String
+internal func renderMarkdownTableLine(line: string, header: bool)->String
 {
     var result: retval
     let cells = Tokenize.split(Latin1.trim(line), cast(u8) '|', removeEmpty: false)
@@ -284,7 +323,7 @@ private func renderMarkdownTableLine(line: string, header: bool)->String
     return result
 }
 
-private func markdownFence(line: string)->MarkdownFenceInfo
+internal func markdownFence(line: string)->MarkdownFenceInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)

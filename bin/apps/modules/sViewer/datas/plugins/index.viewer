@@ -1,0 +1,3 @@
+# id|library|extensions
+image|sviewer_image.dll|.bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.tga;.tif;.tiff;.webp
+text|sviewer_text.dll|.asm;.bash;.bat;.c;.cc;.cfg;.cmake;.conf;.cpp;.cs;.css;.csv;.cxx;.go;.h;.hh;.hpp;.htm;.html;.ini;.java;.js;.json;.jsx;.log;.lua;.md;.markdown;.php;.ps1;.py;.rb;.rs;.sh;.sql;.svg;.swg;.swgs;.toml;.ts;.tsx;.tsv;.txt;.xml;.yaml;.yml

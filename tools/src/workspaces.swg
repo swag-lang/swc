@@ -146,10 +146,43 @@ public func runApps(context: *Context, options: *Options)->s32 fail
     let code = try context.runCompiler(arguments)
     if code != 0 do
         return code
+    if command == "test" and (options.module.isEmpty() or options.module == "sViewer")
+    {
+        let moduleDir = Path.combine(context.workspacePath("apps").toString(), "modules", "sViewer")
+        return try testViewerPlugins(context, options, moduleDir.toString())
+    }
     if command != "build" do
         return 0
 
     return try packageApplications(context, options)
+}
+
+// Tests sViewer plugins as standalone executables against the just-published standard library.
+// This preserves the lazy DLL boundary while making the normal application test exercise every
+// shipped renderer.
+private func testViewerPlugins(context: *Context, options: *Options, moduleDir: string)->s32 fail
+{
+    for pluginName in ["image", "text"]
+    {
+        let pluginDir = Path.combine(moduleDir, "plugins", pluginName)
+        if !holdsTestSource(Path.combine(pluginDir.toString(), "src").toString()) do
+            continue
+
+        let paths = context.artifactPaths(Format.toString("apps/sViewer-plugin-%-test", pluginName).toString(), "executable", options.buildCfg.toString())
+        var arguments: Arguments
+        arguments.add(["test", "--artifact-kind", "executable"])
+        arguments.add(["--module-file", Path.combine(pluginDir.toString(), "module.swg").toString(), "--directory", "src"])
+        arguments.add(["--out-dir", paths.outDir.toString(), "--work-dir", paths.workDir.toString()])
+        arguments.add(["--build-cfg", options.buildCfg.toString(), "--import-api-dir", context.workspaceOutput("std").toString()])
+        arguments.add(["--no-test-jit"])
+        options.appendExtra(&arguments)
+        options.appendRunArguments(&arguments)
+
+        let code = try context.runCompiler(arguments)
+        if code != 0 do
+            return code
+    }
+    return 0
 }
 
 private func packageApplications(context: *Context, options: *Options)->s32 fail
@@ -216,10 +249,12 @@ private func packageApplication(context: *Context, options: *Options, name: stri
         return 1
     }
 
+    let moduleDir = Path.combine(context.workspacePath("apps").toString(), "modules", name)
+    if name == "sViewer" do
+        return try packageViewerPlugins(context, options, moduleDir.toString(), appDir.toString())
     if name != "sCrypt" do
         return 0
 
-    let moduleDir = Path.combine(context.workspacePath("apps").toString(), "modules", name)
     let vendor    = Path.combine(moduleDir.toString(), "vendor", "winfsp")
 
     try copyBeside(Path.combine(vendor.toString(), "runtime", "winfsp-x64.dll").toString(), appDir.toString(), "winfsp-x64.dll")
@@ -232,6 +267,53 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     if File.exists(installer) do
         discard catch File.delete(installer.toString())
 
+    return 0
+}
+
+// Builds the optional sViewer format modules beside the host without linking them into it.
+//
+// The host reads only `index.viewer` on startup. A DLL enters the process only after that index
+// selects it for the opened extension, which keeps future plugin accumulation off the hot path.
+private func packageViewerPlugins(context: *Context, options: *Options, moduleDir, appDir: string)->s32 fail
+{
+    let outputDir = Path.combine(appDir, "plugins")
+    if !Directory.exists(outputDir) do
+        try Directory.create(outputDir)
+
+    // This directory is a runtime payload, not a compiler output. Remove artifacts that an older
+    // or interrupted local build may have left beside the loadable plugins.
+    let existing = try Directory.enumerateFiles(outputDir.toString())
+    for file in existing
+    {
+        var extension = String.from(Path.extension(file.fullname.toString()) orelse "")
+        extension = extension.toLower()
+        if extension == ".lib" or extension == ".swgsrc" do
+            try File.delete(file.fullname.toString())
+    }
+
+    for pluginName in ["image", "text"]
+    {
+        let pluginDir = Path.combine(moduleDir, "plugins", pluginName)
+        let paths     = context.artifactPaths(Format.toString("apps/sViewer-plugin-%", pluginName).toString(), "shared-library", options.buildCfg.toString())
+
+        var arguments: Arguments
+        arguments.add(["build", "--module-file", Path.combine(pluginDir.toString(), "module.swg").toString(), "--directory", "src"])
+        arguments.add(["--build-cfg", options.buildCfg.toString(), "--out-dir", paths.outDir.toString(), "--work-dir", paths.workDir.toString()])
+        options.appendExtra(&arguments)
+
+        let code = try context.runCompiler(arguments)
+        if code != 0 do
+            return code
+
+        let artifactName = Format.toString("sviewer_%.dll", pluginName)
+        try copyBeside(Path.combine(paths.outDir.toString(), artifactName.toString()).toString(), outputDir.toString(), artifactName.toString())
+        let pdbName = Format.toString("sviewer_%.pdb", pluginName)
+        let pdbPath = Path.combine(paths.outDir.toString(), pdbName.toString())
+        if File.exists(pdbPath) do
+            try copyBeside(pdbPath.toString(), outputDir.toString(), pdbName.toString())
+    }
+
+    try copyBeside(Path.combine(moduleDir, "datas", "plugins", "index.viewer").toString(), outputDir.toString(), "index.viewer")
     return 0
 }
 

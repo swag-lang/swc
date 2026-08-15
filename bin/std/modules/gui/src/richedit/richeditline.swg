@@ -23,8 +23,39 @@ impl RichEditLine
 {
     #[Swag.Inline]
     {
-        mtd length()    => .styles.count
+        // Returns the number of runes and style references in this line.
+        public mtd length() => .styles.count
         mtd isVisible() => .hidden == 0
+    }
+
+    // Returns the rune at `index`.
+    public mtd runeAt(index: u64)->rune => .chars[index]
+
+    // Returns the syntax style assigned at `index`.
+    public mtd styleAt(index: u64)->RichEditStyleRef => .styles[index]
+
+    // Assigns `style` to the rune at `index`.
+    public mtd setStyleAt(index: u64, style: RichEditStyleRef)
+    {
+        .styles[index] = style
+    }
+
+    // Returns the lexer-defined state carried from this line to the next one.
+    public mtd lexerState()->s32 => .lexerEndingState
+
+    // Replaces the lexer-defined state and returns whether it changed.
+    public mtd setLexerState(state: s32)->bool
+    {
+        if .lexerEndingState == state do
+            return false
+        .lexerEndingState = state
+        return true
+    }
+
+    // Requests syntax recomputation for this line.
+    public mtd markStyleDirty()
+    {
+        .dirtyStyle = true
     }
 
     mtd resetInternal()

@@ -3,6 +3,22 @@
 
 using Swag, Core
 
+#test
+{
+    var line: RichEditLine
+    line.chars.add('x')
+    line.styles.add(0)
+    @assert(line.runeAt(0) == 'x')
+    line.setStyleAt(0, 7)
+    @assert(line.styleAt(0) == 7)
+    @assert(line.setLexerState(12))
+    @assert(!line.setLexerState(12))
+    @assert(line.lexerState() == 12)
+    line.dirtyStyle = false
+    line.markStyleDirty()
+    @assert(line.dirtyStyle)
+}
+
 // The default shortcut table contains one command per key/modifier pair.
 #test
 {

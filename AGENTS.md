@@ -48,8 +48,8 @@ action bar, and the way a box fits itself to its content are one composition.
 When adding, migrating, renaming, styling, packaging, or testing an official application under
 `bin/apps`, also read and follow
 [build-swag-standard-apps](.agents/skills/build-swag-standard-apps/SKILL.md): every shipped app
-uses the `sName` product convention, a specific generated icon, the standard Swag surface, and the
-applications workspace validation flow.
+uses the two-word `sName` product convention, a specific generated icon, the standard Swag surface,
+and the application-workspace validation flow.
 
 Everything this repository intends to do, and every lead it has recorded and not yet explained,
 lives in [backlog/](backlog/): `todo.<unit>.md` for intent, `findings.<area>.md` for evidence.

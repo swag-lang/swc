@@ -5,7 +5,7 @@
 
 An entry noticed while working on an application belongs here when `std/gui` is where it will be
 fixed; an entry that will be fixed inside the application goes to that application's own file, such
-as [findings.scapture.md](findings.scapture.md).
+as [findings.snapforge.md](findings.snapforge.md).
 
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
@@ -15,7 +15,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-006 — Data-driven UI resource for `std/gui`
 
 - Area: bin/std
-- Found while: simplifying the sCrypt vault cards after `FormCtrl` was judged too heavy
+- Found while: simplifying the sVaultDrive vault cards after `FormCtrl` was judged too heavy
 - Observation: a UI described by a data string is only worth it when the caller never needs the
   controls back. The removed `FormCtrl` proved the opposite case: every consumer built an
   `Array'FormFieldDefinition`, then immediately recovered typed pointers by string identifier
@@ -25,7 +25,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   time into typed members.
 - Evidence: commits 3b382e68a and 8009467a0 removed `FormCtrl`, `FormFieldDefinition`,
   `FormFieldKind`, `FormChoice`, and `FormField` (177 lines) and replaced three consumers with
-  `FormLayoutCtrl` builders that return the concrete control. sCrypt's two cards lost their two
+  `FormLayoutCtrl` builders that return the concrete control. sVaultDrive's two cards lost their two
   field-description functions and every `findField` lookup. `Core.File.TweakFile` already parses a
   text format onto struct fields through reflection, and `ThemeStyle.addStyleSheetColors` shows the
   existing string-resource precedent in `std/gui`.
@@ -39,14 +39,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-020 — Arming the headless modal driver for an absent button fails silently
 
 - Area: std/gui
-- Found while: the two `sCapture` dialog tests that did not pass — both armed a button their
+- Found while: the two `sSnapForge` dialog tests that did not pass — both armed a button their
   dialog does not offer (`BtnYes` for `AboutDlg`, `BtnOk` for File Details), while each of those
   boxes carries exactly one `Close` button under `BtnCancel`. Fixed in the tests.
 - Observation: `clickModalButtonWhenShown(id)` accepts any `WndId`. When no modal surface ever
   exposes that id, the driver spins to `autoMaxFrames`, cancels the dialog, and leaves
   `autoHandled` false — so the test fails on an assertion far from the mistake, and the failure
   reads exactly like "the dialog never opened" even though it opened and was answered.
-- Evidence: `swc tools/apps.swgs dm test sCapture` before the fix reported 2 of 126 not passing on
+- Evidence: `swc tools/apps.swgs dm test sSnapForge` before the fix reported 2 of 126 not passing on
   `@assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
   modal surface and a missing button ([headless.swg:191](../bin/std/modules/gui/src/tests/framework/headless.swg#L191)),
   and only the frame ceiling distinguishes them, after the fact.
@@ -120,16 +120,16 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-038 — A check box does not line up with the fields of the form it stands in
 
 - Area: std/gui
-- Found while: adding the read-only option to the sCrypt open-vault card, which put the first
+- Found while: adding the read-only option to the sVaultDrive open-vault card, which put the first
   check box of that surface directly under a column of edit boxes.
 - Observation: `ThemeMetrics.btnCheck_Size` is 24 and is what `CheckButton` and `RadioButton`
   place their marker with, but the atlas tiles behind it carry their shape inset inside their cell
   (`check_bk` is a 22-unit square at 5,5 of a 32-unit tile), so the *ink* of the box starts about
   3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
   form column therefore reads as indented against every field above it.
-- Evidence: measured on the rendered surface, `bin/apps/modules/sCrypt` in `swagLightPalette`: the
+- Evidence: measured on the rendered surface, `bin/apps/sVaultDrive/modules/sVaultDrive` in `swagLightPalette`: the
   edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
-  inset exists vertically on other atlas glyphs: in `scrypt.surface.png` the folder icon of the
+  inset exists vertically on other atlas glyphs: in `vaultdrive.surface.png` the folder icon of the
   container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
   its ink still comes out about a pixel above that middle.
 - Next step: decide who owns the difference. Either the tiles fill their cell and `btnCheck_Size`
@@ -153,7 +153,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   ([wnd.swg:301](../bin/std/modules/gui/src/wnd/wnd.swg#L301),
   [wnd.swg:914](../bin/std/modules/gui/src/wnd/wnd.swg#L914),
   [wnd.swg:980](../bin/std/modules/gui/src/wnd/wnd.swg#L980)). Measured directly: with
-  `FormLayoutCtrl` arranging only from `onResizeEvent`, sCrypt's French "Parcourir" button stayed at
+  `FormLayoutCtrl` arranging only from `onResizeEvent`, sVaultDrive's French "Parcourir" button stayed at
   its English 104 while its own measure asked for 115, and `Testing.assertContentFits` caught it.
   `VaultCard.endForm` now calls `form.computeLayout()` by hand for exactly this reason, and every
   other container that arranges children carries the same latent hole — `invalidateLayout` reads
@@ -217,7 +217,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-083 — Text outside a framed field is still centered on its line box, so its height follows the face
 
 - Area: std/gui
-- Found while: fixing the vertical alignment of the sCrypt container-file field, which is set in
+- Found while: fixing the vertical alignment of the sVaultDrive container-file field, which is set in
   the fixed-width theme family and read as riding high inside its own box.
 - Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
   which hands the placement to the internal leading of the face. Measured on the shipped theme:
@@ -229,7 +229,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   through `StringVertAlignment.OpticalCenter`; every other widget still centers on the line box.
 - Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
   [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
-  `bin/apps/modules/sCrypt/src/tests/goldens/scrypt.surface.png`: the "256" digits of the capacity
+  `bin/apps/sVaultDrive/modules/sVaultDrive/src/tests/goldens/vaultdrive.surface.png`: the "256" digits of the capacity
   field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
   password placeholder below it sat exactly on the middle of its own box.
 - Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
@@ -244,7 +244,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-086 — A tooltip is presented as an editable field inside another frame
 
 - Area: std/gui
-- Found while: visually testing the sCapture library view at 150% display scale in the French
+- Found while: visually testing the sSnapForge library view at 150% display scale in the French
   Swag dark theme
 - Observation: hovering the icon-only Library command showed its explanatory text inside a second
   edit-style frame, with a trailing control-shaped end cap that read like an unrelated button.
@@ -254,7 +254,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   puts a word-wrapped `RichEditCtrl` in it and explicitly gives that control `.Edit` form. Its
   two-pixel padding, raw 12-pixel pointer offset, editable-field chrome and auto-sized rich-edit
   viewport are combined without a tooltip-specific content/layout contract. Reproduce by hovering
-  any action tooltip in sCapture; the former Library glyph made the nested trailing element
+  any action tooltip in sSnapForge; the former Library glyph made the nested trailing element
   especially visible beside the French text “Afficher la bibliothèque de captures”.
 - Next step: render tooltip content with a passive text view, then define its padding, maximum
   width, corner, pointer offset and screen-edge placement as one themed tooltip contract. Add a

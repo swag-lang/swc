@@ -9,8 +9,8 @@ The platform implementations themselves remain owned by
 [T-028](todo.core.md#t-028--process-services-have-no-second-platform-backend),
 [T-045](todo.gui.md#t-045--no-second-platform-surface-and-presentation-backend),
 [T-066](todo.audio.md#t-066--a-second-platform),
-[T-084](todo.scapture.md#t-084--cross-platform-capture-backend), and
-[T-100](todo.scrypt.md#t-100--no-linux-fuse-backend). This file owns the preparation
+[T-084](todo.snapforge.md#t-084--cross-platform-capture-backend), and
+[T-100](todo.vaultdrive.md#t-100--no-linux-fuse-backend). This file owns the preparation
 across those units: move policy, orchestration, parsing, normalization, and data conversion into
 ordinary Swag now, leaving each operating-system backend as a narrow set of mechanisms.
 
@@ -32,8 +32,8 @@ justify one coordinated campaign:
 | `std/gui` (`.win32.swg`, excluding tests) | 5 | 2,448 |
 | `std/pixel` (`.win32.swg`, excluding OpenGL and tests) | 3 | 393 |
 | `std/audio` XAudio2 backend | 1 | 479 |
-| sCapture | 1 | 287 |
-| sCrypt, including its platform integration test | 9 | 2,138 |
+| sSnapForge | 1 | 287 |
+| sVaultDrive, including its platform integration test | 9 | 2,138 |
 
 Those numbers are an inventory, not a deletion target. A small native backend is healthy. The
 target is that code above it compiles and is tested without importing a native binding, and that a

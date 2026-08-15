@@ -1,0 +1,6 @@
+# id|display name|library|extensions
+markdown|Markdown|sfilescope_markdown.dll|.md;.markdown
+html|HTML|sfilescope_html.dll|.htm;.html
+image|Image|sfilescope_image.dll|.bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.tga;.tif;.tiff;.webp
+sound|Sound|sfilescope_sound.dll|.wav
+hex|Hexadecimal|sfilescope_hex.dll|*

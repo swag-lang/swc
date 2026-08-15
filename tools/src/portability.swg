@@ -65,13 +65,13 @@ private const NativeSourceFiles = [
     "bin/std/modules/pixel/src/text/fontfamily.win32.swg",
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
     "bin/std/modules/audio/src/driver/xaudio2.swg",
-    "bin/apps/modules/sCapture/src/screenshot/screenshot.win32.swg",
-    "bin/apps/modules/sCrypt/src/autounmount.win32.swg",
-    "bin/apps/modules/sCrypt/src/tests/integration.win32.swg"]
+    "bin/apps/sSnapForge/modules/sSnapForge/src/screenshot/screenshot.win32.swg",
+    "bin/apps/sVaultDrive/modules/sVaultDrive/src/autounmount.win32.swg",
+    "bin/apps/sVaultDrive/modules/sVaultDrive/src/tests/integration.win32.swg"]
 
 // A named backend directory owns every file below it; it is stronger evidence than a suffix and
 // lets one backend keep its ABI, callbacks, lifecycle, and integration test together.
-private const NativeSourceRoots = ["bin/apps/modules/sCrypt/src/winfsp/"]
+private const NativeSourceRoots = ["bin/apps/sVaultDrive/modules/sVaultDrive/src/winfsp/"]
 
 // These module setup files are the only portable-module wiring points allowed to import a raw
 // native module. Each import is conditional on the target OS in the source itself.
@@ -173,19 +173,10 @@ public func auditPortability(context: *Context)->s32 fail
         errors += 1
     }
 
-    let roots = ["bin/runtime", "bin/std/modules", "bin/apps/modules"]
-    for root in roots
-    {
-        let directory = Path.combine(context.root.toString(), root)
-        let files     = try Directory.enumerateFiles(directory.toString(), ".swg", recurse: true)
-        for file in files
-        {
-            let relative = portabilityRelativePath(context, file.fullname.toString())
-            if isUnderAny(relative.toString(), PortabilityExcludedRoots) do
-                continue
-            errors += try auditPortabilityFile(context, relative.toString())
-        }
-    }
+    for root in ["bin/runtime", "bin/std/modules"] do
+        errors += try auditPortabilityRoot(context, root)
+    for name in context.workspaceModules("apps") do
+        errors += try auditPortabilityRoot(context, Path.combine("bin/apps", name.toString(), "modules").toString())
 
     if errors != 0
     {
@@ -194,6 +185,23 @@ public func auditPortability(context: *Context)->s32 fail
     }
 
     return 0
+}
+
+// Checks one source root without walking workspace caches beside it.
+private func auditPortabilityRoot(context: *Context, root: string)->u32 fail
+{
+    var errors: retval
+    let directory = Path.combine(context.root.toString(), root)
+    let files     = try Directory.enumerateFiles(directory.toString(), ".swg", recurse: true)
+    for file in files
+    {
+        let relative = portabilityRelativePath(context, file.fullname.toString())
+        if isUnderAny(relative.toString(), PortabilityExcludedRoots) do
+            continue
+        errors += try auditPortabilityFile(context, relative.toString())
+    }
+
+    return errors
 }
 
 private func auditPortabilityFile(context: *Context, path: string)->u32 fail

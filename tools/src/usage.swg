@@ -95,21 +95,21 @@ going for a bounded number of frames, isolated from the machine.
 
     case "apps":
         Console.print("""
-Builds, runs, tests, or smokes the applications workspace.
+Builds, runs, tests, or smokes one or every application workspace.
 
-  swc tools/apps.swgs [dm] [build|run|test|smoke] [<module>] [options...]
+  swc tools/apps.swgs [dm] [build|run|test|smoke] [<application>] [options...]
 
   dm                 use the DevMode compiler
-  <module>           one of bin/apps/modules, for instance sCrypt or sCapture
+  <application>      a workspace under bin/apps, for instance sVaultDrive or sSnapForge
   -bc <config>       release, debug, or fast-debug (default fast-debug)
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
 
-  swc tools/apps.swgs run sCrypt          launch one application
-  swc tools/apps.swgs dm test sCapture    run its tests with the DevMode compiler
+  swc tools/apps.swgs run sVaultDrive          launch one application
+  swc tools/apps.swgs dm test sSnapForge    run its tests with the DevMode compiler
 
-Every command places each application's runtime files beside its executable, so a
-packaged application stays launchable after a test pass. 'run' needs a module name
+Every command covers every module in the selected application workspace and places
+its runtime files beside the executable. 'run' needs an application name
 and launches the packaged executable from its own directory.
 """)
 
@@ -186,14 +186,14 @@ Cuts the mark, the icons and the favicons first, then documents the bin/std and
 bin/reference workspaces.
 """)
 
-    case "scrypt":
+    case "vaultdrive":
         Console.print("""
-Runs the privileged sCrypt/WinFsp end-to-end sandbox.
+Runs the privileged sVaultDrive/WinFsp end-to-end sandbox.
 
-  swc tools/scrypt.swgs [dm]
+  swc tools/vaultdrive.swgs [dm]
 
-Builds sCrypt with the SCrypt.Integration tag, runs it, prints its report, then
-rebuilds a normal sCrypt. It mounts a real volume, so it stays out of tests.swgs.
+Builds sVaultDrive with the SVaultDrive.Integration tag, runs it, prints its report, then
+rebuilds a normal sVaultDrive. It mounts a real volume, so it stays out of tests.swgs.
 """)
 
     case "vsix":

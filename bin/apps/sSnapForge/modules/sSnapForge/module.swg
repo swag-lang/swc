@@ -1,0 +1,27 @@
+#import("gui", location: "swag@std")
+
+#run
+{
+    with let cfg = @compiler.getBuildCfg()!
+    {
+        .moduleVersion  = #swcversion
+        .moduleRevision = #swcrevision
+        .moduleBuildNum = #swcbuildnum
+        .backendKind    = .Executable
+        .backendSubKind = .Default
+
+        // Leak reporting stays on in every build; the heavier allocator
+        // instrumentation is opt-in through a build tag.
+        .allocatorLeaks            = true
+        .allocatorCaptureStack     = false
+        .allocatorTrackAllocations = #hastag("sSnapForge.TrackMemory")
+        .allocatorElectricMode     = #hastag("sSnapForge.ElectricMemory")
+        .allocatorFillMemory       = #hastag("sSnapForge.FillMemory")
+
+        .name              = "sSnapForge"
+        .resAppName        = "sSnapForge"
+        .resAppDescription = "Screen capture and annotation workspace"
+        .resAppIcoFileName = "datas/appicon.ico"
+        .ignoreInWorkspace = false
+    }
+}

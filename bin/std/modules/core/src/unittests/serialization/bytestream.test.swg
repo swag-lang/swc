@@ -114,7 +114,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 {
     var buffer: Array'u8
     var writer = ByteStream.openWrite(&buffer)
-    writer.writeSizedString("sCrypt")
+    writer.writeSizedString("sample")
     writer.writeSizedString("")
 
     // A 32-bit little-endian byte count precedes the bytes.
@@ -122,7 +122,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     @assert(assertBytes(buffer[0 until 4], [6, 0, 0, 0]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    @assert(expect reader.readSizedString() == "sCrypt")
+    @assert(expect reader.readSizedString() == "sample")
     @assert((expect reader.readSizedString()).isEmpty())
     @assert(reader.isEof() or reader.position() == buffer.count)
 }
@@ -145,7 +145,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 {
     var buffer: Array'u8
     var writer = ByteStream.openWrite(&buffer)
-    writer.writeSizedString("sCrypt")
+    writer.writeSizedString("sample")
     buffer.resize(buffer.count - 2)
 
     var reader = ByteStream.openRead(buffer.toSlice())

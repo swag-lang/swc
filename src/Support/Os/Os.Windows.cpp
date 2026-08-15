@@ -1103,7 +1103,7 @@ namespace Os
         }
 
         // The executable file name, not the friendly application name the Restart Manager
-        // reports: 'sCrypt.test.exe' says what to close where 'sCrypt' only says what it was.
+        // reports: 'sVaultDrive.test.exe' says what to close where 'sVaultDrive' only says what it was.
         Utf8 processImageBaseName(const DWORD processId)
         {
             const HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);

@@ -35,8 +35,8 @@ allowed to stop.
 | [todo.pixel.md](todo.pixel.md) | `std/pixel` |
 | [todo.audio.md](todo.audio.md) | `std/audio` |
 | [todo.truetype.md](todo.truetype.md) | `std/truetype` |
-| [todo.scapture.md](todo.scapture.md) | The sCapture application |
-| [todo.scrypt.md](todo.scrypt.md) | The sCrypt application |
+| [todo.snapforge.md](todo.snapforge.md) | The sSnapForge application |
+| [todo.vaultdrive.md](todo.vaultdrive.md) | The sVaultDrive application |
 
 ## Evidence
 
@@ -49,7 +49,7 @@ allowed to stop.
 | [findings.optimization.md](findings.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [findings.safety.md](findings.safety.md) | Borrow, lifetime, and sanity analysis |
 | [findings.gui.md](findings.gui.md) | `std/gui`, and the widgets and dialogs it ships |
-| [findings.scapture.md](findings.scapture.md) | The sCapture application |
+| [findings.snapforge.md](findings.snapforge.md) | The sSnapForge application |
 | [findings.tooling.md](findings.tooling.md) | The build, the sandbox, and the test harness |
 
 Put an entry in the file whose area it will be *fixed* in, not the one it was noticed from. Create
@@ -58,7 +58,7 @@ than it saves.
 
 An application follows the same rule as a module: it gets its own `findings.<app>.md` beside its
 `todo.<app>.md` once it has entries of its own, and a lead an application merely *exposed* stays in
-the file of the unit that will fix it. So sCrypt has no findings file today: everything it has
+the file of the unit that will fix it. So sVaultDrive has no findings file today: everything it has
 surfaced so far will be fixed in `std/gui`, and an empty file would only be one more place to look.
 
 ## Number Every Entry

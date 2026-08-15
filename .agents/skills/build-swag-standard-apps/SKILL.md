@@ -22,16 +22,30 @@ information.
 
 ## Name The Product Once
 
-- Name every shipped application `sName`: lowercase `s`, then a concise UpperCamelCase product
-  noun. Examples include `sCapture` and `sCrypt`.
-- Use that spelling for the module directory, `BuildCfg.name`, resource application name,
-  executable, title, registration identity, documentation, and URLs.
-- Derive lowercase technical suffixes from it only where the platform convention needs them,
-  such as `.scapture`. Keep namespaces UpperCamelCase and functions lowerCamelCase.
+- Name every shipped application with a lowercase `s` followed by exactly two semantic
+  UpperCamelCase words: `sSnapForge`, `sVaultDrive`, `sFileScope`. The `s` identifies the Swag
+  family and does not count as one of the words.
+- Make the pair vivid enough to suggest an action or an image, while still saying what the product
+  does. Prefer a concrete compound such as `SnapForge` over a flat category such as `Capture`,
+  `Crypt`, or `Viewer`; never pad a generic noun with `App`, `Tool`, `Studio`, or `Pro` merely to
+  satisfy the two-word rule.
+- Before accepting a name, search exact and unprefixed spellings across current software products,
+  platform features, package registries, and repositories. Reject a name dominated by an existing
+  product or operating-system feature even when capitalization differs.
+- Use the complete spelling for the application workspace, primary module directory,
+  `BuildCfg.name`, resource application name, executable, title, registration identity,
+  documentation, and URLs.
+- Derive new lowercase technical suffixes from the two-word product stem only where a platform
+  convention needs them, such as `.filescope`. Preserve an already published file extension,
+  format marker, cryptographic domain separator, or ABI spelling when changing it would strand
+  user data or third-party integrations;
+  label that spelling as legacy and add an explicit migration or compatibility path.
+  Keep namespaces UpperCamelCase and functions lowerCamelCase.
 - Do not wrap private application code in a namespace that repeats the module or product name; the
   module already provides that boundary. Add a namespace only for a real subsystem vocabulary,
   and name it after that subsystem, such as `WinFsp`, rather than after the application.
-- Never put `_` or uppercase letters in an app-owned folder or file name. Concatenate the words of
+- Except for the workspace and primary module directories that carry the exact product spelling,
+  never put `_` or uppercase letters in an app-owned folder or file name. Concatenate the words of
   one symbol or indivisible concept, and use dots between the named parts of a coherent file
   family, such as `app.operations.swg`, `winfsp.abi.win32.swg`, and
   `winfsp.callbacks.test.swg`. Platform and test suffixes use this notation but do not reserve it.
@@ -60,8 +74,8 @@ glyph, another app's icon, or a letter tile.
    ```powershell
    py -3 .agents/skills/build-swag-standard-apps/scripts/package_app_icon.py `
        generated-master.png `
-       --png bin/apps/modules/sName/datas/appicon.png `
-       --ico bin/apps/modules/sName/datas/appicon.ico
+       --png bin/apps/sName/modules/sName/datas/appicon.png `
+       --ico bin/apps/sName/modules/sName/datas/appicon.ico
    ```
 
 6. Set `BuildCfg.resAppIcoFileName` in `module.swg`, using a path relative to the module folder.
@@ -195,7 +209,7 @@ size, which is the width the text has least room in.
   its own measure, so a band sized by that same measure always "fits" itself. What breaks is a
   band overflowing its parent, and no generic check sees it: a card whose height comes from a grid
   row does not grow for a longer form, it clips it. Write that comparison down for each card the
-  feature touches — sCrypt's `assertFormEndsInsideCard` is the worked example — and run it over
+  feature touches — sVaultDrive's `assertFormEndsInsideCard` is the worked example — and run it over
   every entry of `Gui.languages()`.
 - **Prefer adapting the text to adapting the interface.** Shortening a sentence is one edit in two
   files and costs nothing; reflowing a card changes the layout for every language including the
@@ -249,10 +263,17 @@ Three things this gets wrong if they are not said:
   the palette the application ships on, and put the others on their own hosts only while reviewing
   by hand.
 
-## Keep The Module Shippable
+## Keep The Workspace Shippable
 
-- Put the app at `bin/apps/modules/sName` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a
-  root-level `datas/` for icons and other immutable app resources. Never put `datas/` under `src/`.
+- Give every application its own workspace at `bin/apps/sName/`. Put the primary executable in
+  `bin/apps/sName/modules/sName` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a root-level
+  `datas/` for icons and other immutable app resources. Never put `datas/` under `src/`.
+- Put every additional application module directly under the same `modules/` directory. A plugin,
+  helper library, or optional backend is a normal workspace module, never a nested module hidden
+  under the executable and never a special standalone build in `tools/apps.swgs`.
+- Make a module that normally emits a library select an executable backend for `#test` when its
+  tests need to run natively. The workspace's ordinary `build`, `test`, and `smoke` commands must
+  cover the whole application without a module-specific compilation path in the tool.
 - Put every externally sourced component under `vendor/<product>/` inside the module. Use
   `vendor/<product>/runtime` for redistributable binaries, keep the upstream license in the product
   folder, and keep repository-level notices beside `module.swg`. Preserve upstream version,
@@ -263,9 +284,9 @@ Three things this gets wrong if they are not said:
   explanation. Use repository-relative commands and paths.
 - Add reusable build, package, and integration entry points under `tools/`; do not leave personal
   absolute paths or root-level app scripts behind.
-- Make `tools/apps.swgs` build, test, run, or smoke the module through the
-  shared workspace. Package runtime dependencies after a normal app build when the executable is
-  not functional without them.
+- Make `tools/apps.swgs` build, test, run, or smoke the application's own workspace. Its positional
+  name selects an application, not one module inside it. Package runtime dependencies after a
+  normal workspace build when the executable is not functional without them.
 
 ## Prove The Application
 

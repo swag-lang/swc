@@ -140,18 +140,27 @@ public impl Context
         return Path.combine(.binDir.toString(), workspace)
     }
 
-    // Returns the names of the modules a workspace holds, in directory order.
+    // Returns the independently selectable units a workspace family holds, in directory order.
+    //
+    // Most families expose the modules under their one workspace. Applications each own a
+    // workspace, so the selectable unit is the directory under `bin/apps` that contains it.
     mtd const workspaceModules(workspace: string)->Array'String
     {
         var result: retval
 
-        let modulesDir = Path.combine(.binDir.toString(), workspace, "modules")
-        let entries    = catch Directory.enumerateDirectories(modulesDir.toString()) as err
+        let workspaceDir = Path.combine(.binDir.toString(), workspace)
+        let unitsDir     = workspace == "apps" ? workspaceDir : Path.combine(workspaceDir.toString(), "modules")
+        let entries      = catch Directory.enumerateDirectories(unitsDir.toString()) as err
         if err != null do
             return result
 
-        for entry in entries do
+        for entry in entries
+        {
+            if workspace == "apps" and !Directory.exists(Path.combine(entry.fullname.toString(), "modules")) do
+                continue
             result.add(String.from(Path.fileName(entry.fullname.toString()) orelse ""))
+        }
+
         return result
     }
 }

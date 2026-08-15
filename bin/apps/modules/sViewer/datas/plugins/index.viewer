@@ -1,6 +1,0 @@
-# id|display name|library|extensions
-markdown|Markdown|sviewer_markdown.dll|.md;.markdown
-html|HTML|sviewer_html.dll|.htm;.html
-image|Image|sviewer_image.dll|.bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.tga;.tif;.tiff;.webp
-sound|Sound|sviewer_sound.dll|.wav
-hex|Hexadecimal|sviewer_hex.dll|*

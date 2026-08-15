@@ -262,7 +262,7 @@ SWC_TEST_BEGIN(Compiler_TestCommandGrantsTheWorkspaceWithoutAModule)
 {
     CommandLine cmdLine;
     cmdLine.command       = CommandKind::Test;
-    cmdLine.workspacePath = fs::path("C:/repo/bin/apps");
+    cmdLine.workspacePath = fs::path("C:/repo/bin/apps/sFileScope");
 
     const Utf8              expected = std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, cmdLine.workspacePath.string());
     const std::vector<Utf8> runArgs  = effectiveGeneratedArtifactRunArgs(cmdLine);
@@ -278,7 +278,7 @@ SWC_TEST_BEGIN(Compiler_SmokeCommandGrantsNoCorpus)
 {
     CommandLine cmdLine;
     cmdLine.command    = CommandKind::Smoke;
-    cmdLine.modulePath = fs::path("C:/repo/bin/apps/modules/sCrypt");
+    cmdLine.modulePath = fs::path("C:/repo/bin/apps/sVaultDrive/modules/sVaultDrive");
 
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(cmdLine);
     if (hasRunArgNamed(runArgs, SWAG_SANDBOX_CORPUS_RUN_ARG))

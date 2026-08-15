@@ -776,7 +776,7 @@ appears clean, run this entire ladder again from the beginning on the final sour
   3. `bin\swc.exe tools\tests.swgs dm` - the full DevMode default campaign.
   4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same five-rung campaign in all three target
      configurations.
-  5. Run `bin\swc.exe tools\scrypt.swgs dm` with the required WinFsp installation and privileges;
+  5. Run `bin\swc.exe tools\vaultdrive.swgs dm` with the required WinFsp installation and privileges;
      this integration is intentionally outside tests.swgs and is part of a genuinely full pass.
   6. Build `swc.exe` with the Release solution configuration.
   7. `bin\swc.exe tools\tests.swgs` - the full Release validation campaign. Do not add a Release

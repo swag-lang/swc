@@ -107,7 +107,7 @@ public func runExamples(context: *Context, options: *Options)->s32 fail
     return try context.runCompiler(arguments)
 }
 
-// Builds, runs, tests, or smokes the applications workspace, whole or one module.
+// Builds, runs, tests, or smokes one or every application workspace.
 //
 // Every command publishes the standard library beside the artifact it links. That is not a
 // build-only concern: a link without it *removes* the libraries a previous link published, so a
@@ -127,102 +127,51 @@ public func runApps(context: *Context, options: *Options)->s32 fail
     if command == "run" do
         return try launchApplication(context, options)
 
-    var arguments: Arguments
-    arguments.add([command.toString(), "--workspace", context.workspacePath("apps").toString()])
-    arguments.add(["--build-cfg", options.buildCfg.toString()])
-    arguments.add(["--publish"])
     if !options.module.isEmpty() do
-        arguments.add(["--workspace-module", options.module.toString()])
+        return try runApplicationWorkspace(context, options, options.module.toString(), command.toString())
 
-    // Applications are native executables; their tests run once in the emitted artifact. An
+    for name in context.workspaceModules("apps")
+    {
+        let code = try runApplicationWorkspace(context, options, name.toString(), command.toString())
+        if code != 0 do
+            return code
+    }
+
+    return 0
+}
+
+// Runs one command over every module owned by one application.
+private func runApplicationWorkspace(context: *Context, options: *Options, name, command: string)->s32 fail
+{
+    var arguments: Arguments
+    arguments.add([command, "--workspace", applicationWorkspace(context, name).toString()])
+    arguments.add(["--build-cfg", options.buildCfg.toString(), "--publish"])
+
+    // Applications and test-enabled library modules run once in their emitted artifacts. An
     // explicit --test-jit can still opt back into the in-process pass.
     if command == "test" do
         arguments.add(["--no-test-jit"])
 
-    options.appendWorkspace(&arguments)
-    options.appendRunArguments(&arguments)
+    if command != "build"
+    {
+        options.appendWorkspace(&arguments)
+        options.appendRunArguments(&arguments)
+    }
+
     options.appendExtra(&arguments)
 
     let code = try context.runCompiler(arguments)
-    if code != 0 do
+    if code != 0 or command != "build" do
         return code
-    if command == "test" and (options.module.isEmpty() or options.module == "sViewer")
-    {
-        let moduleDir = Path.combine(context.workspacePath("apps").toString(), "modules", "sViewer")
-        return try testViewerPlugins(context, options, moduleDir.toString())
-    }
-
-    if command != "build" do
-        return 0
-
-    return try packageApplications(context, options)
-}
-
-// Tests sViewer plugins as standalone executables against the just-published standard library.
-// This preserves the lazy DLL boundary while making the normal application test exercise every
-// shipped renderer.
-private func testViewerPlugins(context: *Context, options: *Options, moduleDir: string)->s32 fail
-{
-    let audioCode = try buildViewerAudioRuntime(context, options)
-    if audioCode != 0 do
-        return audioCode
-
-    for pluginName in ["image", "markdown", "html", "hex", "sound"]
-    {
-        let pluginDir = Path.combine(moduleDir, "plugins", pluginName)
-        if !holdsTestSource(Path.combine(pluginDir.toString(), "src").toString()) do
-            continue
-
-        let paths = context.artifactPaths(Format.toString("apps/sViewer-plugin-%-test", pluginName).toString(), "executable", options.buildCfg.toString())
-        var arguments: Arguments
-        arguments.add(["test", "--artifact-kind", "executable"])
-        arguments.add(["--module-file", Path.combine(pluginDir.toString(), "module.swg").toString(), "--directory", "src"])
-        arguments.add(["--out-dir", paths.outDir.toString(), "--work-dir", paths.workDir.toString()])
-        arguments.add(["--build-cfg", options.buildCfg.toString(), "--import-api-dir", context.workspaceOutput("std").toString()])
-        arguments.add(["--no-test-jit"])
-        options.appendExtra(&arguments)
-        options.appendRunArguments(&arguments)
-
-        let code = try context.runCompiler(arguments)
-        if code != 0 do
-            return code
-    }
-
-    return 0
-}
-
-private func packageApplications(context: *Context, options: *Options)->s32 fail
-{
-    for name in context.workspaceModules("apps")
-    {
-        if !options.module.isEmpty() and options.module != name[] do
-            continue
-
-        let code = try packageApplication(context, options, name.toString())
-        if code != 0 do
-            return code
-    }
-
-    return 0
+    return try packageApplication(context, options, name)
 }
 
 // Launches the packaged executable from its own directory, so it finds the files beside it.
 private func launchApplication(context: *Context, options: *Options)->s32 fail
 {
-    var arguments: Arguments
-    arguments.add(["build", "--workspace", context.workspacePath("apps").toString()])
-    arguments.add(["--build-cfg", options.buildCfg.toString()])
-    arguments.add(["--publish"])
-    arguments.add(["--workspace-module", options.module.toString()])
-    options.appendExtra(&arguments)
-
-    let built = try context.runCompiler(arguments)
+    let built = try runApplicationWorkspace(context, options, options.module.toString(), "build")
     if built != 0 do
         return built
-
-    let packaged = try packageApplication(context, options, options.module.toString())
-    if packaged != 0 do
-        return packaged
 
     let directory  = applicationDirectory(context, options, options.module.toString())
     let executable = Path.combine(directory.toString(), Format.toString("%.exe", options.module.toString()).toString())
@@ -236,8 +185,13 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
 
 private func applicationDirectory(context: *Context, options: *Options, name: string)->String
 {
-    let workspace = context.workspacePath("apps")
-    return Path.combine(workspace.toString(), ".output", name, "executable", options.buildCfg.toString(), context.targetArch.toString())
+    return Path.combine(applicationWorkspace(context, name).toString(), ".output", name, "executable", options.buildCfg.toString(), context.targetArch.toString())
+}
+
+// Returns the workspace one application owns.
+private func applicationWorkspace(context: *Context, name: string)->String
+{
+    return Path.combine(context.workspacePath("apps").toString(), name)
 }
 
 // Copies the runtime files one application owns beside its built executable.
@@ -255,10 +209,10 @@ private func packageApplication(context: *Context, options: *Options, name: stri
         return 1
     }
 
-    let moduleDir = Path.combine(context.workspacePath("apps").toString(), "modules", name)
-    if name == "sViewer" do
-        return try packageViewerPlugins(context, options, moduleDir.toString(), appDir.toString())
-    if name != "sCrypt" do
+    let moduleDir = Path.combine(applicationWorkspace(context, name).toString(), "modules", name)
+    if name == "sFileScope" do
+        return try packageFileScopePlugins(context, options, moduleDir.toString(), appDir.toString())
+    if name != "sVaultDrive" do
         return 0
 
     let vendor = Path.combine(moduleDir.toString(), "vendor", "winfsp")
@@ -276,16 +230,13 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     return 0
 }
 
-// Builds the optional sViewer format modules beside the host without linking them into it.
+// Packages the optional sFileScope format modules beside the host without linking them into it.
 //
-// The host reads only `index.viewer` on startup. A DLL enters the process only after that index
+// The normal workspace build already produced every module. The host reads only `index.filescope`
+// on startup. A DLL enters the process only after that index
 // selects it for the opened extension, which keeps future plugin accumulation off the hot path.
-private func packageViewerPlugins(context: *Context, options: *Options, moduleDir, appDir: string)->s32 fail
+private func packageFileScopePlugins(context: *Context, options: *Options, moduleDir, appDir: string)->s32 fail
 {
-    let audioCode = try buildViewerAudioRuntime(context, options)
-    if audioCode != 0 do
-        return audioCode
-
     let outputDir = Path.combine(appDir, "plugins")
     if !Directory.exists(outputDir) do
         try Directory.create(outputDir)
@@ -298,28 +249,18 @@ private func packageViewerPlugins(context: *Context, options: *Options, moduleDi
         var extension = String.from(Path.extension(file.fullname.toString()) orelse "")
         extension = extension.toLower()
         let name = Path.fileName(file.fullname.toString()) orelse ""
-        if extension == ".lib" or extension == ".swgsrc" or (Utf8.startsWith(name, "sviewer_") and (extension == ".dll" or extension == ".pdb")) do
+        if extension == ".lib" or extension == ".swgsrc" or (Utf8.startsWith(name, "sfilescope_") and (extension == ".dll" or extension == ".pdb")) do
             try File.delete(file.fullname.toString())
     }
 
     for pluginName in ["image", "markdown", "html", "hex", "sound"]
     {
-        let pluginDir = Path.combine(moduleDir, "plugins", pluginName)
-        let paths     = context.artifactPaths(Format.toString("apps/sViewer-plugin-%", pluginName).toString(), "shared-library", options.buildCfg.toString())
+        let pluginDir = Path.combine(applicationWorkspace(context, "sFileScope").toString(), ".output", pluginName, "shared-library", options.buildCfg.toString(), context.targetArch.toString())
 
-        var arguments: Arguments
-        arguments.add(["build", "--module-file", Path.combine(pluginDir.toString(), "module.swg").toString(), "--directory", "src"])
-        arguments.add(["--build-cfg", options.buildCfg.toString(), "--out-dir", paths.outDir.toString(), "--work-dir", paths.workDir.toString()])
-        options.appendExtra(&arguments)
-
-        let code = try context.runCompiler(arguments)
-        if code != 0 do
-            return code
-
-        let artifactName = Format.toString("sviewer_%.dll", pluginName)
-        try copyBeside(Path.combine(paths.outDir.toString(), artifactName.toString()).toString(), outputDir.toString(), artifactName.toString())
-        let pdbName = Format.toString("sviewer_%.pdb", pluginName)
-        let pdbPath = Path.combine(paths.outDir.toString(), pdbName.toString())
+        let artifactName = Format.toString("sfilescope_%.dll", pluginName)
+        try copyBeside(Path.combine(pluginDir.toString(), artifactName.toString()).toString(), outputDir.toString(), artifactName.toString())
+        let pdbName = Format.toString("sfilescope_%.pdb", pluginName)
+        let pdbPath = Path.combine(pluginDir.toString(), pdbName.toString())
         if File.exists(pdbPath) do
             try copyBeside(pdbPath.toString(), outputDir.toString(), pdbName.toString())
     }
@@ -332,19 +273,8 @@ private func packageViewerPlugins(context: *Context, options: *Options, moduleDi
     if File.exists(audioPdb) do
         try copyBeside(audioPdb.toString(), appDir, "audio.pdb")
 
-    try copyBeside(Path.combine(moduleDir, "datas", "plugins", "index.viewer").toString(), outputDir.toString(), "index.viewer")
+    try copyBeside(Path.combine(moduleDir, "datas", "plugins", "index.filescope").toString(), outputDir.toString(), "index.filescope")
     return 0
-}
-
-// Builds the runtime imported only by the lazy sound plugin and publishes its API for plugin tests.
-private func buildViewerAudioRuntime(context: *Context, options: *Options)->s32 fail
-{
-    var arguments: Arguments
-    arguments.add(["build", "--workspace", context.workspacePath("std").toString()])
-    arguments.add(["--workspace-module", "audio", "--build-cfg", options.buildCfg.toString()])
-    options.appendWorkspace(&arguments)
-    options.appendExtra(&arguments)
-    return try context.runCompiler(arguments)
 }
 
 private func copyBeside(source: string, directory: string, name: string) fail

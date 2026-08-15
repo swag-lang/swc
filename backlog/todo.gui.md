@@ -247,7 +247,7 @@ Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
 
 ### T-229 — Pen pressure is not modeled end to end
 
-Carry pressure and pen identity from native input through drawing tools. `sCapture` is the proving
+Carry pressure and pen identity from native input through drawing tools. `sSnapForge` is the proving
 application, and the headless host must inject pen events so the behavior is testable without
 hardware.
 
@@ -359,9 +359,9 @@ test; backend integration tests then prove native focus, DPI, clipboard and inpu
 T-045 is complete when a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
 second platform. The higher integrations retain their own completion identifiers.
 
-This only removes the interface blocker for the applications. sCapture still needs its separate
-capture backend in [T-084](todo.scapture.md#t-084--cross-platform-capture-backend); sCrypt still
-needs the FUSE backend in [T-100](todo.scrypt.md#t-100--no-linux-fuse-backend), plus the
+This only removes the interface blocker for the applications. sSnapForge still needs its separate
+capture backend in [T-084](todo.snapforge.md#t-084--cross-platform-capture-backend); sVaultDrive still
+needs the FUSE backend in [T-100](todo.vaultdrive.md#t-100--no-linux-fuse-backend), plus the
 Core and Pixel platform work under T-028. Keeping those dependencies explicit prevents a GUI port
 from being mistaken for two ported products.
 
@@ -405,8 +405,8 @@ missing-monitor rectangles and ignores panes the application no longer registers
 
 Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/save flow,
 close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
-pages, and test close veto and focus independently of docking. sCapture's open captures are the
-first consumer; sCrypt does not need this merely as a demonstration.
+pages, and test close veto and focus independently of docking. sSnapForge's open captures are the
+first consumer; sVaultDrive does not need this merely as a demonstration.
 
 - Related: T-046
 

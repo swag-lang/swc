@@ -175,9 +175,9 @@ private func classify(scope: *Scope, rawPath: string)
         return
     }
 
-    if under(text, "bin/apps/modules/")
+    if under(text, "bin/apps/")
     {
-        discard scope.apps.add(segmentAt(text, 17, "/"))
+        discard scope.apps.add(segmentAt(text, 9, "/"))
         return
     }
 
@@ -310,6 +310,23 @@ private func closeConsumers(context: *Context, scope: *Scope)
 
 private func importsSelectedModule(context: *Context, scope: *Scope, workspace: string, name: string)->bool
 {
+    if workspace == "apps"
+    {
+        let modulesDir = Path.combine(context.workspacePath("apps").toString(), name, "modules")
+        let entries    = catch Directory.enumerateDirectories(modulesDir.toString()) as err
+        if err != null do
+            return false
+
+        for entry in entries
+        {
+            let moduleFile = Path.combine(entry.fullname.toString(), "module.swg")
+            if importsSelected(scope, moduleFile.toString()) do
+                return true
+        }
+
+        return false
+    }
+
     let moduleFile = Path.combine(context.workspacePath(workspace).toString(), "modules", name, "module.swg")
     return importsSelected(scope, moduleFile.toString())
 }

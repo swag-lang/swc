@@ -3,8 +3,8 @@
 using Swag, Core
 
 // The Swag dark palette is the shipped look of every standard application, so the tokens it
-// resolves to are pinned rather than described: a change here is a change to sCrypt and
-// sCapture, and it should have to be written down.
+// resolves to are pinned rather than described: a change here is a change to sVaultDrive and
+// sSnapForge, and it should have to be written down.
 #test
 {
     var colors: ThemeColors

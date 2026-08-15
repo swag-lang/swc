@@ -151,7 +151,7 @@ using Swag, Core, File
     var opt: FileDlgOptions
     opt.mode              = .CreateFile
     opt.showLocationsPane = false
-    opt.filters.add({"sCrypt container", ".scv"})
+    opt.filters.add({"Encrypted container", ".scv"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt)
     fb.dockStyle = .Center

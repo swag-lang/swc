@@ -37,7 +37,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
 
 - Area: compiler
-- Found while: fixing the same race for the unambiguous case, which was making `sCapture` fail to
+- Found while: fixing the same race for the unambiguous case, which was making `sSnapForge` fail to
   compile with 18 to 26 errors per attempt, a different set every run
 - Observation: `probeAutoMemberCandidates` looks every candidate up with `noWaitOnEmpty`, because
   with several candidates it must step over the ones that legitimately lack the name. An empty
@@ -49,7 +49,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   that block's body runs, and a struct is marked sema-completed once its `impl` blocks are
   *registered* — `decPendingImplRegistrations` fires before the body
   ([Sema.Impl.cpp:157-166](../src/Compiler/Sema/Ast/Sema.Impl.cpp#L157-L166)) — so a lookup on a
-  "complete" type can still miss members. Every sCapture failure was that shape:
+  "complete" type can still miss members. Every sSnapForge failure was that shape:
   `struct 'ActionQuickStyle' has no field 'Reset'` for a `Reset` that `newCmdId("Reset")` mints in
   a neighbouring `impl` block. The single-candidate half is fixed; a `with` block or a method
   carrying binding vars puts more than one candidate in scope and reopens it.
@@ -97,7 +97,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-124 — A dangling reference into a destroyed compiler instance has no deterministic detector
 
 - Area: compiler
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m sCapture
+- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m sSnapForge
   --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
   per process) keeping `@pinfos.args` slices into the run-argument storage of a dependency-build
   compiler instance that had already been destroyed. That defect is fixed by interning the handed
@@ -109,7 +109,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   cannot be written that reliably turns red without the fix: the dead storage usually still holds
   its old bytes, and every read through it then looks healthy. The DevMode binary never tripped at
   all because its allocator reused the freed block differently.
-- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m sCapture --rebuild` loop on the
+- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m sSnapForge --rebuild` loop on the
   Release binary failed in `library.test.swg` (the one test that funnels `Env.executablePath()`
   into a validated path API), while the same command on the DevMode binary passed 10/10; post-fix
   the Release loop passed 8/8. A probe comparing the live instance against what JIT code reads
@@ -125,13 +125,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 - Area: compiler
 - Found while: the 2026-08-12 sanification pass, looping the apps workspace in debug. This is the
-  strongest reproduction so far of the intermittent sCrypt JIT failures the pass set out to track.
-- Observation: in `swc_devmode test -w bin/apps -bc debug --rebuild`, six sCrypt `#test` functions
+  strongest reproduction so far of the intermittent sVaultDrive JIT failures the pass set out to track.
+- Observation: in `swc_devmode test -w bin/apps -bc debug --rebuild`, six sVaultDrive `#test` functions
   in `mainwindow.test.swg` (109, 133, 163, 363, 384, 494) die on the same hardware exception:
   execution lands at `rip=0x0000000080019060` (memory state FREE, "jit offset: unresolved"), which
   is a jump through a function-pointer slot holding a value no live code owns. The failure hits
   roughly two runs out of three at the first iteration, always with that same rip, and an A/B
-  build bisected it as independent of the concurrent matcher fix added the same day. sCapture's
+  build bisected it as independent of the concurrent matcher fix added the same day. sSnapForge's
   151 tests pass in the same runs; the release and fast-debug legs of the same workspace pass far
   more often.
 - Evidence: the run reports `state: Run JIT`, `__test_14` at `mainwindow.test.swg:109:1`,
@@ -152,7 +152,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-139 — A moved subexpression in a materialized value asserts in CodeGen
 
 - Area: compiler
-- Found while: building the dedicated sViewer Markdown plugin
+- Found while: building the dedicated sFileScope Markdown plugin
 - Observation: embedding `#move` in an aggregate call argument or one branch of a conditional expression passes semantic analysis, then the DevMode compiler asserts while preparing the materialized value
 - Evidence: `blocks.add(MarkdownBlock{kind, #move text})` and `var value = condition ? String.from("rule") : #move block.text` both assert at `CodeGenCallHelpers.Call.cpp:1062` because `argConstView.cstRef().isValid()` does not hold; assigning the moved field through an ordinary statement before the call compiles in both cases
 - Next step: reduce both patterns into `bin/unittests/native`, then trace why their moved subexpressions reach `appendPreparedFixedArg` without a valid constant reference and make the original expressions compile without changing ownership

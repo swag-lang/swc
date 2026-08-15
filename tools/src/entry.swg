@@ -95,8 +95,8 @@ private func dispatch(name: string, root: string, tokens: const [..] string)->s3
     case "web":
         return try runWeb(&context, &options)
 
-    case "scrypt":
-        return try runScrypt(&context, &options)
+    case "vaultdrive":
+        return try runVaultDrive(&context, &options)
 
     case "vsix":
         return try runVsix(&context, &options)

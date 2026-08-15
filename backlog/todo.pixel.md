@@ -347,4 +347,4 @@ collection, and so reads the font twice.
 library, and `gui` owns the retained tree above it. Do not grow a second one here.
 
 **Video decoding.** The WebP VP8 decoder exists because WebP needs it, not as the beginning of a
-media stack. If `sCapture` ever records video, that belongs in its own module.
+media stack. If `sSnapForge` ever records video, that belongs in its own module.

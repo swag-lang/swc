@@ -205,7 +205,7 @@ attempt to reproduce it by hand.
 The sheets are built from reflection, so a field added to either struct appears without touching
 the example. Do not hand-list names there.
 
-`sCrypt` and `sCapture` are the confirmation, not the instrument: they show one composition of
+`sVaultDrive` and `sSnapForge` are the confirmation, not the instrument: they show one composition of
 the theme, and the parts they do not use are exactly the ones a change breaks silently.
 
 ## Validation

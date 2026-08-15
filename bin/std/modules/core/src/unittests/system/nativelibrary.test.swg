@@ -7,7 +7,7 @@
     var library = expect NativeLibrary.load("kernel32.dll")
     @assert(library.isOpen())
     @assert(library.symbol("GetCurrentProcessId") != null)
-    @assert(library.symbol("sViewerSymbolThatDoesNotExist") == null)
+    @assert(library.symbol("MissingSymbolThatDoesNotExist") == null)
 
     library.close()
     @assert(!library.isOpen())

@@ -9,8 +9,8 @@ they never point back up it.
    supplied by a host leaf, but they do not import a native module, branch on `#os`, name a native
    type or constant, or call a native API.
 2. **Host primitives** own the irreducible operating-system mechanisms behind those contracts.
-   The Windows runtime leaf, the named Core/GUI/Pixel/Audio Windows leaves, sCapture's capture
-   leaf, and sCrypt's `winfsp/` directory belong here. Module setup files may select these leaves
+   The Windows runtime leaf, the named Core/GUI/Pixel/Audio Windows leaves, sSnapForge's capture
+   leaf, and sVaultDrive's `winfsp/` directory belong here. Module setup files may select these leaves
    and their raw dependencies. A host leaf may depend on optional native interoperability, but its
    portable API uses neutral values or opaque native storage.
 3. **Optional native interoperability** owns raw ABI declarations and deliberately native

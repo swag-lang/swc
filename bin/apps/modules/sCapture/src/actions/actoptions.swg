@@ -17,6 +17,47 @@ impl ActionOptions
     newCmdId("Options")
 }
 
+impl MainWnd
+{
+    // Applies the live effects of one edited option and reports whether localized option rows
+    // must be rebuilt. An empty name conservatively refreshes every effect after detached undo.
+    mtd applyOptionChange(fieldName: string)->bool
+    {
+        if @countof(fieldName) == 0
+        {
+            let wasLanguage = String.from(Gui.activeLanguage())
+            .setTheme()
+            .setLanguage()
+            .setToolRailWidth()
+            .app().invalidate()
+            return wasLanguage != Gui.activeLanguage()
+        }
+
+        switch fieldName
+        {
+        case #nameof(EditorOptions.theme):
+            .setTheme()
+            .setToolRailWidth()
+
+        case #nameof(EditorOptions.language):
+            let wasLanguage = String.from(Gui.activeLanguage())
+            .setLanguage()
+            return wasLanguage != Gui.activeLanguage()
+
+        case #nameof(EditorOptions.showToolBarLabels):
+            .setToolRailWidth()
+
+        case #nameof(EditorOptions.clipToSelection), #nameof(EditorOptions.editBackColor):
+            .editWnd.invalidate()
+
+        case #nameof(ApplicationOptions.showClipRect), #nameof(ApplicationOptions.showLayoutRects), #nameof(ApplicationOptions.showFocusRings):
+            .app().invalidate()
+        }
+
+        return false
+    }
+}
+
 impl IActionUI for ActionOptions
 {
     acceptOwnCmdIds()
@@ -51,15 +92,15 @@ impl IActionUI for ActionOptions
 
         opt.properties.sigValueChanged += func|main, opt|(prop, item)
         {
-            let wasLanguage = String.from(Gui.activeLanguage())
-            main.setTheme()
-            main.setLanguage()
-            main.setToolRailWidth()
+            var fieldName: string = ""
+            if item do
+                fieldName = item.typeValue.name orelse ""
+            let rebuildLocalizedRows = main.applyOptionChange(fieldName)
 
             // Every row here is generated from an attribute literal resolved at build time,
             // and the section tabs carry their captions the same way, so the language the
             // reader just picked only reaches this dialog by building it again.
-            if wasLanguage != Gui.activeLanguage()
+            if rebuildLocalizedRows
             {
                 opt.clear()
                 fillOptions(opt, main)

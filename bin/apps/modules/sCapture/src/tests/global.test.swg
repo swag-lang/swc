@@ -35,6 +35,41 @@ func testSetupGlobalMain(main: *MainWnd)
     main.libWnd.filledRevision = g_Library.revision
 }
 
+// A rail-only option change must not reapply unrelated application-wide settings. Repeating the
+// change used to broadcast both theme and language notifications, repaint every surface, and make
+// the options dialog progressively stall.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    testSetupGlobalMain(f.main)
+    f.gui.theme.setSwagLight()
+    expect f.gui.app.setLanguage("fr")
+    defer expect f.gui.app.setLanguage("en")
+
+    f.main.editorOptions.theme             = .Dark
+    f.main.editorOptions.language          = .English
+    f.main.editorOptions.showToolBarLabels = true
+    let lightBackground = f.main.themeColors().wnd_Bk
+    discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
+
+    let metrics = f.main.themeMetrics()
+    @assert(f.main.toolRail.position.width == RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin)
+    @assert(f.main.themeColors().wnd_Bk == lightBackground)
+    @assert(Gui.activeLanguage() == "fr")
+
+    for i in 32
+    {
+        f.main.editorOptions.showToolBarLabels = i % 2 == 0
+        discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
+        let expected = f.main.editorOptions.showToolBarLabels ? RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin : RailCellSize + metrics.activeRail_Size
+        @assert(f.main.toolRail.position.width == expected)
+        @assert(f.main.app().animator.activeCount() == 0)
+    }
+}
+
 // Global window actions toggle the real sCapture panes and surface visibility in a
 // headless surface without touching persisted app state.
 #test
@@ -50,6 +85,7 @@ func testSetupGlobalMain(main: *MainWnd)
     }
 
     testSetupGlobalMain(f.main)
+    f.gui.setReducedMotion(false)
 
     // In icon-only mode the active rule's own margin replaces the leading cell padding.
     // Counting both used to leave the glyph visibly adrift from its selection marker.
@@ -95,6 +131,8 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(!f.main.editWnd.isLocallyVisible())
     @assert(f.main.libWnd.isLocallyVisible())
     @assert(!f.main.commandReadouts.isLocallyVisible())
+    @assert(!f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Page.Offset")))
+    @assert(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})
 
     evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
     @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
@@ -106,6 +144,8 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(f.main.editWnd.isLocallyVisible())
     @assert(!f.main.libWnd.isLocallyVisible())
     @assert(f.main.commandReadouts.isLocallyVisible())
+    @assert(!f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
+    @assert(f.main.editWnd.presentationOpacity == 1 and f.main.editWnd.presentationOffset == Math.Point{})
 
     let surface = f.main.surface!
     surface.show()

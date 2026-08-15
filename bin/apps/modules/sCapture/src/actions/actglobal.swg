@@ -91,7 +91,13 @@ impl MainWnd
 
         let outgoing = .libraryMode ? cast(*Wnd) .editWnd : cast(*Wnd) .libWnd
         let incoming = .libraryMode ? cast(*Wnd) .libWnd : cast(*Wnd) .editWnd
-        discard .app().animator.transitionPage(outgoing, incoming, .libraryMode ? 1 : -1)
+
+        // This change replaces nearly the whole client area. Fading both pages records two
+        // full-size subtrees into off-screen layers on every frame, which is disproportionately
+        // expensive for an image editor and its thumbnail library. Local control motion remains
+        // animated; the workspace handoff is immediate.
+        outgoing.hide()
+        incoming.show()
 
         .applyLayout()
         if .libraryMode do

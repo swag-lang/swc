@@ -102,6 +102,90 @@ SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ErasesStoreOverwrittenBeforeMemoryAccess)
+{
+    const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg r9   = MicroReg::intReg(9);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadMemReg(base, 16, r8, MicroOpBits::B16);
+    builder.emitOpBinaryRegImm(r8, ApInt(1, 16), MicroOp::Add, MicroOpBits::B16);
+    builder.emitLoadMemReg(base, 16, r9, MicroOpBits::B16);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_DoesNotEraseOverwrittenNonFrameStore)
+{
+    constexpr MicroReg base = MicroReg::intReg(12);
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg r9   = MicroReg::intReg(9);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadMemReg(base, 16, r8, MicroOpBits::B16);
+    builder.emitOpBinaryRegImm(r8, ApInt(1, 16), MicroOp::Add, MicroOpBits::B16);
+    builder.emitLoadMemReg(base, 16, r9, MicroOpBits::B16);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ErasesOwnStoreReloadOnConditionalFallthrough)
+{
+    const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef doneLabel = builder.createLabel();
+    builder.emitLoadMemReg(base, 24, r8, MicroOpBits::B16);
+    builder.emitCmpRegImm(r8, ApInt(0, 16), MicroOpBits::B16);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+    builder.emitLoadRegMem(r8, base, 24, MicroOpBits::B16);
+    builder.placeLabel(doneLabel);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ForwardsStoredValueToReload)
+{
+    const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg r9   = MicroReg::intReg(9);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadMemReg(base, 24, r8, MicroOpBits::B16);
+    builder.emitCmpRegImm(r8, ApInt(0, 16), MicroOpBits::B16);
+    builder.emitLoadRegMem(r9, base, 24, MicroOpBits::B16);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    if (!hasLoadRegReg(builder, r9, r8))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
 {
     constexpr MicroReg rax = MicroReg::intReg(0);
@@ -123,6 +207,33 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
     SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
 
     if (!hasLoadRegReg(builder, rdx, r9))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Legalize_DoesNotPreserveDeadShiftRegisterAcrossJump)
+{
+    constexpr MicroReg rcx = MicroReg::intReg(2);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef doneLabel = builder.createLabel();
+    builder.emitLoadRegImm(rcx, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r9, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(r8, r9, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    builder.placeLabel(doneLabel);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runLegalizePass(builder, encoder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        return Result::Error;
+    if (!hasLoadRegReg(builder, rcx, r9))
         return Result::Error;
     return Result::Continue;
 }

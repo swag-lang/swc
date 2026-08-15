@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -26,8 +27,9 @@
 //
 // Two helpers underpin the rewrites:
 //   - mustPreserveRegAfterInstruction / isRegUsedBeforeDefinitionWithinLocalFlow:
-//     tiny local liveness probes used to decide whether a fixed register has
-//     to be saved/restored around the rewrite.
+//     liveness probes used to decide whether a fixed register has to be
+//     saved/restored around the rewrite. Preservation follows the exact CFG
+//     when available; strictly local rewrites keep the cheaper linear probe.
 //   - addVirtualForbiddenReg / addLiveConcreteForbiddenRegsAfterInstruction:
 //     teach the register allocator to keep the freshly-introduced virtual
 //     register away from physical registers that are still live, so the
@@ -90,7 +92,45 @@ namespace
 
     bool mustPreserveRegAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
     {
-        return scanRegLivenessAfterInstruction(context, instRef, reg, true);
+        SWC_ASSERT(context.builder);
+        const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return scanRegLivenessAfterInstruction(context, instRef, reg, true);
+
+        const std::span<const MicroInstrRef> instructionRefs = cfg.instructionRefs();
+        const auto                           instructionIt   = std::ranges::find(instructionRefs, instRef);
+        if (instructionIt == instructionRefs.end())
+            return true;
+
+        const uint32_t instructionIndex = static_cast<uint32_t>(std::distance(instructionRefs.begin(), instructionIt));
+        std::vector<uint8_t> visited(instructionRefs.size(), 0);
+        SmallVector<uint32_t> pending;
+        for (const uint32_t successor : cfg.successors(instructionIndex))
+            pending.push_back(successor);
+
+        while (!pending.empty())
+        {
+            const uint32_t index = pending.back();
+            pending.pop_back();
+            if (index >= instructionRefs.size() || visited[index])
+                continue;
+            visited[index] = 1;
+
+            const MicroInstr* instruction = context.instructions->ptr(instructionRefs[index]);
+            if (!instruction)
+                return true;
+
+            const MicroInstrUseDef useDef = instruction->collectUseDef(*context.operands, context.encoder);
+            if (microRegSpanContains(useDef.uses, reg))
+                return true;
+            if (microRegSpanContains(useDef.defs, reg))
+                continue;
+
+            for (const uint32_t successor : cfg.successors(index))
+                pending.push_back(successor);
+        }
+
+        return false;
     }
 
     bool isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)

@@ -161,6 +161,7 @@ private:
     void             computeVirtualLiveSpans();
     void             computeConcreteClaimPositions();
     void             computeGlobalBenefits(std::vector<uint64_t>& outBenefit) const;
+    void             computeGlobalAccessBenefits(std::vector<uint64_t>& outBenefit) const;
     bool             intervalHasCall(uint32_t lo, uint32_t hi) const;
     bool             concreteClaimsOverlap(MicroReg physReg, uint32_t lo, uint32_t hi) const;
     bool             isProvenFreeRegister(MicroReg physReg) const;

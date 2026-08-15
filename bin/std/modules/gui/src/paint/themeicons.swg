@@ -65,6 +65,7 @@ enum ThemeIcons
     Information      // Informational status.
     HourGlass        // Waiting or in-progress status.
     Lock             // Closed padlock, for a protected or read-only object.
+    Eye              // Reveals content while its action is held.
 }
 
 impl Theme

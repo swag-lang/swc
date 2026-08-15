@@ -330,9 +330,12 @@ impl FormLayoutCtrl
     }
 
     // Creates a masked password field, appends its labeled row, and returns the editor.
-    mtd addPasswordField(label: string, placeholder: #null string = null, help: #null string = null, icon: Icon = {}, id: #null WndId = null)->*PasswordEdit
+    //
+    // `flags` defaults to [[Gui.PasswordEditFlags.RevealButton]]; pass
+    // [[Gui.PasswordEditFlags.None]] for a permanently masked field.
+    mtd addPasswordField(label: string, placeholder: #null string = null, help: #null string = null, icon: Icon = {}, id: #null WndId = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
-        let result = PasswordEdit.create(me, id: id)
+        let result = PasswordEdit.create(me, id: id, flags: flags)
         result.setPlaceholder(placeholder)
         if icon.isValid() do
             result.setIcon(icon)

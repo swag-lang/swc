@@ -2,10 +2,19 @@
 
 using Core, Pixel
 
+// Configures password-edit interaction and presentation.
+#[Swag.EnumFlags]
+enum PasswordEditFlags
+{
+    None = 0         // Shows only the masked editor.
+    RevealButton     // Shows a trailing button that reveals the password only while held.
+}
+
 // Edits a password without storing its plaintext in a regular text backing store.
 //
 // The private child edit box contains only one mask character per rune. Plaintext bytes stay in
-// fixed-capacity storage, clipboard shortcuts are disabled, and destruction clears the storage.
+// fixed-capacity storage except while the reveal button is held, clipboard shortcuts are disabled,
+// and every plaintext buffer is cleared before masking resumes or the widget is destroyed.
 struct PasswordEdit
 {
     public
@@ -16,12 +25,18 @@ struct PasswordEdit
         sigSubmitted: SigArray'func||(*PasswordEdit)     // Emitted when Enter is pressed.
         sigCancelled: SigArray'func||(*PasswordEdit)     // Emitted when Escape is pressed.
 
+        public readonly flags = PasswordEditFlags.RevealButton     // Active interaction and presentation options.
+
         internal
         #[Swag.Late]
-        edit:      *EditBox      // Mask-only child owned by this control.
-        storage:   [1024] u8     // Fixed storage avoids reallocating plaintext through a general allocator.
-        byteCount: u64           // Number of occupied plaintext bytes.
-        runeCount: u64           // Number of entered Unicode code points.
+        edit:          *EditBox          // Mask-only child owned by this control.
+        revealButton:  #null *IconButton // Optional press-and-hold reveal action.
+        storage:       [1024] u8         // Fixed storage avoids reallocating plaintext through a general allocator.
+        byteCount:     u64               // Number of occupied plaintext bytes.
+        runeCount:     u64               // Number of entered Unicode code points.
+        savedSelBeg:   u64               // Mask selection start saved while plaintext is visible.
+        savedSelEnd:   u64               // Mask selection end saved while plaintext is visible.
+        isRevealed:    bool              // Whether the child currently contains plaintext for painting.
     }
 }
 
@@ -48,6 +63,69 @@ private impl PasswordEdit
             @memset(mask.buffer, '*', mask.count)
         .edit.setText(mask.count ? @mkstring(mask.buffer, mask.count) : "", false)
         .edit.setSelection(caret, caret)
+    }
+
+    mtd layoutChildren()
+    {
+        let rect = .clientRect()
+        .edit.setPosition(rect)
+        if !.revealButton do
+            return
+
+        let inset = 2'f32
+        let side  = Math.max(rect.height - inset * 2, 0)
+        .revealButton.setPosition(rect.right() - side - inset, inset, side, side)
+        .edit.setTrailingMargin(side + inset * 2)
+    }
+
+    mtd setRevealed(revealed: bool)
+    {
+        if .isRevealed == revealed do
+            return
+
+        if revealed
+        {
+            .savedSelBeg = .edit.selBeg
+            .savedSelEnd = .edit.selEnd
+            .isRevealed  = true
+            .edit.setText(@mkstring(&.storage[0], .byteCount), false)
+            .edit.setSelection(.byteOffsetAt(.savedSelBeg), .byteOffsetAt(.savedSelEnd))
+            .app().registerHookEvents(me)
+            return
+        }
+
+        .app().unregisterHookEvents(me)
+        Crypto.secureClear(.edit.textStorage.toSlice())
+        .isRevealed = false
+        .refresh(.savedSelEnd)
+        .edit.setSelection(.savedSelBeg, .savedSelEnd)
+    }
+
+    mtd handleRevealEvent(wnd: *Wnd, evt: IEvent)->bool
+    {
+        if let mouse = evt as MouseEvent
+        {
+            switch mouse.kind
+            {
+            case .Pressed:
+                if mouse.button == .Left do
+                    .setRevealed(true)
+
+            case .Released:
+                if mouse.button == .Left do
+                    .setRevealed(false)
+
+            case .Move:
+                let button = .revealButton!
+                if button.isPressing do
+                    .setRevealed(wnd.clientRect().contains(wnd.surfaceToLocal(mouse.surfacePos)))
+
+            case .Leave:
+                .setRevealed(false)
+            }
+        }
+
+        return false
     }
 
     mtd eraseRunes(start, end: u64)
@@ -134,6 +212,12 @@ private impl PasswordEdit
         switch evt
         {
         case KeyEvent as key:
+            if .isRevealed
+            {
+                key.accepted = true
+                return true
+            }
+
             if key.kind == .Character
             {
                 if key.character >= 0x20'rune do
@@ -173,13 +257,34 @@ impl IWnd for PasswordEdit
     {
         discard evt
         if @isset(.edit) do
-            .edit.setPosition(.clientRect())
+            .layoutChildren()
+    }
+
+    // Restores masking if input capture or keyboard focus ends elsewhere.
+    mtd impl onHookEvent(evt: IEvent)
+    {
+        if let mouse = evt as MouseEvent where mouse.kind == .Released and mouse.button == .Left
+        {
+            .setRevealed(false)
+        }
+        elif let focus = evt as FocusEvent where focus.kind == .Lost
+        {
+            .setRevealed(false)
+        }
+    }
+
+    // Restores masking before a hidden or disabled subtree stops receiving input.
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        if evt.kind == .Hide or evt.kind == .Disable do
+            .setRevealed(false)
     }
 
     // Clears plaintext before the GUI releases the widget allocation.
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
+        .setRevealed(false)
         Crypto.secureClear(.storage)
         .byteCount = 0
         .runeCount = 0
@@ -191,9 +296,12 @@ public impl PasswordEdit
     // Maximum number of UTF-8 plaintext bytes held by one password edit.
     const MaximumByteLength = 1024
 
-    // Creates an empty password edit with an optional command identifier.
+    // Creates an empty password edit with an optional command identifier and reveal button.
+    //
+    // [[Gui.PasswordEditFlags.RevealButton]] is enabled by default. Passing
+    // [[Gui.PasswordEditFlags.None]] omits the button and leaves the field permanently masked.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*PasswordEdit
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
         Debug.assert(parent != null)
         var pos = position
@@ -203,6 +311,7 @@ public impl PasswordEdit
             pos.width = parent.themeMetrics().editBox_Width
 
         let result = Wnd.create'PasswordEdit(parent, null, pos, id)
+        result.flags = flags
 
         // One stop of the keyboard traversal for the control, on the private box that holds the
         // caret: the mask is this window's, the editing is the box's.
@@ -222,6 +331,17 @@ public impl PasswordEdit
             discard edit
             password.sigCancelled.call(password)
         }
+
+        if flags.has(.RevealButton)
+        {
+            let buttonSide = Math.max(pos.height - 4, 0)
+            let iconSize   = Math.min(buttonSide * 0.5, 16)
+            let reveal     = IconButton.create(result, result.theme().icon(.Eye, iconSize), flags: .IconOnly | .Overlay)
+            reveal.focusPolicy = .None
+            reveal.hookOnEvent = func|password = result|(wnd, evt) => password.handleRevealEvent(wnd, evt)
+            result.revealButton = reveal
+        }
+        result.layoutChildren()
         return result
     }
 
@@ -247,6 +367,7 @@ public impl PasswordEdit
     // Clears the plaintext and visible mask, optionally emitting [[Gui.PasswordEdit.sigChanged]].
     mtd clear(notify = true)
     {
+        .setRevealed(false)
         let changed = .byteCount != 0
         Crypto.secureClear(.storage)
         .byteCount = 0

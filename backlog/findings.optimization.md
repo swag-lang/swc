@@ -212,9 +212,59 @@ Entries are sorted by identifier, ascending; position carries no priority.
     removing twelve independent instructions changes nothing. Reverted. Worth revisiting only
     *after* the register half lands, when the loop may become instruction-bound.
   - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
+- The register half was then traced to its mechanism and moved to
+  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers), which
+  carries the numbers.
 - Next step: this is [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers) seen
   from a second workload, and the case is small enough to drive the fix — a loop whose whole
   live set fits in registers twice over and is spilled anyway. Same conclusion as
   [F-029's](#f-029--chacha20-still-processes-one-block-per-dependency-chain) neighbours: the
   bottleneck is the allocator's policy, local linear scan with furthest-use eviction, and the
   work that addresses it is the global interval allocator, not another peephole.
+
+### F-138 — A whole-hull reservation cannot keep a loop's working set in registers
+
+- Area: compiler/backend
+- Found while: chasing the register half of
+  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) into
+  `assignGlobalRegisters`, with a temporary trace over its candidate list.
+- Observation: a value that crosses a control-flow boundary is either given one physical
+  register for **the whole hull of its live range**, or it is given a stable spill slot and
+  lives in memory for the rest of the function (`preallocateLoopCarriedSlots`). There is
+  nothing in between. Three things follow, and they compound:
+  - **The ranking inverts on exactly the values the mechanism exists for.** Candidates are
+    ordered by density — benefit divided by span length — which is right between comparable
+    values, because a hull is held across its holes too. A loop cursor lives from the top of
+    the function to the bottom, so its density is microscopic while its reload count is the
+    largest in the function. It queues behind every short-lived candidate and finds the
+    registers gone.
+  - **The benefit model cannot tell a cursor from a base pointer.** `computeGlobalBenefits`
+    counts boundary crossings weighted by loop depth, so a value read six times an iteration
+    and one read once score the same if they cross the same boundaries. Fixing the ranking
+    alone therefore hands the registers to the function's parameters.
+  - **The supply is four.** In a function with calls, a hull crossing one may only ride a
+    callee-saved register, and the floor keeps two back
+    (`totalPersistent - K_MIN_FREE_PERSISTENT_INT` = 6 - 2). Whole-function hulls all overlap,
+    so each needs its own register: four, for a loop whose working set is ten.
+- Evidence: measured 2026-08-15 on `Inflate.parseBlock` (1469 instructions, 124 candidates,
+  6 callee-saved and 7 caller-saved int registers free, all 6 callee-saved proven-free). The
+  four loop cursors carry a raw benefit of 163,201,810 each and are rejected; twenty-five
+  candidates carrying 2,000,000 — eighty times less — are granted. Raising the ranking with a
+  raw-benefit tier fixes the order and changes nothing: the four registers go to the
+  parameters, whose raw benefit ties at 164,701,810 because the model counts crossings, not
+  uses. Forcing the cursors in by hand pinned two of the four, worth about 4% on a machine
+  too noisy to resolve it.
+- Ruled out on the way, and worth not repeating: a raw-benefit tier gated only relatively
+  (`maxRawBenefit / 4`) degenerates on functions with no hot loop — `__setupRuntime`, whose
+  busiest candidate is worth 4, puts every candidate in the first tier, loses the density
+  ranking entirely and **miscompiles** (access violation writing through a null context). Any
+  such tier needs an absolute floor as well, high enough to mean a deep loop.
+- Next step: interval splitting, which is the thing whole-hull reservation cannot express.
+  clang keeps ten values in registers here not by picking better hulls but by holding a value
+  in a register where it is hot and letting it live in memory where it is not. Reordering or
+  reweighting redistributes four registers; it cannot produce ten. This is the same conclusion
+  the float side reached from `raytrace` — the bottleneck is the policy, local linear scan with
+  furthest-use eviction — and the two workloads now bracket it: a float kernel with no calls,
+  and an integer loop with calls in its body. Start from the existing candidate machinery,
+  which already computes the spans, the benefits and the concrete-claim positions a splitting
+  allocator needs.

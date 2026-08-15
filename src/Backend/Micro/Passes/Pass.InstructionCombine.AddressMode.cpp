@@ -302,6 +302,75 @@ namespace InstructionCombine
         return true;
     }
 
+    // Fold `lea addr, [base + C]` into the displacement of a plain access:
+    //
+    //     LoadAddrRegMem addr, [base + C]
+    //     ... [addr + d] ...
+    //   ->
+    //     ... [base + (d + C)] ...
+    //
+    // The same rewrite the indexed forms get above, for the two operand shapes
+    // that carry no index. It matters most where a struct field is read early
+    // and written late: the read already comes out as `[base + C]` directly, so
+    // the address register survives only to serve the store, and then stays live
+    // across everything in between. A function pays for that twice — the value
+    // holds a register its own locals wanted, and when it loses that contest it
+    // is spilled and reloaded around each store.
+    //
+    // The lea is left in place when other consumers remain; DCE sweeps it once
+    // the last one is folded.
+    bool tryFoldLeaConstIntoMemBase(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+
+        MemLayout layout;
+        if (!memoryLayoutFor(layout, inst.op))
+            return false;
+        if (inst.numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+
+        const MicroReg base = ops[layout.baseIdx].reg;
+        if (!base.isVirtualInt())
+            return false;
+
+        const auto reaching = ctx.ssa->reachingDef(base, ref);
+        if (!reaching.valid() || reaching.isPhi || !reaching.inst)
+            return false;
+        if (reaching.inst->op != MicroInstrOpcode::LoadAddrRegMem)
+            return false;
+
+        // LoadAddrRegMem: [dst, base, opBits, off].
+        const MicroInstrOperand* leaOps = reaching.inst->ops(*ctx.operands);
+        if (!leaOps || leaOps[0].reg != base || leaOps[2].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg leaBase = leaOps[1].reg;
+        if (!leaBase.isVirtualInt())
+            return false;
+        if (!sameValueAt(ctx, leaBase, reaching.instRef, ref))
+            return false;
+
+        const int64_t newOff = static_cast<int64_t>(ops[layout.offIdx].valueU64) + static_cast<int64_t>(leaOps[3].valueU64);
+        if (newOff != static_cast<int64_t>(static_cast<int32_t>(newOff)))
+            return false;
+
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        SmallVector<MicroInstrOperand, 8> newOps;
+        for (uint32_t i = 0; i < inst.numOperands; ++i)
+            newOps.push_back(ops[i]);
+        newOps[layout.baseIdx].reg     = leaBase;
+        newOps[layout.offIdx].valueU64 = static_cast<uint64_t>(newOff);
+        ctx.emitRewrite(ref, inst.op, {newOps.data(), newOps.size()});
+        return true;
+    }
+
 }
 
 SWC_END_NAMESPACE();

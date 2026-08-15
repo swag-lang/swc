@@ -613,6 +613,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     defer f.shutdown()
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
+    g_Library.onDeleteFile += func|recent = f.main.recentWnd|(file) { recent.onLibraryFileDeleted(file) }
 
     let capturePath = testPrepareSavedCapture(f.capture)
     g_Library.addFile(capturePath)
@@ -620,6 +621,13 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let loaded = expect f.main.recentWnd.addRecent(capturePath, true, true)
     Memory.delete(loaded)
     @assert(f.main.recentWnd.recentView.selected == 0)
+
+    // The library observer is registered after the history observer, as it is when the user
+    // opens the library after editing a new capture. Both observers must receive a stable path
+    // even though the first one destroys the history item that supplied it.
+    f.main.libWnd = LibraryWnd.create(f.main)
+    f.main.libWnd.fill()
+    f.main.libWnd.view.stopLoading()
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
@@ -630,6 +638,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.openedSurfaceCount() == 0)
     @assert(!File.exists(capturePath))
     @assert(g_Library.files.count == 0)
+    @assert(f.main.recentWnd.recentView.items.count == 0)
+    @assert(f.main.libWnd.view.items.count == 0)
 }
 
 // File Details opens a real modal dialog after reading the saved capture size

@@ -384,6 +384,35 @@ impl RecentWnd
         .loadTimer         = .app().addTimer(100'ms, me)
     }
 
+    mtd onLibraryFileDeleted(file: String)
+    {
+        for it, i in .recentView.items
+        {
+            if it!.file == file
+            {
+                // Remove from recent
+                .recentView.items.destroy(it)
+                .recentView.items.removeAtOrdered(i)
+
+                // Select new one
+                if .recentView.selected == i
+                {
+                    .recentView.selected = Swag.U64.Max
+                    .recentView.select(i)
+                }
+
+                // A removal before the selected item shifts everything after it
+                // down by one, so decrement the index to keep tracking the same item.
+                elif .recentView.selected != Swag.U64.Max and i < .recentView.selected
+                {
+                    .recentView.selected -= 1
+                }
+
+                break
+            }
+        }
+    }
+
     mtd loadRecent()
     {
         if .loadDone do
@@ -392,34 +421,7 @@ impl RecentWnd
 
         if !g_Library.loaded do
             g_Library.fill()
-        g_Library.onDeleteFile += func|self = me|(file)
-        {
-            for it, i in self.recentView.items
-            {
-                if it!.file == file
-                {
-                    // Remove from recent
-                    self.recentView.items.destroy(it)
-                    self.recentView.items.removeAtOrdered(i)
-
-                    // Select new one
-                    if self.recentView.selected == i
-                    {
-                        self.recentView.selected = Swag.U64.Max
-                        self.recentView.select(i)
-                    }
-
-                    // A removal before the selected item shifts everything after it
-                    // down by one, so decrement the index to keep tracking the same item.
-                    elif self.recentView.selected != Swag.U64.Max and i < self.recentView.selected
-                    {
-                        self.recentView.selected -= 1
-                    }
-
-                    break
-                }
-            }
-        }
+        g_Library.onDeleteFile += func|self = me|(file) { self.onLibraryFileDeleted(file) }
 
         var res = g_Library.files
         res.sort(func(a, b) { return b.lastWriteTime <=> a.lastWriteTime })

@@ -175,19 +175,22 @@ impl Library
     // onDeleteFile; it can be brought back from the trash view.
     mtd removeFile(name: String)
     {
-        if Path.lowercaseExtension(name) != ".scapture" do
+        // An observer can destroy the object that supplied 'name' (the recent strip does
+        // exactly that). Keep an owned path alive until every observer has returned.
+        let stableName = String.from(name)
+        if Path.lowercaseExtension(stableName) != ".scapture" do
             return
 
         for fi, idx in .files
         {
-            if fi.fullname == name
+            if fi.fullname == stableName
             {
-                let trashed = moveFile(getTrashFolder(), name)
+                let trashed = moveFile(getTrashFolder(), stableName)
                 if !trashed.isEmpty()
                 {
                     .files.removeAtOrdered(idx)
                     .revision += 1
-                    .onDeleteFile.call(name)
+                    .onDeleteFile.call(stableName)
                 }
 
                 break

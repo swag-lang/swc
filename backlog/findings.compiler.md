@@ -3,7 +3,8 @@
 Frontend, semantic analysis, and code generation defects: something observed in `swc` itself, with
 a reproduction and a next investigation step. Optimization passes and generated-code performance
 are [findings.optimization.md](findings.optimization.md); the borrow, lifetime and sanity analyses
-are [findings.safety.md](findings.safety.md).
+are [findings.safety.md](findings.safety.md); the `doc` and `format` commands have their own files,
+[findings.doc.md](findings.doc.md) and [findings.format.md](findings.format.md).
 
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
@@ -177,49 +178,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: a function returning `rune fail` reaches an internal compiler error when a branch executes `fail`; returning `u32 fail` and casting the successful value at the caller compiles.
 - Evidence: `Json.readUnicodeEscape()->rune fail` in `bin/std/modules/core/src/serialization/read/json.swg` failed with `cannot materialize the synthesized zero fallible result payload` at its first `fail` expression in DevMode; changing only its result type to `u32` made the same body compile.
 - Next step: reduce this to a native compiler-suite case with a standalone fallible function returning `rune`, then repair synthesized result initialization in backend lowering.
-
-### F-129 — A documentation run spends nine tenths of its time re-running sema
-
-- Area: compiler
-- Found while: investigating why some documentation pages take several seconds to generate
-- Observation: `swc doc` runs full workspace sema on every invocation, with or without
-  `--rebuild`, and the per-module stage line the user reads as "doc time" is dominated by it.
-  The page generation itself is small: with the reachable-node index in place, the doc side of
-  the whole `std` workspace is under 1 s of a ~8 s wall run (Stats build, 22 workers), and no
-  single module keeps a doc stage above ~0.3 s. Inside the sema time, compile-time execution
-  JIT-emits 7 803 functions: session timers report 77 s CPU of semantic analysis plus 24.5 s CPU
-  codegen and 21.7 s CPU micro lowering, against 2.7 s parser and 0.7 s lexer. Each module also
-  re-analyzes its dependencies' exported public API (`ogl` has 29 own sources but sema
-  processes 133 files).
-- Evidence: `swc doc --workspace bin/std --doc-output-dir <tmp> --rebuild --stats` with a Stats
-  configuration build; timing probes around `Command::doc`'s sema call and inside
-  `DocApi::generate` ([Command.Doc.cpp](../src/Main/Command/Command.Doc.cpp),
-  [DocApi.cpp](../src/Doc/DocApi.cpp)). Omitting `--rebuild` changes nothing: a doc run persists
-  no sema artifact it could reuse.
-- Next step: measure which compile-time callers demand the 7 803 JIT emissions during a doc run,
-  and whether any lowering is demanded by paths documentation never needs; that number bounds
-  what any doc-mode fast path could save before the larger incrementality work.
-
-### F-130 — Export-root resolution walks the declaration tree once per symbol
-
-- Area: compiler
-- Found while: removing the per-symbol whole-AST scans this entry originally described
-- Observation: the memoized `Ast::reachableNodeRef` index removed the dominant scan (`ogl`
-  `collectDocItems` 803 ms to ~190 ms, its doc stage 1 159 ms to ~315 ms, and the same index
-  serves `collectPublicEntries` inside sema), but the collector still resolves each item's
-  export root through `findExportDeclRoot`, whose `collectModuleApiNodePath` runs a
-  root-to-target DFS over the declaration tree for every symbol. A generated binding file with
-  thousands of top-level declarations pays declarations-times-tree-size again there; it is the
-  main suspected share of `ogl`'s remaining ~190 ms collect.
-- Evidence: [ModuleApi.Decl.cpp:32](../src/Compiler/ModuleApi/ModuleApi.Decl.cpp#L32)
-  (`collectModuleApiNodePath`), reached per candidate from
-  [DocApi.Collect.cpp:864](../src/Doc/DocApi.Collect.cpp#L864); measured with the F-129 probes
-  after the reachable-index fix.
-- Next step: record each node's parent in the same single traversal that builds
-  `Ast::ReachableNodeIndex` and derive the root-to-target path by walking parents upward,
-  keeping the additional-node and function-body constraints as per-ancestor checks; re-measure
-  `ogl` collect.
-- Related: F-129
 
 ### F-132 — A constant source through a non-ConstExpr implicit opSet in an aggregate literal is lost
 

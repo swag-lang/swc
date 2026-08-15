@@ -94,4 +94,4 @@ Entries are sorted by identifier, ascending; position carries no priority.
   deflate path, so this is additive.
   A fourth lever, making inflate itself fast, was taken and is where the halving above came from;
   what is left of it is a backend matter, in
-  [F-136](findings.optimization.md#f-136--a-hot-loops-locals-all-live-in-stack-slots-and-every-variable-shift-carries-a-width-guard).
+  [F-136](findings.optimization.md#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).

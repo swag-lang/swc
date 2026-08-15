@@ -171,39 +171,50 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Decompression
 
-### F-136 — A hot loop's locals all live in stack slots, and every variable shift carries a width guard
+### F-136 — A hot loop's loop-carried locals all live in stack slots
 
 - Area: compiler/backend
-- Found while: making `Compress.Inflate` fast. The library side of that is done — the block loop
-  now keeps its cursors in locals and refills branchlessly, and it went from 43-54 MB/s to
-  96 MB/s on the payload below. What this entry keeps is the part the source could not reach:
-  the same algorithm compiled by clang-cl runs at 139 MB/s, so 1.45x is left on the table and
+- Found while: making `Compress.Inflate` fast. The library side of that is done and shipped —
+  the block loop keeps its cursors in locals and refills branchlessly, and it went from 62 MB/s
+  to 119 MB/s. What this entry keeps is the part no source shape could reach: the same algorithm
+  written line by line in C and compiled by clang-cl `/O2` runs at 191 MB/s, so 1.6x is left and
   all of it is in the emitted code.
-- Observation: comparing `#[Swag.PrintMicro("post-emit")]` on the block loop against clang-cl's
-  assembly for a line-by-line C transcription of it shows three things.
-  - **Every loop-carried local is a stack slot.** The bit buffer, the bit count, the source
-    cursor, the output cursor and the decoded symbol are each loaded and stored on every symbol;
-    a table entry read once in the source is stored to a stack temporary and re-loaded twice.
-    clang keeps all of them in registers and touches the stack zero times per symbol.
-  - **The prologue materializes ~25 field addresses and spills them all**, one
-    `load_addr_reg_mem` + `load_mem_reg [rsp+N]` pair each, for the fields of the two structs
-    the loop reads.
-  - **Every variable shift costs seven instructions instead of one.** The language defines a
-    shift count at or past the width as zero, so `CodeGenSafety::emitShiftIntLike` emits a
-    materialized count, a width compare and a conditional move for every non-constant count —
-    and the count then has to reach `cl`, which costs a further save/restore of `rcx` because
-    the allocator does not model the fixed register. There are four to six of them per symbol.
-- Evidence: measured 2026-08-15, release config, on the 12.8 MB deflate payload of
-  `8_9_2025_15_43_58.scapture` (17.0 MB out, 14.76 M symbols, 1.21 bytes per symbol — a stored
-  photograph, so the loop runs about once per output byte). Swag block loop 619 instructions
-  against clang's 411 for the same function. Best times on that payload: clang-cl `/O2` 122 ms,
-  Swag 176 ms. Per symbol that is 33 cycles against 48 at 4 GHz.
-- Not the cause, ruled out by measurement: the decode table. zlib's two-level table, written in
-  C beside the current design and run on the same payload, came out at 123 ms against 122 ms —
-  identical. Only 6.7% of length codes and no distance code at all miss the nine-bit fast table
-  on this data, so the `reverse16` fallback is not worth removing. Do not spend the rewrite.
-- Next step: the shift guard is the cheap half and is self-contained. Skip it when the count is
-  provably in range — the count being `x & K` with `K` below the width covers the common idiom,
-  and `emitShiftIntLike` already has the constant-count fast path to extend. The register half
-  is [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers) seen from a second
-  workload: a loop with ten live scalars and fifteen usable registers that spills all ten.
+- Observation: `#[Swag.PrintMicro("post-emit")]` on the block loop against clang's assembly for
+  that C transcription. **Every loop-carried local is a stack slot.** The bit buffer, the bit
+  count, the source cursor, the output cursor and the decoded symbol are each loaded and stored
+  on every symbol; a table entry read once in the source is stored to a stack temporary and
+  re-loaded twice. In the literal fast path — ten live scalars, fifteen usable registers — that
+  is 31 stack loads and 8 stack stores against clang's zero. The prologue also materializes ~25
+  field addresses and spills each one. mem2reg is not the culprit and was checked:
+  `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
+  should and the allocator puts the values back.
+- Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
+  deflate payload of `8_9_2025_15_43_58.scapture` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
+  symbol — a stored photograph, so the loop runs about once per output byte). Best of several
+  alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
+  121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619
+  instructions against clang's 411. **Machine load moves every one of these numbers by up to 3x,
+  so only same-run comparisons mean anything** — an earlier pass of this measurement read
+  122 ms for clang and 176 ms for Swag, and the ratio was the only part that survived.
+- Four things ruled out by measurement, so they are not retried:
+  - **zlib's two-level decode table.** Written in C beside the current design, same payload:
+    93.8 ms against 88.8 ms — *slower*. Only 6.7% of length codes and no distance code at all
+    miss the nine-bit fast table on this data.
+  - **Lifting the cold paths out of the loop.** The Huffman fallback and the slow refill moved
+    into `#[Swag.NoInline]` functions taking the bit cursor by value and handing it back: 3%.
+    So the allocator is not evicting the loop-carried scalars because cold blocks compete with
+    them; it evicts them anyway.
+  - **Eliding the shift width guard.** Implemented in `CodeGenSafety::emitShiftIntLike` (skip
+    the materialized count, width compare and conditional move when the count is a constant or
+    a mask by one, looking through casts and parentheses), verified to fire — 14 conditional
+    moves down to 8 in the block loop — and measured at **zero**, twice, on a quiet machine.
+    The loop is latency-bound on the serial bit-cursor chain and its stack round-trips, so
+    removing twelve independent instructions changes nothing. Reverted. Worth revisiting only
+    *after* the register half lands, when the loop may become instruction-bound.
+  - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
+- Next step: this is [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers) seen
+  from a second workload, and the case is small enough to drive the fix — a loop whose whole
+  live set fits in registers twice over and is spilled anyway. Same conclusion as
+  [F-029's](#f-029--chacha20-still-processes-one-block-per-dependency-chain) neighbours: the
+  bottleneck is the allocator's policy, local linear scan with furthest-use eviction, and the
+  work that addresses it is the global interval allocator, not another peephole.

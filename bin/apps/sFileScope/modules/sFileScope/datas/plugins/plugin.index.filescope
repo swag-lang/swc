@@ -1,0 +1,7 @@
+# id|display name|library|extensions
+code|Code|plugin.code.dll|.swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd
+markdown|Markdown|plugin.markdown.dll|.markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd
+html|HTML|plugin.html.dll|.htm;.html;.shtml;.xht;.xhtml
+image|Image|plugin.image.dll|.bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp
+sound|Sound|plugin.sound.dll|.wav
+hex|Hexadecimal|plugin.hex.dll|*

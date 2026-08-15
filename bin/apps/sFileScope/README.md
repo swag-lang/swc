@@ -6,13 +6,13 @@ code stays in standalone shared libraries and enters the process only when selec
 
 ## Viewer registry
 
-`plugins/index.filescope` is the only plugin registry read at startup. Each line gives a stable id,
+`plugins/plugin.index.filescope` is the only plugin registry read at startup. Each line gives a stable id,
 the label shown in the action-bar combo, the DLL, and one or more lowercase extensions:
 
 ```text
-markdown|Markdown|sfilescope_markdown.dll|.md;.markdown
-image|Image|sfilescope_image.dll|.png;.jpg;.gif
-hex|Hexadecimal|sfilescope_hex.dll|*
+markdown|Markdown|plugin.markdown.dll|.md;.markdown
+image|Image|plugin.image.dll|.png;.jpg;.gif;.svg
+hex|Hexadecimal|plugin.hex.dll|*
 ```
 
 Several lines may claim the same extension. The combo lists format-specific plugins first,
@@ -27,24 +27,37 @@ hexadecimal alternative instead of guessing an encoding.
 
 ## Shipped plugins
 
-- `markdown` streams a centered reading column with separate typography and spacing for headings,
+- `plugin.code` streams source with syntax coloring for Swag, C, C++, C#, Java, Kotlin,
+  JavaScript, TypeScript, Go, Rust, Python, Ruby, shell, PowerShell, PHP, Lua, SQL, JSON, XML,
+  CSS and preprocessors, YAML, TOML, configuration files, Swift, Dart, R, Perl, Visual Basic,
+  shaders, CMake, and batch files. Swag uses the GUI's language lexer; its vocabulary is kept in
+  step with the compiler's current keywords, intrinsics, compiler directives, and modifiers.
+- `plugin.markdown` streams a centered reading column with separate typography and spacing for headings,
   prose, quotes, lists, fenced code, tables, rules, metadata, and display math. It supports task
   lists, autolinks, images, inline code, emphasis, highlight, strike-like secondary text, entities,
   and inline TeX notation for common symbols and operators. Display TeX uses Pixel's native math
   layout for fractions, roots, scripts, scalable delimiters, operators, matrices, cases, and aligned
   expressions. The renderer is offline and executes no embedded HTML or script.
-- `html` streams document blocks into a centered page, keeps links explicit, and applies useful CSS
+- `plugin.html` streams document blocks into a centered page, keeps links explicit, and applies useful CSS
   from style sheets and inline declarations: tag, class, id and simple descendant selectors;
   foreground and background colors; font sizes, weights and styles; alignment; and body width.
   Head, script, style, template, and embedded-document content never executes.
-- `image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP. It provides zoom,
-  pan, fit, actual size, rotation, transparency, and GIF playback and seeking.
-- `sound` uses the Audio module to load and play PCM or float WAV files. It shows format metadata,
-  a peak waveform, a live playhead, and Play/Pause/Stop controls.
-- `hex` is available for every file. It pages through 64 KiB at a time and shows 64-bit offsets,
+- `plugin.image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, and Pixel's
+  vector parser for SVG. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF
+  playback and seeking.
+- `plugin.sound` uses the Audio module to load and play PCM or float WAV files. It shows format metadata,
+  a peak waveform, a live playhead, and icon-only Play/Pause/Stop controls. Metadata and waveform
+  decoding remain available when no playback device can be opened.
+- `plugin.hex` is available for every file. It pages through 64 KiB at a time and shows 64-bit offsets,
   sixteen hexadecimal bytes, and printable ASCII without loading a large file into memory.
 
-The host navigates every file in the current folder with Left/Right, reloads with F5, opens with
+Text, code, Markdown, and HTML views handle arrows, Home/End, Page Up/Page Down, and Space/Shift+Space
+where appropriate. Their scrollbar represents an estimated full document while content is still
+streaming and keeps its position as that estimate is refined.
+
+The host keeps file type, name, size, and plugin-specific basic statistics in a persistent information
+bar whose quieter surface is distinct from the action bar. It navigates every file in the current
+folder with Left/Right, reloads with F5, opens with
 Ctrl+O, and accepts one file dropped anywhere on the surface. Run
 `sFileScope.exe --register-file-types` from an installer or explicit setup action to register the
 extensions declared by specialized plugins. Normal launches never write the registry.
@@ -55,12 +68,15 @@ A plugin is a standalone shared-library module exporting:
 
 ```swag
 func sFileScopePluginCreate(contentParent, commandParent: *Gui.Wnd, fileName: string,
-                         apiVersion: u32, commands: *#null *Gui.Wnd)->#null *Gui.Wnd
+                         apiVersion: u32, commands: *#null *Gui.Wnd,
+                         details: *Core.String)->#null *Gui.Wnd
 ```
 
 Return null only when the ABI version is not supported. Put optional compact controls in one group
 under `commandParent` and return it through `commands`; return null through `commands` when the view
-needs no actions. Decode errors belong inside a returned view so the host stays format-agnostic.
+needs no actions. Return a concise format-specific summary through `details`; the host combines it
+with the viewer type and file size. Decode errors belong inside a returned view so the host stays
+format-agnostic. Packaged plugin libraries and symbols use the `plugin.<what>` naming family.
 
 `swc tools/apps.swgs dm test sFileScope` tests the host and every shipped plugin as an independent
 executable. `swc tools/apps.swgs dm build sFileScope` packages the DLLs, the registry, and the Audio

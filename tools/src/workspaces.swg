@@ -232,7 +232,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
 
 // Packages the optional sFileScope format modules beside the host without linking them into it.
 //
-// The normal workspace build already produced every module. The host reads only `index.filescope`
+// The normal workspace build already produced every module. The host reads only `plugin.index.filescope`
 // on startup. A DLL enters the process only after that index
 // selects it for the opened extension, which keeps future plugin accumulation off the hot path.
 private func packageFileScopePlugins(context: *Context, options: *Options, moduleDir, appDir: string)->s32 fail
@@ -248,21 +248,37 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
     {
         var extension = String.from(Path.extension(file.fullname.toString()) orelse "")
         extension = extension.toLower()
-        let name = Path.fileName(file.fullname.toString()) orelse ""
-        if extension == ".lib" or extension == ".swgsrc" or (Utf8.startsWith(name, "sfilescope_") and (extension == ".dll" or extension == ".pdb")) do
+        let name      = Path.fileName(file.fullname.toString()) orelse ""
+        let oldPlugin = Utf8.startsWith(name, "sfilescope_")
+        let plugin    = Utf8.startsWith(name, "plugin_") or Utf8.startsWith(name, "plugin.")
+        if name == "index.filescope" or extension == ".lib" or extension == ".swgsrc" or ((oldPlugin or plugin) and (extension == ".dll" or extension == ".pdb")) do
             try File.delete(file.fullname.toString())
     }
 
-    for pluginName in ["image", "markdown", "html", "hex", "sound"]
+    // Tests share the executable output directory with the packaged application. Do not let a
+    // preceding test pass leak its runner or generated sources into the shippable file set.
+    const TestArtifactPrefix = "sFileScope.test."
+    const GeneratedSourcePrefix = "sFileScope-generated-source-"
+    for file in try Directory.enumerateFiles(appDir)
     {
-        let pluginDir = Path.combine(applicationWorkspace(context, "sFileScope").toString(), ".output", pluginName, "shared-library", options.buildCfg.toString(), context.targetArch.toString())
+        let name = Path.fileName(file.fullname.toString()) orelse ""
+        if name == ".swc-artifacts.test" or Utf8.startsWith(name, TestArtifactPrefix) or Utf8.startsWith(name, GeneratedSourcePrefix) do
+            try File.delete(file.fullname.toString())
+    }
 
-        let artifactName = Format.toString("sfilescope_%.dll", pluginName)
-        try copyBeside(Path.combine(pluginDir.toString(), artifactName.toString()).toString(), outputDir.toString(), artifactName.toString())
-        let pdbName = Format.toString("sfilescope_%.pdb", pluginName)
-        let pdbPath = Path.combine(pluginDir.toString(), pdbName.toString())
+    for pluginKind in ["code", "image", "markdown", "html", "hex", "sound"]
+    {
+        let moduleName = Format.toString("plugin.%", pluginKind)
+        let pluginDir  = Path.combine(applicationWorkspace(context, "sFileScope").toString(), ".output", moduleName.toString(), "shared-library", options.buildCfg.toString(), context.targetArch.toString())
+
+        let artifactName = Format.toString("plugin_%.dll", pluginKind)
+        let outputName   = Format.toString("plugin.%.dll", pluginKind)
+        try copyBeside(Path.combine(pluginDir.toString(), artifactName.toString()).toString(), outputDir.toString(), outputName.toString())
+        let pdbName   = Format.toString("plugin_%.pdb", pluginKind)
+        let pdbPath   = Path.combine(pluginDir.toString(), pdbName.toString())
+        let outputPdb = Format.toString("plugin.%.pdb", pluginKind)
         if File.exists(pdbPath) do
-            try copyBeside(pdbPath.toString(), outputDir.toString(), pdbName.toString())
+            try copyBeside(pdbPath.toString(), outputDir.toString(), outputPdb.toString())
     }
 
     // The host does not import audio itself, so publishing the application cannot infer the
@@ -273,7 +289,7 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
     if File.exists(audioPdb) do
         try copyBeside(audioPdb.toString(), appDir, "audio.pdb")
 
-    try copyBeside(Path.combine(moduleDir, "datas", "plugins", "index.filescope").toString(), outputDir.toString(), "index.filescope")
+    try copyBeside(Path.combine(moduleDir, "datas", "plugins", "plugin.index.filescope").toString(), outputDir.toString(), "plugin.index.filescope")
     return 0
 }
 

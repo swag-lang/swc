@@ -1,7 +1,7 @@
 #global using Core, Pixel, Gui
 
 const AppIcon            = #include("../datas/appicon.png")
-const DefaultPluginIndex = #include("../datas/plugins/index.filescope")
+const DefaultPluginIndex = #include("../datas/plugins/plugin.index.filescope")
 
 var g_App: Application
 
@@ -35,7 +35,7 @@ private func registerViewerFileTypes(index: const *ViewerPluginIndex)
 #main
 {
     let pluginDirectory = Path.combine(Path.directoryName(Env.executablePath()) orelse ".", "plugins")
-    let pluginIndexFile = Path.combine(pluginDirectory, "index.filescope")
+    let pluginIndexFile = Path.combine(pluginDirectory, "plugin.index.filescope")
     let index           = File.exists(pluginIndexFile) ? try ViewerPluginIndex.load(pluginIndexFile) : try ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, pluginDirectory)
 
     // Installers opt into registry work once. Normal viewing never pays for dozens of file-type

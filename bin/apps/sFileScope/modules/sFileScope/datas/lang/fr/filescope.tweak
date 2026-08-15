@@ -6,7 +6,7 @@ ui_Previous     Fichier précédent
 ui_Next         Fichier suivant
 ui_Viewer       Visionneuse
 ui_DropTitle    Déposez un fichier pour l'afficher
-ui_DropHelp     Texte, Markdown, HTML, images, audio WAV et octets hexadécimaux.
+ui_DropHelp     Texte, code Swag, Markdown, HTML, images, audio WAV et octets hexadécimaux.
 ui_Ready        Prêt
 ui_Unsupported  Aucun plugin installé ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.

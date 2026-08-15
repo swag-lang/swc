@@ -84,6 +84,39 @@ using Swag, Core
     @assert(notified)
 }
 
+// A streaming document can expose its eventual height before all text is resident, and appending
+// another chunk does not move a viewport already positioned in that virtual range.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    defer host.shutdown()
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
+    for 20 do
+        ed.addText("one line\n")
+    host.settleAnimations(ed)
+
+    let loadedHeight = ed.loadedDocumentHeight()
+    @assert(loadedHeight > 0)
+    ed.setEstimatedDocumentHeight(loadedHeight * 4)
+    ed.setScrollPosition({0, loadedHeight * 2})
+    let position = ed.scrollPosition()
+    @assert(position.y > loadedHeight)
+
+    // Rendering the not-yet-resident gap must stay safe and blank while the owner fetches more.
+    host.settleAnimations(ed)
+    for 10 do
+        ed.addText("another line\n")
+    host.settleAnimations(ed)
+    @assert(ed.scrollPosition() == position)
+    @assert(ed.scrollableClientRect().height >= loadedHeight * 4)
+
+    ed.setEstimatedDocumentHeight(0)
+    host.settleAnimations(ed)
+    @assert(ed.scrollableClientRect().height == ed.loadedDocumentHeight())
+}
+
 // selectAll selects the whole content.
 #test
 {

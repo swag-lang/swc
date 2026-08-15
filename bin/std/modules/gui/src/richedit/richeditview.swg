@@ -188,10 +188,17 @@ impl IWnd for RichEditView
             i = 0
             edn.firstVisibleLineView = Swag.U64.Max
         }
-        else
+        elif edn.firstVisibleLineView < edn.lines.count
         {
             i = edn.firstVisibleLineView
             y = edn.lines[i]!.drawingRect.y
+        }
+        else
+        {
+            // A streaming owner can expose virtual height below the last resident line. In that
+            // gap no line is visible, so the previous frame legitimately leaves the cached index
+            // at its sentinel value. Start a safe scan until the next chunk reaches this viewport.
+            i = 0
         }
 
         if edn.recomputeScroll do
@@ -297,6 +304,8 @@ impl IWnd for RichEditView
 
         // Scroll size
         y = cast(f32) (edn.countVisibleLines * size.y)
+        edn.loadedContentHeight = y
+        y = Math.max(y, edn.estimatedContentHeight)
         if edn.flags & .WordWrap do
             maxx = 0
         elif !edn.recomputeScroll do

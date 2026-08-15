@@ -109,6 +109,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("while", State.Control)
         .mapWords.add("switch", State.Control)
         .mapWords.add("defer", State.Control)
+        .mapWords.add("do", State.Control)
         .mapWords.add("where", State.Control)
         .mapWords.add("break", State.Control)
         .mapWords.add("fallthrough", State.Control)
@@ -125,6 +126,12 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("in", State.Control)
         .mapWords.add("as", State.Control)
         .mapWords.add("is", State.Control)
+
+        .mapWords.add("export", State.Keyword)
+        .mapWords.add("generated", State.Keyword)
+        .mapWords.add("location", State.Keyword)
+        .mapWords.add("link", State.Keyword)
+        .mapWords.add("version", State.Keyword)
 
         .mapWords.add("using", State.Keyword)
         .mapWords.add("with", State.Keyword)
@@ -154,6 +161,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("public", State.StorageModifier)
         .mapWords.add("private", State.StorageModifier)
         .mapWords.add("internal", State.StorageModifier)
+        .mapWords.add("readonly", State.StorageModifier)
 
         .mapWords.add("true", State.Constant)
         .mapWords.add("false", State.Constant)
@@ -161,15 +169,17 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("undefined", State.Constant)
 
         .mapWords.add("not", State.Error)
-        .mapWords.add("do", State.Error)
+        .mapWords.add("foreach", State.Error)
 
         .mapWords.add("#defined", State.Intrinsic)
         .mapWords.add("#offsetof", State.Intrinsic)
         .mapWords.add("#alignof", State.Intrinsic)
         .mapWords.add("#sizeof", State.Intrinsic)
         .mapWords.add("#typeof", State.Intrinsic)
+        .mapWords.add("#kindof", State.Intrinsic)
         .mapWords.add("#stringof", State.Intrinsic)
         .mapWords.add("#nameof", State.Intrinsic)
+        .mapWords.add("#fullnameof", State.Intrinsic)
         .mapWords.add("#isconstexpr", State.Intrinsic)
         .mapWords.add("#location", State.Intrinsic)
         .mapWords.add("#decltype", State.Intrinsic)
@@ -177,6 +187,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#gettag", State.Intrinsic)
         .mapWords.add("#runes", State.Intrinsic)
         .mapWords.add("#safety", State.Intrinsic)
+        .mapWords.add("#sanity", State.Intrinsic)
         .mapWords.add("@isset", State.Intrinsic)
         .mapWords.add("#include", State.Intrinsic)
 
@@ -223,6 +234,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("@compilererror", State.Intrinsic)
         .mapWords.add("@compilerwarning", State.Intrinsic)
         .mapWords.add("@panic", State.Intrinsic)
+        .mapWords.add("@safetypanic", State.Intrinsic)
         .mapWords.add("@print", State.Intrinsic)
         .mapWords.add("@setcontext", State.Intrinsic)
 
@@ -330,12 +342,13 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#warning", State.CompilerStatement)
         .mapWords.add("#import", State.CompilerStatement)
         .mapWords.add("#inject", State.CompilerStatement)
-        .mapWords.add("#static if", State.CompilerStatement)
+        .mapWords.add("#static", State.CompilerStatement)
         .mapWords.add("else", State.CompilerStatement)
         .mapWords.add("elif", State.CompilerStatement)
         .mapWords.add("#scope", State.CompilerStatement)
 
         .mapWords.add("#cfg", State.Compiler)
+        .mapWords.add("#command", State.Compiler)
         .mapWords.add("#os", State.Compiler)
         .mapWords.add("#arch", State.Compiler)
         .mapWords.add("#cpu", State.Compiler)
@@ -343,6 +356,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#module", State.Compiler)
         .mapWords.add("#file", State.Compiler)
         .mapWords.add("#line", State.Compiler)
+        .mapWords.add("#scopename", State.Compiler)
         .mapWords.add("#curlocation", State.Compiler)
         .mapWords.add("#callerlocation", State.Compiler)
         .mapWords.add("#swcversion", State.Compiler)
@@ -361,6 +375,11 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#fwd", State.Modifier)
         .mapWords.add("#null", State.Modifier)
         .mapWords.add("#complete", State.Modifier)
+        .mapWords.add("#fail", State.Modifier)
+        .mapWords.add("#nofail", State.Modifier)
+        .mapWords.add("#bit", State.Modifier)
+        .mapWords.add("#unconst", State.Modifier)
+        .mapWords.add("#raw", State.Modifier)
     }
 
     // Contrast every syntax color is guaranteed to reach against the editor's ground, which

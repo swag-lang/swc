@@ -11,7 +11,7 @@ struct AppStrings
     ui_Next:        string = "Next file"
     ui_Viewer:      string = "Viewer"
     ui_DropTitle:   string = "Drop a file to view it"
-    ui_DropHelp:    string = "Text, Markdown, HTML, images, WAV audio, and hexadecimal bytes."
+    ui_DropHelp:    string = "Text, Swag code, Markdown, HTML, images, WAV audio, and hexadecimal bytes."
     ui_Ready:       string = "Ready"
     ui_Unsupported: string = "No installed plugin can show this file."
     ui_OpenStopped: string = "The file could not be shown."

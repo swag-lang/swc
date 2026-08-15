@@ -36,6 +36,18 @@ using Core, Pixel, Gui
     @assert(@countof(loaded) <= 16 * 1024)
     @assert(view.stream.isOpen())
     @assert(expect view.stream.position() < view.fileSize)
+
+    var image = host.render(view)
+    view.updateEstimatedHeight()
+    let loadedHeight = view.editor.loadedDocumentHeight()
+    @assert(image.isValid() and loadedHeight > 0)
+    @assert(view.editor.scrollableClientRect().height > loadedHeight)
+
+    view.editor.setScrollPosition({0, loadedHeight * 2})
+    let position = view.editor.scrollPosition()
+    @assert(position.y > loadedHeight)
+    view.loadNextChunk()
+    @assert(view.editor.scrollPosition() == position)
 }
 
 #test
@@ -52,6 +64,9 @@ using Core, Pixel, Gui
     window.applyLayout()
 
     @assert(window.commandBar.position.height == ViewerBarHeight)
+    @assert(window.infoBar.position.height == ViewerInfoHeight)
+    @assert(window.infoBar.backgroundStyle != window.commandBar.backgroundStyle)
+    @assert(window.infoTypeLabel.name.raw == "NO FILE")
     @assert(window.emptyLabel.name.raw == appStrings().ui_DropTitle or @countof(window.emptyLabel.name.raw) > @countof(appStrings().ui_DropTitle))
     @assert(!window.previousButton.isEnabled())
     @assert(!window.nextButton.isEnabled())

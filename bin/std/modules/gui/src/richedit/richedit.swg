@@ -82,19 +82,21 @@ struct RichEditCtrl
             forceCaretVisible:       bool     // Force caret visible associated with this value.
             forceCaretVisibleCenter: bool     // Force caret visible center associated with this value.
 
-            undoMgr:              ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
-            toUndo:               ArrayPtr'RichEditUndo     // To undo associated with this value.
-            mapping:              Array'RichEditMapping     // Mapping associated with this value.
-            currentUndo:          u64                       // Current undo associated with this value.
-            undoCounter:          u64                       // Undo counter associated with this value.
-            modifiedUndoMarker:   u64                       // Modified undo marker associated with this value.
-            serialUndo:           u64                       // Serial undo associated with this value.
-            countVisibleLines:    u64                       // Count visible lines associated with this value.
-            firstVisibleLineView: u64                       // First visible line view associated with this value.
-            lastVisibleLineView:  u64                       // Last visible line view associated with this value.
-            clipFormat:           Clipboard.ValueFormat     // Clip format associated with this value.
-            cursorPosUndo:        RichEditCursor            // Cursor pos undo associated with this value.
-            selBegUndo:           RichEditCursor            // Sel beg undo associated with this value.
+            undoMgr:                ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
+            toUndo:                 ArrayPtr'RichEditUndo     // To undo associated with this value.
+            mapping:                Array'RichEditMapping     // Mapping associated with this value.
+            currentUndo:            u64                       // Current undo associated with this value.
+            undoCounter:            u64                       // Undo counter associated with this value.
+            modifiedUndoMarker:     u64                       // Modified undo marker associated with this value.
+            serialUndo:             u64                       // Serial undo associated with this value.
+            countVisibleLines:      u64                       // Count visible lines associated with this value.
+            firstVisibleLineView:   u64                       // First visible line view associated with this value.
+            lastVisibleLineView:    u64                       // Last visible line view associated with this value.
+            loadedContentHeight:    f32                       // Height laid out from the text currently held in memory.
+            estimatedContentHeight: f32                       // Optional larger virtual height published by a streaming owner.
+            clipFormat:             Clipboard.ValueFormat     // Clip format associated with this value.
+            cursorPosUndo:          RichEditCursor            // Cursor pos undo associated with this value.
+            selBegUndo:             RichEditCursor            // Sel beg undo associated with this value.
         }
     }
 }
@@ -384,8 +386,33 @@ impl RichEditCtrl
     // Returns the current viewport origin in document coordinates.
     mtd const scrollPosition()->Math.Point => .scrollWnd.scrollPosition()
 
+    // Moves the viewport to `position`, clamped to the current scrollable document.
+    mtd setScrollPosition(position: Math.Point)
+    {
+        .scrollWnd.setScrollPos(position)
+    }
+
     // Returns the complete scrollable document rectangle.
     mtd const scrollableClientRect()->Math.Rectangle => .scrollWnd.scrollableClientRect()
+
+    // Returns the height laid out from the text currently held by the editor.
+    //
+    // A streaming owner can compare this value with its consumed input before publishing an
+    // estimated full height through [[Gui.RichEditCtrl.setEstimatedDocumentHeight]].
+    mtd const loadedDocumentHeight()->f32 => .loadedContentHeight
+
+    // Sets a provisional full document height for incrementally supplied text.
+    //
+    // The editor always keeps enough room for the text it already holds. A positive estimate can
+    // make the scrollbar represent unloaded text without retaining that text in memory; zero
+    // clears the estimate. Appending text preserves the current viewport while the estimate is
+    // refined.
+    mtd setEstimatedDocumentHeight(height: f32)
+    {
+        .estimatedContentHeight = Math.max(height, 0)
+        .scrollWnd.setScrollSize(.scrollWnd.scrollSize.x, Math.max(.loadedContentHeight, .estimatedContentHeight))
+        .edView.invalidate()
+    }
 
     // Simulate a keyboard character pressed
     mtd charPressed(key: Input.Key, ch: rune, modifiers: Input.KeyModifiers)

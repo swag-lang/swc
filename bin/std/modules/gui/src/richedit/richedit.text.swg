@@ -407,12 +407,14 @@ public impl RichEditCtrl
         // Ownership moved to the free list above: detach without freeing,
         // otherwise the recycled pointers in .freeLines would dangle.
         .lines.detachAll()
-        .countVisibleLines    = 0
-        .cursorPos            = {}
-        .selBeg               = {}
-        .dirtyFirstLineView   = true
-        .firstVisibleLineView = 0
-        .lastVisibleLineView  = 0
+        .countVisibleLines      = 0
+        .cursorPos              = {}
+        .selBeg                 = {}
+        .dirtyFirstLineView     = true
+        .firstVisibleLineView   = 0
+        .lastVisibleLineView    = 0
+        .loadedContentHeight    = 0
+        .estimatedContentHeight = 0
     }
 
     // Returns the selected plain text.

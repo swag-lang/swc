@@ -1,6 +1,7 @@
 using Core, Pixel, Gui
 
 const ViewerBarHeight = 52.0
+const ViewerInfoHeight = 44.0
 const ViewerGlyphSize = 20.0
 
 struct ViewerWindow
@@ -15,6 +16,10 @@ struct ViewerWindow
         openButton:     *IconButton
         viewerCombo:    *ComboBox
         titleLabel:     *Label
+        infoBar:        *Wnd
+        infoTypeLabel:  *Label
+        infoNameLabel:  *Label
+        infoStatsLabel: *Label
         emptyLabel:     *Label
     }
 
@@ -171,6 +176,36 @@ impl ViewerWindow
             .setTextAlignment(.Center, .Center)
         }
 
+        // File identity belongs to a quieter, persistent band of its own. Keeping it outside the
+        // action bar prevents metadata from competing visually with navigation and plugin tools.
+        with result.infoBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerInfoHeight})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .DialogBar
+            .padding         = {18, 6, 18, 6}
+        }
+
+        with result.infoTypeLabel = Label.create(result.infoBar, "NO FILE", {0, 0, 116, 32}, null, .SecondaryText)
+        {
+            .dockStyle = .Left
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+
+        with result.infoStatsLabel = Label.create(result.infoBar, appStrings().ui_Ready, {0, 0, 320, 32}, null, .SecondaryText)
+        {
+            .dockStyle = .Right
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Right, .Center)
+        }
+
+        with result.infoNameLabel = Label.create(result.infoBar, "")
+        {
+            .dockStyle = .Center
+            .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+
         with result.emptyLabel = Label.create(result, Format.toString("<b>%</b>\n%", appStrings().ui_DropTitle, appStrings().ui_DropHelp), {}, null, .WordWrap)
         {
             .dockStyle = .Center
@@ -229,6 +264,10 @@ impl ViewerWindow
         .siblingsDirty = true
         .titleLabel.setText("sFileScope")
         .titleLabel.toolTip = ""
+        .infoTypeLabel.setText("NO FILE")
+        .infoNameLabel.setText("")
+        .infoNameLabel.toolTip = ""
+        .infoStatsLabel.setText(appStrings().ui_Ready)
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .previousButton.enable(false)
         .nextButton.enable(false)
@@ -242,17 +281,19 @@ impl ViewerWindow
 
         var nextCommands: #null *Wnd
         var nextView:     #null *Wnd
+        var nextDetails:  String
         let choice = &.choices[index]
         if choice.kind == .BasicText
         {
             let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
             nextView     = basic
             nextCommands = basic.commands
+            nextDetails  = "UTF-8 · streamed"
         }
         else
         {
             let spec = &.index.specs[choice.specIndex]
-            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands) as pluginError
+            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails) as pluginError
             if pluginError != null or !nextView
             {
                 if nextCommands do
@@ -272,9 +313,28 @@ impl ViewerWindow
         if .currentCommands do
             .currentCommands!.dockStyle = .Right
         .viewerCombo.setSelectedIndex(index, notify: false)
+        .updateFileInfo(choice.name.toString(), nextDetails.toString())
         .applyLayout()
         .invalidate()
         return true
+    }
+
+    mtd updateFileInfo(viewerName: string, details: string)
+    {
+        let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
+        var stats    = String.from(details)
+        let fileInfo = catch File.info(.currentFile.toString()) as infoError
+        if infoError == null
+        {
+            let size = StrConv.toDisplaySize(fileInfo.size)
+            stats = stats.isEmpty() ? String.from(size) : Format.toString("%  ·  %", stats, size)
+        }
+
+        .infoTypeLabel.setText(viewerName)
+        .infoNameLabel.setText(baseName)
+        .infoNameLabel.toolTip = .currentFile
+        .infoStatsLabel.setText(stats)
+        .infoStatsLabel.toolTip = stats
     }
 
     mtd selectViewer(index: u32)
@@ -326,11 +386,7 @@ impl ViewerWindow
         let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
         .surface!.setTitle(Format.toString("% — sFileScope", baseName))
 
-        let fileInfo = catch File.info(.currentFile.toString()) as infoError
-        if infoError == null do
-            .titleLabel.setText(Format.toString("%  ·  %", baseName, StrConv.toDisplaySize(fileInfo.size)))
-        else do
-            .titleLabel.setText(baseName)
+        .titleLabel.setText("sFileScope")
         .titleLabel.toolTip = .currentFile
 
         .previousButton.enable(true)

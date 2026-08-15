@@ -1,35 +1,32 @@
+#global public
+
 using Core, Pixel, Gui
 
-private const TextStreamChunkSize = 16 * 1024'u64
-private const TextStreamLookAhead = 2.0
+private const ViewerPluginApiVersion = 3'u32
+private const CodeStreamChunkSize = 16 * 1024'u64
+private const CodeStreamLookAhead = 2.0
 
-// Host-owned text view available for every file without loading a plugin.
-struct BasicTextView
+internal struct CodePluginView
 {
     using wnd: Wnd
 
     #[Swag.Late]
-    {
-        commands:   *Wnd
-        editor:     *RichEditCtrl
-        wrapButton: *PushButton
-    }
+    editor: *RichEditCtrl
 
+    swagLexer: RichEditLexerSwag
+    codeLexer: GenericCodeLexer
+    languageName: String
     stream:    File.FileStream
     fileSize:  u64
     bytesRead: u64
     loadTimer: #null *Timer
     hasText:   bool
     jumpToEnd: bool
-    wrapping = true
 }
 
-impl BasicTextView
+internal impl CodePluginView
 {
-    mtd hasMore()->bool
-    {
-        return .stream.isOpen() and .bytesRead < .fileSize
-    }
+    mtd hasMore()->bool => .stream.isOpen() and .bytesRead < .fileSize
 
     mtd needsMore()->bool
     {
@@ -37,7 +34,7 @@ impl BasicTextView
             return false
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
-        return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * TextStreamLookAhead >= loadedHeight
+        return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * CodeStreamLookAhead >= loadedHeight
     }
 
     mtd updateEstimatedHeight()
@@ -89,7 +86,7 @@ impl BasicTextView
     mtd showReadError()
     {
         .stopLoading()
-        let message = "This file does not contain supported UTF-8 text. Select Hexadecimal to inspect its bytes."
+        let message = "This file does not contain supported UTF-8 source text. Select Hexadecimal to inspect its bytes."
         if !.hasText do
             .editor.setText(message)
         else do
@@ -103,7 +100,7 @@ impl BasicTextView
             return
 
         let oldPosition = .editor.scrollPosition()
-        let chunk       = catch .stream.readUtf8Chunk(TextStreamChunkSize) as readError
+        let chunk       = catch .stream.readUtf8Chunk(CodeStreamChunkSize) as readError
         if readError != null or Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
         {
             .showReadError()
@@ -127,77 +124,30 @@ impl BasicTextView
             .finishLoading()
     }
 
-    mtd updateWrap()
+    func create(contentParent: *Wnd, fileName: string)->*CodePluginView
     {
-        .editor.setFlags(.ReadOnly | (.wrapping ? RichEditFlags.WordWrap : .None))
-        .wrapButton.setText(.wrapping ? "Wrap on" : "Wrap off")
-        .scheduleMore()
-    }
-
-    mtd toggleWrap()
-    {
-        .wrapping = !.wrapping
-        .updateWrap()
-    }
-}
-
-impl IWnd for BasicTextView
-{
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
-    {
-        .stopLoading()
-    }
-
-    mtd impl onTimerEvent(evt: *TimerEvent)
-    {
-        if evt.timer != .loadTimer
-        {
-            evt.accepted = false
-            return
-        }
-
-        .removeTimer(evt.timer)
-        .loadTimer = null
-        .updateEstimatedHeight()
-        if .needsMore() do
-            .loadNextChunk()
-        .scheduleMore()
-    }
-
-    mtd impl onKeyEvent(evt: *KeyEvent)
-    {
-        if evt.kind == .Pressed and evt.key == .W and evt.modifiers.has(.Control) do
-            .toggleWrap()
-        else do
-            evt.accepted = false
-    }
-}
-
-impl BasicTextView
-{
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*BasicTextView
-    {
-        let result = Wnd.create'BasicTextView(contentParent, "sFileScope.basicText")
+        let result = Wnd.create'CodePluginView(contentParent, "sFileScope.code")
         result.backgroundStyle = .View
-
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 104, 36})
-        result.commands.backgroundStyle = .Window
-
-        with result.wrapButton = PushButton.create(result.commands, "Wrap on", {0, 0, 96, 36})
-        {
-            .dockStyle  = .Left
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.toggleWrap()
-            }
-        }
 
         result.editor             = RichEditCtrl.create(result)
         result.editor.dockStyle   = .Center
         result.editor.marginLeft  = 12
         result.editor.marginRight = 12
         result.editor.style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
+        result.editor.setFlags(.ReadOnly)
+        let extension = Path.lowercaseExtension(fileName)
+        if extension == ".swg" or extension == ".swgs"
+        {
+            result.languageName = "Swag"
+            result.editor.setLexer(&result.swagLexer)
+        }
+        else
+        {
+            let language = codeLanguage(fileName)
+            result.languageName = codeLanguageName(language)
+            result.codeLexer.configure(language)
+            result.editor.setLexer(&result.codeLexer)
+        }
         result.editor.sigScrollPositionChanged += func|view = result|(editor, oldPosition, newPosition)
         {
             discard editor
@@ -210,10 +160,6 @@ impl BasicTextView
             discard wnd
             switch evt
             {
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .W and keyEvt.modifiers == .Control:
-                view.toggleWrap()
-                return true
-
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and keyEvt.modifiers == .Control:
                 if view.hasMore()
                 {
@@ -260,16 +206,51 @@ impl BasicTextView
             {
                 result.fileSize = size
                 if !size do
-                    result.stream.close()
+                    result.finishLoading()
                 else do
                     result.loadNextChunk()
             }
         }
 
-        result.updateWrap()
         result.applyLayout()
         result.scheduleMore()
         result.setInitialFocus(result.editor)
         return result
     }
+}
+
+internal impl IWnd for CodePluginView
+{
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        .stopLoading()
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .loadTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        .removeTimer(evt.timer)
+        .loadTimer = null
+        .updateEstimatedHeight()
+        if .needsMore() do
+            .loadNextChunk()
+        .scheduleMore()
+    }
+}
+
+// Creates the syntax-colored Swag source view exported through the sFileScope plugin ABI.
+func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String)->#null *Wnd
+{
+    discard commandParent
+    if apiVersion != ViewerPluginApiVersion do
+        return null
+    commands[] = null
+    let view = CodePluginView.create(contentParent, fileName)
+    details[] = Format.toString("% · UTF-8 · streamed", view.languageName)
+    return view
 }

@@ -398,7 +398,8 @@ impl RecentWnd
                 if .recentView.selected == i
                 {
                     .recentView.selected = Swag.U64.Max
-                    .recentView.select(i)
+                    if !.recentView.items.isEmpty() do
+                        .recentView.select(Math.min(i, .recentView.items.count - 1))
                 }
 
                 // A removal before the selected item shifts everything after it

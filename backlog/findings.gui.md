@@ -280,3 +280,27 @@ Entries are sorted by identifier, ascending; position carries no priority.
   list, the menu popup, and the automatic label height — for that pattern, and either round out
   through one shared helper or measure the second axis after committing the first. Prove it the way
   `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
+
+### F-144 — A wide, thin polygon corrupts what the painter draws after it
+
+- Area: std/pixel
+- Found while: giving the HTML engine mitred borders, so that the four sides of a box meet on the
+  diagonal instead of overlapping as rectangles
+- Observation: filling a border side with `Painter.fillPolygon` instead of `Painter.fillRect`
+  produced a rendering in which unrelated, later boxes were drawn at the wrong position and with
+  the wrong size — a 1400x2 strip in the page accent came out as a 1400x68 band, and a code block
+  eight hundred pixels down the document was drawn at the top of the viewport. The geometry handed
+  to the painter was verified correct at the call: the box rectangle, the four corners and the
+  colour all printed the values the layout computed. Only the drawn result disagreed. Restricting
+  the polygon path to boxes smaller than the viewport made every artefact disappear, and the same
+  sides drawn as rectangles are correct at any size.
+- Evidence: `paintDecorations` in
+  [htmlpaint.swg](../bin/std/modules/gui/src/controls/html/htmlpaint.swg) now takes the polygon
+  path only for a box smaller than the visible band whose sides differ in colour, and the
+  rectangle path otherwise; the comment there records why. Reproduce by removing that condition
+  and rendering `web/std.pixel.html` at 1400x1000 through `Testing.HeadlessHost`.
+- Next step: reproduce it in `pixel` alone, without the HTML engine: fill a 1400x2 quadrilateral
+  with `fillPolygon`, then fill an ordinary rectangle, and compare against the same pair drawn
+  with `fillRect`. `fillPolygon` routes a shape its convexity test rejects through
+  `Polygon.cleanedPaths`, which is the first thing to look at for a strip whose four corners are
+  nearly collinear.

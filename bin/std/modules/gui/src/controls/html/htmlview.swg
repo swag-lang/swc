@@ -2,75 +2,64 @@
 
 using Core, Pixel
 
-private const HtmlStreamChunkSize = 8 * 1024'u64
-private const HtmlStreamCarryLimit = 16 * 1024'u64
-private const HtmlRevealContextSize = 64 * 1024'u64
-private const HtmlRevealChunkSize = HtmlRevealContextSize + HtmlStreamChunkSize
-private const HtmlStreamLookAhead = 2.0
-private const HtmlStreamFrameBudget = 3_000'u64
-private const HtmlStreamBlockBudget = 8'u32
+// Bytes read from disk per streaming step. Large enough that a multi-megabyte document is read
+// in a handful of frames, small enough that a frame is never held for it.
+private const HtmlStreamChunkSize = 256 * 1024'u64
 
-// Controls the reading measure and typography of an [[Gui.HtmlView]].
+// Wall-clock budget one streaming step may spend, so the window keeps answering while a document
+// loads.
+private const HtmlStreamFrameBudget = 6_000'u64
+
+// Source bytes read before the first partial rendering. The threshold then grows fourfold at each
+// one, so a document shows its beginning quickly and the intermediate passes stay a bounded share
+// of the whole load instead of repeating once per chunk.
+private const HtmlFirstRefreshSize = 192 * 1024'u64
+
+// The largest document the engine keeps in memory. Past it the reader is told the file was cut
+// rather than shown a rendering that silently drops content.
+private const HtmlMaxDocumentSize = 48 * 1024 * 1024'u64
+
+// Controls the typography an [[Gui.HtmlView]] starts from.
 //
-// Source CSS can refine these defaults. Colors without a complete foreground/background pair
-// are adjusted against the active GUI theme so documents remain readable in either palette.
+// These are the values a document inherits before its own CSS has a say — what a browser calls
+// its default font settings. A document that specifies nothing is drawn with them, and one that
+// specifies everything is unaffected by them.
 public struct HtmlStyle
 {
     public
     {
-        maxContentWidth:  f32 = 960     // Widest document page, in logical pixels.
-        horizontalInset:  f32 = 32      // Minimum room kept on each side of the page.
-        contentInset:     f32 = 44      // Room kept between the page edge and its text.
-        topInset:         f32 = 42      // Space before the first visible block.
-        bottomInset:      f32 = 34      // Space after the last visible block.
-        bodyFontSize:     u32 = 16      // Default body-text draw size, in logical pixels.
-        codeFontSize:     u32 = 14      // Default code and table draw size, in logical pixels.
-        heading1FontSize: u32 = 36      // Level-one heading draw size, in logical pixels.
-        heading2FontSize: u32 = 28      // Level-two heading draw size, in logical pixels.
-        heading3FontSize: u32 = 23      // Level-three heading draw size, in logical pixels.
-        heading4FontSize: u32 = 19      // Level-four heading draw size, in logical pixels.
-        heading5FontSize: u32 = 16      // Level-five heading draw size, in logical pixels.
-        heading6FontSize: u32 = 16      // Level-six heading draw size, in logical pixels.
-        lineHeight:       f32 = 1.5     // Arrow-key scroll step relative to the body font height.
+        bodyFontSize:    u32 = 16       // Default body-text size, in logical pixels.
+        codeFontSize:    u32 = 14       // Default size for monospaced text, in logical pixels.
+        maxContentWidth: f32 = 0        // Reading measure imposed on a document that sets none; `0` follows the document.
+        followTheme          = true     // Whether default colors and the color scheme come from the GUI theme.
     }
 }
 
 public impl HtmlStyle
 {
-    // Returns the document style that follows the active GUI theme.
+    // Returns the document defaults that follow the active GUI theme.
     func theme()->HtmlStyle => {}
 }
 
+// The surface an [[Gui.HtmlView]] draws its document on.
 #[Swag.NoDoc]
-struct HtmlPage
+struct HtmlCanvas
 {
-    using wnd:     Wnd
-    cssBackground: Color
+    using wnd: Wnd
+
+    #[Swag.Late]
+    owner: *HtmlView
 }
 
-private impl IWnd for HtmlPage
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        if .cssBackground.a do
-            evt.paintContext.painter.fillRect(.clientRect(), .cssBackground)
-    }
-}
-
-#[Swag.NoDoc]
-struct HtmlVisualBlock
-{
-    label: *Label = undefined
-    kind:  HtmlBlockKind
-    style: HtmlCssStyle
-    text:  String
-}
-
-// Displays HTML as a themed, read-only document with progressive UTF-8 file loading.
+// Displays HTML as a laid-out document.
 //
-// [[Gui.HtmlView.createText]] renders in-memory source, while [[Gui.HtmlView.createFile]] streams
-// a file. Rendering stays offline: scripts, embedded documents, and hidden metadata never run.
-// The parent window owns the returned control through the normal [[Gui.Wnd]] hierarchy.
+// [[Gui.HtmlView.createText]] renders in-memory source, and [[Gui.HtmlView.createFile]] streams a
+// file and follows the stylesheets it links to, relative to its folder. Rendering stays offline:
+// no script runs, and no reference outside the document's own folder is fetched.
+//
+// The document is parsed into a tree, styled through a real CSS cascade, and laid out into boxes,
+// so a page keeps its columns, its tables, its inline styling, and the regions it scrolls on its
+// own.
 //
 // ```swag
 // let document = HtmlView.createFile(parent, "manual.html")
@@ -89,7 +78,7 @@ public struct HtmlView
         sigLinkActivated: SigArray'func||(*HtmlView, string)     // Emitted when a rendered link is activated.
 
         public readonly
-        documentStyle: HtmlStyle     // Active document typography and reading measure.
+        documentStyle: HtmlStyle     // Typography a document inherits before its own CSS applies.
     }
 
     internal
@@ -97,35 +86,29 @@ public struct HtmlView
         #[Swag.Late]
         {
             scroll: *ScrollWnd
-            body:   *Wnd
-            page:   *HtmlPage
+            canvas: *HtmlCanvas
         }
 
-        stream:            File.FileStream
-        fileName:          String
-        fileSize:          u64
-        bytesRead:         u64
-        residentStart:     u64
-        virtualOrigin:     f32
-        virtualHeight:     f32
-        pendingSearch:     String
-        pendingSeek:       bool
-        pendingSeekOffset: u64
-        sourceCarry:       String
-        sourceDone:        bool
-        rules:             Array'HtmlCssRule
-        pendingBlocks:     Array'HtmlBlock
-        pendingIndex:      u64
-        loadTimer:         #null *Timer
-        jumpToEnd:         bool
-        pauseStreaming:    bool
-        hasPendingY:       bool
-        pendingY:          f32
-        contentHeight:     f32
-        searchBlockIndex = Swag.U64.Max
-        bodyTag:           String
-        bodyStyle:         HtmlCssStyle
-        blocks:            Array'HtmlVisualBlock
+        document: HtmlDocument
+        parser:   HtmlParser
+        sheet:    HtmlStyleSheet
+        pool:     HtmlValuePool
+        resolver: HtmlStyleResolver
+        layout:   HtmlLayout
+        images:   HtmlImageCache
+
+        stream:      File.FileStream
+        fileName:    String
+        bytesRead:   u64
+        sourceDone:  bool
+        loadTimer:   #null *Timer
+        nextRefresh: u64
+
+        pendingSearch: String
+        revealOffset:  u64
+        hasReveal:     bool
+        searchNode = HtmlNoNode
+        hovered    = HtmlNoNode
     }
 }
 
@@ -155,415 +138,205 @@ internal func scrollDocumentWithKey(scroll: *ScrollWnd, evt: *KeyEvent)->bool
     return true
 }
 
-private func htmlBlockGap(kind: HtmlBlockKind)->f32
-{
-    switch kind
-    {
-    case .Heading1:                                  return 26
-    case .Heading2:                                  return 22
-    case .Heading3, .Heading4, .Heading5, .Heading6: return 16
-    case .Code, .Table, .Quote, .Details:            return 20
-    case .Rule:                                      return 24
-    default:                                         return 14
-    }
-}
-
-private func htmlDefaultSize(kind: HtmlBlockKind, style: const *HtmlStyle)->u32
-{
-    switch kind
-    {
-    case .Heading1:     return style.heading1FontSize
-    case .Heading2:     return style.heading2FontSize
-    case .Heading3:     return style.heading3FontSize
-    case .Heading4:     return style.heading4FontSize
-    case .Heading5:     return style.heading5FontSize
-    case .Heading6:     return style.heading6FontSize
-    case .Code, .Table: return style.codeFontSize
-    default:            return style.bodyFontSize
-    }
-}
-
 internal impl HtmlView
 {
-    // Scrolls to the next rendered block containing `text`, wrapping once at the end.
-    public mtd findText(text: string)->bool
-    {
-        if !@countof(text) or .blocks.isEmpty() do
-            return false
-        let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
-        for offset in .blocks.count
-        {
-            let index = (first + offset) % .blocks.count
-            if Utf8.indexOf(.blocks[index].label.name.raw, text, 0, .Latin1NoCase) == Swag.U64.Max do
-                continue
-            .searchBlockIndex = index
-            let position = .scroll.scrollPosition()
-            .scroll.setScrollPos(position.x, .blocks[index].label.parent!.position.y + .blocks[index].label.position.y - 24)
-            .blocks[index].label.setFocus()
-            return true
-        }
-
-        return false
-    }
-
-    // Reports whether source remains to be parsed or displayed.
-    public mtd const isLoading()->bool
-    {
-        return .pendingIndex < .pendingBlocks.count or !.sourceDone or !.sourceCarry.isEmpty()
-    }
-
-    mtd fixedFontFamily(size: u32)->FontFamily
+    // Returns the colors a document inherits when it names none of its own.
+    mtd styleDefaults()->HtmlStyleDefaults
     {
         var result: retval
-        result.regular    = .theme().createDefaultFontFS(size, .Regular)
-        result.bold       = .theme().createDefaultFontFS(size, .Bold)
-        result.italic     = .theme().createDefaultFontFS(size, .Italic)
-        result.boldItalic = .theme().createDefaultFontFS(size, .BoldItalic)
+        let colors = .themeColors()
+        result.text           = colors.label_Text
+        result.faintText      = colors.label_TextFaint
+        result.background     = colors.view_Bk
+        result.codeBackground = colors.edit_Bk
+        result.link           = colors.url_Text
+        result.border         = colors.edit_Border
+        result.selection      = colors.edit_SelectedBk
+        result.fontSize       = cast(f32) .documentStyle.bodyFontSize
+        result.monoFontSize   = cast(f32) .documentStyle.codeFontSize
         return result
     }
 
-    mtd configureLabel(label: *Label, block: const *HtmlBlock)
+    // Reports whether the host palette reads as a dark one, which is the answer a document's
+    // `prefers-color-scheme` query gets.
+    mtd darkScheme()->bool
     {
-        let style = block.style
-        let size  = style.fontSize > 0 ? cast(u32) Math.clamp(style.fontSize, 9, 72) : htmlDefaultSize(block.kind, &.documentStyle)
-
-        if block.kind == .Code or block.kind == .Table do
-            label.style.setFont(.fixedFontFamily(size))
-        else do
-            label.style.setFont(.theme().createDefaultFontfamily(size))
-        if style.bold or style.italic
-        {
-            var text = String.from(label.name.raw)
-            if style.bold do
-                text = Format.toString("<b>%</b>", text)
-            if style.italic do
-                text = Format.toString("<i>%</i>", text)
-            label.setText(text.toString())
-        }
-
-        label.setTextAlignment(style.hasAlign ? style.align : .Left, .Top)
-
-        let ground = style.background.a ? style.background : (.bodyStyle.background.a ? .bodyStyle.background : .themeColors().view_Bk)
-        if style.color.a
-        {
-            var color = style.color
-            color.ensureContrast(ground)
-            label.setTextColor(color)
-        }
-        elif .bodyStyle.color.a
-        {
-            var color = .bodyStyle.color
-            color.ensureContrast(ground)
-            label.setTextColor(color)
-        }
-
-        switch block.kind
-        {
-        case .Code, .Table:
-            label.backgroundStyle = .Window
-            label.setTextPadding({18, 14, 18, 14})
-
-        case .Quote:
-            label.setText(Format.toString("<p1>▎</p>  <i>%</i>", label.name.raw).toString())
-            label.setTextPadding({18, 10, 10, 10})
-
-        case .Details:
-            label.backgroundStyle = .Window
-            label.setTextPadding({16, 12, 16, 12})
-
-        case .Rule:
-            label.setTextAlignment(.Center, .Center)
-            label.setTextColor(.themeColors().label_TextFaint)
-
-        default:
-            label.setTextPadding({0, 2, 0, 2})
-        }
-
-        if style.background.a
-        {
-            label.backgroundStyle = .Window
-            label.style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", style.background.argb))
-        }
+        let ground = .themeColors().view_Bk
+        let luma   = (cast(u32) ground.r * 299 + cast(u32) ground.g * 587 + cast(u32) ground.b * 114) / 1000
+        return luma < 128
     }
 
-    mtd documentGeometry()->{ pageX: f32, pageWidth: f32, contentX: f32, contentWidth: f32 }
+    // Reports whether source remains to be read.
+    public mtd const isLoading()->bool => !.sourceDone
+
+    mtd viewportSize()->Math.Point
     {
-        let viewport     = .scroll.paddedClientRect()
-        let requested    = .bodyStyle.maxWidth > 0 ? .bodyStyle.maxWidth : .documentStyle.maxContentWidth
-        let pageWidth    = Math.min(Math.max(viewport.width - .documentStyle.horizontalInset * 2, 300), requested)
-        let pageX        = Math.max((viewport.width - pageWidth) * 0.5, 16)
-        let contentX     = .documentStyle.contentInset
-        let contentWidth = Math.max(pageWidth - contentX * 2, 220)
-        return {pageX, pageWidth, contentX, contentWidth}
+        let rect = .scroll.paddedClientRect()
+        return {Math.max(rect.width, 1), Math.max(rect.height, 1)}
     }
 
-    mtd updateDocumentSize()
+    // Collects the stylesheets a document carries, in the order it declares them.
+    mtd collectStyleSheets()
     {
-        let viewport        = .scroll.paddedClientRect()
-        let geometry        = .documentGeometry()
-        let loadedHeight    = .contentHeight + .documentStyle.bottomInset
-        var estimatedHeight = loadedHeight
-        let consumed        = .bytesRead - .residentStart
-        if consumed and .bytesRead < .fileSize
+        .sheet.clear()
+        .pool.clear()
+        .appendStyleSheets(0)
+
+        // A reading measure the host asked for behaves like a user stylesheet: it applies before
+        // anything the document says, so a page that sets its own width still wins.
+        if .documentStyle.maxContentWidth > 0 do
+            .sheet.parse(Format.toString("body { max-width: %px; margin-left: auto; margin-right: auto }", .documentStyle.maxContentWidth).toString())
+    }
+
+    private mtd appendStyleSheets(node: u32)
+    {
+        let current = .document.constNode(node)
+        if current.kind == .Element
         {
-            let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
-            .virtualHeight  = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
-            estimatedHeight = Math.max(.virtualHeight, loadedHeight)
+            if current.tag == .Style
+            {
+                var css: String
+                for child in current.children where .document.constNode(child).kind == .Text do
+                    css += .document.constNode(child).text
+                .sheet.parse(css.toString())
+                return
+            }
+
+            if current.tag == .Link and .isStyleSheetLink(node)
+            {
+                .appendExternalStyleSheet(.document.attribute(node, "href"))
+                return
+            }
         }
 
-        let pageHeight = Math.max(estimatedHeight, viewport.height - 32)
-        let position   = .scroll.scrollPosition()
-        .page.setPosition({geometry.pageX, 16, geometry.pageWidth, pageHeight})
-        .scroll.setScrollSize(viewport.width, pageHeight + 32)
-        .scroll.setScrollPos(position)
+        for child in current.children do
+            .appendStyleSheets(child)
     }
 
-    mtd placeBlock(block: *HtmlVisualBlock, contentX, contentWidth: f32, y: *f32)
+    private mtd isStyleSheetLink(node: u32)->bool
     {
-        block.label.setPosition({contentX, y[], contentWidth, 0})
-        block.label.updateAutomaticHeight()
-        y[] += block.label.position.height + htmlBlockGap(block.kind)
+        for part in Tokenize.split(.document.attribute(node, "rel"), ' 'u8) where Utf8.compare(part, "stylesheet", .Latin1NoCase) == 0 do
+            return true
+        return false
     }
 
-    mtd layoutDocument()
+    // Reads a linked stylesheet from the folder the document was read from.
+    //
+    // Only a relative or absolute local path is followed; a document is displayed without
+    // reaching the network, whatever it links to.
+    private mtd appendExternalStyleSheet(href: string)
     {
-        let viewport = .scroll.paddedClientRect()
-        if viewport.width <= 0 do
+        if !@countof(href) or .images.basePath.isEmpty() do
+            return
+        if Utf8.contains(href, "://") or Utf8.startsWith(href, "//") or Utf8.startsWith(href, "data:") do
             return
 
-        // The HTML canvas has no caret, so one Up/Down action follows one body-text line while
-        // PageUp/PageDown remain viewport-relative in handleDocumentKey.
-        let bodyFontSize = .bodyStyle.fontSize > 0 ? cast(u32) Math.clamp(.bodyStyle.fontSize, 9, 72) : 16
-        .scroll.verticalScrollStep = .theme().createDefaultFont(bodyFontSize).height * .documentStyle.lineHeight
-
-        let geometry = .documentGeometry()
-        .page.setPosition({geometry.pageX, 16, geometry.pageWidth, Math.max(.page.position.height, viewport.height - 32)})
-        var y = .virtualOrigin + .documentStyle.topInset
-        for &block in .blocks do
-            .placeBlock(block, geometry.contentX, geometry.contentWidth, &y)
-        .contentHeight = y
-        .updateDocumentSize()
+        let fileName = Path.isRooted(href) ? String.from(href) : Path.combine(.images.basePath.toString(), href)
+        let content  = catch File.readAllText(fileName.toString()) as readError
+        if readError != null do
+            return
+        .sheet.parse(content.toString())
     }
 
-    mtd appendBlock(block: HtmlBlock)
+    // Recomputes styles and boxes, then places them.
+    mtd rebuild()
     {
-        let label = Label.create(.page, block.text.toString(), {}, null, .WordWrap | .AutoHeight)
-        .configureLabel(label, &block)
-        label.sigLinkActivated += func|view = me|(linkLabel, url)
-        {
-            discard linkLabel
-            view.sigLinkActivated.call(view, url)
-        }
-        var visual: HtmlVisualBlock
-        visual.label = label
-        visual.kind  = block.kind
-        visual.style = block.style
-        visual.text  = #move block.text
-        .blocks.add(#move visual)
+        let viewport = .viewportSize()
 
-        let geometry = .documentGeometry()
-        .placeBlock(.blocks.backPtr(), geometry.contentX, geometry.contentWidth, &.contentHeight)
-        .updateDocumentSize()
+        // Text is measured against the grid it will be drawn on, so the display scale has to be
+        // known before the first word is measured.
+        let surface = .surface
+        if surface do
+            .layout.deviceScale = surface!.dpiScale
+        .collectStyleSheets()
+        .resolver.resolve(&.document, &.sheet, &.pool, .styleDefaults(), viewport, .darkScheme())
+        .layout.build(&.document, &.resolver, .theme(), &.images)
+        .applyLayout()
+        .placeDocument()
     }
 
-    mtd needsMore()->bool
+    // Runs the layout for the current viewport and updates what can be scrolled.
+    mtd placeDocument()
     {
-        if !.isLoading() do
-            return false
-        if .pauseStreaming do
-            return false
-        if .jumpToEnd or .hasPendingY do
-            return true
-        let viewport = .scroll.paddedClientRect()
-        return .scroll.scrollPosition().y + viewport.height * HtmlStreamLookAhead >= .contentHeight
-    }
+        let viewport = .viewportSize()
+        if .layout.root == HtmlNoNode do
+            return
 
-    mtd handleDocumentKey(evt: *KeyEvent)->bool
-    {
-        if evt.kind != .Pressed do
-            return false
+        .layout.layout(viewport.x, viewport.y)
 
-        if evt.key == .Home and (evt.modifiers == .None or evt.modifiers == .Control)
-        {
-            .jumpToEnd      = false
-            .pauseStreaming = false
-            .hasPendingY    = false
-            if .residentStart do
-                discard .revealFileOffset(0, "")
-            return scrollDocumentWithKey(.scroll, evt)
-        }
-
-        if evt.key == .End and (evt.modifiers == .None or evt.modifiers == .Control)
-        {
-            .hasPendingY = false
-            if .fileSize and .bytesRead < .fileSize
-            {
-                let start = .fileSize > HtmlStreamCarryLimit ? .fileSize - HtmlStreamCarryLimit : 0
-                .jumpToEnd = true
-                discard .revealFileOffset(start, "")
-            }
-            else
-            {
-                let position = .scroll.scrollPosition()
-                .scroll.setScrollPos(position.x, .contentHeight)
-            }
-
-            return true
-        }
-
-        var delta    = 0'f32
-        let viewport = .scroll.paddedClientRect()
-        let page     = Math.max(viewport.height - .scroll.verticalScrollStep, .scroll.verticalScrollStep)
-        switch evt.key
-        {
-        case .Down where evt.modifiers == .None:     delta = .scroll.verticalScrollStep
-        case .PageDown where evt.modifiers == .None: delta = page
-        case .Space where evt.modifiers == .None:    delta = page
-        default: return scrollDocumentWithKey(.scroll, evt)
-        }
-
+        // The canvas is one viewport tall whatever the document measures, and the paint applies
+        // the scroll offset itself. A window as tall as the document would be a window of a
+        // quarter of a million pixels, which is not a shape the surface geometry is built for.
+        let height   = Math.max(.layout.documentHeight, viewport.y)
         let position = .scroll.scrollPosition()
-        .pauseStreaming = false
-        let origin = .hasPendingY ? .pendingY : position.y
-        let target = origin + delta
-        if .isLoading() and target + viewport.height > .contentHeight
-        {
-            .pendingY    = target
-            .hasPendingY = true
-            .scheduleMore()
-            return true
-        }
-
-        .scroll.setScrollPos(position.x, target)
-        return true
+        .canvas.setPosition({0, 0, viewport.x, viewport.y})
+        .scroll.setScrollSize(viewport.x, height)
+        .scroll.setScrollPos(position)
+        .scroll.verticalScrollStep = Math.max(cast(f32) .documentStyle.bodyFontSize * 3, 24)
+        .canvas.invalidate()
     }
 
-    mtd scheduleMore()
-    {
-        if .loadTimer or (!.pendingSeek and !.needsMore()) do
-            return
-        .loadTimer = .addTimer(8'ms)
-    }
-
-    mtd readSource()
-    {
-        if .sourceDone do
-            return
-
-        let chunk = catch .stream.readUtf8Chunk(HtmlStreamChunkSize) as readError
-        if readError != null or Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
-        {
-            .sourceCarry = "<p>Unable to read this HTML document.</p>"
-            .sourceDone  = true
-            .bytesRead   = .fileSize
-            .stream.close()
-            return
-        }
-
-        if chunk.isEmpty()
-        {
-            .sourceDone = true
-            .bytesRead  = .fileSize
-            .stream.close()
-            return
-        }
-
-        .sourceCarry += chunk
-        let position = catch .stream.position() as positionError
-        if positionError == null do
-            .bytesRead = position
-    }
-
-    mtd consumeSource(source: string)
-    {
-        let newRules = parseHtmlCss(source)
-        for &rule in newRules do
-            .rules.add(#move rule[])
-
-        let body = Utf8.indexOf(source, "<body", 0, .Latin1NoCase)
-        if body != Swag.U64.Max
-        {
-            let close = Utf8.indexOf(source, '>'rune, body + 5)
-            if close != Swag.U64.Max do
-                .bodyTag = String.from(source[body + 1 until close])
-        }
-
-        .bodyStyle          = htmlCssStyle(.bodyTag.toString(), "body", .rules.toSlice())
-        .page.cssBackground = .bodyStyle.background
-        .pendingBlocks      = parseHtmlBlocks(source, .rules.toSlice())
-        .pendingIndex       = 0
-    }
-
-    mtd preparePending()->bool
-    {
-        if .pendingIndex < .pendingBlocks.count do
-            return true
-
-        .pendingBlocks.clear()
-        .pendingIndex = 0
-        if .sourceCarry.isEmpty() and !.sourceDone do
-            .readSource()
-        if .sourceCarry.isEmpty() do
-            return false
-
-        let force  = .sourceDone or .sourceCarry.length >= HtmlStreamCarryLimit
-        var parsed = parseHtmlBlockChunk(.sourceCarry.toString(), .rules.toSlice(), force)
-        if !parsed.consumed and !.sourceDone
-        {
-            .readSource()
-            let forceAfterRead = .sourceDone or .sourceCarry.length >= HtmlStreamCarryLimit
-            parsed = parseHtmlBlockChunk(.sourceCarry.toString(), .rules.toSlice(), forceAfterRead)
-        }
-
-        if !parsed.consumed do
-            return false
-
-        let source    = String.from(.sourceCarry.toString()[0 until parsed.consumed])
-        var remaining = String.from(.sourceCarry.toString()[parsed.consumed to])
-        .sourceCarry = #move remaining
-        .consumeSource(source.toString())
-        return !.pendingBlocks.isEmpty()
-    }
-
+    // Feeds one bounded batch of source into the parser.
     mtd streamStep()
     {
         var stopwatch: Time.Stopwatch
         stopwatch.start()
-        var blockCount = 0'u32
-        while .needsMore() and blockCount < HtmlStreamBlockBudget
+
+        while !.sourceDone
         {
-            if !.preparePending() do
+            let chunk = catch .stream.readUtf8Chunk(HtmlStreamChunkSize) as readError
+            if readError != null
+            {
+                .finishSource("<p>Unable to read this HTML document.</p>")
                 break
-            .appendBlock(#move .pendingBlocks[.pendingIndex])
-            .pendingIndex += 1
-            blockCount    += 1
+            }
+
+            if chunk.isEmpty()
+            {
+                .finishSource("")
+                break
+            }
+
+            .parser.feed(chunk.toString())
+            .bytesRead += chunk.length
+            if .bytesRead >= HtmlMaxDocumentSize
+            {
+                .finishSource("<p>This document is too large to be displayed in full; the rest of the file was not read.</p>")
+                break
+            }
+
             if stopwatch.elapsedMicroseconds() >= HtmlStreamFrameBudget do
                 break
         }
 
-        if .sourceDone and .sourceCarry.isEmpty() and .pendingIndex >= .pendingBlocks.count and .blocks.isEmpty()
+        // A partial rendering is produced at growing intervals, so a long document shows its
+        // beginning quickly without paying for a full pass on every chunk.
+        if .sourceDone or .bytesRead >= .nextRefresh
         {
-            var empty: HtmlBlock
-            empty.kind = .Paragraph
-            empty.text = "This HTML document has no visible content."
-            .appendBlock(#move empty)
+            if !.sourceDone do
+                .nextRefresh = .bytesRead * 4
+            .rebuild()
+            .resolvePending()
         }
 
-        if !.isLoading() and .jumpToEnd
-        {
-            .jumpToEnd = false
-            let position = .scroll.scrollPosition()
-            .scroll.setScrollPos(position.x, .scroll.scrollableClientRect().height)
-        }
-        elif .hasPendingY and (!.isLoading() or .pendingY + .scroll.paddedClientRect().height <= .contentHeight)
-        {
-            .hasPendingY = false
-            let position = .scroll.scrollPosition()
-            .scroll.setScrollPos(position.x, .pendingY)
-        }
+        if !.sourceDone do
+            .scheduleMore()
+    }
 
-        if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
-            .pendingSearch.clear()
+    private mtd finishSource(notice: string)
+    {
+        if @countof(notice) do
+            .parser.feed(notice)
+        .parser.finish()
+        .sourceDone = true
+        .stream.close()
+    }
+
+    mtd scheduleMore()
+    {
+        if .loadTimer or .sourceDone do
+            return
+        .loadTimer = .addTimer(4'ms)
     }
 
     mtd stopLoading()
@@ -577,58 +350,197 @@ internal impl HtmlView
         .stream.close()
     }
 
-    // Repositions a streamed document near a byte offset and reveals matching text.
-    //
-    // The bounded UTF-8 context around `offset` is decoded without parsing the preceding bytes.
-    // Returns `false` when the backing file cannot be reopened or read. An empty `text` only
-    // repositions the resident window.
-    public mtd revealFileOffset(offset: u64, text: string)->bool
+    // Acts on a search or a reveal that was waiting for the bytes it needs.
+    private mtd resolvePending()
     {
-        .stopLoading()
-        for &block in .blocks do
-            block.label.destroy()
-        .blocks.clear()
-        .pendingBlocks.clear()
-        .pendingIndex = 0
-        .sourceCarry.clear()
-        .sourceDone       = false
-        .searchBlockIndex = Swag.U64.Max
-        .pendingSearch    = text
-
-        let requested = Math.min(offset, .fileSize)
-        let start     = requested > HtmlRevealContextSize ? requested - HtmlRevealContextSize : 0
-        for adjustment in 4
+        if .hasReveal and (.sourceDone or .revealOffset < .bytesRead)
         {
-            .stream = catch File.openRead(.fileName.toString()) as openError
-            if openError != null do
-                return false
-            let actual = Math.min(start + adjustment, .fileSize)
-            discard catch .stream.seek(.Begin, actual)
-            var chunk = catch .stream.readUtf8Chunk(HtmlRevealChunkSize) as readError
-            if readError != null
-            {
-                .stream.close()
-                continue
-            }
+            .hasReveal = false
+            discard .scrollToNode(.nodeAtSourceOffset(.revealOffset))
+        }
 
-            let localTarget    = requested > actual ? Math.min(requested - actual, chunk.length) : 0
-            let boundary       = htmlBlockStartBefore(chunk.toString(), localTarget)
-            let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
-            .residentStart = actual + boundary
-            .bytesRead     = actual + chunk.length
-            .sourceCarry   = String.from(chunk.toString()[boundary to])
-            .sourceDone    = .bytesRead >= .fileSize
-            .virtualHeight = Math.max(previousHeight, .scroll.paddedClientRect().height)
-            .virtualOrigin = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
-            .contentHeight = .virtualOrigin + .documentStyle.topInset
-            .layoutDocument()
-            if !.jumpToEnd do
-                .scroll.setScrollPos(0, .virtualOrigin)
-            .scheduleMore()
-            return true
+        if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
+            .pendingSearch.clear()
+    }
+
+    // Returns the node the given byte offset of the source belongs to.
+    mtd const nodeAtSourceOffset(offset: u64)->u32
+    {
+        var best       = HtmlNoNode
+        var bestOffset = 0'u64
+        for index in .document.nodes.count
+        {
+            let node = .document.constNode(cast(u32) index)
+            if node.kind == .Document or node.sourceOffset > offset do
+                continue
+            if best != HtmlNoNode and node.sourceOffset < bestOffset do
+                continue
+            best       = cast(u32) index
+            bestOffset = node.sourceOffset
+        }
+
+        return best
+    }
+
+    // Returns the element carrying an identifier, or `HtmlNoNode` when the document has none.
+    public mtd const elementById(id: string)->u32
+    {
+        if !@countof(id) do
+            return HtmlNoNode
+        for index in .document.nodes.count where .document.constNode(cast(u32) index).id == id do
+            return cast(u32) index
+        return HtmlNoNode
+    }
+
+    // Scrolls to the element a document-internal reference names.
+    //
+    // Returns false when the reference points outside the document, which is what tells the
+    // caller to treat the link as a destination of its own.
+    public mtd navigateToFragment(url: string)->bool
+    {
+        let hash = Utf8.indexOf(url, '#'rune)
+        if hash != 0 do
+            return false
+        return .scrollToNode(.elementById(url[1 to]))
+    }
+
+    // Returns the box that draws a node, walking up to the element that contains it.
+    mtd const boxOfNode(node: u32)->u32
+    {
+        var walk = node
+        while walk != HtmlNoNode
+        {
+            let found = .layout.nodeBox.tryFind(walk)
+            if found do
+                return found!.value
+            walk = .document.constNode(walk).parent
+        }
+
+        return HtmlNoNode
+    }
+
+    // Brings the box that draws a node into view.
+    mtd scrollToNode(node: u32)->bool
+    {
+        if node == HtmlNoNode do
+            return false
+
+        let box = .boxOfNode(node)
+        if box == HtmlNoNode do
+            return false
+
+        // A node whose text lives in a line box is found more precisely through that line, so a
+        // match inside a long block scrolls to the line and not to the top of the block.
+        var top = .layout.constBox(box).rect.y
+        for item in .layout.constBox(box).items where item.node == node and item.visible
+        {
+            top = item.y
+            break
+        }
+
+        .searchNode = node
+        let position = .scroll.scrollPosition()
+        .scroll.setScrollPos(position.x, Math.max(top - 24, 0))
+        .canvas.invalidate()
+        return true
+    }
+
+    // Scrolls to the next node whose text contains `text`, wrapping once at the end.
+    public mtd findText(text: string)->bool
+    {
+        if !@countof(text) do
+            return false
+
+        let count = .document.nodes.count
+        if !count do
+            return false
+
+        var start = 0'u64
+        if .searchNode != HtmlNoNode do
+            start = cast(u64) .searchNode + 1
+
+        for offset in count
+        {
+            let index = cast(u32) ((start + offset) % count)
+            let node  = .document.constNode(index)
+            if node.kind != .Text or node.text.isEmpty() do
+                continue
+            if Utf8.indexOf(node.text.toString(), text, 0, .Latin1NoCase) == Swag.U64.Max do
+                continue
+            if .scrollToNode(index) do
+                return true
         }
 
         return false
+    }
+
+    // Returns the anchor a node sits inside, or `HtmlNoNode` when it sits in none.
+    mtd const linkElementAt(node: u32)->u32
+    {
+        var walk = node
+        while walk != HtmlNoNode
+        {
+            if .document.constNode(walk).tag == .A and .document.hasAttribute(walk, "href") do
+                return walk
+            walk = .document.constNode(walk).parent
+        }
+
+        return HtmlNoNode
+    }
+
+    // Returns the destination a node sits inside, or an empty string when it sits in none.
+    mtd const linkAt(node: u32)->string
+    {
+        let anchor = .linkElementAt(node)
+        return anchor == HtmlNoNode ? "" : .document.attribute(anchor, "href")
+    }
+
+    mtd painter()->HtmlPainter
+    {
+        // The visible rectangle is in the canvas's own coordinates, which is the space the paint
+        // offset puts every box into; the scroll position is kept separately because a sticky box
+        // needs to know where the document really is.
+        var result: retval
+        result.layout    = &.layout
+        result.images    = &.images
+        result.renderer  = .app().renderer
+        result.scrollY   = .scroll.scrollPosition().y
+        result.visible   = .scroll.paddedClientRect()
+        result.hotLink   = .themeColors().url_HotText
+        result.hoverLink = .linkElementAt(.hovered)
+        return result
+    }
+
+    // Repositions a streamed document on the node a byte offset belongs to.
+    //
+    // The document is read up to that offset first when it is not there yet, so a match reported
+    // by a search over the raw file always lands on what draws it. An empty `text` only scrolls.
+    public mtd revealFileOffset(offset: u64, text: string)->bool
+    {
+        if .fileName.isEmpty() and !.sourceDone do
+            return false
+
+        .pendingSearch = text
+        if .sourceDone or offset < .bytesRead
+        {
+            let node = .nodeAtSourceOffset(Math.min(offset, .bytesRead))
+            discard .scrollToNode(node)
+            .resolvePending()
+            return true
+        }
+
+        .revealOffset = offset
+        .hasReveal    = true
+        .scheduleMore()
+        return true
+    }
+
+    // Replaces the document defaults and restyles what is already loaded.
+    public mtd setDocumentStyle(documentStyle: HtmlStyle)
+    {
+        .documentStyle = documentStyle
+        .rebuild()
+        .invalidate()
     }
 
     func createBase(contentParent: *Wnd, documentStyle: HtmlStyle)->*HtmlView
@@ -638,44 +550,37 @@ internal impl HtmlView
         result.focusPolicy     = .Tab
         result.wndFlags        |= .NoFocusRing
         result.documentStyle   = documentStyle
-        result.contentHeight   = documentStyle.topInset
+        result.nextRefresh     = HtmlFirstRefreshSize
+        result.document        = HtmlDocument.create()
+        result.parser.start(&result.document)
 
         result.scroll           = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
-        result.body                            = result.scroll.createView'Wnd()
-        result.body.backgroundStyle            = .View
-        result.page                            = Wnd.create'HtmlPage(result.body, "sFileScope.html.page")
-        result.page.backgroundStyle            = .View
-        result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
-        {
-            discard scroll
-            if view.jumpToEnd do
-                return
-            if view.pauseStreaming and newPosition.y < oldPosition.y do
-                view.pauseStreaming = false
-            if view.virtualHeight > 0 and !view.blocks.isEmpty() and (newPosition.y + view.scroll.paddedClientRect().height < view.virtualOrigin or newPosition.y > view.contentHeight)
-            {
-                let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
-                view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
-                view.pendingSeek       = true
-            }
 
-            view.scheduleMore()
-        }
-        result.scroll.hookOnEvent = func|view = result|(wnd, evt)
+        let view = result.scroll.createView'Wnd()
+        view.backgroundStyle = .View
+
+        result.canvas          = Wnd.create'HtmlCanvas(view, "gui.html.canvas")
+        result.canvas.owner    = result
+        result.canvas.wndFlags |= .NoScroll
+
+        result.scroll.hookOnEvent = func|target = result|(wnd, evt)
         {
             discard wnd
-            if evt is ResizeEvent
-            {
-                view.layoutDocument()
-                view.scheduleMore()
-            }
-
+            if evt is ResizeEvent do
+                target.placeDocument()
             return false
         }
+        result.scroll.sigScrollPositionChanged += func|target = result|(scroll, oldPosition, newPosition)
+        {
+            discard scroll
+            discard oldPosition
+            discard newPosition
+            target.canvas.invalidate()
+        }
+
         result.applyLayout()
-        result.layoutDocument()
         result.setInitialFocus(result)
         return result
     }
@@ -684,64 +589,34 @@ internal impl HtmlView
     public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = .createBase(contentParent, documentStyle)
+        result.parser.feed(source)
+        result.parser.finish()
         result.sourceDone = true
-        result.consumeSource(source)
-        for &block in result.pendingBlocks do
-            result.appendBlock(#move block[])
-        result.pendingIndex = result.pendingBlocks.count
-
-        if result.blocks.isEmpty()
-        {
-            var empty: HtmlBlock
-            empty.kind = .Paragraph
-            empty.text = "This HTML document has no visible content."
-            result.appendBlock(#move empty)
-        }
-
+        result.bytesRead  = @countof(source)
+        result.rebuild()
         return result
     }
 
     // Creates a view and progressively loads a UTF-8 HTML file.
     //
     // File-open and decoding failures are displayed inside the returned view rather than reported
-    // to the caller. At most a bounded source window and its visible blocks stay resident.
+    // to the caller.
     public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = .createBase(contentParent, documentStyle)
-        result.fileName = fileName
-        result.stream   = catch File.openRead(fileName) as openError
+        result.fileName        = fileName
+        result.images.basePath = Path.directoryName(fileName) orelse ""
+
+        result.stream = catch File.openRead(fileName) as openError
         if openError != null
         {
-            result.sourceCarry = "<p>Unable to read this HTML document.</p>"
-            result.sourceDone  = true
-        }
-        else
-        {
-            let size = catch result.stream.size() as sizeError
-            if sizeError == null do
-                result.fileSize = size
+            result.finishSource("<p>Unable to read this HTML document.</p>")
+            result.rebuild()
+            return result
         }
 
-        result.scheduleMore()
+        result.streamStep()
         return result
-    }
-
-    // Replaces document metrics while keeping colors and font faces bound to the active theme.
-    public mtd setDocumentStyle(documentStyle: HtmlStyle)
-    {
-        .documentStyle = documentStyle
-        for &block in .blocks
-        {
-            block.label.setText(block.text.toString())
-            var source: HtmlBlock
-            source.kind  = block.kind
-            source.text  = block.text
-            source.style = block.style
-            .configureLabel(block.label, &source)
-        }
-
-        .layoutDocument()
-        .invalidate()
     }
 }
 
@@ -749,19 +624,22 @@ internal impl IWnd for HtmlView
 {
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
+        discard evt
         if @isset(.scroll) do
-            .setDocumentStyle(.documentStyle)
+            .rebuild()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if !.handleDocumentKey(evt) do
+        if !scrollDocumentWithKey(.scroll, evt) do
             evt.accepted = false
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        discard evt
         .stopLoading()
+        .images.clear()
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -774,15 +652,91 @@ internal impl IWnd for HtmlView
 
         .removeTimer(evt.timer)
         .loadTimer = null
-        if .pendingSeek
-        {
-            let offset = .pendingSeekOffset
-            .pendingSeek = false
-            discard .revealFileOffset(offset, "")
-            return
-        }
-
         .streamStep()
-        .scheduleMore()
+    }
+}
+
+internal impl IWnd for HtmlCanvas
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let owner = .owner
+        if owner.layout.root == HtmlNoNode do
+            return
+
+        var painter = owner.painter()
+        painter.painter = evt.paintContext.painter
+        painter.paint(painter.visible, painter.scrollY)
+    }
+
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        let owner = .owner
+        let point = .surfaceToLocal(evt.surfacePos)
+
+        switch evt.kind
+        {
+        case .Move:
+            let painter = owner.painter()
+            let node    = painter.nodeAt(point)
+            if node != owner.hovered
+            {
+                owner.hovered = node
+                .invalidate()
+            }
+
+            if @countof(owner.linkAt(node)) do
+                .app().setFrameCursor(Cursor.from(.Hand))
+
+        case .Leave:
+            if owner.hovered != HtmlNoNode
+            {
+                owner.hovered = HtmlNoNode
+                .invalidate()
+            }
+
+        case .Pressed where evt.button == .Left:
+            let painter = owner.painter()
+            let url     = owner.linkAt(painter.nodeAt(point))
+            if !@countof(url)
+            {
+                evt.accepted = false
+                return
+            }
+
+            // A reference into the document itself is followed here; anything else is a
+            // destination only the host knows how to open.
+            if !owner.navigateToFragment(url) do
+                owner.sigLinkActivated.call(owner, url)
+
+        case .Wheel:
+
+            // A region that scrolls on its own takes the wheel while the pointer is over it, and
+            // hands it back to the page once it has reached its end.
+            let painter = owner.painter()
+            let region  = painter.scrollableAt(point)
+            if region == HtmlNoNode or !owner.scrollRegion(region, -evt.delta.y * 50) do
+                evt.accepted = false
+
+        default:
+            evt.accepted = false
+        }
+    }
+}
+
+internal impl HtmlView
+{
+    // Moves an independently scrolled region, and reports whether it actually moved.
+    mtd scrollRegion(box: u32, delta: f32)->bool
+    {
+        let target = .layout.box(box)
+        let limit  = Math.max(target.scrollHeight - target.content.height, 0)
+        let wanted = Math.clamp(target.scrollTop + delta, 0, limit)
+        if wanted == target.scrollTop do
+            return false
+
+        target.scrollTop = wanted
+        .canvas.invalidate()
+        return true
     }
 }

@@ -32,6 +32,8 @@ internal impl CodePluginView
     {
         if !.hasMore() do
             return false
+        if .jumpToEnd do
+            return true
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
         return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * CodeStreamLookAhead >= loadedHeight
@@ -164,9 +166,6 @@ internal impl CodePluginView
                 if view.hasMore()
                 {
                     view.jumpToEnd = true
-                    let position = view.editor.scrollPosition()
-                    let document = view.editor.scrollableClientRect()
-                    view.editor.setScrollPosition({position.x, document.height})
                     view.scheduleMore()
                 }
                 else do

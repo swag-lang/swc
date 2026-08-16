@@ -69,6 +69,22 @@ using Core, Pixel, Gui
     block.text = "Another streamed paragraph."
     view.appendBlock(#move block)
     @assert(view.scroll.scrollPosition() == oldPosition)
+
+    view.scroll.setScrollPos(0, 0)
+    let beforeEnd = view.scroll.scrollPosition()
+    var end = KeyEvent{kind: .Pressed, key: .End}
+    @assert(view.handleDocumentKey(&end))
+    @assert(view.jumpToEnd)
+    @assert(view.scroll.scrollPosition() == beforeEnd)
+    var steps = 0'u32
+    while view.isLoading() and steps < 4_000
+    {
+        view.streamStep()
+        steps += 1
+    }
+    @assert(!view.isLoading())
+    @assert(!view.jumpToEnd)
+    @assert(view.scroll.scrollPosition().y > beforeEnd.y)
 }
 
 #test

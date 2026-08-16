@@ -2,26 +2,7 @@
 
 using Core
 
-// RichString uses angle-bracket markers. Replace literal brackets so untrusted document text can
-// never inject formatting markers into the preview.
-func viewerRichLiteral(text: string)->String
-{
-    var result: retval
-    result.reserve(@countof(text))
-    for value in text
-    {
-        if value == '<' do
-            result += "‹"
-        elif value == '>' do
-            result += "›"
-        else do
-            result += value
-    }
-
-    return result
-}
-
-func viewerDecodedEntity(source: string, start: u64)->{ value: String, eat: u64 }
+func markdownDecodedEntity(source: string, start: u64)->{ value: String, eat: u64 }
 {
     var result: retval
     result.value = "&"
@@ -115,7 +96,7 @@ func viewerDecodedEntity(source: string, start: u64)->{ value: String, eat: u64 
     return result
 }
 
-func viewerRichText(text: string, decodeEntities = false)->String
+func markdownRichText(text: string, decodeEntities = false)->String
 {
     var result: retval
     var index = 0'u64
@@ -123,7 +104,7 @@ func viewerRichText(text: string, decodeEntities = false)->String
     {
         if decodeEntities and text[index] == '&'
         {
-            let entity = viewerDecodedEntity(text, index)
+            let entity = markdownDecodedEntity(text, index)
             result += entity.value
             index  += entity.eat
             continue

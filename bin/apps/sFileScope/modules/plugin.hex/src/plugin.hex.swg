@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const ViewerPluginApiVersion = 3'u32
+private const ViewerPluginApiVersion = 4'u32
 private const HexPageSize = 64 * 1024'u64
 private const HexLineSize = 16'u64
 
@@ -115,6 +115,13 @@ internal impl HexPluginView
             .offset = 0
         .loadPage()
     }
+
+    mtd revealOffset(offset: u64, text: string)->bool
+    {
+        .offset = Math.min(offset / HexPageSize * HexPageSize, .fileSize)
+        .loadPage()
+        return .editor.findText(text)
+    }
 }
 
 internal impl IWnd for HexPluginView
@@ -193,11 +200,11 @@ internal impl HexPluginView
                 view.movePage(1)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers == .Control and keyEvt.key == .Home:
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control) and keyEvt.key == .Home:
                 view.moveToEdge(false)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers == .Control and keyEvt.key == .End:
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control) and keyEvt.key == .End:
                 view.moveToEdge(true)
                 return true
 
@@ -213,11 +220,12 @@ internal impl HexPluginView
 }
 
 // Creates the hexadecimal view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String)->#null *Wnd
+func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null func||(*Wnd, u64, string)->bool)->#null *Wnd
 {
     if apiVersion != ViewerPluginApiVersion do
         return null
     let view = HexPluginView.create(contentParent, commandParent, fileName)
+    revealMatch[] = func(wnd, offset, text)->bool { return (cast(*HexPluginView) wnd).revealOffset(offset, text) }
     commands[] = view.commands
     details[] = "64 KiB pages · 16 bytes per row"
     return view

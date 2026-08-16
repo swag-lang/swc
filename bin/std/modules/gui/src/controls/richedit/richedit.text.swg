@@ -414,6 +414,7 @@ public impl RichEditCtrl
         .firstVisibleLineView   = 0
         .lastVisibleLineView    = 0
         .loadedContentHeight    = 0
+        .residentContentOffset  = 0
         .estimatedContentHeight = 0
     }
 
@@ -471,6 +472,52 @@ public impl RichEditCtrl
 
         .insertTextPrivate(&cp, text, txtStyle)
         .setModified(true)
+    }
+
+    // Selects the next case-insensitive occurrence of `text` and keeps it visible.
+    //
+    // Search starts after the current selection and wraps once at the end of the document.
+    mtd findText(text: string)->bool
+    {
+        if !@countof(text) or !.lines.count do
+            return false
+
+        let origin = .selectionEnd()
+        for pass in 2
+        {
+            let firstLine = pass ? 0 : origin.lineIndex
+            let lastLine  = pass ? origin.lineIndex : .lines.count - 1
+            for lineIndex in firstLine to lastLine
+            {
+                let utf8 = Utf8.fromUnicode(.lines[lineIndex]!.chars.toSlice())
+                var byteStart = 0'u64
+                if !pass and lineIndex == origin.lineIndex
+                {
+                    let converted = Utf8.byteIndex(utf8.toSlice(), origin.charPosInLine)
+                    if converted.success do
+                        byteStart = converted.index
+                }
+
+                let found = Utf8.indexOf(utf8.toSlice(), text, byteStart, .Latin1NoCase)
+                if found == Swag.U64.Max do
+                    continue
+
+                var start: RichEditCursor
+                start.lineIndex     = lineIndex
+                start.charPosInLine = Utf8.countRunes(utf8.toSlice()[0 until found])
+                var end             = start
+                end.charPosInLine  += Utf8.countRunes(text)
+                .setSelection(start, end)
+                .forceCaretVisibleCenter = true
+                .invalidate()
+                return true
+            }
+
+            if origin.lineIndex == 0 do
+                break
+        }
+
+        return false
     }
 
     // Insert a text with a given style

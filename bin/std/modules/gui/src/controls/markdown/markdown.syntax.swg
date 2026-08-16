@@ -4,7 +4,28 @@ using Core
 
 private func markdownClosing(text: string, marker: string, start: u64)->u64
 {
-    return Utf8.indexOf(text, marker, start)
+    let markerLength = @countof(marker)
+    var index        = start
+    while index < @countof(text)
+    {
+        if text[index] != marker[0]
+        {
+            index += 1
+            continue
+        }
+
+        var runEnd = index + 1
+        while runEnd < @countof(text) and text[runEnd] == marker[0] do
+            runEnd += 1
+        let runLength = runEnd - index
+        if markerLength == 1 and runLength & 1 do
+            return runEnd - 1
+        if markerLength > 1 and runLength >= markerLength do
+            return runEnd - markerLength
+        index = runEnd
+    }
+
+    return Swag.U64.Max
 }
 
 private func markdownUnderscoreCanOpen(text: string, index: u64)->bool

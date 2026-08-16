@@ -957,15 +957,9 @@ impl HeadlessHost
     mtd keyPress(key: Input.Key, modifiers: Input.KeyModifiers = None)
     {
         // The run loop seeds the focus on the first key when nothing holds it, so a test that
-        // types into a fresh tree behaves like a user typing into a fresh window. The root is
-        // walked directly when nothing adopted it, exactly like `notify`.
-        if !.app.keyboardFocusWnd
-        {
-            if .root.parent do
-                .surfaceWnd.setInitialFocus()
-            else do
-                .root.setInitialFocus()
-        }
+        // types into a fresh tree behaves like a user typing into a fresh window.
+        if !.app.keyboardFocusWnd do
+            .app.seedKeyboardFocus()
 
         let target = .app.keyboardFocusWnd
         if !target do

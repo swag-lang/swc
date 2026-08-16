@@ -15,6 +15,18 @@ using Swag, Core
         @assert(rule.kind == .Rule)
 }
 
+// Nested emphasis consumes the complete delimiter run, including inside block quotes.
+#test
+{
+    @assert(renderMarkdownInline("**bold and *italic***") == "<b>bold and <i>italic</i></b>")
+    @assert(renderMarkdownInline("*italic and **bold***") == "<i>italic and <b>bold</b></i>")
+
+    let blocks = parseMarkdownBlocks("> **bold and *italic***\n> *italic and **bold***")
+    @assert(blocks.count == 1)
+    @assert(blocks[0].kind == .Quote)
+    @assert(blocks[0].text == "<b>bold and <i>italic</i></b>\n<i>italic and <b>bold</b></i>")
+}
+
 // Extended block syntax remains stable at the renderer boundary.
 #test
 {

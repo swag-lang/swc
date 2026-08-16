@@ -38,7 +38,7 @@ using Core, Pixel, Gui
     Pixel.Testing.assertImageGolden(&image, "plugin.code.document")
 }
 
-// End keeps the loaded viewport stable until the real file end is available.
+// End opens a bounded tail window instead of materializing every preceding byte.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -59,12 +59,7 @@ using Core, Pixel, Gui
     let beforeEnd = view.editor.scrollPosition()
     var end = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
     @assert(view.hookOnChildEvent!(view.editor, &end))
-    @assert(view.jumpToEnd)
-    @assert(view.editor.scrollPosition() == beforeEnd)
-    while view.hasMore() do
-        view.loadNextChunk()
     discard host.render(view)
-    @assert(!view.jumpToEnd)
     @assert(view.editor.scrollPosition().y > beforeEnd.y)
 }
 

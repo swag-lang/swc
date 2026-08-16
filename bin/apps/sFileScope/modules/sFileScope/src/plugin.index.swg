@@ -200,10 +200,10 @@ impl ViewerPluginManager
     }
 
     // Creates one selected plugin view, loading its library when first needed.
-    mtd createView(contentParent, commandParent: *Wnd, fileName: string, spec: const *ViewerPluginSpec, directory: string, commands: *#null *Wnd, details: *String)->#null *Wnd fail
+    mtd createView(contentParent, commandParent: *Wnd, fileName: string, spec: const *ViewerPluginSpec, directory: string, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd fail
     {
         let plugin = try .plugin(spec, directory)
-        let view   = plugin.create(contentParent, commandParent, fileName, ViewerPluginApiVersion, commands, details)
+        let view   = plugin.create(contentParent, commandParent, fileName, ViewerPluginApiVersion, commands, details, revealMatch)
         if !view do
             fail UnsupportedFormatError{"viewer plugin does not support this API version"}
         return view!

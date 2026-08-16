@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui, Audio
 
-private const ViewerPluginApiVersion = 3'u32
+private const ViewerPluginApiVersion = 4'u32
 private const SoundGlyphSize = 18.0
 
 // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
@@ -489,11 +489,12 @@ internal impl SoundPluginView
 }
 
 // Creates the WAV playback and waveform view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String)->#null *Wnd
+func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null func||(*Wnd, u64, string)->bool)->#null *Wnd
 {
     if apiVersion != ViewerPluginApiVersion do
         return null
     let view = SoundPluginView.create(contentParent, commandParent, fileName)
+    revealMatch[] = null
     commands[] = view.commands
     details[] = view.details
     return view

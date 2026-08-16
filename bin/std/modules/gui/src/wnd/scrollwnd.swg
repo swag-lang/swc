@@ -9,6 +9,7 @@ public enum ScrollWndFlags
     AlwaysShowHorizontal     // Keeps the horizontal bar visible without overflow.
     AlwaysShowVertical       // Keeps the vertical bar visible without overflow.
     TransparentBars          // Omits the scrollbar track background.
+    DisableHorizontal        // Never exposes horizontal scrolling, even when content is wider.
 }
 
 // Hosts one view in a scrollable viewport with optional smooth panning and scrollbars.
@@ -404,12 +405,12 @@ impl ScrollWnd
         if .needV or .flags.has(.AlwaysShowVertical) do
             .showBarV = true
 
-        if sx > clientRect.width do
+        if !.flags.has(.DisableHorizontal) and sx > clientRect.width do
             .needH = true
         if .needH or .flags.has(.AlwaysShowHorizontal) do
             .showBarH = true
 
-        if .showBarV and .scrollSize.x > clientRect.width - barSize do
+        if !.flags.has(.DisableHorizontal) and .showBarV and .scrollSize.x > clientRect.width - barSize do
             .needH = true
         if .needH or .flags.has(.AlwaysShowHorizontal) do
             .showBarH = true

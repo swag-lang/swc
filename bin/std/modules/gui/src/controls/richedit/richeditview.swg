@@ -174,7 +174,7 @@ impl IWnd for RichEditView
 
         let marginLeft = edn.leftMargin()
         var x          = 0'f32
-        var y          = 0'f32
+        var y          = edn.residentContentOffset
         let size       = edn.xGlyphSize()
 
         // Force visible caret
@@ -303,9 +303,8 @@ impl IWnd for RichEditView
         }
 
         // Scroll size
-        y = cast(f32) (edn.countVisibleLines * size.y)
-        edn.loadedContentHeight = y
-        y = Math.max(y, edn.estimatedContentHeight)
+        edn.loadedContentHeight = cast(f32) (edn.countVisibleLines * size.y)
+        y = Math.max(edn.residentContentOffset + edn.loadedContentHeight, edn.estimatedContentHeight)
         if edn.flags & .WordWrap do
             maxx = 0
         elif !edn.recomputeScroll do

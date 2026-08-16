@@ -87,6 +87,11 @@ internal func updateThreadProc(th: Threading.Thread)
 
             case .UpdateBuffers:
 
+                // A flush can deliver a late OnBufferEnd callback. Do not let that stale
+                // notification repopulate a voice that pause/stop has already taken offline.
+                if !voice.hasState(.Playing) do
+                    continue
+
                 // Update buffer of voice, and stop it if nothing has been updated (end reached)
                 if catch voice.updateNative() == false
                 {

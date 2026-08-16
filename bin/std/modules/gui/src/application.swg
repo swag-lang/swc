@@ -334,18 +334,23 @@ private impl Application
         }
     }
 
-    // Puts the keyboard on the first traversal stop of the surface the keys are meant for.
+    // Puts the keyboard on the first traversal stop, or on the root view of a focusless surface.
     //
     // The innermost modal owns the keyboard while one is up; otherwise the main surface does. This
     // is a last resort for a surface that never placed its own focus — see
-    // [[Gui.Wnd.setInitialFocus]] for saying it deliberately.
-    mtd seedKeyboardFocus()
+    // [[Gui.Wnd.setInitialFocus]] for saying it deliberately. A canvas-style surface has no
+    // traversal stops, but its root still needs keys for a game or another direct-input view.
+    internal mtd seedKeyboardFocus()
     {
         var surface = .mainSurface
         if .modalSurfaces.count do
             surface = .modalSurfaces.back()
-        if surface do
-            surface.wnd.setInitialFocus()
+        if !surface do
+            return
+
+        surface.wnd.setInitialFocus()
+        if !.keyboardFocusWnd do
+            surface.wnd.view.setFocus()
     }
 
     mtd sendMouseWheelEvent(z: s32)

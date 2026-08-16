@@ -93,6 +93,7 @@ struct RichEditCtrl
             firstVisibleLineView:   u64                       // First visible line view associated with this value.
             lastVisibleLineView:    u64                       // Last visible line view associated with this value.
             loadedContentHeight:    f32                       // Height laid out from the text currently held in memory.
+            residentContentOffset:  f32                       // Virtual y origin of the resident text window.
             estimatedContentHeight: f32                       // Optional larger virtual height published by a streaming owner.
             clipFormat:             Clipboard.ValueFormat     // Clip format associated with this value.
             cursorPosUndo:          RichEditCursor            // Cursor pos undo associated with this value.
@@ -140,7 +141,7 @@ private impl RichEditCtrl
         if !.recomputeScroll do
             return
 
-        var y           = 0'f32
+        var y           = .residentContentOffset
         var firstHidden = true
         .countVisibleLines = 0
         for i in @countof(.lines)
@@ -409,8 +410,23 @@ impl RichEditCtrl
     // refined.
     mtd setEstimatedDocumentHeight(height: f32)
     {
+        .residentContentOffset  = 0
         .estimatedContentHeight = Math.max(height, 0)
         .scrollWnd.setScrollSize(.scrollWnd.scrollSize.x, Math.max(.loadedContentHeight, .estimatedContentHeight))
+        .edView.invalidate()
+    }
+
+    // Places the resident text at `offset` inside a larger virtual document of `height`.
+    //
+    // This lets file-backed viewers reveal a distant window without materializing the bytes that
+    // precede it. The next layout pass positions lines and the caret in those virtual coordinates.
+    mtd setVirtualDocumentRange(offset, height: f32)
+    {
+        .residentContentOffset  = Math.max(offset, 0)
+        .estimatedContentHeight = Math.max(height, .residentContentOffset + .loadedContentHeight)
+        .recomputeScroll        = true
+        .dirtyFirstLineView     = true
+        .scrollWnd.setScrollSize(.scrollWnd.scrollSize.x, .estimatedContentHeight)
         .edView.invalidate()
     }
 

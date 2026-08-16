@@ -3,11 +3,13 @@ using Core, Pixel, Gui
 const ViewerBarHeight = 52.0
 const ViewerInfoHeight = 44.0
 const ViewerGlyphSize = 20.0
+const ViewerSearchChunkSize = 256 * 1024'u64
 
 struct ViewerInstance
 {
     view:     #null *Wnd
     commands: #null *Wnd
+    revealMatch: #null ViewerRevealMatch
     details:  String
 }
 
@@ -21,6 +23,8 @@ struct ViewerWindow
         previousButton: *IconButton
         nextButton:     *IconButton
         openButton:     *IconButton
+        searchButton:   *IconButton
+        searchBox:      *EditBox
         viewerCombo:    *ComboBox
         infoBar:        *Wnd
         infoTypeLabel:  *Label
@@ -37,6 +41,13 @@ struct ViewerWindow
     instances:       Array'ViewerInstance
     activeChoiceIndex = Swag.U32.Max
     startupTimer:    #null *Timer
+    searchTimer:     #null *Timer
+    searchStream:    File.FileStream
+    searchQuery:     String
+    searchCarry:     String
+    searchOffset:    u64
+    searchMatch:     u64 = Swag.U64.Max
+    searchWrapped:   bool
     pendingFile:     String
     currentFile:     String
     siblings:        Array'String
@@ -71,6 +82,10 @@ impl IWnd for ViewerWindow
 
         if evt.key == .O and evt.modifiers.has(.Control) do
             .chooseFile()
+        elif evt.key == .F and evt.modifiers.has(.Control) do
+            .showSearch()
+        elif evt.key == .F3 and evt.modifiers == .None do
+            .findNext()
         elif evt.key == .Left and evt.modifiers == .None do
             .navigate(-1)
         elif evt.key == .Right and evt.modifiers == .None do
@@ -83,6 +98,14 @@ impl IWnd for ViewerWindow
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .searchTimer
+        {
+            .removeTimer(evt.timer)
+            .searchTimer = null
+            .searchStep()
+            return
+        }
+
         if evt.timer != .startupTimer
         {
             evt.accepted = false
@@ -100,6 +123,7 @@ impl IWnd for ViewerWindow
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        .stopSearch()
         if .startupTimer
         {
             .removeTimer(.startupTimer!)
@@ -136,6 +160,38 @@ impl ViewerWindow
             {
                 discard button
                 window.chooseFile()
+            }
+        }
+
+        with result.searchBox = EditBox.create(result.commandBar, "", {0, 0, 240, 36})
+        {
+            .dockStyle = .Right
+            .margin.x  = 12
+            .setIcon(result.theme().icon(.Search, 18))
+            .setPlaceholder(appStrings().ui_Search)
+            .sigSubmitted += func|window = result|(edit)
+            {
+                discard edit
+                window.findNext()
+            }
+            .sigCancelled += func|window = result|(edit)
+            {
+                discard edit
+                window.hideSearch()
+            }
+            .hide()
+        }
+
+        with result.searchButton = IconButton.create(result.commandBar, result.theme().icon(.Search, ViewerGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle = .Right
+            .margin.x  = 12
+            .toolTip   = appStrings().ui_Search
+            .enable(false)
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.showSearch()
             }
         }
 
@@ -241,6 +297,9 @@ impl ViewerWindow
 
     mtd showEmpty(message: string)
     {
+        .stopSearch()
+        .searchQuery.clear()
+        .searchMatch = Swag.U64.Max
         .destroyInstances()
 
         .emptyLabel.setText(message)
@@ -300,18 +359,20 @@ impl ViewerWindow
 
         var nextCommands: #null *Wnd
         var nextView:     #null *Wnd
+        var nextReveal:   #null ViewerRevealMatch
         var nextDetails:  String
         if choice.kind == .BasicText
         {
             let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
             nextView     = basic
             nextCommands = basic.commands
+            nextReveal   = &basicTextRevealMatch
             nextDetails  = "UTF-8 · streamed"
         }
         else
         {
             let spec = &.index.specs[choice.specIndex]
-            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails) as pluginError
+            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails, &nextReveal) as pluginError
             if pluginError != null or !nextView
             {
                 if nextCommands do
@@ -330,12 +391,140 @@ impl ViewerWindow
             .currentCommands!.dockStyle = .Right
         instance.view     = .currentView
         instance.commands = .currentCommands
+        instance.revealMatch = nextReveal
         instance.details  = #move nextDetails
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(choice.name.toString(), instance.details.toString())
         .applyLayout()
         .invalidate()
         return true
+    }
+
+    mtd findNext()
+    {
+        let text = .searchBox.text()
+        if !@countof(text) or .currentFile.isEmpty() do
+            return
+        let sameQuery = .searchQuery == text
+        .stopSearch()
+        .searchWrapped = false
+        let offset = sameQuery and .searchMatch != Swag.U64.Max ? .searchMatch + @countof(text) : 0
+        if !sameQuery
+        {
+            .searchQuery = text
+            .searchMatch = Swag.U64.Max
+        }
+        .beginSearch(offset)
+    }
+
+    mtd showSearch()
+    {
+        .currentCommands?.hide()
+        .viewerCombo.hide()
+        .searchBox.hide()
+        .searchButton.show()
+        .searchButton.enable(false)
+        .searchButton.hide()
+        .searchBox.show()
+        .searchBox.setFocus()
+        .applyLayout()
+    }
+
+    mtd hideSearch()
+    {
+        .searchBox.hide()
+        .searchButton.show()
+        if !.choices.isEmpty() do
+            .viewerCombo.show()
+        .currentCommands?.show()
+        .applyLayout()
+    }
+
+    mtd stopSearch()
+    {
+        if .searchTimer
+        {
+            .removeTimer(.searchTimer!)
+            .searchTimer = null
+        }
+        .searchStream.close()
+        .searchCarry.clear()
+    }
+
+    mtd beginSearch(offset: u64)
+    {
+        .searchStream = catch File.openRead(.currentFile.toString()) as openError
+        if openError != null
+        {
+            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+            return
+        }
+        discard catch .searchStream.seek(.Begin, offset)
+        .searchOffset = offset
+        .searchCarry.clear()
+        .infoStatsLabel.setText(appStrings().ui_Searching)
+        .searchTimer = .addTimer(1'ms)
+    }
+
+    mtd searchStep()
+    {
+        if !.searchStream.isOpen() do
+            return
+        let before = catch .searchStream.position() as positionError
+        if positionError != null
+        {
+            .stopSearch()
+            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+            return
+        }
+
+        var bytes: Array'u8
+        bytes.resize(ViewerSearchChunkSize)
+        let count = catch .searchStream.read(bytes.toSlice()) as readError
+        if readError != null
+        {
+            .stopSearch()
+            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+            return
+        }
+        bytes.resize(count)
+
+        let carryLength = .searchCarry.length
+        .searchCarry += @mkstring(bytes.buffer!, bytes.count)
+        let found = Utf8.indexOf(.searchCarry.toString(), .searchQuery.toString(), 0, .Latin1NoCase)
+        if found != Swag.U64.Max
+        {
+            .searchMatch = before - carryLength + found
+            .stopSearch()
+            if .activeChoiceIndex < .instances.count
+            {
+                let instance = &.instances[.activeChoiceIndex]
+                if instance.revealMatch and instance.view and instance.revealMatch!(instance.view!, .searchMatch, .searchQuery.toString())
+                {
+                    .updateFileInfo(.choices[.activeChoiceIndex].name.toString(), instance.details.toString())
+                    return
+                }
+            }
+            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+            return
+        }
+
+        if !count
+        {
+            .stopSearch()
+            if !.searchWrapped and .searchOffset
+            {
+                .searchWrapped = true
+                .beginSearch(0)
+                return
+            }
+            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+            return
+        }
+
+        let keep = Math.min(.searchQuery.length ? .searchQuery.length - 1 : 0, .searchCarry.length)
+        .searchCarry = String.from(.searchCarry.toString()[.searchCarry.length - keep to])
+        .searchTimer = .addTimer(1'ms)
     }
 
     mtd updateFileInfo(viewerName: string, details: string)
@@ -366,6 +555,10 @@ impl ViewerWindow
 
     mtd openFile(fileName: string)
     {
+        .stopSearch()
+        .searchMatch = Swag.U64.Max
+        .searchQuery.clear()
+        .hideSearch()
         if !File.exists(fileName)
         {
             .showEmpty(appStrings().ui_OpenStopped)
@@ -402,6 +595,7 @@ impl ViewerWindow
         }
 
         .emptyLabel.hide()
+        .searchButton.enable(true)
 
         .siblingsDirty = true
 

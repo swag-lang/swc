@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const ViewerPluginApiVersion = 3'u32
+private const ViewerPluginApiVersion = 4'u32
 private const HtmlStreamChunkSize = 8 * 1024'u64
 private const HtmlStreamCarryLimit = 16 * 1024'u64
 private const HtmlStreamLookAhead = 2.0
@@ -43,8 +43,15 @@ internal struct HtmlPluginView
     }
 
     stream:        File.FileStream
+    fileName:      String
     fileSize:      u64
     bytesRead:     u64
+    residentStart: u64
+    virtualOrigin: f32
+    virtualHeight: f32
+    pendingSearch: String
+    pendingSeek:   bool
+    pendingSeekOffset: u64
     sourceCarry:   String
     sourceDone:    bool
     rules:         Array'HtmlCssRule
@@ -52,9 +59,11 @@ internal struct HtmlPluginView
     pendingIndex:  u64
     loadTimer:     #null *Timer
     jumpToEnd:     bool
+    pauseStreaming: bool
     hasPendingY:   bool
     pendingY:      f32
     contentHeight = 42'f32
+    searchBlockIndex = Swag.U64.Max
     bodyTag:       String
     bodyStyle:     HtmlCssStyle
     blocks:        Array'HtmlVisualBlock
@@ -115,6 +124,25 @@ private func htmlDefaultSize(kind: HtmlBlockKind)->u32
 
 internal impl HtmlPluginView
 {
+    mtd findText(text: string)->bool
+    {
+        if !@countof(text) or .blocks.isEmpty() do
+            return false
+        let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
+        for offset in .blocks.count
+        {
+            let index = (first + offset) % .blocks.count
+            if Utf8.indexOf(.blocks[index].label.name.raw, text, 0, .Latin1NoCase) == Swag.U64.Max do
+                continue
+            .searchBlockIndex = index
+            let position = .scroll.scrollPosition()
+            .scroll.setScrollPos(position.x, .blocks[index].label.parent!.position.y + .blocks[index].label.position.y - 24)
+            .blocks[index].label.setFocus()
+            return true
+        }
+        return false
+    }
+
     mtd isLoading()->bool
     {
         return .pendingIndex < .pendingBlocks.count or !.sourceDone or !.sourceCarry.isEmpty()
@@ -199,8 +227,13 @@ internal impl HtmlPluginView
         let geometry        = .documentGeometry()
         let loadedHeight    = .contentHeight + 34
         var estimatedHeight = loadedHeight
-        if .bytesRead and .bytesRead < .fileSize do
-            estimatedHeight = Math.max(loadedHeight * cast(f32) .fileSize / cast(f32) .bytesRead, loadedHeight)
+        let consumed = .bytesRead - .residentStart
+        if consumed and .bytesRead < .fileSize
+        {
+            let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
+            .virtualHeight = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
+            estimatedHeight = Math.max(.virtualHeight, loadedHeight)
+        }
         let pageHeight = Math.max(estimatedHeight, viewport.height - 32)
         let position   = .scroll.scrollPosition()
         .page.setPosition({geometry.pageX, 16, geometry.pageWidth, pageHeight})
@@ -224,7 +257,7 @@ internal impl HtmlPluginView
 
         let geometry = .documentGeometry()
         .page.setPosition({geometry.pageX, 16, geometry.pageWidth, Math.max(.page.position.height, viewport.height - 32)})
-        var y = 42'f32
+        var y = .virtualOrigin + 42
         for &block in .blocks do
             .placeBlock(block, geometry.contentX, geometry.contentWidth, &y)
         .contentHeight = y
@@ -251,6 +284,8 @@ internal impl HtmlPluginView
     {
         if !.isLoading() do
             return false
+        if .pauseStreaming do
+            return false
         if .jumpToEnd or .hasPendingY do
             return true
         let viewport = .scroll.paddedClientRect()
@@ -265,21 +300,28 @@ internal impl HtmlPluginView
         if evt.key == .Home and (evt.modifiers == .None or evt.modifiers == .Control)
         {
             .jumpToEnd   = false
+            .pauseStreaming = false
             .hasPendingY = false
+            if .residentStart do
+                discard .revealOffset(0, "")
             return scrollDocumentWithKey(.scroll, evt)
         }
 
         if evt.key == .End and (evt.modifiers == .None or evt.modifiers == .Control)
         {
             .hasPendingY = false
-            if .isLoading()
+            if .fileSize and .bytesRead < .fileSize
             {
+                let start = .fileSize > HtmlStreamCarryLimit ? .fileSize - HtmlStreamCarryLimit : 0
+                discard .revealOffset(start, "")
                 .jumpToEnd = true
-                .scheduleMore()
-                return true
             }
-
-            return scrollDocumentWithKey(.scroll, evt)
+            else
+            {
+                let position = .scroll.scrollPosition()
+                .scroll.setScrollPos(position.x, .contentHeight)
+            }
+            return true
         }
 
         var delta = 0'f32
@@ -294,6 +336,7 @@ internal impl HtmlPluginView
         }
 
         let position = .scroll.scrollPosition()
+        .pauseStreaming = false
         let origin   = .hasPendingY ? .pendingY : position.y
         let target   = origin + delta
         if .isLoading() and target + viewport.height > .contentHeight
@@ -310,7 +353,7 @@ internal impl HtmlPluginView
 
     mtd scheduleMore()
     {
-        if .loadTimer or !.needsMore() do
+        if .loadTimer or (!.pendingSeek and !.needsMore()) do
             return
         .loadTimer = .addTimer(8'ms)
     }
@@ -431,6 +474,9 @@ internal impl HtmlPluginView
             let position = .scroll.scrollPosition()
             .scroll.setScrollPos(position.x, .pendingY)
         }
+
+        if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
+            .pendingSearch.clear()
     }
 
     mtd stopLoading()
@@ -444,6 +490,50 @@ internal impl HtmlPluginView
         .stream.close()
     }
 
+    mtd revealOffset(offset: u64, text: string)->bool
+    {
+        .stopLoading()
+        for &block in .blocks do
+            block.label.destroy()
+        .blocks.clear()
+        .pendingBlocks.clear()
+        .pendingIndex = 0
+        .sourceCarry.clear()
+        .sourceDone = false
+        .searchBlockIndex = Swag.U64.Max
+        .pendingSearch = text
+
+        let start = Math.min(offset, .fileSize)
+        for adjustment in 4
+        {
+            .stream = catch File.openRead(.fileName.toString()) as openError
+            if openError != null do
+                return false
+            let actual = Math.min(start + adjustment, .fileSize)
+            discard catch .stream.seek(.Begin, actual)
+            let chunk = catch .stream.readUtf8Chunk(HtmlStreamChunkSize) as readError
+            if readError != null
+            {
+                .stream.close()
+                continue
+            }
+
+            let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
+            .residentStart = actual
+            .bytesRead     = actual + chunk.length
+            .sourceCarry   = #move chunk
+            .sourceDone    = .bytesRead >= .fileSize
+            .virtualHeight = Math.max(previousHeight, .scroll.paddedClientRect().height)
+            .virtualOrigin = .fileSize ? .virtualHeight * cast(f32) actual / cast(f32) .fileSize : 0
+            .contentHeight = .virtualOrigin + 42
+            .layoutDocument()
+            .scroll.setScrollPos(0, .virtualOrigin)
+            .scheduleMore()
+            return true
+        }
+        return false
+    }
+
     func createBase(contentParent: *Wnd)->*HtmlPluginView
     {
         let result = Wnd.create'HtmlPluginView(contentParent, "sFileScope.html")
@@ -453,7 +543,7 @@ internal impl HtmlPluginView
 
         result.scroll           = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
-        result.scroll.updateFlags(.CompactBars | .TransparentBars)
+        result.scroll.updateFlags(.DisableHorizontal)
         result.body                            = result.scroll.createView'Wnd()
         result.body.backgroundStyle            = .View
         result.page                            = Wnd.create'HtmlPage(result.body, "sFileScope.html.page")
@@ -461,11 +551,17 @@ internal impl HtmlPluginView
         result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
         {
             discard scroll
-            discard oldPosition
-            discard newPosition
+            if view.pauseStreaming and newPosition.y < oldPosition.y do
+                view.pauseStreaming = false
+            if view.virtualHeight > 0 and !view.blocks.isEmpty() and (newPosition.y + view.scroll.paddedClientRect().height < view.virtualOrigin or newPosition.y > view.contentHeight)
+            {
+                let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
+                view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
+                view.pendingSeek       = true
+            }
             view.scheduleMore()
         }
-        result.hookOnEvent = func|view = result|(wnd, evt)
+        result.scroll.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd
             if evt is ResizeEvent
@@ -505,6 +601,7 @@ internal impl HtmlPluginView
     func create(contentParent: *Wnd, fileName: string)->*HtmlPluginView
     {
         let result = .createBase(contentParent)
+        result.fileName = fileName
         result.stream = catch File.openRead(fileName) as openError
         if openError != null
         {
@@ -546,18 +643,27 @@ internal impl IWnd for HtmlPluginView
 
         .removeTimer(evt.timer)
         .loadTimer = null
+        if .pendingSeek
+        {
+            let offset = .pendingSeekOffset
+            .pendingSeek = false
+            discard .revealOffset(offset, "")
+            return
+        }
         .streamStep()
         .scheduleMore()
     }
 }
 
 // Creates the dedicated HTML and CSS view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String)->#null *Wnd
+func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null func||(*Wnd, u64, string)->bool)->#null *Wnd
 {
     discard commandParent
     if apiVersion != ViewerPluginApiVersion do
         return null
     commands[] = null
     details[] = "HTML · UTF-8 · streamed"
-    return HtmlPluginView.create(contentParent, fileName)
+    let view = HtmlPluginView.create(contentParent, fileName)
+    revealMatch[] = func(wnd, offset, text)->bool { return (cast(*HtmlPluginView) wnd).revealOffset(offset, text) }
+    return view
 }

@@ -20,3 +20,21 @@ using Swag, Core, Win32
     @assert(comOwnsInitialization(S_FALSE))
     @assert(!comOwnsInitialization(RPC_E_CHANGED_MODE))
 }
+
+// XAudio2 rejects a source buffer when any unused playback or loop field contains garbage.
+#test
+{
+    let sample  = 0x7F'u8
+    let context = cast(#null *void) &sample
+    let buffer  = makeXAudio2Buffer(&sample, 1, context)
+
+    @assert(buffer.flags == 0)
+    @assert(buffer.audioBytes == 1)
+    @assert(buffer.pAudioData == &sample)
+    @assert(buffer.playBegin == 0)
+    @assert(buffer.playLength == 0)
+    @assert(buffer.loopBegin == 0)
+    @assert(buffer.loopLength == 0)
+    @assert(buffer.loopCount == 0)
+    @assert(buffer.pContext == context)
+}

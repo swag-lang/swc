@@ -39,7 +39,8 @@ hexadecimal alternative instead of guessing an encoding.
   contents. Emphasis, `***bold italic***`, highlight, strikeout, subscript, superscript, autolinks,
   entities, and inline or display TeX use the same renderer in every application. Pixel's native math
   layout handles fractions, roots, scripts, scalable delimiters, operators, matrices, cases, and aligned
-  expressions. The renderer is offline and executes no embedded HTML or script.
+  expressions. Reader, paper, and compact appearances can be combined with narrow, medium, wide, or
+  fluid reading measures. The renderer is offline and executes no embedded HTML or script.
 - `plugin.html` streams document blocks into a centered page, keeps links explicit, and applies useful CSS
   from style sheets and inline declarations: tag, class, id and simple descendant selectors;
   foreground and background colors; font sizes, weights and styles; alignment; and body width.
@@ -56,8 +57,10 @@ hexadecimal alternative instead of guessing an encoding.
 Text, code, Markdown, and HTML views handle arrows, Home/End, Page Up/Page Down, and Space/Shift+Space
 where appropriate. Their scrollbar represents an estimated full document while content is still
 streaming and keeps its position as that estimate is refined. Forward keyboard navigation waits for
-real content instead of chasing that estimate; End preserves the current viewport while loading to
-EOF and jumps once to the real document end.
+real content instead of chasing that estimate. Home, End, scrollbar jumps, and search open a bounded
+resident window at the requested file offset, so distant navigation never materializes every preceding
+byte. Ctrl+F opens the shared search field, Enter or F3 finds the next occurrence by scanning the file
+in asynchronous 256 KiB chunks, and Escape restores the normal action bar.
 
 The host keeps file type, name, size, and plugin-specific basic statistics in a persistent bottom
 bar whose quieter surface is distinct from the document view. It navigates every file in the current
@@ -73,14 +76,17 @@ A plugin is a standalone shared-library module exporting:
 ```swag
 func sFileScopePluginCreate(contentParent, commandParent: *Gui.Wnd, fileName: string,
                          apiVersion: u32, commands: *#null *Gui.Wnd,
-                         details: *Core.String)->#null *Gui.Wnd
+                         details: *Core.String,
+                         revealMatch: *#null func||(*Gui.Wnd, u64, string)->bool)->#null *Gui.Wnd
 ```
 
 Return null only when the ABI version is not supported. Put optional compact controls in one group
 under `commandParent` and return it through `commands`; return null through `commands` when the view
 needs no actions. Return a concise format-specific summary through `details`; the host combines it
 with the viewer type and file size. Decode errors belong inside a returned view so the host stays
-format-agnostic. Packaged plugin libraries and symbols use the `plugin.<what>` naming family.
+format-agnostic. A searchable plugin returns a `revealMatch` callback that materializes and reveals
+the bounded window containing the supplied byte offset; the host owns the asynchronous file scan.
+Packaged plugin libraries and symbols use the `plugin.<what>` naming family.
 
 `swc tools/apps.swgs dm test sFileScope` tests the host and every shipped plugin as an independent
 executable. `swc tools/apps.swgs dm build sFileScope` packages the DLLs, the registry, and the Audio

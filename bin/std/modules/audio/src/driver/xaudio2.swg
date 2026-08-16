@@ -18,6 +18,22 @@ internal func comApartmentIsUsable(result: HRESULT)->bool => result == S_OK or r
 // apartment the caller still owns.
 internal func comOwnsInitialization(result: HRESULT)->bool => result == S_OK or result == S_FALSE
 
+// Builds a source buffer with every optional playback and loop field disabled.
+internal func makeXAudio2Buffer(data: const *BYTE, size: u32, context: #null *void)->XAUDIO2_BUFFER
+{
+    return XAUDIO2_BUFFER{
+        flags:      0,
+        audioBytes: size,
+        pAudioData: data,
+        playBegin:  0,
+        playLength: 0,
+        loopBegin:  0,
+        loopLength: 0,
+        loopCount:  0,
+        pContext:   context,
+    }
+}
+
 struct XAudio2DriverNative
 {
     xAudio2:        #null *IXAudio2
@@ -73,6 +89,8 @@ impl XAudio2DriverNative
         // Context for xaudio2 threads
         let cxt = @getcontext()
         g_ThreadCxt = cxt[]
+
+        initializeXAudio2Callbacks()
     }
 
     // Destroys the xaudio2 engine
@@ -149,6 +167,15 @@ internal
     var g_Cb:        IXAudio2VoiceCallback    = undefined
     var g_Cbi:       IXAudio2VoiceCallbackItf = undefined
 
+    func enterXAudio2CallbackContext()
+    {
+        // XAudio2 invokes these functions on native worker threads. Install the
+        // application context before tracing or touching any Swag service.
+        let cxt = @getcontext()
+        if cxt == null or @dataof(cxt.allocator) == null do
+            @setcontext(&g_ThreadCxt)
+    }
+
     func onVoiceProcessingPassStart(_me: *IXAudio2VoiceCallback, _bytesRequired: UINT32) {}
     func onVoiceProcessingPassEnd(_me: *IXAudio2VoiceCallback) {}
     func onStreamEnd(_me: *IXAudio2VoiceCallback) {}
@@ -165,29 +192,25 @@ internal
         if safeVoice.hasState(.PendingDestroy) do
             return
 
-        // Called by an xaudio2-owned thread, so we must run under a valid Swag
-        // context. Testing the context pointer alone is not enough: in native
-        // builds @getcontext() never returns null (a fresh foreign thread lazily
-        // gets a default context), so check the allocator to detect a context the
-        // application never configured.
-        let cxt = @getcontext()
-        if cxt == null or @dataof(cxt.allocator) == null do
-            @setcontext(&g_ThreadCxt)
+        enterXAudio2CallbackContext()
 
         g_Driver.updateVoice(safeVoice, .UpdateBuffers)
     }
-}
 
-#init
-{
-    g_Cb.vtbl                        = &g_Cbi
-    g_Cbi.onVoiceProcessingPassStart = &onVoiceProcessingPassStart
-    g_Cbi.onVoiceProcessingPassEnd   = &onVoiceProcessingPassEnd
-    g_Cbi.onStreamEnd                = &onStreamEnd
-    g_Cbi.onBufferStart              = &onBufferStart
-    g_Cbi.onBufferEnd                = &onBufferEnd
-    g_Cbi.onLoopEnd                  = &onLoopEnd
-    g_Cbi.onVoiceError               = &onVoiceError
+    func initializeXAudio2Callbacks()
+    {
+        // Do this when the engine starts instead of in a module initializer. An audio module
+        // loaded as an application plugin does not necessarily execute its #init blocks before
+        // the first exported call, and XAudio2 dereferences this table on its mixer thread.
+        g_Cb.vtbl                        = &g_Cbi
+        g_Cbi.onVoiceProcessingPassStart = &onVoiceProcessingPassStart
+        g_Cbi.onVoiceProcessingPassEnd   = &onVoiceProcessingPassEnd
+        g_Cbi.onStreamEnd                = &onStreamEnd
+        g_Cbi.onBufferStart              = &onBufferStart
+        g_Cbi.onBufferEnd                = &onBufferEnd
+        g_Cbi.onLoopEnd                  = &onLoopEnd
+        g_Cbi.onVoiceError               = &onVoiceError
+    }
 }
 
 ///////////////////////////////////////////////////////////////
@@ -269,11 +292,8 @@ impl Voice
             if !sizeBuffer do
                 break
 
-            var buffer: XAUDIO2_BUFFER = undefined
-            let safePtrBuffer          = ptrBuffer!
-            buffer.pAudioData = cast(const *BYTE) safePtrBuffer
-            buffer.audioBytes = cast() sizeBuffer
-            buffer.pContext   = me
+            let safePtrBuffer = ptrBuffer!
+            let buffer        = makeXAudio2Buffer(cast(const *BYTE) safePtrBuffer, cast() sizeBuffer, me)
             let submitSourceBuffer = handle.vtbl.submitSourceBuffer
             let hr                 = submitSourceBuffer(handle, &buffer, null)
             if hr != S_OK do

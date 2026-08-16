@@ -39,6 +39,7 @@ struct MarkdownVisualBlock
     inline: #null *MarkdownInlineView
     table:  #null *MarkdownTableView
     kind:   MarkdownBlockKind
+    searchText: String
 }
 
 // Displays Markdown as a themed, read-only document with progressive UTF-8 file loading.
@@ -66,8 +67,15 @@ struct MarkdownView
             }
 
             stream:           File.FileStream
+            fileName:         String
             fileSize:         u64
             bytesRead:        u64
+            residentStart:    u64
+            virtualOrigin:    f32
+            virtualHeight:    f32
+            pendingSearch:    String
+            pendingSeek:      bool
+            pendingSeekOffset: u64
             sourceCarry:      String
             sourceDone:       bool
             pendingBlocks:    Array'MarkdownBlock
@@ -75,8 +83,10 @@ struct MarkdownView
             loadTimer:        #null *Timer
             contentHeight:    f32
             jumpToEnd:        bool
+            pauseStreaming:    bool
             hasPendingTarget: bool
             pendingTarget:    f32
+            searchBlockIndex: u64 = Swag.U64.Max
             blocks:           Array'MarkdownVisualBlock
         }
     }
@@ -171,8 +181,13 @@ private impl MarkdownView
         let viewport        = .scroll.paddedClientRect()
         let loadedHeight    = .contentHeight + .documentStyle.bottomInset
         var estimatedHeight = loadedHeight
-        if .bytesRead and .bytesRead < .fileSize do
-            estimatedHeight = Math.max(loadedHeight * cast(f32) .fileSize / cast(f32) .bytesRead, loadedHeight)
+        let consumed = .bytesRead - .residentStart
+        if consumed and .bytesRead < .fileSize
+        {
+            let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
+            .virtualHeight = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
+            estimatedHeight = Math.max(.virtualHeight, loadedHeight)
+        }
         let height   = Math.max(estimatedHeight, viewport.height)
         let position = .scroll.scrollPosition()
         .body.resize(viewport.width, height)
@@ -200,7 +215,7 @@ private impl MarkdownView
             return
 
         let geometry = .documentGeometry()
-        var y        = .documentStyle.topInset
+        var y        = .virtualOrigin + .documentStyle.topInset
         for &block in .blocks do
             .placeBlock(block, geometry.x, geometry.width, &y)
         .contentHeight = y
@@ -210,7 +225,8 @@ private impl MarkdownView
     mtd appendBlock(block: MarkdownBlock)
     {
         var visual: MarkdownVisualBlock
-        visual.kind = block.kind
+        visual.kind       = block.kind
+        visual.searchText = block.text
         if block.kind == .Math
         {
             let math = MarkdownMathView.create(me, .body, block.text.toString())
@@ -252,6 +268,8 @@ private impl MarkdownView
             return false
         if .blocks.isEmpty() do
             return true
+        if .pauseStreaming do
+            return false
         if .jumpToEnd or .hasPendingTarget do
             return true
         let viewport = .scroll.paddedClientRect()
@@ -260,7 +278,7 @@ private impl MarkdownView
 
     mtd scheduleMore()
     {
-        if .loadTimer or !.needsMore() do
+        if .loadTimer or (!.pendingSeek and !.needsMore()) do
             return
         .loadTimer = .addTimer(8'ms)
     }
@@ -346,6 +364,9 @@ private impl MarkdownView
             .scroll.setScrollPos(position.x, .pendingTarget)
         }
 
+        if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
+            .pendingSearch.clear()
+
         if .isLoading() do
             return
 
@@ -386,19 +407,23 @@ private impl MarkdownView
         case .PageDown where evt.modifiers == .None:                          target += page; forward = true
         case .Home where evt.modifiers == .None or evt.modifiers == .Control:
             .jumpToEnd        = false
+            .pauseStreaming   = false
             .hasPendingTarget = false
+            if .residentStart do
+                discard .revealFileOffset(0, "")
             .scroll.setScrollPos(position.x, 0)
             return true
 
         case .End where evt.modifiers == .None or evt.modifiers == .Control:
             .hasPendingTarget = false
-            if .isLoading()
+            if .fileSize and (.residentStart + (.bytesRead - .residentStart) < .fileSize)
             {
+                let start = .fileSize > MarkdownStreamCarryLimit ? .fileSize - MarkdownStreamCarryLimit : 0
+                discard .revealFileOffset(start, "")
                 .jumpToEnd = true
-                .scheduleMore()
             }
             else do
-                .scroll.setScrollPos(position.x, .scroll.scrollableClientRect().height)
+                .scroll.setScrollPos(position.x, .contentHeight)
             return true
 
         case .Space where evt.modifiers == .None:  target += page; forward = true
@@ -406,7 +431,8 @@ private impl MarkdownView
         default: return false
         }
 
-        .jumpToEnd = false
+        .jumpToEnd      = false
+        .pauseStreaming = false
         if forward and .isLoading() and target + viewport.height > .contentHeight
         {
             .hasPendingTarget = true
@@ -452,17 +478,25 @@ public impl MarkdownView
 
         result.scroll           = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
-        result.scroll.updateFlags(.CompactBars | .TransparentBars)
+        result.scroll.updateFlags(.DisableHorizontal)
         result.body                            = result.scroll.createView'Wnd()
         result.body.backgroundStyle            = .View
         result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
         {
             discard scroll
-            discard oldPosition
-            discard newPosition
+            if view.pauseStreaming and newPosition.y < oldPosition.y do
+                view.pauseStreaming = false
+            if view.virtualHeight > 0 and !view.blocks.isEmpty() and (newPosition.y + view.scroll.paddedClientRect().height < view.virtualOrigin or newPosition.y > view.contentHeight)
+            {
+                let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
+                view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
+                view.pendingSeek       = true
+            }
             view.scheduleMore()
         }
-        result.hookOnEvent = func|view = result|(wnd, evt)
+        // The scroll viewport receives its final size during the parent's layout pass. Relayout
+        // from that child resize so document centering never uses the previous window width.
+        result.scroll.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd
             if evt is ResizeEvent
@@ -502,6 +536,7 @@ public impl MarkdownView
     func createFile(contentParent: *Wnd, fileName: string, documentStyle: MarkdownStyle = {})->*MarkdownView
     {
         let result = .create(contentParent, documentStyle)
+        result.fileName = fileName
         result.stream = catch File.openRead(fileName) as openError
         if openError != null
         {
@@ -534,6 +569,76 @@ public impl MarkdownView
 
     // Reports the laid-out height of the source rendered so far.
     mtd const loadedDocumentHeight()->f32 => .contentHeight + .documentStyle.bottomInset
+
+    // Scrolls to the next rendered block containing `text`, wrapping once at the end.
+    mtd findText(text: string)->bool
+    {
+        if !@countof(text) or .blocks.isEmpty() do
+            return false
+
+        let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
+        for offset in .blocks.count
+        {
+            let index = (first + offset) % .blocks.count
+            let source = .blocks[index].searchText.toString()
+            if Utf8.indexOf(source, text, 0, .Latin1NoCase) == Swag.U64.Max do
+                continue
+
+            .searchBlockIndex = index
+            let position = .scroll.scrollPosition()
+            .scroll.setScrollPos(position.x, .blocks[index].wnd.position.y - .documentStyle.topInset)
+            .blocks[index].wnd.setFocus()
+            return true
+        }
+
+        return false
+    }
+
+    // Repositions the streamed document at a byte offset and reveals `text` as soon as its block
+    // is materialized, without parsing the preceding bytes.
+    mtd revealFileOffset(offset: u64, text: string)->bool
+    {
+        .stopLoading()
+        for &block in .blocks do
+            block.wnd.destroy()
+        .blocks.clear()
+        .pendingBlocks.clear()
+        .pendingIndex = 0
+        .sourceCarry.clear()
+        .sourceDone = false
+        .searchBlockIndex = Swag.U64.Max
+        .pendingSearch = text
+
+        let start = Math.min(offset, .fileSize)
+        for adjustment in 4
+        {
+            .stream = catch File.openRead(.fileName.toString()) as openError
+            if openError != null do
+                return false
+            let actual = Math.min(start + adjustment, .fileSize)
+            discard catch .stream.seek(.Begin, actual)
+            let chunk = catch .stream.readUtf8Chunk(MarkdownStreamChunkSize) as readError
+            if readError != null
+            {
+                .stream.close()
+                continue
+            }
+
+            let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
+            .residentStart = actual
+            .bytesRead     = actual + chunk.length
+            .sourceCarry   = #move chunk
+            .sourceDone    = .bytesRead >= .fileSize
+            .virtualHeight = Math.max(previousHeight, .scroll.paddedClientRect().height)
+            .virtualOrigin = .fileSize ? .virtualHeight * cast(f32) actual / cast(f32) .fileSize : 0
+            .contentHeight = .virtualOrigin + .documentStyle.topInset
+            .layoutDocument()
+            .scroll.setScrollPos(0, .virtualOrigin)
+            .scheduleMore()
+            return true
+        }
+        return false
+    }
 }
 
 internal impl IWnd for MarkdownView
@@ -565,6 +670,13 @@ internal impl IWnd for MarkdownView
 
         .removeTimer(evt.timer)
         .loadTimer = null
+        if .pendingSeek
+        {
+            let offset = .pendingSeekOffset
+            .pendingSeek = false
+            discard .revealFileOffset(offset, "")
+            return
+        }
         .streamStep()
         .scheduleMore()
     }

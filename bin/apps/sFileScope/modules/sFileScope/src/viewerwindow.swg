@@ -1,4 +1,4 @@
-using Core, Pixel, Gui
+using Core, Pixel, Gui, FileScopePluginApi
 
 const ViewerBarHeight = 52.0
 const ViewerInfoHeight = 44.0
@@ -357,10 +357,10 @@ impl ViewerWindow
             return true
         }
 
-        var nextCommands: #null *Wnd
-        var nextView:     #null *Wnd
-        var nextReveal:   #null ViewerRevealMatch
-        var nextDetails:  String
+        var nextCommands: #null *Wnd = null
+        var nextView:     #null *Wnd = null
+        var nextReveal:   #null ViewerRevealMatch = null
+        var nextDetails:  String = {}
         if choice.kind == .BasicText
         {
             let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())

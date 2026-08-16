@@ -1,8 +1,7 @@
 #global public
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, FileScopePluginApi
 
-private const ViewerPluginApiVersion = 4'u32
 private const CodeStreamChunkSize = 16 * 1024'u64
 private const CodeStreamLookAhead = 2.0
 private const CodeResidentWindowSize = 256 * 1024'u64
@@ -301,7 +300,7 @@ internal impl IWnd for CodePluginView
 }
 
 // Creates the syntax-colored Swag source view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null func||(*Wnd, u64, string)->bool)->#null *Wnd
+func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
 {
     discard commandParent
     if apiVersion != ViewerPluginApiVersion do

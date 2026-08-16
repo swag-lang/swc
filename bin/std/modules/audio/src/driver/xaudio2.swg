@@ -89,8 +89,6 @@ impl XAudio2DriverNative
         // Context for xaudio2 threads
         let cxt = @getcontext()
         g_ThreadCxt = cxt[]
-
-        initializeXAudio2Callbacks()
     }
 
     // Destroys the xaudio2 engine
@@ -170,7 +168,7 @@ internal
     func enterXAudio2CallbackContext()
     {
         // XAudio2 invokes these functions on native worker threads. Install the
-        // application context before tracing or touching any Swag service.
+        // application context before touching any Swag service.
         let cxt = @getcontext()
         if cxt == null or @dataof(cxt.allocator) == null do
             @setcontext(&g_ThreadCxt)
@@ -196,21 +194,18 @@ internal
 
         g_Driver.updateVoice(safeVoice, .UpdateBuffers)
     }
+}
 
-    func initializeXAudio2Callbacks()
-    {
-        // Do this when the engine starts instead of in a module initializer. An audio module
-        // loaded as an application plugin does not necessarily execute its #init blocks before
-        // the first exported call, and XAudio2 dereferences this table on its mixer thread.
-        g_Cb.vtbl                        = &g_Cbi
-        g_Cbi.onVoiceProcessingPassStart = &onVoiceProcessingPassStart
-        g_Cbi.onVoiceProcessingPassEnd   = &onVoiceProcessingPassEnd
-        g_Cbi.onStreamEnd                = &onStreamEnd
-        g_Cbi.onBufferStart              = &onBufferStart
-        g_Cbi.onBufferEnd                = &onBufferEnd
-        g_Cbi.onLoopEnd                  = &onLoopEnd
-        g_Cbi.onVoiceError               = &onVoiceError
-    }
+#init
+{
+    g_Cb.vtbl                        = &g_Cbi
+    g_Cbi.onVoiceProcessingPassStart = &onVoiceProcessingPassStart
+    g_Cbi.onVoiceProcessingPassEnd   = &onVoiceProcessingPassEnd
+    g_Cbi.onStreamEnd                = &onStreamEnd
+    g_Cbi.onBufferStart              = &onBufferStart
+    g_Cbi.onBufferEnd                = &onBufferEnd
+    g_Cbi.onLoopEnd                  = &onLoopEnd
+    g_Cbi.onVoiceError               = &onVoiceError
 }
 
 ///////////////////////////////////////////////////////////////

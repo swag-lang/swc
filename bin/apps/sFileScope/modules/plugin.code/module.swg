@@ -1,4 +1,5 @@
 #import("gui", location: "swag@std")
+#import("plugin.api")
 
 #run
 {

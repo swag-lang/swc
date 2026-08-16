@@ -1,8 +1,6 @@
 #global public
 
-using Core, Gui
-
-private const ViewerPluginApiVersion = 4'u32
+using Core, Gui, FileScopePluginApi
 
 private func markdownViewerStyle(themeIndex, widthIndex: u32)->MarkdownStyle
 {
@@ -44,7 +42,7 @@ private func applyMarkdownViewerStyle(view: *MarkdownView, themeIndex, widthInde
 }
 
 // Creates the Markdown view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null func||(*Wnd, u64, string)->bool)->#null *Wnd
+func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
 {
     if apiVersion != ViewerPluginApiVersion do
         return null

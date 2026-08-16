@@ -1,8 +1,7 @@
 #global public
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, FileScopePluginApi
 
-private const ViewerPluginApiVersion = 4'u32
 private const ImageGlyphSize = 18.0
 private const ImageCommandWidth = 362.0
 private const GifCommandWidth = 590.0
@@ -270,7 +269,7 @@ private impl ImagePluginView
 }
 
 // Creates the image view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null func||(*Wnd, u64, string)->bool)->#null *Wnd
+func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
 {
     if apiVersion != ViewerPluginApiVersion do
         return null

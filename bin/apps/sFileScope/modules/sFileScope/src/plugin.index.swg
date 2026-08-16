@@ -1,4 +1,4 @@
-using Core, Core.Errors, Gui
+using Core, Core.Errors, Gui, FileScopePluginApi
 
 // One viewer plugin associated with a set of lowercase filename extensions.
 struct ViewerPluginSpec

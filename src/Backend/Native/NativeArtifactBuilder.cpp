@@ -55,16 +55,19 @@ namespace
 
     enum class RuntimeHookStage : uint64_t
     {
-        Sync    = 0,
-        Init    = 1,
-        PreMain = 2,
-        Drop    = 3,
+        Sync          = 0,
+        Init          = 1,
+        PreMain       = 2,
+        Drop          = 3,
+        DynamicLoad   = 4,
+        DynamicUnload = 5,
     };
 
     constexpr uint32_t K_RUNTIME_HOOK_INIT_DONE             = 1u << 0;
     constexpr uint32_t K_RUNTIME_HOOK_PREMAIN_DONE          = 1u << 1;
     constexpr uint32_t K_RUNTIME_HOOK_DROP_DONE             = 1u << 2;
     constexpr uint32_t K_RUNTIME_HOOK_PREMAIN_COMPILER_DONE = 1u << 3;
+    constexpr uint32_t K_RUNTIME_HOOK_STATIC_OWNER          = 1u << 4;
 
     uint32_t runtimeHookStageDoneMask(const RuntimeHookStage stage)
     {
@@ -164,10 +167,8 @@ namespace
     }
 
     template<typename F>
-    void emitGuardedRuntimeHookStage(MicroBuilder& builder, const MicroLabelRef stageLabel, const MicroLabelRef doneLabel, const RuntimeHookStage stage, const uint32_t lifecycleStateOffset, const F& body, uint32_t& nextVirtualIntRegIndex, const uint32_t doneMaskOverride = 0)
+    void emitGuardedLifecycleBody(MicroBuilder& builder, const RuntimeHookStage stage, const uint32_t lifecycleStateOffset, const F& body, uint32_t& nextVirtualIntRegIndex, const uint32_t doneMaskOverride = 0)
     {
-        builder.placeLabel(stageLabel);
-
         const MicroReg lifecycleStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegDataSegmentReloc(lifecycleStateReg, DataSegmentKind::GlobalZero, lifecycleStateOffset);
 
@@ -189,7 +190,25 @@ namespace
         body();
 
         builder.placeLabel(skipLabel);
+    }
+
+    template<typename F>
+    void emitGuardedRuntimeHookStage(MicroBuilder& builder, const MicroLabelRef stageLabel, const MicroLabelRef doneLabel, const RuntimeHookStage stage, const uint32_t lifecycleStateOffset, const F& body, uint32_t& nextVirtualIntRegIndex, const uint32_t doneMaskOverride = 0)
+    {
+        builder.placeLabel(stageLabel);
+        emitGuardedLifecycleBody(builder, stage, lifecycleStateOffset, body, nextVirtualIntRegIndex, doneMaskOverride);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    }
+
+    void emitAddLifecycleStateMask(MicroBuilder& builder, const uint32_t lifecycleStateOffset, const uint32_t mask, uint32_t& nextVirtualIntRegIndex)
+    {
+        const MicroReg lifecycleStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegDataSegmentReloc(lifecycleStateReg, DataSegmentKind::GlobalZero, lifecycleStateOffset);
+
+        const MicroReg stateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegMem(stateReg, lifecycleStateReg, 0, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(stateReg, ApInt(mask, 64), MicroOp::Or, MicroOpBits::B32);
+        builder.emitLoadMemReg(lifecycleStateReg, 0, stateReg, MicroOpBits::B32);
     }
 }
 
@@ -233,11 +252,15 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
             return Result::Continue;
     }
 
-    CompilerInstance& compiler                               = builder_->compiler();
-    const auto [lifecycleStateOffset, lifecycleStateStorage] = compiler.globalZeroSegment().reserve<uint32_t>();
-    auto* const lifecycleStatePtr                            = reinterpret_cast<uint32_t*>(lifecycleStateStorage);
+    CompilerInstance& compiler                                   = builder_->compiler();
+    const auto [lifecycleStateOffset, lifecycleStateStorage]     = compiler.globalZeroSegment().reserve<uint32_t>();
+    const auto [dynamicReferenceOffset, dynamicReferenceStorage] = compiler.globalZeroSegment().reserve<uint32_t>();
+    auto* const lifecycleStatePtr                                = reinterpret_cast<uint32_t*>(lifecycleStateStorage);
+    auto* const dynamicReferencePtr                              = reinterpret_cast<uint32_t*>(dynamicReferenceStorage);
     if (lifecycleStatePtr)
         *lifecycleStatePtr = 0;
+    if (dynamicReferencePtr)
+        *dynamicReferencePtr = 0;
 
     auto machineCode = std::make_unique<MachineCode>();
 
@@ -276,6 +299,8 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     const MicroLabelRef preMainRuntimeLabel  = builder.createLabel();
     const MicroLabelRef preMainCompilerLabel = builder.createLabel();
     const MicroLabelRef dropLabel            = builder.createLabel();
+    const MicroLabelRef dynamicLoadLabel     = builder.createLabel();
+    const MicroLabelRef dynamicUnloadLabel   = builder.createLabel();
     const MicroLabelRef doneLabel            = builder.createLabel();
 
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Sync), 64), MicroOpBits::B64);
@@ -286,15 +311,22 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, preMainSelectLabel);
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Drop), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dropLabel);
+    builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicLoad), 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicLoadLabel);
+    builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicUnload), 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicUnloadLabel);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
     builder.placeLabel(syncLabel);
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Sync, hookArgs, nextVirtualIntRegIndex);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
-    emitGuardedRuntimeHookStage(builder, initLabel, doneLabel, RuntimeHookStage::Init, lifecycleStateOffset, [&] {
+    builder.placeLabel(initLabel);
+    emitAddLifecycleStateMask(builder, lifecycleStateOffset, K_RUNTIME_HOOK_STATIC_OWNER, nextVirtualIntRegIndex);
+    emitGuardedLifecycleBody(builder, RuntimeHookStage::Init, lifecycleStateOffset, [&] {
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, hookArgs, nextVirtualIntRegIndex);
         emitLifecycleCalls(builder, builder_->initFunctions); }, nextVirtualIntRegIndex);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
     builder.placeLabel(preMainSelectLabel);
     const MicroReg preMainFlagsReg = nextVirtualIntReg(nextVirtualIntRegIndex);
@@ -316,6 +348,64 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
         emitLifecycleCalls(builder, builder_->dropFunctions);
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, hookArgs, nextVirtualIntRegIndex); }, nextVirtualIntRegIndex);
 
+    builder.placeLabel(dynamicLoadLabel);
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::DynamicLoad, hookArgs, nextVirtualIntRegIndex);
+    {
+        const MicroReg referenceReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegDataSegmentReloc(referenceReg, DataSegmentKind::GlobalZero, dynamicReferenceOffset);
+        const MicroReg countReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegMem(countReg, referenceReg, 0, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B32);
+        builder.emitLoadMemReg(referenceReg, 0, countReg, MicroOpBits::B32);
+    }
+    emitGuardedLifecycleBody(builder, RuntimeHookStage::Init, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->initFunctions); }, nextVirtualIntRegIndex);
+
+    {
+        const MicroLabelRef dynamicPreMainCompilerLabel = builder.createLabel();
+        const MicroLabelRef dynamicPreMainDoneLabel     = builder.createLabel();
+        const MicroReg      dynamicPreMainFlagsReg      = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegReg(dynamicPreMainFlagsReg, hookArgs.runtimeFlags, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(dynamicPreMainFlagsReg, ApInt(static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), 64), MicroOp::And, MicroOpBits::B64);
+        builder.emitCmpRegImm(dynamicPreMainFlagsReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, dynamicPreMainCompilerLabel);
+        emitGuardedLifecycleBody(builder, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->preMainFunctions); }, nextVirtualIntRegIndex);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, dynamicPreMainDoneLabel);
+        builder.placeLabel(dynamicPreMainCompilerLabel);
+        emitGuardedLifecycleBody(builder, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->preMainFunctions); }, nextVirtualIntRegIndex, K_RUNTIME_HOOK_PREMAIN_COMPILER_DONE);
+        builder.placeLabel(dynamicPreMainDoneLabel);
+    }
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+    builder.placeLabel(dynamicUnloadLabel);
+    {
+        const MicroReg referenceReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegDataSegmentReloc(referenceReg, DataSegmentKind::GlobalZero, dynamicReferenceOffset);
+        const MicroReg countReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegMem(countReg, referenceReg, 0, MicroOpBits::B32);
+
+        const MicroLabelRef releaseDependenciesLabel = builder.createLabel();
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, releaseDependenciesLabel);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B32);
+        builder.emitLoadMemReg(referenceReg, 0, countReg, MicroOpBits::B32);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, releaseDependenciesLabel);
+
+        const MicroReg lifecycleStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegDataSegmentReloc(lifecycleStateReg, DataSegmentKind::GlobalZero, lifecycleStateOffset);
+        const MicroReg staticOwnerReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegMem(staticOwnerReg, lifecycleStateReg, 0, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(staticOwnerReg, ApInt(K_RUNTIME_HOOK_STATIC_OWNER, 64), MicroOp::And, MicroOpBits::B32);
+        builder.emitCmpRegImm(staticOwnerReg, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, releaseDependenciesLabel);
+
+        emitGuardedLifecycleBody(builder, RuntimeHookStage::Drop, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->dropFunctions); }, nextVirtualIntRegIndex);
+
+        builder.placeLabel(releaseDependenciesLabel);
+    }
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::DynamicUnload, hookArgs, nextVirtualIntRegIndex);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
     builder.placeLabel(doneLabel);
     builder.emitRet();
 
@@ -328,8 +418,8 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     info.symbolName  = info.sortKey;
     if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
         info.exportName = K_SHARED_RUNTIME_HOOK_SYMBOL;
-    info.debugName   = std::format("{}::__runtimeHook", nativeArtifactScopeName(compiler));
-    info.exported    = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
+    info.debugName = std::format("{}::__runtimeHook", nativeArtifactScopeName(compiler));
+    info.exported  = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
 
     builder_->generatedMachineCodes.push_back(std::move(machineCode));
     builder_->functionInfos.push_back(std::move(info));

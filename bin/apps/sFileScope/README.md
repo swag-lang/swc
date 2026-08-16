@@ -77,7 +77,7 @@ A plugin is a standalone shared-library module exporting:
 func sFileScopePluginCreate(contentParent, commandParent: *Gui.Wnd, fileName: string,
                          apiVersion: u32, commands: *#null *Gui.Wnd,
                          details: *Core.String,
-                         revealMatch: *#null func||(*Gui.Wnd, u64, string)->bool)->#null *Gui.Wnd
+                         revealMatch: *#null func(*Gui.Wnd, u64, string)->bool)->#null *Gui.Wnd
 ```
 
 Return null only when the ABI version is not supported. Put optional compact controls in one group

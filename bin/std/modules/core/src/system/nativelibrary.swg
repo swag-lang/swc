@@ -3,7 +3,19 @@
 using Core.Errors
 
 private const SwagRuntimeHookSymbol = "__swc_rt_stage"
-private const SwagRuntimeHookSync   = 0'u64
+private const SwagRuntimeHookSync          = 0'u64
+private const SwagRuntimeHookDynamicLoad   = 4'u64
+private const SwagRuntimeHookDynamicUnload = 5'u64
+
+private func callSwagRuntimeHook(handle: *void, stage: u64)
+{
+    let runtimeHook = nativeLibrarySymbol(handle, SwagRuntimeHookSymbol)
+    if !runtimeHook do
+        return
+
+    let hook = cast(func(u64, u64, u64, const *#null string)) runtimeHook!
+    hook(stage, @getcontext().runtimeTlsIdPlusOne, cast(u64) @getcontext().runtimeFlags, &@pinfos.args)
+}
 
 // Owns one dynamically loaded native library.
 //
@@ -38,30 +50,31 @@ impl NativeLibrary
 
     // Releases the loaded library. Repeated calls have no effect.
     //
-    // Every address returned by [[Core.NativeLibrary.symbol]] becomes invalid.
+    // For a Swag library, this releases one dynamic lifecycle reference and runs its `#drop`
+    // blocks before unloading when no static or dynamic owner remains. Every address returned by
+    // [[Core.NativeLibrary.symbol]] becomes invalid.
     mtd close()
     {
         if !.handle do
             return
+        callSwagRuntimeHook(.handle!, SwagRuntimeHookDynamicUnload)
         closeNativeLibrary(.handle!)
         .handle = null
     }
 
     // Loads a native library from `path`.
     //
-    // The returned owner closes the library automatically. Loading fails when the platform loader
+    // The returned owner closes the library automatically. For a Swag library, loading adopts the
+    // caller's runtime context and runs `#init` and `#premain` once before this function returns.
+    // Repeated loads hold independent lifecycle references. Loading fails when the platform loader
     // cannot resolve the file or one of its dependencies.
     func load(path: string)->NativeLibrary fail
     {
         var result: retval
         result.handle = try loadNativeLibrary(path)
 
-        let runtimeHook = nativeLibrarySymbol(result.handle!, SwagRuntimeHookSymbol)
-        if runtimeHook
-        {
-            let sync = cast(func(u64, u64, u64, const *#null string)) runtimeHook!
-            sync(SwagRuntimeHookSync, @getcontext().runtimeTlsIdPlusOne, cast(u64) @getcontext().runtimeFlags, &@pinfos.args)
-        }
+        callSwagRuntimeHook(result.handle!, SwagRuntimeHookSync)
+        callSwagRuntimeHook(result.handle!, SwagRuntimeHookDynamicLoad)
 
         return result
     }

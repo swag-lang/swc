@@ -94,6 +94,20 @@ struct ThemeColors
         btnPush_StrongPressedBorder: Color     // Border of a pressed strong button.
         btnPush_StrongPressedBk:     Color     // Fill of a pressed strong button.
 
+        // The same filled action in the alternate tone, for the button that leads somewhere
+        // else rather than the one that does the work of the surface. A surface shows one
+        // strong action and, at most, one alternate beside it: two filled buttons of the same
+        // tone are two primary actions, which is one too many.
+        btnPush_AlternateText:          Color     // Label of an alternate action.
+        btnPush_AlternateBorder:        Color     // Border of an alternate action.
+        btnPush_AlternateBk:            Color     // Fill of an alternate action.
+        btnPush_AlternateHotText:       Color     // Label of a hovered alternate action.
+        btnPush_AlternateHotBorder:     Color     // Border of a hovered alternate action.
+        btnPush_AlternateHotBk:         Color     // Fill of a hovered alternate action.
+        btnPush_AlternatePressedText:   Color     // Label of a pressed alternate action.
+        btnPush_AlternatePressedBorder: Color     // Border of a pressed alternate action.
+        btnPush_AlternatePressedBk:     Color     // Fill of a pressed alternate action.
+
         btnPush_Text:           Color     // Label of a push button.
         btnPush_Border:         Color     // Border of a push button.
         btnPush_Bk:             Color     // Fill of a push button.
@@ -454,9 +468,32 @@ impl ThemeColors
     private const CaptionFadeRatio = 2.0'f32
 
     // The glow of the two Swag palettes, which is the shipped title bar of every standard
-    // application. Written once so the two modes cannot drift apart, the way the delta-based
-    // palettes used to.
-    private const SwagCaptionGlow = 0.14'f32
+    // application.
+    //
+    // They are one decision written twice rather than two, and the second number is not free: a
+    // wash toward Voltage on ink is spent on luminance, and on paper — where Voltage and the band
+    // part by less than a tenth of a step of it — the same weight has to be bought in chroma
+    // instead. Kept at the dark number, the light band was a cream nobody could name, which is
+    // the flat bar this token exists to prevent.
+    private const SwagCaptionGlowDark = 0.14'f32
+    private const SwagCaptionGlowLight = 0.42'f32
+
+    // How much contrast a mark owes the ground it lands on.
+    //
+    // Below three a rule, a ring or a glyph is not separated from what it is drawn over; the
+    // extra half step is what a mark that is also a word — a link, a checked label — needs to
+    // stay a word. A link asks for the full text bar of its own, against the ground it is read on.
+    private const MarkContrast = 3.5'f32
+    private const LinkContrast = 4.5'f32
+
+    // The system accent the two neutral palettes are built on, and the ink it carries. Their
+    // second tone is the same blue lifted into a block: it still separates a link from an action,
+    // and an anonymous theme has no second identity to say anything more with. One value for both
+    // modes, for the reason every block has one — a block is what the reader recognizes.
+    private const SystemBlue: Color = 0xFF1473E6
+    private const OnSystemBlue: Color = 0xFFFFFFFF
+    private const SystemBlueSoft: Color = 0xFF7FBAF2
+    private const OnSystemBlueSoft: Color = 0xFF102132
 
     // Moves a fill by `amount` in whichever direction is visible on it.
     //
@@ -484,6 +521,60 @@ impl ThemeColors
         .btnPush_StrongPressedBk     = shiftState(bk, StrongPressedShift)
     }
 
+    // The same three states, in the alternate tone.
+    private mtd setAlternateStates(text, border, bk: Color)
+    {
+        .btnPush_AlternateHotText       = text
+        .btnPush_AlternateHotBorder     = shiftState(border, StrongHotShift)
+        .btnPush_AlternateHotBk         = shiftState(bk, StrongHotShift)
+        .btnPush_AlternatePressedText   = text
+        .btnPush_AlternatePressedBorder = shiftState(border, StrongPressedShift)
+        .btnPush_AlternatePressedBk     = shiftState(bk, StrongPressedShift)
+    }
+
+    // How many times a mark is allowed to be moved before the grounds are declared irreconcilable.
+    // Each pass answers the ground the mark is nearest, which can hand it to another one; four is
+    // one pass per ground, and no palette of four grounds needs more.
+    private const MarkPasses = 4
+
+    // Returns the ground of `p` that `mark` has the hardest time on.
+    //
+    // It is the one nearest it, which is not the same as the extreme one: a mid-tone accent on a
+    // dark theme clears the near-black application ground easily and disappears on the raised
+    // grey of the panel drawn over it — which is exactly what the shipped neutral blue did.
+    private func hardestGround(p: ThemePalette, mark: Color)->Color
+    {
+        var result = p.ground
+        for candidate in [p.view, p.panel, p.raised] where mark.contrastRatio(candidate) < mark.contrastRatio(result) do
+            result = candidate
+        return result
+    }
+
+    // Returns `tone` with a mark that reads on every ground `p` paints.
+    //
+    // This is what lets one written color answer in both modes. A palette says a tone fills with
+    // Voltage and points with Voltage; on ink that is already a hairline anyone can see, and on
+    // paper it is nothing at all, so the theme walks the same hue until it separates from the
+    // page. Deepening rather than replacing is the whole point: the light theme still points in
+    // the family color instead of falling back to ink, which is what left it black and white.
+    //
+    // Moving a mark can hand it to a different ground, so the answer is looked for again until
+    // the worst one is satisfied.
+    private func readableTone(tone: ThemeTone, p: ThemePalette)->ThemeTone
+    {
+        var result = tone
+
+        for MarkPasses
+        {
+            let ground = hardestGround(p, result.mark)
+            if result.mark.contrastRatio(ground) >= MarkContrast do
+                break
+            result.mark.ensureContrast(ground, MarkContrast)
+        }
+
+        return result
+    }
+
     // Derives every semantic color of the theme from `p`.
     //
     // This is the whole rule book, and it is the reason a theme cannot be half written: the
@@ -492,13 +583,21 @@ impl ThemeColors
     // what each part of the interface is allowed to be.
     mtd apply(p: ThemePalette)
     {
+        // Every tone is made readable on the grounds of the theme before anything is derived from
+        // it, so no part downstream has to know which mode it is being painted in.
+        let signature = readableTone(p.signature, p)
+        let alternate = readableTone(p.alternate, p)
+        let critical  = readableTone(p.critical, p)
+        let caution   = readableTone(p.caution, p)
+        let info      = readableTone(p.info, p)
+
         // A filled action travels in its own color, whatever that color is. The mark and the
-        // block travel separately, because a palette is allowed to point with one color and
-        // fill with another — see the accent pair in [[Gui.ThemePalette]].
-        let accentHot     = shiftState(p.accent, StrongHotShift)
-        let accentPressed = shiftState(p.accent, StrongPressedShift)
-        let groundHot     = shiftState(p.accentGround, StrongHotShift)
-        let groundPressed = shiftState(p.accentGround, StrongPressedShift)
+        // block travel separately, because a tone is allowed to point with one color and
+        // fill with another — see [[Gui.ThemeTone]].
+        let accentHot     = shiftState(signature.mark, StrongHotShift)
+        let accentPressed = shiftState(signature.mark, StrongPressedShift)
+        let groundHot     = shiftState(signature.ground, StrongHotShift)
+        let groundPressed = shiftState(signature.ground, StrongPressedShift)
 
         .richColor1 = p.rich1
         .richColor2 = p.rich2
@@ -510,12 +609,12 @@ impl ThemeColors
         .border = p.line
         .text   = p.text
 
-        .hilight              = p.accent
-        .hilightLightContrast = p.onAccent
-        .activeRail           = p.railed ? p.accent : .transparent
-        .focusRing            = p.accent
-        .focusRingOnAccent    = p.onAccent
-        .error                = p.error
+        .hilight              = signature.mark
+        .hilightLightContrast = signature.onGround
+        .activeRail           = p.railed ? signature.mark : .transparent
+        .focusRing            = signature.mark
+        .focusRingOnAccent    = signature.onGround
+        .error                = critical.mark
         .disabled             = p.disabled
         .transparent          = 0
 
@@ -531,10 +630,11 @@ impl ThemeColors
 
         // The band lights from the mark and falls away toward the buttons, so an active window
         // is told from an inactive one by a variation instead of by ten levels of grey. The warm
-        // end comes from `accentGround` and not from `accent`: this is a wash, and the accent
-        // that points is ink on paper — a caption washed in it would be a grey band exactly
-        // where the chart asks for the one block of Voltage a light surface is carried by.
-        .wnd_CaptionBkLead       = Color.lerpRgb(p.caption, p.accentGround, p.captionGlow)
+        // end comes from the signature *block* and not from its mark: this is a wash, and the
+        // mark of a light theme is a deepened Voltage — a caption washed in it would be a dull
+        // band exactly where the chart asks for the one stretch of brand a light surface is
+        // carried by.
+        .wnd_CaptionBkLead       = Color.lerpRgb(p.caption, signature.ground, p.captionGlow)
         .wnd_CaptionBkTrail      = Color.lerpRgb(p.caption, p.ground, p.captionGlow * CaptionFadeRatio)
         .wnd_Border              = p.windowBorder
         .wnd_BtnCloseBk          = CloseRed
@@ -547,25 +647,33 @@ impl ThemeColors
 
         .dlg_Bk              = p.panel
         .dlg_BtnBarBk        = p.view
-        .dlg_InformationIcon = p.infoText
+        .dlg_InformationIcon = info.mark
 
         // The outline comes from the mark and the fill from the block, which is the same color
         // wherever the two agree. Where they do not, the outline is what gives a Voltage button
         // an edge on paper: yellow and white part by less than a tenth of a step of luminance,
         // so a filled action with no rule around it reads as a smudge rather than as a control.
-        .btnPush_StrongText   = p.onAccent
-        .btnPush_StrongBorder = p.accent
-        .btnPush_StrongBk     = p.accentGround
-        .setStrongStates(p.onAccent, p.accent, p.accentGround)
+        .btnPush_StrongText   = signature.onGround
+        .btnPush_StrongBorder = signature.mark
+        .btnPush_StrongBk     = signature.ground
+        .setStrongStates(signature.onGround, signature.mark, signature.ground)
+
+        // The alternate action is the same block in the other tone. It is not a weaker strong
+        // button: it is the button that leads somewhere else, which is why it is filled rather
+        // than outlined and why nothing but the tone tells the two apart.
+        .btnPush_AlternateText   = alternate.onGround
+        .btnPush_AlternateBorder = alternate.mark
+        .btnPush_AlternateBk     = alternate.ground
+        .setAlternateStates(alternate.onGround, alternate.mark, alternate.ground)
 
         .btnPush_Text           = p.text
         .btnPush_Border         = p.controlLine
         .btnPush_Bk             = p.raised
         .btnPush_PressedText    = p.text
-        .btnPush_PressedBorder  = p.accent
+        .btnPush_PressedBorder  = signature.mark
         .btnPush_PressedBk      = p.pressed
         .btnPush_HotText        = p.text
-        .btnPush_HotBorder      = p.accent
+        .btnPush_HotBorder      = signature.mark
         .btnPush_HotBk          = p.hot
         .btnPush_DisabledText   = p.disabled
         .btnPush_DisabledBorder = p.line
@@ -578,10 +686,10 @@ impl ThemeColors
         .btnPushFlat_Border         = .transparent
         .btnPushFlat_Bk             = .transparent
         .btnPushFlat_PressedText    = p.text
-        .btnPushFlat_PressedBorder  = p.accent
+        .btnPushFlat_PressedBorder  = signature.mark
         .btnPushFlat_PressedBk      = p.pressed
         .btnPushFlat_HotText        = p.text
-        .btnPushFlat_HotBorder      = p.accent
+        .btnPushFlat_HotBorder      = signature.mark
         .btnPushFlat_HotBk          = p.hot
         .btnPushFlat_DisabledText   = p.disabled
         .btnPushFlat_DisabledBorder = .transparent
@@ -591,13 +699,13 @@ impl ThemeColors
         // "the thing to do here", one because the keyboard says so and one because the
         // surface does. They differ in weight — a strong button sets its label bold — and
         // a surface is expected to show one or the other, never both.
-        .btnPushDefault_Text           = p.onAccent
-        .btnPushDefault_Border         = p.accent
-        .btnPushDefault_Bk             = p.accentGround
-        .btnPushDefault_PressedText    = p.onAccent
+        .btnPushDefault_Text           = signature.onGround
+        .btnPushDefault_Border         = signature.mark
+        .btnPushDefault_Bk             = signature.ground
+        .btnPushDefault_PressedText    = signature.onGround
         .btnPushDefault_PressedBorder  = accentPressed
         .btnPushDefault_PressedBk      = groundPressed
-        .btnPushDefault_HotText        = p.onAccent
+        .btnPushDefault_HotText        = signature.onGround
         .btnPushDefault_HotBorder      = accentHot
         .btnPushDefault_HotBk          = groundHot
         .btnPushDefault_DisabledText   = p.disabled
@@ -622,12 +730,12 @@ impl ThemeColors
         // draw — the shape of the button filled with the accent. The two want opposite inks.
         // Beside a rule the glyph is the accent itself; over a fill it has to be the ink
         // that fill carries, or a blue glyph disappears into a blue square.
-        let checkedInk = p.railed ? p.accent : p.onAccent
+        let checkedInk = p.railed ? signature.mark : signature.onGround
 
         .btnIcon_CheckedIcon         = checkedInk
         .btnIcon_CheckedText         = checkedInk
         .btnIcon_CheckedBk           = .transparent
-        .btnIcon_CheckedMark         = p.accentGround
+        .btnIcon_CheckedMark         = signature.ground
         .btnIcon_CheckedHotIcon      = checkedInk
         .btnIcon_CheckedHotText      = checkedInk
         .btnIcon_CheckedHotBk        = p.hot
@@ -655,12 +763,12 @@ impl ThemeColors
         .btnCheck_Mark           = p.text
         .btnCheck_Bk             = .transparent
         .btnCheck_PressedText    = p.text
-        .btnCheck_PressedBorder  = p.accent
-        .btnCheck_PressedMark    = p.accent
+        .btnCheck_PressedBorder  = signature.mark
+        .btnCheck_PressedMark    = signature.mark
         .btnCheck_PressedBk      = p.pressed
         .btnCheck_HotText        = p.text
-        .btnCheck_HotBorder      = p.accent
-        .btnCheck_HotMark        = p.accent
+        .btnCheck_HotBorder      = signature.mark
+        .btnCheck_HotMark        = signature.mark
         .btnCheck_HotBk          = p.hot
         .btnCheck_DisabledText   = p.disabled
         .btnCheck_DisabledBorder = p.disabled
@@ -668,8 +776,8 @@ impl ThemeColors
         .btnCheck_DisabledBk     = .transparent
         .btnCheck_CheckedText    = p.text
         .btnCheck_CheckedBk      = .transparent
-        .btnCheck_CheckedBorder  = p.accent
-        .btnCheck_CheckedMark    = p.accent
+        .btnCheck_CheckedBorder  = signature.mark
+        .btnCheck_CheckedMark    = signature.mark
 
         .toolTip_Bk     = p.text
         .toolTip_Border = p.text
@@ -678,23 +786,28 @@ impl ThemeColors
         // Keep the hue the palette chose, and move it until it reads on the inverted note. The
         // same rule the syntax palette follows against the editor ground: a reader has learned
         // what a link and an accent mean, and a tip is not where that changes.
-        .toolTip_Link    = p.accent
-        .toolTip_HotLink = accentHot
+        .toolTip_Link    = alternate.mark
+        .toolTip_HotLink = shiftState(alternate.mark, StrongHotShift)
         .toolTip_Rich1   = p.rich1
         .toolTip_Rich2   = p.rich2
         .toolTip_Rich3   = p.rich3
-        .toolTip_Link.ensureContrast(.toolTip_Bk)
-        .toolTip_HotLink.ensureContrast(.toolTip_Bk)
+        .toolTip_Link.ensureContrast(.toolTip_Bk, LinkContrast)
+        .toolTip_HotLink.ensureContrast(.toolTip_Bk, LinkContrast)
         .toolTip_Rich1.ensureContrast(.toolTip_Bk)
         .toolTip_Rich2.ensureContrast(.toolTip_Bk)
         .toolTip_Rich3.ensureContrast(.toolTip_Bk)
 
-        .url_Text    = p.accent
-        .url_HotText = accentHot
+        // A link is the alternate tone and not the signature: the signature says "this is the
+        // thing to do here", and a link says "this is somewhere else". Pointed with it, a light
+        // theme also wrote every link in ink, which is a link nobody can see is one.
+        .url_Text    = alternate.mark
+        .url_HotText = shiftState(alternate.mark, StrongHotShift)
+        .url_Text.ensureContrast(p.view, LinkContrast)
+        .url_HotText.ensureContrast(p.view, LinkContrast)
 
         .edit_Border         = p.controlLine
-        .edit_FocusBorder    = p.accent
-        .edit_HotBorder      = p.accent
+        .edit_FocusBorder    = signature.mark
+        .edit_HotBorder      = signature.mark
         .edit_DisabledBorder = p.line
         .edit_Bk             = p.raised
         .edit_DisabledBk     = p.panel
@@ -706,7 +819,7 @@ impl ThemeColors
         .edit_TextUnit       = p.softText
         .edit_DisabledText   = p.disabled
         .edit_SelectedBk     = p.selectPressed
-        .edit_ErrorBorder    = p.error
+        .edit_ErrorBorder    = critical.mark
 
         // Selected code keeps the color its lexer gave it — that is what makes a selection
         // readable in an editor — so the selection is a ground and nothing else.
@@ -723,20 +836,20 @@ impl ThemeColors
         .btnToggle_OffBorder        = p.controlLine
         .btnToggle_OffMark          = p.softText
         .btnToggle_OffBk            = .transparent
-        .btnToggle_OffHotBorder     = p.accent
+        .btnToggle_OffHotBorder     = signature.mark
         .btnToggle_OffHotMark       = p.text
         .btnToggle_OffHotBk         = p.hot
-        .btnToggle_OffPressedBorder = p.accent
+        .btnToggle_OffPressedBorder = signature.mark
         .btnToggle_OffPressedMark   = p.text
         .btnToggle_OffPressedBk     = p.pressed
-        .btnToggle_OnBorder         = p.accent
-        .btnToggle_OnMark           = p.onAccent
-        .btnToggle_OnBk             = p.accentGround
+        .btnToggle_OnBorder         = signature.mark
+        .btnToggle_OnMark           = signature.onGround
+        .btnToggle_OnBk             = signature.ground
         .btnToggle_OnHotBorder      = accentHot
-        .btnToggle_OnHotMark        = p.onAccent
+        .btnToggle_OnHotMark        = signature.onGround
         .btnToggle_OnHotBk          = groundHot
         .btnToggle_OnPressedBorder  = accentPressed
-        .btnToggle_OnPressedMark    = p.onAccent
+        .btnToggle_OnPressedMark    = signature.onGround
         .btnToggle_OnPressedBk      = groundPressed
         .btnToggle_DisabledBorder   = p.disabled
         .btnToggle_DisabledMark     = p.disabled
@@ -745,28 +858,28 @@ impl ThemeColors
         .slider_BkLeft            = p.pressed
         .slider_BkMiddle          = p.pressed
         .slider_BkRight           = p.pressed
-        .slider_HilightBk         = p.accentGround
-        .slider_Mark              = p.accent
+        .slider_HilightBk         = signature.ground
+        .slider_Mark              = signature.mark
         .slider_HotMark           = accentHot
         .slider_PressedMark       = accentPressed
         .slider_DisabledMark      = p.disabled
         .slider_DisabledBk        = p.line
         .slider_DisabledHilightBk = p.disabled
         .slider_StepBk            = p.controlLine
-        .slider_HilightStepBk     = p.onAccent
-        .slider_HotStepBk         = p.onAccent
+        .slider_HilightStepBk     = signature.onGround
+        .slider_HotStepBk         = signature.onGround
 
         .circular_Bk             = .transparent
         .circular_DisabledBk     = .transparent
         .circular_Circle         = p.controlLine
         .circular_DisabledCircle = p.line
-        .circular_Mark           = p.accent
+        .circular_Mark           = signature.mark
         .circular_HotMark        = accentHot
         .circular_PressedMark    = accentPressed
         .circular_DisabledMark   = p.disabled
         .circular_Step           = p.softText
         .circular_DisabledStep   = p.line
-        .circular_RangeArc       = p.accent
+        .circular_RangeArc       = signature.mark
 
         .tabItem_SelectedText             = p.text
         .tabItem_HotText                  = p.text
@@ -779,10 +892,10 @@ impl ThemeColors
         .tabItem_ButtonHot                = p.selectHot
         .tabItem_PushButtonSelected       = p.selectPressed
         .tabItem_PushButtonSelectedText   = p.text
-        .tabItem_PushButtonSelectedBorder = p.accent
+        .tabItem_PushButtonSelectedBorder = signature.mark
         .tabItem_PushButtonHot            = p.selectHot
         .tabItem_PushButtonHotText        = p.text
-        .tabItem_PushButtonHotBorder      = p.accent
+        .tabItem_PushButtonHotBorder      = signature.mark
         .tabItem_PushButtonText           = p.text
         .tabItem_PushButtonBk             = p.raised
         .tabItem_PushButtonBorder         = p.controlLine
@@ -819,9 +932,9 @@ impl ThemeColors
         .scrollBar_PressedBox = p.text
 
         .comboBox_Border         = p.controlLine
-        .comboBox_HotBorder      = p.accent
+        .comboBox_HotBorder      = signature.mark
         .comboBox_DisabledBorder = p.line
-        .comboBox_SelectedBorder = p.accent
+        .comboBox_SelectedBorder = signature.mark
         .comboBox_Bk             = p.raised
         .comboBox_HotBk          = p.raised
         .comboBox_DisabledBk     = p.panel
@@ -835,13 +948,13 @@ impl ThemeColors
         .popupList_HotBk        = p.selectHot
         .popupList_Text         = p.text
         .popupList_HotText      = p.text
-        .popupList_CheckMark    = p.accent
-        .popupList_HotCheckMark = p.accent
+        .popupList_CheckMark    = signature.mark
+        .popupList_HotCheckMark = signature.mark
 
         .frameWnd_SmallShadow    = p.shadow.withAlpha(cast(u8) (cast(f32) p.shadow.a * 0.6))
         .frameWnd_Border         = p.line
         .frameWnd_PopupBorder    = p.controlLine
-        .frameWnd_FocusBorder    = p.accent
+        .frameWnd_FocusBorder    = signature.mark
         .frameWnd_DisabledBorder = p.line
         .frameWnd_Bk             = p.panel
         .frameWnd_DisabledBk     = p.panel
@@ -868,17 +981,17 @@ impl ThemeColors
 
         .splitView_TitleBk = p.panel
         .splitView_Bar     = p.line
-        .splitView_BarHot  = p.accent
+        .splitView_BarHot  = signature.mark
 
         .progressBar_Border         = p.controlLine
         .progressBar_Bk             = p.view
-        .progressBar_Mark           = p.accentGround
+        .progressBar_Mark           = signature.ground
         .progressBar_DisabledBorder = p.line
         .progressBar_DisabledBk     = .transparent
         .progressBar_DisabledMark   = p.disabled
 
         .palPicker_Border    = p.line
-        .palPicker_HotBorder = p.accent
+        .palPicker_HotBorder = signature.mark
 
         .colorPicker_Border    = p.line
         .colorPicker_BackAlpha = p.panel
@@ -888,15 +1001,15 @@ impl ThemeColors
 
         .spinner_Dot = p.text
 
-        .embInfo_CriticalBk      = p.criticalBk
-        .embInfo_CriticalText    = p.criticalText
-        .embInfo_InformationBk   = p.infoBk
-        .embInfo_InformationText = p.infoText
-        .embInfo_MessageBk       = p.noticeBk
-        .embInfo_MessageText     = p.noticeText
+        .embInfo_CriticalBk      = critical.ground
+        .embInfo_CriticalText    = critical.onGround
+        .embInfo_InformationBk   = info.ground
+        .embInfo_InformationText = info.onGround
+        .embInfo_MessageBk       = caution.ground
+        .embInfo_MessageText     = caution.onGround
 
         .prop_FocusBk     = p.selectPressed
-        .prop_FocusBorder = p.accent
+        .prop_FocusBorder = signature.mark
         .prop_HotBk       = p.selectHot
         .prop_HotBorder   = .transparent
         .prop_GridBorder  = p.line
@@ -957,26 +1070,26 @@ impl ThemeColors
         result.faintText = 0xFF7C7C7C
         result.disabled  = 0xFF6E6E6E
 
-        // A system accent works as a hairline and as a block alike, so both roles take it.
-        result.accent       = 0xFF1473E6
-        result.accentGround = 0xFF1473E6
-        result.onAccent     = 0xFFFFFFFF
+        // A system accent works as a hairline and as a block alike, so the tone is written once.
+        result.signature = ThemeTone.from(SystemBlue, OnSystemBlue)
+        result.alternate = ThemeTone.from(SystemBlueSoft, OnSystemBlueSoft)
 
         // A neutral theme marks the active item by filling it, so it draws no rail.
         result.railed = false
-
-        result.error = 0xFFFF6666     // readable on a dark ground, unlike pure red
 
         // Notices, dark. The three grounds sit at one weight and differ only in hue, the way
         // the light pastels do: a notice is recognized by its color, not by how much of the
         // surface it takes. Carrying more chroma than that, they read as three slabs of mud
         // rather than as a tinted band, and the red one weighed twice what the blue one did.
-        result.criticalBk   = 0xFF3A262A
-        result.criticalText = 0xFFF0B7BB
-        result.infoBk       = 0xFF222C3C
-        result.infoText     = 0xFFB6D2F2
-        result.noticeBk     = 0xFF382F20
-        result.noticeText   = 0xFFF2DDA8
+        result.critical.mark     = 0xFFFF6666     // readable on a dark ground, unlike pure red
+        result.critical.ground   = 0xFF3A262A
+        result.critical.onGround = 0xFFF0B7BB
+        result.caution.mark      = 0xFFF2DDA8
+        result.caution.ground    = 0xFF382F20
+        result.caution.onGround  = 0xFFF2DDA8
+        result.info.mark         = 0xFFB6D2F2
+        result.info.ground       = 0xFF222C3C
+        result.info.onGround     = 0xFFB6D2F2
 
         result.rich1 = 0xFFF08A8A
         result.rich2 = 0xFF8FD48F
@@ -1020,19 +1133,20 @@ impl ThemeColors
         result.faintText = 0xFF7E7E7E
         result.disabled  = 0xFF9A9A9A
 
-        result.accent       = 0xFF1473E6
-        result.accentGround = 0xFF1473E6
-        result.onAccent     = 0xFFFFFFFF
+        result.signature = ThemeTone.from(SystemBlue, OnSystemBlue)
+        result.alternate = ThemeTone.from(SystemBlueSoft, OnSystemBlueSoft)
 
         result.railed = false
 
-        result.error        = 0xFFC42B2B     // darkened so it stays readable on a light ground
-        result.criticalBk   = 0xFFF5DEDE
-        result.criticalText = 0xFF9C4A4A
-        result.infoBk       = 0xFFDEE7F6
-        result.infoText     = 0xFF2E4270
-        result.noticeBk     = 0xFFF4EACB
-        result.noticeText   = 0xFF7C6636
+        result.critical.mark     = 0xFFC42B2B     // darkened so it stays readable on a light ground
+        result.critical.ground   = 0xFFF5DEDE
+        result.critical.onGround = 0xFF9C4A4A
+        result.caution.mark      = 0xFF7C6636
+        result.caution.ground    = 0xFFF4EACB
+        result.caution.onGround  = 0xFF7C6636
+        result.info.mark         = 0xFF2E4270
+        result.info.ground       = 0xFFDEE7F6
+        result.info.onGround     = 0xFF2E4270
 
         result.rich1 = 0xFFB42020
         result.rich2 = 0xFF1E7A32
@@ -1051,11 +1165,13 @@ impl ThemeColors
         return result
     }
 
-    // The dark Swag palette: Voltage over Ink.
+    // The dark Swag palette: Voltage and Arc over Ink.
     //
-    // The accent is the mark's own yellow, which is why nothing here washes a row with it:
-    // Voltage is a color to point with, never a color to read on. Hovering and selecting
-    // stay neutral and the accent is spent on marks, rails and the one filled action.
+    // The signature is the mark's own yellow, and nothing here washes a row with it: Voltage is
+    // a color to point with, never a color to read on. That is exactly what the second tone is
+    // for — an electric blue that can be a block, a row, a link and a mode without ever being
+    // mistaken for the one thing to do. The signature stays spent on marks, rails and the one
+    // filled action.
     func swagDarkPalette()->ThemePalette
     {
         var result: retval
@@ -1070,8 +1186,13 @@ impl ThemeColors
         result.hot     = 0xFF41414E
         result.pressed = 0xFF52525F
 
-        result.selectHot     = result.hot
-        result.selectPressed = result.pressed
+        // A row, an entry and a tab are washed with the alternate tone at the weight the neutral
+        // hover used to carry, so the surfaces a reader spends the most time in gain a hue
+        // without gaining any weight. The signature could never do this — a row washed in
+        // Voltage cannot be read — which is the clearest statement of why a theme owns more
+        // than one color.
+        result.selectHot     = 0xFF2A4658
+        result.selectPressed = 0xFF35617C
 
         // A control has to read as an object the reader can act on, which is one step above a
         // divider and not two: taken as far as the ink of a disabled label, the edge of every
@@ -1085,20 +1206,24 @@ impl ThemeColors
         result.faintText = 0xFF91919D
         result.disabled  = 0xFF91919D
 
-        // Voltage points and fills alike on ink, so both roles take it.
-        result.accent       = 0xFFF7F900
-        result.accentGround = 0xFFF7F900
-        result.onAccent     = 0xFF0B0B0D
+        // The two identity tones, written exactly as the light palette writes them. Both fill
+        // with a color bright enough to carry ink, and on ink both already point with it, so
+        // neither is deepened here — which is the whole reason the two modes can say the same
+        // thing with the same two numbers.
+        result.signature = ThemeTone.from(Voltage, Ink)
+        result.alternate = ThemeTone.from(Arc, Ink)
 
         result.railed = true
 
-        result.error        = 0xFFFF6666
-        result.criticalBk   = 0xFF3A262A
-        result.criticalText = 0xFFF0B7BB
-        result.infoBk       = 0xFF222C3C
-        result.infoText     = 0xFFB6D2F2
-        result.noticeBk     = 0xFF382F20
-        result.noticeText   = 0xFFF2DDA8
+        result.critical.mark     = 0xFFFF6666
+        result.critical.ground   = 0xFF3A262A
+        result.critical.onGround = 0xFFF0B7BB
+        result.caution.mark      = 0xFFF2DDA8
+        result.caution.ground    = 0xFF382F20
+        result.caution.onGround  = 0xFFF2DDA8
+        result.info.mark         = 0xFFB6D2F2
+        result.info.ground       = 0xFF222C3C
+        result.info.onGround     = 0xFFB6D2F2
 
         result.rich1 = 0xFFF08A8A
         result.rich2 = 0xFF8FD48F
@@ -1109,7 +1234,7 @@ impl ThemeColors
 
         result.caption         = 0xFF2A2A32
         result.captionInactive = 0xFF202026
-        result.captionGlow     = SwagCaptionGlow
+        result.captionGlow     = SwagCaptionGlowDark
 
         // The outline is what tells a window from the desktop, and a modal box from the
         // application under it, both cut from the same ink. It has to be found, not noticed:
@@ -1120,13 +1245,18 @@ impl ThemeColors
         return result
     }
 
-    // The light Swag palette: Ink and Voltage over Paper.
+    // The light Swag palette: Voltage and Arc over Paper.
     //
-    // It is the dark palette read the other way up, not a second identity. The theme still
-    // points in one color and fills in one color; what the mode changes is which of them can
-    // do which. Ink points, because a Voltage hairline on paper is a hairline nobody sees.
-    // Voltage still fills, because a block of it under ink is the most recognizable thing the
-    // chart owns — dropping it was what left the light theme black and white.
+    // It is the dark palette read the other way up, not a second identity, and it says so by
+    // declaring the same two tones with the same two numbers. What the mode changes is only what
+    // a tone may point with: a block survives the trip and a hairline does not, so the theme
+    // deepens each mark until it separates from the page and fills with the brand color
+    // untouched. Written that way, a light Swag surface carries the same yellow block, the same
+    // blue rows and the same family of hues as a dark one.
+    //
+    // The previous light theme pointed in ink instead of deepening, and that one decision is
+    // what made it read as a black-and-white theme with a yellow button rather than as the same
+    // theme on paper.
     //
     // Its greys carry the violet cast of the dark palette's, so the two are one family. Warm
     // paper under cool ink was the other half of the inelegance: no surface here is neutral,
@@ -1147,8 +1277,11 @@ impl ThemeColors
         result.hot     = 0xFFECECF4
         result.pressed = 0xFFE0E0EB
 
-        result.selectHot     = result.hot
-        result.selectPressed = result.pressed
+        // The same wash as the dark palette, on paper: a list, a menu and a tab bar take the
+        // alternate tone at the weight the neutral hover carried, and the theme stops being grey
+        // everywhere the reader actually looks.
+        result.selectHot     = 0xFFE2EEFA
+        result.selectPressed = 0xFFCBE2F6
 
         result.line        = 0xFFE3E3EC
         result.controlLine = 0xFFD0D0DC     // one step above the divider, as in the dark palette
@@ -1158,19 +1291,24 @@ impl ThemeColors
         result.faintText = 0xFF83838D
         result.disabled  = 0xFF83838D
 
-        result.accent       = 0xFF0B0B0D
-        result.accentGround = 0xFFF7F900
-        result.onAccent     = 0xFF0B0B0D
+        // Character for character what the dark palette writes. Both blocks come through
+        // untouched — Voltage under ink is the most recognizable thing the chart owns, and the
+        // Arc block reads on paper for the same reason it reads on ink: it is a hue, not a
+        // level. Only the two marks are deepened, by the theme rather than by hand.
+        result.signature = ThemeTone.from(Voltage, Ink)
+        result.alternate = ThemeTone.from(Arc, Ink)
 
         result.railed = true
 
-        result.error        = 0xFFC42B2B
-        result.criticalBk   = 0xFFF5DEDE
-        result.criticalText = 0xFF9C4A4A
-        result.infoBk       = 0xFFDEE7F6
-        result.infoText     = 0xFF2E4270
-        result.noticeBk     = 0xFFF4EACB
-        result.noticeText   = 0xFF7C6636
+        result.critical.mark     = 0xFFC42B2B
+        result.critical.ground   = 0xFFF5DEDE
+        result.critical.onGround = 0xFF9C4A4A
+        result.caution.mark      = 0xFF7C6636
+        result.caution.ground    = 0xFFF4EACB
+        result.caution.onGround  = 0xFF7C6636
+        result.info.mark         = 0xFF2E4270
+        result.info.ground       = 0xFFDEE7F6
+        result.info.onGround     = 0xFF2E4270
 
         result.rich1 = 0xFFB42020
         result.rich2 = 0xFF1E7A32
@@ -1180,12 +1318,13 @@ impl ThemeColors
         result.shadow = 0x3C000000
 
         // The glow is worth most here. A white band on paper parts from the ground it sits on by
-        // three levels, so the bar barely exists — and a wash of Voltage under it is the block
-        // the chart says a light surface carries the identity with, in the one place a window
-        // has room for it.
+        // three levels, so the bar barely exists — and a wash of Voltage under it is the stretch
+        // of brand the chart says a light surface carries the identity with, in the one place a
+        // window has room for it. It costs three times the mix the dark band asks for, because
+        // white and Voltage part by chroma alone.
         result.caption         = 0xFFFFFFFF
         result.captionInactive = 0xFFF2F2F7
-        result.captionGlow     = SwagCaptionGlow
+        result.captionGlow     = SwagCaptionGlowLight
 
         // A white window on a white desktop has nothing but this line to stand on, so the
         // light outline carries more weight than the dark one rather than less.

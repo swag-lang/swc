@@ -11,7 +11,7 @@ part that turns those decisions into pixels. Everything in this skill follows fr
 ## The Two Layers
 
 [`ThemePalette`](../../../bin/std/modules/gui/src/paint/themepalette.swg) holds the decisions:
-roughly thirty tokens — grounds, rules, ink, accent, status, veil, chrome.
+roughly thirty tokens — grounds, rules, ink, five tones, veil, chrome.
 
 [`ThemeColors`](../../../bin/std/modules/gui/src/paint/themecolors.swg) holds one value per
 painted part, and **every one of them is derived** by `ThemeColors.apply(palette)`. No palette
@@ -20,6 +20,38 @@ the interface is allowed to be.
 
 Four palettes ship: `darkPalette`, `lightPalette`, `swagDarkPalette`, `swagLightPalette`. Each
 is a token list and nothing else.
+
+### A color is a tone, and a tone is three questions
+
+`ThemeTone` is `{mark, ground, onGround}`: what the tone **points** with, the block it **fills**,
+and the **ink** that block carries. A theme never has "a color" — it has those three, and asking
+for them together is what makes a tone impossible to half-answer.
+
+Five tones, and there is no sixth. `signature` and `alternate` are what the family is recognized
+by; `critical`, `caution` and `info` are what happened. The split matters:
+
+- **The identity tones keep their block in every mode.** Voltage fills at `#F7F900` and Arc at
+  `#38BDF8` whichever way up the theme is read, and both carry Ink. That invariance *is* the
+  identity — the two Swag palettes declare the two tones with the same two constants, character
+  for character, and differ only in grounds and inks.
+- **The status tones adapt freely.** A notice has to be read before it has to be recognized, so
+  a dark band with light ink becomes a pale band with dark ink and nothing is lost.
+
+### The mark is derived, never written twice
+
+`apply` deepens each tone's mark until it clears `MarkContrast` against **the ground it is
+nearest** — not the extreme ground of the theme. A mid-tone accent clears a near-black
+application ground easily and vanishes on the raised grey of the panel drawn over it, which is
+what the shipped neutral blue did for as long as it was written by hand.
+
+That one derivation is what lets a palette write `ThemeTone.from(Voltage, Ink)` in both modes and
+get a legible hairline in each: unchanged on ink, walked down to a dark Voltage on paper. The
+hue survives, which is the point — pointing in ink instead is what made the light theme read as
+black and white with a yellow button in it.
+
+A palette may still write a mark that has nothing to do with its block, and `apply` will keep it:
+that is how a status tone names an ink unrelated to its band. `apply` only ever moves a mark that
+does not read.
 
 ### Why this shape, and what it rules out
 
@@ -56,47 +88,62 @@ not, derive it. The notice grounds are tokens because recognizing a warning is a
 of lightness. The veil strengths are not: they are one ink at three alphas.
 
 When a token is a decision rather than a color, make it one. `railed` is a `bool`, because a
-rail drawn in anything but the accent marks the active item in a language the rest of the
-interface does not speak — and because changing the accent then moves the rail with it.
+rail drawn in anything but the signature marks the active item in a language the rest of the
+interface does not speak — and because changing the signature then moves the rail with it.
 `captionGlow` is an `f32` for the same reason: whether the chrome of a window is washed in the
 brand is a decision no other token predicts, and the two ends of the band are derived from it —
-`wnd_CaptionBkLead` toward `accentGround`, because a wash is a fill and the accent that *points*
-is ink on paper. Set it to zero and the two ends collapse onto the band, which is how a theme
-that follows the desktop keeps a flat bar.
+`wnd_CaptionBkLead` toward `signature.ground`, because a wash is a fill and the mark that
+*points* is a dark Voltage on paper. Set it to zero and the two ends collapse onto the band,
+which is how a theme that follows the desktop keeps a flat bar.
 
-### Keep the accent scarce, and never read on it
+`captionGlow` is also the clearest case of a number that must not be shared between two modes
+that share the decision. It is a mix, and a mix buys different amounts of weight in each
+direction: toward a color darker than the band it is spent on luminance, which the eye reads at
+once; toward one as light as the band it is spent on chroma, which costs about three times as
+much. 0.14 on ink and 0.42 on paper are the same decision priced twice, and the light band kept
+at the dark number was a cream nobody could name.
 
-The accent points; it is not a ground for text. A palette whose accent is a brand color —
-Voltage, Ink — cannot wash a hovered row with it, which is why `selectHot` and `selectPressed`
-exist beside `hot` and `pressed`. A system-blue palette sets them to a tint of its accent; a
-brand palette repeats the neutral pair. Both work, and the widgets never know.
+### Keep the signature scarce, and spend the second tone instead
 
-`onAccent` is the only ink allowed on a fill of `accentGround`. When a widget draws a glyph over
+The signature says *do this*: the one filled action, the focus, the active rail, the checked
+tool. It is not a ground for text and it is not a wash. A palette whose signature is a brand
+color cannot tint a hovered row with it — a row washed in Voltage is unreadable — and that is
+precisely the work `alternate` exists to take.
+
+So `selectHot` and `selectPressed` carry the **alternate** tone, in both Swag modes: a list, a
+menu, a tab bar and a selected row are where a reader spends most of their time, and washing them
+at the weight the neutral hover used to carry is how a theme gains a hue without gaining a
+weight. They stay separate tokens rather than derivations because how far a wash may travel is a
+decision, but a Swag palette that sets them to a grey has given the mode back its greyness.
+
+The other parts that belong to the second tone, and not to the signature:
+
+- **a link** (`url_Text`, `toolTip_Link`) — a link means *somewhere else*, which is the tone's
+  whole meaning. Pointed with the signature, a light theme wrote every link in ink;
+- **the alternate action** (`PushButtonForm.Alternate`, the `btnPush_Alternate*` family) — the
+  button that leads to another page beside the one that does the work of the surface. A surface
+  shows one strong action and at most one alternate; two filled buttons of the same tone are two
+  primary actions.
+
+`onGround` is the only ink allowed on a fill of `ground`. When a widget draws a glyph over
 something that may or may not be filled, it has to pick between the two — see `checkedInk` in
-`apply`, where a checked tool takes the accent beside a rail and `onAccent` over a fill. Getting
+`apply`, where a checked tool takes the mark beside a rail and `onGround` over a fill. Getting
 this wrong makes a blue glyph disappear into a blue square.
 
-### The accent has two roles, and one palette may split them
+### A tone's mark and block may differ, and then two consequences hold
 
-`accent` is what the theme **points** with — a rail, a ring, a rule, a mark — so it has to read
-as a hairline on the grounds. `accentGround` is the block it **fills**, and carries `onAccent`.
-Nearly every palette gives them the same value; a brand color is where they part. Voltage fills
-beautifully under ink and vanishes as a hairline on paper, so `swagLightPalette` points in Ink
-and still fills in Voltage — which is what keeps the two Swag modes one identity rather than a
-brand theme beside a black-and-white one.
-
-Two consequences hold whenever they differ:
-
-- A filled action takes its border from `accent` and its fill from `accentGround`. Yellow parts
-  from white by less than a tenth of a step of luminance, so a Voltage block with no rule around
-  it reads as a smudge rather than as a control.
+- A filled action takes its border from `mark` and its fill from `ground`. Yellow parts from
+  white by less than a tenth of a step of luminance, so a Voltage block with no rule around it
+  reads as a smudge rather than as a control — and on paper that rule is a deepened Voltage,
+  which is why the border is the mark rather than a color of its own.
 - The hot and pressed states shift the two separately: `accentHot`/`accentPressed` for the mark,
   `groundHot`/`groundPressed` for the block.
 
-Because the two Swag palettes deliberately agree on the brand pair, the shared-color test in
-`theme.colors.test.swg` finds the parts it answers for rather than listing them — it applies the
-palette twice with a different pair and sets aside whatever moved. Keep that shape if you add a
-part: a hand-written exception list is what lets a real mode leak slip in beside it.
+Because the two Swag palettes deliberately agree on both identity blocks, the shared-color test
+in `theme.colors.test.swg` finds the parts they answer for rather than listing them — it applies
+the palette twice with the two blocks and their inks moved, and sets aside whatever followed.
+Keep that shape if you add a part: a hand-written exception list is what lets a real mode leak
+slip in beside it.
 
 ### Every state must differ from the one before it
 
@@ -160,6 +207,18 @@ A sheet is tweak text with four folders: `/ThemePalette`, `/ThemeColors`, `/Them
 `/ThemeImageRects`. `Theme.applySheet` reads it twice — tokens first, then the individual parts
 — so folder order in the file does not matter and a sheet can do both.
 
+A value name reaches into a nested struct with `.`, which is how a tone is written:
+
+```
+signature.mark      0xFF9A6B18
+signature.ground    0xFF9A6B18
+signature.onGround  0xFFFBF7EF
+btnPush_Normal.radius   3
+```
+
+`$` references resolve through the same paths. Before this the tweak reader could only name flat
+fields, which left `/ThemeImageRects` registered and impossible to write.
+
 A whole theme is the first folder and nothing else, which is what makes a user theme a page of
 text rather than three hundred lines. The worked example lives at
 [`bin/examples/modules/gui10/src/sepia.tweak`](../../../bin/examples/modules/gui10/src/sepia.tweak);
@@ -179,12 +238,24 @@ them.
 [`bin/examples/modules/gui10`](../../../bin/examples/modules/gui10) is the theme inspector, and
 it is the tool for this work. `swc tools/examples.swgs run gui10`.
 
+It opens on the palette and the page the command line names, so comparing a change against the
+palettes it did not mean to touch is a script rather than twenty windows driven by pointer:
+
+```
+swc tools/examples.swgs run gui10 --run-arg=--swaglight --run-arg=--widgets
+```
+
+`--dark`, `--light`, `--swagdark`, `--swaglight`, `--sheet` choose the palette; `--colors`,
+`--palettes`, `--metrics`, `--widgets` choose the page.
+
 - **Colors** — every `ThemeColors` value of the active palette, by reflection, over the grounds
   it is drawn on, with a checkerboard behind anything translucent.
 - **Palettes** — the same value across all five palettes side by side, with a **flagged rows
-  only** switch that keeps just the rows the dark and light Swag palettes resolve identically.
-  Five may: the four of the close button, and `imageRect_Fg`. A sixth is a part that did not
-  follow the reader into the other mode. Run it after any change to `apply`.
+  only** switch that keeps just the rows the dark and light Swag palettes resolve identically,
+  *once the parts the two identity tones answer for are set aside* — those are meant to agree,
+  and the page finds them the same way the test does rather than listing them. Five may remain:
+  the four of the close button, and `imageRect_Fg`. A sixth is a part that did not follow the
+  reader into the other mode. Run it after any change to `apply`.
 - **Metrics** — every `ThemeMetrics` value.
 - **Widgets** — every widget in every state a palette answers for. Hover and press are left to
   the pointer, which is why this page is scrolled through by hand. Its **focus rings** switch turns
@@ -212,12 +283,16 @@ the theme, and the parts they do not use are exactly the ones a change breaks si
 
 After changing `apply`, a palette, or a widget's color choice:
 
-1. `swc tools/std.swgs test -m gui` — the palette tests pin the shipped Swag values, assert the
-   dark and light palettes do not agree on more than a handful of colors, and cover the sheet
+1. `swc tools/std.swgs test gui` — the palette tests pin the shipped Swag values, assert every
+   mark reads on every ground of its own palette, assert the dark and light palettes do not agree
+   on more than a handful of colors once the identity tones are set aside, and cover the sheet
    layers.
 2. The command-stream goldens under `bin/std/modules/gui/src/tests/unittests/goldens/` change
    whenever a widget's colors do. A failing test leaves its `.actual` file beside the golden it
    diverged from; `swc tools/goldens.swgs` accepts them in bulk. Review the diff — a golden that
    changed for a part you did not touch is a finding.
-3. `swc tools/examples.swgs smoke gui10` walks every page of every palette.
-4. Look at the four palettes in gui10 before saying the change is done.
+3. The applications keep goldens of their own, and a palette change reaches them:
+   `swc tools/apps.swgs test sSnapForge` is the one that shows a whole surface. Look at the
+   `.actual` image before accepting it; that picture is the change.
+4. `swc tools/examples.swgs smoke gui10` walks every page of every palette.
+5. Look at the four palettes in gui10 before saying the change is done.

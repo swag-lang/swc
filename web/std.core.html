@@ -92,7 +92,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Types<span class="toc-count">180</span></summary>
+<summary>Types<span class="toc-count">181</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_CommandLine_FieldResult">CommandLine.FieldResult</a></li>
@@ -121,6 +121,7 @@
 <li><a href="#Core_List">Core.List</a></li>
 <li><a href="#Core_ListEntry">Core.ListEntry</a></li>
 <li><a href="#Core_Log">Core.Log</a></li>
+<li><a href="#Core_NativeLibrary">Core.NativeLibrary</a></li>
 <li><a href="#Core_OrderedMap">Core.OrderedMap</a></li>
 <li><a href="#Core_OrderedMapEntry">Core.OrderedMapEntry</a></li>
 <li><a href="#Core_OrderedSet">Core.OrderedSet</a></li>
@@ -428,7 +429,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">1614</span></summary>
+<summary>Functions<span class="toc-count">1620</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -841,6 +842,7 @@
 <li><a href="#Core_File_FileStream_readExact">FileStream.readExact</a></li>
 <li><a href="#Core_File_FileStream_readExactAt">FileStream.readExactAt</a></li>
 <li><a href="#Core_File_FileStream_readNative">FileStream.readNative</a></li>
+<li><a href="#Core_File_FileStream_readUtf8Chunk">FileStream.readUtf8Chunk</a></li>
 <li><a href="#Core_File_FileStream_readValue">FileStream.readValue</a></li>
 <li><a href="#Core_File_FileStream_resize">FileStream.resize</a></li>
 <li><a href="#Core_File_FileStream_resizeNative">FileStream.resizeNative</a></li>
@@ -1249,6 +1251,11 @@
 <li><a href="#Core_Sync_Mutex_lock">Mutex.lock</a></li>
 <li><a href="#Core_Sync_Mutex_tryLock">Mutex.tryLock</a></li>
 <li><a href="#Core_Sync_Mutex_unlock">Mutex.unlock</a></li>
+<li><a href="#Core_NativeLibrary_close">NativeLibrary.close</a></li>
+<li><a href="#Core_NativeLibrary_isOpen">NativeLibrary.isOpen</a></li>
+<li><a href="#Core_NativeLibrary_load">NativeLibrary.load</a></li>
+<li><a href="#Core_NativeLibrary_opDrop">NativeLibrary.opDrop</a></li>
+<li><a href="#Core_NativeLibrary_symbol">NativeLibrary.symbol</a></li>
 <li><a href="#Core_Noise_perlin">Noise.perlin</a></li>
 <li><a href="#Core_Noise_value">Noise.value</a></li>
 <li><a href="#Core_Globalization_NumberFormatInfo_format">NumberFormatInfo.format</a></li>
@@ -2398,6 +2405,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_ListEntry">Core.ListEntry</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents a single node in a doubly-linked <span class="code-inline">List</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Log">Core.Log</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A thread-safe logger that supports multiple output writers and customizable formatting.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary">Core.NativeLibrary</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns one dynamically loaded native library.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_OrderedMap">Core.OrderedMap</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Maps unique keys to values while keeping entries in ascending key order.</p>
 </td></tr>
@@ -3806,6 +3815,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readExactAt">FileStream.readExactAt</a></td><td><p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readNative">FileStream.readNative</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readUtf8Chunk">FileStream.readUtf8Chunk</a></td><td><p>Reads the next bounded UTF-8 segment without splitting an encoded rune.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readValue">FileStream.readValue</a></td><td><p>Reads one native value and returns whether all of its bytes were available.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_resize">FileStream.resize</a></td><td><p>Changes the file length and preserves the current position while it remains in range.</p>
@@ -4616,6 +4627,15 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Sync_Mutex_tryLock">Mutex.tryLock</a></td><td><p>Try to lock the mutex, and return <span class="code-inline">true</span> if it's the case</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Sync_Mutex_unlock">Mutex.unlock</a></td><td><p>Unlock mutex</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_close">NativeLibrary.close</a></td><td><p>Releases the loaded library. Repeated calls have no effect.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_isOpen">NativeLibrary.isOpen</a></td><td><p>Reports whether a native library is currently loaded.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_load">NativeLibrary.load</a></td><td><p>Loads a native library from <span class="code-inline">path</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_opDrop">NativeLibrary.opDrop</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_symbol">NativeLibrary.symbol</a></td><td><p>Resolves an exported symbol, or returns null when the library has no export by that name.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Noise_perlin">Noise.perlin</a></td><td><p>Perlin noise in 2D.</p>
 </td></tr>
@@ -6291,6 +6311,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_ListEntry">Core.ListEntry</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents a single node in a doubly-linked <span class="code-inline">List</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Log">Core.Log</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A thread-safe logger that supports multiple output writers and customizable formatting.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary">Core.NativeLibrary</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns one dynamically loaded native library.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_OrderedMap">Core.OrderedMap</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Maps unique keys to values while keeping entries in ascending key order.</p>
 </td></tr>
@@ -9433,6 +9455,28 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_NativeLibrary" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.NativeLibrary</span> <a class="api-item-permalink" href="#Core_NativeLibrary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/nativelibrary.swg#L27">src</a></div>
+<p>Owns one dynamically loaded native library.</p>
+<p>Loading may run code owned by the library. Resolve symbols only while this value remains open; every address returned by <a href="#Core_NativeLibrary_symbol">Core.NativeLibrary.symbol</a> becomes invalid after <a href="#Core_NativeLibrary_close">Core.NativeLibrary.close</a>. Dropping the value closes it automatically.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Core_NativeLibrary">NativeLibrary</a></span></span></div>
+</section>
+<h3 id="Core_NativeLibrary_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_close">close</a></td><td><p>Releases the loaded library. Repeated calls have no effect.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_isOpen">isOpen</a></td><td><p>Reports whether a native library is currently loaded.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_load">load</a></td><td><p>Loads a native library from <span class="code-inline">path</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_opDrop">opDrop</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_NativeLibrary_symbol">symbol</a></td><td><p>Resolves an exported symbol, or returns null when the library has no export by that name.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_OrderedMap" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.OrderedMap</span> <a class="api-item-permalink" href="#Core_OrderedMap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L21">src</a></div>
 <p>Maps unique keys to values while keeping entries in ascending key order.</p>
 <p>Lookup and range boundaries use binary search. Insertion and removal can move entries and therefore invalidate every pointer, slice, and iterator borrowed from the map. Call <a href="#Core_OrderedMap_initialize">OrderedMap.initialize</a> before the first operation to select the ordering explicitly.</p>
@@ -10629,6 +10673,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tr><td class="code-type"><a href="#Core_File_FileStream_readExactAt">readExactAt</a></td><td><p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readNative">readNative</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readUtf8Chunk">readUtf8Chunk</a></td><td><p>Reads the next bounded UTF-8 segment without splitting an encoded rune.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readValue">readValue</a></td><td><p>Reads one native value and returns whether all of its bytes were available.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_resize">resize</a></td><td><p>Changes the file length and preserves the current position while it remains in range.</p>
@@ -17056,7 +17102,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Resources_Bundle_isOverridden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bundle.isOverridden</span> <a class="api-item-permalink" href="#Core_Resources_Bundle_isOverridden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/resources/bundle.swg#L80">src</a></div>
 <p>Reports whether a disk folder provides <span class="code-inline">name</span>, hiding any embedded fallback.</p>
-<p>A caller that caches work derived from embedded bytes can use this to know when the cache does not describe what <a href="#Core_Resources_Bundle_load">load</a> would return.</p>
+<p>A caller that caches work derived from embedded bytes can use this to know when the cache does not describe what [[load]] would return.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOverridden</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18658,18 +18704,24 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_readExact" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExact</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExact" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L176">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readExact" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExact</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExact" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L218">src</a></div>
 <p>Reads the complete <span class="code-inline">buffer</span> and returns false only when the stream ends first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExact</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_readExactAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExactAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExactAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L183">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readExactAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExactAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExactAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L225">src</a></div>
 <p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first. The resulting stream position follows the bytes read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExactAt</span>(offset: <span class="STpe">u64</span>, buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_FileStream_readNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readNative</span> <a class="api-item-permalink" href="#Core_File_FileStream_readNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L10">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readNative</span>(buffer: *<span class="STpe">void</span>, length: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readUtf8Chunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readUtf8Chunk</span> <a class="api-item-permalink" href="#Core_File_FileStream_readUtf8Chunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L175">src</a></div>
+<p>Reads the next bounded UTF-8 segment without splitting an encoded rune.</p>
+<p>The stream position advances by the returned byte count. <span class="code-inline">maxBytes</span> needs at least four bytes, so every UTF-8 rune can make progress. A malformed sequence at the current position leaves that position unchanged and reports <a href="#Core_Errors_InvalidFormatError">Core.Errors.InvalidFormatError</a>. An empty result means end of file.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readUtf8Chunk</span>(maxBytes: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_FileStream_readValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readValue</span> <a class="api-item-permalink" href="#Core_File_FileStream_readValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L158">src</a></div>
@@ -18716,12 +18768,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAll</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L190">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAll</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L232">src</a></div>
 <p>Writes the complete <span class="code-inline">buffer</span> or fails if the stream stops accepting bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAll</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAllAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAllAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAllAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L198">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAllAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAllAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAllAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L240">src</a></div>
 <p>Moves to <span class="code-inline">offset</span> and writes the complete <span class="code-inline">buffer</span>. The resulting stream position follows the bytes written.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAllAt</span>(offset: <span class="STpe">u64</span>, buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -19566,7 +19618,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">print</span>(text: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_Inflate_decompress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inflate.decompress</span> <a class="api-item-permalink" href="#Core_Compress_Inflate_decompress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/inflate.swg#L295">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_Inflate_decompress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Inflate.decompress</span> <a class="api-item-permalink" href="#Core_Compress_Inflate_decompress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/inflate.swg#L418">src</a></div>
 <p>Decompress the associated stream</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decompress</span>(result: *<span class="SFct">Array</span>'<span class="STpe">u8</span>, buf: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, winSize: <span class="STpe">u32</span> = <span class="SCst"><a href="#Core_Compress_Inflate_InflateMaxDistance">InflateMaxDistance</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -21018,6 +21070,33 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Sync_Mutex_unlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mutex.unlock</span> <a class="api-item-permalink" href="#Core_Sync_Mutex_unlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/mutex.win32.swg#L29">src</a></div>
 <p>Unlock mutex</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unlock</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_NativeLibrary_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeLibrary.close</span> <a class="api-item-permalink" href="#Core_NativeLibrary_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/nativelibrary.swg#L57">src</a></div>
+<p>Releases the loaded library. Repeated calls have no effect.</p>
+<p>For a Swag library, this releases one dynamic lifecycle reference and runs its <span class="code-inline">#drop</span> blocks before unloading when no static or dynamic owner remains. Every address returned by <a href="#Core_NativeLibrary_symbol">Core.NativeLibrary.symbol</a> becomes invalid.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_NativeLibrary_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeLibrary.isOpen</span> <a class="api-item-permalink" href="#Core_NativeLibrary_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/nativelibrary.swg#L40">src</a></div>
+<p>Reports whether a native library is currently loaded.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span> =&gt; .handle</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_NativeLibrary_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeLibrary.load</span> <a class="api-item-permalink" href="#Core_NativeLibrary_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/nativelibrary.swg#L72">src</a></div>
+<p>Loads a native library from <span class="code-inline">path</span>.</p>
+<p>The returned owner closes the library automatically. For a Swag library, loading adopts the caller's runtime context and runs <span class="code-inline">#init</span> and <span class="code-inline">#premain</span> once before this function returns. Repeated loads hold independent lifecycle references. Loading fails when the platform loader cannot resolve the file or one of its dependencies.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(path: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_NativeLibrary">NativeLibrary</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_NativeLibrary_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeLibrary.opDrop</span> <a class="api-item-permalink" href="#Core_NativeLibrary_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/nativelibrary.swg#L34">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_NativeLibrary_symbol" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeLibrary.symbol</span> <a class="api-item-permalink" href="#Core_NativeLibrary_symbol" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/nativelibrary.swg#L45">src</a></div>
+<p>Resolves an exported symbol, or returns null when the library has no export by that name.</p>
+<p>The returned address is borrowed from this library and remains valid only until <a href="#Core_NativeLibrary_close">Core.NativeLibrary.close</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">symbol</span>(name: <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Noise_perlin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Noise.perlin</span> <a class="api-item-permalink" href="#Core_Noise_perlin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/noise.swg#L130">src</a></div>
@@ -24079,19 +24158,19 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">translation</span>()-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_TweakFile_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TweakFile.parse</span> <a class="api-item-permalink" href="#Core_File_TweakFile_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/tweakfile.swg#L42">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_TweakFile_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TweakFile.parse</span> <a class="api-item-permalink" href="#Core_File_TweakFile_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/tweakfile.swg#L94">src</a></div>
 <p>Parses tweak content from a string</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">parse</span>(content: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 <p>Parses tweak content from an array of lines</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">parse</span>(lines: <span class="SFct">Array</span>'(<span class="STpe">string</span>)) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_TweakFile_parseFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TweakFile.parseFile</span> <a class="api-item-permalink" href="#Core_File_TweakFile_parseFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/tweakfile.swg#L34">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_TweakFile_parseFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TweakFile.parseFile</span> <a class="api-item-permalink" href="#Core_File_TweakFile_parseFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/tweakfile.swg#L86">src</a></div>
 <p>Reads and parses a tweak file from disk</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">parseFile</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_TweakFile_registerFolder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TweakFile.registerFolder</span> <a class="api-item-permalink" href="#Core_File_TweakFile_registerFolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/tweakfile.swg#L26">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_TweakFile_registerFolder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TweakFile.registerFolder</span> <a class="api-item-permalink" href="#Core_File_TweakFile_registerFolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/tweakfile.swg#L78">src</a></div>
 <p>Registers a new structure to be parsed as a folder</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">registerFolder</span>(folder: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
@@ -25405,7 +25484,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.133</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.145</div>
 </footer>
 </section>
 </main>
@@ -26181,6 +26260,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "v|Core.Guid128.value|Core_Guid128_value|Two-word representation.",
 "s|Core.Guid64|Core_Guid64|Stores a compact 64-bit identifier.",
 "v|Core.Guid64.value|Core_Guid64_value|Raw 64-bit representation.",
+"s|Core.NativeLibrary|Core_NativeLibrary|Owns one dynamically loaded native library.",
 "s|Core.Parser.RegExp|Core_Parser_RegExp|Simple regular expression matcher.",
 "s|Core.StrConv.ConvertFormat|Core_StrConv_ConvertFormat|Represents convert format.",
 "v|Core.StrConv.ConvertFormat.formatFloat|Core_StrConv_ConvertFormat_formatFloat|Format float associated with this value.",
@@ -27271,6 +27351,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.File.FileStream.readExact|Core_File_FileStream_readExact|Reads the complete buffer and returns false only when the stream ends first.",
 "f|Core.File.FileStream.readExactAt|Core_File_FileStream_readExactAt|Moves to offset, reads the complete buffer, and returns false only when the stream ends first.",
 "f|Core.File.FileStream.readNative|Core_File_FileStream_readNative|",
+"f|Core.File.FileStream.readUtf8Chunk|Core_File_FileStream_readUtf8Chunk|Reads the next bounded UTF-8 segment without splitting an encoded rune.",
 "f|Core.File.FileStream.readValue|Core_File_FileStream_readValue|Reads one native value and returns whether all of its bytes were available.",
 "f|Core.File.FileStream.resize|Core_File_FileStream_resize|Changes the file length and preserves the current position while it remains in range.",
 "f|Core.File.FileStream.resizeNative|Core_File_FileStream_resizeNative|",
@@ -28163,6 +28244,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Hardware.macAddress|Core_Hardware_macAddress|Returns the first adapter MAC address packed into the low bytes, or zero when unavailable.",
 "f|Core.Hardware.processorCount|Core_Hardware_processorCount|Returns the number of logical processors available to the process.",
 "f|Core.has|Core_has|Returns whether every bit in value is present in flags.",
+"f|Core.NativeLibrary.close|Core_NativeLibrary_close|Releases the loaded library. Repeated calls have no effect.",
+"f|Core.NativeLibrary.isOpen|Core_NativeLibrary_isOpen|Reports whether a native library is currently loaded.",
+"f|Core.NativeLibrary.load|Core_NativeLibrary_load|Loads a native library from path.",
+"f|Core.NativeLibrary.opDrop|Core_NativeLibrary_opDrop|",
+"f|Core.NativeLibrary.symbol|Core_NativeLibrary_symbol|Resolves an exported symbol, or returns null when the library has no export by that name.",
 "f|Core.remove|Core_remove|Removes value from a flag set.",
 "f|Core.set|Core_set|Replaces a flag set with value.",
 "f|Core.System.pushContext|Core_System_pushContext|Push a new execution context for the given block of code",

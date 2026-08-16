@@ -105,23 +105,15 @@ impl MainWnd
     }
 
     // Keeps Library a regular push button until it represents the page currently on screen.
-    // The informational palette is deliberately distinct from Capture's yellow action accent.
+    //
+    // Filled, it takes the theme's alternate tone, which is the whole reason a theme owns one:
+    // Capture is what this surface is for and wears the signature, and Library is the other
+    // page the reader can be on. Borrowing the informational notice colors for it said "notice"
+    // in a place nothing was being reported, and left the app answering for nine colors the
+    // theme should have answered for.
     mtd updateLibraryButtonAppearance()
     {
-        .libraryBtn.style.clearStyleSheetColors()
-        if .libraryMode
-        {
-            .libraryBtn.style.addStyleSheetColors("btnPush_Text          $embInfo_InformationBk")
-            .libraryBtn.style.addStyleSheetColors("btnPush_Border        $embInfo_InformationText")
-            .libraryBtn.style.addStyleSheetColors("btnPush_Bk            $embInfo_InformationText")
-            .libraryBtn.style.addStyleSheetColors("btnPush_HotText       $embInfo_InformationBk")
-            .libraryBtn.style.addStyleSheetColors("btnPush_HotBorder     $embInfo_InformationText")
-            .libraryBtn.style.addStyleSheetColors("btnPush_HotBk         $embInfo_InformationText")
-            .libraryBtn.style.addStyleSheetColors("btnPush_PressedText   $embInfo_InformationBk")
-            .libraryBtn.style.addStyleSheetColors("btnPush_PressedBorder $embInfo_InformationText")
-            .libraryBtn.style.addStyleSheetColors("btnPush_PressedBk     $embInfo_InformationText")
-        }
-
+        .libraryBtn.setForm(.libraryMode ? .Alternate : .Normal)
         .libraryBtn.invalidate()
     }
 }

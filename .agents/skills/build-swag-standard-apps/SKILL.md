@@ -6,7 +6,7 @@ description: Build, migrate, rename, review, style, package, and test official S
 # Build Swag Standard Apps
 
 Make every application recognizable as part of Swag before its title is read. Keep the family
-strict and quiet: one generated product glyph, one voltage accent, one ink ground, measured
+strict and quiet: one generated product glyph, one voltage signature over one ink ground, measured
 45-degree cuts, square structure, small chrome around generous air, and no decoration without
 information.
 
@@ -87,6 +87,12 @@ glyph, another app's icon, or a letter tile.
    hand, and do not tint it — the caption honors the icon's own colors so the two-color glyph
    survives. A window that draws its own bar inside the caption, such as a menu bar, starts that
    bar past the mark rather than over it.
+
+   The caption draws one of **two cuts** of that icon, decided by contrast against its own band:
+   on a dark bar the ink tile is keyed out and the glyph floats free; on a light bar the tile
+   stays, because a Voltage glyph on paper is a mark nobody sees. That is why the master must be
+   exactly the two declared colors — a mark cut from a third color keys out wrong and reads as a
+   grey square in the light theme.
 8. Inspect the PNG and the 16, 32, 48, and 256 pixel ICO entries. Regenerate the glyph when its
    negative space closes or its product meaning disappears; do not repair a weak concept with text.
 
@@ -97,7 +103,15 @@ glyph, another app's icon, or a letter tile.
 - Use Voltage only for focus, the primary action, and the active state, plus exactly one
   four-pixel accent rail across the top edge of the application surface. One rail per window, not
   one per group: three parallel accent bars accent nothing and read as scaffolding. Never place
-  Voltage text on a light ground.
+  Voltage text on a light ground — the theme's own mark is already a deepened Voltage there, so
+  take `hilight` and never the raw brand color.
+- **When a second color is genuinely needed, it is the theme's second tone and nothing else.**
+  A page the reader can leave to, a link, a mode that is not the work of the surface: those take
+  the alternate tone — `PushButtonForm.Alternate` for a filled action, `theme.palette.alternate`
+  for anything drawn by hand. Borrowing a status color for it is the mistake to avoid: sSnapForge
+  dressed its Library button in the informational notice palette, which said "notice" in a place
+  nothing was being reported and left the app answering for nine colors the theme should have
+  answered for. One strong action and at most one alternate per surface.
 - Use system sans for interface prose and the fixed-width theme family for compiler-known names,
   paths, formats, identifiers, compact badges, and status data.
 - Use a spacing rhythm based on 4, 8, 16, 24, and 32 logical pixels. Align related labels and

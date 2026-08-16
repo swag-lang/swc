@@ -280,3 +280,26 @@ Entries are sorted by identifier, ascending; position carries no priority.
   list, the menu popup, and the automatic label height — for that pattern, and either round out
   through one shared helper or measure the second axis after committing the first. Prove it the way
   `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
+
+### F-144 — The gui10 palettes page paints one frame in the neutral theme
+
+- Area: examples/gui10
+- Found while: the second iteration of the visual chart, comparing the four palettes side by side
+- Observation: launched straight onto the **Palettes** page, the inspector paints at least one
+  frame with the *neutral* palette applied to its own chrome — the selected variant and page
+  buttons come out filled in the system blue `#1473E6` instead of the active palette's block —
+  while the caption band, the grounds and the sheet columns are all correct for the palette the
+  footer names. A later repaint, triggered by any pointer event, restores the right colors. No
+  other page shows it.
+- Evidence: `swc tools/examples.swgs run gui10 --run-arg=--swaglight --run-arg=--palettes`, then
+  screenshot immediately: the selected button samples `#1473E6` while `wnd_CaptionBkLead` samples
+  the Swag Light wash. The same launch on `--widgets` samples the Voltage block. The page is the
+  only code path that builds five whole palettes at once —
+  [sheetwnd.swg](../bin/examples/modules/gui10/src/sheetwnd.swg) `buildPalettes`, which calls
+  `variantColors`, which constructs a local `Gui.Theme` and calls `setLight` on it for the
+  sheet-written variant.
+- Next step: find out what a *local* `Theme` shares with `app.theme`. Either the construction or
+  the drop of that local reaches the live theme for one frame, which would be a toolkit defect
+  rather than an example one, and would equally affect any application that builds a `Theme` value
+  to sample colors from. Reproduce without the inspector: construct a `Theme`, call `setLight` on
+  it, drop it, and read `app.theme.colors.hilight` before and after.

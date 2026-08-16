@@ -120,6 +120,9 @@ struct Properties
 
             // Whether modified fields expose the reset-to-default affordance.
             revertButtonsVisible: bool = true
+
+            // Whether the view is restricted to fields that differ from their defaults.
+            modifiedOnly: bool
         }
 
         // Theme-derived implementation metrics. They remain private to the control so callers do not
@@ -127,15 +130,15 @@ struct Properties
         internal
         {
             // Grid and condensed presentation metrics.
-            gridLineHeight:    f32 = 35
-            gridLineMargin:    s32 = 12
+            gridLineHeight:    f32 = 32
+            gridLineMargin:    s32 = 4
             gridColumnSize:    s32 = 150
             gridColumnSizeReq: s32 = 150     // Requested width, re-clamped on resize.
             gridMarginColumn:  s32 = 16
             gridIndentSize:    s32 = 14
 
             // List and panel presentation metrics.
-            listNameMarginBefore: s32 = 20
+            listNameMarginBefore: s32 = 12
             listNameMarginAfter:  s32 = 0
             listDescMarginAfter:  s32 = 5
 
@@ -145,7 +148,7 @@ struct Properties
             valBarPaddingX:   f32 = 12
             valBarPaddingY:   f32 = 7
             valBarGap:        f32 = 7
-            valBarRadius:     f32 = 6
+            valBarRadius:     f32
 
             leftMargin:  s32 = 15
             rightMargin: s32 = 15
@@ -307,6 +310,11 @@ impl IWnd for Properties
 // value editors can call them, but they are not part of the public API.
 internal impl Properties
 {
+    mtd hasActiveFilter()->bool
+    {
+        return .modifiedOnly or !.stringFilter.isEmpty()
+    }
+
     mtd itemState(item: *PropertiesItem)->{ visible, enable: bool }
     {
         var result: retval = {true, true}
@@ -335,7 +343,10 @@ internal impl Properties
 
             scan = scan.parent
 
-            if scan and .isGridLike() and scan.numChilds and !scan.flags.has(.Expanded) do
+            // A filter is a request to find a field, so a collapsed ancestor must not hide a
+            // match. Keep its expansion bit untouched and reveal the matching branch only for
+            // as long as the filter is active.
+            if scan and .isGridLike() and !.hasActiveFilter() and scan.numChilds and !scan.flags.has(.Expanded) do
                 result.visible = false
         }
 
@@ -418,8 +429,8 @@ impl Properties
 
             if kind == .List
             {
-                const FontSectionSize  = 30'u32
-                const FontCategorySize = 24'u32
+                const FontSectionSize  = 24'u32
+                const FontCategorySize = 18'u32
                 .fontName             = theme.res.fontDefault
                 .fontSection          = theme.createDefaultFontfamily(FontSectionSize)
                 .fontCategory         = theme.createDefaultFontfamily(FontCategorySize)
@@ -436,8 +447,8 @@ impl Properties
                 .fontCategory         = theme.res.fontDefault
                 .fontSection.regular  = .fontSection.bold
                 .fontCategory.regular = .fontCategory.bold
-                .leftMargin           = 25
-                .rightMargin          = 15
+                .leftMargin           = 20
+                .rightMargin          = 8
             }
 
             // Condensed: a dense, classic property grid with thin rows and tight
@@ -446,7 +457,7 @@ impl Properties
             {
                 .gridLineHeight = 24
                 .gridLineMargin = 4
-                .leftMargin     = 18
+                .leftMargin     = 16
             }
 
             // Panel: full-width self-labeled rows, tight side margins. The line margin
@@ -455,7 +466,7 @@ impl Properties
             {
                 .leftMargin     = 8
                 .rightMargin    = 8
-                .gridLineMargin = 12
+                .gridLineMargin = 8
             }
 
             .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }
@@ -670,10 +681,17 @@ impl Properties
         // A change can add/remove a validation bar (row height) or flip a row's revert marker
         // (row layout): relay out the grid so the rows below shift and the scroll size stays
         // correct.
-        var relayout = .updateValidation()
-        if .updateDefaults() do
+        var relayout        = .updateValidation()
+        let defaultsChanged = .updateDefaults()
+        if defaultsChanged do
             relayout = true
-        if relayout
+        if .modifiedOnly
+        {
+            // The edited row may have entered or left the modified-only result set.
+            .updateStates()
+            relayout = false
+        }
+        elif relayout
         {
             .applyLayout()
             .scrollWnd.view.sendResizeEvent()
@@ -703,6 +721,68 @@ impl Properties
         if .stringFilter == filter do
             return
         .stringFilter = filter
+        .updateStates()
+    }
+
+    // Restricts the view to fields that differ from their declared defaults. Text filtering and
+    // the modified-only filter compose, and matching descendants remain visible through collapsed
+    // categories while either filter is active.
+    mtd setModifiedOnly(enabled: bool)
+    {
+        if .modifiedOnly == enabled do
+            return
+        .modifiedOnly = enabled
+        .updateStates()
+    }
+
+    // Expands every collapsible section and category in grid presentations.
+    mtd expandAll()
+    {
+        if !.isGridLike() do
+            return
+
+        for item in .items where item!.numChilds do
+            item!.flags.add(.Expanded)
+        .updateStates()
+    }
+
+    // Collapses every visible section and category in grid presentations.
+    //
+    // The invisible root used when [[Gui.Properties.addStruct]] has no section label remains
+    // expanded so collapsing the view never hides the complete editor behind a row the user
+    // cannot reopen.
+    mtd collapseAll()
+    {
+        if !.isGridLike() do
+            return
+
+        for item in .items where item!.numChilds and item!.line.position.height > 0 do
+            item!.flags.remove(.Expanded)
+        .updateStates()
+    }
+
+    // Expands only the branches containing fields that differ from their declared defaults.
+    // Other visible branches are collapsed; the current text and modified-only filters remain
+    // unchanged.
+    mtd expandModified()
+    {
+        if !.isGridLike() do
+            return
+
+        for item in .items where item!.numChilds and item!.line.position.height > 0 do
+            item!.flags.remove(.Expanded)
+
+        for item in .items where item!.isModified
+        {
+            var parent = item!.parent
+            while parent
+            {
+                if parent.numChilds do
+                    parent.flags.add(.Expanded)
+                parent = parent.parent
+            }
+        }
+
         .updateStates()
     }
 
@@ -771,10 +851,9 @@ impl Properties
 
         if item.section == .currentSectionIndex or .currentSectionIndex >= .sections.count
         {
-            if .stringFilter.length == 0 do
-                mustShow = true
-            elif Utf8.indexOf(item.filter.toSlice(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase) != Swag.U64.Max do
-                mustShow = true
+            mustShow = !.modifiedOnly or (item.data != null and item.isModified)
+            if mustShow and !.stringFilter.isEmpty() do
+                mustShow = Utf8.indexOf(item.filter.toSlice(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase) != Swag.U64.Max
 
             if mustShow do
                 {
@@ -840,10 +919,10 @@ impl Properties
         // paddings (syncColumnLabels, via applyLayout -> resize) that depend on it.
         .computeLevelMarks()
 
-        for it in .items do
-            .updateItemState(it!)
         .updateValidation()
         .updateDefaults()
+        for it in .items do
+            .updateItemState(it!)
         .applyLayout()
         .scrollWnd.view.sendResizeEvent()
     }

@@ -1014,7 +1014,7 @@ impl ThemeColors
         .prop_HotBorder   = .transparent
         .prop_GridBorder  = p.line
         .prop_GridColumn  = p.line
-        .prop_SectionBk   = p.view
+        .prop_SectionBk   = p.panel
         .prop_CategBk     = p.view
     }
 

@@ -66,7 +66,7 @@ internal impl Properties
         {
             var bar = r
             bar.inflate(-3)
-            painter.fillRoundRect(bar, .valBarRadius, .valBarRadius, colors.embInfo_InformationBk)
+            painter.fillRect(bar, colors.embInfo_InformationBk)
             return
         }
 
@@ -86,44 +86,39 @@ internal impl Properties
             colBkBk = colors.prop_CategBk
         painter.fillRect(r, colBkBk)
 
-        // Hot and focus box background
-        {
-            var r1 = r
-            r1.inflate(-2)
-            painter.fillRoundRect(r1, 4, 4, item.aniFocusBk.cur())
-        }
+        // Hot and focus ground. It spans the row instead of floating as a rounded card: the
+        // property values are the content, and the row state is only a quiet wash behind them.
+        painter.fillRect(r, item.aniFocusBk.cur())
 
-        // In grid mode, display borders and column separator
+        // A property grid is a table, not a matrix of input boxes. Keep one horizontal hairline
+        // between data rows and reveal the resizable column rule only while the pointer uses it.
         if .isGridLike()
         {
-            var r1 = r
-            r1.height += 1
-            painter.drawRect(r1, colors.prop_GridBorder)
-
             if !item.flags.has(.NoSeparator)
             {
-                let x    = .columnPosition() - item.line.position.x
-                let size = .cursorSet ? 4 : 1
-                let rect = Math.Rectangle{x - size * 0.5, r1.y, size, valueCellBottom - r1.y}
-                painter.fillRect(rect, .aniBar.cur())
+                painter.fillRect({r.x, valueCellBottom - 1, r.width, 1}, colors.prop_GridBorder)
+
+                if .cursorSet or .resizingColumn
+                {
+                    let x    = .columnPosition() - item.line.position.x
+                    let rect = Math.Rectangle{x - 1, r.y + 2, 2, Math.max(valueCellBottom - r.y - 4, 1.0)}
+                    painter.fillRect(rect, .aniBar.cur())
+                }
             }
         }
 
-        // Hot and focus border
-        {
-            var r1 = r
-            r1.inflate(-2)
-            painter.drawRoundRect(r1, 4, 4, item.aniFocusBorder.cur())
-        }
+        // The selected row is a short accent mark in a reserved edge lane, not another box.
+        let focusRail = Math.Rectangle{r.x, r.y + 5, 2, Math.max(r.height - 10, 4.0)}
+        painter.fillRect(focusRail, item.aniFocusBorder.cur())
 
         // List rows: a field whose value differs from its declared default is marked by a
         // small vertical accent bar along the row's left edge (the VSCode settings look).
         // Sized from the un-inflated content rect so the bar's rounded caps are never
         // clipped by the row window. Grid keeps its revert-arrow column instead.
-        if !.isGridLike() and item.isModified and .revertButtonsVisible
+        if !.isGridLike() and item.isModified and item != .selItem and .revertButtonsVisible
         {
-            let bar = Math.Rectangle{1, rowRect.y + 1, 3, Math.max(rowRect.height - 2, 4.0)}
-            painter.fillRoundRect(bar, 1.5, 1.5, colors.prop_FocusBorder)
+            let bar = Math.Rectangle{rowRect.x, rowRect.y + 5, 2, Math.max(rowRect.height - 10, 4.0)}
+            painter.fillRect(bar, colors.prop_FocusBorder)
         }
 
         // Validation feedback: an inline colored message bar stacked under the value cell,

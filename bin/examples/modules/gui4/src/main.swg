@@ -148,6 +148,7 @@ var g_DisplayMode: PropertiesKind = .Grid
 var g_Filter:      String
 
 var g_ObjHost:      #null *Wnd
+var g_PropCtrl:     #null *PropertiesCtrl
 var g_Props:        #null *Properties
 var g_Preview:      #null *Wnd
 var g_DisplayCombo: #null *ComboBox
@@ -245,6 +246,7 @@ func displayModeIndex(kind: PropertiesKind)->u32
     case .Grid:      return 0
     case .Condensed: return 1
     case .List:      return 2
+    case .Panel:     return 3
     }
 
     return 0
@@ -257,6 +259,7 @@ func displayModeFromIndex(idx: u32)->PropertiesKind
     case 0: return .Grid
     case 1: return .Condensed
     case 2: return .List
+    case 3: return .Panel
     }
 
     return .Grid
@@ -271,13 +274,15 @@ func rebuildInspector()
     if !objHost do
         return
 
-    let oldProps = g_Props
-    if oldProps do
-        oldProps.destroy()
+    let oldCtrl = g_PropCtrl
+    if oldCtrl do
+        oldCtrl.destroy()
 
-    let props = Properties.create(objHost, {}, g_DisplayMode)
-    g_Props         = props
-    props.dockStyle = .Center
+    let ctrl  = PropertiesCtrl.create(objHost, kind: g_DisplayMode, flags: .SearchBar)
+    let props = ctrl.properties
+    g_PropCtrl     = ctrl
+    g_Props        = props
+    ctrl.dockStyle = .Center
     props.setEditorWidth(320)
     if props.isGridLike() do
         props.setNameColumnWidth(190)
@@ -288,7 +293,9 @@ func rebuildInspector()
     props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
     if !g_Filter.isEmpty() do
-        props.setFilter(g_Filter.toString())
+        ctrl.search.setText(g_Filter.toString())
+
+    ctrl.search.sigTextChanged += func(fil) { g_Filter = fil.text(); }
 
     props.sigValueChanged += func(_list, item)
     {
@@ -322,7 +329,7 @@ func setCardCount(count: s32)
 
 func createInspectorPage(parent: *Wnd)
 {
-    // Left column: a control row (display mode + edited count), a search box, then the grid.
+    // Left column: a control row (display mode + edited count), then the property controller.
     let objHost = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
     g_ObjHost         = objHost
     objHost.dockStyle = .Left
@@ -338,6 +345,7 @@ func createInspectorPage(parent: *Wnd)
         .addItem("Normal")
         .addItem("Condensed")
         .addItem("List")
+        .addItem("Panel")
         .setSelectedIndex(displayModeIndex(g_DisplayMode))
         .sigChanged += func(_cb, idx) { setDisplayMode(displayModeFromIndex(idx)); }
     }
@@ -350,22 +358,6 @@ func createInspectorPage(parent: *Wnd)
         .addItem("3 cards")
         .setSelectedIndex(cast(u32) (g_CardCount - 1))
         .sigChanged += func(_cb, idx) { setCardCount(cast(s32) idx + 1); }
-    }
-
-    with let search = EditBox.create(g_ObjHost!, "")
-    {
-        .setIcon(parent.theme().icon(ThemeIcons.Search, 18))
-        .dockStyle = .Top
-        .setPlaceholder("Search")
-        .margin.w = 8
-        .updateFlags(.ClearButton)
-        .sigTextChanged += func(fil)
-        {
-            g_Filter = fil.text()
-            let props = g_Props
-            if props do
-                props.setFilter(fil.text())
-        }
     }
 
     rebuildInspector()
@@ -611,6 +603,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
         g_PageView     = null
         g_Footer       = null
         g_ObjHost      = null
+        g_PropCtrl     = null
         g_Props        = null
         g_Preview      = null
         g_DisplayCombo = null
@@ -667,8 +660,8 @@ func updateTestMode()
     if g_TestFrame % 24 == 0 and displayCombo and countCombo
     {
         g_TestStep += 1
-        displayCombo.setSelectedIndex(cast(u32) (g_TestStep % 3))
-        countCombo.setSelectedIndex(cast(u32) ((g_TestStep / 3) % 3))
+        displayCombo.setSelectedIndex(cast(u32) (g_TestStep % 4))
+        countCombo.setSelectedIndex(cast(u32) ((g_TestStep / 4) % 3))
     }
 
     if g_TestFrame >= 200 do

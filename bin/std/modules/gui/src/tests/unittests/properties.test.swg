@@ -616,18 +616,18 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     let it1 = ctrl.properties.items[1]!
     let it2 = ctrl.properties.items[2]!
     let it3 = ctrl.properties.items[3]!
-    @assert(it0.line.position.y == 6)
-    @assert(it1.line.position.y == 53)
-    @assert(it2.line.position.y == 100)
-    @assert(it3.line.position.y == 147)
-    @assert(it0.line.position.height == 35)
-    @assert(it1.line.position.height == 35)
-    @assert(it2.line.position.height == 35)
-    @assert(it3.line.position.height == 35)
+    @assert(it0.line.position.y == 2)
+    @assert(it1.line.position.y == 38)
+    @assert(it2.line.position.y == 74)
+    @assert(it3.line.position.y == 110)
+    @assert(it0.line.position.height == 32)
+    @assert(it1.line.position.height == 32)
+    @assert(it2.line.position.height == 32)
+    @assert(it3.line.position.height == 32)
     @assert(it0.line.position.width > 0)
 
     let countItem = it1
-    @assert(countItem.label.position == Math.Rectangle{0, 0, 150, 35})
+    @assert(countItem.label.position == Math.Rectangle{0, 0, 150, 32})
     @assert(countItem.editBox.position.height == ctrl.properties.themeMetrics().editBox_Height)
     @assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
     @assert(ctrl.properties.scrollWnd.scrollSize.y > ctrl.properties.position.height)
@@ -1728,9 +1728,10 @@ struct PropHeadlessFontStyleData
     host.root.applyLayout()
     host.pump()
 
-    // items[0] is the implicit section; the editor stacks the B and I buttons in a sub-line
+    // items[0] is the implicit section. In Panel mode the persistent field label is the
+    // first child, followed by the sub-line that stacks the B and I buttons.
     let item      = prop.items[1]!
-    let stack     = item.line.children[0]
+    let stack     = item.line.children[1]
     let btnBold   = cast(*IconButton) stack.children[0]
     let btnItalic = cast(*IconButton) stack.children[1]
 
@@ -2070,3 +2071,130 @@ struct PropAlignData
     @assert(sawLabel)
     @assert(sawCombo)
 }
+
+// Filtering is stronger than the persisted disclosure state: a match remains reachable through
+// a collapsed branch, and clearing the query restores that branch to its previous state.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 320)
+    defer host.shutdown()
+
+    var data: PropHeadlessGroupedData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    prop.addStruct(data, "Settings")
+
+    let numbers = findFieldItem(prop, "Numbers")!
+    let count   = findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))!
+    prop.collapseAll()
+    @assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
+
+    prop.setFilter("Count")
+    @assert(numbers.line.isVisible() and count.line.isVisible())
+    @assert(!numbers.flags.has(.Expanded))
+
+    prop.setFilter("")
+    @assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
+}
+
+// The modified-only view composes with default tracking and updates immediately when an edit is
+// reset. expandModified opens only the path that contains the changed field.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 360)
+    defer host.shutdown()
+
+    var data: PropHeadlessGroupedData
+    let prop = Properties.create(&host.root, {0, 0, 340, 340}, .Grid)
+    prop.addStruct(data, "Settings")
+
+    let count   = findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))!
+    let enabled = findFieldItem(prop, #nameof(PropHeadlessGroupedData.enabled))!
+    let numbers = findFieldItem(prop, "Numbers")!
+    let flags   = findFieldItem(prop, "Flags")!
+
+    data.enabled = false
+    prop.updateStates()
+    @assert(enabled.isModified and !count.isModified)
+
+    prop.collapseAll()
+    prop.expandModified()
+    @assert(!numbers.flags.has(.Expanded) and flags.flags.has(.Expanded))
+    @assert(!count.line.isVisible() and enabled.line.isVisible())
+
+    prop.expandAll()
+    @assert(count.line.isVisible() and enabled.line.isVisible())
+
+    prop.setModifiedOnly(true)
+    @assert(prop.modifiedOnly)
+    @assert(!count.line.isVisible() and enabled.line.isVisible())
+
+    prop.resetItemDefault(enabled)
+    @assert(!enabled.isModified and !enabled.line.isVisible())
+    prop.setModifiedOnly(false)
+    @assert(count.line.isVisible() and enabled.line.isVisible())
+}
+
+enum PropGoldenChoice
+{
+    Automatic
+    Manual
+    Disabled
+}
+
+struct PropGoldenData
+{
+    #[Category("Appearance"), Name("Visible"), Description("Shows the element in the composed scene.")]
+    visible: bool = true
+
+    #[Category("Appearance"), Name("Opacity"), SliderMinMax(0, 1)]
+    opacity: f32 = 0.75
+
+    #[Category("Appearance"), Name("Tint")]
+    tint: Pixel.Color = 0xFF38BDF8
+
+    #[Category("Layout"), Name("Offset")]
+    offset: Math.Point = {12, 8}
+
+    #[Category("Layout"), Name("Mode")]
+    mode = PropGoldenChoice.Automatic
+}
+
+// Each presentation is a separate rendering contract. In particular, Condensed owns a flat,
+// edge-to-edge editor layout and must not silently inherit the normal grid's spacing or chrome.
+func assertPropertyPresentationGolden(kind: PropertiesKind, name: string)
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 620)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    var data: PropGoldenData
+    data.opacity = 0.4
+
+    let ctrl = PropertiesCtrl.create(&host.root, kind: kind, flags: .SearchBar)
+    ctrl.dockStyle = .Center
+    ctrl.properties.setEditorWidth(280)
+    if ctrl.properties.isGridLike() do
+        ctrl.properties.setNameColumnWidth(150)
+    ctrl.addStruct(data, "Inspector")
+
+    host.root.applyLayout()
+    host.pump()
+    ctrl.properties.setSelItem(findFieldItem(ctrl.properties, #nameof(PropGoldenData.visible)))
+    ctrl.properties.focusNavigation()
+    host.settleAnimations(ctrl, 6)
+
+    let image = host.render()
+    Pixel.Testing.assertImageGolden(&image, name)
+}
+
+#test { assertPropertyPresentationGolden(.Grid, "properties.grid") }
+#test { assertPropertyPresentationGolden(.Condensed, "properties.condensed") }
+#test { assertPropertyPresentationGolden(.List, "properties.list") }
+#test { assertPropertyPresentationGolden(.Panel, "properties.panel") }

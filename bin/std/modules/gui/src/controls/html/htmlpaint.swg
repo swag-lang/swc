@@ -53,6 +53,34 @@ impl HtmlPainter
         return Math.clamp(wanted, 0, Math.max(limit - target.rect.bottom(), 0))
     }
 
+    // Returns the stacking level a child contributes to its parent's paint order. CSS ignores
+    // `z-index` on statically positioned boxes, so they stay in the ordinary level-zero flow.
+    private mtd const stackingLevel(box: u32)->s32
+    {
+        let style = .layout.constStyle(.layout.constBox(box).style)
+        return style.position == .Static ? 0 : style.zIndex
+    }
+
+    // Finds the adjacent non-zero stacking level on one side of normal flow.
+    private mtd const nextStackingLevel(box: u32, previous: s32, hasPrevious: bool, positive: bool, ascending: bool)->{ value: s32, found: bool }
+    {
+        var result: retval
+        for child in .layout.constBox(box).children
+        {
+            let level = .stackingLevel(child)
+            if level == 0 or (level > 0) != positive do
+                continue
+            if hasPrevious and (ascending ? level <= previous : level >= previous) do
+                continue
+            if result.found and (ascending ? level >= result.value : level <= result.value) do
+                continue
+            result.value = level
+            result.found = true
+        }
+
+        return result
+    }
+
     // Returns the band geometry is allowed to reach.
     //
     // A document is tens of thousands of pixels tall and its outermost boxes are that tall too.
@@ -324,6 +352,41 @@ impl HtmlPainter
         .painter.fillPolygon(points.toSlice(), Brush.createSolid(ink))
     }
 
+    // Draws one sign of positioned stacking levels in ascending order, preserving document order
+    // between siblings on the same level.
+    private mtd paintStackedChildren(box: u32, offset: Math.Point, alpha: f32, positive: bool)
+    {
+        let children = .layout.constBox(box).children
+        var previous:    s32
+        var hasPrevious: bool
+        while true
+        {
+            let next = .nextStackingLevel(box, previous, hasPrevious, positive, true)
+            if !next.found do
+                return
+            for child in children where .stackingLevel(child) == next.value do
+                .paintBox(child, offset, alpha)
+            previous    = next.value
+            hasPrevious = true
+        }
+    }
+
+    // Draws children in CSS stacking order: negative positioned levels, normal flow, then
+    // positive positioned levels.
+    private mtd paintChildren(box: u32, offset: Math.Point, alpha: f32)
+    {
+        .paintStackedChildren(box, offset, alpha, false)
+        for child in .layout.constBox(box).children where .stackingLevel(child) == 0 do
+            .paintBox(child, offset, alpha)
+        .paintStackedChildren(box, offset, alpha, true)
+    }
+
+    private mtd paintContents(box: u32, offset: Math.Point, alpha: f32)
+    {
+        .paintItems(box, offset, alpha)
+        .paintChildren(box, offset, alpha)
+    }
+
     // Draws one box and everything under it.
     mtd paintBox(box: u32, parentOffset: Math.Point, alpha: f32)
     {
@@ -357,24 +420,22 @@ impl HtmlPainter
             .paintMarker(box, offset, HtmlPainter.withAlpha(style.color, combined))
 
         var inner = offset
-        let clips = false and (style.overflowX != .Visible or style.overflowY != .Visible)
+        let clips = style.overflowX != .Visible or style.overflowY != .Visible
         if clips
         {
-            var clip = .layout.constBox(box).content
-            clip.offset(offset.x, offset.y)
-            clip.inflate(1)
+            var clip = rect
+            clip.x      += style.borderLeft.width
+            clip.y      += style.borderTop.width
+            clip.width  -= style.borderLeft.width + style.borderRight.width
+            clip.height -= style.borderTop.width + style.borderBottom.width
             .painter.pushClippingRect(clip)
+            defer .painter.popClippingRect()
             inner.y -= .layout.constBox(box).scrollTop
+            .paintContents(box, inner, combined)
+            return
         }
 
-        .paintItems(box, inner, combined)
-
-        let children = .layout.constBox(box).children
-        for child in children do
-            .paintBox(child, inner, combined)
-
-        if clips do
-            .painter.popClippingRect()
+        .paintContents(box, inner, combined)
     }
 
     private mtd paintReplaced(box: u32, rect: Math.Rectangle, alpha: f32)
@@ -427,6 +488,52 @@ impl HtmlPainter
         return .nodeAtBox(.layout.root, point, {0, -.scrollY})
     }
 
+    // Hit-tests one sign of positioned stacking levels from front to back.
+    private mtd const nodeAtStackedChildren(box: u32, point: Math.Point, offset: Math.Point, positive: bool)->u32
+    {
+        let children = .layout.constBox(box).children
+        var previous:    s32
+        var hasPrevious: bool
+        while true
+        {
+            let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
+            if !next.found do
+                return HtmlNoNode
+            for index in children.count
+            {
+                let child = children[children.count - index - 1]
+                if .stackingLevel(child) != next.value do
+                    continue
+                let found = .nodeAtBox(child, point, offset)
+                if found != HtmlNoNode do
+                    return found
+            }
+
+            previous    = next.value
+            hasPrevious = true
+        }
+    }
+
+    private mtd const nodeAtChildren(box: u32, point: Math.Point, offset: Math.Point)->u32
+    {
+        let positive = .nodeAtStackedChildren(box, point, offset, true)
+        if positive != HtmlNoNode do
+            return positive
+
+        let children = .layout.constBox(box).children
+        for index in children.count
+        {
+            let child = children[children.count - index - 1]
+            if .stackingLevel(child) != 0 do
+                continue
+            let found = .nodeAtBox(child, point, offset)
+            if found != HtmlNoNode do
+                return found
+        }
+
+        return .nodeAtStackedChildren(box, point, offset, false)
+    }
+
     private mtd const nodeAtBox(box: u32, point: Math.Point, parentOffset: Math.Point)->u32
     {
         let style = .layout.constStyle(.layout.constBox(box).style)
@@ -447,13 +554,9 @@ impl HtmlPainter
             inner.y -= .layout.constBox(box).scrollTop
         }
 
-        let children = .layout.constBox(box).children
-        for index in children.count
-        {
-            let found = .nodeAtBox(children[children.count - index - 1], point, inner)
-            if found != HtmlNoNode do
-                return found
-        }
+        let child = .nodeAtChildren(box, point, inner)
+        if child != HtmlNoNode do
+            return child
 
         let target = .layout.constBox(box)
         for index in target.items.count
@@ -488,6 +591,52 @@ impl HtmlPainter
         return .scrollableAtBox(.layout.root, point, {0, -.scrollY})
     }
 
+    // Finds a scrollable box through one sign of positioned stacking levels, frontmost first.
+    private mtd const scrollableAtStackedChildren(box: u32, point: Math.Point, offset: Math.Point, positive: bool)->u32
+    {
+        let children = .layout.constBox(box).children
+        var previous:    s32
+        var hasPrevious: bool
+        while true
+        {
+            let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
+            if !next.found do
+                return HtmlNoNode
+            for index in children.count
+            {
+                let child = children[children.count - index - 1]
+                if .stackingLevel(child) != next.value do
+                    continue
+                let found = .scrollableAtBox(child, point, offset)
+                if found != HtmlNoNode do
+                    return found
+            }
+
+            previous    = next.value
+            hasPrevious = true
+        }
+    }
+
+    private mtd const scrollableAtChildren(box: u32, point: Math.Point, offset: Math.Point)->u32
+    {
+        let positive = .scrollableAtStackedChildren(box, point, offset, true)
+        if positive != HtmlNoNode do
+            return positive
+
+        let children = .layout.constBox(box).children
+        for index in children.count
+        {
+            let child = children[children.count - index - 1]
+            if .stackingLevel(child) != 0 do
+                continue
+            let found = .scrollableAtBox(child, point, offset)
+            if found != HtmlNoNode do
+                return found
+        }
+
+        return .scrollableAtStackedChildren(box, point, offset, false)
+    }
+
     private mtd const scrollableAtBox(box: u32, point: Math.Point, parentOffset: Math.Point)->u32
     {
         var offset = parentOffset
@@ -502,13 +651,9 @@ impl HtmlPainter
         if .layout.constBox(box).scrollable do
             inner.y -= .layout.constBox(box).scrollTop
 
-        let children = .layout.constBox(box).children
-        for index in children.count
-        {
-            let found = .scrollableAtBox(children[children.count - index - 1], point, inner)
-            if found != HtmlNoNode do
-                return found
-        }
+        let child = .scrollableAtChildren(box, point, inner)
+        if child != HtmlNoNode do
+            return child
 
         return .layout.constBox(box).scrollable ? box : HtmlNoNode
     }

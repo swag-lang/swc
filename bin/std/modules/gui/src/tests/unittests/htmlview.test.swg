@@ -306,6 +306,65 @@ private func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
     @assert(wide.rect.x == narrow.rect.right())
 }
 
+// A bounded overflow region moves its own contents and never paints them outside its viewport.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 180)
+    defer host.shutdown()
+
+    var source: String = "<style>"
+    source += "body { margin: 0; background: #ffffff }"
+    source += "#rail { width: 100px; height: 80px; overflow-y: auto; background: #00ff00 }"
+    source += ".page { height: 80px } #first { background: #ff0000 } #second { background: #0000ff }"
+    source += "</style>"
+    source += "<div style=\"height: 40px\"></div>"
+    source += "<aside id=\"rail\"><div class=\"page\" id=\"first\"></div><div class=\"page\" id=\"second\"></div></aside>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(240, 180)
+    view.applyLayout()
+    view.rebuild()
+    discard host.render(view)
+
+    let rail = view.boxOfNode(view.elementById("rail"))
+    @assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
+    @assert(view.layout.constBox(rail).rect.y == 40)
+    @assert(view.painter().scrollableAt({20, 60}) == rail)
+    @assert(view.scrollRegion(rail, 80))
+    @assert(view.layout.constBox(rail).scrollTop == 80)
+
+    var image = host.render(view)
+    @assert(image.pixelColor(20, 60).argb == 0xFF0000FF)
+    @assert(image.pixelColor(20, 30).argb != 0xFFFF0000 and image.pixelColor(20, 30).argb != 0xFF0000FF)
+    @assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
+}
+
+// A positive z-index keeps a sticky header above siblings that occur later in the document.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 180)
+    defer host.shutdown()
+
+    var source: String = "<style>"
+    source += "body { margin: 0 }"
+    source += "header { position: sticky; z-index: 20; top: 0; height: 40px; background: #ff0000 }"
+    source += "main { height: 400px; background: #0000ff }"
+    source += "</style><header></header><main></main>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(240, 180)
+    view.applyLayout()
+    view.rebuild()
+    view.scroll.setScrollPos(0, 80)
+
+    var image = host.render(view)
+    @assert(image.pixelColor(120, 20).argb == 0xFFFF0000)
+    @assert(image.pixelColor(120, 80).argb == 0xFF0000FF)
+    @assert(view.document.constNode(view.painter().nodeAt({120, 20})).tag == .Header)
+}
+
 // The complete fixture renders, and nothing a document hides reaches the drawn text.
 #test
 {

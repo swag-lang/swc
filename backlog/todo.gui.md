@@ -151,7 +151,8 @@ close to what a browser shows. What it does not do is worth naming, because each
 that will look wrong rather than a page that will look plainer:
 
 - `float` and `clear` lay out as ordinary blocks, so a floated figure takes a whole line.
-- `z-index` and `order` are ignored; painting follows document order.
+- `order` is ignored, and `z-index` orders positioned siblings without yet hoisting a positioned
+  descendant through static ancestors into its nearest stacking context.
 - `align-content` does not distribute the cross axis of a wrapped flex container.
 - A grid places items in source order across its declared columns; `grid-column`, `grid-row`,
   named areas and implicit rows are not modelled.

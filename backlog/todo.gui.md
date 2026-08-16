@@ -143,6 +143,26 @@ accessibility, input and system-event contracts above rather than merely open a 
 therefore names the smallest coherent version that can ship and the existing controls or
 applications that would prove it.
 
+### T-387 — The HTML engine stops short of the box model a browser draws
+
+The document engine behind [[Gui.HtmlView]] parses a real tree, runs a real cascade, and lays
+out block, inline, flex, grid and table content well enough to draw the generated documentation
+close to what a browser shows. What it does not do is worth naming, because each item is a page
+that will look wrong rather than a page that will look plainer:
+
+- `float` and `clear` lay out as ordinary blocks, so a floated figure takes a whole line.
+- `z-index` and `order` are ignored; painting follows document order.
+- `align-content` does not distribute the cross axis of a wrapped flex container.
+- A grid places items in source order across its declared columns; `grid-column`, `grid-row`,
+  named areas and implicit rows are not modelled.
+- `colspan` and `rowspan` are ignored, and a table sizes its columns from content alone.
+- `transform`, gradients, `box-shadow`, and masks are not drawn; a masked fill is left unpainted
+  rather than filled flat.
+- A state pseudo-class never matches, because answering one means restyling the document on
+  every pointer move. The viewer lights the link under the pointer while painting instead.
+
+Take them in the order a real document notices them: floats first, then table spans, then the
+grid placement properties.
 ### T-042 — Focused controls are not scrolled into view
 
 Tab can focus a descendant of `ScrollWnd` without revealing it. Add `Wnd.ensureVisible`, walking

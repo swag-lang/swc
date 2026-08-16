@@ -684,8 +684,13 @@ enum MultiChoice
 #[Swag.EnumFlags]
 enum MultiBadges
 {
+    #[Description("Adds a star marker.")]
     Star
+
+    #[Description("Locks the tile.")]
     Lock
+
+    #[Description("Pins the tile.")]
     Pin
 }
 
@@ -710,6 +715,29 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     }
 
     return null
+}
+
+// Condensed enum-flag rows keep the marker and its wording in two adjacent cells. The checkbox
+// must not take the Center dock used by full-cell editors, which would overlap the label.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 420)
+    defer host.shutdown()
+
+    var data: MultiTile
+    let prop = Properties.create(&host.root, {0, 0, 500, 400}, .Condensed)
+    prop.addStruct(data, "Tile")
+
+    host.root.applyLayout()
+    host.pump()
+
+    let option      = findFieldItem(prop, #nameof(MultiBadges.Star))!
+    let optionLabel = cast(*Label) option.line.children[1]
+    @assert(option.checkBox.dockStyle == .Left)
+    @assert(option.line.position.height == prop.gridLineHeight)
+    @assert(option.checkBox.position.right() <= optionLabel.position.x)
+    @assert(option.checkBox.position.vertCenter() == optionLabel.position.vertCenter())
 }
 
 // Edits applied through the grid write into every selected instance.

@@ -29,9 +29,7 @@ internal impl Properties
             let item = itemIt!
             if !item.line.isVisible() do
                 continue
-            var r = item.line.position
-            r.inflate(item.extendFocus)
-            if r.contains(pt) do
+            if item.line.position.contains(pt) do
                 return item
         }
 

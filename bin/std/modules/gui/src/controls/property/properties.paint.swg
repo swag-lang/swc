@@ -2,8 +2,8 @@
 
 using Core, Pixel
 
-// Rendering of the property control: the per-row background/focus/hot chrome, the grid borders
-// and column separator, the disclosure icon. The control-level onPaint (separator-color
+// Rendering of the property control: the per-row background/focus/hot chrome, the live column
+// resize rule, and the disclosure icon. The control-level onPaint (separator-color
 // animation) is in properties.swg with the other IWnd events; the inline validation bar this
 // draws lives in validation.swg (paintValidationBar).
 internal impl Properties
@@ -43,10 +43,9 @@ internal impl Properties
         var r = wndItem.clientRect()
         r.moveTop(wndItem.children.front().position.y)
 
-        // Content rectangle of the row, before the focus inflation: anything painted from
-        // it stays inside the line window and is never clipped by the neighbours.
+        // Row chrome stays inside the row window. Painting through the surrounding layout
+        // margins lets two independently animated rows overwrite each other at their shared edge.
         let rowRect = r
-        r.inflate(item.extendFocus)
         if .isGridLike()
         {
             r.x     = 0
@@ -90,21 +89,15 @@ internal impl Properties
         // property values are the content, and the row state is only a quiet wash behind them.
         painter.fillRect(r, item.aniFocusBk.cur())
 
-        // A property grid is a table, not a matrix of input boxes. Keep one horizontal hairline
-        // between data rows and reveal the resizable column rule only while the pointer uses it.
-        if .isGridLike()
+        // The column boundary is visible only while it is being targeted. Extend that live rule
+        // through the layout margins so adjacent row segments meet without clipped ends.
+        if .isGridLike() and !item.flags.has(.NoSeparator) and (.cursorSet or .resizingColumn)
         {
-            if !item.flags.has(.NoSeparator)
-            {
-                painter.fillRect({r.x, valueCellBottom - 1, r.width, 1}, colors.prop_GridBorder)
-
-                if .cursorSet or .resizingColumn
-                {
-                    let x    = .columnPosition() - item.line.position.x
-                    let rect = Math.Rectangle{x - 1, r.y + 2, 2, Math.max(valueCellBottom - r.y - 4, 1.0)}
-                    painter.fillRect(rect, .aniBar.cur())
-                }
-            }
+            let top  = r.y - wndItem.margin.y
+            let bot  = valueCellBottom + wndItem.margin.w
+            let x    = .columnPosition() - item.line.position.x
+            let rect = Math.Rectangle{x - 1, top, 2, Math.max(bot - top, 1.0)}
+            painter.fillRect(rect, .aniBar.cur())
         }
 
         // The selected row is a short accent mark in a reserved edge lane, not another box.

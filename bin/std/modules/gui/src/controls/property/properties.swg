@@ -193,7 +193,7 @@ struct Properties
             stringFilter:        String                    // Active row filter.
             cursorSet:           bool                      // Whether the grid set the cursor this frame.
             resizingColumn:      bool                      // Whether a column-resize drag is in progress.
-            aniBar:              BlendColor                // Animation of the validation bar color.
+            aniBar:              BlendColor                // Animation of the live column-resize rule.
             editPopup:           #null *Wnd                // Popup owned by the row being edited.
 
             // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed

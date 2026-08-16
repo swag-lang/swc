@@ -126,8 +126,6 @@ struct PropertiesItem
         numChilds:      u32
         internal
         section:        u32
-        internal
-        extendFocus:    f32 = 10
 
         // Grid only: height of the value cell (label + editor) on its own. The row grows below
         // it to host the validation message bar, so we keep the base height to restore/recompute.

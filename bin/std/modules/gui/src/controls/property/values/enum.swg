@@ -186,7 +186,6 @@ internal impl Properties
             with let itemB = me.items.addNew()
             {
                 .initialize(line, typeEnum, v, data, item)
-                .extendFocus   = 5
                 .filter        = item.filter
                 .level         = item.level + 1
                 .section       = item.section
@@ -196,7 +195,8 @@ internal impl Properties
 
             line.hookOnEvent = func|prop = me, itemB|(hwnd, evt) { return prop.onItemEvent(itemB, hwnd, evt); }
 
-            with let ed = CheckButton.create(line, "", {0, 0, me.gridLineHeight, 0})
+            let checkHeight = me.kind == .Condensed ? PropCondensedControlHeight : me.gridLineHeight
+            with let ed = CheckButton.create(line, "", {0, 0, checkHeight, checkHeight})
             {
                 if me.isGridLike() do
                     .margin.x = me.leftMargin
@@ -204,7 +204,6 @@ internal impl Properties
                 .userData  = cast #unconst (#null *void) v.value
             }
 
-            me.adaptCondensedControl(ed)
             itemB.assignCheckBox(ed)
 
             let dispDesc    = Reflection.attributeValue(v, Properties.Description, "desc")
@@ -222,7 +221,7 @@ internal impl Properties
                 .setText(dispDescStr)
             }
 
-            let minHeight = ed.position.height
+            let minHeight = me.kind == .Condensed ? me.gridLineHeight : ed.position.height
             itemB.sigResize += func|label1, line, minHeight|(itemB)
             {
                 label1.updateAutomaticHeight()

@@ -26,9 +26,8 @@ impl Properties
         return .kind == .Grid or .kind == .Condensed
     }
 
-    // In condensed mode the value editors fill the whole value cell (both axes):
-    // the grid lines already provide the visual structure, so the editor stays
-    // flat and edge-to-edge instead of floating as a smaller bordered box.
+    // In condensed mode the value editors fill the whole value cell (both axes),
+    // staying flat and edge-to-edge instead of floating as a smaller bordered box.
     internal mtd adaptCondensedControl(wnd: *Wnd)
     {
         if .kind != .Condensed do

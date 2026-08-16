@@ -1,5 +1,5 @@
-#import("audio", location: "swag@std")
 #import("core", location: "swag@std")
+#import("runtime_context_bridge_dll")
 #run
 {
     let cfg = @compiler.getBuildCfg()!

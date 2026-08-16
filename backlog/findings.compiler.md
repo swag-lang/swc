@@ -159,30 +159,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Artifact reuse
 
-### F-145 — A run after a test rebuilds an unchanged workspace executable
-
-- Area: compiler
-- Found while: validating the second visual-chart iteration; the failure is unrelated to it and
-  reproduces on a pristine checkout
-- Observation: `swc tools/unittests.swgs workspace` always ends on
-  `Workspace run recompiled its unchanged executable after a test build.` and returns 1. The suite
-  builds `consumer_exe`, forces a standard-library rebuild through `sandbox_consumer --rebuild`,
-  tests `consumer_exe`, then runs it and requires `up-to-date • consumer_exe.exe`. What it gets is
-  a full `127 files` recompile, while every dependency of that module reports up-to-date. The
-  reciprocal check one step later — a test after a run reusing `consumer_exe.test.exe` — is never
-  reached.
-- Evidence: reproduced on `master` (`f2324a003`) in a worktree with no working-tree change at all,
-  and with the theme branch's only `core` edit stashed. Both give the same last line. The suite is
-  [tools/src/suites.swg](../tools/src/suites.swg), around the `up-to-date • consumer_exe.exe`
-  check; the sequence it runs is `build` → `test sandbox_consumer --rebuild` → `test consumer_exe`
-  → `run consumer_exe`.
-- Next step: run the four commands by hand with `--verbose` between them and compare what the
-  module cache keys on before and after the `--rebuild` step. The suspicion is that forcing the
-  standard library to rebuild rewrites a dependency artifact the executable's key covers, so the
-  reuse the suite asserts is only reachable when nothing forced that rebuild — in which case the
-  fix is either a stable key over an identically rebuilt dependency, or a suite that does not
-  demand reuse across a forced rebuild.
-
 ### F-146 — An `.Export` module does not publish its namespace to a test build
 
 - Area: compiler
@@ -206,3 +182,20 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the build path is what the working `sFileScope.exe` link consumes. Decide whether a test build
   should produce the same export artifact, or whether an `.Export` dependency should be consumed
   from the build artifact when the dependent is being tested.
+
+### F-147 — Lazy standard roots can try to replace a DLL already loaded by the compiler
+
+- Area: compiler
+- Found while: reducing concurrent imported-runtime-hook initialization in the workspace suite
+- Observation: a workspace module that imports `audio`, `core`, and `gui` as separate `swag@std`
+  roots builds the first roots, loads `core.dll` for compile-time evaluation, then the lazy `gui`
+  dependency build tries to synchronize another `core.dll` over that loaded file and stops.
+- Evidence: `swc tools/unittests.swgs dm workspace -bc debug` reached the temporary
+  `sandbox_consumer` fixture, built `std [audio]` and `std [core]`, then stopped while building
+  `std [gui]` with `cannot synchronize workspace dependency
+  'bin\\std\\.dep\\core\\shared-library\\debug\\x86_64\\core.dll': access is denied` and the note
+  `the file is in use by this compiler process`. Removing the third standard root removes the
+  failure.
+- Next step: trace when lazy standard-root discovery schedules and loads each dependency, then
+  resolve the complete standard dependency union before any root can load a DLL that a later root
+  still needs to publish.

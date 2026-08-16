@@ -949,6 +949,19 @@ namespace
         return true;
     }
 
+    bool tryGetWorkspaceDependencyBuildTime(fs::file_time_type& outTime, const fs::path& dependencyDir, const fs::path& consumerManifestPath)
+    {
+        // A dependency output directory can hold normal and test artifacts side by side. Use the
+        // manifest for the consuming mode so rebuilding one mode does not invalidate the other.
+        const fs::path dependencyManifestPath = dependencyDir / consumerManifestPath.filename();
+        if (tryGetWorkspacePathWriteTime(outTime, dependencyManifestPath))
+            return true;
+
+        // Published or hand-copied dependencies have no manifest; their newest entry is the only
+        // build date available.
+        return tryCollectLatestWorkspaceTreeWriteTime(outTime, dependencyDir);
+    }
+
     // Dates the compiler that is about to consume a build.
     //
     // The embedded runtime sources (<resource root>/runtime/*.swg) are compiled into every
@@ -1190,7 +1203,7 @@ namespace
         for (const fs::path& dependencyDir : currentDependencyDirs)
         {
             fs::file_time_type dependencyTime;
-            if (!tryCollectLatestWorkspaceTreeWriteTime(dependencyTime, dependencyDir))
+            if (!tryGetWorkspaceDependencyBuildTime(dependencyTime, dependencyDir, manifestPath))
                 return false;
             if (!hasDependencyTime || dependencyTime > latestDependencyTime)
             {

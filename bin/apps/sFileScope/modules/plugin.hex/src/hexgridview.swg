@@ -10,8 +10,9 @@ const HexColumnGap = 14.0
 // eye count columns without reading the header.
 const HexDefaultGroupSize = 8'u64
 
-// Rows a wheel notch moves, and the range a row is allowed to hold. Both bounds are multiples of
-// the group so a row never ends in the middle of one.
+// Rows a wheel notch moves, and the range a row is allowed to hold. Automatic fitting aligns the
+// chosen count to the active scalar, so a row can use the last available columns without ending in
+// the middle of a value.
 const HexWheelRows      = 3'u64
 const HexMinBytesPerRow = 8'u64
 const HexMaxBytesPerRow = 64'u64
@@ -38,14 +39,19 @@ enum HexCopyForm
 // Selects the scalar each visual byte group represents.
 enum HexGrouping
 {
-    Bytes          // Individual bytes, with a larger visual break every eight.
+    Bytes          // Individual hexadecimal bytes, with a larger visual break every eight.
+    Unsigned8      // Unsigned 8-bit integers.
+    Signed8        // Signed 8-bit integers.
+    Hex16          // 16-bit integers written in hexadecimal.
     Unsigned16     // Unsigned 16-bit integers.
-    Unsigned32     // Unsigned 32-bit integers.
-    Unsigned64     // Unsigned 64-bit integers.
     Signed16       // Signed 16-bit integers.
+    Hex32          // 32-bit integers written in hexadecimal.
+    Unsigned32     // Unsigned 32-bit integers.
     Signed32       // Signed 32-bit integers.
-    Signed64       // Signed 64-bit integers.
     Float32        // IEEE 754 32-bit floating-point values.
+    Hex64          // 64-bit integers written in hexadecimal.
+    Unsigned64     // Unsigned 64-bit integers.
+    Signed64       // Signed 64-bit integers.
     Float64        // IEEE 754 64-bit floating-point values.
 }
 
@@ -53,9 +59,9 @@ func hexGroupingSize(grouping: HexGrouping)->u64
 {
     switch grouping
     {
-    case .Unsigned16, .Signed16:           return 2
-    case .Unsigned32, .Signed32, .Float32: return 4
-    case .Unsigned64, .Signed64, .Float64: return 8
+    case .Hex16, .Unsigned16, .Signed16:                   return 2
+    case .Hex32, .Unsigned32, .Signed32, .Float32:         return 4
+    case .Hex64, .Unsigned64, .Signed64, .Float64:         return 8
     default: return 1
     }
 }
@@ -83,8 +89,13 @@ func hexGroupingChars(grouping: HexGrouping)->u64
 {
     switch grouping
     {
+    case .Unsigned8:  return 3
+    case .Signed8:    return 4
+    case .Hex16:      return 6
     case .Unsigned16: return 5
+    case .Hex32:      return 10
     case .Unsigned32: return 10
+    case .Hex64:      return 18
     case .Unsigned64: return 20
     case .Signed16:   return 6
     case .Signed32:   return 11
@@ -112,7 +123,11 @@ func formatHexScalar(grouping: HexGrouping, raw: u64)->String
 {
     switch grouping
     {
-    case .Signed16, .Signed32, .Signed64: return Format.toString("%", hexSignedScalar(raw, hexGroupingSize(grouping)))
+    case .Signed8, .Signed16, .Signed32, .Signed64: return Format.toString("%", hexSignedScalar(raw, hexGroupingSize(grouping)))
+    case .Bytes: return Format.toString("%{X02}", raw)
+    case .Hex16: return Format.toString("0x%{X04}", raw)
+    case .Hex32: return Format.toString("0x%{X08}", raw)
+    case .Hex64: return Format.toString("0x%{X016}", raw)
     case .Float32: return Format.toString("%{g9}", cast #bit (f32) (cast(u32) raw))
     case .Float64: return Format.toString("%{g15}", cast #bit (f64) raw)
     default:       return Format.toString("%", raw)
@@ -404,15 +419,16 @@ impl HexGridView
         if available <= 0 or .charWidth <= 0 do
             return HexMinBytesPerRow
 
-        var candidate = HexMaxBytesPerRow
+        let unit = .valueSize()
+        var candidate = HexMaxBytesPerRow / unit * unit
         while candidate > HexMinBytesPerRow
         {
             if .contentWidthFor(candidate) <= available do
                 return candidate
-            candidate -= HexDefaultGroupSize
+            candidate -= unit
         }
 
-        return HexMinBytesPerRow
+        return Math.max(HexMinBytesPerRow / unit * unit, unit)
     }
 
     mtd computeMetrics()

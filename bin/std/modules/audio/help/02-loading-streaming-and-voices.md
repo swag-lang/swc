@@ -17,6 +17,11 @@ try voice.play(.Loop)
 The [[Audio.SoundFile]] must outlive every [[Audio.Voice]] created from it.
 Streaming voices also keep the source path and open the file on demand.
 
+[[Audio.SoundFile.readPayload]] reads an owned, bounded range without changing a
+voice's streaming position. It is suitable for background analysis such as a
+waveform: walk the payload in small blocks and publish partial results while the
+voice remains free to start immediately.
+
 Use [[Audio.Voice.pause]] to preserve the current playback position and
 [[Audio.Voice.play]] to resume. [[Audio.Voice.stop]] ends the current playback
 and rewinds it to the beginning;

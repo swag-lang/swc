@@ -33,13 +33,16 @@ impl BlendColor
 
         if wnd.app().dirtyTheme != .themeCrc
         {
-            let firstResolution = .themeCrc == Swag.U32.Max
             .themeCrc = wnd.app().dirtyTheme
-            if firstResolution
-            {
-                .curVec4, .destVec4 = target.toVector4()
-                return
-            }
+            // A palette change is one atomic visual state, not an interaction inside the current
+            // palette. Cancel any old track and resolve both endpoints in the new palette so a
+            // control never drifts through colors that belong to neither theme.
+            let activeWnd = .targetWnd
+            .targetWnd = null
+            if activeWnd and activeWnd.surface do
+                activeWnd.app().animator.cancel(activeWnd, AnimationChannel.fromPointer(me))
+            .curVec4, .destVec4 = target.toVector4()
+            return
         }
 
         let vec4 = target.toVector4()

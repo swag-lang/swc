@@ -1,10 +1,10 @@
 # sFileScope
 
 sFileScope is the universal read-only viewer shipped with Swag. The executable owns navigation,
-drag and drop, the application action bar, the built-in text view, and lazy plugin selection.
-Viewer selection and format-specific actions live in a separate viewer bar, so document tools do
-not compete visually with Open, navigation, search, or the application theme. Format-specific code
-stays in standalone shared libraries and enters the process only when selected.
+drag and drop, one contextual action bar, the built-in text view, and lazy plugin selection. Viewer
+selection and format-specific actions share that single bar with the compact global commands, so
+the document keeps the clear majority of the surface. Format-specific code stays in standalone
+shared libraries and enters the process only when selected.
 
 ## Viewer registry
 
@@ -52,9 +52,10 @@ hexadecimal alternative instead of guessing an encoding.
 - `plugin.image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, and Pixel's
   vector parser for SVG. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF
   playback and seeking.
-- `plugin.sound` uses the Audio module to load and play PCM or float WAV files. It shows format metadata,
-  a peak waveform, a live playhead, and icon-only Play/Pause/Stop controls. Metadata and waveform
-  decoding remain available when no playback device can be opened.
+- `plugin.sound` uses the Audio module to stream PCM or float WAV files. It opens from the header,
+  starts playback without retaining the complete payload, and builds its peak/body waveform in a
+  separate low-priority thread from bounded blocks. The progressively published waveform uses the
+  theme's alternate tone; playback keeps an independent stream and remains available immediately.
 - `plugin.binary` takes a binary apart into the structure tree its own format declares, with the field
   name, the decoded value, the offset it was read at, and what it means side by side. Windows images
   (`PE32`/`PE32+`) are read down to their DOS and Rich headers, sections, data directories, imports and
@@ -63,15 +64,18 @@ hexadecimal alternative instead of guessing an encoding.
   load configuration, the CLR header, and the appended signature. COFF objects, `ar` static and import
   libraries, ELF images with their program headers and dynamic section, Mach-O images and universal
   binaries, WebAssembly modules, ZIP archives and every container built on one, RIFF containers, and
-  sfnt fonts each have their own reader; a Swag Chunk Container is read through the standard
-  `Core.Scc` reader. A file no reader claims is still identified by signature, sized, and weighed by
+  sfnt fonts and multi-image Windows icons each have their own reader; a Swag Chunk Container is read
+  through the standard `Core.Scc` reader. ICO resources are previewed individually, and sSnapForge SCC
+  preview/background/original images are decoded by role, including chunks behind the standard
+  deflate codec. A file no reader claims is still identified by signature, sized, and weighed by
   entropy. Ctrl+E opens or closes the whole tree, Ctrl+C copies the report as indented text, and a
   host search reveals the innermost structure covering the matching byte, so a hit inside a section's
   payload lands on that section.
 - `plugin.hex` is available for every file. It pages through 64 KiB at a time and shows 64-bit offsets,
-  hexadecimal bytes, and printable ASCII without loading a large file into memory. Its grouping field
-  selects bytes or signed, unsigned, and floating-point values of 2, 4, or 8 bytes; navigation and
-  selection snap to the chosen scalar and the inspector decodes that complete value in either endian.
+  hexadecimal bytes, and printable ASCII without loading a large file into memory. Width and
+  representation are independent: 8-, 16-, 32-, and 64-bit values can be hexadecimal, unsigned, or
+  signed decimal, with floating point offered at 32 and 64 bits. Navigation, automatic row fitting,
+  selection, and the inspector all follow that one selected scalar in either endian.
 
 Text, code, Markdown, and HTML views handle arrows, Home/End, Page Up/Page Down, and Space/Shift+Space
 where appropriate. Their scrollbar represents an estimated full document while content is still

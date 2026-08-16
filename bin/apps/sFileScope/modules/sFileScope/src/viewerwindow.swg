@@ -1,8 +1,7 @@
 using Core, Pixel, Gui, FileScopePluginApi
 
-const ViewerBarHeight       = 52.0
-const ViewerToolBarHeight   = 44.0
-const ViewerInfoHeight      = 44.0
+const ViewerBarHeight       = 48.0
+const ViewerInfoHeight      = 36.0
 const ViewerGlyphSize       = 20.0
 const ViewerSearchChunkSize = 256 * 1024'u64
 
@@ -21,14 +20,13 @@ struct ViewerWindow
     #[Swag.Late]
     {
         commandBar:     *Wnd
-        viewerBar:      *Wnd
         previousButton: *IconButton
         nextButton:     *IconButton
         openButton:     *IconButton
         searchButton:   *IconButton
         searchBox:      *EditBox
         viewerCombo:    *ComboBox
-        themeCombo:     *ComboBox
+        optionsButton:  *IconButton
         infoBar:        *Wnd
         infoTypeLabel:  *Label
         infoNameLabel:  *Label
@@ -169,8 +167,24 @@ impl ViewerWindow
         else do
             .app().theme.setSwagDark()
         .app().notifyThemeChanged()
-        if @isset(.themeCombo) do
-            .themeCombo.setSelectedIndex(.themeIndex, notify: false)
+    }
+
+    mtd showOptions()
+    {
+        let menu = MenuCtrl.createPopup(.optionsButton, owner: me)
+        menu.updateFlags(.HideShortcuts)
+        menu.addItem(appStrings().ui_ThemeDark, "theme.dark", checked: .themeIndex == 0)
+        menu.addItem(appStrings().ui_ThemeLight, "theme.light", checked: .themeIndex == 1)
+
+        let rect = .optionsButton.surfaceRect()
+        let selected = menu.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true)
+        if selected == "theme.dark" do
+            .applyTheme(0)
+        elif selected == "theme.light" do
+            .applyTheme(1)
+        else do
+            return
+        catch g_App.saveState()
     }
 
     func create(parent: *Wnd, index: ViewerPluginIndex)->*ViewerWindow
@@ -187,21 +201,13 @@ impl ViewerWindow
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
-            .padding         = {16, 8, 16, 8}
-        }
-
-        with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerToolBarHeight})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-            .padding         = {16, 4, 16, 4}
-            .hide()
+            .padding         = {12, 6, 12, 6}
         }
 
         with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.z   = 16
+            .margin.z   = 8
             .toolTip    = appStrings().ui_Open
             .sigPressed += func|window = result|(button)
             {
@@ -242,19 +248,15 @@ impl ViewerWindow
             }
         }
 
-        with result.themeCombo = ComboBox.create(result.commandBar, {0, 0, 160, 36})
+        with result.optionsButton = IconButton.create(result.commandBar, result.theme().icon(.Options, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Right
-            .margin.x  = 12
+            .margin.x  = 8
             .toolTip   = appStrings().ui_Theme
-            .addItem(appStrings().ui_ThemeDark)
-            .addItem(appStrings().ui_ThemeLight)
-            .setSelectedIndex(0, notify: false)
-            .sigChanged += func|window = result|(combo, index)
+            .sigPressed += func|window = result|(button)
             {
-                discard combo
-                window.applyTheme(index)
-                catch g_App.saveState()
+                discard button
+                window.showOptions()
             }
         }
 
@@ -282,10 +284,10 @@ impl ViewerWindow
             }
         }
 
-        with result.viewerCombo = ComboBox.create(result.viewerBar, {0, 0, 172, 36})
+        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 140, 36})
         {
             .dockStyle = .Left
-            .margin.z  = 16
+            .margin.x  = 12
             .toolTip   = appStrings().ui_Viewer
             .hide()
             .sigChanged += func|window = result|(combo, index)
@@ -295,23 +297,23 @@ impl ViewerWindow
             }
         }
 
-        // File identity belongs to a quieter, persistent band of its own. Keeping it outside the
-        // action bar prevents metadata from competing visually with navigation and plugin tools.
+        // File identity belongs to a quiet, compact band under the document. The only band above
+        // the content is the contextual action bar shared by navigation, viewer choice and tools.
         with result.infoBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerInfoHeight})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Window
-            .padding         = {18, 6, 18, 6}
+            .padding         = {14, 4, 14, 4}
         }
 
-        with result.infoTypeLabel = Label.create(result.infoBar, "NO FILE", {0, 0, 116, 32}, null, .SecondaryText)
+        with result.infoTypeLabel = Label.create(result.infoBar, "NO FILE", {0, 0, 108, 28}, null, .SecondaryText)
         {
             .dockStyle = .Left
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
-        with result.infoStatsLabel = Label.create(result.infoBar, appStrings().ui_Ready, {0, 0, 320, 32}, null, .SecondaryText)
+        with result.infoStatsLabel = Label.create(result.infoBar, appStrings().ui_Ready, {0, 0, 280, 28}, null, .SecondaryText)
         {
             .dockStyle = .Right
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
@@ -371,7 +373,6 @@ impl ViewerWindow
         .choices.clear()
         .viewerCombo.clear()
         .viewerCombo.hide()
-        .viewerBar.hide()
         .activeChoiceIndex = Swag.U32.Max
         .siblings.clear()
         .siblingsDirty = true
@@ -427,7 +428,7 @@ impl ViewerWindow
         var nextDetails:  String                  = {}
         if choice.kind == .BasicText
         {
-            let basic = BasicTextView.create(me, .viewerBar, .currentFile.toString())
+            let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
             nextView     = basic
             nextCommands = basic.commands
             nextReveal   = &basicTextRevealMatch
@@ -436,7 +437,7 @@ impl ViewerWindow
         else
         {
             let spec = &.index.specs[choice.specIndex]
-            nextView = catch .plugins.createView(me, .viewerBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails, &nextReveal) as pluginError
+            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails, &nextReveal) as pluginError
             if pluginError != null or !nextView
             {
                 if nextCommands do
@@ -639,7 +640,6 @@ impl ViewerWindow
         for choice in .choices do
             .viewerCombo.addItem(choice.name.toString())
         .viewerCombo.show()
-        .viewerBar.show()
 
         var selected = 0'u32
         if !.activateChoice(selected)

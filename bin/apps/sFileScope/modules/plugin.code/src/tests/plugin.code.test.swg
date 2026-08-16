@@ -26,7 +26,11 @@ private func codeFixturePath(name: string)->String
     view.editor.lexAll()
 
     let content = view.editor.textAndStyles()
-    @assert(Utf8.fromUnicode(content.text.toSlice()) == source)
+    var expected: Array'rune
+    for value in source.toRuneArray() where value != '\r' do
+        expected.add(value)
+    // RichEdit stores logical line breaks as LF; a Windows checkout gives the fixture CRLF.
+    @assert(Utf8.fromUnicode(content.text.toSlice()) == Utf8.fromUnicode(expected.toSlice()))
     var colored: bool
     for style in content.styles where style != 0
     {

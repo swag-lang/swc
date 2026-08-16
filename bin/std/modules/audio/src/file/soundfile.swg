@@ -72,6 +72,33 @@ impl SoundFile
     // Returns whether the complete payload is retained in memory.
     mtd const isDataPreloaded()->bool => .data.count == .dataSize
 
+    // Reads an owned range of the validated audio payload.
+    //
+    // `offset` is relative to the first payload byte. The range is clamped at the payload end,
+    // and an offset at or beyond that end returns an empty array. A prefetched sound copies from
+    // memory; a streamed sound reopens its source and can therefore be sampled independently of
+    // any voice reading the same file.
+    mtd const readPayload(offset, count: u64)->Array'u8 fail
+    {
+        var result: retval
+        if !count or offset >= .dataSize do
+            return result
+
+        let wanted = Math.min(count, .dataSize - offset)
+        result.resize(wanted)
+        if .isDataPreloaded()
+        {
+            Memory.copy(result.buffer, .data.buffer + offset, wanted)
+            return result
+        }
+
+        var stream = File.openRead(.path.toString())
+        stream.seek(.Begin, .dataOffset + offset)
+        let read = stream.read(result.toSlice())
+        result.resize(read)
+        return result
+    }
+
     // Returns the validated payload encoding.
     mtd const sampleEncoding()->SoundFileEncoding => .encoding
 

@@ -172,6 +172,8 @@ private func rowDetail(report: const *BinaryReport, label: string)->string
     return row ? row.detail.toString() : ""
 }
 
+private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
+
 // A synthesized library is taken apart down to the symbol it imports and the one it exports.
 #test
 {
@@ -222,6 +224,62 @@ private func rowDetail(report: const *BinaryReport, label: string)->string
     @assert(rowValue(&doc.report, "GUID") == "04030201-0605-0807-090A-0B0C0D0E0F10")
     @assert(rowValue(&doc.report, "Age") == "1")
     @assert(rowValue(&doc.report, "PDB") == "fixture.pdb")
+}
+
+// The binary view exposes every image in an ICO instead of silently keeping only its largest one.
+#test
+{
+    let sourceDirectory = Path.directoryName(#curlocation.fileName)!
+    let fileName = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.ico")
+    if !File.exists(fileName) do
+        return
+
+    var doc: BinaryDocument
+    @assert(doc.open(fileName.toString()))
+    @assert(doc.kind == .Icon)
+    @assert(doc.previews.count > 1)
+    @assert(doc.previews[0].image.isValid())
+    @assert(rowValue(&doc.report, "ImageCount") == "9")
+
+    var host: Testing.HeadlessHost
+    host.setup(860, 520)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
+    let view = BinaryPluginView.create(&host.root, commands, fileName.toString())
+    view.resize(860, 520)
+    view.applyLayout()
+    view.layoutPreviews()
+    @assert(view.previewBand != null)
+    @assert(view.previewBand!.children.count == view.doc.previews.count)
+    @assert(view.list.position.y >= view.previewBand!.position.bottom())
+    Testing.assertContentFits(view)
+}
+
+// sSnapForge's preview role is decoded after SCC deflate, using only the public container contract.
+#test
+{
+    let sourceDirectory = Path.directoryName(#curlocation.fileName)!
+    let pngPath = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.png")
+    if !File.exists(pngPath) do
+        return
+    let png = expect File.readAllBytes(pngPath.toString())
+
+    let directory = Env.getSpecialDirectory(.Temp)
+    let fileName  = Path.combine(directory.toString(), Format.toString("plugin_binary_snapforge_%.scc", Guid64.random()).toString())
+    defer discard catch File.delete(fileName.toString())
+
+    var writer: Scc.Writer
+    writer.initialize(fixtureGuid("7355af24-cf65-447b-918c-18ac74e6dc66"))
+    var options: Scc.ChunkOptions
+    options.roleId  = fixtureGuid("f53e06c1-05a7-4537-9c6a-d85609209874")
+    options.codecId = Scc.deflateCodecId()
+    discard expect writer.addChunk(png.toSlice(), options)
+    expect writer.saveAtomic(fileName.toString())
+
+    var doc: BinaryDocument
+    @assert(doc.open(fileName.toString()))
+    @assert(doc.kind == .Scc and doc.previews.count == 1)
+    @assert(doc.previews[0].label == "Preview" and doc.previews[0].image.isValid())
 }
 
 // A byte anywhere in the file maps back onto the innermost structure that covers it.

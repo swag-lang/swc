@@ -50,6 +50,12 @@ using Swag, Core
     @assert(!file.isDataPreloaded())
     @assert(@countof(file.preloadedData()) == 0)
     @assert(file.frameCount == 2)
+
+    let first = expect file.readPayload(0, 3)
+    @assert(audioAssertBytes(first.toSlice(), [0x00, 0x80, 0xFF]))
+    let tail = expect file.readPayload(6, 10)
+    @assert(audioAssertBytes(tail.toSlice(), [0xFF, 0x7F]))
+    @assert((expect file.readPayload(8, 1)).isEmpty())
 }
 
 #test

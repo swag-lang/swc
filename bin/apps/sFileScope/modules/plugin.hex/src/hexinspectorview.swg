@@ -11,9 +11,6 @@ const HexInspectorNameWidth = 68.0
 // 64-bit integer spells twenty digits — so the panel is sized on those and not on its names.
 const HexInspectorFontSize = 12'u32
 
-// Bytes the panel decodes at the caret. Every reading it offers fits in eight.
-const HexInspectorReach = 8'u64
-
 // Placeholder for a reading the file has too few bytes left to give.
 private const HexInspectorNoValue = "--"
 
@@ -24,11 +21,10 @@ struct HexInspectorLine
     value: String
 }
 
-// Values the bytes under the caret spell in every reading a binary format is written in.
+// Values the scalar under the caret spells at the width selected by the grid.
 //
-// This is what separates reading a file from looking at one: the same four bytes are a length, a
-// tag, or a float depending on the structure around them, and the panel shows every reading at
-// once instead of leaving the reader to assemble one by hand.
+// Keeping this panel on the same width as the document prevents unrelated 32- and 64-bit readings
+// from crowding a view whose reader explicitly chose 8- or 16-bit values.
 struct HexInspectorView
 {
     using wnd: Wnd
@@ -84,56 +80,52 @@ impl HexInspectorView
         .lines.add(#move line)
     }
 
-    mtd groupingName()->string
-    {
-        switch .grid.grouping
-        {
-        case .Unsigned16: return "uint16"
-        case .Unsigned32: return "uint32"
-        case .Unsigned64: return "uint64"
-        case .Signed16:   return "int16"
-        case .Signed32:   return "int32"
-        case .Signed64:   return "int64"
-        case .Float32:    return "float32"
-        case .Float64:    return "float64"
-        default:          return "byte"
-        }
-    }
-
-    // Formats the scalar selected by the grid's grouping mode.
-    mtd groupingValue()->String
+    mtd addCurrentWidthValues()
     {
         let size = .grid.valueSize()
-        if .bytes.count < size do
-            return String.from(HexInspectorNoValue)
-        let raw = .scalar(size)
-        switch .grid.grouping
-        {
-        case .Signed16, .Signed32, .Signed64: return Format.toString("%", .signed(raw, size))
-        case .Float32: return Format.toString("%{g9}", cast #bit (f32) (cast(u32) raw))
-        case .Float64: return Format.toString("%{g15}", cast #bit (f64) raw)
-        default:       return Format.toString("%", raw)
-        }
-    }
-
-    // Adds the signed and unsigned readings of an integer of `size` bytes, or a placeholder for
-    // each when the file ends before the caret has that many bytes left.
-    mtd addInteger(size: u64)
-    {
-        let signedName   = Format.toString("int%", size * 8)
-        let unsignedName = Format.toString("uint%", size * 8)
+        let bits = size * 8
+        let hexName = Format.toString("hex%", bits)
+        let unsignedName = Format.toString("uint%", bits)
+        let signedName = Format.toString("int%", bits)
         if .bytes.count < size
         {
-            .addLine(signedName.toString(), HexInspectorNoValue)
+            .addLine(hexName.toString(), HexInspectorNoValue)
             .addLine(unsignedName.toString(), HexInspectorNoValue)
+            .addLine(signedName.toString(), HexInspectorNoValue)
+            if size == 4 or size == 8
+            {
+                let floatName = Format.toString("float%", bits)
+                .addLine(floatName.toString(), HexInspectorNoValue)
+            }
+
             return
         }
 
-        let raw          = .scalar(size)
+        let raw = .scalar(size)
+        let hexGrouping = size == 1 ? HexGrouping.Bytes : (size == 2 ? HexGrouping.Hex16 : (size == 4 ? HexGrouping.Hex32 : HexGrouping.Hex64))
         let signedText   = Format.toString("%", .signed(raw, size))
         let unsignedText = Format.toString("%", raw)
-        .addLine(signedName.toString(), signedText.toString())
+        let hexText      = formatHexScalar(hexGrouping, raw)
+        .addLine(hexName.toString(), hexText.toString())
         .addLine(unsignedName.toString(), unsignedText.toString())
+        .addLine(signedName.toString(), signedText.toString())
+
+        if size == 4
+        {
+            let floatText = Format.toString("%{g9}", cast #bit (f32) (cast(u32) raw))
+            .addLine("float32", floatText.toString())
+        }
+        elif size == 8
+        {
+            let floatText = Format.toString("%{g15}", cast #bit (f64) raw)
+            .addLine("float64", floatText.toString())
+        }
+
+        if size <= 2
+        {
+            let binaryText = size == 1 ? Format.toString("%{B08}", raw) : Format.toString("%{B016}", raw)
+            .addLine("binary", binaryText.toString())
+        }
     }
 
     // Rebuilds every line from the caret. Called when the caret moves, never while painting.
@@ -149,7 +141,9 @@ impl HexInspectorView
             return
         }
 
-        .bytes = grid.doc.read(grid.selectionStart(), HexInspectorReach)
+        let size  = grid.valueSize()
+        let start = grid.groupStart(grid.caret)
+        .bytes = grid.doc.read(start, size)
 
         var offsetText: Array'u8
         offsetText.add('0'u8)
@@ -160,8 +154,6 @@ impl HexInspectorView
         let length       = grid.selectionLength()
         let selectedText = Format.toString("% byte%", length, length == 1 ? "" : "s")
         .addLine("selection", selectedText.toString())
-        let grouped = .groupingValue()
-        .addLine(.groupingName(), grouped.toString())
         .addBlank()
 
         if .bytes.isEmpty()
@@ -171,33 +163,7 @@ impl HexInspectorView
             return
         }
 
-        .addInteger(1)
-        .addInteger(2)
-        .addInteger(4)
-        .addInteger(8)
-        .addBlank()
-
-        // Nine and fifteen significant digits: enough to recognize a value in a file, and short
-        // enough that the reading fits its column instead of being cut in half by it.
-        if .bytes.count >= 4
-        {
-            let text = Format.toString("%{g9}", cast #bit (f32) (cast(u32) .scalar(4)))
-            .addLine("float32", text.toString())
-        }
-        else do
-            .addLine("float32", HexInspectorNoValue)
-
-        if .bytes.count >= 8
-        {
-            let text = Format.toString("%{g15}", cast #bit (f64) .scalar(8))
-            .addLine("float64", text.toString())
-        }
-        else do
-            .addLine("float64", HexInspectorNoValue)
-
-        .addBlank()
-        let binaryText = Format.toString("%{B08}", .bytes[0])
-        .addLine("binary", binaryText.toString())
+        .addCurrentWidthValues()
         .invalidate()
     }
 

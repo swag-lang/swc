@@ -48,6 +48,18 @@ using Core, Pixel, Gui
     @assert(position.y > loadedHeight)
     view.loadNextChunk()
     @assert(view.editor.scrollPosition() == position)
+
+    view.editor.setScrollPosition({0, 0})
+    let beforeEnd = view.editor.scrollPosition()
+    var end = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
+    @assert(view.hookOnChildEvent!(view.editor, &end))
+    @assert(view.jumpToEnd)
+    @assert(view.editor.scrollPosition() == beforeEnd)
+    while view.hasMore() do
+        view.loadNextChunk()
+    discard host.render(view)
+    @assert(!view.jumpToEnd)
+    @assert(view.editor.scrollPosition().y > beforeEnd.y)
 }
 
 #test

@@ -51,6 +51,9 @@ internal struct HtmlPluginView
     pendingBlocks: Array'HtmlBlock
     pendingIndex:  u64
     loadTimer:     #null *Timer
+    jumpToEnd:     bool
+    hasPendingY:   bool
+    pendingY:      f32
     contentHeight = 42'f32
     bodyTag:       String
     bodyStyle:     HtmlCssStyle
@@ -112,6 +115,11 @@ private func htmlDefaultSize(kind: HtmlBlockKind)->u32
 
 internal impl HtmlPluginView
 {
+    mtd isLoading()->bool
+    {
+        return .pendingIndex < .pendingBlocks.count or !.sourceDone or !.sourceCarry.isEmpty()
+    }
+
     mtd fixedFontFamily(size: u32)->FontFamily
     {
         var result: retval
@@ -241,10 +249,63 @@ internal impl HtmlPluginView
 
     mtd needsMore()->bool
     {
-        if .pendingIndex >= .pendingBlocks.count and .sourceDone and .sourceCarry.isEmpty() do
+        if !.isLoading() do
             return false
+        if .jumpToEnd or .hasPendingY do
+            return true
         let viewport = .scroll.paddedClientRect()
         return .scroll.scrollPosition().y + viewport.height * HtmlStreamLookAhead >= .contentHeight
+    }
+
+    mtd handleDocumentKey(evt: *KeyEvent)->bool
+    {
+        if evt.kind != .Pressed do
+            return false
+
+        if evt.key == .Home and (evt.modifiers == .None or evt.modifiers == .Control)
+        {
+            .jumpToEnd   = false
+            .hasPendingY = false
+            return scrollDocumentWithKey(.scroll, evt)
+        }
+
+        if evt.key == .End and (evt.modifiers == .None or evt.modifiers == .Control)
+        {
+            .hasPendingY = false
+            if .isLoading()
+            {
+                .jumpToEnd = true
+                .scheduleMore()
+                return true
+            }
+
+            return scrollDocumentWithKey(.scroll, evt)
+        }
+
+        var delta = 0'f32
+        let viewport = .scroll.paddedClientRect()
+        let page     = Math.max(viewport.height - .scroll.verticalScrollStep, .scroll.verticalScrollStep)
+        switch evt.key
+        {
+        case .Down where evt.modifiers == .None:  delta = .scroll.verticalScrollStep
+        case .PageDown where evt.modifiers == .None: delta = page
+        case .Space where evt.modifiers == .None:    delta = page
+        default: return scrollDocumentWithKey(.scroll, evt)
+        }
+
+        let position = .scroll.scrollPosition()
+        let origin   = .hasPendingY ? .pendingY : position.y
+        let target   = origin + delta
+        if .isLoading() and target + viewport.height > .contentHeight
+        {
+            .pendingY    = target
+            .hasPendingY = true
+            .scheduleMore()
+            return true
+        }
+
+        .scroll.setScrollPos(position.x, target)
+        return true
     }
 
     mtd scheduleMore()
@@ -357,6 +418,19 @@ internal impl HtmlPluginView
             empty.text = "This HTML document has no visible content."
             .appendBlock(#move empty)
         }
+
+        if !.isLoading() and .jumpToEnd
+        {
+            .jumpToEnd = false
+            let position = .scroll.scrollPosition()
+            .scroll.setScrollPos(position.x, .scroll.scrollableClientRect().height)
+        }
+        elif .hasPendingY and (!.isLoading() or .pendingY + .scroll.paddedClientRect().height <= .contentHeight)
+        {
+            .hasPendingY = false
+            let position = .scroll.scrollPosition()
+            .scroll.setScrollPos(position.x, .pendingY)
+        }
     }
 
     mtd stopLoading()
@@ -453,7 +527,7 @@ internal impl IWnd for HtmlPluginView
 {
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if !scrollDocumentWithKey(.scroll, evt) do
+        if !.handleDocumentKey(evt) do
             evt.accepted = false
     }
 

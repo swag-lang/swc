@@ -32,11 +32,12 @@ hexadecimal alternative instead of guessing an encoding.
   CSS and preprocessors, YAML, TOML, configuration files, Swift, Dart, R, Perl, Visual Basic,
   shaders, CMake, and batch files. Swag uses the GUI's language lexer; its vocabulary is kept in
   step with the compiler's current keywords, intrinsics, compiler directives, and modifiers.
-- `plugin.markdown` streams a centered reading column with separate typography and spacing for headings,
-  prose, quotes, lists, fenced code, tables, rules, metadata, and display math. It supports task
-  lists, autolinks, images, inline code, emphasis, highlight, strike-like secondary text, entities,
-  and inline TeX notation for common symbols and operators. Display TeX uses Pixel's native math
-  layout for fractions, roots, scripts, scalable delimiters, operators, matrices, cases, and aligned
+- `plugin.markdown` is a thin sFileScope adapter around the reusable GUI `MarkdownView`. It streams a
+  themed reading column with separate typography and spacing for headings, prose, GFM alerts, nested
+  lists and tasks, fenced code, aligned tables, rules, metadata, footnotes, references, and a table of
+  contents. Emphasis, `***bold italic***`, highlight, strikeout, subscript, superscript, autolinks,
+  entities, and inline or display TeX use the same renderer in every application. Pixel's native math
+  layout handles fractions, roots, scripts, scalable delimiters, operators, matrices, cases, and aligned
   expressions. The renderer is offline and executes no embedded HTML or script.
 - `plugin.html` streams document blocks into a centered page, keeps links explicit, and applies useful CSS
   from style sheets and inline declarations: tag, class, id and simple descendant selectors;
@@ -53,7 +54,9 @@ hexadecimal alternative instead of guessing an encoding.
 
 Text, code, Markdown, and HTML views handle arrows, Home/End, Page Up/Page Down, and Space/Shift+Space
 where appropriate. Their scrollbar represents an estimated full document while content is still
-streaming and keeps its position as that estimate is refined.
+streaming and keeps its position as that estimate is refined. Forward keyboard navigation waits for
+real content instead of chasing that estimate; End preserves the current viewport while loading to
+EOF and jumps once to the real document end.
 
 The host keeps file type, name, size, and plugin-specific basic statistics in a persistent information
 bar whose quieter surface is distinct from the action bar. It navigates every file in the current

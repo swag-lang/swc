@@ -128,6 +128,7 @@ impl WidgetWall
         .built = true
 
         .flow.reset(.view, .view.clientRect().width)
+        buildDocuments(&.flow)
         buildButtons(&.flow)
         buildChoices(&.flow)
         buildFields(&.flow)
@@ -391,6 +392,14 @@ private func buildText(flow: *Flow)
 
     let accent = flow.host(200, 30)
     Separator.create(accent, .Top, .Accent)
+}
+
+private func buildDocuments(flow: *Flow)
+{
+    flow.section("Markdown document")
+    let host = flow.host(flow.width, 360)
+    let markdown = MarkdownView.createText(host, "# Themed Markdown\n\nA reusable reading surface with **strong text**, `code`, and inline math $x^2$.\n\n> [!NOTE]\n> Notice colors follow the active palette.\n\n| Part | Result |\n|:---|---:|\n| Table | Aligned |\n\n$$\\frac{a}{b}$$", MarkdownStyle.theme())
+    markdown.dockStyle = .Center
 }
 
 private func showMessageDialog(_button: *Button)

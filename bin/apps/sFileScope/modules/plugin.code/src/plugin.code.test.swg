@@ -38,6 +38,36 @@ using Core, Pixel, Gui
     Pixel.Testing.assertImageGolden(&image, "plugin.code.document")
 }
 
+// End keeps the loaded viewport stable until the real file end is available.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("filescope_code_stream_%.swg", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    var source: String
+    for 2_000 do
+        source += "func streamedValue()->u32 => 42\n"
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    let view = CodePluginView.create(&host.root, fileName)
+    view.resize(640, 360)
+    view.applyLayout()
+
+    let beforeEnd = view.editor.scrollPosition()
+    var end = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
+    @assert(view.hookOnChildEvent!(view.editor, &end))
+    @assert(view.jumpToEnd)
+    @assert(view.editor.scrollPosition() == beforeEnd)
+    while view.hasMore() do
+        view.loadNextChunk()
+    discard host.render(view)
+    @assert(!view.jumpToEnd)
+    @assert(view.editor.scrollPosition().y > beforeEnd.y)
+}
+
 #test
 {
     @assert(codeLanguage("sample.cpp") == .Cpp)

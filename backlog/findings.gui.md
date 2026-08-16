@@ -241,26 +241,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   widgets that draw a frame. Pin the decision with a headless test that puts one field of each
   family side by side and asserts their capitals share a center.
 
-### F-086 — A tooltip is presented as an editable field inside another frame
-
-- Area: std/gui
-- Found while: visually testing the sSnapForge library view at 150% display scale in the French
-  Swag dark theme
-- Observation: hovering the icon-only Library command showed its explanatory text inside a second
-  edit-style frame, with a trailing control-shaped end cap that read like an unrelated button.
-  The tooltip therefore looked interactive and assembled from nested widgets instead of reading
-  as one passive annotation attached to its owner.
-- Evidence: [`tooltip.swg`](../bin/std/modules/gui/src/tooltip.swg) builds a square `FrameWnd`, then
-  puts a word-wrapped `RichEditCtrl` in it and explicitly gives that control `.Edit` form. Its
-  two-pixel padding, raw 12-pixel pointer offset, editable-field chrome and auto-sized rich-edit
-  viewport are combined without a tooltip-specific content/layout contract. Reproduce by hovering
-  any action tooltip in sSnapForge; the former Library glyph made the nested trailing element
-  especially visible beside the French text “Afficher la bibliothèque de captures”.
-- Next step: render tooltip content with a passive text view, then define its padding, maximum
-  width, corner, pointer offset and screen-edge placement as one themed tooltip contract. Add a
-  visual/headless case with long translated text at 100%, 150% and 200% scale, and verify that no
-  edit border, scrollbar or focusable child is present.
-
 ### F-113 — A message taller than the box's cap is still clipped
 
 - Area: std/gui
@@ -290,37 +270,13 @@ Entries are sorted by identifier, ascending; position carries no priority.
   wrapped line, and it clipped the second sentence of every error box on a scaled display. Only
   some lengths land on a losing fraction, which is why it read as intermittent.
 - Evidence: `Dialog.physicalRoom` and the commit-then-measure order in
-  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs.
-  [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) has the same shape and no such guard: it
-  takes `edit.evaluateSize()`, adds its padding, and hands the raw result to `setPosition`, where
-  `Wnd.resize` rounds it — with `WordWrap` on the rich edit inside.
-- Next step: audit the composites that size themselves from a measurement — the tooltip first, then
-  the popup list, the menu popup, and the automatic label height — for that pattern, and either
-  round out through one shared helper or measure the second axis after committing the first. Prove
-  it the way `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
-
-### F-142 — A tooltip shown over a plugin-owned button comes up empty and the process dies
-
-- Area: std/gui
-- Found while: playing a WAV in sFileScope. Pressing the play button and leaving the pointer on it
-  kills the application about 300 ms later — the delay a tooltip waits before it appears.
-- Observation: the tip does appear, as an empty box the size of no text at all, and the process is
-  gone a moment later with `0xC0000005`. Everything the plugin does completes first: the voice is
-  created, `play()` reports no error, `updatePlaybackUi` returns, and the waveform repaints. Moving
-  the pointer off the button immediately after the click makes the same run survive its whole
-  playback, so the tip is the trigger, not the audio.
-- Evidence: only a surface that keeps rendering reaches this — the tip is armed by
-  `ToolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)` in
-  [application.swg](../bin/std/modules/gui/src/application.swg) and fired by `ToolTip.update(dt)`,
-  which the application only runs while frames run. The sound plugin holds a 33 ms timer while it
-  plays, which is what makes it show there and not over the same buttons before playback. The
-  suspect is the hand-off in [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg): `update` takes
-  `let copy = pending[]` and passes `copy.str` into `show`, whose first act is `ToolTip.hide()` —
-  which frees `g_Pending`, the value that slice was measured against. `show` then builds the rich
-  edit from a `String` local that dies when `show` returns, while the tip window it created outlives
-  it. Reassigning `Wnd.toolTip` on a hovered `PushButton` or `IconButton` in a plain window does not
-  reproduce it, which is why the timer and the plugin boundary are both in the picture.
-- Next step: drive the same sequence from a headless host so the tip can be photographed — arm it,
-  run frames until `ToolTip.update` fires, and read the text the rich edit ended up with. Then
-  detach the pending request in `update` before calling `show`, and check whether what `show` hands
-  `RichEditCtrl.setText` is a copy or a view of a local.
+  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs, and
+  [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) now rounds its measurement *up* on both
+  axes. The tool tip is what the pattern costs when nobody guards it: a third of a pixel dropped
+  from the committed height put the content one line over its viewport, which raised a scroll bar,
+  which took twenty units of width, which re-wrapped the text and hid its tail — on every tip in
+  the toolkit, including one-word ones.
+- Next step: audit the remaining composites that size themselves from a measurement — the popup
+  list, the menu popup, and the automatic label height — for that pattern, and either round out
+  through one shared helper or measure the second axis after committing the first. Prove it the way
+  `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.

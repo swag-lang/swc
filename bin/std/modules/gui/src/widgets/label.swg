@@ -28,6 +28,7 @@ struct Label
             iconColor:   Color                                       // Explicit icon color, or transparent for the icon or theme color.
             textColor:   Color                                       // Explicit text color, or transparent for theme colors.
             flags                   = LabelFlags.None                // Active text layout and presentation options.
+            maxLines:    u32                                         // Largest number of lines the text may occupy; zero keeps every line.
             iconHorizontalAlignment = StringHorzAlignment.Center     // Horizontal icon alignment.
             iconVerticalAlignment   = StringVertAlignment.Center     // Vertical icon alignment.
             textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal text alignment.
@@ -202,6 +203,7 @@ impl Label
         sf.font          = .font()
         sf.horzAlignment = .textHorizontalAlignment
         sf.vertAlignment = .textVerticalAlignment
+        sf.maxLines      = .maxLines
 
         if .textColor.a
         {
@@ -292,6 +294,20 @@ impl Label
     {
         .preferredSize.y = 0
         .invalidateLayout()
+    }
+
+    // Caps the number of lines the text may occupy; zero lifts the cap.
+    //
+    // The text stops at that line instead of running past the label. Combine it with
+    // [[Gui.LabelFlags.Ellipsis]] to have the last kept line end with an ellipsis, so a reader
+    // sees that something was left out rather than a sentence that appears to end there.
+    mtd setMaxLines(count: u32)
+    {
+        if .maxLines == count do
+            return
+        .maxLines = count
+        .invalidate()
+        .updateAutomaticHeight()
     }
 
     // Changes text alignment and updates automatic height when needed.

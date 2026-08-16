@@ -205,6 +205,11 @@ impl HeadlessHost
     // Destroys the hosted window tree, drains queued work, and restores the system clipboard backend.
     mtd shutdown()
     {
+        // A tip hangs off the surface window rather than the root view, so destroying the tree
+        // would leave it behind. The host built the surface, so the host takes it down; a test
+        // that showed a tip therefore needs no teardown of its own.
+        .app.toolTip.hide()
+
         if !.root.isPendingDestroy do
             .root.destroy()
         .pump()

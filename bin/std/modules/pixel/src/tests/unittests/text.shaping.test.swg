@@ -230,3 +230,39 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Painter.computeLayout({0, 0, room, 200}, &text, plainFormat)
     @assert(text.boundRect.width > room)
 }
+
+// The line a budget stops on is marked too, so a text cut from below reports it.
+//
+// A cap on the line count used to drop the rest in silence, which reads as a paragraph that
+// simply ended there. A box capped by its height — a tool tip — is what this exists for.
+#test
+{
+    var cache: FontCache
+    let font = makeShapingTestFont(&cache)
+
+    var format: RichStringFormat
+    format.font.regular  = font
+    format.horzAlignment = .Left
+    format.flags         |= .Ellipsis
+    format.maxLines      = 1
+
+    // Two authored lines in a rectangle wide enough for either, so nothing but the budget can
+    // shorten the first one.
+    var text: RichString = "alpha\nbeta"
+    text.compute()
+    Painter.computeLayout({0, 0, 400, 200}, &text, format)
+
+    let kept = text.chunks[0]
+    @assert(kept.slice == "alpha")
+    @assert(kept.shaped.glyphs.count == @countof("alpha") + 1)
+
+    let glyphs = kept.shaped.glyphs
+    @assert(glyphs.back().glyphIndex == font.glyphIndex('…'rune))
+    @assert(!text.chunks[text.chunks.count - 1].visible)
+
+    // A budget the text stays under leaves every line alone.
+    format.maxLines = 2
+    Painter.computeLayout({0, 0, 400, 200}, &text, format)
+    @assert(text.chunks[0].shaped.glyphs.count == @countof("alpha"))
+    @assert(text.chunks[text.chunks.count - 1].visible)
+}

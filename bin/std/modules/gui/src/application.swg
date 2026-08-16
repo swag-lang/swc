@@ -85,6 +85,12 @@ struct Application
             dragScreenPos: Math.Point     // Last position a drag reported, in physical screen pixels.
         }
 
+        // The tool tip belongs here for the same reason the focus and the drag do: it is one
+        // pointer's state over one window tree. Held per process instead, two applications in a
+        // process share one tip, and a test that leaves one open hands it to the next test — which
+        // then destroys a window whose surface has already gone.
+        toolTip: ToolTip.State     // The application's tool tip, and the signal its links report through.
+
         // Whether the keyboard focus must be shown.
         //
         // Keyboard traversal turns it on and a pointer press turns it off, so a control acted on
@@ -249,7 +255,7 @@ private impl Application
                 .sendEventPrivate(&evt, .mouseEnterWnd)
 
                 if targetWnd.toolTip.length do
-                    ToolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)
+                    .toolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)
             }
 
             // Leave
@@ -259,9 +265,11 @@ private impl Application
                 evt.surfacePos = .mouseEnterWnd.screenToSurface(mousePos)
                 evt.target     = .mouseEnterWnd
                 .sendEventPrivate(&evt, .mouseCaptureWnd)
-
-                ToolTip.hide(.mouseEnterWnd)
             }
+
+            // The tip decides for itself whether this move ends it: one carrying a link has to
+            // survive the pointer reaching it, or the link could never be clicked.
+            .toolTip.pointerMoved(.mouseEnterWnd, targetWnd)
 
             .mouseEnterWnd = targetWnd
         }
@@ -280,7 +288,7 @@ private impl Application
             evt.delta      = move
             targetWnd.sendEvent(&evt)
             if Math.abs(move.x) >= 0.5 or Math.abs(move.y) >= 0.5 do
-                ToolTip.resetTimer(evt.surfacePos)
+                .toolTip.resetTimer(evt.surfacePos)
         }
 
         if .frameCursor.isValid() do
@@ -315,7 +323,7 @@ private impl Application
 
                 evt.button = cast(Input.MouseButton) i
                 targetWnd.sendEvent(&evt)
-                ToolTip.hide()
+                .toolTip.hide()
             }
             elif lastP and !curP
             {
@@ -610,7 +618,7 @@ private impl Application
         Memory.releaseTemporaryAllocations()
 
         .animator.advance(.timing.deltaSeconds)
-        ToolTip.update(.deltaSeconds())
+        .toolTip.update(.deltaSeconds())
         .sendFrameEvents()
         .sendTimerEvents()
         .sendSystemEvents()

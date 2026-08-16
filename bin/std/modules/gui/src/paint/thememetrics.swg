@@ -178,6 +178,14 @@ struct ThemeMetrics
         focusRing_Radius: f32 = 3     // Softest corner the ring takes when the control lends it none.
 
         richEdit_Padding: f32 = 5     // Theme measurement used for rich edit padding.
-        toolTip_Padding:  f32 = 2     // Theme measurement used for tool tip padding.
+
+        // A tool tip is exactly as large as the words it holds. It wraps rather than grow past
+        // `toolTip_MaxWidth`, it ends its last line with an ellipsis rather than grow past
+        // `toolTip_MaxHeight`, and it never scrolls — so both caps are a promise about the
+        // largest box a reader can be shown, not a viewport onto a longer text.
+        toolTip_Padding:   Math.Vector4 = {8, 5, 8, 5}     // Inset between a tool tip's border and its text.
+        toolTip_MaxWidth:  f32          = 360              // Width at which a tool tip wraps instead of growing.
+        toolTip_MaxHeight: f32          = 200              // Height at which a tool tip truncates instead of growing.
+        toolTip_Offset:    f32          = 12               // Gap a tool tip keeps from the pointer that summoned it.
     }
 }

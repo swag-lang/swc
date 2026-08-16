@@ -966,23 +966,31 @@ impl Painter
             lines.add(line)
         }
 
+        // A line budget drops everything below the line it stops on. Remember which line that is,
+        // so the ellipsis pass below can mark it: a paragraph cut short otherwise reads as one
+        // that simply ended there, and nothing tells the reader there was more.
+        var cutLine = -1's64
         if format.maxLines and lines.count > format.maxLines
         {
             lines.resize(cast(u64) format.maxLines)
             lines[lines.count - 1].hasEol = false
+            cutLine = cast(s64) lines.count - 1
         }
 
         // Ellipsis
         //
         // A line the rectangle cannot hold is cut where the room runs out and finished with an
         // ellipsis, so an unbreakable run — a path, a URL — reports that it was shortened
-        // instead of silently losing its tail to the edge. Justified text is left alone: its
-        // spacing math owns the line width.
+        // instead of silently losing its tail to the edge. The line a budget stopped on takes the
+        // mark for the text below it, whether or not it overflows itself. Justified text is left
+        // alone: its spacing math owns the line width.
         if format.flags & .Ellipsis and format.horzAlignment != .Justify and pos.width > 0
         {
-            for &l in lines
+            for i in lines.count
             {
-                if l.measure.width <= pos.width do
+                let l      = &lines[i]
+                let wasCut = cast(s64) i == cutLine and l.end > l.start
+                if l.measure.width <= pos.width and !wasCut do
                     continue
 
                 // The chunk the overflow lands in, and the width of everything before it.
@@ -1000,8 +1008,18 @@ impl Painter
                     accum += w
                 }
 
-                if cut < 0 do
-                    continue
+                // The line itself holds; it is the text under it that went missing, so the mark
+                // lands after its last chunk instead of in place of an overflow.
+                if cut < 0
+                {
+                    if !wasCut do
+                        continue
+
+                    cut   = l.end - 1
+                    accum = 0
+                    for idx in l.start until cut do
+                        accum += text.chunks[idx].boundRect.width
+                }
 
                 // Back off while what is left cannot even hold the mark, so a cut landing just
                 // short of the edge does not push the ellipsis past it. The mark inherits the cut

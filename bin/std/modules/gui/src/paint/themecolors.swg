@@ -198,6 +198,15 @@ struct ThemeColors
         toolTip_Border: Color     // Border of a tool tip.
         toolTip_Text:   Color     // Text of a tool tip.
 
+        // The marked-up text a tip may carry. A hue picked to read on the surface has no reason
+        // to read on the tip, which is that surface inverted, so these are the same hues answered
+        // against the tip's own ground.
+        toolTip_Link:    Color     // A link inside a tool tip, at rest.
+        toolTip_HotLink: Color     // A link inside a tool tip, under the pointer.
+        toolTip_Rich1:   Color     // First rich-text palette slot inside a tool tip.
+        toolTip_Rich2:   Color     // Second rich-text palette slot inside a tool tip.
+        toolTip_Rich3:   Color     // Third rich-text palette slot inside a tool tip.
+
         url_Text:    Color     // A link at rest.
         url_HotText: Color     // A link under the pointer.
 
@@ -665,6 +674,20 @@ impl ThemeColors
         .toolTip_Bk     = p.text
         .toolTip_Border = p.text
         .toolTip_Text   = p.ground
+
+        // Keep the hue the palette chose, and move it until it reads on the inverted note. The
+        // same rule the syntax palette follows against the editor ground: a reader has learned
+        // what a link and an accent mean, and a tip is not where that changes.
+        .toolTip_Link    = p.accent
+        .toolTip_HotLink = accentHot
+        .toolTip_Rich1   = p.rich1
+        .toolTip_Rich2   = p.rich2
+        .toolTip_Rich3   = p.rich3
+        .toolTip_Link.ensureContrast(.toolTip_Bk)
+        .toolTip_HotLink.ensureContrast(.toolTip_Bk)
+        .toolTip_Rich1.ensureContrast(.toolTip_Bk)
+        .toolTip_Rich2.ensureContrast(.toolTip_Bk)
+        .toolTip_Rich3.ensureContrast(.toolTip_Bk)
 
         .url_Text    = p.accent
         .url_HotText = accentHot

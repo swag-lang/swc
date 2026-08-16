@@ -148,6 +148,27 @@ func pageTitle(page: s32)->string
     unreachable
 }
 
+// The command-line name of each palette and each page, in the order of the two enumerations.
+const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--swagdark", "--swaglight", "--sheet"]
+const PageArgs: [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets"]
+
+// Reads the palette and the page the command line asks the inspector to open on.
+//
+// Judging a palette means looking at one page of one palette, and there are twenty such pairs.
+// Reached by hand that is twenty windows to drive by pointer; named on the command line it is
+// twenty launches a script can take a picture of, which is how a change to `apply` is compared
+// against the palettes it did not mean to touch.
+func readStartupSelection()
+{
+    for arg in Env.arguments()
+    {
+        for name, i in VariantArgs where arg == name do
+            g_Variant = cast(ThemeVariant) cast(s32) i
+        for name, i in PageArgs where arg == name do
+            g_Page = cast(s32) i
+    }
+}
+
 func pageSubtitle(page: s32)->string
 {
     switch page
@@ -426,8 +447,9 @@ func createRootView()
     g_Surface = surface
     surface.setTitle("GUI10 theme inspector")
     surface.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
+    readStartupSelection()
     createRootView()
-    showPage(0)
+    showPage(g_Page)
 
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do

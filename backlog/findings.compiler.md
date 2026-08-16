@@ -156,3 +156,53 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: embedding `#move` in an aggregate call argument or one branch of a conditional expression passes semantic analysis, then the DevMode compiler asserts while preparing the materialized value
 - Evidence: `blocks.add(MarkdownBlock{kind, #move text})` and `var value = condition ? String.from("rule") : #move block.text` both assert at `CodeGenCallHelpers.Call.cpp:1062` because `argConstView.cstRef().isValid()` does not hold; assigning the moved field through an ordinary statement before the call compiles in both cases
 - Next step: reduce both patterns into `bin/unittests/native`, then trace why their moved subexpressions reach `appendPreparedFixedArg` without a valid constant reference and make the original expressions compile without changing ownership
+
+## Artifact reuse
+
+### F-145 — A run after a test rebuilds an unchanged workspace executable
+
+- Area: compiler
+- Found while: validating the second visual-chart iteration; the failure is unrelated to it and
+  reproduces on a pristine checkout
+- Observation: `swc tools/unittests.swgs workspace` always ends on
+  `Workspace run recompiled its unchanged executable after a test build.` and returns 1. The suite
+  builds `consumer_exe`, forces a standard-library rebuild through `sandbox_consumer --rebuild`,
+  tests `consumer_exe`, then runs it and requires `up-to-date • consumer_exe.exe`. What it gets is
+  a full `127 files` recompile, while every dependency of that module reports up-to-date. The
+  reciprocal check one step later — a test after a run reusing `consumer_exe.test.exe` — is never
+  reached.
+- Evidence: reproduced on `master` (`f2324a003`) in a worktree with no working-tree change at all,
+  and with the theme branch's only `core` edit stashed. Both give the same last line. The suite is
+  [tools/src/suites.swg](../tools/src/suites.swg), around the `up-to-date • consumer_exe.exe`
+  check; the sequence it runs is `build` → `test sandbox_consumer --rebuild` → `test consumer_exe`
+  → `run consumer_exe`.
+- Next step: run the four commands by hand with `--verbose` between them and compare what the
+  module cache keys on before and after the `--rebuild` step. The suspicion is that forcing the
+  standard library to rebuild rewrites a dependency artifact the executable's key covers, so the
+  reuse the suite asserts is only reachable when nothing forced that rebuild — in which case the
+  fix is either a stable key over an identically rebuilt dependency, or a suite that does not
+  demand reuse across a forced rebuild.
+
+### F-146 — An `.Export` module does not publish its namespace to a test build
+
+- Area: compiler
+- Found while: validating the second visual-chart iteration; the failure is unrelated to it and
+  reproduces on a pristine checkout
+- Observation: `swc tools/apps.swgs test sFileScope` stops on
+  `error: unknown symbol 'FileScopePluginApi'` at
+  [plugin.binary.swg](../bin/apps/sFileScope/modules/plugin.binary/src/plugin.binary.swg):3, where
+  the plugin does `using ... FileScopePluginApi`. That namespace is what
+  [plugin.api](../bin/apps/sFileScope/modules/plugin.api/module.swg) declares, and that module is
+  built as `.Export`. `swc tools/apps.swgs build sFileScope` builds all nine modules and links
+  `sFileScope.exe` without complaint, so only the test path is affected. No sFileScope module can
+  be tested until it is fixed.
+- Evidence: reproduced on `master` (`f2324a003`) in a worktree with no working-tree change, and in
+  the theme branch after `--rebuild` — `plugin.api` reports `246 files • 0 tests` and succeeds,
+  then the very next module fails to see its namespace. The only artifact under
+  `.output/plugin.api/export/<cfg>/x86_64/` is a `.swc-artifacts.test` marker and one
+  `plugin_api-generated-source-5.swgsrc` holding an inlined `Core.String.IHash32.compute` body;
+  no interface for the module's own public surface is written there.
+- Next step: compare what the export step writes for `plugin.api` under `build` and under `test` —
+  the build path is what the working `sFileScope.exe` link consumes. Decide whether a test build
+  should produce the same export artifact, or whether an `.Export` dependency should be consumed
+  from the build artifact when the dependent is being tested.

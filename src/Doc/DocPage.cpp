@@ -20,7 +20,12 @@ Utf8 DocPage::styles()
 
     --swag-accent: #f7f900;
     --swag-accent-ink: #050505;
-    --swag-active: #0b0b0d;
+
+    /* What the page points with, as against what it fills with. Voltage fills at one value in
+       both modes; on paper it cannot also be the hairline, so the mark is the same hue walked
+       down until it separates from the page. Ink here is what made a light page read as
+       black and white with a yellow block in it. */
+    --swag-active: #7e8000;
     --swag-selection: #e7e7e3;
 
     --swag-bg: #ffffff;
@@ -32,7 +37,7 @@ Utf8 DocPage::styles()
     --swag-ink-faint: #83838d;
     --swag-line: #e2e2df;
     --swag-line-strong: #c9c9c4;
-    --swag-link: #0f62c8;
+    --swag-link: #047db2;     /* The second tone, deepened for paper. */
     --swag-shadow: 0 1px 2px rgba(16, 16, 20, .05);
 
     --swag-kind-namespace: #64748b;
@@ -69,7 +74,7 @@ Utf8 DocPage::styles()
         --swag-ink-faint: #7d7d89;
         --swag-line: #26262e;
         --swag-line-strong: #35353f;
-        --swag-link: #79b8ff;
+        --swag-link: #38bdf8;
         --swag-shadow: 0 1px 2px rgba(0, 0, 0, .4);
         --swag-code-fg: #d5d5dd;
         --swag-active: #f7f900;
@@ -96,7 +101,7 @@ Utf8 DocPage::styles()
     --swag-ink-faint: #7d7d89;
     --swag-line: #26262e;
     --swag-line-strong: #35353f;
-    --swag-link: #79b8ff;
+    --swag-link: #38bdf8;
     --swag-shadow: 0 1px 2px rgba(0, 0, 0, .4);
     --swag-code-fg: #d5d5dd;
     --swag-active: #f7f900;

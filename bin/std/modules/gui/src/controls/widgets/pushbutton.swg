@@ -9,6 +9,14 @@ enum PushButtonForm
     Default     // Highlights the dialog's default action.
     Flat        // Minimizes the idle background and border.
     Strong      // Uses a strong filled background and bold label.
+
+    // Fills with the theme's alternate tone, for the action that leads somewhere else rather
+    // than the one that does the work of the surface.
+    //
+    // It is not a weaker strong button and it does not compete with one: a surface shows the
+    // action it is for, and beside it the page the reader can leave to. Both are filled, and
+    // only the tone tells them apart — which is what the second tone of a theme is for.
+    Alternate
 }
 
 // Invokes an action from pointer or keyboard input.
@@ -128,6 +136,33 @@ impl IWnd for PushButton
         }
         else
         {
+            // The plain button and the two filled ones draw the same shape from three sets of
+            // colors, and the set never changes while the button is painted. Choosing it once
+            // keeps the states below reading as states rather than as a form test repeated in
+            // each of them — which is what a second filled form would otherwise have doubled.
+            //
+            // A filled action keeps its own color through every state. Handed the neutral hover
+            // of a plain button, it dropped the tone that made it the action of the surface
+            // exactly as the reader reached it.
+            var rest, hot, pressed: {bk, border, text: Color} = undefined
+            switch form
+            {
+            case .Strong:
+                rest    = {colors.btnPush_StrongBk, colors.btnPush_StrongBorder, colors.btnPush_StrongText}
+                hot     = {colors.btnPush_StrongHotBk, colors.btnPush_StrongHotBorder, colors.btnPush_StrongHotText}
+                pressed = {colors.btnPush_StrongPressedBk, colors.btnPush_StrongPressedBorder, colors.btnPush_StrongPressedText}
+
+            case .Alternate:
+                rest    = {colors.btnPush_AlternateBk, colors.btnPush_AlternateBorder, colors.btnPush_AlternateText}
+                hot     = {colors.btnPush_AlternateHotBk, colors.btnPush_AlternateHotBorder, colors.btnPush_AlternateHotText}
+                pressed = {colors.btnPush_AlternatePressedBk, colors.btnPush_AlternatePressedBorder, colors.btnPush_AlternatePressedText}
+
+            default:
+                rest    = {colors.btnPush_Bk, colors.btnPush_Border, colors.btnPush_Text}
+                hot     = {colors.btnPush_HotBk, colors.btnPush_HotBorder, colors.btnPush_HotText}
+                pressed = {colors.btnPush_PressedBk, colors.btnPush_PressedBorder, colors.btnPush_PressedText}
+            }
+
             switch
             {
             case bc.isDisabled:
@@ -137,39 +172,24 @@ impl IWnd for PushButton
                 subRectBk     = &rects.btnPush_Disabled
                 subRectBorder = &rects.btnPush_DisabledBorder
 
-            // A filled action keeps its own color through every state. Handed the neutral
-            // hover of a plain button, it dropped the accent that made it the primary action
-            // of the surface exactly as the reader reached it.
             case .isPressed:
-                let strong = form == .Strong
-                colorBk       = strong ? colors.btnPush_StrongPressedBk : colors.btnPush_PressedBk
-                colorBorder   = strong ? colors.btnPush_StrongPressedBorder : colors.btnPush_PressedBorder
-                colorText     = strong ? colors.btnPush_StrongPressedText : colors.btnPush_PressedText
+                colorBk       = pressed.bk
+                colorBorder   = pressed.border
+                colorText     = pressed.text
                 subRectBk     = &rects.btnPush_Pressed
                 subRectBorder = &rects.btnPush_PressedBorder
 
             case .isHot:
-                let strong = form == .Strong
-                colorBk       = strong ? colors.btnPush_StrongHotBk : colors.btnPush_HotBk
-                colorBorder   = strong ? colors.btnPush_StrongHotBorder : colors.btnPush_HotBorder
-                colorText     = strong ? colors.btnPush_StrongHotText : colors.btnPush_HotText
+                colorBk       = hot.bk
+                colorBorder   = hot.border
+                colorText     = hot.text
                 subRectBk     = &rects.btnPush_Hot
                 subRectBorder = &rects.btnPush_HotBorder
 
             default:
-                if form == .Strong
-                {
-                    colorBk     = colors.btnPush_StrongBk
-                    colorBorder = colors.btnPush_StrongBorder
-                    colorText   = colors.btnPush_StrongText
-                }
-                else
-                {
-                    colorBk     = colors.btnPush_Bk
-                    colorBorder = colors.btnPush_Border
-                    colorText   = colors.btnPush_Text
-                }
-
+                colorBk       = rest.bk
+                colorBorder   = rest.border
+                colorText     = rest.text
                 subRectBk     = &rects.btnPush_Normal
                 subRectBorder = &rects.btnPush_NormalBorder
             }
@@ -287,11 +307,12 @@ impl PushButton
     // around — otherwise the box shows two answers to the same question, and the wrong one is
     // the loud one. It goes back to the named action as soon as the keyboard leaves the bar.
     //
-    // Only the two plain emphases take part. A flat button belongs to a tool bar and a strong one
-    // carries its own color through every state; neither stands for the answer to a box.
+    // Only the two plain emphases take part. A flat button belongs to a tool bar, and a filled
+    // one — strong or alternate — carries its own tone through every state; none of them stands
+    // for the answer to a box.
     mtd paintedForm()->PushButtonForm
     {
-        if .form == .Flat or .form == .Strong do
+        if .form == .Flat or .form == .Strong or .form == .Alternate do
             return .form
 
         let srf = .surface

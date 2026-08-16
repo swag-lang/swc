@@ -25,7 +25,7 @@ DrawTriangles n=6 bbox=(19,10)-(181,19) colors=[FF4A4A4A] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(181,10)-(194,19) src=(0.203125,0.521307)-(0.237216,0.555398)
 DrawTriangles n=6 bbox=(181,10)-(194,19) colors=[FF4A4A4A] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,4)-(12,16) src=(0.245739,0.484375)-(0.31392,0.552557)
-DrawTriangles n=6 bbox=(0,4)-(12,16) colors=[FF1473E6] cov=solid
+DrawTriangles n=6 bbox=(0,4)-(12,16) colors=[FF3D8CEB] cov=solid
 Transform 1 0 0 1 20 20
 SetBlendingMode Alpha
 ColorMask rgb-

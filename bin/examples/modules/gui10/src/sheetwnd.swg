@@ -178,6 +178,21 @@ impl SheetView
             .grounds[i] = palettes[i].bk
         }
 
+        // The parts the two identity tones answer for are meant to agree across the modes: a
+        // block is what the reader recognizes, so Voltage and Arc fill the same shapes under the
+        // same ink whichever way up the theme is read. They are found rather than listed — apply
+        // one palette twice with the two blocks and their inks moved, and whatever followed is a
+        // brand part — because a hand-written exception list is exactly what would let a real
+        // mode leak hide inside it.
+        var brandA, brandB: ThemeColors
+        var probe = ThemeColors.swagDarkPalette()
+        brandA.apply(probe)
+        probe.signature.ground   = 0xFF010203
+        probe.signature.onGround = 0xFF040506
+        probe.alternate.ground   = 0xFF070809
+        probe.alternate.onGround = 0xFF0A0B0C
+        brandB.apply(probe)
+
         let type = cast(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
         for field in type.fields
         {
@@ -190,9 +205,10 @@ impl SheetView
             for i in ThemeVariantCount do
                 row.colors[i] = (cast([*] u8) &palettes[i] + field.offset)[as Color]
 
+            let brand     = (cast([*] u8) &brandA + field.offset)[as Color] != (cast([*] u8) &brandB + field.offset)[as Color]
             let swagDark  = row.colors[cast(s32) ThemeVariant.SwagDark]
             let swagLight = row.colors[cast(s32) ThemeVariant.SwagLight]
-            row.shared = swagDark.a != 0 and swagLight.a != 0 and swagDark == swagLight
+            row.shared = !brand and swagDark.a != 0 and swagLight.a != 0 and swagDark == swagLight
             row.text   = row.shared ? "both modes" : ""
 
             if .issuesOnly and !row.shared do

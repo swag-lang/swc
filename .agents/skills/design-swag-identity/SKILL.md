@@ -6,11 +6,14 @@ description: Apply the Swag visual identity to the logo, favicons, generated doc
 # Design The Swag Identity
 
 Swag is a compiler that runs your program while it compiles it. The identity says the
-same thing: everything is **cut from a grid**, in **one accent over one ink**. Nothing is
-rounded, nothing is decorative, and nothing is added that does not carry information.
+same thing: everything is **cut from a grid**, in a **closed set of tones over one ink**.
+Nothing is rounded, nothing is decorative, and nothing is added that does not carry
+information.
 
 A reader must recognize a Swag surface from three things alone, before reading a word:
-the cut, the voltage, and the ink.
+the cut, the voltage, and the ink. That has to hold on paper exactly as it holds on ink,
+and holding it there costs more than repeating the same numbers — see **One Family, Two
+Modes**.
 
 **Cut is not the same as rough.** Every edge sits where a rule puts it, and every cut is
 measured. What the identity refuses is softness, not craft: a form that looks hacked out
@@ -55,14 +58,19 @@ One form has argued for it and won, and it is the pattern rather than the except
   is what lets it carry the focus instead: it lights from the mark on its leading edge, falls away
   toward the caption buttons, and goes flat when the window loses the focus — where the two
   caption grounds, ten levels apart, reported nothing across a desktop. Its axis is the 45 degrees
-  the identity already cuts at. Its amplitude is a palette token, `ThemePalette.captionGlow`: 0.14
-  in the two Swag palettes, and zero in the neutral ones, which follow the desktop they sit on.
+  the identity already cuts at. Its amplitude is a palette token, `ThemePalette.captionGlow`, and
+  it is zero in the neutral palettes, which follow the desktop they sit on.
 
 Four bounds hold it, and together they are the whole clause:
 
 1. **A gradient that can be described by its color has already failed.** The test is subtraction,
    not addition: take it away and something must be missing; look at it and nothing must have
-   been added.
+   been added. The bound is on what the band *weighs*, not on the number that produces it: a wash
+   toward a color darker than the band is spent on luminance, which the eye reads at once, and a
+   wash toward one as light as the band is spent on chroma, which costs roughly three times the
+   mix for the same weight. `captionGlow` is therefore 0.14 on ink and 0.42 on paper — the same
+   decision, priced differently. Copying the dark number into the light palette is what shipped a
+   title bar nobody could see.
 2. **It carries a state, or it does not exist.** A wash that is the same in every state is paint.
 3. **One per surface, and never behind content.** Panels, cards, buttons, rows, rules, icons and
    the mark stay flat. A gradient under something that has to be read costs legibility and buys
@@ -76,17 +84,19 @@ Four bounds hold it, and together they are the whole clause:
    vocabulary, not a decoration: its width says what the corner is, and a corner left
    square says the form stops there on purpose. The refusal is of softness as a default,
    not of every curve — see below.
-2. **The voltage.** Exactly one accent, `#F7F900`, used for the mark, one rule per
-   heading, active state, and nothing else. An accent that appears everywhere accents
-   nothing.
+2. **The voltage.** One signature, `#F7F900`, for the mark, one rule per heading, the
+   active state, and nothing else. A signature that appears everywhere signifies nothing.
+   It is not the only color the identity owns — see the tone set below — but it is the only
+   one that says *this is the thing to do*.
 3. **The ink.** Near-black `#0B0B0D`, not pure black, so a real black can still exist.
 
 ## Use The Palette
 
 | Token | Value | Use |
 | --- | --- | --- |
-| Voltage | `#F7F900` | The mark, the heading rule, focus, the active rail |
-| Ink | `#0B0B0D` | The header, the hero, the dark ground |
+| Voltage | `#F7F900` | The signature: the mark, the heading rule, focus, the active rail |
+| Arc | `#38BDF8` | The second tone: a link, another page, a selected row, an alternate action |
+| Ink | `#0B0B0D` | The header, the hero, the dark ground, and the ink every block carries |
 | Paper | `#FFFFFF` | The light ground |
 | Ink text | `#1B1B1D` / `#E6E6EA` | Body on paper / on ink |
 | Soft text | `#55555C` / `#A9A9B4` | Secondary prose, table descriptions |
@@ -98,11 +108,31 @@ in this order and do not add to the set: namespace slate, struct blue, interface
 enum teal, const amber, alias cyan, attr pink, func green. Their exact values live in
 `documentationStyles()` in `src/Doc/DocPage.cpp`.
 
-Never place voltage on paper **as a mark**: a yellow rule, ring or glyph on white is a mark
-nobody sees, so on a light ground the mark is ink. Voltage still **fills** there — a block of
-it under ink is the most recognizable thing the chart owns, and it is how a light surface
-carries the identity at all. The interface names the two roles apart; see the accent pair in
-[design-swag-themes](../design-swag-themes/SKILL.md).
+## One Family, Two Modes
+
+The chart used to own exactly one accent, and that one accent was a dark-mode color. Voltage
+points and fills on ink; on paper it can only fill. Carried literally, the light theme pointed
+in ink instead — and a theme whose every rail, ring, rule and hovered border is black is a
+black-and-white theme with a yellow button in it, which is not the same identity read the other
+way up. Three rules replace that, and together they are what makes a Swag surface recognizable
+at a glance in either mode.
+
+1. **A tone is one color in three roles.** What it *points* with, the block it *fills*, and the
+   ink that block carries. Most tones give the first two the same value; the identity lives in
+   the ones that cannot.
+2. **A block is the same color in every mode; only the mark adapts.** Voltage fills at `#F7F900`
+   on ink and on paper alike, and Arc fills at `#38BDF8` in both — that invariance is what the
+   reader recognizes. What a mode changes is only how far the mark has to be deepened before it
+   separates from the page, and the deepening keeps the hue: a light Swag surface points in a
+   dark Voltage, never in ink. The interface derives that rather than writing it down; see
+   [design-swag-themes](../design-swag-themes/SKILL.md).
+3. **The signature is scarce; the second tone is not the signature.** Voltage says *do this*, so
+   it stays on the one filled action, the focus, the active rail, and the heading rule. Arc says
+   *somewhere else, something of another kind*: a link, the page you can leave to, a selected
+   row, the alternate action beside the primary one. A row washed in Voltage cannot be read at
+   all, which is precisely the job the second tone exists to take. Two tones is the whole
+   identity vocabulary — status colors are not tones you may borrow for emphasis, and a third
+   identity hue is a new brand, not a new option.
 
 ## Cut The Mark
 
@@ -187,6 +217,14 @@ show syntax the compiler no longer accepts.
 
 - Keep clear space of at least one stroke (20 units, scaled) on every side.
 - Below 24 pixels, use the icon tile rather than the bare mark.
+- **A mark has two cuts, and the ground decides which one.** The tile ships flattened — one glyph
+  over one ink ground — because that is what a taskbar, a file list and an installer need. Drawn
+  on a dark surface that already has a ground, the tile reads as a black square around the glyph,
+  so the ground is keyed out and the glyph floats free. On a light surface it cannot be: the glyph
+  is Voltage, and Voltage on paper is a mark nobody sees. There the tile stays, and the window
+  carries the identity as the block of brand a light surface is supposed to carry it with. Decide
+  by contrast against the actual band — `Gui.markReadsOn` — never by a flag the caller sets, or
+  the mark disappears from every title bar in the light theme, which is exactly what happened.
 - **A tile has two crops, and they are not interchangeable.** An application icon is looked
   at, so the mark holds 56% of it and keeps its clear space. A favicon is glanced at: at
   sixteen pixels that margin costs the counters, so the mark holds 74% and the margin is

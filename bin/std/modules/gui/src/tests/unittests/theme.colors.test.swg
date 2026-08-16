@@ -28,10 +28,19 @@ using Swag, Core
     @assert(colors.wnd_Border == 0xFF4A4A57)
     @assert(colors.btnPush_Bk == 0xFF2A2A32)
     @assert(colors.edit_Border == 0xFF575763)
-    @assert(colors.menuBar_SelectedBk == 0xFF41414E)
-    @assert(colors.popupItem_HotBk == 0xFF41414E)
-    @assert(colors.listItem_FocusSelectedBk == 0xFF52525F)
     @assert(colors.frameWnd_Border == 0xFF3D3D48)
+
+    // The second tone is a block on ink exactly as the signature is, so nothing about it is
+    // deepened here, and it fills the alternate action untouched.
+    @assert(colors.btnPush_AlternateBk == 0xFF38BDF8)
+    @assert(colors.btnPush_AlternateText == 0xFF0B0B0D)
+    @assert(colors.url_Text == 0xFF38BDF8)
+
+    // A row, an entry and a tab carry that tone rather than a grey, which is where a theme
+    // spends most of its color and where a signature never can.
+    @assert(colors.menuBar_SelectedBk == 0xFF2A4658)
+    @assert(colors.popupItem_HotBk == 0xFF2A4658)
+    @assert(colors.listItem_FocusSelectedBk == 0xFF35617C)
 
     // A filled action answers the pointer in its own color, so its three states differ.
     // Given one accent for all of them it reported nothing at the moment of the press.
@@ -40,6 +49,12 @@ using Swag, Core
     @assert(colors.btnPushDefault_HotBk != colors.btnPushDefault_PressedBk)
     @assert(colors.btnPush_StrongBk != colors.btnPush_StrongHotBk)
     @assert(colors.btnPush_StrongBk != colors.btnPush_StrongPressedBk)
+    @assert(colors.btnPush_AlternateBk != colors.btnPush_AlternateHotBk)
+    @assert(colors.btnPush_AlternateBk != colors.btnPush_AlternatePressedBk)
+
+    // And the two filled forms never collapse onto each other: a surface showing both has to
+    // say which one is the action it is for.
+    @assert(colors.btnPush_StrongBk != colors.btnPush_AlternateBk)
 }
 
 #test
@@ -50,31 +65,68 @@ using Swag, Core
     @assert(colors.bk == 0xFFF2F2F7)
     @assert(colors.view_Bk == 0xFFFFFFFF)
     @assert(colors.text == 0xFF1B1B1D)
-    @assert(colors.hilight == 0xFF0B0B0D)
-    @assert(colors.activeRail == 0xFF0B0B0D)
     @assert(colors.btnIcon_CheckedBk == 0x00000000)
-    @assert(colors.btnIcon_CheckedIcon == 0xFF0B0B0D)
     @assert(colors.dlg_InformationIcon == 0xFF2E4270)
-    @assert(colors.menuBar_SelectedBk == 0xFFECECF4)
-    @assert(colors.popupItem_HotBk == 0xFFECECF4)
-    @assert(colors.listItem_FocusSelectedBk == 0xFFE0E0EB)
     @assert(colors.frameWnd_Border == 0xFFE3E3EC)
 
-    // The light palette points in ink and fills in Voltage, which is the whole reason the accent
-    // is two tokens. A filled action that lost the brand — or a hairline drawn in it — is the
-    // defect this pins: on paper, yellow parts from white by less than a tenth of a step of
-    // luminance, and ink parts from it by everything.
+    // The two blocks come through the mode unchanged — that invariance is the identity — and
+    // only the marks are deepened, in the family hue rather than in ink. Pointed in ink, the
+    // theme drew every rail, ring and hovered border black and read as a black-and-white theme
+    // with a yellow button in it.
     @assert(colors.btnPush_StrongBk == 0xFFF7F900)
-    @assert(colors.btnPush_StrongBorder == 0xFF0B0B0D)
     @assert(colors.btnPush_StrongText == 0xFF0B0B0D)
-    @assert(colors.hilightLightContrast == 0xFF0B0B0D)
     @assert(colors.btnToggle_OnBk == 0xFFF7F900)
     @assert(colors.progressBar_Mark == 0xFFF7F900)
+    @assert(colors.btnPush_AlternateBk == 0xFF38BDF8)
+    @assert(colors.btnPush_AlternateText == 0xFF0B0B0D)
+    @assert(colors.hilightLightContrast == 0xFF0B0B0D)
 
-    // And the caption band is washed in Voltage rather than in ink, for the same reason: the
-    // accent that fills is the one a light surface carries the identity with.
-    @assert(colors.wnd_CaptionBkLead == 0xFFFDFEDB)
-    @assert(colors.wnd_CaptionBkTrail == 0xFFFBFBFC)
+    @assert(colors.hilight == 0xFF7E8000)
+    @assert(colors.activeRail == 0xFF7E8000)
+    @assert(colors.btnPush_StrongBorder == 0xFF7E8000)
+    @assert(colors.btnIcon_CheckedIcon == 0xFF7E8000)
+
+    // Every deepened mark keeps the hue it was written with. A mark that fell back to ink is
+    // the defect this pins, and it is one comparison rather than a list of values.
+    for mark in [colors.hilight, colors.url_Text]
+    {
+        let hsl = mark.toHsl()
+        @assert(hsl.s > 0.5)
+        @assert(mark != 0xFF0B0B0D)
+    }
+
+    // A link reads on the page it is read on, which is a stricter bar than a rail has to meet.
+    @assert(colors.url_Text.contrastRatio(colors.view_Bk) >= 4.5)
+
+    // The rows carry the alternate tone here too, at the weight the neutral hover had.
+    @assert(colors.menuBar_SelectedBk == 0xFFE2EEFA)
+    @assert(colors.popupItem_HotBk == 0xFFE2EEFA)
+    @assert(colors.listItem_FocusSelectedBk == 0xFFCBE2F6)
+
+    // And the caption band is washed in the signature block rather than in its mark, for the
+    // same reason: the block is what a light surface carries the identity with. It costs three
+    // times the mix the dark band asks for, because white and Voltage part by chroma alone —
+    // and at the dark amount the band was a cream nobody could name.
+    @assert(colors.wnd_CaptionBkLead == 0xFFFBFC93)
+    @assert(colors.wnd_CaptionBkTrail == 0xFFF4F4F8)
+}
+
+// Every mark of every shipped palette reads on the hardest ground that palette paints. This is
+// the property that lets one written color answer in both modes, and the one a hand-written
+// light palette kept getting wrong in one direction only.
+#test
+{
+    for palette in [ThemeColors.darkPalette(), ThemeColors.lightPalette(), ThemeColors.swagDarkPalette(), ThemeColors.swagLightPalette()]
+    {
+        var colors: ThemeColors
+        colors.apply(palette)
+
+        for ground in [palette.ground, palette.view, palette.panel, palette.raised]
+        {
+            @assert(colors.hilight.contrastRatio(ground) >= 3.5)
+            @assert(colors.error.contrastRatio(ground) >= 3.5)
+        }
+    }
 }
 
 // The caption band is the one surface of a window with no content to carry, so it carries the
@@ -113,6 +165,26 @@ using Swag, Core
     @assert(dark.wnd_CaptionBk != dark.dlg_Bk)
 }
 
+// A caption shows the product mark, and which cut of it depends on the band underneath. The
+// glyph is Voltage: on ink it floats free with its tile keyed out, and on paper it is a mark
+// nobody sees, so the tile stays and the window carries the identity as a block instead. Keyed
+// out in both, the mark simply vanished from the title bar of every application in the light
+// theme.
+#test
+{
+    var dark, light: ThemeColors
+    dark.setSwagDark()
+    light.setSwagLight()
+
+    @assert(markReadsOn(dark.wnd_CaptionBk))
+    @assert(!markReadsOn(light.wnd_CaptionBk))
+
+    // The band is a wash, so the decision has to hold at the lit end too, which is the end the
+    // mark is actually drawn on.
+    @assert(markReadsOn(dark.wnd_CaptionBkLead))
+    @assert(!markReadsOn(light.wnd_CaptionBkLead))
+}
+
 // A surface outline is one stroke crossing two grounds: the caption ground down to the caption
 // seam, the body ground below it. A translucent value therefore reports a different tone above
 // and below that seam, which is what the shipped dark palette used to do (0x40FFFFFF read as
@@ -133,18 +205,20 @@ using Swag, Core
 // every color comes from `apply`, the check is that no two palettes agree on a value that
 // their tokens disagree about — which is what a shared ground would produce.
 //
-// The brand pair is the one thing both Swag modes deliberately agree on: Voltage fills the same
-// block under the same ink whichever way up the theme is read, and that is what makes the two
-// modes one identity. Those parts are found rather than listed — change nothing but
-// `accentGround` and `onAccent`, and whatever moves is what the pair answers for — so the check
+// The blocks of the two identity tones are the thing both Swag modes deliberately agree on:
+// Voltage and Arc fill the same shapes under the same ink whichever way up the theme is read,
+// and that is what makes the two modes one identity. Those parts are found rather than listed —
+// move the blocks and their inks, and whatever follows is what they answer for — so the check
 // keeps its full strength over everything else.
 #test
 {
     var brandA, brandB: ThemeColors
     var probe = ThemeColors.swagDarkPalette()
     brandA.apply(probe)
-    probe.accentGround = 0xFF010203
-    probe.onAccent     = 0xFF040506
+    probe.signature.ground   = 0xFF010203
+    probe.signature.onGround = 0xFF040506
+    probe.alternate.ground   = 0xFF070809
+    probe.alternate.onGround = 0xFF0A0B0C
     brandB.apply(probe)
 
     var dark, light: ThemeColors
@@ -184,8 +258,8 @@ using Swag, Core
     @assert(opaquePairs > 200)
     @assert(shared <= 8)
 
-    // And the brand really does reach a set of parts rather than one button.
-    @assert(brandParts > 10)
+    // And the two tones really do reach a set of parts rather than one button each.
+    @assert(brandParts > 20)
 }
 
 // A Swag palette carries its own geometry, and it takes the surface corner with it: the outline
@@ -203,7 +277,7 @@ using Swag, Core
     @assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
 
     theme.setSwagLight()
-    @assert(theme.colors.activeRail == 0xFF0B0B0D)
+    @assert(theme.colors.activeRail == 0xFF7E8000)
     @assert(theme.metrics.surfaceWnd_CornerRadius == 12)
 
     theme.setDark()

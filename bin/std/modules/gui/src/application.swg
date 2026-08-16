@@ -5,13 +5,28 @@ using Core, Serialization
 // Callback invoked with the application that is processing a frame.
 alias FrameCallback = func||(*Application)
 
-// Ground of every Swag product mark.
+// The two colors every Swag product mark is cut from, one glyph over one ground.
 //
-// A mark is cut from two colors, one glyph over one ground, and a drawn caption keys the ground
-// out with them so it needs no second copy of the icon.
-const MarkInk = 0xFF0B0B0D
+// A drawn caption keys the ground out with them, so it needs no second copy of the icon, and it
+// compares the glyph against its own band to decide whether keying it out is legible at all.
+// They are the identity colors and nothing else: a mark that drifts from them stops being one.
+const MarkInk = Ink
 
-const MarkVoltage = 0xFFF7F900     // Glyph of every Swag product mark.
+const MarkVoltage = Voltage
+
+// How much contrast the glyph of a mark owes a caption band before the band is allowed to show
+// it without its tile. Three is where a shape stops being separated from what it is drawn over.
+const MarkGlyphContrast = 3.0'f32
+
+// Whether a band of `ground` can show a product mark with its tile keyed out.
+//
+// It is the one question that decides which cut of the mark a caption draws, so it is named
+// rather than written inside the paint: a dark band shows the glyph alone, and a light band
+// keeps the tile, because Voltage on paper is a mark nobody sees.
+func markReadsOn(ground: Pixel.Color)->bool
+{
+    return MarkVoltage.contrastRatio(ground) >= MarkGlyphContrast
+}
 
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
@@ -24,12 +39,14 @@ struct Application
         options: ApplicationOptions     // Diagnostics and development options.
         appIcon: Pixel.Image            // Icon used for native windows created by the application.
 
-        // Frame list uploaded from `appIcon` the first time a caption asks for it, so the drawn
+        // The two cuts of `appIcon`, uploaded the first time a caption asks for one, so the drawn
         // title bar shows the same mark as the taskbar without the application saying so twice.
+        // Which one a band takes is decided in [[Gui.Application.appIconAt]].
         internal
         {
-            appIconList:   ImageList
-            appIconLoaded: bool
+            appIconList:     ImageList     // The glyph alone, its ink ground keyed out.
+            appIconTileList: ImageList     // The mark as it ships: the glyph on its ink tile.
+            appIconLoaded:   bool
         }
 
         // Named resources of the application: theme art, fonts, theme sheets, and language
@@ -781,8 +798,13 @@ impl Application
         }
 
         .deletePointers()
-        if .appIconLoaded and .appIconList.isValid() do
-            .appIconList.release(.renderer)
+        if .appIconLoaded
+        {
+            if .appIconList.isValid() do
+                .appIconList.release(.renderer)
+            if .appIconTileList.isValid() do
+                .appIconTileList.release(.renderer)
+        }
         if @isset(.theme) do
             .theme.freeDefault()
     }
@@ -977,12 +999,23 @@ impl Application
         .appIconLoaded = false
     }
 
-    // Returns the application mark at `size` logical pixels, or an invalid icon when the
-    // application declares none.
+    // Returns the application mark at `size` logical pixels, cut to sit on `ground`, or an
+    // invalid icon when the application declares none.
     //
-    // The frame texture is uploaded once, on the first call, so this can be asked for from
-    // inside a paint without costing anything after the first frame.
-    mtd appIconAt(size: f32)->Icon
+    // The mark ships flattened — one glyph over one ink tile — because that is what a taskbar,
+    // a file list and an installer need. A drawn caption has a ground of its own, so on a dark
+    // band the tile is keyed out and the glyph floats free, where the tile would have read as a
+    // black square around it.
+    //
+    // On a light band it cannot be, and this is the whole reason `ground` is asked for: the
+    // glyph is Voltage, and Voltage on paper is a mark nobody sees. The tile stays there, and
+    // the window carries the identity the way the chart says a light surface has to — as a block
+    // of brand rather than as a hairline of it. Below the threshold a keyed-out mark simply
+    // disappeared from the title bar of every application in the light theme.
+    //
+    // Both cuts are uploaded once, on the first call, so this can be asked for from inside a
+    // paint without costing anything after the first frame.
+    mtd appIconAt(size: f32, ground: Pixel.Color)->Icon
     {
         var result: retval
         if !.appIcon.isValid() do
@@ -990,22 +1023,21 @@ impl Application
 
         if !.appIconLoaded
         {
-            // The mark ships on its ink ground, which is what the taskbar and the file
-            // explorer need. A drawn caption already has a ground of its own, so the tile
-            // would read as a black square around the glyph: the ground is keyed out and the
-            // glyph keeps its own color. The two colors are the ones the chart declares for
-            // every product mark, so the derivation follows the same rule as the art.
+            // The two colors are the ones the chart declares for every product mark, so the
+            // derivation follows the same rule as the art.
             var mark = .appIcon.convertedTo(.RGBA8)
-            mark.keyOutGround(Pixel.Color.fromArgb(MarkInk), Pixel.Color.fromArgb(MarkVoltage))
+            .appIconTileList.set(.renderer.addImage(mark))
 
+            mark.keyOutGround(MarkInk, MarkVoltage)
             .appIconList.set(.renderer.addImage(mark))
             .appIconLoaded = true
         }
 
-        if !.appIconList.isValid() do
+        let list = markReadsOn(ground) ? &.appIconList : &.appIconTileList
+        if !list.isValid() do
             return result
 
-        result = Icon.from(&.appIconList, 0, size, size)
+        result = Icon.from(list, 0, size, size)
 
         // The mark carries its own two colors; drawn through the caption tint it would
         // collapse to one. An explicit white leaves the raster alone.

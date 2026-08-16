@@ -3,7 +3,7 @@
 using Core, Pixel, Gui, FileScopePluginApi
 
 private const HexGlyphSize = 18.0
-private const HexCommandWidth = 388.0
+private const HexCommandWidth = 344.0
 private const HexOffsetWidth = 120.0
 
 // Hexadecimal view of any file, whatever its size.
@@ -19,7 +19,6 @@ internal struct HexPluginView
     #[Swag.Late]
     {
         commands:        *Wnd
-        menuButton:      *IconButton
         inspectorButton: *IconButton
         groupingCombo:   *ComboBox
         offsetButton:    *PushButton
@@ -95,17 +94,6 @@ internal impl HexPluginView
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, HexCommandWidth, 36})
         result.commands.backgroundStyle = .Window
-
-        with result.menuButton = IconButton.create(result.commands, result.theme().icon(.More, HexGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle  = .Left
-            .toolTip    = "Copy, row width, and navigation"
-            .sigPressed += func|view = result|(button)
-            {
-                var position = button.surfaceRect()
-                view.grid.showContextMenu({position.x, position.bottom()})
-            }
-        }
 
         with result.inspectorButton = IconButton.create(result.commands, result.theme().icon(.Information, HexGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {

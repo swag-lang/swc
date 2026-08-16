@@ -5,7 +5,7 @@ private const TextStreamLookAhead = 2.0
 private const TextResidentWindowSize = 256 * 1024'u64
 private const TextRevealContextSize = 4 * 1024'u64
 
-// Host-owned text view available for every file without loading a plugin.
+// Host-owned text view available for supported UTF-8 content without loading a plugin.
 struct BasicTextView
 {
     using wnd: Wnd
@@ -40,6 +40,19 @@ func basicTextRevealMatch(wnd: *Wnd, offset: u64, text: string)->bool
 
 impl BasicTextView
 {
+    // Reports whether the beginning of a file is supported UTF-8 text. The basic renderer is a
+    // fallback for textual content, not an alternate spelling of every binary format.
+    func supports(fileName: string)->bool
+    {
+        var stream = catch File.openRead(fileName) as openError
+        if openError != null do
+            return false
+        defer stream.close()
+
+        let chunk = catch stream.readUtf8Chunk(TextStreamChunkSize) as readError
+        return readError == null and Utf8.indexOf(chunk.toSlice(), 0'rune) == Swag.U64.Max
+    }
+
     mtd hasMore()->bool
     {
         return .stream.isOpen() and .bytesRead < .fileSize

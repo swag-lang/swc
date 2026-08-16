@@ -655,9 +655,17 @@ private func createPluginView(host: *Testing.HeadlessHost, fileName: string, wid
     let opened = view.list.lineCount()
     @assert(opened > 4 and opened < cast(u32) view.doc.report.rows.count)
 
-    view.setExpandedAll(true)
+    let expandState = view.sendComputeCommandStateEvent(ActionBinary.ExpandAll)
+    @assert(expandState.name == binStrings().ui_MenuExpand)
+    @assert(expandState.shortcut == "Ctrl+E")
+    @assert(!expandState.updatedFields.has(.Checked))
+    let collapseState = view.sendComputeCommandStateEvent(ActionBinary.CollapseAll)
+    @assert(collapseState.shortcut == "Ctrl+Shift+E")
+    @assert(!collapseState.updatedFields.has(.Checked))
+
+    view.sendCommandEvent(ActionBinary.ExpandAll)
     @assert(view.list.lineCount() == cast(u32) view.doc.report.rows.count)
-    view.setExpandedAll(false)
+    view.sendCommandEvent(ActionBinary.CollapseAll)
     @assert(view.list.lineCount() < opened)
 
     // A match the host found inside the code section reveals the section that owns those bytes,

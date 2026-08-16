@@ -5,7 +5,7 @@ using Swag, Core
 
 // The serialized shape of every persisted struct, pinned as text. TagBin matches fields
 // by name and stores this exact list per type, so any line changing below is a
-// compatibility event for existing '.scapture' files and saved quick styles: it must be
+// compatibility event for existing '.scc' files and saved quick styles: it must be
 // deliberate, a removed field loses data, and a renamed one must leave a
 // 'Serialization.Alias' behind.
 func testSchemaOf(type: typeinfo)->String fail

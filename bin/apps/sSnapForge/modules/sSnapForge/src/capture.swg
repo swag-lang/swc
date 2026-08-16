@@ -46,13 +46,10 @@ impl FormCache
     }
 }
 
-// The legacy-named '.scapture' container stays readable across the product rename: a magic word
-// and a format version in front of the
-// serialized capture. The version is what a future load dispatches its migrations on;
-// a file without the header predates it and reads as version 0. The serialized layout
-// itself is pinned by 'serialization.schema.test.swg'.
-const CaptureFileMagic      = 0x53434150'u32
-const CaptureFileVersion    = 2'u32
+// Captures use the application-independent SCC extension. The container kind, not the extension,
+// distinguishes a capture from another SCC document.
+const CaptureFileExtension = ".scc"
+
 const CaptureProfileVersion = 3'u32
 
 // Where the pixels of a capture came from. Stored with the capture so the library can
@@ -569,6 +566,20 @@ impl Capture
     private func backgroundRole()->Guid128 => sccId("04267f4e-d659-4d32-9296-cc68be5bdb9d")
     private func originalRole()->Guid128 => sccId("11d1a796-38d8-46ca-a4e6-5e2271ebd321")
 
+    // Reports whether a path is a capture rather than another document using the SCC extension.
+    func isFile(file: string)->bool
+    {
+        let extension = Path.lowercaseExtension(file)
+        if extension != CaptureFileExtension do
+            return false
+
+        var reader: Scc.Reader
+        catch reader.initialize(file) as openError
+        if openError != null do
+            return false
+        return reader.kind() == containerKind()
+    }
+
     private func(T) encodeValue(value: const *T)->Array'u8 fail
     {
         var output:  ConcatBuffer
@@ -800,49 +811,9 @@ impl Capture
         return capture
     }
 
-    private func loadLegacy(file: String, preview: bool)->*Capture fail
-    {
-        var res = File.readAllBytes(file)
-
-        // Strip the container header when it is there; a headerless file predates it.
-        var payload: const [..] u8 = res.toSlice()
-        var version                = 0'u32
-        if @countof(payload) >= 8
-        {
-            var header = ByteStream.openRead(payload)
-            let magic  = catch header.readNative'u32()
-            if magic == CaptureFileMagic
-            {
-                version = catch header.readNative'u32()
-                payload = header.remainingBytes()
-            }
-        }
-
-        if version > CaptureFileVersion do
-            fail Core.Errors.InvalidVersion{wantedVersion: CaptureFileVersion, foundVersion: version}
-
-        var decoder: Decoder'Read.TagBin
-        decoder.flags |= .IgnoreStructFieldError
-        if preview
-        {
-            decoder.serializer.ignoreElements.add(#nameof(Capture.backImg))
-            decoder.serializer.ignoreElements.add(#nameof(Capture.backImgOriginal))
-        }
-
-        let capture = decoder.readAll'Capture(payload)!
-        capture.file = file
-        let diag = decoder.serializer.diag
-        capture.loadIssues = diag.fieldErrors + diag.unknownTypes + diag.corruptPayloads
-        for itf in capture.forms do
-            itf.setup(capture)
-        return capture
-    }
-
     func load(file: String, preview = false, deferPreviewDecode = false)->#null *Capture fail
     {
-        if try Scc.hasSignature(file) do
-            return try loadScc(file, preview, deferPreviewDecode)
-        return try loadLegacy(file, preview)
+        return try loadScc(file, preview, deferPreviewDecode)
     }
 
     //////////////////////////////

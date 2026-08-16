@@ -3,14 +3,20 @@
 using Core, Pixel, Gui, FileScopePluginApi
 
 private const BinaryGlyphSize = 18.0
-private const BinaryCommandWidth = 124.0
+private const BinaryCommandWidth = 36.0
 private const BinaryOffsetWidth = 116.0
 private const BinaryDetailMinWidth = 200.0
 
-const CmdCopyAll     = "sFileScope.binary.copyAll"
-const CmdCopyLine    = "sFileScope.binary.copyLine"
-const CmdExpandAll   = "sFileScope.binary.expandAll"
-const CmdCollapseAll = "sFileScope.binary.collapseAll"
+// Commands shared by the context menu, keyboard, and command bar.
+internal struct ActionBinary {}
+
+internal impl ActionBinary
+{
+    newCmdId("CopyAll")
+    newCmdId("CopyLine")
+    newCmdId("ExpandAll")
+    newCmdId("CollapseAll")
+}
 
 // Lanes one row of the report is read across.
 internal enum BinaryColumn
@@ -33,15 +39,12 @@ internal struct BinaryPluginView
     #[Swag.Late]
     {
         commands:     *Wnd
-        menuButton:   *IconButton
-        expandButton: *IconButton
         copyButton:   *IconButton
         list:         *ListCtrl
     }
 
     doc:      BinaryDocument
     rowLines: Array'(#null *ListLine)     // Line created for each report row, in row order.
-    expanded: bool                        // Whether the tree is currently opened whole.
     details:  String
 }
 
@@ -117,22 +120,8 @@ internal impl BinaryPluginView
                 .list.expand(.rowLines[index]!)
         }
 
-        .expanded = expand
-        .updateExpandButton()
         .list.computeLayout()
         .invalidate()
-    }
-
-    mtd toggleExpandAll()
-    {
-        .setExpandedAll(!.expanded)
-    }
-
-    private mtd updateExpandButton()
-    {
-        let s = binStrings()
-        .expandButton.setIcon(.theme().icon(.expanded ? .ChevronDown : .ChevronRight, BinaryGlyphSize))
-        .expandButton.toolTip = .expanded ? s.ui_TipCollapse : s.ui_TipExpand
     }
 
     // Reveals the structure the byte at `offset` belongs to.
@@ -215,25 +204,13 @@ internal impl BinaryPluginView
 
     mtd showContextMenu(surfacePos: Math.Point)
     {
-        let s    = binStrings()
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(s.ui_MenuCopyAll, CmdCopyAll, rightName: "Ctrl+C")
-        menu.addItem(s.ui_MenuCopyLine, CmdCopyLine)
+        menu.addItem(ActionBinary.CopyAll)
+        menu.addItem(ActionBinary.CopyLine)
         menu.addSeparator()
-        menu.addItem(s.ui_MenuExpand, CmdExpandAll, checked: .expanded)
-        menu.addItem(s.ui_MenuCollapse, CmdCollapseAll, checked: !.expanded)
-
-        let result = menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
-        if !result do
-            return
-
-        switch result!
-        {
-        case CmdCopyAll:     .copyReport()
-        case CmdCopyLine:    .copySelectedLine()
-        case CmdExpandAll:   .setExpandedAll(true)
-        case CmdCollapseAll: .setExpandedAll(false)
-        }
+        menu.addItem(ActionBinary.ExpandAll)
+        menu.addItem(ActionBinary.CollapseAll)
+        discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
     }
 
     // Divides the visible width into the four lanes a row is read across.
@@ -265,6 +242,69 @@ internal impl BinaryPluginView
     }
 }
 
+internal impl IActionUI for ActionBinary
+{
+    mtd impl accept(cxt: ActionContext)->bool
+    {
+        switch cxt.id
+        {
+        case ActionBinary.CopyAll, ActionBinary.CopyLine, ActionBinary.ExpandAll, ActionBinary.CollapseAll: return true
+        }
+
+        return false
+    }
+
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    {
+        let view  = cast(*BinaryPluginView) cxt.wnd!
+        let s     = binStrings()
+        let theme = view.theme()
+
+        switch cxt.id
+        {
+        case ActionBinary.CopyAll:
+            evt.updatedFields |= .Name | .Icon | .Shortcut
+            evt.name          = s.ui_MenuCopyAll
+            evt.icon          = theme.icon(.Copy)
+            evt.shortcut      = "Ctrl+C"
+
+        case ActionBinary.CopyLine:
+            evt.updatedFields |= .Name | .Icon | .Disabled
+            evt.name          = s.ui_MenuCopyLine
+            evt.icon          = theme.icon(.Copy)
+            evt.disabled      = view.list.selectedLine() == null
+
+        case ActionBinary.ExpandAll:
+            evt.updatedFields |= .Name | .Icon | .Shortcut
+            evt.name          = s.ui_MenuExpand
+            evt.icon          = theme.icon(.ChevronRight)
+            evt.shortcut      = "Ctrl+E"
+
+        case ActionBinary.CollapseAll:
+            evt.updatedFields |= .Name | .Icon | .Shortcut
+            evt.name          = s.ui_MenuCollapse
+            evt.icon          = theme.icon(.ChevronDown)
+            evt.shortcut      = "Ctrl+Shift+E"
+        }
+
+        return true
+    }
+
+    mtd impl execute(cxt: ActionContext)->bool
+    {
+        let view = cast(*BinaryPluginView) cxt.wnd!
+        switch cxt.id
+        {
+        case ActionBinary.CopyAll:     view.copyReport()
+        case ActionBinary.CopyLine:    view.copySelectedLine()
+        case ActionBinary.ExpandAll:   view.setExpandedAll(true)
+        case ActionBinary.CollapseAll: view.setExpandedAll(false)
+        }
+
+        return true
+    }
+}
+
 internal impl IWnd for BinaryPluginView
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
@@ -281,10 +321,12 @@ internal impl IWnd for BinaryPluginView
             return
         }
 
-        if evt.key == .E and evt.modifiers.has(.Control) do
-            .toggleExpandAll()
+        if evt.key == .E and evt.modifiers.has(.Control) and evt.modifiers.has(.Shift) do
+            .sendCommandEvent(ActionBinary.CollapseAll)
+        elif evt.key == .E and evt.modifiers.has(.Control) do
+            .sendCommandEvent(ActionBinary.ExpandAll)
         elif evt.key == .C and evt.modifiers.has(.Control) do
-            .copyReport()
+            .sendCommandEvent(ActionBinary.CopyAll)
         else do
             evt.accepted = false
     }
@@ -299,41 +341,19 @@ internal impl BinaryPluginView
 
         let result = Wnd.create'BinaryPluginView(contentParent, "sFileScope.binary")
         result.backgroundStyle = .View
+        result.registerAction'ActionBinary()
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, BinaryCommandWidth, 36})
         result.commands.backgroundStyle = .Window
 
-        with result.menuButton = IconButton.create(result.commands, result.theme().icon(.More, BinaryGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle  = .Left
-            .toolTip    = s.ui_TipMenu
-            .sigPressed += func|view = result|(button)
-            {
-                let position = button.surfaceRect()
-                view.showContextMenu({position.x, position.bottom()})
-            }
-        }
-
-        with result.expandButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, BinaryGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.toggleExpandAll()
-            }
-        }
-
         with result.copyButton = IconButton.create(result.commands, result.theme().icon(.Copy, BinaryGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 8
             .toolTip    = s.ui_MenuCopyAll
             .sigPressed += func|view = result|(button)
             {
                 discard button
-                view.copyReport()
+                view.sendCommandEvent(ActionBinary.CopyAll)
             }
         }
 
@@ -371,7 +391,6 @@ internal impl BinaryPluginView
         }
 
         result.fillList()
-        result.updateExpandButton()
         result.details = result.doc.report.summary
         result.applyLayout()
         result.layoutColumns()

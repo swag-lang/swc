@@ -904,7 +904,7 @@ impl LibraryView
         {
             let ptr = .allItems.addNew()
             ptr.fi   = fi
-            ptr.kind = Path.lowercaseExtension(fi.fullname) == ".scapture" ? .Capture : .Image
+            ptr.kind = Capture.isFile(fi.fullname) ? .Capture : .Image
         }
 
         .filter()

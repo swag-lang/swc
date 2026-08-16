@@ -53,8 +53,14 @@ private func registerViewerFileTypes(index: const *ViewerPluginIndex)
     let stateFolder = Path.combine(Env.getSpecialDirectory(.UserAppData), "sFileScope")
     if !Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
-    if Directory.exists(stateFolder) do
-        g_App.setStatePath(Path.combine(stateFolder, "sFileScope.cfg"))
+    if Directory.exists(stateFolder)
+    {
+        let statePath    = Path.combine(stateFolder, "sFileScope.scc")
+        let previousPath = Path.combine(stateFolder, "sFileScope.cfg")
+        if !File.exists(statePath) and File.exists(previousPath) do
+            discard catch File.duplicate(statePath, previousPath)
+        g_App.setStatePath(statePath)
+    }
 
     let surface = (try g_App.createSurface(80, 50, 960, 680, SurfaceFlags.StandardWindow, surfaceId: "sFileScope"))!
     g_App.theme.setSwagDark()

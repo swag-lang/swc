@@ -3,11 +3,6 @@
 
 using Swag, Core
 
-func testSameBytes(left, right: const [..] u8)->bool
-{
-    return @countof(left) == @countof(right) and (!@countof(left) or @memcmp(@dataof(left), @dataof(right), @countof(left)) == 0)
-}
-
 // Capture save/load round-trips every concrete form type and its regression-sensitive fields.
 #test
 {
@@ -229,107 +224,4 @@ func testSameBytes(left, right: const [..] u8)->bool
     @assert(!libraryItem.capture!.preview.isValid())
     @assert(!libraryItem.capture!.previewBytes.isEmpty())
     @assert(libraryItem.haar.size != 0)
-}
-
-// A capture file from before the container header still loads: a stream without the
-// magic word reads as container version 0.
-#test
-{
-    var f: HeadlessFixture
-    f.setup()
-    defer f.shutdown()
-    f.capture.width  = 24
-    f.capture.height = 12
-    f.capture.title  = "Headerless"
-
-    // Write exactly what an old save produced: the serialized capture, nothing in front.
-    var buf:     ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
-    expect encoder.writeAll(&buf, f.capture[])
-
-    let path = testTempCapturePath()
-    defer discard catch File.delete(path)
-    expect File.writeAllBytes(path, buf)
-
-    let loaded = expect Capture.load(path)!
-    defer Memory.delete(loaded)
-    @assert(loaded.width == 24)
-    @assert(loaded.height == 12)
-    @assert(loaded.title == "Headerless")
-    @assert(loaded.loadIssues == 0)
-}
-
-// A capture claiming a newer container version is refused rather than half-read.
-#test
-{
-    var buf: ConcatBuffer
-    buf.addNative(CaptureFileMagic)
-    buf.addNative(CaptureFileVersion + 1)
-    buf.addNative(0'u32)
-
-    let path = testTempCapturePath()
-    defer discard catch File.delete(path)
-    expect File.writeAllBytes(path, buf)
-
-    discard catch Capture.load(path) as errnew
-    @assert(errnew != null)
-}
-
-// Migration makes and verifies a complete backup before replacing a legacy capture.
-#test
-{
-    let unique = testTempCapturePath()
-    var root   = String.from(unique)
-    root += ".library"
-    var backup = String.from(unique)
-    backup += ".backup"
-    var state = String.from(unique)
-    state += ".cfg"
-    defer
-    {
-        discard catch Directory.delete(root, recurse: true)
-        discard catch Directory.delete(backup, recurse: true)
-        discard catch File.delete(state)
-    }
-
-    expect Directory.create(root)
-
-    var capture: Capture
-    capture.width  = 80
-    capture.height = 45
-    capture.title  = "Legacy migration"
-    capture.tags.add("legacy")
-
-    var bytes: ConcatBuffer
-    bytes.addNative(CaptureFileMagic)
-    bytes.addNative(CaptureFileVersion)
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
-    expect encoder.writeAll(&bytes, capture)
-
-    let file = Path.combine(root, "legacy.scapture")
-    expect File.writeAllBytes(file, bytes)
-    expect File.writeAllBytes(Path.combine(root, "notes.txt"), "keep this too")
-    expect File.writeAllBytes(state, "legacy gui state")
-    let original = expect File.readAllBytes(file)
-
-    let report = expect CaptureMigration.backupAndMigrate(root, backup, state)
-    @assert(report.backedUpFiles == 3)
-    @assert(report.migrated == 1)
-    @assert(report.alreadyScc == 0)
-    @assert(report.failed == 0)
-    @assert(report.remaining == 0)
-    @assert(expect Scc.hasSignature(file))
-
-    let backupCapture = expect File.readAllBytes(Path.combine(backup, "legacy.scapture"))
-    @assert(testSameBytes(original.toSlice(), backupCapture.toSlice()))
-    @assert(!(expect Scc.hasSignature(Path.combine(backup, "legacy.scapture"))))
-    @assert(File.exists(Path.combine(backup, "notes.txt")))
-    @assert(File.exists(Path.combine(backup, "_application-state", Path.fileName(state) orelse "state.scc")))
-
-    let migrated = (expect Capture.load(file))!
-    defer Memory.delete(migrated)
-    @assert(migrated.width == 80)
-    @assert(migrated.height == 45)
-    @assert(migrated.title == "Legacy migration")
-    @assert(migrated.hasTag("legacy"))
 }

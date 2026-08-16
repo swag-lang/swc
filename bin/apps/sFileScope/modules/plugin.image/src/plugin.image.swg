@@ -21,7 +21,7 @@ internal func loadViewerImage(fileName: string)->Image fail
     return drawing.rasterize(width, height, 1)
 }
 
-private struct ImagePluginView
+internal struct ImagePluginView
 {
     using wnd: Wnd
     details: String
@@ -37,8 +37,33 @@ private struct ImagePluginView
     }
 }
 
-private impl ImagePluginView
+internal impl ImagePluginView
 {
+    // Places the decoder's exact explanation immediately under the stable summary. The detail is
+    // the actionable part of the failure, so it uses the theme's critical text color.
+    mtd showDecodeError(summary: string, error: #null any)
+    {
+        .imageView.hide()
+
+        with let stack = StackLayoutCtrl.create(me, .VerticalCenter)
+        {
+            .dockStyle = .Center
+            .padding   = {48, 48, 48, 48}
+            .spacing   = 8
+
+            with let message = Label.create(stack, summary, flags: .WordWrap | .AutoHeight | .SecondaryText)
+            {
+                .setTextAlignment(.Center, .Center)
+            }
+
+            with let detail = Label.create(stack, Errors.message(error), flags: .WordWrap | .AutoHeight)
+            {
+                .setTextAlignment(.Center, .Center)
+                .setTextColor(.themeColors().embInfo_CriticalText)
+            }
+        }
+    }
+
     mtd refreshZoom()
     {
         .zoomLabel.setText(Format.toString("% %", cast(s32) Math.round(.imageView.effectiveZoom() * 100), "%"))
@@ -231,10 +256,7 @@ private impl ImagePluginView
             discard catch result.imageView.loadGif(fileName) as loadError
             if loadError != null
             {
-                result.imageView.hide()
-                let label = Label.create(result, "This GIF could not be decoded.", {}, null, .WordWrap | .SecondaryText)
-                label.dockStyle = .Center
-                label.setTextAlignment(.Center, .Center)
+                result.showDecodeError("This GIF could not be decoded.", loadError)
             }
             else
             {
@@ -254,10 +276,7 @@ private impl ImagePluginView
             }
             else
             {
-                result.imageView.hide()
-                let label = Label.create(result, "This image could not be decoded.", {}, null, .WordWrap | .SecondaryText)
-                label.dockStyle = .Center
-                label.setTextAlignment(.Center, .Center)
+                result.showDecodeError("This image could not be decoded.", loadError)
             }
         }
 

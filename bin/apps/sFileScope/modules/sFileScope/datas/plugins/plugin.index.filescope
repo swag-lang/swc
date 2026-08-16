@@ -4,5 +4,5 @@ markdown|Markdown|plugin.markdown.dll|.markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd
 html|HTML|plugin.html.dll|.htm;.html;.shtml;.xht;.xhtml
 image|Image|plugin.image.dll|.bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp
 sound|Sound|plugin.sound.dll|.wav
-binary|Binary|plugin.binary.dll|.exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.scapture;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.ttf;.otf;.ttc;.woff;.woff2;.wav;.avi;.webp
+binary|Binary|plugin.binary.dll|.exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.ttf;.otf;.ttc;.woff;.woff2;.wav;.avi;.webp
 hex|Hexadecimal|plugin.hex.dll|*

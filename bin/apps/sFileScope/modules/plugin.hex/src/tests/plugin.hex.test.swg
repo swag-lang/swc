@@ -304,9 +304,19 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     @assert(inspectorValue(inspector, "offset") == "0x00000000")
     @assert(inspectorValue(inspector, "selection") == "1 byte")
 
+    // The combo changes the values drawn by the grid, not only the distance between bytes.
+    view.grid.setGrouping(.Unsigned32)
+    @assert(view.grid.doc.ensure(0, view.grid.doc.fileSize))
+    view.grid.buildRow(0)
+    @assert(view.grid.scalarAt(0) == 0x12345678)
+    @assert(formatHexScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
+    @assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "305419896"))
+
     inspector.toggleByteOrder()
-    @assert(inspector.bigEndian)
+    @assert(inspector.grid.bigEndian)
     @assert(inspectorValue(inspector, "uint32") == "2018915346")
+    view.grid.buildRow(0)
+    @assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "2018915346"))
 
     // The last byte of a file has fewer than eight behind it, and the panel says so.
     view.grid.moveCaret(8, false)
@@ -367,13 +377,15 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     let view = createPluginView(&host, fileName.toString(), 900, 560)
     let grid = view.grid
 
-    host.clickPopupMenuItemWhenShown(CmdSelectAll)
+    host.clickPopupMenuItemWhenShown(ActionHex.SelectAll)
     grid.showContextMenu({120, 120})
+    host.pump()
     @assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
     host.openPopupSubMenuWhenShown("Bytes per row")
-    host.thenClickPopupMenuItem(CmdRow32)
+    host.thenClickPopupMenuItem(ActionHex.Row32)
     grid.showContextMenu({120, 120})
+    host.pump()
     @assert(grid.bytesPerRow == 32 and !grid.autoFitRow)
 
     grid.moveCaret(0x123, false)

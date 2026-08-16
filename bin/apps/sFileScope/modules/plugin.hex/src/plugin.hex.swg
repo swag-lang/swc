@@ -3,8 +3,7 @@
 using Core, Pixel, Gui, FileScopePluginApi
 
 private const HexGlyphSize = 18.0
-private const HexCommandWidth = 344.0
-private const HexOffsetWidth = 120.0
+private const HexCommandWidth = 256.0
 
 // Hexadecimal view of any file, whatever its size.
 //
@@ -20,8 +19,8 @@ internal struct HexPluginView
     {
         commands:        *Wnd
         inspectorButton: *IconButton
-        groupingCombo:   *ComboBox
-        offsetButton:    *PushButton
+        widthCombo:      *ComboBox
+        formatCombo:     *ComboBox
         grid:            *HexGridView
         inspector:       *HexInspectorView
     }
@@ -31,15 +30,46 @@ internal struct HexPluginView
 
 internal impl HexPluginView
 {
-    // Refreshes the caret readout and, when it is showing, the value panel.
+    mtd selectedGrouping()->HexGrouping
+    {
+        let width  = .widthCombo.selectedIndex
+        let format = .formatCombo.selectedIndex
+        switch width
+        {
+        case 0:
+            return format == 1 ? .Unsigned8 : format == 2 ? .Signed8 : .Bytes
+        case 1:
+            return format == 1 ? .Unsigned16 : format == 2 ? .Signed16 : .Hex16
+        case 2:
+            return format == 1 ? .Unsigned32 : format == 2 ? .Signed32 : format == 3 ? .Float32 : .Hex32
+        default:
+            return format == 1 ? .Unsigned64 : format == 2 ? .Signed64 : format == 3 ? .Float64 : .Hex64
+        }
+    }
+
+    mtd applyValueMode()
+    {
+        .grid.setGrouping(.selectedGrouping())
+    }
+
+    mtd rebuildFormats()
+    {
+        let previous = .formatCombo.selectedIndex
+        .formatCombo.clear()
+        .formatCombo.addItem("Hex")
+        .formatCombo.addItem("Unsigned")
+        .formatCombo.addItem("Signed")
+        if .widthCombo.selectedIndex >= 2 do
+            .formatCombo.addItem("Float")
+        let next = previous < .formatCombo.items.count ? previous : 0
+        .formatCombo.setSelectedIndex(cast(u32) next, notify: false)
+        .applyValueMode()
+    }
+
+    // Refreshes the value panel when the caret changes. The offset lives beside the value it
+    // qualifies in that panel; Ctrl+G and the context menu keep navigation out of the toolbar.
     mtd caretMoved()
     {
-        var offsetText: Array'u8
-        offsetText.add('0'u8)
-        offsetText.add('x'u8)
-        appendHexDigits(&offsetText, .grid.caret, .grid.offsetDigits)
-        .offsetButton.setText(@mkstring(offsetText.buffer!, offsetText.count))
-
         if .inspector.isLocallyVisible() do
             .inspector.refresh()
     }
@@ -106,37 +136,38 @@ internal impl HexPluginView
             }
         }
 
-        with result.groupingCombo = ComboBox.create(result.commands, {0, 0, 164, 36})
+        with result.widthCombo = ComboBox.create(result.commands, {0, 0, 80, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = "Value grouping"
-            .addItem("Bytes (8-bit)")
-            .addItem("Unsigned 16-bit")
-            .addItem("Unsigned 32-bit")
-            .addItem("Unsigned 64-bit")
-            .addItem("Signed 16-bit")
-            .addItem("Signed 32-bit")
-            .addItem("Signed 64-bit")
-            .addItem("Float 32-bit")
-            .addItem("Float 64-bit")
+            .toolTip   = "Value width"
+            .addItem("8-bit")
+            .addItem("16-bit")
+            .addItem("32-bit")
+            .addItem("64-bit")
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = result|(combo, index)
             {
                 discard combo
-                view.grid.setGrouping(cast(HexGrouping) index)
+                discard index
+                view.rebuildFormats()
             }
         }
 
-        with result.offsetButton = PushButton.create(result.commands, "0x00000000", {0, 0, HexOffsetWidth, 36})
+        with result.formatCombo = ComboBox.create(result.commands, {0, 0, 116, 36})
         {
-            .dockStyle = .Right
-            .toolTip   = "Go to offset (Ctrl+G)"
-            .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
-            .sigPressed += func|view = result|(button)
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = "Value representation"
+            .addItem("Hex")
+            .addItem("Unsigned")
+            .addItem("Signed")
+            .setSelectedIndex(0, notify: false)
+            .sigChanged += func|view = result|(combo, index)
             {
-                discard button
-                view.grid.promptGoToOffset()
+                discard combo
+                discard index
+                view.applyValueMode()
             }
         }
 

@@ -1,12 +1,16 @@
 #global public
 
-using Core, Pixel, Gui, Audio, FileScopePluginApi
+using Core, Pixel, Gui, Audio, FileScopePluginApi, Threading
 
 private const SoundGlyphSize = 18.0
 
 // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
 // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
 private const WaveformPointCount = 4096'u64
+
+// The analyzer yields after each bounded read. Playback uses its own stream, so neither cursor can
+// stall or reposition the other while a very large file is still becoming visible.
+private const WaveformReadSize = 256 * 1024'u64
 
 // Air around the plot, and the band the time scale is read in.
 private const WaveformInsetX = 24.0
@@ -137,6 +141,7 @@ internal struct SoundWaveformView
 {
     using wnd: Wnd
     samples:   Array'WaveformPoint
+    readyCount: u64
     duration:  f32
     progress:  f32
 }
@@ -240,27 +245,29 @@ private impl IWnd for SoundWaveformView
         if !.samples.count do
             return
 
-        // The wave is ink, in the four weights that carry two readings at once. Across a column,
-        // the transient reaches further than the body the ear hears; along the file, what has been
-        // played is the stronger pair. The accent stays for the play head alone: a waveform washed
-        // in it would be a window of accent pointing at nothing.
-        let ink      = colors.label_Text
-        let playBody = Color.lerp(colors.view_Bk, ink, 0.92)
-        let playPeak = Color.lerp(colors.view_Bk, ink, 0.5)
-        let restBody = Color.lerp(colors.view_Bk, ink, 0.55)
-        let restPeak = Color.lerp(colors.view_Bk, ink, 0.28)
+        // The alternate theme tone gives the sound its own voice while the signature accent stays
+        // reserved for the exact play position. Two opacities preserve transient and body detail.
+        let alternate = .theme().palette.alternate.mark
+        let playBody = Color.lerp(colors.view_Bk, alternate, 0.92)
+        let playPeak = Color.lerp(colors.view_Bk, alternate, 0.58)
+        let restBody = Color.lerp(colors.view_Bk, alternate, 0.48)
+        let restPeak = Color.lerp(colors.view_Bk, alternate, 0.25)
 
         let columns  = cast(u64) Math.max(plot.width, 1)
-        let playHead = Math.clamp(.progress, 0, 1) * plot.width
+        // Pixel alignment keeps the progress boundary crisp instead of blending two adjacent
+        // waveform columns into a soft vertical seam.
+        let playHead = Math.round(Math.clamp(.progress, 0, 1) * plot.width)
         let scale    = plot.height * 0.5 - 1
 
         for column in columns
         {
             let first = column * .samples.count / columns
             let last  = Math.max((column + 1) * .samples.count / columns, first + 1)
+            if first >= .readyCount do
+                continue
             var peak  = 0'f32
             var body  = 0'f32
-            for index in first until Math.min(last, .samples.count)
+            for index in first until Math.min(last, .readyCount)
             {
                 peak = Math.max(peak, .samples[index].peak)
                 body = Math.max(body, .samples[index].body)
@@ -301,6 +308,9 @@ internal struct SoundPluginView
     sound:       SoundFile
     voice:       #null *Voice
     timer:       #null *Timer
+    waveformThread: Thread
+    waveformLock:   Sync.Mutex
+    waveformBuilt:  u64
     duration:    f32
     elapsed:     f32
     engineReady: bool
@@ -310,6 +320,111 @@ internal struct SoundPluginView
 
 internal impl SoundPluginView
 {
+    // Publishes a completed prefix. The worker never changes a published point, so the painter can
+    // read that prefix after taking this one synchronized count without copying the whole wave.
+    mtd publishWaveform(count: u64)
+    {
+        Sync.scopedLock(&.waveformLock)
+        .waveformBuilt = count
+    }
+
+    // Walks the payload sequentially and reduces it to a fixed visual budget. This is independent
+    // from Voice streaming and deliberately owns every block it reads.
+    mtd buildWaveformInBackground(thread: Thread)
+    {
+        let encoding      = .sound.sampleEncoding()
+        let channels      = .sound.numChannels()
+        let bytesPerSample = encoding == .Pcm8 ? 1'u64 : (encoding == .Pcm16 ? 2 : (encoding == .Pcm24 ? 3 : 4))
+        let bytesPerFrame = bytesPerSample * channels
+        let frameCount    = .sound.sampleFrameCount()
+        let pointCount    = .waveform.samples.count
+        if !bytesPerFrame or !frameCount or !pointCount do
+            return
+
+        var byteOffset: u64
+        var frameOffset: u64
+        var currentPoint: u64
+        var peak: f32
+        var sum: f64
+        var sampleCount: u64
+
+        while byteOffset < .sound.payloadSize() and !thread.requestEnd
+        {
+            var wanted = Math.min(WaveformReadSize, .sound.payloadSize() - byteOffset)
+            wanted -= wanted % bytesPerFrame
+            if !wanted do
+                break
+
+            let bytes = catch .sound.readPayload(byteOffset, wanted) as readError
+            if readError != null or bytes.count < bytesPerFrame do
+                break
+            let frames = bytes.count / bytesPerFrame
+            for frame in frames
+            {
+                let target = Math.min(frameOffset * pointCount / frameCount, pointCount - 1)
+                if target != currentPoint
+                {
+                    .waveform.samples[currentPoint] = {peak, sampleCount ? cast(f32) (sum / cast(f64) sampleCount) : 0}
+                    if (currentPoint + 1) % 32 == 0 do
+                        .publishWaveform(currentPoint + 1)
+                    currentPoint = target
+                    peak        = 0
+                    sum         = 0
+                    sampleCount = 0
+                }
+
+                var mixed = 0'f32
+                for channel in channels
+                {
+                    let offset = frame * bytesPerFrame + channel * bytesPerSample
+                    mixed += soundSample(bytes.toSlice(), offset, encoding)
+                }
+
+                let level = Math.abs(mixed / channels)
+                peak = Math.max(peak, level)
+                sum += level
+                sampleCount += 1
+                frameOffset += 1
+            }
+
+            byteOffset += frames * bytesPerFrame
+        }
+
+        if sampleCount and currentPoint < pointCount
+        {
+            .waveform.samples[currentPoint] = {peak, cast(f32) (sum / cast(f64) sampleCount)}
+            .publishWaveform(currentPoint + 1)
+        }
+    }
+
+    mtd startWaveform()
+    {
+        let pointCount = Math.min(.sound.sampleFrameCount(), WaveformPointCount)
+        if !pointCount do
+            return
+        .waveform.samples.resize(pointCount)
+        catch .waveformThread.init(func|view = me|(thread: Thread) { view.buildWaveformInBackground(thread); }, priority: .BelowNormal) as initError
+        if initError != null do
+            return
+        catch .waveformThread.start() as startError
+        if startError != null
+        {
+            .waveformThread.wait()
+            return
+        }
+    }
+
+    mtd syncWaveform()
+    {
+        .waveformLock.lock()
+        let ready = .waveformBuilt
+        .waveformLock.unlock()
+        if ready == .waveform.readyCount do
+            return
+        .waveform.readyCount = ready
+        .waveform.invalidate()
+    }
+
     mtd updatePlaybackUi()
     {
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, SoundGlyphSize))
@@ -373,6 +488,7 @@ internal impl IWnd for SoundPluginView
             return
         }
 
+        .syncWaveform()
         if !.playing do
             return
         .elapsed += 0.033
@@ -388,6 +504,12 @@ internal impl IWnd for SoundPluginView
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
+        if .waveformThread.isValid()
+        {
+            .waveformThread.safeForceEnd()
+            .waveformThread.wait()
+        }
+
         if .timer
         {
             .removeTimer(.timer!)
@@ -454,7 +576,7 @@ internal impl SoundPluginView
         result.waveform.dockStyle       = .Center
         result.waveform.backgroundStyle = .View
 
-        let sound = catch SoundFile.load(fileName) as loadError
+        let sound = catch SoundFile.load(fileName, preloadData: false) as loadError
         if loadError != null
         {
             result.details = "WAV · decode failed"
@@ -468,16 +590,14 @@ internal impl SoundPluginView
 
         result.sound             = #move sound
         result.duration          = result.sound.durationInSeconds()
-        result.waveform.samples  = buildWaveform(result.sound.preloadedData(), result.sound.sampleEncoding(), result.sound.numChannels())
         result.waveform.duration = result.duration
+        result.startWaveform()
         let durationText = soundDurationText(result.duration)
         result.details = Format.toString("% Hz · % channel% · % bit · %", result.sound.sampleRateHz(), result.sound.numChannels(), result.sound.numChannels() == 1 ? "" : "s", result.sound.sampleStorageBits(), durationText)
         result.engineReady = acquireSoundEngine()
-        if result.engineReady
-        {
-            result.timer = result.addTimer(33'ms)
+        result.timer = result.addTimer(33'ms)
+        if result.engineReady do
             result.playButton.enable(true)
-        }
         result.updatePlaybackUi()
         if !result.engineReady do
             result.playButton.toolTip = "Playback unavailable"

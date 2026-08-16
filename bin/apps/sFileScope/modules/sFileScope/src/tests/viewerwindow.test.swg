@@ -154,7 +154,7 @@ private func viewerFixturePath()->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.applyTheme(1)
     host.notify(.ThemeChanged)
-    @assert(window.themeIndex == 1 and window.themeCombo.selectedIndex == 1)
+    @assert(window.themeIndex == 1)
     @assert(host.app.theme.colors.view_Bk == 0xFFFFFFFF)
     @assert(window.themeColors().view_Bk == 0xFFFFFFFF)
 
@@ -228,10 +228,8 @@ private func viewerFixturePath()->String
     window.applyLayout()
 
     @assert(window.commandBar.position.height == ViewerBarHeight)
-    @assert(window.viewerBar.position.height == ViewerToolBarHeight)
-    @assert(window.viewerBar.parent == window)
-    @assert(window.viewerCombo.parent == window.viewerBar)
-    @assert(window.themeCombo.parent == window.commandBar)
+    @assert(window.viewerCombo.parent == window.commandBar)
+    @assert(window.optionsButton.parent == window.commandBar)
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Bottom)
     @assert(window.infoBar.backgroundStyle != window.backgroundStyle)
@@ -245,7 +243,6 @@ private func viewerFixturePath()->String
     @assert(window.currentCommands == null)
     @assert(window.plugins.first == null)
     @assert(!window.viewerCombo.isLocallyVisible())
-    @assert(!window.viewerBar.isLocallyVisible())
     Testing.assertContentFits(window)
 }
 
@@ -258,7 +255,7 @@ private func viewerFixturePath()->String
     let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.currentView     = Wnd.create'Wnd(window)
-    window.currentCommands = Wnd.create'Wnd(window.viewerBar)
+    window.currentCommands = Wnd.create'Wnd(window.commandBar)
     window.instances.resize(1)
     window.instances[0].view     = window.currentView
     window.instances[0].commands = window.currentCommands
@@ -305,13 +302,13 @@ private func viewerFixturePath()->String
     let cachedView     = window.currentView
     let cachedCommands = window.currentCommands
     let childCount     = window.children.count
-    let commandCount   = window.viewerBar.children.count
+    let commandCount   = window.commandBar.children.count
     window.activeChoiceIndex = 1
     @assert(window.activateChoice(0))
     @assert(window.currentView == cachedView)
     @assert(window.currentCommands == cachedCommands)
     @assert(window.children.count == childCount)
-    @assert(window.viewerBar.children.count == commandCount)
+    @assert(window.commandBar.children.count == commandCount)
     @assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
 }
 
@@ -338,9 +335,8 @@ private func viewerFixturePath()->String
     Pixel.Testing.assertImageGolden(&image, "sfilescope.surface")
 }
 
-// Pins the open-document composition in both application palettes: host actions stay in the
-// first row, viewer selection and viewer actions stay in the second, and neither competes with
-// the persistent file identity below the document.
+// Pins the open-document composition in both application palettes: navigation, viewer selection
+// and contextual actions share one row above the document, with persistent file identity below.
 #test
 {
     var host: Testing.HeadlessHost
@@ -359,8 +355,8 @@ private func viewerFixturePath()->String
     window.applyLayout()
     host.settleAnimations(window, 4)
 
-    @assert(window.viewerBar.isLocallyVisible())
-    @assert(window.commandBar.position.bottom() <= window.viewerBar.position.y)
+    @assert(window.viewerCombo.isLocallyVisible())
+    @assert(window.currentCommands!.parent == window.commandBar)
     var dark = host.render(window)
     Pixel.Testing.assertImageGolden(&dark, "sfilescope.viewer.dark")
 

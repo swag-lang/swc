@@ -17,6 +17,39 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     ComboHeadlessLastIdx      = idx
 }
 
+// A live palette switch resolves every painted combo part immediately. Interaction inside one
+// palette may animate, but the old palette must never remain visible while the surface changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 80)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
+    combo.addItem("One")
+    combo.setSelectedIndex(0, notify: false)
+
+    host.theme.setSwagDark()
+    host.app.notifyThemeChanged()
+    host.notify(.ThemeChanged)
+    combo.invalidate()
+    var dark = host.render(&host.root)
+    discard dark
+
+    host.theme.setSwagLight()
+    host.app.notifyThemeChanged()
+    host.notify(.ThemeChanged)
+    combo.invalidate()
+    var light = host.render(&host.root)
+    discard light
+
+    @assert(combo.aniBk.cur() == Color.fromVector4(combo.aniBk.destVec4))
+    @assert(combo.aniBorder.cur() == Color.fromVector4(combo.aniBorder.destVec4))
+    @assert(combo.aniText.cur() == Color.fromVector4(combo.aniText.destVec4))
+    @assert(host.app.animator.activeCount() == 0)
+}
+
 // Removing items preserves order, adjusts later selections, and clears a removed selection.
 #test
 {

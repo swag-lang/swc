@@ -95,6 +95,17 @@ private func createPluginView(host: *Testing.HeadlessHost, fileName: string, wid
     @assert(grid.valueSize() == 8 and grid.selectionStart() == 0 and grid.selectionLength() == 8)
     grid.setGrouping(.Bytes)
     @assert(grid.selectionLength() == 1 and !grid.hasSelection())
+
+    // Width and spelling are independent controls. Float appears only where the selected width
+    // has a corresponding representation.
+    view.widthCombo.setSelectedIndex(1)
+    view.formatCombo.setSelectedIndex(1)
+    @assert(grid.grouping == .Unsigned16)
+    view.widthCombo.setSelectedIndex(3)
+    view.formatCombo.setSelectedIndex(3)
+    @assert(grid.grouping == .Float64 and grid.valueSize() == 8)
+    view.widthCombo.setSelectedIndex(0)
+    @assert(view.formatCombo.items.count == 3 and grid.grouping == .Bytes)
 }
 
 private func inspectorValue(inspector: *HexInspectorView, name: string)->string
@@ -234,7 +245,7 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     let view = createPluginView(&host, fileName.toString(), 900, 560)
     let grid = view.grid
     let wide = grid.bytesPerRow
-    @assert(wide >= HexMinBytesPerRow and wide % HexDefaultGroupSize == 0)
+    @assert(wide >= HexMinBytesPerRow and wide % grid.valueSize() == 0)
 
     host.focus(grid)
     host.keyPress(.Right)
@@ -298,14 +309,21 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     let view      = createPluginView(&host, fileName.toString(), 900, 560)
     let inspector = view.inspector
     @assert(inspector.isLocallyVisible())
-    @assert(inspectorValue(inspector, "uint32") == "305419896")
+    @assert(inspectorValue(inspector, "hex8") == "78")
+    @assert(inspectorValue(inspector, "uint8") == "120")
     @assert(inspectorValue(inspector, "int8") == "120")
     @assert(inspectorValue(inspector, "binary") == "01111000")
+    @assert(!@countof(inspectorValue(inspector, "uint32")))
     @assert(inspectorValue(inspector, "offset") == "0x00000000")
     @assert(inspectorValue(inspector, "selection") == "1 byte")
 
     // The combo changes the values drawn by the grid, not only the distance between bytes.
     view.grid.setGrouping(.Unsigned32)
+    view.caretMoved()
+    @assert(inspectorValue(inspector, "hex32") == "0x12345678")
+    @assert(inspectorValue(inspector, "uint32") == "305419896")
+    @assert(!@countof(inspectorValue(inspector, "uint16")))
+    @assert(!@countof(inspectorValue(inspector, "float64")))
     @assert(view.grid.doc.ensure(0, view.grid.doc.fileSize))
     view.grid.buildRow(0)
     @assert(view.grid.scalarAt(0) == 0x12345678)
@@ -321,9 +339,8 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     // The last byte of a file has fewer than eight behind it, and the panel says so.
     view.grid.moveCaret(8, false)
     view.caretMoved()
-    @assert(inspectorValue(inspector, "uint8") == "65")
-    @assert(inspectorValue(inspector, "uint16") == "--")
-    @assert(inspectorValue(inspector, "float64") == "--")
+    @assert(inspectorValue(inspector, "uint32") == "--")
+    @assert(!@countof(inspectorValue(inspector, "uint8")))
 }
 
 // What leaves through the clipboard is what the reader selected, in the form asked for.

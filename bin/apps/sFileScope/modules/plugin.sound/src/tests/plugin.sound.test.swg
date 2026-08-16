@@ -74,6 +74,13 @@ private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
     bytes[offset + 3] = cast(u8) ((value >> 24) & 0xFF)
 }
 
+private func finishWaveform(view: *SoundPluginView)
+{
+    if view.waveformThread.isValid() do
+        view.waveformThread.wait()
+    view.syncWaveform()
+}
+
 #test
 {
     destroyEngine()
@@ -105,12 +112,16 @@ private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     let view     = SoundPluginView.create(&host.root, commands, fileName)
     @assert(view.engineReady and view.playButton.isEnabled())
+    @assert(!view.sound.isDataPreloaded())
     @assert(view.waveform.samples.count == 4)
+    finishWaveform(view)
+    @assert(view.waveform.readyCount == 4)
     // A second file opened after the engine exists must decode exactly like the first one: the
     // waveform of every file but the first went missing when a failure inside the engine was
     // swallowed on its way out of the module.
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     let replacement         = SoundPluginView.create(&host.root, replacementCommands, fileName)
+    finishWaveform(replacement)
     @assert(replacement.engineReady and replacement.playButton.isEnabled())
     @assert(replacement.waveform.samples.count == view.waveform.samples.count)
     @assert(replacement.duration == view.duration)
@@ -148,6 +159,7 @@ private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
     let view = SoundPluginView.create(&host.root, commandBar, fileName)
+    finishWaveform(view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Right
 
@@ -237,8 +249,11 @@ private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     let view = SoundPluginView.create(&host.root, commands, pacmanWav.toString())
+    @assert(!view.sound.isDataPreloaded())
+    finishWaveform(view)
     @assert(view.details.indexOf("11025") != Swag.U64.Max)
     @assert(view.details.indexOf("8 bit") != Swag.U64.Max)
     @assert(view.waveform.samples.count == 4_096)
+    @assert(view.waveform.readyCount == view.waveform.samples.count)
     @assert(view.waveform.duration == view.duration)
 }

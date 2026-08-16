@@ -43,6 +43,7 @@ internal struct BinaryPluginView
         list:         *ListCtrl
     }
 
+    previewBand: #null *StackLayoutCtrl
     doc:      BinaryDocument
     rowLines: Array'(#null *ListLine)     // Line created for each report row, in row order.
     details:  String
@@ -240,6 +241,56 @@ internal impl BinaryPluginView
         .list.setColumnWidth(cast(u32) BinaryColumn.Detail, detail)
         .list.computeLayout()
     }
+
+    mtd fillPreviews()
+    {
+        if .doc.previews.isEmpty() do
+            return
+
+        let band = StackLayoutCtrl.create(me, .HorizontalCenter, {0, 0, 0, 152})
+        band.dockStyle       = .Top
+        band.backgroundStyle = .View
+        band.padding         = {12, 10, 12, 8}
+        band.spacing         = 8
+        .previewBand         = band
+
+        for preview in .doc.previews
+        {
+            let tile = StackLayoutCtrl.create(band, .Top, {0, 0, 160, 132})
+            tile.spacing = 4
+            with let image = ImageView.create(tile, {0, 0, 160, 104})
+            {
+                .backgroundStyle = .View
+                .setImage(preview.image)
+            }
+            with let label = Label.create(tile, preview.label.toString(), {0, 0, 160, 24}, null, .SecondaryText | .Ellipsis)
+            {
+                .setTextAlignment(.Center, .Center)
+            }
+        }
+    }
+
+    // Keeps every recognized image in one restrained row. Large icon families get smaller cards
+    // instead of forcing a second permanent toolbar-sized band into the document.
+    mtd layoutPreviews()
+    {
+        if !.previewBand do
+            return
+        let band  = .previewBand!
+        let count = band.children.count
+        if !count do
+            return
+        let room  = Math.max(band.paddedClientRect().width - cast(f32) (count - 1) * band.spacing, 1)
+        // Leave one logical pixel per card for device-pixel rounding at fractional DPI scales.
+        let width = Math.min(160.0, (room - cast(f32) count) / cast(f32) count)
+        for child in band.children
+        {
+            child.resize(width, 132)
+            for item in child.children do
+                item.resize(width, item.position.height)
+        }
+        band.computeLayout()
+    }
 }
 
 internal impl IActionUI for ActionBinary
@@ -310,6 +361,7 @@ internal impl IWnd for BinaryPluginView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
+        .layoutPreviews()
         .layoutColumns()
     }
 
@@ -391,8 +443,10 @@ internal impl BinaryPluginView
         }
 
         result.fillList()
+        result.fillPreviews()
         result.details = result.doc.report.summary
         result.applyLayout()
+        result.layoutPreviews()
         result.layoutColumns()
         result.setInitialFocus(result.list)
         return result

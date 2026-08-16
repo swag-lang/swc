@@ -1,6 +1,6 @@
 #global internal
 
-using Core
+using Core, Pixel
 
 // Bytes an entropy estimate is taken over. Byte disorder is a property of the whole file, and a
 // quarter of a megabyte says as much about it as ten do.
@@ -20,6 +20,14 @@ enum BinaryFormatKind
     Riff           // A RIFF container such as WAV, AVI, or WebP.
     Font           // An sfnt font or a collection of them.
     Scc            // A Swag Chunk Container.
+    Icon           // A Windows icon containing one or more image resources.
+}
+
+// One image understood inside a binary container, with the short label shown under it.
+struct BinaryPreview
+{
+    image: Image
+    label: String
 }
 
 // One opened file and everything that could be extracted from it.
@@ -27,6 +35,7 @@ struct BinaryDocument
 {
     image:  BinaryImage
     report: BinaryReport
+    previews: Array'BinaryPreview
     kind:   BinaryFormatKind
     opened: bool
 }
@@ -40,6 +49,7 @@ impl BinaryDocument
     mtd open(fileName: string)->bool
     {
         .report.rows.clear()
+        .previews.clear()
         .report.level = 0
         .opened       = .image.load(fileName)
         if !.opened do
@@ -63,8 +73,12 @@ impl BinaryDocument
         case .Riff:       reportRiffContainer(&.image, &.report)
         case .Font:       reportSfntFont(&.image, &.report)
         case .Scc:        reportSccContainer(&.image, &.report, fileName)
+        case .Icon:       reportIconContainer(&.image, &.report, &.previews)
         case .Unknown:    reportUnknownBinary(&.image, &.report)
         }
+
+        if .kind == .Scc do
+            loadSccImagePreviews(fileName, &.previews)
 
         Debug.assert(.report.level == 0, "a format reader left a group open")
         .prependFileSummary()
@@ -186,6 +200,8 @@ impl BinaryDocument
 // this view by default.
 func detectBinaryFormat(image: *BinaryImage)->BinaryFormatKind
 {
+    if isIconContainer(image) do
+        return .Icon
     if isSccContainer(image) do
         return .Scc
     if isArchive(image) do
@@ -255,6 +271,7 @@ func binarySignatureName(image: *BinaryImage)->string
                         BinarySignature{0, "Rar!", "RAR archive"},
                         BinarySignature{0, "MSCF", "Windows cabinet"},
                         BinarySignature{0, "\xD0\xCF\x11\xE0", "OLE compound file"},
+                        BinarySignature{257, "ustar", "TAR archive"},
                         BinarySignature{0, "%PDF-", "PDF document"},
                         BinarySignature{0, "%!PS", "PostScript program"},
                         BinarySignature{0, "\x89PNG\r\n\x1A\n", "PNG image"},
@@ -266,6 +283,7 @@ func binarySignatureName(image: *BinaryImage)->string
                         BinarySignature{0, "OggS", "Ogg stream"},
                         BinarySignature{0, "fLaC", "FLAC sound"},
                         BinarySignature{0, "ID3", "MP3 sound"},
+                        BinarySignature{0, "\x1A\x45\xDF\xA3", "Matroska media container"},
                         BinarySignature{4, "ftyp", "ISO media container"},
                         BinarySignature{0, "\xCA\xFE\xBA\xBE", "Java class"},
                         BinarySignature{0, "dex\n", "Dalvik executable"},

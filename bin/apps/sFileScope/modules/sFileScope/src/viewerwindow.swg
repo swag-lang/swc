@@ -4,6 +4,13 @@ const ViewerBarHeight = 52.0
 const ViewerInfoHeight = 44.0
 const ViewerGlyphSize = 20.0
 
+struct ViewerInstance
+{
+    view:     #null *Wnd
+    commands: #null *Wnd
+    details:  String
+}
+
 struct ViewerWindow
 {
     using wnd: Wnd
@@ -15,7 +22,6 @@ struct ViewerWindow
         nextButton:     *IconButton
         openButton:     *IconButton
         viewerCombo:    *ComboBox
-        titleLabel:     *Label
         infoBar:        *Wnd
         infoTypeLabel:  *Label
         infoNameLabel:  *Label
@@ -28,6 +34,7 @@ struct ViewerWindow
     currentView:     #null *Wnd
     currentCommands: #null *Wnd
     choices:         Array'ViewerChoice
+    instances:       Array'ViewerInstance
     activeChoiceIndex = Swag.U32.Max
     startupTimer:    #null *Timer
     pendingFile:     String
@@ -120,6 +127,18 @@ impl ViewerWindow
             .padding         = {16, 8, 16, 8}
         }
 
+        with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle = .Left
+            .margin.z  = 16
+            .toolTip   = appStrings().ui_Open
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.chooseFile()
+            }
+        }
+
         with result.previousButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
@@ -135,25 +154,12 @@ impl ViewerWindow
         with result.nextButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
-            .margin.z  = 8
             .toolTip   = appStrings().ui_Next
             .enable(false)
             .sigPressed += func|window = result|(button)
             {
                 discard button
                 window.navigate(1)
-            }
-        }
-
-        with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 16
-            .toolTip    = appStrings().ui_Open
-            .sigPressed += func|window = result|(button)
-            {
-                discard button
-                window.chooseFile()
             }
         }
 
@@ -170,18 +176,12 @@ impl ViewerWindow
             }
         }
 
-        with result.titleLabel = Label.create(result.commandBar, "sFileScope")
-        {
-            .dockStyle = .Center
-            .setTextAlignment(.Center, .Center)
-        }
-
         // File identity belongs to a quieter, persistent band of its own. Keeping it outside the
         // action bar prevents metadata from competing visually with navigation and plugin tools.
         with result.infoBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerInfoHeight})
         {
-            .dockStyle       = .Top
-            .backgroundStyle = .DialogBar
+            .dockStyle       = .Bottom
+            .backgroundStyle = .Window
             .padding         = {18, 6, 18, 6}
         }
 
@@ -241,17 +241,7 @@ impl ViewerWindow
 
     mtd showEmpty(message: string)
     {
-        if .currentCommands
-        {
-            .currentCommands.destroy()
-            .currentCommands = null
-        }
-
-        if .currentView
-        {
-            .currentView.destroy()
-            .currentView = null
-        }
+        .destroyInstances()
 
         .emptyLabel.setText(message)
         .emptyLabel.show()
@@ -262,8 +252,6 @@ impl ViewerWindow
         .activeChoiceIndex = Swag.U32.Max
         .siblings.clear()
         .siblingsDirty = true
-        .titleLabel.setText("sFileScope")
-        .titleLabel.toolTip = ""
         .infoTypeLabel.setText("NO FILE")
         .infoNameLabel.setText("")
         .infoNameLabel.toolTip = ""
@@ -274,15 +262,45 @@ impl ViewerWindow
         .applyLayout()
     }
 
+    mtd destroyInstances()
+    {
+        for &instance in .instances
+        {
+            instance.commands?.destroy()
+            instance.view?.destroy()
+        }
+
+        .instances.clear()
+        .currentCommands = null
+        .currentView     = null
+    }
+
     mtd activateChoice(index: u32)->bool
     {
         if index >= .choices.count do
             return false
 
+        let choice   = &.choices[index]
+        let instance = &.instances[index]
+        if instance.view
+        {
+            .currentCommands?.hide()
+            .currentView?.hide()
+            .currentView     = instance.view
+            .currentCommands = instance.commands
+            .currentView!.show()
+            .currentCommands?.show()
+            .activeChoiceIndex = index
+            .viewerCombo.setSelectedIndex(index, notify: false)
+            .updateFileInfo(choice.name.toString(), instance.details.toString())
+            .applyLayout()
+            .invalidate()
+            return true
+        }
+
         var nextCommands: #null *Wnd
         var nextView:     #null *Wnd
         var nextDetails:  String
-        let choice = &.choices[index]
         if choice.kind == .BasicText
         {
             let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
@@ -302,18 +320,19 @@ impl ViewerWindow
             }
         }
 
-        if .currentCommands do
-            .currentCommands.destroy()
-        if .currentView do
-            .currentView.destroy()
+        .currentCommands?.hide()
+        .currentView?.hide()
         .currentView            = nextView
         .currentCommands        = nextCommands
         .activeChoiceIndex      = index
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .Right
+        instance.view     = .currentView
+        instance.commands = .currentCommands
+        instance.details  = #move nextDetails
         .viewerCombo.setSelectedIndex(index, notify: false)
-        .updateFileInfo(choice.name.toString(), nextDetails.toString())
+        .updateFileInfo(choice.name.toString(), instance.details.toString())
         .applyLayout()
         .invalidate()
         return true
@@ -353,11 +372,13 @@ impl ViewerWindow
             return
         }
 
+        .destroyInstances()
         var absolute = catch Path.absolute(fileName) as pathError
         if pathError != null do
             absolute = fileName
         .currentFile = #move absolute
         .choices     = .index.choices(.currentFile.toString())
+        .instances.resize(.choices.count)
         .viewerCombo.clear()
         for choice in .choices do
             .viewerCombo.addItem(choice.name.toString())
@@ -383,11 +404,6 @@ impl ViewerWindow
         .emptyLabel.hide()
 
         .siblingsDirty = true
-        let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
-        .surface!.setTitle(Format.toString("% — sFileScope", baseName))
-
-        .titleLabel.setText("sFileScope")
-        .titleLabel.toolTip = .currentFile
 
         .previousButton.enable(true)
         .nextButton.enable(true)

@@ -71,11 +71,13 @@ using Swag, Core
     host.setup(720, 360)
     defer host.shutdown()
     let view = MarkdownView.createFile(&host.root, fileName)
+    @assert(view.loadTimer != null)
     view.resize(720, 360)
     view.applyLayout()
-    view.streamStep()
+    host.fireTimer(view.loadTimer)
 
     @assert(view.isLoading())
+    @assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
     let before = view.scroll.scrollPosition()
     var end = KeyEvent{kind: .Pressed, key: .End}
     @assert(view.handleDocumentKey(&end))

@@ -250,6 +250,8 @@ private impl MarkdownView
     {
         if .pendingIndex >= .pendingBlocks.count and .sourceDone and .sourceCarry.isEmpty() do
             return false
+        if .blocks.isEmpty() do
+            return true
         if .jumpToEnd or .hasPendingTarget do
             return true
         let viewport = .scroll.paddedClientRect()

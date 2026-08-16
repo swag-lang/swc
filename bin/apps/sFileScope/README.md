@@ -17,7 +17,8 @@ hex|Hexadecimal|plugin.hex.dll|*
 
 Several lines may claim the same extension. The combo lists format-specific plugins first,
 `Basic text` next, then every plugin registered for `*`. The first choice is the default. Changing
-the combo replaces only the current view; it does not reopen the window or reload unrelated DLLs.
+the combo reuses a view already opened for the current file or creates it on demand; it does not
+reopen the window or reload unrelated DLLs.
 
 Basic text belongs to the host rather than a plugin. It is available for every file, displays
 valid UTF-8 as read-only fixed-width text, and is the source view for Markdown and HTML. It reads
@@ -58,8 +59,8 @@ streaming and keeps its position as that estimate is refined. Forward keyboard n
 real content instead of chasing that estimate; End preserves the current viewport while loading to
 EOF and jumps once to the real document end.
 
-The host keeps file type, name, size, and plugin-specific basic statistics in a persistent information
-bar whose quieter surface is distinct from the action bar. It navigates every file in the current
+The host keeps file type, name, size, and plugin-specific basic statistics in a persistent bottom
+bar whose quieter surface is distinct from the document view. It navigates every file in the current
 folder with Left/Right, reloads with F5, opens with
 Ctrl+O, and accepts one file dropped anywhere on the surface. Run
 `sFileScope.exe --register-file-types` from an installer or explicit setup action to register the

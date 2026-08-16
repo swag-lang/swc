@@ -85,7 +85,11 @@ impl Library
 
     func enumerateTrash()->Array'File.FileInfo fail
     {
-        return try Directory.enumerateFiles(getTrashFolder(), ".scapture")
+        var result: retval
+        let files = try Directory.enumerateFiles(getTrashFolder())
+        for file in files where Capture.isFile(file.fullname) do
+            result.add(file)
+        return result
     }
 
     // Lists every item the library understands without pretending an ordinary image is a
@@ -96,8 +100,7 @@ impl Library
         let files = try Directory.enumerateFiles(folder)
         for fi in files
         {
-            let ext = Path.lowercaseExtension(fi.fullname)
-            if ext == ".scapture" or Image.canLoad(fi.fullname) do
+            if Capture.isFile(fi.fullname) or Image.canLoad(fi.fullname) do
                 result.add(fi)
         }
 
@@ -162,7 +165,8 @@ impl Library
     func newFileName()->String
     {
         let t        = Time.DateTime.now()
-        let fileName = Format.toString("%_%_%_%_%_%_%.scapture", t.month, t.day, t.year, t.hour, t.minute, t.second, Guid64.random().toString())
+        var fileName = Format.toString("%_%_%_%_%_%_%", t.month, t.day, t.year, t.hour, t.minute, t.second, Guid64.random().toString())
+        fileName += CaptureFileExtension
         return Path.combine(getFolder(), fileName.toString())
     }
 
@@ -181,7 +185,7 @@ impl Library
         // An observer can destroy the object that supplied 'name' (the recent strip does
         // exactly that). Keep an owned path alive until every observer has returned.
         let stableName = String.from(name)
-        if Path.lowercaseExtension(stableName) != ".scapture" do
+        if !Capture.isFile(stableName) do
             return
 
         for fi, idx in .files

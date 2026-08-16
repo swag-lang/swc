@@ -110,9 +110,9 @@ impl ViewerPluginIndex
 
     // Returns every viewer available for `fileName` in selection order.
     //
-    // Format-specific plugins come first, followed by the host's basic text viewer and plugins
-    // registered for `*`. This makes the specialized renderer the default without hiding the
-    // source or hexadecimal alternatives.
+    // Format-specific plugins come first, followed by the host's basic text viewer when the file
+    // is supported UTF-8 content, then plugins registered for `*`. This makes the specialized
+    // renderer the default without offering a text surface for arbitrary binary data.
     mtd const choices(fileName: string)->Array'ViewerChoice
     {
         var result: retval
@@ -122,7 +122,8 @@ impl ViewerPluginIndex
         for spec, index in .specs where .matches(spec, extension.toString(), wildcard: false) do
             result.add(ViewerChoice{.Plugin, index, spec.displayName})
 
-        result.add(ViewerChoice{.BasicText, Swag.U64.Max, "Basic text"})
+        if BasicTextView.supports(fileName) do
+            result.add(ViewerChoice{.BasicText, Swag.U64.Max, "Basic text"})
 
         for spec, index in .specs where .matches(spec, extension.toString(), wildcard: true) do
             result.add(ViewerChoice{.Plugin, index, spec.displayName})

@@ -39,9 +39,8 @@ struct HexInspectorView
         orderButton: *PushButton
     }
 
-    lines:     Array'HexInspectorLine
-    bytes:     Array'u8
-    bigEndian: bool
+    lines: Array'HexInspectorLine
+    bytes: Array'u8
 }
 
 impl HexInspectorView
@@ -52,7 +51,7 @@ impl HexInspectorView
         var raw = 0'u64
         for index in size
         {
-            let position = .bigEndian ? index : size - 1 - index
+            let position = .grid.bigEndian ? index : size - 1 - index
             raw = (raw << 8) | cast(u64) .bytes[position]
         }
 
@@ -204,9 +203,8 @@ impl HexInspectorView
 
     mtd toggleByteOrder()
     {
-        .bigEndian = !.bigEndian
-        .orderButton.setText(.bigEndian ? "Big endian" : "Little endian")
-        .refresh()
+        .grid.setBigEndian(!.grid.bigEndian)
+        .orderButton.setText(.grid.bigEndian ? "Big endian" : "Little endian")
     }
 }
 

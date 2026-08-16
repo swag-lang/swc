@@ -235,7 +235,7 @@ impl IWnd for SurfaceWnd
             // never grows with the bar it sits in.
             var icon = .icon
             if !icon.isValid() do
-                icon = srfn.app.appIconAt(theme.metrics.wnd_CaptionIconSize)
+                icon = srfn.app.appIconAt(theme.metrics.wnd_CaptionIconSize, colors.wnd_CaptionBk)
             if icon.isValid()
             {
                 let iconColor = icon.color.a ? icon.color : captionTextColor

@@ -351,7 +351,7 @@ impl ViewerWindow
         options.mode              = .SelectFile
         options.title             = appStrings().dlg_TitleOpen
         options.confirmButtonText = appStrings().dlg_ButtonOpen
-        options.filters.add({appStrings().dlg_AllFiles, "*"})
+        options.filters.add({appStrings().dlg_AllFiles, ""})
 
         let dialog = FileDlg.create(.surface!, options)
         if dialog.doModal() == Dialog.BtnOk do
@@ -644,6 +644,7 @@ impl ViewerWindow
         var selected = 0'u32
         if !.activateChoice(selected)
         {
+            selected = Swag.U32.Max
             for choice, index in .choices where choice.kind == .BasicText
             {
                 discard choice
@@ -651,7 +652,7 @@ impl ViewerWindow
                 break
             }
 
-            if !.activateChoice(selected)
+            if selected == Swag.U32.Max or !.activateChoice(selected)
             {
                 .showEmpty(appStrings().ui_Unsupported)
                 return

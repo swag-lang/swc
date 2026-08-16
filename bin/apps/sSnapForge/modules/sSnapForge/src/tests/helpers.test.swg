@@ -203,7 +203,7 @@ func testDeleteForm(itf: IForm)
 
 func testTempCapturePath()->String
 {
-    return Gui.Testing.tempFilePath("snapforge-", ".scapture")
+    return Gui.Testing.tempFilePath("snapforge-", CaptureFileExtension)
 }
 
 func testPrimeGizmo(form: IForm, z: f32 = 1)

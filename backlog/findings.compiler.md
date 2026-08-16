@@ -156,3 +156,46 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: embedding `#move` in an aggregate call argument or one branch of a conditional expression passes semantic analysis, then the DevMode compiler asserts while preparing the materialized value
 - Evidence: `blocks.add(MarkdownBlock{kind, #move text})` and `var value = condition ? String.from("rule") : #move block.text` both assert at `CodeGenCallHelpers.Call.cpp:1062` because `argConstView.cstRef().isValid()` does not hold; assigning the moved field through an ordinary statement before the call compiles in both cases
 - Next step: reduce both patterns into `bin/unittests/native`, then trace why their moved subexpressions reach `appendPreparedFixedArg` without a valid constant reference and make the original expressions compile without changing ownership
+
+## Artifact reuse
+
+### F-146 — An `.Export` module does not publish its namespace to a test build
+
+- Area: compiler
+- Found while: validating the second visual-chart iteration; the failure is unrelated to it and
+  reproduces on a pristine checkout
+- Observation: `swc tools/apps.swgs test sFileScope` stops on
+  `error: unknown symbol 'FileScopePluginApi'` at
+  [plugin.binary.swg](../bin/apps/sFileScope/modules/plugin.binary/src/plugin.binary.swg):3, where
+  the plugin does `using ... FileScopePluginApi`. That namespace is what
+  [plugin.api](../bin/apps/sFileScope/modules/plugin.api/module.swg) declares, and that module is
+  built as `.Export`. `swc tools/apps.swgs build sFileScope` builds all nine modules and links
+  `sFileScope.exe` without complaint, so only the test path is affected. No sFileScope module can
+  be tested until it is fixed.
+- Evidence: reproduced on `master` (`f2324a003`) in a worktree with no working-tree change, and in
+  the theme branch after `--rebuild` — `plugin.api` reports `246 files • 0 tests` and succeeds,
+  then the very next module fails to see its namespace. The only artifact under
+  `.output/plugin.api/export/<cfg>/x86_64/` is a `.swc-artifacts.test` marker and one
+  `plugin_api-generated-source-5.swgsrc` holding an inlined `Core.String.IHash32.compute` body;
+  no interface for the module's own public surface is written there.
+- Next step: compare what the export step writes for `plugin.api` under `build` and under `test` —
+  the build path is what the working `sFileScope.exe` link consumes. Decide whether a test build
+  should produce the same export artifact, or whether an `.Export` dependency should be consumed
+  from the build artifact when the dependent is being tested.
+
+### F-147 — Lazy standard roots can try to replace a DLL already loaded by the compiler
+
+- Area: compiler
+- Found while: reducing concurrent imported-runtime-hook initialization in the workspace suite
+- Observation: a workspace module that imports `audio`, `core`, and `gui` as separate `swag@std`
+  roots builds the first roots, loads `core.dll` for compile-time evaluation, then the lazy `gui`
+  dependency build tries to synchronize another `core.dll` over that loaded file and stops.
+- Evidence: `swc tools/unittests.swgs dm workspace -bc debug` reached the temporary
+  `sandbox_consumer` fixture, built `std [audio]` and `std [core]`, then stopped while building
+  `std [gui]` with `cannot synchronize workspace dependency
+  'bin\\std\\.dep\\core\\shared-library\\debug\\x86_64\\core.dll': access is denied` and the note
+  `the file is in use by this compiler process`. Removing the third standard root removes the
+  failure.
+- Next step: trace when lazy standard-root discovery schedules and loads each dependency, then
+  resolve the complete standard dependency union before any root can load a DLL that a later root
+  still needs to publish.

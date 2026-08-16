@@ -118,9 +118,9 @@ impl IAllocator for LibraryRejectAllocator
     let view = lib.view!
     let wnd  = cast(*Wnd) lib
 
-    let old   = testAddLibraryItem(view, "old.scapture", 10, 1)
-    let big   = testAddLibraryItem(view, "big-linked.scapture", 30, 3, "big.png")
-    let dirty = testAddLibraryItem(view, "dirty-linked.scapture", 20, 2, "dirty.png", linkedUpToDate: false)
+    let old   = testAddLibraryItem(view, "old.scc", 10, 1)
+    let big   = testAddLibraryItem(view, "big-linked.scc", 30, 3, "big.png")
+    let dirty = testAddLibraryItem(view, "dirty-linked.scc", 20, 2, "dirty.png", linkedUpToDate: false)
 
     view.filterDay = 2
     view.filter()
@@ -313,20 +313,20 @@ impl IAllocator for LibraryRejectAllocator
     let lib  = f.setupLibraryWnd()
     let view = lib.view!
 
-    discard testAddLibraryItem(view, "alpha.scapture", 10, 1, title: "Login screen")
-    discard testAddLibraryItem(view, "beta.scapture", 10, 2, "report.png", title: "Sales chart")
-    discard testAddLibraryItem(view, "gamma.scapture", 10, 3, title: "Login error")
+    discard testAddLibraryItem(view, "alpha.scc", 10, 1, title: "Login screen")
+    discard testAddLibraryItem(view, "beta.scc", 10, 2, "report.png", title: "Sales chart")
+    discard testAddLibraryItem(view, "gamma.scc", 10, 3, title: "Login error")
 
     lib.setSearch("login")
     @assert(view.items.count == 2)
 
     lib.setSearch("REPORT")
     @assert(view.items.count == 1)
-    @assert(view.items[0]!.fi.fullname == "beta.scapture")
+    @assert(view.items[0]!.fi.fullname == "beta.scc")
 
     lib.setSearch("gamma")
     @assert(view.items.count == 1)
-    @assert(view.items[0]!.fi.fullname == "gamma.scapture")
+    @assert(view.items[0]!.fi.fullname == "gamma.scc")
 
     lib.setSearch("nomatch")
     @assert(view.items.count == 0)
@@ -358,15 +358,15 @@ impl IAllocator for LibraryRejectAllocator
     g_Library.files.clear()
 
     var fi: File.FileInfo
-    fi.fullname            = "libfill_a.scapture"
+    fi.fullname            = "libfill_a.scc"
     fi.lastWriteTime.year  = 2024
     fi.lastWriteTime.month = 5
     fi.lastWriteTime.day   = 11
     g_Library.files.add(fi)
-    fi.fullname          = "libfill_b.scapture"
+    fi.fullname          = "libfill_b.scc"
     fi.lastWriteTime.day = 10
     g_Library.files.add(fi)
-    fi.fullname            = "libfill_c.scapture"
+    fi.fullname            = "libfill_c.scc"
     fi.lastWriteTime.year  = 2023
     fi.lastWriteTime.month = 1
     fi.lastWriteTime.day   = 2
@@ -398,7 +398,7 @@ impl IAllocator for LibraryRejectAllocator
     let lib  = f.setupLibraryWnd()
     let view = lib.view
 
-    let chrome = testAddLibraryItem(view, "chrome.scapture", 30, 2, title: "Documentation")
+    let chrome = testAddLibraryItem(view, "chrome.scc", 30, 2, title: "Documentation")
     chrome.capture!.sourceKind        = .Screen
     chrome.capture!.sourceApplication = "chrome"
     chrome.capture!.sourceWindowTitle = "Swag language reference"
@@ -408,7 +408,7 @@ impl IAllocator for LibraryRejectAllocator
     chrome.width             = 1920
     chrome.height            = 1080
 
-    let slack = testAddLibraryItem(view, "slack.scapture", 20, 3, title: "Team")
+    let slack = testAddLibraryItem(view, "slack.scc", 20, 3, title: "Team")
     slack.capture!.sourceKind        = .Screen
     slack.capture!.sourceApplication = "slack"
     slack.capture!.sourceWindowTitle = "Engineering"
@@ -417,7 +417,7 @@ impl IAllocator for LibraryRejectAllocator
     slack.width           = 800
     slack.height          = 600
 
-    let imported = testAddLibraryItem(view, "imported.scapture", 10, 1, "photo.png", title: "Photo")
+    let imported = testAddLibraryItem(view, "imported.scc", 10, 1, "photo.png", title: "Photo")
     imported.capture!.sourceKind = .ImageFile
     imported.width               = 400
     imported.height              = 300
@@ -535,7 +535,7 @@ impl IAllocator for LibraryRejectAllocator
     let root = Gui.Testing.tempFilePath("snapforge-library-root-", "")
     expect Directory.create(root)
 
-    let capturePath = Path.combine(root, "sample.scapture")
+    let capturePath = Path.combine(root, "sample.scc")
     let imagePath   = Path.combine(root, "sample.png")
     defer
     {
@@ -553,6 +553,7 @@ impl IAllocator for LibraryRejectAllocator
     capture.file                      = capturePath
     capture.changed                   = true
     expect capture.save()
+    @assert(Capture.isFile(capturePath))
     Memory.delete(capture)
 
     var image = Gui.Testing.indexedImage(10, 7)
@@ -571,6 +572,7 @@ impl IAllocator for LibraryRejectAllocator
     let generatedDirectory = Path.directoryName(generatedFile)
     @assert(generatedDirectory != null)
     @assert(Path.equals(generatedDirectory!, root))
+    @assert(Path.lowercaseExtension(generatedFile) == CaptureFileExtension)
 }
 
 // The library chrome keeps its two fixed edges under every mode transition: the date/filter
@@ -611,11 +613,11 @@ impl IAllocator for LibraryRejectAllocator
     @assert(lib.sideBar.isLocallyVisible())
     @assert(lib.view.scrollWnd.position.x == SideBarWidth)
 
-    let chrome = testAddLibraryItem(lib.view, "chrome.scapture", 10, 1)
+    let chrome = testAddLibraryItem(lib.view, "chrome.scc", 10, 1)
     chrome.capture!.sourceApplication = "Chrome"
     chrome.capture!.sourceExecutable  = Env.executablePath()
     chrome.capture!.tags.add("docs")
-    let slack = testAddLibraryItem(lib.view, "slack.scapture", 10, 2)
+    let slack = testAddLibraryItem(lib.view, "slack.scc", 10, 2)
     slack.capture!.sourceApplication = "Slack"
     slack.capture!.tags.add("work")
     lib.refreshAutomaticFilters()

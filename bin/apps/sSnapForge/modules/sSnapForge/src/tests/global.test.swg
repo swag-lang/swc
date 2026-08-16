@@ -127,7 +127,11 @@ func testSetupGlobalMain(main: *MainWnd)
     f.gui.focus(f.main.libraryBtn)
     f.gui.keyPress(Input.Key.Space)
     @assert(f.main.libraryMode)
-    @assert(@countof(f.main.libraryBtn.style.styleSheetColors) != 0)
+
+    // Filled, Library wears the theme's alternate tone: Capture is what the surface is for and
+    // keeps the signature, and the page the reader can leave to is the other thing a theme owns
+    // a second color for.
+    @assert(f.main.libraryBtn.form == .Alternate)
     @assert(!f.main.editWnd.isLocallyVisible())
     @assert(f.main.libWnd.isLocallyVisible())
     @assert(!f.main.commandReadouts.isLocallyVisible())
@@ -140,7 +144,7 @@ func testSetupGlobalMain(main: *MainWnd)
 
     f.gui.keyPress(Input.Key.Space)
     @assert(!f.main.libraryMode)
-    @assert(@countof(f.main.libraryBtn.style.styleSheetColors) == 0)
+    @assert(f.main.libraryBtn.form == .Normal)
     @assert(f.main.editWnd.isLocallyVisible())
     @assert(!f.main.libWnd.isLocallyVisible())
     @assert(f.main.commandReadouts.isLocallyVisible())

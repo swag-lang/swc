@@ -47,10 +47,12 @@ var g_App: Application
 
     // The state file stays in the default folder: it contains the configured library
     // root, so placing it inside that root would make the choice impossible to find.
-    let path       = Path.combine(Library.getDefaultFolder(), "sSnapForge.cfg")
+    let path       = Path.combine(Library.getDefaultFolder(), "sSnapForge.scc")
+    let previous   = Path.combine(Library.getDefaultFolder(), "sSnapForge.cfg")
     let legacyPath = Path.combine(Env.getSpecialDirectory(.UserDocuments), "sCapture", "sCapture.cfg")
-    if !File.exists(path) and File.exists(legacyPath) do
-        discard catch File.duplicate(path, legacyPath)
+    let fallback   = File.exists(previous) ? previous : legacyPath
+    if !File.exists(path) and File.exists(fallback) do
+        discard catch File.duplicate(path, fallback)
     g_App.setStatePath(path)
 
     let appIcon = expect Image.decode(".png", AppIcon)
@@ -61,69 +63,6 @@ var g_App: Application
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
     let mainWnd = MainWnd.create(surface.wnd)
-
-    if Env.hasArgument("--inspect-scc-migration")
-    {
-        let captures = try Directory.enumerateFiles(Library.getFolder(), ".scapture", recurse: true)
-        var totalSize: u64
-        for capture in captures do
-            totalSize += capture.size
-        Console.print("SCC migration source: ", Library.getFolder(), "\nCaptures: ", captures.count, "\nCapture bytes: ", totalSize, "\nState: ", path, "\n")
-
-        var readable, unreadable: u64
-        for captureFile in captures
-        {
-            let preview: #null *Capture = catch Capture.load(captureFile.fullname, preview: true) as err
-            if err != null
-            {
-                unreadable += 1
-                if unreadable == 1 do
-                    Console.print("First unreadable preview: ", captureFile.fullname, "\n", err, "\n")
-            }
-            else
-            {
-                readable += 1
-                Memory.delete(preview)
-            }
-        }
-
-        Console.print("SCC previews: readable=", readable, ", unreadable=", unreadable, "\n")
-        mainWnd.firstShow = true
-        return
-    }
-
-    // The migration command remains headless. MainWnd has already restored the configured
-    // library root, so the backup always covers the library the user actually selected.
-    let migrationBackup = CaptureMigration.requestedBackup()
-    if !migrationBackup.isEmpty()
-    {
-        let report = try CaptureMigration.backupAndMigrateIsolated(Library.getFolder(), migrationBackup, path)
-        try g_App.saveState()
-        Console.print("SCC migration batch complete: ", report.backedUpFiles, " files backed up, ", report.migrated, " captures migrated, ", report.alreadyScc, " already SCC, ", report.failed, " failed, ", report.remaining, " remaining.\n")
-        return
-    }
-
-    if Env.hasArgument("--resume-scc-migration")
-    {
-        let report = try CaptureMigration.migrateBatch(Library.getFolder())
-        try g_App.saveState()
-        Console.print("SCC migration batch complete: ", report.migrated, " captures migrated, ", report.alreadyScc, " already SCC, ", report.failed, " failed, ", report.remaining, " remaining.\n")
-        return
-    }
-
-    let migrationFile = CaptureMigration.requestedFile()
-    if !migrationFile.isEmpty()
-    {
-        try CaptureMigration.migrateFile(Library.getFolder(), migrationFile)
-        mainWnd.firstShow = true
-        return
-    }
-
-    if Env.hasArgument("--finalize-scc-migration")
-    {
-        try g_App.saveState()
-        return
-    }
 
     if !Env.hasArgument("--hide") do
         surface.show()

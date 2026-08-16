@@ -14,7 +14,7 @@ func webpMultiplyHigh(value, coefficient: s32)->s32
 
 func assertWebpPixelFromTop(image: Image, x, y, r, g, b, a: u8)
 {
-    let color = image.pixelColor(x, image.height - y - 1)
+    let color = image.pixelColor(x, y)
     @assert(color.r == r)
     @assert(color.g == g)
     @assert(color.b == b)
@@ -62,7 +62,9 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     {
         for x in width
         {
-            let sourceY   = height - y - 1
+            // Both decoded images use the module's bottom-up row convention, so the reference
+            // planes are read at the same internal row as the result.
+            let sourceY   = y
             let luma      = cast(s32) golden.pixelColor(x, sourceY).r
             let cb        = cast(s32) golden.pixelColor(x / 2, height + sourceY / 2).r
             let cr        = cast(s32) golden.pixelColor(halfWidth + x / 2, height + sourceY / 2).r

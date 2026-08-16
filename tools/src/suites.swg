@@ -183,6 +183,12 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if sandboxCode != 0 do
         return sandboxCode
 
+    // The forced standard-library rebuild deliberately invalidates the executable built above.
+    // Refresh that normal artifact before checking that test-mode publications leave it reusable.
+    let refreshedBuildCode = try context.runCompiler(built)
+    if refreshedBuildCode != 0 do
+        return refreshedBuildCode
+
     var dynamicLibraryBuild = workspaceModuleCommand("build", workspace.toString(), "runtime_context_dynamic_dll", buildCfg)
     options.appendExtra(&dynamicLibraryBuild)
 

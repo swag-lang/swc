@@ -1018,6 +1018,7 @@ indent-style = spaces
 </span></div>
 <h3 id="_002_008_sigils_swg_Choosing_the_Narrowest_Scope">Choosing the Narrowest Scope</h3>
 <p><span class="code-inline">#wrap</span> opts one arithmetic operation into wrapping behavior. Broader runtime guard policy uses <span class="code-inline">Swag.Safety</span> on a scope, and module defaults live in <span class="code-inline">BuildCfg</span>:</p>
+<p>Left shift is already truncating: bits shifted out of the left operand are discarded without an overflow panic. <span class="code-inline">#wrap</span> remains accepted on <span class="code-inline">&lt;&lt;</span> and <span class="code-inline">&lt;&lt;=</span> for compatibility, but it does not change their result or count rules.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
 {
     <span class="SCmt">// Overflow guards are disabled only in this lexical scope.</span>
@@ -1907,6 +1908,23 @@ indent-style = spaces
     x = x | <span class="SKwd">cast</span>(<span class="STpe">s32</span>) <span class="SNum">0b0001</span>     <span class="SCmt">// OR</span>
     x = x &lt;&lt; <span class="SNum">1</span>                   <span class="SCmt">// Shift left</span>
     x = x &gt;&gt; <span class="SNum">1</span>                   <span class="SCmt">// Shift right</span>
+}
+
+</span></div>
+<h4 id="_003_006_operators_swg_Shift_Semantics">Shift Semantics</h4>
+<p>The result of 'value &lt;&lt; count' or 'value &gt;&gt; count' has exactly the type and bit width of <span class="code-inline">value</span>. The count is an independent integer operand: it keeps its own width and signedness and is never narrowed to the value's type.</p>
+<p>A left shift discards bits that leave the value's width. This truncation is the ordinary meaning of <span class="code-inline">&lt;&lt;</span> and is not an overflow, even when overflow safety is enabled. A right shift fills with zero for an unsigned value and copies the sign bit for a signed value.</p>
+<p>Counts greater than or equal to the value's bit width are defined. Both left shift and unsigned right shift produce zero. Signed right shift produces zero for a non-negative value and <span class="code-inline">-1</span> for a negative value.</p>
+<p>A negative count is invalid. A constant negative count is diagnosed at compile time; a runtime signed count panics when overflow safety is enabled. <span class="code-inline">#wrap</span> is accepted on a shift for source compatibility, but it does not change these rules because ordinary left shift already truncates discarded bits.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> count: <span class="STpe">u64</span> = <span class="SNum">256</span>
+
+    <span class="SItr">@assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &lt;&lt; <span class="SNum">1</span> == <span class="SNum">0x02</span>'<span class="STpe">u8</span>)
+    <span class="SItr">@assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &lt;&lt; count == <span class="SNum">0</span>'<span class="STpe">u8</span>)
+    <span class="SItr">@assert</span>(<span class="SNum">0x81</span>'<span class="STpe">u8</span> &gt;&gt; count == <span class="SNum">0</span>'<span class="STpe">u8</span>)
+    <span class="SItr">@assert</span>(-<span class="SNum">128</span>'<span class="STpe">s8</span> &gt;&gt; count == -<span class="SNum">1</span>'<span class="STpe">s8</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SNum">1</span>'<span class="STpe">u8</span> &lt;&lt; count) == <span class="STpe">u8</span>)
 }
 
 </span></div>
@@ -8638,8 +8656,8 @@ indent-style = spaces
 <p>Safety covers the RUNTIME guards. Their static, compile-time counterparts are controlled separately with <span class="code-inline">#[Swag.Sanity]</span> and stay enabled in <span class="code-inline">release</span>; see the dedicated 'Sanity Checks in Swag' section.</p>
 </div>
 <h3 id="_013_002_safety_swg_Overflow_Safety">Overflow Safety</h3>
-<p>Example: #[Swag.Safety(.Overflow, true)] When enabled, Swag panics on arithmetic overflow or when bits are lost during integer conversions.</p>
-<p>Operators that can overflow include '+ - <i> &lt;&lt; &gt;&gt;' and compound forms '+= -= </i>= &lt;&lt;= &gt;&gt;='.</p>
+<p>Example: #[Swag.Safety(.Overflow, true)] When enabled, Swag panics on arithmetic overflow, on a runtime negative shift count, or when bits are lost during integer conversions.</p>
+<p>Operators that can overflow include '+ - <i>' and compound forms '+= -= </i>='. Shifts have defined truncating and large-count behavior; overflow safety only guards their negative signed counts.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x = <span class="SNum">255</span>'<span class="STpe">u8</span>
@@ -8649,7 +8667,7 @@ indent-style = spaces
 
 </span></div>
 <h4 id="_013_002_safety_swg_Disabling_Overflow_Safety_with___wrap_">Disabling Overflow Safety with <span class="code-inline">#wrap</span></h4>
-<p>Use <span class="code-inline">#wrap</span> on the operation if overflow is expected and should not panic.</p>
+<p>Use <span class="code-inline">#wrap</span> on the operation if overflow is expected and should not panic. It is unnecessary for shifts, whose discarded bits already truncate normally.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x = <span class="SNum">255</span>'<span class="STpe">u8</span>
@@ -10207,7 +10225,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.133</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.145</div>
 </footer>
 </section>
 </main>
@@ -10602,6 +10620,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Operators|_003_006_operators_swg|",
 "h|Arithmetic Operators|_003_006_operators_swg_Arithmetic_Operators|",
 "h|Bitwise Operators|_003_006_operators_swg_Bitwise_Operators|",
+"h|Shift Semantics|_003_006_operators_swg_Shift_Semantics|",
 "h|Assignment Operators|_003_006_operators_swg_Assignment_Operators|",
 "h|Unary Operators|_003_006_operators_swg_Unary_Operators|",
 "h|Comparison Operators|_003_006_operators_swg_Comparison_Operators|",

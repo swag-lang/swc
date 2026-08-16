@@ -19,8 +19,60 @@ struct TweakFile
     public folders: Array'Folder     // List of registered folders (structure instances) to fill
 }
 
+// One value of a folder, located by name.
+//
+// A name reaches a nested struct through '.', so `signature.ground` names one value even though
+// the folder keeps `signature` as a single field. A folder whose fields are themselves structs
+// was otherwise unreachable: every line naming one failed on the value rather than on the name,
+// which is what left a registered image-rect folder impossible to write.
+private struct FieldPath
+{
+    offset: u64                     // Byte offset of the value inside the folder.
+    type:   #null typeinfo          // Type the path ends on, or null when the name resolves to nothing.
+}
+
 impl TweakFile
 {
+    // Reads a value name, which walks into a nested struct at each '.'.
+    private func parseName(str: string)->#null string fail
+    {
+        var count = @countof(try StrConv.parseIdentifier(str))
+        while count + 1 < @countof(str) and str[count] == '.'u8
+        {
+            let part = try StrConv.parseIdentifier(@mkstring(@dataof(str) + count + 1, @countof(str) - count - 1))
+            count += 1 + @countof(part)
+        }
+
+        return @mkstring(@dataof(str), count)
+    }
+
+    // Resolves `name` against `type`, one segment per '.'.
+    private func resolveName(type: typeinfo, name: string)->FieldPath
+    {
+        var result: retval
+        var current = type
+        var rest    = name
+
+        for
+        {
+            let dot     = Slice.findLinear(rest, '.'u8)
+            let segment = dot == Swag.U64.Max ? @countof(rest) : dot
+            let field   = Reflection.findField(current, @mkstring(@dataof(rest), segment))
+            if !field do
+                return {}
+
+            result.offset += field.offset
+            current = field.pointedType!
+            if dot == Swag.U64.Max do
+                break
+
+            rest = @mkstring(@dataof(rest) + segment + 1, @countof(rest) - segment - 1)
+        }
+
+        result.type = current
+        return result
+    }
+
     // Registers a new structure to be parsed as a folder
     mtd(T) registerFolder(folder: *T)
     {
@@ -53,9 +105,9 @@ impl TweakFile
         {
             public
             {
-                folder: *Folder              // Folder where the reference is defined
-                src:    const *TypeValue     // Source field that is being referenced
-                dst:    const *TypeValue     // Destination field to copy to
+                folder: *Folder     // Folder where the reference is defined
+                src:    FieldPath   // Source value that is being referenced
+                dst:    FieldPath   // Destination value to copy to
             }
         }
 
@@ -101,39 +153,45 @@ impl TweakFile
 
             // Value declaration
             one = Tokenize.eatSpaces(one)
-            let id = catch StrConv.parseIdentifier(one) as idErr
-            if idErr != null do
+            let name = catch parseName(one) as nameErr
+            if nameErr != null do
                 fail SyntaxError{"invalid value name", line: idx + 1}
+            let id = name!
 
             // Search value in folder type
-            let field = Reflection.findField(currentFolder.type, id)
-            if !field do
+            let path = resolveName(currentFolder.type, id)
+            if !path.type do
                 fail SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
-            let safeField = field
             one = Tokenize.eatCount(one, @countof(id))
             one = Tokenize.eatSpaces(one)
             if !@countof(one) do
                 fail SyntaxError{"missing value", line: idx + 1}
 
-            // Reference to another field using '$' syntax
+            // Reference to another value using '$' syntax
             if one[0] == '$'
             {
                 one = Tokenize.eatCount(one, 1)
-                let otherField = Reflection.findField(currentFolder.type, one)
-                if !otherField do
-                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", one, currentFolder.type.name)), line: idx + 1}
-                let safeOtherField = otherField
-                if safeField.pointedType != safeOtherField.pointedType do
-                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", one)), line: idx + 1}
+                let refName = catch parseName(one) as refErr
+                if refErr != null do
+                    fail SyntaxError{"invalid reference name", line: idx + 1}
+                let other = refName!
+
+                let otherPath = resolveName(currentFolder.type, other)
+                if !otherPath.type do
+                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", other, currentFolder.type.name)), line: idx + 1}
+                if path.type != otherPath.type do
+                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", other)), line: idx + 1}
                 let folder = currentFolder
-                let refr   = Ref{folder, safeOtherField, safeField}
+                let refr   = Ref{folder, otherPath, path}
                 refs.add(refr)
+                one = Tokenize.eatSpaces(Tokenize.eatCount(one, @countof(other)))
+                if @countof(one) and one[0] != '#' do
+                    fail SyntaxError{"invalid characters after value", line: idx + 1}
                 continue
             }
 
             // Parse and assign value to field
-            let safePointedType         = safeField.pointedType!
-            let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + safeField.offset, safePointedType, one) as valueErr
+            let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type!, one) as valueErr
             if valueErr != null do
                 fail SyntaxError{"invalid value", line: idx + 1}
             one = parsedOne orelse ""
@@ -160,7 +218,7 @@ impl TweakFile
                     if j == toDo do
                         continue
                     let ref1 = refs[j]
-                    if refr.folder == ref1.folder and refr.src == ref1.dst
+                    if refr.folder == ref1.folder and refr.src.offset == ref1.dst.offset and refr.src.type == ref1.dst.type
                     {
                         if j == 0 do
                             fail SyntaxError{"tweakfile cycle between '$' references !"}
@@ -177,7 +235,7 @@ impl TweakFile
 
             let ptrDst = cast([*] u8) refr.folder.data + refr.dst.offset
             let ptrSrc = cast([*] u8) refr.folder.data + refr.src.offset
-            Reflection.assign(ptrDst, ptrSrc, refr.dst.pointedType)
+            Reflection.assign(ptrDst, ptrSrc, refr.dst.type)
 
             refs.removeAt(toDo)
         }

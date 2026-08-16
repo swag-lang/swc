@@ -12,14 +12,14 @@ using Swag, Core
 
     let sheet = """
                 /ThemePalette
-                accent          0xFF00A0FF
-                accentGround    0xFF00A0FF
-                onAccent        0xFF000000
+                signature.mark      0xFF00A0FF
+                signature.ground    0xFF00A0FF
+                signature.onGround  0xFF000000
                 """
 
     expect theme.applySheet(sheet)
 
-    @assert(theme.palette.accent == 0xFF00A0FF)
+    @assert(theme.palette.signature.mark == 0xFF00A0FF)
     @assert(theme.colors.hilight == 0xFF00A0FF)
     @assert(theme.colors.focusRing == 0xFF00A0FF)
     @assert(theme.colors.activeRail == 0xFF00A0FF)
@@ -29,14 +29,39 @@ using Swag, Core
     @assert(theme.colors.progressBar_Mark == 0xFF00A0FF)
     @assert(theme.colors.btnPush_StrongText == 0xFF000000)
 
-    // Everything the accent does not decide is left exactly where the palette had it.
+    // Everything the signature does not decide is left exactly where the palette had it.
     @assert(theme.colors.bk == 0xFF0B0B0D)
     @assert(theme.colors.text == 0xFFE9E9ED)
 }
 
-// The accent is two decisions, and a sheet may take them apart: what the theme points with and
-// what it fills with are separate tokens precisely so a palette can keep a brand color for the
-// blocks and use a legible one for the hairlines.
+// A name reaching into a tone with '.' is what makes a tone writable at all. Before it, a folder
+// field that was itself a struct could be named but never assigned, which left the whole
+// image-rect folder registered and unreachable.
+#test
+{
+    var theme: Theme
+    theme.setSwagDark()
+
+    let sheet = """
+                /ThemeImageRects
+                btnPush_Normal.radius   3
+                /ThemePalette
+                alternate.ground        0xFF7F00FF
+                """
+
+    expect theme.applySheet(sheet)
+
+    @assert(theme.rects.btnPush_Normal.radius == 3)
+    @assert(theme.palette.alternate.ground == 0xFF7F00FF)
+    @assert(theme.colors.btnPush_AlternateBk == 0xFF7F00FF)
+
+    // The rest of the rect is untouched: a path names one value, not the struct around it.
+    @assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
+}
+
+// A tone is two decisions, and a sheet may take them apart: what the theme points with and
+// what it fills with are separate values precisely so a palette can keep a brand color for the
+// blocks and a legible one for the hairlines.
 #test
 {
     var theme: Theme
@@ -44,8 +69,8 @@ using Swag, Core
 
     let sheet = """
                 /ThemePalette
-                accent          0xFF00A0FF
-                accentGround    0xFFFF8000
+                signature.mark      0xFF00A0FF
+                signature.ground    0xFFFF8000
                 """
 
     expect theme.applySheet(sheet)
@@ -64,6 +89,24 @@ using Swag, Core
     // The outline of a filled action comes from the mark, which is what gives the block an edge
     // when its own color is too close to the ground behind it.
     @assert(theme.colors.btnPush_StrongBorder == 0xFF00A0FF)
+}
+
+// A '$' reference resolves through a path too, and the two sides still have to agree on a type.
+#test
+{
+    var theme: Theme
+    theme.setSwagDark()
+
+    let sheet = """
+                /ThemePalette
+                alternate.mark      $signature.mark
+                """
+
+    expect theme.applySheet(sheet)
+    @assert(theme.colors.url_Text == theme.colors.hilight)
+
+    catch theme.applySheet("/ThemePalette\nalternate.mark $railed") as err
+    @assert(err != null)
 }
 
 // The two folders of a sheet are two layers: the tokens derive the interface, then the named
@@ -102,12 +145,16 @@ using Swag, Core
 }
 
 // A malformed sheet is reported with the line it failed on rather than silently ignored: a
-// theme file is written by hand, so the failure has to be readable.
+// theme file is written by hand, so the failure has to be readable. A path that walks into a
+// tone and misses is the same kind of mistake as a token that does not exist.
 #test
 {
     var theme: Theme
     theme.setDark()
 
-    catch theme.applySheet("/ThemePalette\naccent 0xFF000000\nnotAToken 3") as err
+    catch theme.applySheet("/ThemePalette\nsignature.mark 0xFF000000\nnotAToken 3") as err
     @assert(err != null)
+
+    catch theme.applySheet("/ThemePalette\nsignature.notAPart 0xFF000000") as pathErr
+    @assert(pathErr != null)
 }

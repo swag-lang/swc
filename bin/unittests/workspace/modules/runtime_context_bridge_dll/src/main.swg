@@ -4,8 +4,12 @@ public const CTX_SHARED_INIT_FLAG = 0x0008'u64
 public const CTX_SHARED_PREMAIN_FLAG = 0x0010'u64
 public const CTX_SHARED_DROP_FLAG = 0x0020'u64
 
+private var g_InitEntryCount: u32
+
 #init
 {
+    g_InitEntryCount += 1
+    @assert(g_InitEntryCount == 1)
     @assert((@getcontext().user1 & CTX_BASE_INIT_FLAG) != 0)
     @assert(@getcontext().allocator != null)
     @getcontext().user1 |= CTX_SHARED_INIT_FLAG

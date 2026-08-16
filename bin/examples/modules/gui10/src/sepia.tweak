@@ -1,7 +1,7 @@
 # A complete theme, written the way anyone shipping an application would write one.
 #
 # Nothing here is special to this example: it is a tweak sheet, it names palette tokens, and
-# the toolkit derives the three hundred parts of the interface from them. Thirty-five values
+# the toolkit derives the three hundred parts of the interface from them. Thirty-odd values
 # is the whole surface a theme has to answer for, which is why a theme file can be reviewed
 # in one screen — and why it cannot answer for a button and forget the field beside it.
 #
@@ -19,8 +19,8 @@ raised              0xFFFBF7EF
 hot                 0xFFE6DCC8
 pressed             0xFFDBCFB6
 
-# The accent is warm enough to wash a row with, so selection uses it rather than repeating
-# the neutral hover.
+# The alternate tone is warm enough to wash a row with, so selection uses it rather than
+# repeating the neutral hover.
 selectHot           0xFFF0E2C4
 selectPressed       0xFFE4D0A4
 
@@ -32,22 +32,32 @@ softText            0xFF5F5443
 faintText           0xFF8A7C64
 disabled            0xFFA2937B
 
-# The accent points and fills with the same color here: a burnt amber is legible both as a
-# hairline on paper and as a block under the page tone.
-accent              0xFF9A6B18
-accentGround        0xFF9A6B18
-onAccent            0xFFFBF7EF
+# A tone is one color in three roles: what it points with, the block it fills, and the ink that
+# block carries. A name reaches into it with '.', so a sheet writes the three the same way the
+# palettes do. The signature is a burnt amber, legible both as a hairline on paper and as a
+# block under the page tone, so its mark and its block are the same value.
+signature.mark      0xFF9A6B18
+signature.ground    0xFF9A6B18
+signature.onGround  0xFFFBF7EF
 
-# A rule marks the active item, in the accent, the way the Swag palettes do.
+# The second tone is what a link, a selected row and an alternate action take. It is not a
+# weaker signature: it means somewhere else, where the signature means do this.
+alternate.mark      0xFF4F6B7A
+alternate.ground    0xFFAFC6D2
+alternate.onGround  0xFF20303A
+
+# A rule marks the active item, in the signature, the way the Swag palettes do.
 railed              true
 
-error               0xFFA32B1C
-criticalBk          0xFFF2DCD6
-criticalText        0xFF8A3428
-infoBk              0xFFDDE5EA
-infoText            0xFF2F5468
-noticeBk            0xFFF1E6C4
-noticeText          0xFF715C1F
+critical.mark       0xFFA32B1C
+critical.ground     0xFFF2DCD6
+critical.onGround   0xFF8A3428
+info.mark           0xFF2F5468
+info.ground         0xFFDDE5EA
+info.onGround       0xFF2F5468
+caution.mark        0xFF715C1F
+caution.ground      0xFFF1E6C4
+caution.onGround    0xFF715C1F
 
 rich1               0xFFA32B1C
 rich2               0xFF3F6B27

@@ -25,10 +25,12 @@ var g_App: Application
         discard catch Directory.create(stateFolder)
     if Directory.exists(stateFolder)
     {
-        let statePath       = Path.combine(stateFolder, "sVaultDrive.cfg")
+        let statePath       = Path.combine(stateFolder, "sVaultDrive.scc")
+        let previousPath    = Path.combine(stateFolder, "sVaultDrive.cfg")
         let legacyStatePath = Path.combine(Env.getSpecialDirectory(.UserAppData), "sCrypt", "sCrypt.cfg")
-        if !File.exists(statePath) and File.exists(legacyStatePath) do
-            discard catch File.duplicate(statePath, legacyStatePath)
+        let fallback        = File.exists(previousPath) ? previousPath : legacyStatePath
+        if !File.exists(statePath) and File.exists(fallback) do
+            discard catch File.duplicate(statePath, fallback)
         g_App.setStatePath(statePath)
     }
 

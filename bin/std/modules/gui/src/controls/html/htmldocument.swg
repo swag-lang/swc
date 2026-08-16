@@ -1,5 +1,8 @@
+#global public
+
 using Core
 
+#[Swag.NoDoc]
 enum HtmlBlockKind
 {
     Paragraph
@@ -17,6 +20,7 @@ enum HtmlBlockKind
     Rule
 }
 
+#[Swag.NoDoc]
 struct HtmlBlock
 {
     kind:  HtmlBlockKind
@@ -24,14 +28,22 @@ struct HtmlBlock
     style: HtmlCssStyle
 }
 
+#[Swag.NoDoc]
 struct HtmlBlockParseResult
 {
     blocks:   Array'HtmlBlock
     consumed: u64
 }
 
-private func htmlBlockKind(name: string)->HtmlBlockKind
+private func htmlBlockKind(tag, name: string)->HtmlBlockKind
 {
+    if name == "div"
+    {
+        let className = htmlAttribute(tag, "class")
+        if Utf8.contains(className.toString(), "code-block") do
+            return .Code
+    }
+
     switch name
     {
     case "h1":         return .Heading1
@@ -54,13 +66,49 @@ private func htmlIsBlock(name: string)->bool
 {
     switch name
     {
-    case "h1", "h2", "h3", "h4", "h5", "h6", "p", "ul", "ol", "blockquote", "pre", "table", "details", "figure", "hr": return true
+    case "h1", "h2", "h3", "h4", "h5", "h6", "p", "div", "ul", "ol", "blockquote", "pre", "table", "details", "figure", "hr": return true
     }
 
     return false
 }
 
-func parseHtmlBlockChunk(source: string, rules: const [..] HtmlCssRule, final: bool)->HtmlBlockParseResult
+// A document control renders the document, not the surrounding web-site application. Hidden
+// containers must be skipped as a whole as well: merely ignoring their opening tag would still
+// let a nested paragraph escape into the visible block stream.
+private func htmlSkipContainer(name: string)->bool
+{
+    switch name
+    {
+    case "script", "style", "head", "template", "iframe", "object", "header", "nav", "aside", "footer": return true
+    }
+
+    return false
+}
+
+internal func htmlBlockStartBefore(source: string, target: u64)->u64
+{
+    var result = 0'u64
+    var index  = 0'u64
+    let end    = Math.min(target, @countof(source))
+    while index < end
+    {
+        let open = Utf8.indexOf(source, '<'rune, index)
+        if open == Swag.U64.Max or open >= end do
+            break
+        let close = Utf8.indexOf(source, '>'rune, open + 1)
+        if close == Swag.U64.Max or close >= end do
+            break
+        let tag  = source[open + 1 until close]
+        let name = htmlTagName(tag)
+        if !name.isEmpty() and tag[0] != '/' and htmlIsBlock(name.toString()) do
+            result = open
+        index = close + 1
+    }
+
+    return result
+}
+
+internal func parseHtmlBlockChunk(source: string, rules: const [..] HtmlCssRule, final: bool)->HtmlBlockParseResult
 {
     var result: retval
     var index = 0'u64
@@ -82,7 +130,7 @@ func parseHtmlBlockChunk(source: string, rules: const [..] HtmlCssRule, final: b
             continue
         }
 
-        if name == "script" or name == "style" or name == "head"
+        if htmlSkipContainer(name.toString())
         {
             let closing = Format.toString("</%", name)
             let end     = Utf8.indexOf(source, closing.toString(), close + 1, .Latin1NoCase)
@@ -116,7 +164,7 @@ func parseHtmlBlockChunk(source: string, rules: const [..] HtmlCssRule, final: b
             fragmentEnd = endClose == Swag.U64.Max ? @countof(source) : endClose + 1
         }
 
-        let kind     = htmlBlockKind(name.toString())
+        let kind     = htmlBlockKind(tag, name.toString())
         let rendered = kind == .Rule ? String.from("────────────") : HtmlTextRenderer.render(source[open until fragmentEnd])
         let text     = String.from(Latin1.trim(rendered.toString()))
         if !text.isEmpty()
@@ -149,12 +197,12 @@ func parseHtmlBlockChunk(source: string, rules: const [..] HtmlCssRule, final: b
     return result
 }
 
-func parseHtmlBlocks(source: string, rules: const [..] HtmlCssRule)->Array'HtmlBlock
+internal func parseHtmlBlocks(source: string, rules: const [..] HtmlCssRule)->Array'HtmlBlock
 {
     return parseHtmlBlockChunk(source, rules, final: true).blocks
 }
 
-func htmlBodyCssStyle(source: string, rules: const [..] HtmlCssRule)->HtmlCssStyle
+internal func htmlBodyCssStyle(source: string, rules: const [..] HtmlCssRule)->HtmlCssStyle
 {
     let body = Utf8.indexOf(source, "<body", 0, .Latin1NoCase)
     if body == Swag.U64.Max do

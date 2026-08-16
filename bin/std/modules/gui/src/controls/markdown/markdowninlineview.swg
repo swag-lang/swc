@@ -5,7 +5,7 @@ using Core, Pixel
 #[Swag.EnumFlags]
 private enum MarkdownInlineFlags
 {
-    None      = 0
+    None = 0
     Bold
     Italic
     Strikeout
@@ -34,15 +34,15 @@ private struct MarkdownInlineAtom
 
 private struct MarkdownInlineState
 {
-    bold:      u32
-    italic:    u32
-    strikeout: u32
-    code:      u32
-    highlight: u32
-    link:      u32
-    subscript: u32
+    bold:        u32
+    italic:      u32
+    strikeout:   u32
+    code:        u32
+    highlight:   u32
+    link:        u32
+    subscript:   u32
     superscript: u32
-    colorIndex: u32
+    colorIndex:  u32
 }
 
 private impl MarkdownInlineState
@@ -75,13 +75,13 @@ public struct MarkdownInlineView
 {
     using wnd: Wnd
 
-    owner: *MarkdownView = undefined
-    kind:  MarkdownBlockKind
-    atoms: Array'MarkdownInlineAtom
+    owner:        *MarkdownView = undefined
+    kind:         MarkdownBlockKind
+    atoms:        Array'MarkdownInlineAtom
     layoutWidth:  f32
     layoutHeight: f32
     hotAtom:      #null *MarkdownInlineAtom
-    horizontalAlignment = StringHorzAlignment.Left
+    horizontalAlignment         = StringHorzAlignment.Left
 }
 
 internal impl MarkdownInlineView
@@ -113,6 +113,7 @@ internal impl MarkdownInlineView
             start = index
             runes = 0
         }
+
         if start < @countof(text) do
             .appendTextAtom(text[start to], state)
     }
@@ -197,30 +198,82 @@ internal impl MarkdownInlineView
             var eaten     = 0'u64
             switch
             {
-            case Utf8.startsWith(remaining, "<b>"):  state.bold += 1; eaten = 3
-            case Utf8.startsWith(remaining, "</b>"): state.bold = state.bold ? state.bold - 1 : 0; eaten = 4
-            case Utf8.startsWith(remaining, "<i>"):  state.italic += 1; eaten = 3
-            case Utf8.startsWith(remaining, "</i>"): state.italic = state.italic ? state.italic - 1 : 0; eaten = 4
-            case Utf8.startsWith(remaining, "<s>"):  state.strikeout += 1; eaten = 3
-            case Utf8.startsWith(remaining, "</s>"): state.strikeout = state.strikeout ? state.strikeout - 1 : 0; eaten = 4
-            case Utf8.startsWith(remaining, "<c>"):  state.code += 1; eaten = 3
-            case Utf8.startsWith(remaining, "</c>"): state.code = state.code ? state.code - 1 : 0; eaten = 4
-            case Utf8.startsWith(remaining, "<h>"):  state.highlight += 1; eaten = 3
-            case Utf8.startsWith(remaining, "</h>"): state.highlight = state.highlight ? state.highlight - 1 : 0; eaten = 4
-            case Utf8.startsWith(remaining, "<sub>"):  state.subscript += 1; eaten = 5
-            case Utf8.startsWith(remaining, "</sub>"): state.subscript = state.subscript ? state.subscript - 1 : 0; eaten = 6
-            case Utf8.startsWith(remaining, "<sup>"):  state.superscript += 1; eaten = 5
-            case Utf8.startsWith(remaining, "</sup>"): state.superscript = state.superscript ? state.superscript - 1 : 0; eaten = 6
+            case Utf8.startsWith(remaining, "<b>"):
+                state.bold += 1
+                eaten      = 3
 
-            case Utf8.startsWith(remaining, "<p1>"): state.colorIndex = 1; eaten = 4
-            case Utf8.startsWith(remaining, "<p2>"): state.colorIndex = 2; eaten = 4
-            case Utf8.startsWith(remaining, "<p3>"): state.colorIndex = 3; eaten = 4
-            case Utf8.startsWith(remaining, "</p>"): state.colorIndex = 0; eaten = 4
+            case Utf8.startsWith(remaining, "</b>"):
+                state.bold = state.bold ? state.bold - 1 : 0
+                eaten      = 4
+
+            case Utf8.startsWith(remaining, "<i>"):
+                state.italic += 1
+                eaten        = 3
+
+            case Utf8.startsWith(remaining, "</i>"):
+                state.italic = state.italic ? state.italic - 1 : 0
+                eaten        = 4
+
+            case Utf8.startsWith(remaining, "<s>"):
+                state.strikeout += 1
+                eaten           = 3
+
+            case Utf8.startsWith(remaining, "</s>"):
+                state.strikeout = state.strikeout ? state.strikeout - 1 : 0
+                eaten           = 4
+
+            case Utf8.startsWith(remaining, "<c>"):
+                state.code += 1
+                eaten      = 3
+
+            case Utf8.startsWith(remaining, "</c>"):
+                state.code = state.code ? state.code - 1 : 0
+                eaten      = 4
+
+            case Utf8.startsWith(remaining, "<h>"):
+                state.highlight += 1
+                eaten           = 3
+
+            case Utf8.startsWith(remaining, "</h>"):
+                state.highlight = state.highlight ? state.highlight - 1 : 0
+                eaten           = 4
+
+            case Utf8.startsWith(remaining, "<sub>"):
+                state.subscript += 1
+                eaten           = 5
+
+            case Utf8.startsWith(remaining, "</sub>"):
+                state.subscript = state.subscript ? state.subscript - 1 : 0
+                eaten           = 6
+
+            case Utf8.startsWith(remaining, "<sup>"):
+                state.superscript += 1
+                eaten             = 5
+
+            case Utf8.startsWith(remaining, "</sup>"):
+                state.superscript = state.superscript ? state.superscript - 1 : 0
+                eaten             = 6
+
+            case Utf8.startsWith(remaining, "<p1>"):
+                state.colorIndex = 1
+                eaten            = 4
+
+            case Utf8.startsWith(remaining, "<p2>"):
+                state.colorIndex = 2
+                eaten            = 4
+
+            case Utf8.startsWith(remaining, "<p3>"):
+                state.colorIndex = 3
+                eaten            = 4
+
+            case Utf8.startsWith(remaining, "</p>"):
+                state.colorIndex = 0
+                eaten            = 4
 
             case Utf8.startsWith(remaining, "<a>"):
                 state.link += 1
-                linkStart = .atoms.count
-                eaten     = 3
+                linkStart  = .atoms.count
+                eaten      = 3
 
             case Utf8.startsWith(remaining, "</a>"):
                 state.link = state.link ? state.link - 1 : 0
@@ -266,14 +319,16 @@ internal impl MarkdownInlineView
         {
         case .Heading1: return {0, 8, 0, 2}
         case .Heading2: return {0, 8, 0, 2}
-        case .Code:                                         return {18, 14, 18, 14}
-        case .Table:                                        return {16, 12, 16, 12}
+        case .Code:     return {18, 14, 18, 14}
+        case .Table:    return {16, 12, 16, 12}
+
         case .Quote, .AlertNote, .AlertTip, .AlertImportant,
-             .AlertWarning, .AlertCaution:                   return {18, 10, 10, 10}
-        case .Metadata:                                     return {12, 8, 12, 8}
-        case .TableOfContents:                              return {18, 12, 18, 12}
-        case .Footnote:                                     return {0, 4, 0, 4}
-        default:        return {0, 2, 0, 2}
+             .AlertWarning, .AlertCaution: return {18, 10, 10, 10}
+
+        case .Metadata:        return {12, 8, 12, 8}
+        case .TableOfContents: return {18, 12, 18, 12}
+        case .Footnote:        return {0, 4, 0, 4}
+        default:               return {0, 2, 0, 2}
         }
     }
 
@@ -281,15 +336,16 @@ internal impl MarkdownInlineView
     {
         switch .kind
         {
-        case .Heading1:          return 32
-        case .Heading2:          return 25
-        case .Heading3:          return 21
-        case .Heading4:          return 18
-        case .Heading5, .Heading6: return 16
-        case .Code, .Table:      return .owner.documentStyle.codeFontSize
-        case .Metadata:          return Math.max(.owner.documentStyle.codeFontSize - 1, 8)
-        case .Footnote:          return Math.max(.owner.documentStyle.bodyFontSize - 2, 8)
-        default:                 return .owner.documentStyle.bodyFontSize
+        case .Heading1:     return .owner.documentStyle.heading1FontSize
+        case .Heading2:     return .owner.documentStyle.heading2FontSize
+        case .Heading3:     return .owner.documentStyle.heading3FontSize
+        case .Heading4:     return .owner.documentStyle.heading4FontSize
+        case .Heading5:     return .owner.documentStyle.heading5FontSize
+        case .Heading6:     return .owner.documentStyle.heading6FontSize
+        case .Code, .Table: return .owner.documentStyle.codeFontSize
+        case .Metadata:     return Math.max(.owner.documentStyle.codeFontSize - 1, 8)
+        case .Footnote:     return Math.max(.owner.documentStyle.bodyFontSize - 2, 8)
+        default:            return .owner.documentStyle.bodyFontSize
         }
     }
 
@@ -340,7 +396,7 @@ internal impl MarkdownInlineView
     mtd finishLine(first, last: u64, top, left, right: f32)->f32
     {
         if first >= last do
-            return .theme().createDefaultFont(.fontSize()).height * 1.45
+            return .theme().createDefaultFont(.fontSize()).height * .owner.documentStyle.lineHeight
 
         var ascent:  f32
         var descent: f32
@@ -350,9 +406,9 @@ internal impl MarkdownInlineView
             descent = Math.max(descent, .atoms[index].descent)
         }
 
-        let natural = ascent + descent
-        let line     = Math.max(natural, .theme().createDefaultFont(.fontSize()).height * 1.45)
-        let offset   = (line - natural) * 0.5
+        let natural   = ascent + descent
+        let line      = Math.max(natural, .theme().createDefaultFont(.fontSize()).height * .owner.documentStyle.lineHeight)
+        let offset    = (line - natural) * 0.5
         var lineRight = left
         for index in first until last where .atoms[index].visible do
             lineRight = Math.max(lineRight, .atoms[index].position.right())
@@ -370,6 +426,7 @@ internal impl MarkdownInlineView
             elif .atoms[index].flags.has(.Subscript) do
                 .atoms[index].position.y += descent * 0.55
         }
+
         return line
     }
 
@@ -401,8 +458,8 @@ internal impl MarkdownInlineView
             if atom.isBreak
             {
                 y     += .finishLine(first, index, y, left, right)
-                x      = left
-                first  = index + 1
+                x     = left
+                first = index + 1
                 continue
             }
 
@@ -411,16 +468,16 @@ internal impl MarkdownInlineView
             if !atom.isSpace and x > left and x + atom.position.width > right
             {
                 y     += .finishLine(first, index, y, left, right)
-                x      = left
-                first  = index
+                x     = left
+                first = index
             }
 
             atom.visible    = true
             atom.position.x = x
-            x              += atom.position.width
+            x               += atom.position.width
         }
 
-        y += .finishLine(first, .atoms.count, y, left, right)
+        y             += .finishLine(first, .atoms.count, y, left, right)
         .layoutWidth  = width
         .layoutHeight = y + inset.w
         return .layoutHeight
@@ -439,6 +496,7 @@ internal impl MarkdownInlineView
                 return colors.embInfo_CriticalText
             return colors.embInfo_InformationText
         }
+
         switch atom.colorIndex
         {
         case 1:  return colors.richColor1
@@ -463,6 +521,8 @@ internal impl MarkdownInlineView
         result.owner           = owner
         result.kind            = kind
         result.backgroundStyle = .View
+        if kind >= .Heading1 and kind <= .Heading6 do
+            result.horizontalAlignment = owner.documentStyle.headingAlignment
         result.parse(source)
         return result
     }
@@ -496,8 +556,10 @@ internal impl IWnd for MarkdownInlineView
                 accent = .themeColors().embInfo_CriticalText
                 painter.fillRect(rect, .themeColors().embInfo_CriticalBk)
             }
+
             painter.fillRect({0, 8, 3, Math.max(rect.height - 16, 0)}, accent)
         }
+
         if .kind == .Rule
         {
             painter.fillRect({0, Math.floor(rect.vertCenter()), rect.width, 1}, .themeColors().edit_Border)
@@ -509,7 +571,7 @@ internal impl IWnd for MarkdownInlineView
             let color = .color(atom)
             if atom.flags.has(.Code) or atom.flags.has(.Highlight)
             {
-                let ground = atom.flags.has(.Highlight) ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
+                let ground     = atom.flags.has(.Highlight) ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
                 var background = atom.position
                 background.x      -= 2
                 background.width  += 4
@@ -543,6 +605,7 @@ internal impl IWnd for MarkdownInlineView
                 .hotAtom = atom
                 .invalidate()
             }
+
             if atom do
                 .app().setFrameCursor(Cursor.from(.Hand))
 

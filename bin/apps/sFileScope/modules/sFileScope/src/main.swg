@@ -50,6 +50,12 @@ private func registerViewerFileTypes(index: const *ViewerPluginIndex)
     g_App.setAppIcon(appIcon)
     registerAppStrings(&g_App.resources)
 
+    let stateFolder = Path.combine(Env.getSpecialDirectory(.UserAppData), "sFileScope")
+    if !Directory.exists(stateFolder) do
+        discard catch Directory.create(stateFolder)
+    if Directory.exists(stateFolder) do
+        g_App.setStatePath(Path.combine(stateFolder, "sFileScope.cfg"))
+
     let surface = (try g_App.createSurface(80, 50, 960, 680, SurfaceFlags.StandardWindow, surfaceId: "sFileScope"))!
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()

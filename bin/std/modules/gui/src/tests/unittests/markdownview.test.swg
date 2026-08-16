@@ -67,7 +67,8 @@ using Swag, Core
     Testing.assertContentFits(view)
 }
 
-// End waits for the real EOF and never chases an estimated document height.
+// A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
+// boundary through the real focused keyboard path; End still waits for the real EOF.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -75,8 +76,9 @@ using Swag, Core
     defer discard catch File.delete(fileName)
 
     var source: String
-    for 1_000 do
+    for 40_000 do
         source += "## Streamed heading\n\nA paragraph stays on disk until navigation requests it.\n\n"
+    @assert(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
 
     var host: Testing.HeadlessHost
@@ -90,9 +92,38 @@ using Swag, Core
 
     @assert(view.isLoading())
     @assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
+    view.setInitialFocus(view)
+    @assert(view.hasFocus())
+    let expectedLine = view.theme().createDefaultFont(view.documentStyle.bodyFontSize).height * view.documentStyle.lineHeight
+    @assert(view.scroll.verticalScrollStep == expectedLine)
+    host.keyPress(Input.Key.Down)
+    var navigationSteps = 0'u32
+    while view.hasPendingTarget and navigationSteps < 64
+    {
+        host.fireTimers()
+        navigationSteps += 1
+    }
+
+    @assert(!view.hasPendingTarget)
+    @assert(Math.abs(view.scroll.scrollPosition().y - expectedLine) <= 1)
+    host.keyPress(Input.Key.Up)
+    @assert(view.scroll.scrollPosition().y == 0)
+    host.keyPress(Input.Key.PageDown)
+    navigationSteps = 0
+    while view.hasPendingTarget and navigationSteps < 64
+    {
+        host.fireTimers()
+        navigationSteps += 1
+    }
+
+    @assert(!view.hasPendingTarget)
+    let pagePosition = view.scroll.scrollPosition().y
+    @assert(pagePosition > expectedLine)
+    host.keyPress(Input.Key.PageUp)
+    @assert(view.scroll.scrollPosition().y == 0)
+
     let before = view.scroll.scrollPosition()
-    var end = KeyEvent{kind: .Pressed, key: .End}
-    @assert(view.handleDocumentKey(&end))
+    host.keyPress(Input.Key.End)
     @assert(view.jumpToEnd)
     @assert(view.scroll.scrollPosition() == before)
 
@@ -102,7 +133,11 @@ using Swag, Core
         view.streamStep()
         steps += 1
     }
+
     @assert(!view.isLoading())
     @assert(!view.jumpToEnd)
     @assert(view.scroll.scrollPosition().y > before.y)
+    host.keyPress(Input.Key.Home)
+    @assert(view.residentStart == 0)
+    @assert(view.scroll.scrollPosition().y == 0)
 }

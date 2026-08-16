@@ -5,6 +5,7 @@ using Core, Pixel, Gui, FileScopePluginApi
 private const CodeStreamChunkSize = 16 * 1024'u64
 private const CodeStreamLookAhead = 2.0
 private const CodeResidentWindowSize = 256 * 1024'u64
+private const CodeRevealContextSize = 4 * 1024'u64
 
 internal struct CodePluginView
 {
@@ -13,21 +14,22 @@ internal struct CodePluginView
     #[Swag.Late]
     editor: *RichEditCtrl
 
-    swagLexer: RichEditLexerSwag
-    codeLexer: GenericCodeLexer
-    languageName: String
-    stream:    File.FileStream
-    fileName:  String
-    fileSize:  u64
-    bytesRead: u64
-    residentStart:   u64
-    residentOffsetY: f32
-    virtualHeight:   f32
-    loadTimer: #null *Timer
-    hasText:   bool
-    pauseStreaming: bool
+    swagLexer:         RichEditLexerSwag
+    codeLexer:         GenericCodeLexer
+    languageName:      String
+    stream:            File.FileStream
+    fileName:          String
+    fileSize:          u64
+    bytesRead:         u64
+    residentStart:     u64
+    residentOffsetY:   f32
+    virtualHeight:     f32
+    loadTimer:         #null *Timer
+    hasText:           bool
+    pauseStreaming:    bool
     pendingSeek:       bool
     pendingSeekOffset: u64
+    repositioning:     bool
 }
 
 internal impl CodePluginView
@@ -59,7 +61,7 @@ internal impl CodePluginView
         let loadedHeight = .editor.loadedDocumentHeight()
         if loadedHeight <= 0 do
             return
-        .virtualHeight   = Math.max(loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
+        .virtualHeight   = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
         .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
@@ -134,7 +136,11 @@ internal impl CodePluginView
     mtd revealOffset(offset: u64, text: string)->bool
     {
         .stopLoading()
-        let start = Math.min(offset, .fileSize)
+        .pendingSeek   = false
+        .repositioning = true
+        defer .repositioning = false
+        let requested = Math.min(offset, .fileSize)
+        let start     = requested > CodeRevealContextSize ? requested - CodeRevealContextSize : 0
         for adjustment in 4
         {
             .stream = catch File.openRead(.fileName.toString()) as openError
@@ -153,16 +159,16 @@ internal impl CodePluginView
             .residentStart = actual
             .editor.setText(chunk.toString())
             let position = catch .stream.position() as positionError
-            .bytesRead = positionError == null ? position : actual + chunk.length
-            .hasText   = !chunk.isEmpty()
-            .virtualHeight   = Math.max(previousHeight, .editor.paddedClientRect().height)
-            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) actual / cast(f32) .fileSize : 0
-            .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
+            .bytesRead     = positionError == null ? position : actual + chunk.length
+            .hasText       = !chunk.isEmpty()
+            .virtualHeight = previousHeight
+            .updateEstimatedHeight()
             if @countof(text) do
                 discard .editor.findText(text)
             .scheduleMore()
             return true
         }
+
         return false
     }
 
@@ -191,9 +197,12 @@ internal impl CodePluginView
             result.codeLexer.configure(language)
             result.editor.setLexer(&result.codeLexer)
         }
+
         result.editor.sigScrollPositionChanged += func|view = result|(editor, oldPosition, newPosition)
         {
             discard editor
+            if view.repositioning do
+                return
             if view.pauseStreaming and newPosition.y < oldPosition.y do
                 view.pauseStreaming = false
             let loadedHeight = view.editor.loadedDocumentHeight()
@@ -203,6 +212,7 @@ internal impl CodePluginView
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
                 view.pendingSeek       = true
             }
+
             view.scheduleMore()
         }
         result.hookOnChildEvent = func|view = result|(wnd, evt)
@@ -292,6 +302,7 @@ internal impl IWnd for CodePluginView
             discard .revealOffset(offset, "")
             return
         }
+
         .updateEstimatedHeight()
         if .needsMore() do
             .loadNextChunk()
@@ -308,6 +319,6 @@ func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string
     commands[] = null
     let view = CodePluginView.create(contentParent, fileName)
     revealMatch[] = func(wnd, offset, text)->bool { return (cast(*CodePluginView) wnd).revealOffset(offset, text) }
-    details[] = Format.toString("% · UTF-8 · streamed", view.languageName)
+    details[]     = Format.toString("% · UTF-8 · streamed", view.languageName)
     return view
 }

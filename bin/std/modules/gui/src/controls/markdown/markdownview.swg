@@ -4,25 +4,36 @@ using Core, Pixel
 
 private const MarkdownStreamChunkSize = 8 * 1024'u64
 private const MarkdownStreamCarryLimit = 16 * 1024'u64
+private const MarkdownRevealContextSize = 64 * 1024'u64
+private const MarkdownRevealChunkSize = MarkdownRevealContextSize + MarkdownStreamChunkSize
 private const MarkdownStreamLookAhead = 2.0
 private const MarkdownStreamFrameBudget = 3_000'u64
 private const MarkdownStreamBlockBudget = 8'u32
 
 // Controls the reading measure and typography of a [[Gui.MarkdownView]].
 //
-// Colors and font faces always resolve from the window's active [[Gui.Theme]], so a document
-// follows application palettes, local theme styles, and live theme-sheet changes.
+// Colors and font faces resolve from the window's active [[Gui.Theme]], including local
+// theme-sheet overrides, so a document can follow either an application palette or a document
+// theme.
 struct MarkdownStyle
 {
     public
     {
-        maxContentWidth: f32 = 860     // Widest document column, in logical pixels.
-        horizontalInset: f32 = 48      // Minimum room kept on each side of the document column.
-        topInset:        f32 = 38      // Space before the first document block.
-        bottomInset:     f32 = 34      // Space after the last document block.
-        bodyFontSize:    u32 = 16      // Body-text draw size, in logical pixels.
-        codeFontSize:    u32 = 14      // Fixed-width code and table draw size, in logical pixels.
-        mathFontSize:    u32 = 22      // Base draw size of Pixel mathematical layout.
+        maxContentWidth:  f32                 = 860       // Widest document column, in logical pixels.
+        horizontalInset:  f32                 = 48        // Minimum room kept on each side of the document column.
+        topInset:         f32                 = 38        // Space before the first document block.
+        bottomInset:      f32                 = 34        // Space after the last document block.
+        bodyFontSize:     u32                 = 16        // Body-text draw size, in logical pixels.
+        codeFontSize:     u32                 = 14        // Fixed-width code and table draw size, in logical pixels.
+        mathFontSize:     u32                 = 22        // Base draw size of Pixel mathematical layout.
+        heading1FontSize: u32                 = 36        // Level-one heading draw size, in logical pixels.
+        heading2FontSize: u32                 = 28        // Level-two heading draw size, in logical pixels.
+        heading3FontSize: u32                 = 24        // Level-three heading draw size, in logical pixels.
+        heading4FontSize: u32                 = 20        // Level-four heading draw size, in logical pixels.
+        heading5FontSize: u32                 = 16        // Level-five heading draw size, in logical pixels.
+        heading6FontSize: u32                 = 16        // Level-six heading draw size, in logical pixels.
+        lineHeight:       f32                 = 1.6       // Minimum body line height, relative to the active font.
+        headingAlignment: StringHorzAlignment = .Left     // Horizontal alignment of headings.
     }
 }
 
@@ -35,10 +46,10 @@ impl MarkdownStyle
 #[Swag.NoDoc]
 struct MarkdownVisualBlock
 {
-    wnd:    *Wnd = undefined
-    inline: #null *MarkdownInlineView
-    table:  #null *MarkdownTableView
-    kind:   MarkdownBlockKind
+    wnd:        *Wnd = undefined
+    inline:     #null *MarkdownInlineView
+    table:      #null *MarkdownTableView
+    kind:       MarkdownBlockKind
     searchText: String
 }
 
@@ -66,45 +77,55 @@ struct MarkdownView
                 body:   *Wnd
             }
 
-            stream:           File.FileStream
-            fileName:         String
-            fileSize:         u64
-            bytesRead:        u64
-            residentStart:    u64
-            virtualOrigin:    f32
-            virtualHeight:    f32
-            pendingSearch:    String
-            pendingSeek:      bool
-            pendingSeekOffset: u64
-            sourceCarry:      String
-            sourceDone:       bool
-            pendingBlocks:    Array'MarkdownBlock
-            pendingIndex:     u64
-            loadTimer:        #null *Timer
-            contentHeight:    f32
-            jumpToEnd:        bool
-            pauseStreaming:    bool
-            hasPendingTarget: bool
-            pendingTarget:    f32
-            searchBlockIndex: u64 = Swag.U64.Max
-            blocks:           Array'MarkdownVisualBlock
+            stream:              File.FileStream
+            fileName:            String
+            fileSize:            u64
+            bytesRead:           u64
+            residentStart:       u64
+            virtualOrigin:       f32
+            virtualHeight:       f32
+            pendingSearch:       String
+            pendingSeek:         bool
+            pendingSeekOffset:   u64
+            sourceCarry:         String
+            sourceDone:          bool
+            pendingBlocks:       Array'MarkdownBlock
+            pendingIndex:        u64
+            loadTimer:           #null *Timer
+            contentHeight:       f32
+            jumpToEnd:           bool
+            pauseStreaming:      bool
+            hasPendingTarget:    bool
+            pendingTarget:       f32
+            searchBlockIndex:    u64 = Swag.U64.Max
+            documentThemeColors: String
+            blocks:              Array'MarkdownVisualBlock
         }
     }
+}
+
+private func applyMarkdownThemeColors(wnd: *Wnd, colors: string)
+{
+    wnd.style.setStyleSheetColors(colors)
+    for child in wnd.children do
+        applyMarkdownThemeColors(child, colors)
 }
 
 private func markdownBlockGap(kind: MarkdownBlockKind)->f32
 {
     switch kind
     {
-    case .Heading1:                                  return 26
-    case .Heading2:                                  return 22
+    case .Heading1: return 26
+    case .Heading2: return 22
     case .Heading3, .Heading4, .Heading5, .Heading6: return 16
+
     case .Code, .Table, .Math, .Quote, .TableOfContents,
          .AlertNote, .AlertTip, .AlertImportant,
-         .AlertWarning, .AlertCaution:                return 20
-    case .Footnote:                                  return 8
-    case .Rule:                                      return 24
-    default:                                         return 14
+         .AlertWarning, .AlertCaution: return 20
+
+    case .Footnote: return 8
+    case .Rule:     return 24
+    default:        return 14
     }
 }
 
@@ -181,16 +202,16 @@ private impl MarkdownView
         let viewport        = .scroll.paddedClientRect()
         let loadedHeight    = .contentHeight + .documentStyle.bottomInset
         var estimatedHeight = loadedHeight
-        let consumed = .bytesRead - .residentStart
+        let consumed        = .bytesRead - .residentStart
         if consumed and .bytesRead < .fileSize
         {
             let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
-            .virtualHeight = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
+            .virtualHeight  = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
             estimatedHeight = Math.max(.virtualHeight, loadedHeight)
         }
+
         let height   = Math.max(estimatedHeight, viewport.height)
         let position = .scroll.scrollPosition()
-        .body.resize(viewport.width, height)
         .scroll.setScrollSize(viewport.width, height)
         .scroll.setScrollPos(position)
     }
@@ -233,6 +254,8 @@ private impl MarkdownView
             if math
             {
                 visual.wnd = math!
+                if !.documentThemeColors.isEmpty() do
+                    applyMarkdownThemeColors(visual.wnd, .documentThemeColors.toString())
                 .blocks.add(visual)
                 let geometry = .documentGeometry()
                 .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
@@ -245,6 +268,8 @@ private impl MarkdownView
             let table = MarkdownTableView.create(me, .body, block.text.toString())
             visual.wnd   = table
             visual.table = table
+            if !.documentThemeColors.isEmpty() do
+                applyMarkdownThemeColors(visual.wnd, .documentThemeColors.toString())
             .blocks.add(visual)
             let geometry = .documentGeometry()
             .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
@@ -255,6 +280,8 @@ private impl MarkdownView
         let inline = MarkdownInlineView.create(me, .body, block.text.toString(), block.kind)
         visual.wnd    = inline
         visual.inline = inline
+        if !.documentThemeColors.isEmpty() do
+            applyMarkdownThemeColors(visual.wnd, .documentThemeColors.toString())
         .blocks.add(visual)
 
         let geometry = .documentGeometry()
@@ -360,7 +387,7 @@ private impl MarkdownView
         if .hasPendingTarget and (.pendingTarget + .scroll.paddedClientRect().height <= .contentHeight or !.isLoading())
         {
             .hasPendingTarget = false
-            let position      = .scroll.scrollPosition()
+            let position = .scroll.scrollPosition()
             .scroll.setScrollPos(position.x, .pendingTarget)
         }
 
@@ -401,10 +428,20 @@ private impl MarkdownView
         var forward: bool
         switch evt.key
         {
-        case .Up where evt.modifiers == .None:                                target -= .scroll.verticalScrollStep
-        case .Down where evt.modifiers == .None:                              target += .scroll.verticalScrollStep; forward = true
-        case .PageUp where evt.modifiers == .None:                            target -= page
-        case .PageDown where evt.modifiers == .None:                          target += page; forward = true
+        case .Up where evt.modifiers == .None:
+            target -= .scroll.verticalScrollStep
+
+        case .Down where evt.modifiers == .None:
+            target  += .scroll.verticalScrollStep
+            forward = true
+
+        case .PageUp where evt.modifiers == .None:
+            target -= page
+
+        case .PageDown where evt.modifiers == .None:
+            target  += page
+            forward = true
+
         case .Home where evt.modifiers == .None or evt.modifiers == .Control:
             .jumpToEnd        = false
             .pauseStreaming   = false
@@ -419,16 +456,22 @@ private impl MarkdownView
             if .fileSize and (.residentStart + (.bytesRead - .residentStart) < .fileSize)
             {
                 let start = .fileSize > MarkdownStreamCarryLimit ? .fileSize - MarkdownStreamCarryLimit : 0
-                discard .revealFileOffset(start, "")
                 .jumpToEnd = true
+                discard .revealFileOffset(start, "")
             }
             else do
                 .scroll.setScrollPos(position.x, .contentHeight)
             return true
 
-        case .Space where evt.modifiers == .None:  target += page; forward = true
-        case .Space where evt.modifiers == .Shift: target -= page
-        default: return false
+        case .Space where evt.modifiers == .None:
+            target  += page
+            forward = true
+
+        case .Space where evt.modifiers == .Shift:
+            target -= page
+
+        default:
+            return false
         }
 
         .jumpToEnd      = false
@@ -448,10 +491,18 @@ private impl MarkdownView
 
     mtd applyDocumentStyle()
     {
+        // Arrow navigation advances by the same minimum line height used by body text. Page
+        // navigation remains viewport-relative in handleDocumentKey.
+        .scroll.verticalScrollStep = .theme().createDefaultFont(.documentStyle.bodyFontSize).height * .documentStyle.lineHeight
         for &block in .blocks
         {
-            if block.inline do
+            if block.inline
+            {
                 block.inline!.layoutWidth = 0
+                if block.kind >= .Heading1 and block.kind <= .Heading6 do
+                    block.inline!.horizontalAlignment = .documentStyle.headingAlignment
+            }
+
             if block.table do
                 block.table!.layoutWidth = 0
         }
@@ -459,12 +510,10 @@ private impl MarkdownView
         .layoutDocument()
         .invalidate()
     }
-
 }
 
 public impl MarkdownView
 {
-
     // Creates an empty Markdown document view.
     #[Swag.Discardable]
     func create(contentParent: *Wnd, documentStyle: MarkdownStyle = {})->*MarkdownView
@@ -473,17 +522,20 @@ public impl MarkdownView
         result.backgroundStyle = .View
         result.focusPolicy     = .Tab
         result.wndFlags        |= .NoFocusRing
-        result.documentStyle    = documentStyle
-        result.contentHeight    = documentStyle.topInset
+        result.documentStyle   = documentStyle
+        result.contentHeight   = documentStyle.topInset
 
         result.scroll           = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
+        result.scroll.verticalScrollStep       = result.theme().createDefaultFont(documentStyle.bodyFontSize).height * documentStyle.lineHeight
         result.body                            = result.scroll.createView'Wnd()
         result.body.backgroundStyle            = .View
         result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
         {
             discard scroll
+            if view.jumpToEnd do
+                return
             if view.pauseStreaming and newPosition.y < oldPosition.y do
                 view.pauseStreaming = false
             if view.virtualHeight > 0 and !view.blocks.isEmpty() and (newPosition.y + view.scroll.paddedClientRect().height < view.virtualOrigin or newPosition.y > view.contentHeight)
@@ -492,8 +544,10 @@ public impl MarkdownView
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
                 view.pendingSeek       = true
             }
+
             view.scheduleMore()
         }
+
         // The scroll viewport receives its final size during the parent's layout pass. Relayout
         // from that child resize so document centering never uses the previous window width.
         result.scroll.hookOnEvent = func|view = result|(wnd, evt)
@@ -504,6 +558,7 @@ public impl MarkdownView
                 view.layoutDocument()
                 view.scheduleMore()
             }
+
             return false
         }
         result.applyLayout()
@@ -537,7 +592,7 @@ public impl MarkdownView
     {
         let result = .create(contentParent, documentStyle)
         result.fileName = fileName
-        result.stream = catch File.openRead(fileName) as openError
+        result.stream   = catch File.openRead(fileName) as openError
         if openError != null
         {
             result.sourceCarry = "Unable to read this Markdown document."
@@ -561,6 +616,14 @@ public impl MarkdownView
         .applyDocumentStyle()
     }
 
+    // Applies document-local theme colors to the complete view, including blocks created later
+    // while a file is streaming. Pass an empty sheet to resume the application theme.
+    mtd setDocumentThemeColors(styleSheetColors: string)
+    {
+        .documentThemeColors = styleSheetColors
+        applyMarkdownThemeColors(me, styleSheetColors)
+    }
+
     // Reports whether source remains to be parsed or displayed.
     mtd const isLoading()->bool
     {
@@ -579,7 +642,7 @@ public impl MarkdownView
         let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
         for offset in .blocks.count
         {
-            let index = (first + offset) % .blocks.count
+            let index  = (first + offset) % .blocks.count
             let source = .blocks[index].searchText.toString()
             if Utf8.indexOf(source, text, 0, .Latin1NoCase) == Swag.U64.Max do
                 continue
@@ -605,11 +668,12 @@ public impl MarkdownView
         .pendingBlocks.clear()
         .pendingIndex = 0
         .sourceCarry.clear()
-        .sourceDone = false
+        .sourceDone       = false
         .searchBlockIndex = Swag.U64.Max
-        .pendingSearch = text
+        .pendingSearch    = text
 
-        let start = Math.min(offset, .fileSize)
+        let requested = Math.min(offset, .fileSize)
+        let start     = requested > MarkdownRevealContextSize ? requested - MarkdownRevealContextSize : 0
         for adjustment in 4
         {
             .stream = catch File.openRead(.fileName.toString()) as openError
@@ -617,26 +681,30 @@ public impl MarkdownView
                 return false
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readUtf8Chunk(MarkdownStreamChunkSize) as readError
+            var chunk = catch .stream.readUtf8Chunk(MarkdownRevealChunkSize) as readError
             if readError != null
             {
                 .stream.close()
                 continue
             }
 
+            let localTarget    = requested > actual ? Math.min(requested - actual, chunk.length) : 0
+            let boundary       = markdownStreamBoundary(chunk.toString()[0 until localTarget])
             let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
-            .residentStart = actual
+            .residentStart = actual + boundary
             .bytesRead     = actual + chunk.length
-            .sourceCarry   = #move chunk
+            .sourceCarry   = String.from(chunk.toString()[boundary to])
             .sourceDone    = .bytesRead >= .fileSize
             .virtualHeight = Math.max(previousHeight, .scroll.paddedClientRect().height)
-            .virtualOrigin = .fileSize ? .virtualHeight * cast(f32) actual / cast(f32) .fileSize : 0
+            .virtualOrigin = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
             .contentHeight = .virtualOrigin + .documentStyle.topInset
             .layoutDocument()
-            .scroll.setScrollPos(0, .virtualOrigin)
+            if !.jumpToEnd do
+                .scroll.setScrollPos(0, .virtualOrigin)
             .scheduleMore()
             return true
         }
+
         return false
     }
 }
@@ -677,6 +745,7 @@ internal impl IWnd for MarkdownView
             discard .revealFileOffset(offset, "")
             return
         }
+
         .streamStep()
         .scheduleMore()
     }

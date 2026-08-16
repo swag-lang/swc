@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Complete HTML viewer fixture</title>
+  <style>
+    body { background: #f4f1ea; color: #26231f; max-width: 840px; }
+    h1 { color: #704214; font-size: 36px; text-align: center; }
+    .lead { color: #40566d; font-size: 19px; }
+    #search-target { color: #8b1e3f; font-weight: bold; }
+    article blockquote { background: #e7dfd0; }
+    pre { background: #282c34; color: #f4f4f4; }
+  </style>
+  <script>window.hiddenScriptText = "must not render";</script>
+</head>
+<body>
+  <main>
+    <article>
+      <h1>Heading level one</h1>
+      <h2>Heading level two</h2>
+      <h3>Heading level three</h3>
+      <h4>Heading level four</h4>
+      <h5>Heading level five</h5>
+      <h6>Heading level six</h6>
+      <p class="lead">Text with <strong>strong</strong>, <em>emphasis</em>,
+        <mark>highlight</mark>, <del>deleted</del>, <ins>inserted</ins>,
+        <sub>subscript</sub>, <sup>superscript</sup>, <code>inline code</code>,
+        an entity &amp;, UTF-8 café 日本語 🙂, and<br>a hard break.</p>
+      <p><a href="https://example.com">A visible link</a> and
+        <img src="missing-test-image.png" alt="descriptive image alternative"></p>
+      <blockquote>A block quote with <q>an inline quotation</q>.</blockquote>
+      <ul><li>Unordered item<ul><li>Nested item</li></ul></li></ul>
+      <ol><li>Ordered item</li><li>Second item</li></ol>
+      <p><input type="checkbox" checked> Completed task
+        <input type="checkbox"> Pending task</p>
+      <pre><code>func answer()-&gt;u32 =&gt; 42</code></pre>
+      <table>
+        <caption>Viewer capabilities</caption>
+        <thead><tr><th>Feature</th><th>Status</th></tr></thead>
+        <tbody><tr><td>Native rendering</td><td>Enabled</td></tr></tbody>
+      </table>
+      <details open><summary>Expandable details</summary><p>Details body.</p></details>
+      <dl><dt>Term</dt><dd>Definition</dd></dl>
+      <figure><figcaption>A semantic figure caption</figcaption></figure>
+      <hr>
+      <p id="search-target" style="font-size:20px">The distant html verification marker is visible here.</p>
+      <template>hidden template text</template>
+      <iframe>hidden iframe fallback</iframe>
+      <object>hidden object fallback</object>
+    </article>
+  </main>
+</body>
+</html>

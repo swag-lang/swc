@@ -1,0 +1,8 @@
+# Normalized signed samples used to verify a waveform with silence, peaks, and decay.
+0.0
+1.0
+0.5
+-0.5
+-1.0
+0.25
+0.0

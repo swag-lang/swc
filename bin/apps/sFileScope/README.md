@@ -1,8 +1,10 @@
 # sFileScope
 
 sFileScope is the universal read-only viewer shipped with Swag. The executable owns navigation,
-drag and drop, the action bar, the built-in text view, and lazy plugin selection. Format-specific
-code stays in standalone shared libraries and enters the process only when selected.
+drag and drop, the application action bar, the built-in text view, and lazy plugin selection.
+Viewer selection and format-specific actions live in a separate viewer bar, so document tools do
+not compete visually with Open, navigation, search, or the application theme. Format-specific code
+stays in standalone shared libraries and enters the process only when selected.
 
 ## Viewer registry
 
@@ -41,18 +43,35 @@ hexadecimal alternative instead of guessing an encoding.
   layout handles fractions, roots, scripts, scalable delimiters, operators, matrices, cases, and aligned
   expressions. Reader, paper, and compact appearances can be combined with narrow, medium, wide, or
   fluid reading measures. The renderer is offline and executes no embedded HTML or script.
-- `plugin.html` streams document blocks into a centered page, keeps links explicit, and applies useful CSS
-  from style sheets and inline declarations: tag, class, id and simple descendant selectors;
-  foreground and background colors; font sizes, weights and styles; alignment; and body width.
-  Head, script, style, template, and embedded-document content never executes.
+- `plugin.html` is a thin sFileScope adapter around the reusable GUI `HtmlView`. The control streams
+  document blocks into a centered page, keeps links explicit, follows the active GUI palette, and
+  applies useful CSS from style sheets and inline declarations: tag, class, id and simple descendant
+  selectors; foreground and background colors; font sizes, weights and styles; alignment; and body
+  width. Source colors are contrast-corrected against the active page ground. Head, script, style,
+  template, and embedded-document content never executes.
 - `plugin.image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, and Pixel's
   vector parser for SVG. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF
   playback and seeking.
 - `plugin.sound` uses the Audio module to load and play PCM or float WAV files. It shows format metadata,
   a peak waveform, a live playhead, and icon-only Play/Pause/Stop controls. Metadata and waveform
   decoding remain available when no playback device can be opened.
+- `plugin.binary` takes a binary apart into the structure tree its own format declares, with the field
+  name, the decoded value, the offset it was read at, and what it means side by side. Windows images
+  (`PE32`/`PE32+`) are read down to their DOS and Rich headers, sections, data directories, imports and
+  delayed imports, exports and forwarders, the resource tree with its decoded version block, the debug
+  directory with the CodeView identity its symbol file must carry, relocations, thread-local storage,
+  load configuration, the CLR header, and the appended signature. COFF objects, `ar` static and import
+  libraries, ELF images with their program headers and dynamic section, Mach-O images and universal
+  binaries, WebAssembly modules, ZIP archives and every container built on one, RIFF containers, and
+  sfnt fonts each have their own reader; a Swag Chunk Container is read through the standard
+  `Core.Scc` reader. A file no reader claims is still identified by signature, sized, and weighed by
+  entropy. Ctrl+E opens or closes the whole tree, Ctrl+C copies the report as indented text, and a
+  host search reveals the innermost structure covering the matching byte, so a hit inside a section's
+  payload lands on that section.
 - `plugin.hex` is available for every file. It pages through 64 KiB at a time and shows 64-bit offsets,
-  sixteen hexadecimal bytes, and printable ASCII without loading a large file into memory.
+  hexadecimal bytes, and printable ASCII without loading a large file into memory. Its grouping field
+  selects bytes or signed, unsigned, and floating-point values of 2, 4, or 8 bytes; navigation and
+  selection snap to the chosen scalar and the inspector decodes that complete value in either endian.
 
 Text, code, Markdown, and HTML views handle arrows, Home/End, Page Up/Page Down, and Space/Shift+Space
 where appropriate. Their scrollbar represents an estimated full document while content is still
@@ -63,8 +82,9 @@ byte. Ctrl+F opens the shared search field, Enter or F3 finds the next occurrenc
 in asynchronous 256 KiB chunks, and Escape restores the normal action bar.
 
 The host keeps file type, name, size, and plugin-specific basic statistics in a persistent bottom
-bar whose quieter surface is distinct from the document view. It navigates every file in the current
-folder with Left/Right, reloads with F5, opens with
+bar whose quieter surface is distinct from the document view. Its Dark/Light choice and native
+window state (position, size, and maximized state) are stored in the user's application-data folder.
+It navigates every file in the current folder with Left/Right, reloads with F5, opens with
 Ctrl+O, and accepts one file dropped anywhere on the surface. Run
 `sFileScope.exe --register-file-types` from an installer or explicit setup action to register the
 extensions declared by specialized plugins. Normal launches never write the registry.

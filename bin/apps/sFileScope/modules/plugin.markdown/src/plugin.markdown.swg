@@ -2,29 +2,76 @@
 
 using Core, Gui, FileScopePluginApi
 
-private func markdownViewerStyle(themeIndex, widthIndex: u32)->MarkdownStyle
+internal func markdownViewerStyle(themeIndex, widthIndex: u32)->MarkdownStyle
 {
     var result = MarkdownStyle.theme()
     switch themeIndex
     {
-    case 1:
-        result.bodyFontSize = 17
-        result.codeFontSize = 15
-        result.topInset     = 46
-        result.bottomInset  = 46
-
     case 2:
-        result.bodyFontSize    = 14
-        result.codeFontSize    = 13
-        result.horizontalInset = 32
-        result.topInset        = 28
-        result.bottomInset     = 28
+        result.maxContentWidth  = 640
+        result.horizontalInset  = 40
+        result.topInset         = 48
+        result.bottomInset      = 48
+        result.heading1FontSize = 30
+        result.heading2FontSize = 21
+        result.heading3FontSize = 21
+        result.heading4FontSize = 18
+        result.lineHeight       = 1.5
+
+    case 3:
+        result.maxContentWidth  = 914
+        result.horizontalInset  = 48
+        result.topInset         = 42
+        result.bottomInset      = 48
+        result.heading1FontSize = 40
+        result.heading2FontSize = 26
+        result.heading3FontSize = 19
+        result.heading4FontSize = 18
+        result.heading6FontSize = 15
+        result.lineHeight       = 1.625
+
+    case 4:
+        result.maxContentWidth  = 914
+        result.horizontalInset  = 48
+        result.topInset         = 32
+        result.bottomInset      = 56
+        result.bodyFontSize     = 18
+        result.codeFontSize     = 16
+        result.mathFontSize     = 24
+        result.heading1FontSize = 42
+        result.heading2FontSize = 30
+        result.heading3FontSize = 24
+        result.heading4FontSize = 20
+        result.heading5FontSize = 18
+        result.heading6FontSize = 18
+        result.lineHeight       = 1.8
+
+    case 5:
+        result.maxContentWidth  = 960
+        result.horizontalInset  = 52
+        result.topInset         = 40
+        result.bottomInset      = 48
+        result.bodyFontSize     = 19
+        result.codeFontSize     = 17
+        result.mathFontSize     = 25
+        result.heading1FontSize = 48
+        result.heading2FontSize = 30
+        result.heading3FontSize = 23
+        result.heading4FontSize = 20
+        result.heading5FontSize = 19
+        result.heading6FontSize = 19
+        result.lineHeight       = 1.53
+        result.headingAlignment = .Center
     }
 
     switch widthIndex
     {
-    case 0: result.maxContentWidth = 680
-    case 2: result.maxContentWidth = 1_100
+    case 0:
+        result.maxContentWidth = 680
+
+    case 2:
+        result.maxContentWidth = 1_100
+
     case 3:
         result.maxContentWidth = 100_000
         result.horizontalInset = 24
@@ -33,11 +80,22 @@ private func markdownViewerStyle(themeIndex, widthIndex: u32)->MarkdownStyle
     return result
 }
 
-private func applyMarkdownViewerStyle(view: *MarkdownView, themeIndex, widthIndex: u32)
+internal func markdownViewerColors(themeIndex: u32)->string
 {
-    view.style.clearStyleSheetColors()
-    if themeIndex == 1 do
-        view.style.addStyleSheetColors("view_Bk $wnd_Bk")
+    switch themeIndex
+    {
+    case 0:  return ""
+    case 2:  return "view_Bk 0xFFF3F2EE\nlabel_Text 0xFF1F0909\nlabel_TextLight 0xFF656565\nlabel_TextFaint 0xFF656565\nedit_Bk 0xFFDADADA\nedit_Border 0xFFC5C5C5\nedit_SelectedBk 0xFFBBCBD2\nurl_Text 0xFF065588\nurl_HotText 0xFF043A5D\nrichColor1 0xFFBABABA\nscrollBar_Bk 0xFFF3F2EE\nscrollBar_HotBk 0xFFE8E6E0\nscrollBar_Box 0xFFBAB6AE\nscrollBar_HotBox 0xFF8F8980\nscrollBar_PressedBox 0xFF6F6961"
+    case 3:  return "view_Bk 0xFF363B40\nlabel_Text 0xFFB8BFC6\nlabel_TextLight 0xFF9CA4AC\nlabel_TextFaint 0xFF8E969E\nedit_Bk 0xFF333333\nedit_Border 0xFF474D54\nedit_SelectedBk 0xFF4A6073\nurl_Text 0xFF6DC1E7\nurl_HotText 0xFFA3D5FE\nrichColor1 0xFFDEDEDE\nscrollBar_Bk 0xFF363B40\nscrollBar_HotBk 0xFF3D4349\nscrollBar_Box 0xFF596169\nscrollBar_HotBox 0xFF707A84\nscrollBar_PressedBox 0xFF89949F"
+    case 4:  return "view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333\nlabel_TextLight 0xFF666666\nlabel_TextFaint 0xFF7A7A7A\nedit_Bk 0xFFF8F8F8\nedit_Border 0xFFD8D8D8\nedit_SelectedBk 0xFFDDE7F2\nurl_Text 0xFF463F5C\nurl_HotText 0xFF6A6086\nrichColor1 0xFF7A7A7A\nscrollBar_Bk 0xFFFFFFFF\nscrollBar_HotBk 0xFFF4F4F4\nscrollBar_Box 0xFFC6C6C6\nscrollBar_HotBox 0xFFA6A6A6\nscrollBar_PressedBox 0xFF8A8A8A"
+    case 5:  return "view_Bk 0xFFFEFEFE\nlabel_Text 0xFF333333\nlabel_TextLight 0xFF666666\nlabel_TextFaint 0xFF777777\nedit_Bk 0xFFFFFFFF\nedit_Border 0xFFDDDDDD\nedit_SelectedBk 0xFFD9EAF5\nurl_Text 0xFF2484C1\nurl_HotText 0xFF17618F\nrichColor1 0xFF777777\nscrollBar_Bk 0xFFFEFEFE\nscrollBar_HotBk 0xFFF3F3F3\nscrollBar_Box 0xFFC8C8C8\nscrollBar_HotBox 0xFFA8A8A8\nscrollBar_PressedBox 0xFF8B8B8B"
+    default: return "view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333\nlabel_TextLight 0xFF666666\nlabel_TextFaint 0xFF777777\nedit_Bk 0xFFF8F8F8\nedit_Border 0xFFDFE2E5\nedit_SelectedBk 0xFFCCE5FF\nurl_Text 0xFF4183C4\nurl_HotText 0xFF2B6DA8\nrichColor1 0xFF777777\nscrollBar_Bk 0xFFFFFFFF\nscrollBar_HotBk 0xFFF5F5F5\nscrollBar_Box 0xFFC5C5C5\nscrollBar_HotBox 0xFFA5A5A5\nscrollBar_PressedBox 0xFF888888"
+    }
+}
+
+internal func applyMarkdownViewerStyle(view: *MarkdownView, themeIndex, widthIndex: u32)
+{
+    view.setDocumentThemeColors(markdownViewerColors(themeIndex))
     view.setDocumentStyle(markdownViewerStyle(themeIndex, widthIndex))
 }
 
@@ -47,7 +105,7 @@ func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string
     if apiVersion != ViewerPluginApiVersion do
         return null
 
-    let commandGroup = Wnd.create'Wnd(commandParent, {0, 0, 244, 36})
+    let commandGroup = Wnd.create'Wnd(commandParent, {0, 0, 264, 36})
     commandGroup.backgroundStyle = .Window
     let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
     widthCombo.dockStyle = .Right
@@ -58,19 +116,23 @@ func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string
     widthCombo.addItem("Fluid")
     widthCombo.setSelectedIndex(1, notify: false)
 
-    let themeCombo = ComboBox.create(commandGroup, {0, 0, 128, 36})
+    let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
     themeCombo.dockStyle = .Right
     themeCombo.margin.z  = 8
     themeCombo.toolTip   = "Markdown appearance"
-    themeCombo.addItem("Reader")
-    themeCombo.addItem("Paper")
-    themeCombo.addItem("Compact")
+    themeCombo.addItem("Application")
+    themeCombo.addItem("GitHub")
+    themeCombo.addItem("Newsprint")
+    themeCombo.addItem("Night")
+    themeCombo.addItem("Pixyll")
+    themeCombo.addItem("Whitey")
     themeCombo.setSelectedIndex(0, notify: false)
 
     commands[] = commandGroup
     details[]  = "Markdown · UTF-8 · streamed"
     let view = MarkdownView.createFile(contentParent, fileName, MarkdownStyle.theme())
-    revealMatch[] = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
+    applyMarkdownViewerStyle(view, 0, 1)
+    revealMatch[]         = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {
         discard combo

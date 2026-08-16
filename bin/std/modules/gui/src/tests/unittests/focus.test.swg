@@ -46,13 +46,14 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     defer host.shutdown()
 
     var pressedCount: u32
-    host.root.hookOnEvent = func|pressedCount = &pressedCount|(wnd, evt)
+    host.root.hookOnEvent = func|&pressedCount|(wnd, evt)
     {
         if let key = evt as KeyEvent where key.kind == .Pressed
         {
             pressedCount += 1
             return true
         }
+
         return false
     }
 

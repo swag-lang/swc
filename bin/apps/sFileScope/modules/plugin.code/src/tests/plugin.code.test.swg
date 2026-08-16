@@ -3,12 +3,15 @@
 
 using Core, Pixel, Gui
 
+private func codeFixturePath(name: string)->String
+{
+    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "files"), name)
+}
+
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("filescope_code_%.swg", Guid64.random()).toString())
-    defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "func answer()->u32 => 42\n")
+    let fileName = codeFixturePath("sample.swg")
+    let source   = expect File.readAllText(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -23,7 +26,7 @@ using Core, Pixel, Gui
     view.editor.lexAll()
 
     let content = view.editor.textAndStyles()
-    @assert(Utf8.fromUnicode(content.text.toSlice()) == "func answer()->u32 => 42\n")
+    @assert(Utf8.fromUnicode(content.text.toSlice()) == source)
     var colored: bool
     for style in content.styles where style != 0
     {
@@ -63,8 +66,65 @@ using Core, Pixel, Gui
     @assert(view.editor.scrollPosition().y > beforeEnd.y)
 }
 
+// Keeps the code viewer's estimated document extent from shrinking while multiple chunks are
+// appended without an intervening paint, while the focused editor honors every navigation tier.
 #test
 {
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("filescope_code_large_scroll_%.swg", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    var source: String
+    for 90_000 do
+        source += "func streamedValue()->u32 => 42\n"
+    @assert(source.length >= 2 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    let view = CodePluginView.create(&host.root, fileName)
+    view.resize(640, 360)
+    view.applyLayout()
+    discard host.render(view)
+    view.updateEstimatedHeight()
+
+    view.setInitialFocus(view.editor)
+    @assert(view.editor.hasFocus())
+    host.keyPress(Input.Key.Down)
+    @assert(view.editor.selectionEnd().lineIndex == 1)
+    host.keyPress(Input.Key.Up)
+    @assert(view.editor.selectionEnd().lineIndex == 0)
+    host.keyPress(Input.Key.PageDown)
+    let pageLine = view.editor.selectionEnd().lineIndex
+    @assert(pageLine > 1)
+    host.keyPress(Input.Key.PageUp)
+    @assert(view.editor.selectionEnd().lineIndex < pageLine)
+
+    let firstVirtualHeight = view.virtualHeight
+    @assert(firstVirtualHeight > view.editor.paddedClientRect().height)
+    for 8
+    {
+        view.loadNextChunk()
+        @assert(view.virtualHeight >= firstVirtualHeight)
+        @assert(view.editor.scrollableClientRect().height >= firstVirtualHeight)
+    }
+
+    host.keyPress(Input.Key.End)
+    discard host.render(view)
+    @assert(view.residentStart > 0)
+    @assert(view.editor.scrollPosition().y > 0)
+    host.keyPress(Input.Key.Home)
+    discard host.render(view)
+    @assert(view.residentStart == 0)
+    @assert(view.editor.selectionEnd().lineIndex == 0)
+    @assert(view.editor.scrollPosition().y == 0)
+}
+
+#test
+{
+    @assert(File.exists(codeFixturePath("sample.swg")))
+    @assert(File.exists(codeFixturePath("sample.cpp")))
+    @assert(File.exists(codeFixturePath("sample.json")))
     @assert(codeLanguage("sample.cpp") == .Cpp)
     @assert(codeLanguage("sample.cs") == .CSharp)
     @assert(codeLanguage("sample.tsx") == .TypeScript)

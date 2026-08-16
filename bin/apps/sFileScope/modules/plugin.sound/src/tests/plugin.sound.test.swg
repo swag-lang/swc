@@ -55,6 +55,11 @@ private func previewWav()->Array'u8
     return result
 }
 
+private func waveformFixturePath()->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "files/waveform.samples.txt")
+}
+
 private func writeU16(bytes: *Array'u8, offset: u64, value: u16)
 {
     bytes[offset]     = cast(u8) (value & 0xFF)
@@ -159,6 +164,8 @@ private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
 
 #test
 {
+    let fixture = expect File.readAllText(waveformFixturePath())
+    @assert(Utf8.contains(fixture.toString(), "1.0") and Utf8.contains(fixture.toString(), "-1.0"))
     let samples = buildWaveform([0'u8, 128'u8, 255'u8], .Pcm8, 1)
     @assert(samples.count == 3)
     @assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
@@ -206,7 +213,7 @@ private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
 #test
 {
     let sourceDirectory = Path.directoryName(#curlocation.fileName)!
-    let pacmanWav       = Path.combine(sourceDirectory, "../../../../../examples/scripts/datas/pacman/audio/pacman_beginning.wav")
+    let pacmanWav       = Path.combine(sourceDirectory, "../../../../../../examples/scripts/datas/pacman/audio/pacman_beginning.wav")
     if !File.exists(pacmanWav) do
         return
 

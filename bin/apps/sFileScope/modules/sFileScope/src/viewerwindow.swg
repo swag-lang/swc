@@ -1,16 +1,17 @@
 using Core, Pixel, Gui, FileScopePluginApi
 
-const ViewerBarHeight = 52.0
-const ViewerInfoHeight = 44.0
-const ViewerGlyphSize = 20.0
+const ViewerBarHeight       = 52.0
+const ViewerToolBarHeight   = 44.0
+const ViewerInfoHeight      = 44.0
+const ViewerGlyphSize       = 20.0
 const ViewerSearchChunkSize = 256 * 1024'u64
 
 struct ViewerInstance
 {
-    view:     #null *Wnd
-    commands: #null *Wnd
+    view:        #null *Wnd
+    commands:    #null *Wnd
     revealMatch: #null ViewerRevealMatch
-    details:  String
+    details:     String
 }
 
 struct ViewerWindow
@@ -20,12 +21,14 @@ struct ViewerWindow
     #[Swag.Late]
     {
         commandBar:     *Wnd
+        viewerBar:      *Wnd
         previousButton: *IconButton
         nextButton:     *IconButton
         openButton:     *IconButton
         searchButton:   *IconButton
         searchBox:      *EditBox
         viewerCombo:    *ComboBox
+        themeCombo:     *ComboBox
         infoBar:        *Wnd
         infoTypeLabel:  *Label
         infoNameLabel:  *Label
@@ -39,7 +42,7 @@ struct ViewerWindow
     currentCommands: #null *Wnd
     choices:         Array'ViewerChoice
     instances:       Array'ViewerInstance
-    activeChoiceIndex = Swag.U32.Max
+    activeChoiceIndex    = Swag.U32.Max
     startupTimer:    #null *Timer
     searchTimer:     #null *Timer
     searchStream:    File.FileStream
@@ -52,8 +55,9 @@ struct ViewerWindow
     currentFile:     String
     siblings:        Array'String
     siblingIndex:    u64
-    siblingsDirty     = true
+    siblingsDirty        = true
     fileDlgState:    FileDlgState
+    themeIndex:      u32
 }
 
 impl IWnd for ViewerWindow
@@ -123,6 +127,7 @@ impl IWnd for ViewerWindow
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        catch g_App.saveState()
         .stopSearch()
         if .startupTimer
         {
@@ -130,10 +135,44 @@ impl IWnd for ViewerWindow
             .startupTimer = null
         }
     }
+
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        if evt.kind != .Init
+        {
+            evt.accepted = false
+            return
+        }
+
+        catch g_App.loadState()
+        .applyTheme(.themeIndex)
+        .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
+        evt.accepted = true
+    }
+
+    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
+    {
+        catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
+        catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
+        if evt.serializer.isReading() do
+            .themeIndex = Math.min(.themeIndex, 1)
+    }
 }
 
 impl ViewerWindow
 {
+    mtd applyTheme(index: u32)
+    {
+        .themeIndex = Math.min(index, 1)
+        if .themeIndex do
+            .app().theme.setSwagLight()
+        else do
+            .app().theme.setSwagDark()
+        .app().notifyThemeChanged()
+        if @isset(.themeCombo) do
+            .themeCombo.setSelectedIndex(.themeIndex, notify: false)
+    }
+
     func create(parent: *Wnd, index: ViewerPluginIndex)->*ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "sFileScope.main")
@@ -151,11 +190,19 @@ impl ViewerWindow
             .padding         = {16, 8, 16, 8}
         }
 
+        with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerToolBarHeight})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Window
+            .padding         = {16, 4, 16, 4}
+            .hide()
+        }
+
         with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 36, 36})
         {
-            .dockStyle = .Left
-            .margin.z  = 16
-            .toolTip   = appStrings().ui_Open
+            .dockStyle  = .Left
+            .margin.z   = 16
+            .toolTip    = appStrings().ui_Open
             .sigPressed += func|window = result|(button)
             {
                 discard button
@@ -195,6 +242,22 @@ impl ViewerWindow
             }
         }
 
+        with result.themeCombo = ComboBox.create(result.commandBar, {0, 0, 160, 36})
+        {
+            .dockStyle = .Right
+            .margin.x  = 12
+            .toolTip   = appStrings().ui_Theme
+            .addItem(appStrings().ui_ThemeDark)
+            .addItem(appStrings().ui_ThemeLight)
+            .setSelectedIndex(0, notify: false)
+            .sigChanged += func|window = result|(combo, index)
+            {
+                discard combo
+                window.applyTheme(index)
+                catch g_App.saveState()
+            }
+        }
+
         with result.previousButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
@@ -219,10 +282,10 @@ impl ViewerWindow
             }
         }
 
-        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 172, 36})
+        with result.viewerCombo = ComboBox.create(result.viewerBar, {0, 0, 172, 36})
         {
-            .dockStyle = .Right
-            .margin.x  = 16
+            .dockStyle = .Left
+            .margin.z  = 16
             .toolTip   = appStrings().ui_Viewer
             .hide()
             .sigChanged += func|window = result|(combo, index)
@@ -262,7 +325,7 @@ impl ViewerWindow
             .setTextAlignment(.Left, .Center)
         }
 
-        with result.emptyLabel = Label.create(result, Format.toString("<b>%</b>\n%", appStrings().ui_DropTitle, appStrings().ui_DropHelp), {}, null, .WordWrap)
+        with result.emptyLabel = Label.create(result, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {}, null, .WordWrap)
         {
             .dockStyle = .Center
             .padding   = {48, 48, 48, 48}
@@ -308,6 +371,7 @@ impl ViewerWindow
         .choices.clear()
         .viewerCombo.clear()
         .viewerCombo.hide()
+        .viewerBar.hide()
         .activeChoiceIndex = Swag.U32.Max
         .siblings.clear()
         .siblingsDirty = true
@@ -357,13 +421,13 @@ impl ViewerWindow
             return true
         }
 
-        var nextCommands: #null *Wnd = null
-        var nextView:     #null *Wnd = null
+        var nextCommands: #null *Wnd              = null
+        var nextView:     #null *Wnd              = null
         var nextReveal:   #null ViewerRevealMatch = null
-        var nextDetails:  String = {}
+        var nextDetails:  String                  = {}
         if choice.kind == .BasicText
         {
-            let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
+            let basic = BasicTextView.create(me, .viewerBar, .currentFile.toString())
             nextView     = basic
             nextCommands = basic.commands
             nextReveal   = &basicTextRevealMatch
@@ -372,7 +436,7 @@ impl ViewerWindow
         else
         {
             let spec = &.index.specs[choice.specIndex]
-            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails, &nextReveal) as pluginError
+            nextView = catch .plugins.createView(me, .viewerBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails, &nextReveal) as pluginError
             if pluginError != null or !nextView
             {
                 if nextCommands do
@@ -389,10 +453,10 @@ impl ViewerWindow
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .Right
-        instance.view     = .currentView
-        instance.commands = .currentCommands
+        instance.view        = .currentView
+        instance.commands    = .currentCommands
         instance.revealMatch = nextReveal
-        instance.details  = #move nextDetails
+        instance.details     = #move nextDetails
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(choice.name.toString(), instance.details.toString())
         .applyLayout()
@@ -414,16 +478,12 @@ impl ViewerWindow
             .searchQuery = text
             .searchMatch = Swag.U64.Max
         }
+
         .beginSearch(offset)
     }
 
     mtd showSearch()
     {
-        .currentCommands?.hide()
-        .viewerCombo.hide()
-        .searchBox.hide()
-        .searchButton.show()
-        .searchButton.enable(false)
         .searchButton.hide()
         .searchBox.show()
         .searchBox.setFocus()
@@ -434,9 +494,7 @@ impl ViewerWindow
     {
         .searchBox.hide()
         .searchButton.show()
-        if !.choices.isEmpty() do
-            .viewerCombo.show()
-        .currentCommands?.show()
+        .searchButton.enable(true)
         .applyLayout()
     }
 
@@ -447,6 +505,7 @@ impl ViewerWindow
             .removeTimer(.searchTimer!)
             .searchTimer = null
         }
+
         .searchStream.close()
         .searchCarry.clear()
     }
@@ -459,6 +518,7 @@ impl ViewerWindow
             .infoStatsLabel.setText(appStrings().ui_NoMatch)
             return
         }
+
         discard catch .searchStream.seek(.Begin, offset)
         .searchOffset = offset
         .searchCarry.clear()
@@ -487,6 +547,7 @@ impl ViewerWindow
             .infoStatsLabel.setText(appStrings().ui_NoMatch)
             return
         }
+
         bytes.resize(count)
 
         let carryLength = .searchCarry.length
@@ -505,6 +566,7 @@ impl ViewerWindow
                     return
                 }
             }
+
             .infoStatsLabel.setText(appStrings().ui_NoMatch)
             return
         }
@@ -518,6 +580,7 @@ impl ViewerWindow
                 .beginSearch(0)
                 return
             }
+
             .infoStatsLabel.setText(appStrings().ui_NoMatch)
             return
         }
@@ -576,6 +639,7 @@ impl ViewerWindow
         for choice in .choices do
             .viewerCombo.addItem(choice.name.toString())
         .viewerCombo.show()
+        .viewerBar.show()
 
         var selected = 0'u32
         if !.activateChoice(selected)

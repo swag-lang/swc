@@ -255,7 +255,7 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
             try File.delete(file.fullname.toString())
     }
 
-    for pluginKind in ["code", "image", "markdown", "html", "hex", "sound"]
+    for pluginKind in ["code", "image", "markdown", "html", "hex", "sound", "binary"]
     {
         let moduleName = Format.toString("plugin.%", pluginKind)
         let pluginDir  = Path.combine(applicationWorkspace(context, "sFileScope").toString(), ".output", moduleName.toString(), "shared-library", options.buildCfg.toString(), context.targetArch.toString())

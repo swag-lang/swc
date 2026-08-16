@@ -53,9 +53,10 @@ struct ComboBox
         // Hover state, the open popup, and the color animations of the painted parts.
         internal
         {
-            isHot:       bool                     // Whether the mouse is over the combo.
-            popup:       #null *PopupListCtrl     // Drop-down list while it is open.
-            maxIconSize: s32                      // Widest item icon, sizing the icon column.
+            isHot:              bool                     // Whether the mouse is over the combo.
+            popup:              #null *PopupListCtrl     // Drop-down list while it is open.
+            pointerFocusReturn: #null *Wnd               // Focus owner restored after pointer use.
+            maxIconSize:        s32                      // Widest item icon, sizing the icon column.
 
             aniBk:     BlendColor     // Color animation of the background.
             aniBorder: BlendColor     // Color animation of the border.
@@ -66,6 +67,25 @@ struct ComboBox
 
 impl IWnd for ComboBox
 {
+    mtd impl onFocusEvent(evt: *FocusEvent)
+    {
+        switch evt.kind
+        {
+        case .Gained:
+
+            // Keyboard traversal keeps a visibly focused combo available for keyboard selection.
+            // Pointer activation is transient: remember the document or control that must resume
+            // receiving keys once the drop-down interaction ends.
+            .pointerFocusReturn = .hasVisibleFocus() ? null : evt.other
+
+        case .Lost:
+
+            // A click elsewhere made an explicit focus choice; closing the popup must not undo it.
+            if evt.other != .popup do
+                .pointerFocusReturn = null
+        }
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if .editBox
@@ -379,8 +399,16 @@ private impl ComboBox
         let popup = .popup
         if !popup do
             return
-        popup.destroy()
+
+        let restoreFocus = .hasFocus() and !.hasVisibleFocus() ? .pointerFocusReturn : null
         .popup = null
+        popup.destroy()
+        .pointerFocusReturn = null
+
+        // Pointer-opened command lists are temporary overlays. Once dismissed they return the
+        // keyboard to its previous owner instead of leaving an invisible focus on the field.
+        if restoreFocus and !restoreFocus!.isPendingDestroy and restoreFocus!.surface == .surface and restoreFocus!.isEnabled() do
+            restoreFocus!.setFocus()
     }
 }
 

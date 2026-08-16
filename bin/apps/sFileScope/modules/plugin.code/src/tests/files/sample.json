@@ -1,0 +1,7 @@
+{
+  "name": "sFileScope",
+  "features": ["streaming", "search", "syntax highlighting"],
+  "verified": true,
+  "maxResidentBytes": 262144
+}
+

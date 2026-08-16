@@ -1,5 +1,8 @@
+#global public
+
 using Core, Pixel
 
+#[Swag.NoDoc]
 struct HtmlCssStyle
 {
     color:      Color
@@ -12,6 +15,7 @@ struct HtmlCssStyle
     hasAlign:   bool
 }
 
+#[Swag.NoDoc]
 struct HtmlCssRule
 {
     selector:     String
@@ -117,7 +121,7 @@ private func applyHtmlDeclarations(style: *HtmlCssStyle, declarations: string)
     }
 }
 
-func parseHtmlCss(source: string)->Array'HtmlCssRule
+internal func parseHtmlCss(source: string)->Array'HtmlCssRule
 {
     var result: retval
     var scan = 0'u64
@@ -205,7 +209,7 @@ private func htmlCssMatches(selector, tagName, tag: string)->bool
     return Utf8.compare(simple, tagName, .Latin1NoCase) == 0
 }
 
-func htmlCssStyle(tag, tagName: string, rules: const [..] HtmlCssRule)->HtmlCssStyle
+internal func htmlCssStyle(tag, tagName: string, rules: const [..] HtmlCssRule)->HtmlCssStyle
 {
     var result: retval
     for rule in rules where htmlCssMatches(rule.selector.toString(), tagName, tag) do

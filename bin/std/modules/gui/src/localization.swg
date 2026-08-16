@@ -77,6 +77,11 @@ struct Strings
         prop_ConfirmRemoveAll: string = "This will remove all elements"     // Confirmation before clearing a list.
         prop_Search:           string = "Search"                            // Placeholder of the property search box.
         prop_All:              string = "All"                               // Tab showing every category.
+        prop_ViewOptions:      string = "Property view options"             // Tooltip of property view commands.
+        prop_ExpandAll:        string = "Expand all"                        // Expand every property group.
+        prop_CollapseAll:      string = "Collapse all"                      // Collapse every property group.
+        prop_ExpandModified:   string = "Expand modified"                   // Expand groups containing modified fields.
+        prop_ShowModifiedOnly: string = "Show modified only"                // Restrict a property view to changed fields.
 
         // Wording of the [[Gui.ApplicationOptions]] rows a property grid generates from
         // reflection. An attribute value is a compile-time constant, so the declared English is

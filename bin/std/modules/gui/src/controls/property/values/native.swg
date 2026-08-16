@@ -211,6 +211,8 @@ internal impl Properties
 
         if .kind == .Panel
         {
+            if @isset(item.label) do
+                item.label.hide()
             .constructNativePanel(item, value, typeNative)
         }
         elif Reflection.hasAttribute(value, .SliderMinMax)

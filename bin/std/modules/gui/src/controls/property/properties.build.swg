@@ -103,23 +103,7 @@ internal impl Properties
         {
             let dispName = itemDisplayName(value)
 
-            // Panel rows label themselves: the composite editors carry the display name,
-            // the row only keeps it for the string filter.
-            if .kind == .Panel
-            {
-                if !dispName.isEmpty()
-                {
-                    if parentItem
-                    {
-                        item.filter += " "
-                        item.filter = parentItem.filter
-                        item.filter += " "
-                    }
-
-                    item.filter += dispName
-                }
-            }
-            elif !dispName.isEmpty()
+            if !dispName.isEmpty()
             {
                 var labelWidth = cast(f32) .gridColumnSize
                 if !.isGridLike() do
@@ -423,15 +407,6 @@ internal impl Properties
     // the header shown to the reader goes through the text resolver.
     mtd addCategoryHeader(name: #null string, parentForCateg: #null *PropertiesItem)->*PropertiesItem
     {
-        // Panel: a category paints as a thin separator line, not a titled header
-        if .kind == .Panel
-        {
-            let item = .addSeparator(name, parentForCateg)
-            item.flags.add(.Category | .Expanded)
-            .sections.add({item, 1})
-            return item
-        }
-
         let v    = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
         item.label.setText(resolveText(name orelse ""))

@@ -252,6 +252,8 @@ internal impl Properties
         // Panel row: a full-width labeled combo, right edge aligned with the other editors
         if .kind == .Panel
         {
+            if @isset(item.label) do
+                item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right

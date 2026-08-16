@@ -65,6 +65,11 @@ prop_ConfirmRemove    L'élément sera supprimé
 prop_ConfirmRemoveAll Tous les éléments seront supprimés
 prop_Search           Rechercher
 prop_All              Tout
+prop_ViewOptions      Options d'affichage des propriétés
+prop_ExpandAll        Tout développer
+prop_CollapseAll      Tout réduire
+prop_ExpandModified   Développer les propriétés modifiées
+prop_ShowModifiedOnly Afficher uniquement les propriétés modifiées
 
 prop_CategoryDebug       Débogage
 prop_ShowClipRect        Afficher le rectangle de découpe

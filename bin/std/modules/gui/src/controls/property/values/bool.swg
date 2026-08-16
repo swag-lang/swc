@@ -46,6 +46,8 @@ internal impl Properties
 
         if .kind == .Panel
         {
+            if @isset(item.label) do
+                item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
@@ -93,6 +95,8 @@ internal impl Properties
         if .kind == .Panel
         {
             let itemP = .addItem(value, data, parentItem)
+            if @isset(itemP.label) do
+                itemP.label.hide()
             with let ed = CheckButton.create(itemP.line!, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right

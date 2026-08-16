@@ -66,9 +66,10 @@ internal impl Properties
         btn.iconPainter = func|color|(btn, bc, pos, paintFlags)
         {
             bc.painter.setParams(.Antialiased)
+            let radius = btn.themeRects().btnIcon_RoundSquareBk.radius
             if !color.isOpaque() do
-                bc.painter.fillRoundRect(pos, 5, 5, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
-            bc.painter.fillRoundRect(pos, 5, 5, color[])
+                bc.painter.fillRoundRect(pos, radius, radius, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+            bc.painter.fillRoundRect(pos, radius, radius, color[])
         }
 
         btn.sigPopupRequested += func|prop = me, color, item, opaque, keepAlpha|(btn)

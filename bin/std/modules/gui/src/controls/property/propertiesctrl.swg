@@ -7,7 +7,7 @@ using Core, Pixel
 enum PropertiesCtrlFlags
 {
     None = 0              // Shows only the property editor.
-    SearchBar             // Adds a text search bar at the top.
+    SearchBar             // Adds text search and view options at the top.
     SectionNavigation     // Adds a hierarchical section pane on the left.
     SectionTabs           // Adds top tabs that filter by section.
 }
@@ -27,6 +27,10 @@ struct PropertiesCtrl
             list: *ListCtrl     // List associated with this value.
             #[Swag.Late]
             tab: *Tab     // Tab associated with this value.
+            #[Swag.Late]
+            search: *EditBox     // Search field, when [[Gui.PropertiesCtrlFlags.SearchBar]] is set.
+            #[Swag.Late]
+            viewButton: *IconButton     // View-options button beside [[Gui.PropertiesCtrl.search]].
             #[Swag.Late]
             properties: *Properties     // Property editor owned by this control.
         }
@@ -74,15 +78,28 @@ impl PropertiesCtrl
                 .splitter.setPaneVisible(0, false)
         }
 
-        // Filter bar
+        // Filter bar and view options
         if flags.has(.SearchBar)
         {
-            with let filter = EditBox.create(ed, "")
+            with let bar = Wnd.create'Wnd(ed, {0, 0, 0, 36})
             {
-                .setIcon(ed.theme().icon(ThemeIcons.Search, 18))
                 .dockStyle = .Top
+                .margin.w  = 8
+            }
+
+            with ed.viewButton = IconButton.create(bar, ed.theme().icon(.More, 18), {0, 0, 36, 36})
+            {
+                .dockStyle  = .Right
+                .margin.x   = 8
+                .toolTip    = strings().prop_ViewOptions
+                .sigPressed += func|ed|(btn) { ed.openViewMenu(btn); }
+            }
+
+            with ed.search = EditBox.create(bar, "")
+            {
+                .dockStyle = .Center
+                .setIcon(ed.theme().icon(ThemeIcons.Search, 18))
                 .setPlaceholder(strings().prop_Search)
-                .margin.w       = 8
                 .sigTextChanged += func|ed|(fil) { ed.properties.setFilter(fil.text()); }
                 .updateFlags(.ClearButton)
             }
@@ -119,8 +136,12 @@ impl PropertiesCtrl
         var parentLine: #null *ListLine
         for &it, idx in .properties.sections
         {
-            let str   = it.item!.label.text()
-            let naked = RichString.plainText(str)
+            let item = it.item!
+            var naked: String
+            if @isset(item.label) do
+                naked = RichString.plainText(item.label.text())
+            else do
+                naked = Properties.resolveText(item.typeValue.name orelse "")
 
             // In the filter bar
             if @isset(.tab) and it.lvl == 0
@@ -138,6 +159,32 @@ impl PropertiesCtrl
 
             if it.lvl == 0 do
                 parentLine = line
+        }
+    }
+
+    private mtd openViewMenu(button: *Button)
+    {
+        const ExpandAll      = "property-view-expand-all"
+        const CollapseAll    = "property-view-collapse-all"
+        const ExpandModified = "property-view-expand-modified"
+        const ModifiedOnly   = "property-view-modified-only"
+
+        let menu     = MenuCtrl.createPopup(me)
+        let gridLike = .properties.isGridLike()
+        menu.addItem(strings().prop_ExpandAll, ExpandAll, .theme().icon(.ChevronDown), disabled: !gridLike)
+        menu.addItem(strings().prop_CollapseAll, CollapseAll, .theme().icon(.ChevronUp), disabled: !gridLike)
+        menu.addItem(strings().prop_ExpandModified, ExpandModified, .theme().icon(.Undo), disabled: !gridLike)
+        menu.addSeparator()
+        menu.addItem(strings().prop_ShowModifiedOnly, ModifiedOnly, .theme().icon(.Filter), checked: .properties.modifiedOnly)
+
+        let rect = button.surfaceRect()
+        let sel  = menu.doModal({rect.x, rect.bottom()}, .TopLeft, autoDestroy: true)
+        switch sel
+        {
+        case ExpandAll:      .properties.expandAll()
+        case CollapseAll:    .properties.collapseAll()
+        case ExpandModified: .properties.expandModified()
+        case ModifiedOnly:   .properties.setModifiedOnly(!.properties.modifiedOnly)
         }
     }
 

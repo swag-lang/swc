@@ -139,10 +139,6 @@ private func workspaceModuleCommand(verb: string, workspace: string, module: str
 }
 
 // Runs the multi-module workspace suite.
-//
-// A test build writes a different executable to the normal output path, so the run that follows
-// has to rebuild the one holding the regular `#main`; the marker it prints is what proves the
-// rebuild happened rather than the test artifact being launched again.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
     let workspace = Path.combine(context.binDir.toString(), "unittests", "workspace")
@@ -186,6 +182,22 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let sandboxCode = try context.runCompiler(sandboxed)
     if sandboxCode != 0 do
         return sandboxCode
+
+    var dynamicLibraryBuild = workspaceModuleCommand("build", workspace.toString(), "runtime_context_dynamic_dll", buildCfg)
+    options.appendExtra(&dynamicLibraryBuild)
+
+    let dynamicLibraryBuildCode = try context.runCompiler(dynamicLibraryBuild)
+    if dynamicLibraryBuildCode != 0 do
+        return dynamicLibraryBuildCode
+
+    let dynamicLibrary = Path.combine(workspace.toString(), ".output", "runtime_context_dynamic_dll", "shared-library", buildCfg, options.targetArch.toString(), "runtime_context_dynamic_dll.dll")
+    var dynamicConsumer = workspaceModuleCommand("test", workspace.toString(), "runtime_context_dynamic_consumer", buildCfg)
+    dynamicConsumer.add(["--no-test-jit", "--run-arg", Format.toString("--dynamic-runtime-library=%", dynamicLibrary.toString()).toString()])
+    options.appendExtra(&dynamicConsumer)
+
+    let dynamicConsumerCode = try context.runCompiler(dynamicConsumer)
+    if dynamicConsumerCode != 0 do
+        return dynamicConsumerCode
 
     var tested = workspaceModuleCommand("test", workspace.toString(), "consumer_exe", buildCfg)
     tested.add(["--no-test-jit"])
@@ -243,6 +255,20 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if !output.contains("SWAG_WORKSPACE_MAIN_RAN")
     {
         Console.println("Workspace run did not reach the normal entry point after a test build.")
+        return 1
+    }
+
+    if !output.contains("up-to-date • consumer_exe.exe")
+    {
+        Console.println("Workspace run recompiled its unchanged executable after a test build.")
+        return 1
+    }
+
+    let reusedAfterRun = try context.captureCompiler(tested)
+    Console.print(reusedAfterRun.toString())
+    if !reusedAfterRun.contains("up-to-date • consumer_exe.test.exe")
+    {
+        Console.println("Workspace test recompiled its unchanged test artifact after a normal run.")
         return 1
     }
 

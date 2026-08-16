@@ -118,6 +118,7 @@ impl Driver
         .toRecycleVoices.allocator      = .allocationAllocator
         .buses.allocator                = .allocationAllocator
 
+        defer #fail .destroyNative()
         .createNative(kind)
 
         .wakeupUpdate.init()

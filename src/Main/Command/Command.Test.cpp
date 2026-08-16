@@ -653,6 +653,7 @@ namespace
                     const Result         buildResult = CommandRun::afterPauses(ctx, [&] {
                         return builder.run();
                     });
+                    compiler.setNativeArtifactBuilt(builder.artifactLinked());
 
                     // The JIT phase already counted the executed tests. When it is disabled the
                     // native artifact is the one that runs them, so account for them here instead.

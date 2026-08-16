@@ -255,17 +255,6 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
             try File.delete(file.fullname.toString())
     }
 
-    // Tests share the executable output directory with the packaged application. Do not let a
-    // preceding test pass leak its runner or generated sources into the shippable file set.
-    const TestArtifactPrefix = "sFileScope.test."
-    const GeneratedSourcePrefix = "sFileScope-generated-source-"
-    for file in try Directory.enumerateFiles(appDir)
-    {
-        let name = Path.fileName(file.fullname.toString()) orelse ""
-        if name == ".swc-artifacts.test" or Utf8.startsWith(name, TestArtifactPrefix) or Utf8.startsWith(name, GeneratedSourcePrefix) do
-            try File.delete(file.fullname.toString())
-    }
-
     for pluginKind in ["code", "image", "markdown", "html", "hex", "sound"]
     {
         let moduleName = Format.toString("plugin.%", pluginKind)

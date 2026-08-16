@@ -804,6 +804,13 @@ void PELinker::collectExports(LinkImage& image) const
         exported.name       = info.symbolName;
         exported.symbolName = info.symbolName;
         image.exports.push_back(std::move(exported));
+        if (!info.exportName.empty() && info.exportName != info.symbolName)
+        {
+            LinkExport alias;
+            alias.name       = info.exportName;
+            alias.symbolName = info.symbolName;
+            image.exports.push_back(std::move(alias));
+        }
     }
 }
 

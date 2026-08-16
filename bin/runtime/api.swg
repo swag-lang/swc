@@ -576,9 +576,9 @@ namespace Swag
                 pushUsedAlloc:  u32     // Error-allocator watermark at the push.
                 pushTraceIndex: u32     // Stack-trace depth at the push.
                 pushHasError:   u32     // Whether an error was already pending at the push.
+                padding:        u32
+                pushCurError:   #null any     // Current handled error at the push.
             }
-
-            padding: u32
         }
     }
 
@@ -610,6 +610,8 @@ namespace Swag
             errorIndex:       u32                                              // Number of errors in the array
             traceIndex:       u32                                              // Number of traces in the array
             hasError:         u32                                              // <> 0 if an error is raised
+            #[Swag.NoDoc]
+            runtimeTlsIdPlusOne: u64                                           // Process TLS slot shared by dynamically loaded Swag modules.
         }
     }
 

@@ -55,6 +55,7 @@ namespace
 
     enum class RuntimeHookStage : uint64_t
     {
+        Sync    = 0,
         Init    = 1,
         PreMain = 2,
         Drop    = 3,
@@ -269,6 +270,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 
     emitAdoptProcessArgs(builder, compiler, hookArgs.processArgs, nextVirtualIntRegIndex);
 
+    const MicroLabelRef syncLabel            = builder.createLabel();
     const MicroLabelRef initLabel            = builder.createLabel();
     const MicroLabelRef preMainSelectLabel   = builder.createLabel();
     const MicroLabelRef preMainRuntimeLabel  = builder.createLabel();
@@ -276,12 +278,18 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     const MicroLabelRef dropLabel            = builder.createLabel();
     const MicroLabelRef doneLabel            = builder.createLabel();
 
+    builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Sync), 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, syncLabel);
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Init), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, initLabel);
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::PreMain), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, preMainSelectLabel);
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Drop), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dropLabel);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+    builder.placeLabel(syncLabel);
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Sync, hookArgs, nextVirtualIntRegIndex);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
     emitGuardedRuntimeHookStage(builder, initLabel, doneLabel, RuntimeHookStage::Init, lifecycleStateOffset, [&] {
@@ -318,6 +326,8 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     info.machineCode = machineCode.get();
     info.sortKey     = runtimeHookSymbolName(nativeArtifactScopeName(compiler).view());
     info.symbolName  = info.sortKey;
+    if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
+        info.exportName = K_SHARED_RUNTIME_HOOK_SYMBOL;
     info.debugName   = std::format("{}::__runtimeHook", nativeArtifactScopeName(compiler));
     info.exported    = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
 

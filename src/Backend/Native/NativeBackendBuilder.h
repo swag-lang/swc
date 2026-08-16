@@ -71,6 +71,7 @@ struct NativeFunctionInfo
     const MachineCode* machineCode = nullptr;
     Utf8               sortKey;
     Utf8               symbolName;
+    Utf8               exportName;
     Utf8               debugName;
     uint32_t           jobIndex   = 0;
     uint32_t           textOffset = 0;
@@ -163,6 +164,7 @@ public:
     bool                      tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
     Result                    appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
     DiagnosticId              lastErrorId() const { return lastErrorId_; }
+    bool                      artifactLinked() const { return artifactLinked_; }
 
     Result run();
     Result runExistingArtifact();
@@ -243,9 +245,10 @@ private:
     Result      runAfterLink();
 
     TaskContext             ctx_;
-    CompilerInstance*       compiler_    = nullptr;
-    bool                    runArtifact_ = false;
-    DiagnosticId            lastErrorId_ = DiagnosticId::None;
+    CompilerInstance*       compiler_      = nullptr;
+    bool                    runArtifact_   = false;
+    bool                    artifactLinked_ = false;
+    DiagnosticId            lastErrorId_   = DiagnosticId::None;
     std::unique_ptr<Linker> deferredLinker_;
     LinkJob                 deferredToolRun_;
 };

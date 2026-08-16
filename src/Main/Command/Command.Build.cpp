@@ -90,10 +90,9 @@ namespace Command
 
         Result runRuntimeDependencyHook(TaskContext& ctx, const NativeRuntimeDependency& dependency, const ScriptRuntimeHookStage stage)
         {
-            const Utf8 hookSymbolName = runtimeHookSymbolName(dependency.linkModuleName.view());
             void*      hookAddress    = nullptr;
-            if (!ctx.compiler().externalModuleMgr().getFunctionAddress(hookAddress, dependency.linkModuleName.view(), hookSymbolName.view()))
-                return reportMissingRuntimeHook(ctx, dependency, hookSymbolName);
+            if (!ctx.compiler().externalModuleMgr().getFunctionAddress(hookAddress, dependency.linkModuleName.view(), dependency.hookSymbolName.view()))
+                return reportMissingRuntimeHook(ctx, dependency, dependency.hookSymbolName);
 
             // A script and every shared module it initializes are one hosted run. The DLL keeps
             // its lifecycle state for the rest of the compiler process, so initializing it

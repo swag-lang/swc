@@ -1923,6 +1923,11 @@ namespace
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         ABICall::materializeReturnToReg(builder, resultPayload.reg, tlsGetPtrCallConvKind, tlsGetPtrRet);
+
+        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(tlsIdPlusOneReg, tlsIdReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(resultPayload.reg, offsetof(Runtime::Context, runtimeTlsIdPlusOne), tlsIdPlusOneReg, MicroOpBits::B64);
         return Result::Continue;
     }
 
@@ -1962,6 +1967,11 @@ namespace
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultType);
         ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
+
+        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(tlsIdPlusOneReg, tlsIdReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(resultPayload.reg, offsetof(Runtime::Context, runtimeTlsIdPlusOne), tlsIdPlusOneReg, MicroOpBits::B64);
         return Result::Continue;
     }
 

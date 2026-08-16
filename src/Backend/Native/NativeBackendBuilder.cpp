@@ -727,6 +727,7 @@ Result NativeBackendBuilder::run()
         const auto linker = Linker::create(*this);
         SWC_ASSERT(linker != nullptr);
         SWC_RESULT(linker->link());
+        artifactLinked_ = true;
     }
 
     return runAfterLink();
@@ -776,6 +777,7 @@ Result NativeBackendBuilder::finishDeferredLink()
     SWC_MEM_SCOPE("Backend/Native");
     SWC_ASSERT(deferredLinker_ != nullptr);
     SWC_RESULT(deferredLinker_->finishLink(deferredToolRun_));
+    artifactLinked_ = true;
     return runAfterLink();
 }
 

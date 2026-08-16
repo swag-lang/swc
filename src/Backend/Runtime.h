@@ -337,6 +337,7 @@ namespace Runtime
         uint32_t pushTraceIndex;
         uint32_t pushHasError;
         uint32_t padding;
+        Any      pushCurError;
     };
 
     struct ScratchAllocator
@@ -371,6 +372,7 @@ namespace Runtime
         uint32_t errorIndex;
         uint32_t traceIndex;
         uint32_t hasError;
+        uint64_t runtimeTlsIdPlusOne;
     };
 
     // Where an attribute accepts being written. Keep in sync with the Swag mirror

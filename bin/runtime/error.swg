@@ -72,6 +72,9 @@ func __pushErr()
     cxt.errors[cxt.errorIndex].pushTraceIndex = cast(u32) cxt.traceIndex
     cxt.errors[cxt.errorIndex].pushUsedAlloc  = cast(u32) cxt.errorAllocator.used
     cxt.errors[cxt.errorIndex].pushHasError   = cxt.hasError
+    // This is a borrowed bitwise snapshot. The owning error value stays in its scratch slot; a
+    // normal assignment here would give the snapshot an ownership lifecycle of its own.
+    @memcpy(&cxt.errors[cxt.errorIndex].pushCurError, &cxt.curError, #sizeof(#null any))
 
     cxt.hasError   = 0
     cxt.curError   = null
@@ -86,8 +89,9 @@ func __popErr()
 
     cxt.errorIndex -= 1
 
-    cxt.hasError            = cxt.errors[cxt.errorIndex].pushHasError
-    cxt.curError            = cxt.errors[cxt.errorIndex].value
+    cxt.hasError = cxt.errors[cxt.errorIndex].pushHasError
+    @memcpy(&cxt.curError, &cxt.errors[cxt.errorIndex].pushCurError, #sizeof(#null any))
+    @memset(&cxt.errors[cxt.errorIndex].pushCurError, 0, #sizeof(#null any))
     cxt.traceIndex          = cxt.errors[cxt.errorIndex].pushTraceIndex
     cxt.errorAllocator.used = cxt.errors[cxt.errorIndex].pushUsedAlloc
 

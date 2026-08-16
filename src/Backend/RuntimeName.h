@@ -84,4 +84,6 @@ inline Utf8 runtimeHookSymbolName(std::string_view artifactName)
     return std::format("__swc_rt_stage_{:08x}", Math::hash(key.view()));
 }
 
+inline constexpr std::string_view K_SHARED_RUNTIME_HOOK_SYMBOL = "__swc_rt_stage";
+
 SWC_END_NAMESPACE();

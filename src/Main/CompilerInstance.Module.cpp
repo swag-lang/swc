@@ -167,7 +167,10 @@ namespace
     {
         fs::path result = workDirectory ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
         result /= fs::path(moduleName.c_str());
-        result /= fs::path(backendKindName(backendKind).c_str());
+        if (cmdLine.command == CommandKind::Test && backendKind == Runtime::BuildCfgBackendKind::Executable)
+            result /= "test";
+        else
+            result /= fs::path(backendKindName(backendKind).c_str());
         result /= fs::path(cmdLine.buildCfg.c_str());
         result /= fs::path(targetArchName(cmdLine.targetArch).c_str());
         return result.lexically_normal();
@@ -2723,15 +2726,17 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         if (moduleCompiler->flushGeneratedSourceDumps(moduleCtx) != Result::Continue)
             return Result::Error;
         moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, *moduleCompiler, moduleStage.delta()));
-        if (Stats::getNumErrors() != errorsBefore)
-            return Result::Error;
+        const bool commandFailed = Stats::getNumErrors() != errorsBefore;
 
         deferredBuilder = moduleCompiler->takeDeferredBuilder();
         if (!deferredBuilder)
         {
             // No deferred link to finalize (non-native backend, or a test run): finalize synchronously,
             // exactly as before. The artifacts, if any, were already produced by processCommand.
-            if (shouldWriteWorkspaceArtifactManifest(*moduleCompiler))
+            // A test executable is a successful build even when running it reports a failing
+            // test. Persist that build manifest so the next test run reuses and re-executes the
+            // same artifact, exactly as `run` reuses an executable whose program returned nonzero.
+            if (shouldWriteWorkspaceArtifactManifest(*moduleCompiler) && (!commandFailed || moduleCompiler->nativeArtifactBuilt()))
             {
                 WorkspaceArtifactManifest manifest;
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
@@ -2742,8 +2747,11 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                     return Result::Error;
             }
 
-            return Result::Continue;
+            return commandFailed ? Result::Error : Result::Continue;
         }
+
+        if (commandFailed)
+            return Result::Error;
 
         // Capture the manifest inputs now, while the compiler state is fully available; the artifact
         // list and the manifest write happen once the background link finishes (finalizeWorkspaceModuleLink).

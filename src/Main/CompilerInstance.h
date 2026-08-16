@@ -153,6 +153,8 @@ public:
     const Utf8&                     lastArtifactLabel() const { return lastArtifactLabel_; }
     void                            setLastArtifactLabel(Utf8 label) { lastArtifactLabel_ = std::move(label); }
     void                            clearLastArtifactLabel() { lastArtifactLabel_.clear(); }
+    bool                            nativeArtifactBuilt() const { return nativeArtifactBuilt_; }
+    void                            setNativeArtifactBuilt(bool value) { nativeArtifactBuilt_ = value; }
     const WorkspaceBuildLogState&   workspaceBuildLogState() const { return workspaceBuildLogState_; }
     const WorkspaceModuleLogState*  workspaceModuleLogState() const { return workspaceModuleLogState_ ? &workspaceModuleLogState_.value() : nullptr; }
     bool                            suppressBuildConfigurationLog() const { return suppressBuildConfigurationLog_; }
@@ -449,6 +451,7 @@ private:
     bool                                           deferNativeLink_        = false;
     std::unique_ptr<NativeBackendBuilder>          deferredBuilder_;
     Utf8                                           lastArtifactLabel_;
+    bool                                           nativeArtifactBuilt_          = false;
     WorkspaceBuildLogState                         workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>         workspaceModuleLogState_;
     bool                                           suppressBuildConfigurationLog_ = false;

@@ -2,6 +2,9 @@
 
 using Core.Errors
 
+private const SwagRuntimeHookSymbol = "__swc_rt_stage"
+private const SwagRuntimeHookSync   = 0'u64
+
 // Owns one dynamically loaded native library.
 //
 // Loading may run code owned by the library. Resolve symbols only while this value remains open;
@@ -52,6 +55,14 @@ impl NativeLibrary
     {
         var result: retval
         result.handle = try loadNativeLibrary(path)
+
+        let runtimeHook = nativeLibrarySymbol(result.handle!, SwagRuntimeHookSymbol)
+        if runtimeHook
+        {
+            let sync = cast(func(u64, u64, u64, const *#null string)) runtimeHook!
+            sync(SwagRuntimeHookSync, @getcontext().runtimeTlsIdPlusOne, cast(u64) @getcontext().runtimeFlags, &@pinfos.args)
+        }
+
         return result
     }
 }

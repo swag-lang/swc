@@ -111,3 +111,28 @@ func catchAsErrReraise(ok: bool)->s32 fail
         seen = (cast(CatchAsErrError) err).code
     @assert(seen == 7)
 }
+
+var catchAsErrFailDeferCount: s32
+
+func catchAsErrNestedExpectSuccess() fail
+{
+    discard expect catchAsErrCount(true)
+}
+
+func catchAsErrSuccessWithFailDefer() fail
+{
+    defer #fail catchAsErrFailDeferCount += 1
+    catchAsErrNestedExpectSuccess()
+}
+
+#test
+{
+    // Reusing an error-stack slot after a handled capture must not restore the old error when a
+    // nested `expect` succeeds; in particular, the surrounding successful frame stays no-fail.
+    catch catchAsErrMayFail(false) as previousError
+    @assert(previousError != null)
+
+    catchAsErrFailDeferCount = 0
+    discard expect catchAsErrSuccessWithFailDefer()
+    @assert(catchAsErrFailDeferCount == 0)
+}

@@ -2,35 +2,20 @@
 
 using Core, Core.Errors, Pixel
 
-internal enum ClipSourceKind
-{
-    None
-    Frames
-    Memory
-    File
-}
-
-// Owns or indexes a silent sequence of equal-sized image frames.
+// Owns a silent sequence of equal-sized image frames held in memory.
 //
-// A clip created with [[Video.Clip.create]] owns every image added to it. A clip
-// decoded from memory owns a copy of the encoded bytes. A file-backed clip keeps
-// only the source path and frame offsets; keep that file available while calling
-// [[Video.Clip.decodeFrame]].
+// A clip is what a program builds when it produces a video: frames are added in playback
+// order, then encoded. It holds every frame it was given, so its memory cost is the whole
+// clip; reading an existing stream, of any length, is [[Video.Reader]] instead.
 #[Swag.Opaque]
 struct Clip
 {
     internal
     {
-        sourceKind:   ClipSourceKind
-        frameWidth:   s32
-        frameHeight:  s32
-        rate:         FrameRate
-        frames:       Array'Image
-        frameOffsets: Array'u64
-        encodedBytes: Array'u8
-        path:         String
-        colorRange:   Y4m.ColorRange
-        chromaMode:   Y4m.ChromaMode
+        frameWidth:  s32
+        frameHeight: s32
+        rate:        FrameRate
+        frames:      Array'Image
     }
 }
 
@@ -38,8 +23,8 @@ impl Clip
 {
     // Creates an empty clip with fixed geometry and timing.
     //
-    // Add at least one matching frame before encoding or saving it. Fails when
-    // dimensions are not positive or the frame rate is invalid.
+    // Add at least one matching frame before encoding or saving it. Fails when dimensions are
+    // not positive or the frame rate is invalid.
     func create(width, height: s32, frameRate: FrameRate)->Clip fail
     {
         if width <= 0 or height <= 0 do
@@ -48,7 +33,6 @@ impl Clip
             fail BadParameterError{"video frame rate needs positive numerator and denominator values"}
 
         var result: retval
-        result.sourceKind  = .Frames
         result.frameWidth  = width
         result.frameHeight = height
         result.rate        = frameRate
@@ -56,7 +40,7 @@ impl Clip
     }
 
     // Reports whether the clip has valid geometry and timing.
-    mtd const isValid()->bool => .frameWidth > 0 and .frameHeight > 0 and .rate.isValid() and .sourceKind != .None
+    mtd const isValid()->bool => .frameWidth > 0 and .frameHeight > 0 and .rate.isValid()
 
     // Returns the frame width, in pixels.
     mtd const width()->s32 => .frameWidth
@@ -68,7 +52,7 @@ impl Clip
     mtd const frameRate()->FrameRate => .rate
 
     // Returns the number of frames in the clip.
-    mtd const frameCount()->u64 => .sourceKind == .Frames ? .frames.count : .frameOffsets.count
+    mtd const frameCount()->u64 => .frames.count
 
     // Returns the clip duration in seconds.
     mtd const durationInSeconds()->f64
@@ -78,18 +62,13 @@ impl Clip
         return cast(f64) .frameCount() * cast(f64) .rate.denominator() / cast(f64) .rate.numerator()
     }
 
-    // Returns the file used by [[Video.Clip.load]], or an empty string otherwise.
-    mtd const sourcePath()->string => .path
-
-    // Adds an owned copy of one frame to a created clip.
+    // Adds an owned copy of one frame to the clip.
     //
-    // The image dimensions must match the clip. All four 8-bit Pixel RGB and BGR
-    // formats are accepted; alpha is retained in memory and discarded only when
-    // encoding YUV4MPEG2. Frames cannot be appended to a loaded or decoded clip.
+    // The image dimensions must match the clip. All four 8-bit Pixel RGB and BGR formats are
+    // accepted; alpha is retained in memory and discarded only when encoding a format that
+    // does not carry it.
     mtd addFrame(frame: Image) fail
     {
-        if .sourceKind != .Frames do
-            fail BadParameterError{"frames can only be added to a created clip"}
         if !frame.isValid() do
             fail BadParameterError{"video frame needs allocated pixels"}
         if frame.width != .frameWidth or frame.height != .frameHeight do
@@ -97,83 +76,29 @@ impl Clip
         .frames.add(frame)
     }
 
-    // Decodes one frame to an owned RGB8 image.
+    // Returns an owned copy of the frame at `index`, as it was added.
     //
-    // `index` is zero-based and must be smaller than [[Video.Clip.frameCount]].
-    // Created clips return a copy of their stored image. File-backed clips reopen
-    // their source and read only the selected YUV4MPEG2 payload.
-    mtd const decodeFrame(index: u64)->Image fail
+    // `index` is zero-based and must be smaller than [[Video.Clip.frameCount]]. The clip keeps
+    // its own frame, so the result can outlive it and can be modified freely.
+    mtd const frame(index: u64)->Image fail
     {
         if index >= .frameCount() do
             fail BadParameterError{"video frame index exceeds the clip frame count"}
-
-        switch .sourceKind
-        {
-        case .Frames: return .frames[index]
-        case .Memory: return Y4m.decodeFrame(.encodedBytes.toSlice(), .frameOffsets[index], .frameWidth, .frameHeight, .colorRange, .chromaMode)
-        case .File:   return Y4m.decodeFrame(.path.toString(), .frameOffsets[index], .frameWidth, .frameHeight, .colorRange, .chromaMode)
-        case .None:   fail BadParameterError{"video clip has no source"}
-        }
-    }
-
-    // Decodes and indexes a complete encoded memory buffer.
-    //
-    // `fileName` selects the codec by extension. The returned clip owns a copy of
-    // `bytes`, and later frame decoding does not borrow the caller's buffer.
-    func decode(fileName: string, bytes: const [..] u8)->Clip fail
-    {
-        if Path.lowercaseExtension(fileName) != ".y4m" do
-            fail UnsupportedFormatError{"no video decoder accepts this file extension"}
-
-        var index = Y4m.index(bytes)
-        var result: retval
-        result.sourceKind   = .Memory
-        result.frameWidth   = index.width
-        result.frameHeight  = index.height
-        result.rate         = index.rate
-        result.colorRange   = index.colorRange
-        result.chromaMode   = index.chromaMode
-        result.frameOffsets = #move index.frameOffsets
-        result.encodedBytes.add(bytes)
-        return result
-    }
-
-    // Loads and indexes a YUV4MPEG2 file without decoding its frame pixels.
-    //
-    // The file is reopened by [[Video.Clip.decodeFrame]], so it must remain
-    // available and unchanged for the lifetime of the loaded clip.
-    func load(fileName: string)->Clip fail
-    {
-        if Path.lowercaseExtension(fileName) != ".y4m" do
-            fail UnsupportedFormatError{"no video decoder accepts this file extension"}
-
-        var index = Y4m.index(fileName)
-        var result: retval
-        result.sourceKind   = .File
-        result.frameWidth   = index.width
-        result.frameHeight  = index.height
-        result.rate         = index.rate
-        result.colorRange   = index.colorRange
-        result.chromaMode   = index.chromaMode
-        result.frameOffsets = #move index.frameOffsets
-        result.path         = fileName
-        return result
+        return .frames[index]
     }
 
     // Encodes the clip to an owned segmented memory buffer.
     //
-    // `fileName` selects the codec by extension; no file is opened. YUV4MPEG2
-    // encoding uses progressive 8-bit 4:4:4 limited-range BT.601 YCbCr and carries
-    // no audio. Fails when the clip has no frame.
+    // `fileName` selects the codec by extension; no file is opened. The result holds the whole
+    // encoded stream, which is what a clip already is; [[Video.Clip.save]] streams to a file
+    // instead. Fails when the clip has no frame.
     mtd const encode(fileName: string)->ConcatBuffer fail
     {
-        if Path.lowercaseExtension(fileName) != ".y4m" do
-            fail UnsupportedFormatError{"no video encoder accepts this file extension"}
-        if !.frameCount() do
-            fail InvalidFormatError{"video clip needs at least one frame"}
+        .validateEncode(fileName)
 
         var result: retval
-        Y4m.encode(&result, me)
+        var writer = Writer.createMemory(fileName, &result, .frameWidth, .frameHeight, .rate)
+        .write(&writer)
         return result
     }
 
@@ -189,9 +114,34 @@ impl Clip
     }
 
     // Encodes the clip and writes it to `fileName`.
+    //
+    // Frames are encoded and written one at a time, so saving never holds the encoded stream in
+    // addition to the clip.
     mtd const save(fileName: string) fail
     {
-        var result = try .encode(fileName)
-        File.writeAllBytes(fileName, result)
+        .validateEncode(fileName)
+
+        var writer = Writer.create(fileName, .frameWidth, .frameHeight, .rate)
+        .write(&writer)
+    }
+
+    // Rejects a request no clip can satisfy, before a stream is created or a file is opened.
+    //
+    // The extension is answered first: a clip is told that a format cannot be written whether or
+    // not it holds frames, and adding one never turns that answer into a different error.
+    private mtd const validateEncode(fileName: string) fail
+    {
+        if !Writer.canCreate(fileName) do
+            fail UnsupportedFormatError{"no video encoder accepts this file extension"}
+        if !.frameCount() do
+            fail InvalidFormatError{"video clip needs at least one frame"}
+    }
+
+    // Feeds every frame to `writer` and finishes the stream.
+    private mtd const write(writer: *Writer) fail
+    {
+        for frame in .frames do
+            writer.addFrame(frame[])
+        writer.end()
     }
 }

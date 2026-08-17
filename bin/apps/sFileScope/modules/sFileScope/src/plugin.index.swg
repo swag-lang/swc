@@ -227,7 +227,11 @@ impl ViewerPluginManager
         let plugin = try .plugin(spec, directory)
         if !plugin.create(request, result) do
             fail UnsupportedFormatError{"viewer plugin does not support this API version"}
-        if !result.view do
-            fail UnsupportedFormatError{"viewer plugin accepted the request without producing a view"}
+        if result.view and !result.failureReason.isEmpty() do
+            fail InvalidFormatError{"viewer plugin returned both a view and a failure reason"}
+        if !result.view and result.failureReason.isEmpty() do
+            fail InvalidFormatError{"viewer plugin returned neither a view nor a failure reason"}
+        if !result.view and result.commands do
+            fail InvalidFormatError{"viewer plugin returned commands without a view"}
     }
 }

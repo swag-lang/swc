@@ -66,9 +66,13 @@ struct MarkdownView
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         sigLinkActivated: SigArray'func||(*MarkdownView, string)     // Emitted when a rendered link is activated.
+        sigLoadFailed:    SigArray'func||(*MarkdownView, string)     // Emitted with the exact reason when progressive file loading stops.
 
         public readonly
-        documentStyle: MarkdownStyle     // Active document typography and reading measure.
+        {
+            documentStyle: MarkdownStyle     // Active document typography and reading measure.
+            failureReason: String            // File-loading explanation, or empty while loading remains valid.
+        }
 
         internal
         {
@@ -318,12 +322,15 @@ private impl MarkdownView
             return
 
         let chunk = catch .stream.readUtf8Chunk(MarkdownStreamChunkSize) as readError
-        if readError != null or Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        if readError != null
         {
-            .sourceCarry = "Unable to read this Markdown document."
-            .sourceDone  = true
-            .bytesRead   = .fileSize
-            .stream.close()
+            .reportLoadFailure(Errors.message(readError))
+            return
+        }
+
+        if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        {
+            .reportLoadFailure("Markdown source contains a zero byte and is not supported UTF-8 text")
             return
         }
 
@@ -339,6 +346,18 @@ private impl MarkdownView
         let position = catch .stream.position() as positionError
         if positionError == null do
             .bytesRead = position
+    }
+
+    mtd reportLoadFailure(reason: string)
+    {
+        .failureReason = reason
+        if .failureReason.isEmpty() do
+            .failureReason = "Markdown source could not be read"
+        .sigLoadFailed.call(me, .failureReason.toString())
+        .sourceCarry = "Unable to read this Markdown document."
+        .sourceDone  = true
+        .bytesRead   = .fileSize
+        .stream.close()
     }
 
     mtd preparePending()->bool
@@ -592,6 +611,9 @@ public impl MarkdownView
     }
 
     // Creates a view and progressively loads a UTF-8 Markdown file.
+    //
+    // File-open and decoding failures remain visible in the document and are also exposed through
+    // [[Gui.MarkdownView.failureReason]] and [[Gui.MarkdownView.sigLoadFailed]].
     func createFile(contentParent: *Wnd, fileName: string, documentStyle: MarkdownStyle = {})->*MarkdownView
     {
         let result = .create(contentParent, documentStyle)
@@ -599,14 +621,15 @@ public impl MarkdownView
         result.stream   = catch File.openRead(fileName) as openError
         if openError != null
         {
-            result.sourceCarry = "Unable to read this Markdown document."
-            result.sourceDone  = true
+            result.reportLoadFailure(Errors.message(openError))
         }
         else
         {
             let size = catch result.stream.size() as sizeError
             if sizeError == null do
                 result.fileSize = size
+            else do
+                result.reportLoadFailure(Errors.message(sizeError))
         }
 
         result.scheduleMore()

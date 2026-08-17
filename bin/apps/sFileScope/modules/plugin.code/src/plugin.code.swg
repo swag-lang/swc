@@ -30,6 +30,8 @@ internal struct CodePluginView
     pendingSeek:       bool
     pendingSeekOffset: u64
     repositioning:     bool
+    reportFailure:     #null ViewerReportFailure
+    failureReason:     String
 }
 
 internal impl CodePluginView
@@ -92,15 +94,15 @@ internal impl CodePluginView
             .editor.setEstimatedDocumentHeight(0)
     }
 
-    mtd showReadError()
+    mtd showReadError(reason: string)
     {
         .stopLoading()
-        let message = "This file does not contain supported UTF-8 source text. Select Hexadecimal to inspect its bytes."
-        if !.hasText do
-            .editor.setText(message)
-        else do
-            .editor.addText(Format.toString("\n\n%", message).toString())
+        .failureReason = reason
+        if .failureReason.isEmpty() do
+            .failureReason = "source stream could not be read"
         .editor.setEstimatedDocumentHeight(0)
+        if .hasText and .reportFailure do
+            .reportFailure!(me, .failureReason.toString())
     }
 
     mtd loadNextChunk()
@@ -110,9 +112,15 @@ internal impl CodePluginView
 
         let oldPosition = .editor.scrollPosition()
         let chunk       = catch .stream.readUtf8Chunk(CodeStreamChunkSize) as readError
-        if readError != null or Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        if readError != null
         {
-            .showReadError()
+            .showReadError(Errors.message(readError))
+            return
+        }
+
+        if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        {
+            .showReadError("source contains a zero byte and is not supported UTF-8 text")
             return
         }
 
@@ -172,11 +180,12 @@ internal impl CodePluginView
         return false
     }
 
-    func create(contentParent: *Wnd, fileName: string)->*CodePluginView
+    func create(contentParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*CodePluginView
     {
         let result = Wnd.create'CodePluginView(contentParent, "sFileScope.code")
         result.backgroundStyle = .View
         result.fileName        = fileName
+        result.reportFailure   = reportFailure
 
         result.editor             = RichEditCtrl.create(result)
         result.editor.dockStyle   = .Center
@@ -255,12 +264,12 @@ internal impl CodePluginView
 
         result.stream = catch File.openRead(fileName) as openError
         if openError != null do
-            result.showReadError()
+            result.showReadError(Errors.message(openError))
         else
         {
             let size = catch result.stream.size() as sizeError
             if sizeError != null do
-                result.showReadError()
+                result.showReadError(Errors.message(sizeError))
             else
             {
                 result.fileSize = size
@@ -317,7 +326,14 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
         return false
 
     registerCodeStrings(request.contentParent.app())
-    let view = CodePluginView.create(request.contentParent, request.fileName)
+    let view = CodePluginView.create(request.contentParent, request.fileName, request.reportFailure)
+    if !view.failureReason.isEmpty()
+    {
+        result.failureReason = #move view.failureReason
+        view.destroy()
+        return true
+    }
+
     result.view        = view
     result.details     = Format.toString(codeStrings().ui_Details, view.languageName)
     result.revealMatch = func(wnd, offset, text)->bool { return (cast(*CodePluginView) wnd).revealOffset(offset, text) }

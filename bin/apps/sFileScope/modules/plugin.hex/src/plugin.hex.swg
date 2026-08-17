@@ -72,7 +72,7 @@ internal impl HexPluginView
 
 internal impl HexPluginView
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*HexPluginView
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*HexPluginView
     {
         let result = Wnd.create'HexPluginView(contentParent, "sFileScope.hex")
         result.backgroundStyle = .View
@@ -128,6 +128,11 @@ internal impl HexPluginView
         }
 
         result.grid = HexGridView.create(result, fileName)
+        if reportFailure
+        {
+            let report = reportFailure!
+            result.grid.doc.reportFailure = func|result, report|(reason) { report(cast(*Wnd) result, reason) }
+        }
 
         result.details = hexStrings().ui_Details
         result.applyLayout()
@@ -144,7 +149,15 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
         return false
 
     registerHexStrings(request.contentParent.app())
-    let view = HexPluginView.create(request.contentParent, request.commandParent, request.fileName)
+    let view = HexPluginView.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure)
+    if !view.grid.doc.failureReason.isEmpty()
+    {
+        result.failureReason = #move view.grid.doc.failureReason
+        view.commands.destroy()
+        view.destroy()
+        return true
+    }
+
     result.view        = view
     result.commands    = view.commands
     result.details     = view.details

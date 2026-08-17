@@ -52,10 +52,9 @@ private func createPdfFixture()->String
     var host: HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    let view = PdfPluginView.create(&host.root, &host.root, fileName)
-    view.resize(640, 380)
-    view.applyLayout()
-    @assert(!view.imageView.isLocallyVisible())
-    @assert(!view.commands.isLocallyVisible())
-    Testing.assertContentFits(view)
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(!result.failureReason.isEmpty())
 }

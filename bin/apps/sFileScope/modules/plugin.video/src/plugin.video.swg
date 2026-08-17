@@ -19,13 +19,18 @@ internal struct VideoPluginView
         imageView:  *ImageView
     }
 
-    video:      Clip
-    timer:      #null *Timer
-    clock:      Time.Stopwatch
-    elapsed:    f64
-    frameIndex: u64
-    playing:    bool
-    details:    String
+    // The stream is decoded one frame at a time and never held in memory, so a video of any
+    // size opens on its header alone and plays with a single decoded frame resident.
+    video: Reader
+    frame: Image
+
+    timer:         #null *Timer
+    clock:         Time.Stopwatch
+    elapsed:       f64
+    frameIndex:    u64
+    playing:       bool
+    details:       String
+    reportFailure: #null ViewerReportFailure
 }
 
 internal impl VideoPluginView
@@ -55,11 +60,16 @@ internal impl VideoPluginView
     {
         if index >= .video.frameCount() do
             return false
-        let frame = catch .video.decodeFrame(index) as decodeError
-        if decodeError != null do
+        catch .video.decodeFrameInto(&.frame, index) as decodeError
+        if decodeError != null
+        {
+            if .reportFailure do
+                .reportFailure!(me, Errors.message(decodeError))
             return false
+        }
+
         .frameIndex = index
-        .imageView.setImage(frame)
+        .imageView.setImage(.frame)
         .refreshTransport()
         return true
     }
@@ -137,32 +147,6 @@ internal impl VideoPluginView
             .refreshTransport()
         }
     }
-
-    mtd showDecodeError(error: #null any)
-    {
-        .imageView.hide()
-        .playButton.enable(false)
-        .stopButton.enable(false)
-        .timeline.enable(false)
-
-        with let stack = StackLayoutCtrl.create(me, .VerticalCenter)
-        {
-            .dockStyle = .Center
-            .padding   = {48, 48, 48, 48}
-            .spacing   = 8
-
-            with let summary = Label.create(stack, videoStrings().ui_ErrDecode, flags: .WordWrap | .AutoHeight | .SecondaryText)
-            {
-                .setTextAlignment(.Center, .Center)
-            }
-
-            with let detail = Label.create(stack, Errors.message(error), flags: .WordWrap | .AutoHeight)
-            {
-                .setTextAlignment(.Center, .Center)
-                .setTextColor(.themeColors().embInfo_CriticalText)
-            }
-        }
-    }
 }
 
 private impl IWnd for VideoPluginView
@@ -199,11 +183,15 @@ private impl IWnd for VideoPluginView
 
 private impl VideoPluginView
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*VideoPluginView
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*VideoPluginView fail
     {
         registerVideoStrings(contentParent.app())
+        var video = try Reader.open(fileName)
+        var firstFrame: Image
+        try video.decodeFrameInto(&firstFrame, 0)
         let result = Wnd.create'VideoPluginView(contentParent, "sFileScope.video")
         result.backgroundStyle = .View
+        result.reportFailure   = reportFailure
 
         with result.commands = Wnd.create'Wnd(commandParent, {0, 0, VideoCommandWidth, 36})
         {
@@ -254,25 +242,16 @@ private impl VideoPluginView
         result.imageView           = ImageView.create(result)
         result.imageView.dockStyle = .Center
 
-        let video = catch Clip.load(fileName) as loadError
-        if loadError != null
-        {
-            result.details = videoStrings().ui_DetailsError
-            result.showDecodeError(loadError)
-            result.applyLayout()
-            return result
-        }
-
         result.video = #move video
-        result.timeline.setBounds(0, cast(f32) result.video.frameCount() - 1, 1)
-        if !result.showFrame(0)
-        {
-            result.details = videoStrings().ui_DetailsError
-            result.showDecodeError(Errors.InvalidFormatError{"YUV4MPEG2 first frame could not be decoded"})
-            result.applyLayout()
-            return result
-        }
+        result.frame = #move firstFrame
+        result.imageView.setImage(result.frame)
+        result.refreshTransport()
 
+        // A stream whose format cannot report a frame count still plays, but it cannot be
+        // seeked through a timeline that has no end to point at.
+        let lastFrame = result.video.frameCount() ? result.video.frameCount() - 1 : 0
+        result.timeline.setBounds(0, cast(f32) lastFrame, 1)
+        result.timeline.enable(lastFrame != 0)
         result.details = Format.toString(videoStrings().ui_Details, result.video.width(), result.video.height(), videoFrameCountText(result.video.frameCount()), result.video.frameRate().framesPerSecond(), result.video.durationInSeconds())
         result.timer   = result.addTimer(10'ms)
         result.applyLayout()
@@ -281,15 +260,27 @@ private impl VideoPluginView
     }
 }
 
+internal func createVideoPluginView(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, view: *#null *VideoPluginView) fail
+{
+    view[] = try VideoPluginView.create(contentParent, commandParent, fileName, reportFailure)
+}
+
 // Creates the YUV4MPEG2 playback view exported through the sFileScope plugin ABI.
 func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
     if request.apiVersion != ViewerPluginApiVersion do
         return false
 
-    let view = VideoPluginView.create(request.contentParent, request.commandParent, request.fileName)
+    var view: #null *VideoPluginView
+    catch createVideoPluginView(request.contentParent, request.commandParent, request.fileName, request.reportFailure, &view) as decodeError
+    if decodeError != null
+    {
+        result.failureReason = Errors.message(decodeError)
+        return true
+    }
+
     result.view     = view
-    result.commands = view.commands
-    result.details  = view.details
+    result.commands = view!.commands
+    result.details  = view!.details
     return true
 }

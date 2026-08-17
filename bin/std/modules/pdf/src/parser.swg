@@ -1,119 +1,5 @@
 using Core, Core.Errors
 
-private func isWhite(c: u8)->bool => c == 0 or c == 9 or c == 10 or c == 12 or c == 13 or c == 32
-func isDelimiter(c: u8)->bool => isWhite(c) or c == '(' or c == ')' or c == '<' or c == '>' or c == '[' or c == ']' or c == '{' or c == '}' or c == '/' or c == '%'
-func isDigit(c: u8)->bool     => c >= '0' and c <= '9'
-private func isHex(c: u8)->bool => isDigit(c) or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')
-
-private func hexValue(c: u8)->u8
-{
-    if isDigit(c) do
-        return c - '0'
-    if c >= 'A' and c <= 'F' do
-        return c - 'A' + 10
-    return c - 'a' + 10
-}
-
-internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
-{
-    var result: retval
-    var group:  [5] u8
-    var groupCount = 0'u32
-    var pos        = 0'u64
-    while pos < @countof(data)
-    {
-        let c = data[pos]
-        pos += 1
-        if isWhite(c) do
-            continue
-        if c == '<' and pos < @countof(data) and data[pos] == '~'
-        {
-            pos += 1
-            continue
-        }
-
-        if c == '~'
-        {
-            if pos >= @countof(data) or data[pos] != '>' do
-                fail InvalidFormatError{"ASCII85Decode stream has an invalid terminator"}
-            break
-        }
-
-        if c == 'z'
-        {
-            if groupCount do
-                fail InvalidFormatError{"ASCII85Decode stream has a misplaced zero group"}
-            result.add([0'u8, 0, 0, 0])
-            continue
-        }
-
-        if c < '!' or c > 'u' do
-            fail InvalidFormatError{"ASCII85Decode stream contains an invalid byte"}
-        group[groupCount] = c - '!'
-        groupCount        += 1
-        if groupCount != 5 do
-            continue
-
-        var value = 0'u64
-        for digit in group do
-            value = value * 85 + digit
-        if value > Swag.U32.Max do
-            fail InvalidFormatError{"ASCII85Decode group exceeds 32 bits"}
-        result.add([cast(u8) ((value >> 24) & 0xFF), cast(u8) ((value >> 16) & 0xFF), cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)])
-        groupCount = 0
-    }
-
-    if groupCount == 1 do
-        fail InvalidFormatError{"ASCII85Decode stream has an incomplete group"}
-    if groupCount
-    {
-        let outputCount = groupCount - 1
-        for i in groupCount until 5 do
-            group[i] = 84
-        var value = 0'u64
-        for digit in group do
-            value = value * 85 + digit
-        if value > Swag.U32.Max do
-            fail InvalidFormatError{"ASCII85Decode group exceeds 32 bits"}
-        let decoded: [4] u8 = [cast(u8) ((value >> 24) & 0xFF), cast(u8) ((value >> 16) & 0xFF), cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)]
-        for i in outputCount do
-            result.add(decoded[i])
-    }
-
-    return result
-}
-
-internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
-{
-    var result: retval
-    var pos = 0'u64
-    while pos < @countof(data)
-    {
-        let length = data[pos]
-        pos += 1
-        if length == 128 do
-            break
-        if length <= 127
-        {
-            let count = cast(u64) length + 1
-            if pos + count > @countof(data) do
-                fail InvalidFormatError{"RunLengthDecode literal run is truncated"}
-            result.add(data[pos until pos + count])
-            pos += count
-            continue
-        }
-
-        if pos >= @countof(data) do
-            fail InvalidFormatError{"RunLengthDecode repeated run is truncated"}
-        let value = data[pos]
-        pos += 1
-        for cast(u64) (257 - cast(u32) length) do
-            result.add(value)
-    }
-
-    return result
-}
-
 impl PdfParser
 {
     mtd skip()
@@ -540,6 +426,7 @@ impl PdfParser
         }
 
         try .expandObjectStreams()
+        .scanTrailers()
     }
 
     mtd importNode(source: const *PdfParser, sourceId: u32, imported: *HashTable'(u32, u32))->u32
@@ -624,6 +511,53 @@ impl PdfParser
         }
     }
 
+    // Records the document roots named by every trailer and cross-reference stream.
+    //
+    // The object scan above is deliberately position-independent, so the trailer is read
+    // for the entries only it carries: which object is the catalog, which one holds the
+    // metadata, and whether the file declares encryption. A file whose trailer is damaged
+    // still decodes through the catalog search in `decodeDocument`.
+    mtd scanTrailers()
+    {
+        for objectNumber, nodeId in .objects
+        {
+            discard objectNumber
+            let id = .resolve(nodeId)
+            if id != InvalidNode and .name(.dict(id, "Type")) == "XRef" do
+                .recordTrailer(id)
+        }
+
+        var search = 0'u64
+        for
+        {
+            let found = .findFrom(search, "trailer")
+            if found == Swag.U64.Max do
+                break
+            search = found + @countof("trailer")
+            .pos   = search
+            .skip()
+            if !.startsWith("<<") do
+                continue
+            let dictId = catch .parseDictionary() as parseError
+            if parseError == null do
+                .recordTrailer(dictId)
+        }
+    }
+
+    mtd recordTrailer(dictId: u32)
+    {
+        // The newest trailer of an incrementally updated file wins, and a trailer that
+        // only carries /Prev never overwrites an entry it does not name.
+        let root = .dict(dictId, "Root")
+        if root != InvalidNode and .name(.dict(root, "Type")) == "Catalog" do
+            .trailerRoot = root
+        let info = .dict(dictId, "Info")
+        if info != InvalidNode and .nodes[info].kind == .Dictionary do
+            .trailerInfo = info
+        if .dictRaw(dictId, "Encrypt") != InvalidNode do
+            .isEncrypted = true
+    }
+
     mtd const resolve(nodeId: u32)->u32
     {
         var result = nodeId
@@ -679,76 +613,119 @@ impl PdfParser
         return fallback
     }
 
+    mtd const boolean(nodeId: u32, fallback = false)->bool
+    {
+        let id = .resolve(nodeId)
+        if id == InvalidNode or .nodes[id].kind != .Boolean do
+            return fallback
+        return .nodes[id].boolean
+    }
+
     mtd const stringValue(nodeId: u32)->string
     {
         let id = .resolve(nodeId)
         return id != InvalidNode and .nodes[id].kind == .String ? .nodes[id].text.toString() : ""
     }
 
-    mtd decodeStream(nodeId: u32)->Array'u8 fail
+    // Returns the names of the filters applied to a stream, outermost first.
+    mtd const streamFilters(nodeId: u32)->Array'String
+    {
+        var result: retval
+        let filterId = .dict(nodeId, "Filter")
+        if filterId == InvalidNode do
+            return result
+        if .nodes[filterId].kind == .Name
+        {
+            result.add(.nodes[filterId].text)
+            return result
+        }
+
+        if .nodes[filterId].kind != .Array do
+            return result
+        for value in .nodes[filterId].values
+        {
+            let name = .name(value)
+            if @countof(name) do
+                result.add(name)
+        }
+
+        return result
+    }
+
+    // Returns the parameter dictionary that applies to the filter at `index`.
+    mtd const filterParameters(nodeId: u32, index: u64)->u32
+    {
+        let parametersId = .dict(nodeId, "DecodeParms")
+        if parametersId == InvalidNode do
+            return InvalidNode
+        if .nodes[parametersId].kind != .Array do
+            return parametersId
+        if index >= .nodes[parametersId].values.count do
+            return InvalidNode
+        return .resolve(.nodes[parametersId].values[index])
+    }
+
+    // Returns the name of the trailing image codec of a stream, or an empty string.
+    //
+    // These codecs carry their own container, so they are handed to the image decoder
+    // whole instead of being expanded into samples by decodeStream.
+    mtd const imageCodec(nodeId: u32)->String
+    {
+        var result: retval
+        let filters = .streamFilters(nodeId)
+        if !filters.count do
+            return result
+        switch filters.back().toString()
+        {
+        case "DCTDecode", "DCT", "JPXDecode", "JBIG2Decode", "CCITTFaxDecode", "CCF": result = filters.back()
+        }
+
+        return result
+    }
+
+    // Expands a stream through its filter chain.
+    //
+    // With `stopAtImageCodec`, a trailing image codec is left untouched and its input
+    // bytes are returned, which is what imageCodec names.
+    mtd decodeStream(nodeId: u32, stopAtImageCodec = false)->Array'u8 fail
     {
         let id = .resolve(nodeId)
         if id == InvalidNode or .nodes[id].kind != .Dictionary do
             fail InvalidFormatError{"PDF stream dictionary is missing"}
         var result: Array'u8 = .nodes[id].stream
-        let filterId         = .dict(id, "Filter")
-        if filterId == InvalidNode do
-            return result
+        let filters          = .streamFilters(id)
+        var count            = filters.count
+        if stopAtImageCodec and count and @countof(.imageCodec(id)) do
+            count -= 1
 
-        var filters: Array'String
-        if .nodes[filterId].kind == .Name do
-            filters.add(.nodes[filterId].text)
-        elif .nodes[filterId].kind == .Array
+        for index in count
         {
-            for value in .nodes[filterId].values
-            {
-                let name = .name(value)
-                if @countof(name) do
-                    filters.add(name)
-            }
-        }
-
-        for filter in filters
-        {
-            switch filter.toString()
+            let parameters = .filterParameters(id, index)
+            switch filters[index].toString()
             {
             case "FlateDecode", "Fl":
                 var zlib: Compress.ZLib
                 result = try zlib.decompress(result.toSlice())
-                let parameters = .dict(id, "DecodeParms")
+                if parameters != InvalidNode do
+                    result = try .applyPredictor(result.toSlice(), parameters)
+
+            case "LZWDecode", "LZW":
+                let earlyChange = .integer(.dict(parameters, "EarlyChange"), 1) != 0
+                result = try decodeLzw(result.toSlice(), earlyChange)
                 if parameters != InvalidNode do
                     result = try .applyPredictor(result.toSlice(), parameters)
 
             case "ASCIIHexDecode", "AHx":
-                var decoded: Array'u8
-                var high = Swag.U8.Max
-                for c in result
-                {
-                    if isWhite(c) do
-                        continue
-                    if c == '>' do
-                        break
-                    if !isHex(c) do
-                        fail InvalidFormatError{"ASCIIHexDecode stream contains a non-hexadecimal byte"}
-                    let value = hexValue(c)
-                    if high == Swag.U8.Max do
-                        high = value
-                    else
-                    {
-                        decoded.add(high * 16 + value)
-                        high = Swag.U8.Max
-                    }
-                }
-
-                if high != Swag.U8.Max do
-                    decoded.add(high * 16)
-                result = #move decoded
+                result = try decodeAsciiHex(result.toSlice())
 
             case "ASCII85Decode", "A85":
                 result = try decodeAscii85(result.toSlice())
 
             case "RunLengthDecode", "RL":
                 result = try decodeRunLength(result.toSlice())
+
+            case "Crypt":
+                break
 
             default:
                 fail UnsupportedFormatError{"PDF stream filter is not supported"}
@@ -772,21 +749,27 @@ impl PdfParser
         let columns = .integer(.dict(parametersId, "Columns"), 1)
         if colors <= 0 or bits <= 0 or columns <= 0 do
             fail InvalidFormatError{"PDF predictor has invalid dimensions"}
-        if bits != 8 do
+        if bits != 1 and bits != 2 and bits != 4 and bits != 8 and bits != 16 do
             fail UnsupportedFormatError{"PDF predictor bit depth is not supported"}
-        let bytesPerPixel = cast(u64) colors
-        let rowBytes      = cast(u64) colors * cast(u64) columns
+        let sampleBits    = cast(u64) colors * cast(u64) bits
+        let bytesPerPixel = Math.max(1'u64, (sampleBits + 7) / 8)
+        let rowBytes      = (sampleBits * cast(u64) columns + 7) / 8
 
         if predictor == 2
         {
+            // The TIFF predictor accumulates per component, so a sample must be a whole
+            // number of bytes for the sum to stay inside one component.
+            if bits != 8 and bits != 16 do
+                fail UnsupportedFormatError{"PDF TIFF predictor bit depth is not supported"}
             if @countof(data) % rowBytes do
                 fail InvalidFormatError{"PDF TIFF predictor rows are truncated"}
             var result: retval = data
+            let stride         = cast(u64) colors * cast(u64) (bits / 8)
             for row in @countof(data) / rowBytes
             {
                 let base = row * rowBytes
-                for x in bytesPerPixel until rowBytes do
-                    result[base + x] += #wrap result[base + x - bytesPerPixel]
+                for x in stride until rowBytes do
+                    result[base + x] += #wrap result[base + x - stride]
             }
 
             return result

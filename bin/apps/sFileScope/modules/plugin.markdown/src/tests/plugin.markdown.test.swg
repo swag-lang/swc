@@ -5,6 +5,21 @@ private func markdownFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "files/comprehensive.md")
 }
 
+// File-open failures cross the plugin boundary instead of becoming plugin-specific content.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_sfilescope_markdown_%.md", Guid64.random()).toString())
+    let request  = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName.toString()}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(!result.failureReason.isEmpty())
+}
+
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)

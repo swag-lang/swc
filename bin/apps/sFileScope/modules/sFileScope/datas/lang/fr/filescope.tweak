@@ -20,6 +20,7 @@ ui_DropTitle    Déposez un fichier pour l'afficher
 ui_Ready        Prêt
 ui_Unsupported  Aucun plugin installé ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.
+ui_ViewerError  Cette visionneuse n'a pas pu décoder le fichier.
 dlg_TitleOpen   Ouvrir un fichier
 dlg_ButtonOpen  Ouvrir
 dlg_AllFiles    Tous les fichiers

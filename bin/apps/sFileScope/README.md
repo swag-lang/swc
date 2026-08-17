@@ -63,6 +63,12 @@ hexadecimal alternative instead of guessing an encoding.
   starts playback without retaining the complete payload, and builds its peak/body waveform in a
   separate low-priority thread from bounded blocks. The progressively published waveform uses the
   theme's alternate tone; playback keeps an independent stream and remains available immediately.
+- `plugin.font` renders TrueType fonts and the first face of a TrueType collection as a live,
+  editable specimen at several sizes. Its paged character map walks every mapped Unicode scalar
+  without materializing the whole map, labels each cell with its code point, and keeps the font's
+  family, style, glyph count, units per em, and collection size visible in the file summary.
+  OpenType CFF outlines and WOFF containers remain available through the binary structure viewer
+  until the `truetype` module can render them.
 - `plugin.binary` takes a binary apart into the structure tree its own format declares, with the field
   name, the decoded value, the offset it was read at, and what it means side by side. Windows images
   (`PE32`/`PE32+`) are read down to their DOS and Rich headers, sections, data directories, imports and
@@ -118,12 +124,16 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
 ```
 
 Return false only when `request.apiVersion` is not the version the plugin implements; the host then
-declines the viewer and leaves `result` alone. Otherwise create the document view under
-`request.contentParent` and return it through `result.view`. Put optional compact controls in one
-group under `request.commandParent` and return that group through `result.commands`; leave it null
-when the view needs no actions. Return a concise format-specific summary through `result.details`;
-the host combines it with the viewer type and file size. Decode errors belong inside the returned
-view so the host stays format-agnostic. A searchable plugin returns a `result.revealMatch` callback
+declines the viewer and leaves `result` alone. Otherwise decode the file and either create the
+document view under `request.contentParent` or return the decoder's exact explanation through
+`result.failureReason`. Leave `result.view` null on failure: the host renders the centered critical
+icon, common heading, and reason, so every plugin error has the same appearance. Put optional
+compact controls in one group under `request.commandParent` and return that group through
+`result.commands`; leave it null when the view needs no actions and always on failure. Return a
+concise format-specific summary through `result.details`; the host combines it with the viewer type
+and file size. A decoder that discovers an error after creation calls `request.reportFailure` with
+its returned view and the exact reason; the host replaces that view with the same standard error
+surface. A searchable plugin returns a `result.revealMatch` callback
 that materializes and reveals the bounded window containing the supplied byte offset; the host owns
 the asynchronous file scan. A progressively rendered plugin returns `result.isLoading`; the host
 uses it for the shared loading indicator and to retire work that becomes hidden. Packaged plugin

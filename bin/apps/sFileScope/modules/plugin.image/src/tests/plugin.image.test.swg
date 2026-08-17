@@ -11,8 +11,7 @@ using Core
     @assert(image.width == 128 and image.height == 64)
 }
 
-// Every image decoder failure keeps the stable summary and exposes the exact decoder reason below
-// it in the semantic error color.
+// A decoder refusal crosses the plugin boundary as data; the plugin creates no competing error UI.
 #test
 {
     let fileName = Gui.Testing.tempFilePath("filescope-image-", ".png")
@@ -23,18 +22,9 @@ using Core
     host.setup(640, 420)
     defer host.shutdown()
 
-    let commands = Gui.Wnd.create'Gui.Wnd(&host.root, {0, 0, 362, 36})
-    let view     = ImagePluginView.create(&host.root, commands, fileName)
-    view.resize(640, 380)
-    view.applyLayout()
-
-    @assert(!view.imageView.isLocallyVisible())
-    @assert(view.children.count == 2)
-    let stack   = cast(*Gui.StackLayoutCtrl) view.children[1]
-    let summary = cast(*Gui.Label) stack.children[0]
-    let detail  = cast(*Gui.Label) stack.children[1]
-    @assert(summary.text() == "This image could not be decoded.")
-    @assert(@countof(detail.text()) > 0)
-    @assert(detail.textColor == detail.themeColors().embInfo_CriticalText)
-    Gui.Testing.assertContentFits(view)
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(!result.failureReason.isEmpty())
 }

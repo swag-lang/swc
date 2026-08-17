@@ -43,10 +43,11 @@ internal struct BinaryPluginView
         list:       *ListCtrl
     }
 
-    previewBand: #null *StackLayoutCtrl
-    doc:         BinaryDocument
-    rowLines:    Array'(#null *ListLine)     // Line created for each report row, in row order.
-    details:     String
+    previewBand:   #null *StackLayoutCtrl
+    doc:           BinaryDocument
+    rowLines:      Array'(#null *ListLine)     // Line created for each report row, in row order.
+    details:       String
+    failureReason: String
 }
 
 internal impl BinaryPluginView
@@ -433,15 +434,7 @@ internal impl BinaryPluginView
 
         if !result.doc.open(fileName)
         {
-            result.list.hide()
-            with let label = Label.create(result, s.ui_Unreadable, {}, null, .WordWrap | .SecondaryText)
-            {
-                .dockStyle = .Center
-                .setTextAlignment(.Center, .Center)
-            }
-
-            result.details = s.ui_Unreadable
-            result.applyLayout()
+            result.failureReason = result.doc.image.failureReason
             return result
         }
 
@@ -463,6 +456,14 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
         return false
 
     let view = BinaryPluginView.create(request.contentParent, request.commandParent, request.fileName)
+    if !view.failureReason.isEmpty()
+    {
+        result.failureReason = #move view.failureReason
+        view.commands.destroy()
+        view.destroy()
+        return true
+    }
+
     result.view        = view
     result.commands    = view.commands
     result.details     = view.details

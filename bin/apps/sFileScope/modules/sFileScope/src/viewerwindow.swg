@@ -4,6 +4,7 @@ const ViewerBarHeight       = 48.0
 const ViewerInfoHeight      = 36.0
 const ViewerGlyphSize       = 20.0
 const ViewerSearchChunkSize = 256 * 1024'u64
+const ViewerErrorTextWidth  = 512.0
 
 // The panel that lists what is beside the current file, and what was read before it.
 const ViewerPanelWidth   = 268.0
@@ -16,11 +17,80 @@ const ViewerRecentCount = 12'u64
 
 struct ViewerInstance
 {
-    view:        #null *Wnd
-    commands:    #null *Wnd
-    revealMatch: #null ViewerRevealMatch
-    isLoading:   #null ViewerIsLoading
-    details:     String
+    view:          #null *Wnd
+    commands:      #null *Wnd
+    revealMatch:   #null ViewerRevealMatch
+    isLoading:     #null ViewerIsLoading
+    details:       String
+    failureReason: String
+}
+
+// Host-owned presentation for every plugin failure.
+struct ViewerErrorView
+{
+    using wnd: Wnd
+
+    #[Swag.Late]
+    {
+        summaryLabel: *Label
+        reasonLabel:  *Label
+        iconLabel:    *Label
+    }
+}
+
+impl ViewerErrorView
+{
+    func create(parent: *Wnd, reason: string)->*ViewerErrorView
+    {
+        let result = Wnd.create'ViewerErrorView(parent, "sFileScope.error")
+        result.backgroundStyle = .View
+
+        with let stack = StackLayoutCtrl.create(result, .VerticalCenter)
+        {
+            .dockStyle = .Center
+            .padding   = {48, 48, 48, 48}
+            .spacing   = 8
+
+            with result.iconLabel = Label.create(stack, "", {0, 0, 48, 48})
+            {
+                .layoutSpec.alignX = .Center
+                .setIcon(result.theme().icon(.Critical, 48))
+                .setIconColor(result.themeColors().error)
+            }
+
+            with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+            {
+                .layoutSpec.alignX = .Center
+                .setTextAlignment(.Center, .Center)
+            }
+
+            with result.reasonLabel = Label.create(stack, reason, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight)
+            {
+                .layoutSpec.alignX = .Center
+                .setTextAlignment(.Center, .Center)
+            }
+        }
+
+        result.applyLayout()
+        return result
+    }
+
+    mtd retranslate()
+    {
+        .summaryLabel.setText(appStrings().ui_ViewerError)
+    }
+
+    mtd refreshTheme()
+    {
+        .iconLabel.setIcon(.theme().icon(.Critical, 48))
+        .iconLabel.setIconColor(.themeColors().error)
+    }
+}
+
+func reportViewerFailure(view: *Wnd, reason: string)
+{
+    let window = cast(*ViewerWindow) view.parent!
+    window.reportPluginFailure(view, reason)
 }
 
 struct ViewerWindow
@@ -199,6 +269,12 @@ impl IWnd for ViewerWindow
     {
         if evt.kind == .LanguageChanged do
             .retranslate()
+        elif evt.kind == .ThemeChanged
+        {
+            for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
+                (cast(*ViewerErrorView) instance.view!).refreshTheme()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
@@ -495,6 +571,44 @@ impl ViewerWindow
         .currentView     = null
     }
 
+    // Replaces a plugin view that stopped after creation with the host's standard error surface.
+    mtd reportPluginFailure(view: *Wnd, reason: string)
+    {
+        var message = String.from(reason)
+        if message.isEmpty() do
+            message = appStrings().ui_OpenStopped
+
+        for &instance, index in .instances where instance.view == view
+        {
+            instance.commands?.destroy()
+            instance.view?.destroy()
+
+            let errorView = ViewerErrorView.create(me, message.toString())
+            errorView.dockStyle    = .Center
+            instance.view          = errorView
+            instance.commands      = null
+            instance.revealMatch   = null
+            instance.isLoading     = null
+            instance.failureReason = #move message
+            instance.details.clear()
+
+            if index != .activeChoiceIndex
+            {
+                errorView.hide()
+                return
+            }
+
+            .stopLoadingIndicator()
+            .currentView     = errorView
+            .currentCommands = null
+            .updateFileInfo(.choices[index].name.toString(), "")
+            .updateSearchAvailability()
+            .applyLayout()
+            .invalidate()
+            return
+        }
+    }
+
     // Discards a hidden progressive view before opening another renderer. HTML and Markdown
     // otherwise keep parsing and laying out a document the reader can no longer see.
     private mtd retireActiveLoadingChoice(nextIndex: u32)
@@ -585,15 +699,29 @@ impl ViewerWindow
         else
         {
             let spec    = &.index.specs[choice.specIndex]
-            let request = ViewerRequest{ViewerPluginApiVersion, me, .commandBar, .currentFile.toString()}
+            let request = ViewerRequest{ViewerPluginApiVersion, me, .commandBar, .currentFile.toString(), &reportViewerFailure}
             catch .plugins.createView(&request, &next, spec, .index.directory.toString()) as pluginError
-            if pluginError != null or !next.view
+            if pluginError != null
             {
-                if next.commands do
-                    next.commands!.destroy()
-                return false
+                next.failureReason = Errors.message(pluginError)
+                if next.failureReason.isEmpty() do
+                    next.failureReason = appStrings().ui_OpenStopped
+            }
+
+            if !next.failureReason.isEmpty()
+            {
+                next.commands?.destroy()
+                next.view?.destroy()
+                next.commands    = null
+                next.view        = ViewerErrorView.create(me, next.failureReason.toString())
+                next.revealMatch = null
+                next.isLoading   = null
+                next.details.clear()
             }
         }
+
+        if !next.view do
+            return false
 
         .retireActiveLoadingChoice(index)
         .currentCommands?.hide()
@@ -604,11 +732,12 @@ impl ViewerWindow
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .Right
-        instance.view        = .currentView
-        instance.commands    = .currentCommands
-        instance.revealMatch = next.revealMatch
-        instance.isLoading   = next.isLoading
-        instance.details     = #move next.details
+        instance.view          = .currentView
+        instance.commands      = .currentCommands
+        instance.revealMatch   = next.revealMatch
+        instance.isLoading     = next.isLoading
+        instance.details       = #move next.details
+        instance.failureReason = #move next.failureReason
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(choice.name.toString(), instance.details.toString())
         .updateSearchAvailability()
@@ -845,6 +974,8 @@ impl ViewerWindow
         .viewerCombo.toolTip    = texts.ui_Viewer
         .searchBox.setPlaceholder(texts.ui_Search)
         .recentLabel.setText(texts.ui_Recent)
+        for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
+            (cast(*ViewerErrorView) instance.view!).retranslate()
         if .currentFile.isEmpty() do
             .folderLabel.setText(texts.ui_Folder)
         if .currentFile.isEmpty()

@@ -12,12 +12,12 @@ using Swag
 // the quotation marks and dashes an actual document uses.
 enum Encoding
 {
-    Utf8           // Variable width, one to four bytes per character.
-    Utf16Le        // Two bytes per unit, least significant first, surrogate pairs above the BMP.
-    Utf16Be        // Two bytes per unit, most significant first.
-    Utf32Le        // Four bytes per character, least significant first.
-    Utf32Be        // Four bytes per character, most significant first.
-    Windows1252    // One byte per character, code page 1252.
+    Utf8            // Variable width, one to four bytes per character.
+    Utf16Le         // Two bytes per unit, least significant first, surrogate pairs above the BMP.
+    Utf16Be         // Two bytes per unit, most significant first.
+    Utf32Le         // Four bytes per character, least significant first.
+    Utf32Be         // Four bytes per character, most significant first.
+    Windows1252     // One byte per character, code page 1252.
 }
 
 // Bytes the encoding writes in front of the content to announce itself, if any.
@@ -28,10 +28,10 @@ func bomLength(encoding: Encoding)->u64
 {
     switch encoding
     {
-    case .Utf8:                 return 3
-    case .Utf16Le, .Utf16Be:    return 2
-    case .Utf32Le, .Utf32Be:    return 4
-    case .Windows1252:          return 0
+    case .Utf8:              return 3
+    case .Utf16Le, .Utf16Be: return 2
+    case .Utf32Le, .Utf32Be: return 4
+    case .Windows1252:       return 0
     }
 }
 
@@ -43,9 +43,9 @@ func unitSize(encoding: Encoding)->u64
 {
     switch encoding
     {
-    case .Utf16Le, .Utf16Be:    return 2
-    case .Utf32Le, .Utf32Be:    return 4
-    default:                    return 1
+    case .Utf16Le, .Utf16Be: return 2
+    case .Utf32Le, .Utf32Be: return 4
+    default:                 return 1
     }
 }
 
@@ -58,12 +58,12 @@ func hasBom(bytes: const [..] u8, encoding: Encoding)->bool
 
     switch encoding
     {
-    case .Utf8:       return bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF
-    case .Utf16Le:    return bytes[0] == 0xFF and bytes[1] == 0xFE
-    case .Utf16Be:    return bytes[0] == 0xFE and bytes[1] == 0xFF
-    case .Utf32Le:    return bytes[0] == 0xFF and bytes[1] == 0xFE and bytes[2] == 0 and bytes[3] == 0
-    case .Utf32Be:    return bytes[0] == 0 and bytes[1] == 0 and bytes[2] == 0xFE and bytes[3] == 0xFF
-    default:          return false
+    case .Utf8:    return bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF
+    case .Utf16Le: return bytes[0] == 0xFF and bytes[1] == 0xFE
+    case .Utf16Be: return bytes[0] == 0xFE and bytes[1] == 0xFF
+    case .Utf32Le: return bytes[0] == 0xFF and bytes[1] == 0xFE and bytes[2] == 0 and bytes[3] == 0
+    case .Utf32Be: return bytes[0] == 0 and bytes[1] == 0 and bytes[2] == 0xFE and bytes[3] == 0xFF
+    default:       return false
     }
 }
 
@@ -158,10 +158,10 @@ private func readUnit(bytes: const [..] u8, offset: u64, encoding: Encoding)->u3
 {
     switch encoding
     {
-    case .Utf16Le:    return cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8)
-    case .Utf16Be:    return (cast(u32) bytes[offset] << 8) | cast(u32) bytes[offset + 1]
-    case .Utf32Le:    return cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
-    default:          return (cast(u32) bytes[offset] << 24) | (cast(u32) bytes[offset + 1] << 16) | (cast(u32) bytes[offset + 2] << 8) | cast(u32) bytes[offset + 3]
+    case .Utf16Le: return cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8)
+    case .Utf16Be: return (cast(u32) bytes[offset] << 8) | cast(u32) bytes[offset + 1]
+    case .Utf32Le: return cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
+    default:       return (cast(u32) bytes[offset] << 24) | (cast(u32) bytes[offset + 1] << 16) | (cast(u32) bytes[offset + 2] << 8) | cast(u32) bytes[offset + 3]
     }
 }
 

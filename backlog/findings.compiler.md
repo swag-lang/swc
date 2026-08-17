@@ -176,3 +176,44 @@ Entries are sorted by identifier, ascending; position carries no priority.
   same module compile normally.
 - Next step: preserve the colliding namespace/aggregate spelling as a semantic regression and
   keep the invalid `TypeRef` out of type matching after the primary diagnostic is emitted.
+
+### F-153 — `if @countof(x)` crashes code generation when `x` resolves `opCount`
+
+- Area: compiler
+- Found while: testing an image codec name in `std/pdf`, where the condition was `@countof` over a
+  `Core.String`.
+- Observation: an `if` whose whole condition is `@countof(value)`, and whose type resolves the
+  count through a user `opCount` method, dereferences a null payload in code generation and takes
+  the process down. The same intrinsic compiles in every neighbouring position, so the defect is in
+  how the `if` statement matches its condition child, not in `@countof` itself.
+- Evidence: `EXCEPTION_ACCESS_VIOLATION` at
+  `src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74`, reading `state->hasElseBlock` after
+  `SWC_ASSERT(state != nullptr)` on line 69 is compiled out, so `emitIfStmtCondition` never ran for
+  that `if` and never created `IfStmtCodeGenPayload`. This standalone file reproduces it with
+  `swc test -d <dir>`, with or without an `else` branch:
+
+  ```swag
+  struct Box { length: u64 }
+
+  impl Box
+  {
+      mtd const opCount()->u64 { return .length }
+  }
+
+  func classify(box: Box)->s32
+  {
+      var value = 0's32
+      if @countof(box) do
+          value = 1
+      return value
+  }
+  ```
+
+  Three neighbouring forms compile and run: `if @countof(box) != 0`, `let n = @countof(box)`
+  followed by `if n`, and `while @countof(box)`. A built-in slice operand compiles as well, so the
+  trigger is the spec-op path in `codeGenCountOf`
+  (`src/Compiler/CodeGen/Ast/CodeGen.Intrinsic.cpp:475`), which rewrites the node symbol to the
+  resolved `opCount` and delegates to `codeGenCallExprCommon`.
+- Next step: trace `AstIfStmt::codeGenPostNodeChild` on the repro and print `curNodeRef`,
+  `resolvedNodeRef(nodeConditionRef)`, and the walked child ref for both callbacks. Compare the
+  `while` walk against the `if` walk to see which of the two refs the call lowering moves.

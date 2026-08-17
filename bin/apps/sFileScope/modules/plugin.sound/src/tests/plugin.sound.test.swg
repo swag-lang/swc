@@ -95,6 +95,24 @@ private func finishWaveform(view: *SoundPluginView)
     @assert(soundDurationText(2.5) == "2.50 s")
 }
 
+// A WAV decoder refusal crosses the plugin boundary without constructing playback controls.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("filescope-sound-", ".wav")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, "not a WAV")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(!result.failureReason.isEmpty())
+}
+
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -109,7 +127,9 @@ private func finishWaveform(view: *SoundPluginView)
     host.setup(640, 360)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    let view     = SoundPluginView.create(&host.root, commands, fileName)
+    var created: #null *SoundPluginView
+    expect createSoundPluginView(&host.root, commands, fileName, &created)
+    let view = created!
     @assert(view.engineReady and view.playButton.isEnabled())
     @assert(!view.sound.isDataPreloaded())
     @assert(view.waveform.samples.count == 4)
@@ -120,7 +140,9 @@ private func finishWaveform(view: *SoundPluginView)
     // waveform of every file but the first went missing when a failure inside the engine was
     // swallowed on its way out of the module.
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    let replacement         = SoundPluginView.create(&host.root, replacementCommands, fileName)
+    var createdReplacement: #null *SoundPluginView
+    expect createSoundPluginView(&host.root, replacementCommands, fileName, &createdReplacement)
+    let replacement = createdReplacement!
     finishWaveform(replacement)
     @assert(replacement.engineReady and replacement.playButton.isEnabled())
     @assert(replacement.waveform.samples.count == view.waveform.samples.count)
@@ -158,7 +180,9 @@ private func finishWaveform(view: *SoundPluginView)
     commandBar.dockStyle       = .Top
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
-    let view = SoundPluginView.create(&host.root, commandBar, fileName)
+    var created: #null *SoundPluginView
+    expect createSoundPluginView(&host.root, commandBar, fileName, &created)
+    let view = created!
     finishWaveform(view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Right
@@ -249,7 +273,9 @@ private func finishWaveform(view: *SoundPluginView)
     host.setup(640, 320)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    let view     = SoundPluginView.create(&host.root, commands, pacmanWav.toString())
+    var created: #null *SoundPluginView
+    expect createSoundPluginView(&host.root, commands, pacmanWav.toString(), &created)
+    let view = created!
     @assert(!view.sound.isDataPreloaded())
     finishWaveform(view)
     @assert(view.details.indexOf("11025") != Swag.U64.Max)

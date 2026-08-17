@@ -541,8 +541,9 @@ internal impl IWnd for SoundPluginView
 
 internal impl SoundPluginView
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*SoundPluginView
+    func create(contentParent, commandParent: *Wnd, fileName: string)->*SoundPluginView fail
     {
+        let sound  = try SoundFile.load(fileName, preloadData: false)
         let result = Wnd.create'SoundPluginView(contentParent, "sFileScope.sound")
         result.backgroundStyle = .View
 
@@ -577,18 +578,6 @@ internal impl SoundPluginView
         result.waveform.dockStyle       = .Center
         result.waveform.backgroundStyle = .View
 
-        let sound = catch SoundFile.load(fileName, preloadData: false) as loadError
-        if loadError != null
-        {
-            result.details = soundStrings().ui_DetailsError
-            let label = Label.create(result, soundStrings().ui_ErrDecode, {}, null, .WordWrap | .SecondaryText)
-            label.dockStyle = .Center
-            label.setTextAlignment(.Center, .Center)
-            result.waveform.hide()
-            result.applyLayout()
-            return result
-        }
-
         result.sound             = #move sound
         result.duration          = result.sound.durationInSeconds()
         result.waveform.duration = result.duration
@@ -608,6 +597,11 @@ internal impl SoundPluginView
     }
 }
 
+internal func createSoundPluginView(contentParent, commandParent: *Wnd, fileName: string, view: *#null *SoundPluginView) fail
+{
+    view[] = try SoundPluginView.create(contentParent, commandParent, fileName)
+}
+
 // Creates the WAV playback and waveform view exported through the sFileScope plugin ABI.
 func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
@@ -615,10 +609,17 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
         return false
 
     registerSoundStrings(request.contentParent.app())
-    let view = SoundPluginView.create(request.contentParent, request.commandParent, request.fileName)
+    var view: #null *SoundPluginView
+    catch createSoundPluginView(request.contentParent, request.commandParent, request.fileName, &view) as decodeError
+    if decodeError != null
+    {
+        result.failureReason = Errors.message(decodeError)
+        return true
+    }
+
     result.view      = view
-    result.commands  = view.commands
-    result.details   = view.details
+    result.commands  = view!.commands
+    result.details   = view!.details
     result.isLoading = func(wnd)->bool
     {
         let soundView = cast(*SoundPluginView) wnd

@@ -1106,10 +1106,12 @@ impl IWnd for HexGridView
         let client  = .clientRect()
         let originX = -.scrollPos.x
 
+        if .doc.readFailed do
+            return
+
         if !.doc.fileSize
         {
-            let message = .doc.readFailed ? "This file could not be read." : "This file is empty."
-            painter.drawString(originX + HexViewInset, client.y + HexViewInset, message, font, colors.label_TextLight)
+            painter.drawString(originX + HexViewInset, client.y + HexViewInset, "This file is empty.", font, colors.label_TextLight)
             return
         }
 

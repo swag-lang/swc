@@ -423,6 +423,61 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Testing.assertContentFits(window)
 }
 
+// The framework owns one centered, themed presentation for every plugin decoder reason.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    let view = ViewerErrorView.create(&host.root, "PNG chunk CRC does not match its payload")
+    view.dockStyle = .Center
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+
+    @assert(view.iconLabel.icon.isValid())
+    @assert(view.iconLabel.iconColor == view.themeColors().error)
+    @assert(view.summaryLabel.text() == appStrings().ui_ViewerError)
+    @assert(view.reasonLabel.text() == "PNG chunk CRC does not match its payload")
+    @assert(Math.abs(view.iconLabel.position.center().x - view.position.center().x) <= 1)
+    Testing.assertContentFits(view)
+
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "sfilescope.error")
+}
+
+// A decoder error discovered after creation replaces the active plugin and its commands in place.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+
+    let index    = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let failed   = Wnd.create'Wnd(window)
+    let commands = Wnd.create'Wnd(window.commandBar)
+    window.choices.add(ViewerChoice{.Plugin, 0, "Decoder"})
+    window.instances.add(ViewerInstance{view: failed, commands: commands})
+    window.currentView       = failed
+    window.currentCommands   = commands
+    window.activeChoiceIndex = 0
+    window.currentFile       = "sample.bin"
+
+    reportViewerFailure(failed, "payload ends before its declared length")
+
+    @assert(failed.isPendingDestroy and commands.isPendingDestroy)
+    @assert(window.currentCommands == null)
+    @assert(window.currentView != null and window.currentView != failed)
+    @assert(window.instances[0].failureReason == "payload ends before its declared length")
+    let errorView = cast(*ViewerErrorView) window.currentView!
+    @assert(errorView.reasonLabel.text() == window.instances[0].failureReason.toString())
+}
+
 // The host shows progressive work and retires a still-loading renderer before switching views,
 // so a hidden HTML document cannot keep parsing while its source view opens.
 #test

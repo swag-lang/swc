@@ -5,13 +5,10 @@ using Core, Gui
 // Visible strings of the video viewer.
 struct VideoStrings
 {
-    ui_TipPlay:      string = "Play"                                           // Tooltip while playback is stopped or paused.
-    ui_TipPause:     string = "Pause"                                          // Tooltip while playback is running.
-    ui_TipStop:      string = "Stop"                                           // Tooltip of the stop button.
-    ui_TipSeek:      string = "Seek"                                           // Tooltip of the frame timeline.
-    ui_ErrDecode:    string = "This YUV4MPEG2 video could not be decoded."     // Shown when the stream cannot be indexed or decoded.
-    ui_DetailsError: string = "YUV4MPEG2 · decode failed"                      // Summary the host shows for a stream that would not decode.
-
+    ui_TipPlay:  string = "Play"       // Tooltip while playback is stopped or paused.
+    ui_TipPause: string = "Pause"      // Tooltip while playback is running.
+    ui_TipStop:  string = "Stop"       // Tooltip of the stop button.
+    ui_TipSeek:  string = "Seek"       // Tooltip of the frame timeline.
     word_Frame:  string = "frame"      // One video frame.
     word_Frames: string = "frames"     // Several video frames.
 

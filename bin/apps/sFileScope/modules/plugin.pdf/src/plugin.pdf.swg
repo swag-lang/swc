@@ -7,10 +7,11 @@ private const PdfRenderScale = 96.0 / 72.0     // PDF points to desktop pixels a
 
 internal struct PdfPluginView
 {
-    using wnd: Wnd
-    document:  Document
-    pageIndex: u64
-    details:   String
+    using wnd:     Wnd
+    document:      Document
+    pageIndex:     u64
+    details:       String
+    reportFailure: #null ViewerReportFailure
 
     #[Swag.Late]
     {
@@ -43,31 +44,23 @@ private impl PdfPluginView
         .refreshNavigation()
     }
 
-    mtd showError(error: #null any)
+    mtd showPageOrReport(index: u64)
     {
-        .imageView.hide()
-        with let stack = StackLayoutCtrl.create(me, .VerticalCenter)
-        {
-            .dockStyle = .Center
-            .padding   = {48, 48, 48, 48}
-            .spacing   = 8
-            with let summary = Label.create(stack, pdfStrings().ui_Error, flags: .WordWrap | .AutoHeight | .SecondaryText)
-            {
-                .setTextAlignment(.Center, .Center)
-            }
-
-            with let detail = Label.create(stack, Errors.message(error), flags: .WordWrap | .AutoHeight)
-            {
-                .setTextAlignment(.Center, .Center)
-                .setTextColor(.themeColors().embInfo_CriticalText)
-            }
-        }
+        catch .showPage(index) as renderError
+        if renderError != null and .reportFailure do
+            .reportFailure!(me, Errors.message(renderError))
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*PdfPluginView
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*PdfPluginView fail
     {
+        var document = try Document.load(fileName)
+        if !document.pages.count do
+            fail Errors.InvalidFormatError{"PDF document contains no page"}
+        let firstPage = try document.pages[0].render({scale: PdfRenderScale, maxDimension: 8192})
+
         let result = Wnd.create'PdfPluginView(contentParent, "sFileScope.pdf")
         result.backgroundStyle = .View
+        result.reportFailure   = reportFailure
 
         with result.commands = Wnd.create'Wnd(commandParent, {0, 0, PdfCommandWidth, 36})
         {
@@ -82,7 +75,7 @@ private impl PdfPluginView
             {
                 discard button
                 if view.pageIndex do
-                    discard catch view.showPage(view.pageIndex - 1)
+                    view.showPageOrReport(view.pageIndex - 1)
             }
         }
 
@@ -94,7 +87,7 @@ private impl PdfPluginView
             {
                 discard button
                 if view.pageIndex + 1 < view.document.pages.count do
-                    discard catch view.showPage(view.pageIndex + 1)
+                    view.showPageOrReport(view.pageIndex + 1)
             }
         }
 
@@ -129,21 +122,12 @@ private impl PdfPluginView
 
         result.imageView           = ImageView.create(result)
         result.imageView.dockStyle = .Center
+        result.imageView.setImage(firstPage)
 
-        result.document = catch Document.load(fileName) as loadError
-        if loadError != null or !result.document.pages.count
-        {
-            result.showError(loadError)
-            result.commands.hide()
-        }
-        else
-        {
-            let count = result.document.pages.count
-            result.details = Format.toString("PDF · % %", count, count == 1 ? pdfStrings().ui_Page : pdfStrings().ui_Pages)
-            discard catch result.showPage(0) as renderError
-            if renderError != null do
-                result.showError(renderError)
-        }
+        result.document = #move document
+        let count = result.document.pages.count
+        result.details = Format.toString("PDF · % %", count, count == 1 ? pdfStrings().ui_Page : pdfStrings().ui_Pages)
+        result.refreshNavigation()
 
         result.applyLayout()
         result.setInitialFocus(result.imageView)
@@ -165,18 +149,18 @@ private impl IWnd for PdfPluginView
         {
         case .Left, .PageUp:
             if .pageIndex do
-                discard catch .showPage(.pageIndex - 1)
+                .showPageOrReport(.pageIndex - 1)
 
         case .Right, .PageDown:
             if .pageIndex + 1 < .document.pages.count do
-                discard catch .showPage(.pageIndex + 1)
+                .showPageOrReport(.pageIndex + 1)
 
         case .Home:
-            discard catch .showPage(0)
+            .showPageOrReport(0)
 
         case .End:
             if .document.pages.count do
-                discard catch .showPage(.document.pages.count - 1)
+                .showPageOrReport(.document.pages.count - 1)
 
         case .D0 where evt.modifiers.has(.Control):
             .imageView.actualSize()
@@ -190,15 +174,27 @@ private impl IWnd for PdfPluginView
     }
 }
 
+private func createPdfPluginView(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, view: *#null *PdfPluginView) fail
+{
+    view[] = try PdfPluginView.create(contentParent, commandParent, fileName, reportFailure)
+}
+
 // Creates the PDF view exported through the sFileScope plugin ABI.
 func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
     if request.apiVersion != ViewerPluginApiVersion do
         return false
     registerPdfStrings(request.contentParent.app())
-    let view = PdfPluginView.create(request.contentParent, request.commandParent, request.fileName)
+    var view: #null *PdfPluginView
+    catch createPdfPluginView(request.contentParent, request.commandParent, request.fileName, request.reportFailure, &view) as decodeError
+    if decodeError != null
+    {
+        result.failureReason = Errors.message(decodeError)
+        return true
+    }
+
     result.view     = view
-    result.commands = view.commands
-    result.details  = view.details
+    result.commands = view!.commands
+    result.details  = view!.details
     return true
 }

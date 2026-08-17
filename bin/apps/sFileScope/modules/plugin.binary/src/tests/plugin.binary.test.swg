@@ -675,11 +675,21 @@ private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     @assert(findRow(&doc.report, binStrings().rep_FirstBytes) != null)
 }
 
-// A file the reader cannot open produces a view rather than a failure.
+// A file the reader cannot open crosses the plugin boundary without a local error view.
 #test
 {
     var doc: BinaryDocument
     @assert(!doc.open("this-file-does-not-exist.bin"))
+    @assert(!doc.image.failureReason.isEmpty())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, "this-file-does-not-exist.bin"}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(!result.failureReason.isEmpty())
 }
 
 private func createPluginView(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryPluginView

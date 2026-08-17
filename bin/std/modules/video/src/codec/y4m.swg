@@ -2,7 +2,24 @@
 
 using Core, Core.Errors, Pixel
 
-private const MaxHeaderBytes = 4096'u64
+// Longest stream header or frame marker accepted, in bytes.
+//
+// The signature line of the format has no length limit, so a bound is what keeps a
+// malformed or non-video file from being read into memory one byte at a time.
+private const MaxLineBytes = 4096'u64
+
+// Signature line and frame marker of the format.
+private const StreamSignature = "YUV4MPEG2"
+private const FrameMarker = "FRAME"
+
+// Size of the shortest frame marker, `FRAME` followed by a line feed.
+private const ShortMarkerSize = 6'u64
+
+// Frame index meaning that the source sits between two frames.
+//
+// A read that fails part way through a frame leaves the position meaningless, so it is what the
+// decoder holds until a seek reestablishes where it is.
+private const NoFrameIndex = Swag.U64.Max
 
 internal enum ColorRange
 {
@@ -18,14 +35,12 @@ internal enum ChromaMode
     Mono
 }
 
-internal struct Index
+// Everything the signature line says about the frames that follow it.
+internal struct Header
 {
-    width:        s32
-    height:       s32
-    rate:         FrameRate
-    colorRange:   ColorRange
-    chromaMode:   ChromaMode
-    frameOffsets: Array'u64
+    info:       StreamInfo
+    colorRange: ColorRange
+    chromaMode: ChromaMode
 }
 
 private func parsePositiveU32(value, field: string)->u32 fail
@@ -36,10 +51,10 @@ private func parsePositiveU32(value, field: string)->u32 fail
     return parsed
 }
 
-private func parseHeader(line: string)->Index fail
+private func parseHeader(line: string)->Header fail
 {
     let tokens = Tokenize.split(line, ' 'u8)
-    if !tokens.count or tokens[0] != "YUV4MPEG2" do
+    if !tokens.count or tokens[0] != StreamSignature do
         fail InvalidFormatError{"YUV4MPEG2 stream header is missing"}
 
     var result: retval
@@ -57,15 +72,15 @@ private func parseHeader(line: string)->Index fail
             let width = parsePositiveU32(value, "width")
             if width > cast(u32) (Swag.S32.Max / 4) do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame width exceeds Pixel image storage"}
-            result.width = cast(s32) width
-            hasWidth     = true
+            result.info.width = cast(s32) width
+            hasWidth          = true
 
         case 'H':
             let height = parsePositiveU32(value, "height")
             if height > Swag.S32.Max do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame height exceeds Pixel image storage"}
-            result.height = cast(s32) height
-            hasHeight     = true
+            result.info.height = cast(s32) height
+            hasHeight          = true
 
         case 'F':
             let parts = Tokenize.split(value, ':'u8, removeEmpty: false)
@@ -73,8 +88,8 @@ private func parseHeader(line: string)->Index fail
                 fail InvalidFormatError{"YUV4MPEG2 frame rate needs numerator:denominator"}
             let numerator   = parsePositiveU32(parts[0], "frame-rate numerator")
             let denominator = parsePositiveU32(parts[1], "frame-rate denominator")
-            result.rate = FrameRate.create(numerator, denominator)
-            hasRate     = true
+            result.info.frameRate = FrameRate.create(numerator, denominator)
+            hasRate               = true
 
         case 'I':
             if value != "p" do
@@ -134,116 +149,28 @@ private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
     }
 }
 
-private func isFrameMarker(line: string)->bool
-{
-    return line == "FRAME" or Utf8.startsWith(line, "FRAME ")
-}
-
-private func readMemoryLine(bytes: const [..] u8, offset: *u64)->string fail
-{
-    if offset[] >= @countof(bytes) do
-        fail InvalidFormatError{"YUV4MPEG2 line is truncated"}
-
-    let start = offset[]
-    while offset[] < @countof(bytes) and bytes[offset[]] != '\n'
-    {
-        offset[] += 1
-        if offset[] - start > MaxHeaderBytes do
-            fail InvalidFormatError{"YUV4MPEG2 line exceeds 4096 bytes"}
-    }
-
-    if offset[] == @countof(bytes) do
-        fail InvalidFormatError{"YUV4MPEG2 line is truncated"}
-
-    var end = offset[]
-    offset[] += 1
-    if end > start and bytes[end - 1] == '\r' do
-        end -= 1
-    return @mkstring(@dataof(bytes) + start, end - start)
-}
-
-private func readStreamLine(stream: *File.FileStream)->String fail
-{
-    var bytes: Array'u8
-    while stream.position() < stream.size()
-    {
-        var value: u8
-        if stream.read(&value, 1) != 1 do
-            fail InvalidFormatError{"YUV4MPEG2 line is truncated"}
-        if value == '\n'
-        {
-            if bytes.count and bytes.back() == '\r' do
-                discard bytes.popBack()
-            return String.from(@mkstring(bytes.buffer, bytes.count))
-        }
-
-        bytes.add(value)
-        if bytes.count > MaxHeaderBytes do
-            fail InvalidFormatError{"YUV4MPEG2 line exceeds 4096 bytes"}
-    }
-
-    fail InvalidFormatError{"YUV4MPEG2 line is truncated"}
-}
-
-internal func index(bytes: const [..] u8)->Index fail
-{
-    var offset: u64
-    var result      = parseHeader(readMemoryLine(bytes, &offset))
-    let payloadSize = framePayloadSize(result.width, result.height, result.chromaMode)
-
-    while offset < @countof(bytes)
-    {
-        let marker = readMemoryLine(bytes, &offset)
-        if !isFrameMarker(marker) do
-            fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
-        if payloadSize > @countof(bytes) - offset do
-            fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
-        result.frameOffsets.add(offset)
-        offset += payloadSize
-    }
-
-    if !result.frameOffsets.count do
-        fail InvalidFormatError{"YUV4MPEG2 stream needs at least one frame"}
-    return result
-}
-
-internal func index(fileName: string)->Index fail
-{
-    var stream      = File.openRead(fileName)
-    var result      = parseHeader(readStreamLine(&stream).toString())
-    let payloadSize = framePayloadSize(result.width, result.height, result.chromaMode)
-
-    while stream.position() < stream.size()
-    {
-        let marker = readStreamLine(&stream)
-        if !isFrameMarker(marker.toString()) do
-            fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
-        if payloadSize > stream.size() - stream.position() do
-            fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
-        result.frameOffsets.add(stream.position())
-        stream.skip(payloadSize)
-    }
-
-    if !result.frameOffsets.count do
-        fail InvalidFormatError{"YUV4MPEG2 stream needs at least one frame"}
-    return result
-}
-
 private func clampByte(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
 
-private func decodePayload(payload: const [..] u8, width, height: s32, colorRange: ColorRange, chromaMode: ChromaMode)->Image
+private func decodePayload(target: *Image, payload: const [..] u8, header: const *Header)
 {
+    let width          = header.info.width
+    let height         = header.info.height
+    let chromaMode     = header.chromaMode
     let lumaSize       = cast(u64) width * cast(u64) height
     let chromaWidth    = chromaMode == .Yuv444 ? cast(u64) width : (cast(u64) width + 1) / 2
     let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64) height + 1) / 2 : cast(u64) height
     let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
     let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0
     let chromaColShift = chromaMode == .Yuv444 ? 0 : 1
-    var result: retval = Image.create(width, height, .RGB8)
+
+    // Reusing the frame the caller already has is what keeps a whole stream at the memory cost
+    // of one frame; a fresh image is created only when it cannot hold this one.
+    if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
+        target[] = Image.create(width, height, .RGB8)
 
     for y in height
     {
-        let destinationRow = cast(u64) (height - y - 1) * cast(u64) result.rowStride
+        let destinationRow = cast(u64) (height - y - 1) * cast(u64) target.rowStride
         for x in width
         {
             let source       = cast(u64) y * cast(u64) width + cast(u64) x
@@ -251,47 +178,22 @@ private func decodePayload(payload: const [..] u8, width, height: s32, colorRang
             let luma         = cast(s32) payload[source]
             let d            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSource] - 128
             let e            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSize + chromaSource] - 128
-            let target       = result.pixels.buffer! + destinationRow + cast(u64) x * 3
-            if colorRange == .Full
+            let destination  = target.pixels.buffer! + destinationRow + cast(u64) x * 3
+            if header.colorRange == .Full
             {
-                target[0] = clampByte(luma + ((359 * e + 128) >> 8))
-                target[1] = clampByte(luma - ((88 * d + 183 * e + 128) >> 8))
-                target[2] = clampByte(luma + ((454 * d + 128) >> 8))
+                destination[0] = clampByte(luma + ((359 * e + 128) >> 8))
+                destination[1] = clampByte(luma - ((88 * d + 183 * e + 128) >> 8))
+                destination[2] = clampByte(luma + ((454 * d + 128) >> 8))
             }
             else
             {
                 let c = Math.max(luma - 16, 0)
-                target[0] = clampByte((298 * c + 409 * e + 128) >> 8)
-                target[1] = clampByte((298 * c - 100 * d - 208 * e + 128) >> 8)
-                target[2] = clampByte((298 * c + 516 * d + 128) >> 8)
+                destination[0] = clampByte((298 * c + 409 * e + 128) >> 8)
+                destination[1] = clampByte((298 * c - 100 * d - 208 * e + 128) >> 8)
+                destination[2] = clampByte((298 * c + 516 * d + 128) >> 8)
             }
         }
     }
-
-    return result
-}
-
-internal func decodeFrame(bytes: const [..] u8, offset: u64, width, height: s32, colorRange: ColorRange, chromaMode: ChromaMode)->Image fail
-{
-    let payloadSize = framePayloadSize(width, height, chromaMode)
-    if offset > @countof(bytes) or payloadSize > @countof(bytes) - offset do
-        fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
-    return decodePayload(bytes[offset until offset + payloadSize], width, height, colorRange, chromaMode)
-}
-
-internal func decodeFrame(fileName: string, offset: u64, width, height: s32, colorRange: ColorRange, chromaMode: ChromaMode)->Image fail
-{
-    let payloadSize = framePayloadSize(width, height, chromaMode)
-    var payload: Array'u8
-    payload.resize(payloadSize)
-
-    var stream = File.openRead(fileName)
-    if offset > stream.size() or payloadSize > stream.size() - offset do
-        fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
-    stream.seek(.Begin, offset)
-    if stream.read(payload.toSlice()) != payloadSize do
-        fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
-    return decodePayload(payload.toSlice(), width, height, colorRange, chromaMode)
 }
 
 private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s32 }
@@ -303,39 +205,217 @@ private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s
     }
 }
 
-private func encodeFrame(result: *ConcatBuffer, image: Image)
+// Reads YUV4MPEG2 streams one frame at a time.
+//
+// Frames of a stream all have the same payload size, and every practical writer emits the
+// same bare frame marker, so the decoder locates frame `n` by arithmetic instead of indexing
+// the file: opening a stream reads its header and nothing else, whatever its length. A stream
+// whose markers are not uniform is read sequentially instead, and reports no frame count.
+struct Decoder
 {
-    let planeSize = cast(u64) image.width * cast(u64) image.height
-    var payload: Array'u8
-    payload.resize(planeSize * 3)
-    let yPlane = payload.buffer!
-    let uPlane = yPlane + planeSize
-    let vPlane = uPlane + planeSize
-
-    for y in image.height
+    internal
     {
-        let sourceRow = cast(u64) (image.height - y - 1) * cast(u64) image.rowStride
-        for x in image.width
+        header:         Header       // What the signature line described.
+        payloadSize:    u64          // Size of one frame payload, in bytes.
+        firstMarker:    u64          // Offset of the first frame marker.
+        markerSize:     u64          // Size of the first frame marker, in bytes.
+        frameStride:    u64          // Offset from one frame marker to the next.
+        nextIndex:      u64          // Index of the frame the decoder is positioned on.
+        isRandomAccess: bool         // Whether frame offsets can be computed instead of walked.
+        payload:        Array'u8     // Scratch storage of one encoded frame.
+    }
+}
+
+impl IDecoder for Decoder
+{
+    mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
+
+    mtd impl open(source: *Source)->StreamInfo fail
+    {
+        .header      = parseHeader(source.readLine(MaxLineBytes).toString())
+        .payloadSize = framePayloadSize(.header.info.width, .header.info.height, .header.chromaMode)
+        .firstMarker = source.position()
+        if source.isAtEnd() do
+            fail InvalidFormatError{"YUV4MPEG2 stream needs at least one frame"}
+
+        .markerSize  = .readMarker(source)
+        .frameStride = .markerSize + .payloadSize
+        if .payloadSize > source.remaining() do
+            fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+
+        // Every frame occupies the same number of bytes when its marker carries no per-frame
+        // parameter, which is how the whole format is written in practice. Two cheap checks prove
+        // it on a stream of any length: the frames must tile the file exactly, and the last marker
+        // must be where that tiling says it is. A stream failing either one is walked instead,
+        // and reports no frame count rather than a computed one that would be wrong.
+        let span           = source.size() - .firstMarker
+        var result: retval = .header.info
+        result.frameCount = span / .frameStride
+        .isRandomAccess   = !(span % .frameStride) and .probeLastFrame(source, result.frameCount)
+        if !.isRandomAccess do
+            result.frameCount = 0
+
+        source.seek(.firstMarker)
+        .nextIndex = 0
+        return result
+    }
+
+    mtd impl seekFrame(source: *Source, index: u64) fail
+    {
+        if index == .nextIndex and .nextIndex != NoFrameIndex do
+            return
+
+        if .isRandomAccess
         {
-            let source    = image.pixels.buffer! + sourceRow + cast(u64) x * image.bytesPerPixel
-            let {r, g, b} = readRgb(image, source)
-            let target    = cast(u64) y * cast(u64) image.width + cast(u64) x
-            yPlane[target] = clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
-            uPlane[target] = clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
-            vPlane[target] = clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)
+            source.seek(.firstMarker + index * .frameStride)
+            .nextIndex = index
+            return
+        }
+
+        // Without uniform markers there is nothing to compute: the stream is walked, from the
+        // current position when the target is ahead of it, and from the first frame otherwise.
+        var walked = .nextIndex
+        if walked == NoFrameIndex or index < walked
+        {
+            source.seek(.firstMarker)
+            walked = 0
+        }
+
+        .nextIndex = NoFrameIndex
+        while walked < index
+        {
+            discard .readMarker(source)
+            source.skip(.payloadSize)
+            walked += 1
+        }
+
+        .nextIndex = index
+    }
+
+    mtd impl decodeFrame(source: *Source, target: *Image) fail
+    {
+        let current = .nextIndex
+        .nextIndex = NoFrameIndex
+
+        discard .readMarker(source)
+        if .payloadSize > source.remaining() do
+            fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+
+        if .payload.count != .payloadSize do
+            .payload.resize(.payloadSize)
+        source.readExact(.payload.toSlice())
+        decodePayload(target, .payload.toSlice(), &.header)
+        .nextIndex = current + 1
+    }
+}
+
+impl Decoder
+{
+    // Reads one frame marker and returns the number of bytes it occupies.
+    //
+    // A marker may carry per-frame parameters after `FRAME`. They change nothing in the payload
+    // that follows, but they do change where it starts, which is why the size is returned.
+    private mtd readMarker(source: *Source)->u64 fail
+    {
+        var marker: [ShortMarkerSize] u8 = undefined
+        source.readExact(marker)
+        if @memcmp(&marker[0], @dataof(FrameMarker), @countof(FrameMarker)) != 0 do
+            fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
+        if marker[ShortMarkerSize - 1] == '\n' do
+            return ShortMarkerSize
+        if marker[ShortMarkerSize - 1] != ' ' and marker[ShortMarkerSize - 1] != '\r' do
+            fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
+
+        var size = ShortMarkerSize
+        while true
+        {
+            let value = source.readByte()
+            size += 1
+            if value == '\n' do
+                return size
+            if size > MaxLineBytes do
+                fail InvalidFormatError{"YUV4MPEG2 frame marker exceeds its maximum length"}
         }
     }
 
-    result.addBytes(payload.toSlice(), contiguous: false)
+    // Reports whether the last frame really starts where a constant frame size says it does.
+    //
+    // The position of `source` is left wherever the probe stopped; the caller seeks back to the
+    // first frame either way.
+    private mtd probeLastFrame(source: *Source, frameCount: u64)->bool
+    {
+        if !frameCount do
+            return false
+
+        catch .checkFrameAt(source, .firstMarker + (frameCount - 1) * .frameStride) as probeError
+        return probeError == null
+    }
+
+    // Fails unless a complete frame of the constant size starts at `offset`.
+    private mtd checkFrameAt(source: *Source, offset: u64) fail
+    {
+        source.seek(offset)
+        if .readMarker(source) != .markerSize do
+            fail InvalidFormatError{"YUV4MPEG2 frame markers do not have a constant size"}
+        if .payloadSize > source.remaining() do
+            fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+    }
 }
 
-internal func encode(result: *ConcatBuffer, clip: const *Clip) fail
+// Writes YUV4MPEG2 streams one frame at a time.
+//
+// The format carries no audio, and this encoder writes progressive 8-bit 4:4:4 limited-range
+// BT.601 planes: chroma is not subsampled, so what a frame is written with is what reading it
+// back returns, within the rounding of the color conversion itself.
+struct Encoder
 {
-    Format.append(result, "YUV4MPEG2 W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n", clip.width(), clip.height(), clip.frameRate().numerator(), clip.frameRate().denominator())
-    for index in clip.frameCount()
+    internal
     {
-        Format.append(result, "FRAME\n")
-        let frame = try clip.decodeFrame(index)
-        encodeFrame(result, frame)
+        info:    StreamInfo     // Geometry and rate the stream was opened with.
+        payload: Array'u8       // Scratch storage of one encoded frame.
+    }
+}
+
+impl IEncoder for Encoder
+{
+    mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
+
+    mtd impl begin(sink: *Sink, info: StreamInfo) fail
+    {
+        .info = info
+        sink.writeText(Format.toString("YUV4MPEG2 W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n", info.width, info.height, info.frameRate.numerator(), info.frameRate.denominator()).toString())
+    }
+
+    mtd impl addFrame(sink: *Sink, image: Image) fail
+    {
+        let planeSize = cast(u64) .info.width * cast(u64) .info.height
+        if .payload.count != planeSize * 3 do
+            .payload.resize(planeSize * 3)
+
+        let yPlane = .payload.buffer!
+        let uPlane = yPlane + planeSize
+        let vPlane = uPlane + planeSize
+        for y in image.height
+        {
+            let sourceRow = cast(u64) (image.height - y - 1) * cast(u64) image.rowStride
+            for x in image.width
+            {
+                let source    = image.pixels.buffer! + sourceRow + cast(u64) x * image.bytesPerPixel
+                let {r, g, b} = readRgb(image, source)
+                let target    = cast(u64) y * cast(u64) image.width + cast(u64) x
+                yPlane[target] = clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
+                uPlane[target] = clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
+                vPlane[target] = clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)
+            }
+        }
+
+        sink.writeText("FRAME\n")
+        sink.write(.payload.toSlice())
+    }
+
+    mtd impl end(sink: *Sink) fail
+    {
+        // The format has no trailer: a stream is complete as soon as its last frame is written.
+        discard sink
     }
 }

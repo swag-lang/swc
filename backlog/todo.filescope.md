@@ -204,7 +204,8 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Swag chunk container | `.scc` | structure, through `Core.Scc` | — | — |
 | ZIP family | `.zip` `.jar` `.apk` `.vsix` | central directory only | open an entry inside the archive | T-403 |
 | Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | T-403 |
-| Fonts | `.ttf` `.otf` `.ttc` `.woff` | structure | glyph specimen | T-406 |
+| TrueType fonts | `.ttf` `.ttc` | specimen and character map, first face | collection face selector | — |
+| CFF and web fonts | `.otf` `.woff` | structure | CFF outlines and WOFF containers | T-177, T-178 |
 | Program databases | `.pdb` | signature | MSF stream directory, CodeView match | T-413 |
 | Databases | `.sqlite` `.db` | signature | schema and table browse | T-410 |
 | Certificates and keys | `.pem` `.der` `.crt` `.p12` | none | ASN.1 and X.509 decode | T-411 |
@@ -223,9 +224,10 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-401 — PDF coverage still needs lazy pages and specialized fonts and images
 
-- Intent: `std/pdf` and `plugin.pdf` now decode, edit, render and write the common Flate/TrueType/
-  JPEG/vector path, but an eager document model and the missing Type1, CFF, LZW, CCITT, JBIG2 and
-  JPEG 2000 paths still reject or omit valid production files.
+- Intent: `std/pdf` and `plugin.pdf` now decode, edit, render and write the common Flate/LZW/
+  TrueType/JPEG/vector path, with the full text state, font metrics and encodings, and every
+  sample representation a raster can use, but an eager document model and the missing Type1, CFF,
+  CCITT, JBIG2 and JPEG 2000 paths still reject or omit valid production files.
 - Complete when: page content is decoded on demand from the mapped document, Type1 and CFF text
   renders, and the remaining standard image/filter families either render or report a precise
   per-item limitation without losing the rest of the page.
@@ -263,15 +265,6 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Complete when: a metadata panel shows the decoded tags, EXIF orientation is applied on load, and
   an embedded ICC profile is at least reported.
 - Related: T-052, T-198
-
-### T-406 — A font file is disassembled but never rendered
-
-- Intent: `plugin.binary` reads the sfnt tables of `.ttf`, `.otf` and `.ttc`, and never draws one
-  glyph. A font viewer is judged on the specimen.
-- Complete when: a specimen view shows a sample line at several sizes, the glyph grid, and the
-  character map, using the `truetype` module. `.otf` with CFF outlines and the WOFF containers
-  follow their own entries.
-- Related: T-068, T-177, T-178
 
 ### T-407 — Office and OpenDocument files stop at the ZIP structure
 
@@ -333,9 +326,11 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-420 — Common compressed video cannot be played
 
-- Intent: the YUV4MPEG2 proof of concept establishes the standard Video module, silent frame
-  streaming, and `plugin.video`, but the videos people encounter still open on their signature
-  line because no compressed picture codec or mainstream container is decoded.
+- Intent: the videos people encounter still open on their signature line because no compressed
+  picture codec or mainstream container is decoded. What is missing is decoders, not a design:
+  `std/video` streams frames through a codec registry, so a format is a `Video.IDecoder` reading
+  a `Video.Source` and answering `seekFrame` its own way — an offset for a fixed frame size, a
+  keyframe followed by decoding forward for a compressed one.
 - Complete when: a `plugin.video` shows the picture with transport, a seekable timeline and the
   frame position for H.264 in MP4 and VP9 or AV1 in WebM and Matroska, and the registry moves those
   extensions off the binary line for playback while T-412 keeps the structure reader available as

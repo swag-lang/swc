@@ -14,6 +14,24 @@ private struct CodeLanguageSample
     source:   string
 }
 
+// Unsupported source bytes cross the plugin boundary without being written into the editor.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("filescope-code-", ".cpp")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, [0x66'u8, 0x6F'u8, 0x00'u8, 0x6F'u8])
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(Utf8.contains(result.failureReason.toSlice(), "zero byte"))
+}
+
 #test
 {
     let fileName = codeFixturePath("sample.swg")

@@ -131,6 +131,20 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     themeCombo.setSelectedIndex(0, notify: false)
 
     let view = MarkdownView.createFile(request.contentParent, request.fileName, MarkdownStyle.theme())
+    if !view.failureReason.isEmpty()
+    {
+        result.failureReason = view.failureReason.toString()
+        commandGroup.destroy()
+        view.destroy()
+        return true
+    }
+
+    if request.reportFailure
+    {
+        let reportFailure = request.reportFailure!
+        view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd) markdown, reason) }
+    }
+
     applyMarkdownViewerStyle(view, 0, 1)
     result.view           = view
     result.commands       = commandGroup

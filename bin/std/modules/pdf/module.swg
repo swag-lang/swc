@@ -15,6 +15,7 @@ using Pdf, Pixel
 var document = Document.create()
 var page     = Page.create(595, 842)
 page.addText("Hello PDF", 48, 72, 24, Color.fromArgb(Argb.Black))
+page.addText("Times, bold", 48, 108, 18, Color.fromArgb(Argb.Black), .TimesBold)
 document.addPage(#move page)
 
 var image = try document.pages[0].render({scale: 1.5})
@@ -27,16 +28,36 @@ Loaded pages are inspected through `Document.pages`. Call
 colors, strokes, or item transforms; the borrow ends before pages are added or
 removed.
 
+Text is written with the standard faces of [[Pdf.StandardFont]], which every
+reader provides, so a written document embeds no font program. The same type
+measures a run through its built-in metrics, without reading a font from the
+system.
+
 Loading and rendering reject malformed input and unsupported encodings through
 Swag's normal `fail` mechanism. Embedded actions, scripts, forms, and external
 references are never executed.
 
-The reader handles classic indirect objects, compressed object streams, page
-trees, Flate, ASCII hexadecimal, ASCII85, run-length streams, embedded TrueType
-fonts, JPEG and 8-bit grayscale/RGB/CMYK images, and the common text and vector
-painting operators. Encryption, forms, Type1/CFF fonts, color profiles, and
-specialized image codecs are outside the initial implementation and fail when
-their data is required for rendering.
+## What the reader handles
+
+Nothing below is delegated to a platform service or a third-party library; the
+only decoder that comes from outside the module is Core's Flate and Pixel's JPEG.
+
+- Classic indirect objects, compressed object streams, cross-reference streams,
+  page trees with inherited attributes, and page rotation.
+- The Flate, LZW, ASCII hexadecimal, ASCII85, and run-length filters, with the
+  TIFF and PNG predictors at every supported bit depth.
+- The text, vector, color space, and inline image operators, including the
+  complete text state, so a run lands where its producer placed it.
+- Simple and composite fonts: `/Widths` and `/W` metrics, the standard, WinAnsi
+  and MacRoman encodings, `/Differences`, `/ToUnicode` CMaps, and embedded
+  TrueType or OpenType programs.
+- Images from one to sixteen bits per component, in the device, calibrated,
+  ICC-based, indexed, Lab, separation, and DeviceN color spaces, with decode
+  arrays, stencil masks, soft masks, and color key masks.
+
+Encryption, interactive forms, Type1 and CFF font programs, shading patterns,
+and the CCITT, JBIG2 and JPEG 2000 image codecs are out of scope; a document
+that needs one of them reports it rather than painting something else.
 */
 
 #import("core")

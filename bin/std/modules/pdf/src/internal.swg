@@ -1,4 +1,4 @@
-using Core, Core.Math, Pixel
+using Core
 
 const InvalidNode = Swag.U32.Max
 
@@ -28,22 +28,16 @@ struct Node
     stream:    Array'u8
 }
 
-// Internal page storage whose type identity is part of the exported Page layout.
-#[Swag.NoDoc]
-public struct FontResource
-{
-    objectId:  u32
-    name:      String
-    baseName:  String
-    bytes:     Array'u8
-    unicode:   HashTable'(u32, String)
-    codeBytes: u32 = 1
-}
-
 struct PdfParser
 {
     bytes:   const [..] u8
     pos:     u64
     nodes:   Array'Node
     objects: HashTable'(u32, u32)
+
+    // Filled by the trailer scan: the catalog and metadata dictionaries the file itself
+    // names, and whether it declares a security handler.
+    trailerRoot: u32 = InvalidNode
+    trailerInfo: u32 = InvalidNode
+    isEncrypted: bool
 }

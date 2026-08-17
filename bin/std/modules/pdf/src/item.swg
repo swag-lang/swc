@@ -26,13 +26,14 @@ struct Item
         image:     Image
         transform: Transform2 = Transform2.Identity
 
-        fillColor:   Color = Color.fromArgb(Argb.Black)
-        strokeColor: Color = Color.fromArgb(Argb.Black)
-        fontSize:    f32
-        strokeWidth: f32   = 1
-        hasFill:     bool
-        hasStroke:   bool
-        fontIndex:   u32   = Swag.U32.Max
+        fillColor:    Color        = Color.fromArgb(Argb.Black)
+        strokeColor:  Color        = Color.fromArgb(Argb.Black)
+        fontSize:     f32
+        strokeWidth:  f32          = 1
+        hasFill:      bool
+        hasStroke:    bool
+        fontIndex:    u32          = Swag.U32.Max
+        standardFont: StandardFont = StandardFont.Helvetica
     }
 }
 
@@ -52,6 +53,12 @@ public impl Item
 
     // Returns the text size in PDF points, or zero for another kind.
     mtd const textSize()->f32 => .kind == .Text ? .fontSize : 0
+
+    // Returns the standard face this text is written with.
+    //
+    // A decoded page reports the standard face closest to the font the file names, which is
+    // the face the writer would use again.
+    mtd const textFont()->StandardFont => .standardFont
 
     // Returns the stroke width in PDF points, or zero when the item has no stroke.
     mtd const pathStrokeWidth()->f32 => .kind == .Path and .hasStroke ? .strokeWidth : 0

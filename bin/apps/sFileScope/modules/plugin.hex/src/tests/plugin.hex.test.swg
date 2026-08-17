@@ -69,6 +69,20 @@ private func createPluginView(host: *Testing.HeadlessHost, fileName: string, wid
     return view
 }
 
+// A file-open error crosses the plugin boundary instead of appearing as an empty byte grid.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, "this-file-does-not-exist.bin"}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(!result.failureReason.isEmpty())
+}
+
 // Typed grouping moves, selects, spaces, and decodes one complete scalar at a time.
 #test
 {

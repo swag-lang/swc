@@ -8,15 +8,12 @@ using Core, Gui
 // everywhere — so only the words around them are translated.
 struct SoundStrings
 {
-    ui_TipPlay:      string = "Play"                                    // Tooltip of the transport button while stopped or paused.
-    ui_TipPause:     string = "Pause"                                   // Tooltip of the transport button while playing.
-    ui_TipStop:      string = "Stop"                                    // Tooltip of the stop button.
-    ui_NoEngine:     string = "Playback unavailable"                    // Tooltip when no audio engine could be acquired.
-    ui_ErrDecode:    string = "This WAV file could not be decoded."     // Shown when the file is not readable PCM or float WAV.
-    ui_DetailsError: string = "WAV · decode failed"                     // Summary the host shows for a file that would not decode.
-
-    word_Channel:  string = "channel"      // One audio channel.
-    word_Channels: string = "channels"     // Several audio channels.
+    ui_TipPlay:    string = "Play"                     // Tooltip of the transport button while stopped or paused.
+    ui_TipPause:   string = "Pause"                    // Tooltip of the transport button while playing.
+    ui_TipStop:    string = "Stop"                     // Tooltip of the stop button.
+    ui_NoEngine:   string = "Playback unavailable"     // Tooltip when no audio engine could be acquired.
+    word_Channel:  string = "channel"                  // One audio channel.
+    word_Channels: string = "channels"                 // Several audio channels.
 
     // Summary the host shows beside the file size: sample rate, channel count with its noun,
     // sample width, then the duration.

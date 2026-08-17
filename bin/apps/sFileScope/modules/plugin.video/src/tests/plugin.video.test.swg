@@ -30,7 +30,9 @@ private func videoPreviewFile(name: string)->String fail
     defer host.shutdown()
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
-    let view     = VideoPluginView.create(&host.root, commands, fileName)
+    var created: #null *VideoPluginView
+    expect createVideoPluginView(&host.root, commands, fileName, null, &created)
+    let view = created!
     @assert(view.video.frameCount() == 4)
     @assert(view.frameIndex == 0 and !view.playing)
     @assert(view.details.indexOf("160") != Swag.U64.Max)
@@ -63,7 +65,9 @@ private func videoPreviewFile(name: string)->String fail
     commandBar.dockStyle       = .Top
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
-    let view = VideoPluginView.create(&host.root, commandBar, fileName)
+    var created: #null *VideoPluginView
+    expect createVideoPluginView(&host.root, commandBar, fileName, null, &created)
+    let view = created!
     view.dockStyle          = .Center
     view.commands.dockStyle = .Right
     view.seekFrame(2)
@@ -83,9 +87,9 @@ private func videoPreviewFile(name: string)->String fail
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
-    let view     = VideoPluginView.create(&host.root, commands, fileName)
-    @assert(!view.imageView.isLocallyVisible())
-    @assert(!view.playButton.isEnabled())
-    @assert(view.details == "YUV4MPEG2 · decode failed")
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view == null and result.commands == null)
+    @assert(!result.failureReason.isEmpty())
 }

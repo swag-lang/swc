@@ -10,6 +10,19 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
 
     registerHtmlStrings(request.contentParent.app())
     let view = HtmlView.createFile(request.contentParent, request.fileName)
+    if !view.failureReason.isEmpty()
+    {
+        result.failureReason = view.failureReason.toString()
+        view.destroy()
+        return true
+    }
+
+    if request.reportFailure
+    {
+        let reportFailure = request.reportFailure!
+        view.sigLoadFailed += func|reportFailure|(html, reason) { reportFailure(cast(*Wnd) html, reason) }
+    }
+
     result.view           = view
     result.details        = htmlStrings().ui_Details
     result.revealMatch    = func(wnd, offset, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(offset, text) }

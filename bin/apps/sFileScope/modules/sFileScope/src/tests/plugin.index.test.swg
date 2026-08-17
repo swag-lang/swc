@@ -38,6 +38,9 @@ using Core
     @assert(shippedHtml[0].name == "HTML" and shippedHtml[1].name == "Code")
     @assert(shipped.choices("Makefile")[0].name == "Code")
     @assert(shipped.choices("Dockerfile")[0].name == "Code")
+    let fontChoices = shipped.choices("family.ttf")
+    @assert(fontChoices[0].name == "Font" and fontChoices[1].name == "Hexadecimal")
+    @assert(shipped.choices("outlines.otf")[0].name == "Binary")
 }
 
 #test

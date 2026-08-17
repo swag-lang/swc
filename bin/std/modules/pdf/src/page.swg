@@ -38,16 +38,18 @@ public impl Page
 
     // Appends one UTF-8 text run.
     //
-    // `(x, y)` is the top-left of the text line box. The standard PDF writer uses
-    // Helvetica and accepts characters representable by Windows-1252.
-    mtd addText(text: string, x, y, size: f32, color = Color.fromArgb(Argb.Black))
+    // `(x, y)` is the top-left of the text line box. `font` selects one of the standard
+    // faces every reader provides; the writer accepts the characters Windows-1252 can
+    // represent. Use [[Pdf.StandardFont.textWidth]] to measure the run before placing it.
+    mtd addText(text: string, x, y, size: f32, color = Color.fromArgb(Argb.Black), font = StandardFont.Helvetica)
     {
         Debug.assert(size > 0 and Math.isFinite(size) and Math.isFinite(x) and Math.isFinite(y), "invalid text placement")
         var item = Item.createText()
-        item.text      = text
-        item.fontSize  = size
-        item.fillColor = color
-        item.transform = Transform2.createTranslation(x, y)
+        item.text         = text
+        item.fontSize     = size
+        item.fillColor    = color
+        item.standardFont = font
+        item.transform    = Transform2.createTranslation(x, y)
         .items.add(#move item)
     }
 
@@ -103,6 +105,13 @@ public impl Page
         Debug.assert(index < .items.count and .items[index].kind == .Text, "item is not text")
         Debug.assert(size > 0 and Math.isFinite(size), "invalid text size")
         .items[index].fontSize = size
+    }
+
+    // Replaces the standard face a text item is written with.
+    mtd setTextFont(index: u64, font: StandardFont)
+    {
+        Debug.assert(index < .items.count and .items[index].kind == .Text, "item is not text")
+        .items[index].standardFont = font
     }
 
     // Replaces the transform applied to an item during rendering and writing.

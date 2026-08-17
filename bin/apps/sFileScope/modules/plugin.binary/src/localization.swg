@@ -22,7 +22,6 @@ struct BinaryStrings
     ui_MenuCopyLine: string = "Copy this line"                   // Menu entry copying the selected row.
     ui_MenuExpand:   string = "Expand everything"                // Menu entry opening every group.
     ui_MenuCollapse: string = "Collapse everything"              // Menu entry closing every group.
-    ui_Unreadable:   string = "This file could not be read."     // Shown when the file cannot be opened.
 
     word_Section:    string = "section"        // One section.
     word_Sections:   string = "sections"       // Several sections.

@@ -256,3 +256,44 @@ private func markdownFixturePath()->String
 
     @assert(visibleBlock)
 }
+
+// A file-open failure stays inspectable even when no observer was connected during construction.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_markdown_%.md", Guid64.random()).toString())
+    let view = MarkdownView.createFile(&host.root, path)
+    @assert(!view.failureReason.isEmpty())
+    for 64 where view.isLoading() do
+        host.fireTimers()
+    @assert(!view.isLoading())
+}
+
+// A decoder failure found by the progressive reader is signaled after construction.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("invalid_gui_markdown_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(path)
+    let bytes: [3] u8 = ['a', 0, 'b']
+    discard expect File.writeAllBytes(path, @mkslice(cast(const [*] u8) @dataof(bytes), @countof(bytes)))
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    var reported: String
+    let view = MarkdownView.createFile(&host.root, path)
+    view.sigLoadFailed += func|&reported|(markdown, reason)
+    {
+        discard markdown
+        reported = reason
+    }
+
+    for 64 where reported.isEmpty() do
+        host.fireTimers()
+    @assert(!reported.isEmpty())
+    @assert(reported == view.failureReason)
+}

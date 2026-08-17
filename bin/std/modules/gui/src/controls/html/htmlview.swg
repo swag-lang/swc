@@ -79,9 +79,13 @@ public struct HtmlView
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         sigLinkActivated: SigArray'func||(*HtmlView, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
+        sigLoadFailed:    SigArray'func||(*HtmlView, string)     // Emitted with the exact reason when progressive file loading stops.
 
         public readonly
-        documentStyle: HtmlStyle     // Typography a document inherits before its own CSS applies.
+        {
+            documentStyle: HtmlStyle     // Typography a document inherits before its own CSS applies.
+            failureReason: String        // File-loading explanation, or empty while loading remains valid.
+        }
     }
 
     internal
@@ -330,6 +334,7 @@ internal impl HtmlView
             let chunk = catch .stream.readUtf8Chunk(HtmlStreamChunkSize) as readError
             if readError != null
             {
+                .reportLoadFailure(Errors.message(readError))
                 .finishSource("<p>Unable to read this HTML document.</p>")
             }
             elif chunk.isEmpty()
@@ -357,6 +362,14 @@ internal impl HtmlView
 
         if !.sourceDone do
             .scheduleMore()
+    }
+
+    mtd reportLoadFailure(reason: string)
+    {
+        .failureReason = reason
+        if .failureReason.isEmpty() do
+            .failureReason = "HTML source could not be read"
+        .sigLoadFailed.call(me, .failureReason.toString())
     }
 
     private mtd finishSource(notice: string)
@@ -749,11 +762,13 @@ internal impl HtmlView
         .searchEnd          = 0
         .hovered            = HtmlNoNode
         .pendingSearch.clear()
+        .failureReason.clear()
         .scroll.setScrollPos(0, 0)
 
         .stream = catch File.openRead(fileName) as openError
         if openError != null
         {
+            .reportLoadFailure(Errors.message(openError))
             .finishSource("<p>Unable to read this HTML document.</p>")
             .rebuild()
             return
@@ -776,8 +791,8 @@ internal impl HtmlView
 
     // Creates a view and progressively loads a UTF-8 HTML file.
     //
-    // File-open and decoding failures are displayed inside the returned view rather than reported
-    // to the caller.
+    // File-open and decoding failures remain visible in the document and are also exposed through
+    // [[Gui.HtmlView.failureReason]] and [[Gui.HtmlView.sigLoadFailed]].
     public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = .createBase(contentParent, documentStyle)

@@ -1,33 +1,29 @@
 using Core, Core.Errors, Core.Math, Pixel
 
+// Everything a content stream can set before it paints.
+//
+// `q` and `Q` push and pop a whole value of this type, which is why it owns its color
+// spaces rather than pointing at them.
 private struct GraphicsState
 {
     ctm:         Transform2 = Transform2.Identity
     fillColor:   Color      = Color.fromArgb(Argb.Black)
     strokeColor: Color      = Color.fromArgb(Argb.Black)
     strokeWidth: f32        = 1
+    fillSpace:   ImageSpace
+    strokeSpace: ImageSpace
+
     fontName:    String
-    fontSize:    f32        = 12
-    textMatrix:  Transform2 = Transform2.Identity
-    lineMatrix:  Transform2 = Transform2.Identity
-}
+    fontSize:    f32 = 12
+    charSpacing: f32
+    wordSpacing: f32
+    horizScale:  f32 = 1
+    leading:     f32
+    rise:        f32
+    renderMode:  s64
 
-private func component(value: f64)->u8 => cast(u8) Math.clamp(Math.round(value * 255.0), 0, 255)
-
-private func grayColor(value: f64)->Color
-{
-    let c = component(value)
-    return Color.fromRgb(c, c, c)
-}
-
-private func rgbColor(r, g, b: f64)->Color => Color.fromRgb(component(r), component(g), component(b))
-
-private func cmykColor(c, m, y, k: f64)->Color
-{
-    let r = 1.0 - Math.min(1.0, c + k)
-    let g = 1.0 - Math.min(1.0, m + k)
-    let b = 1.0 - Math.min(1.0, y + k)
-    return rgbColor(r, g, b)
+    textMatrix: Transform2 = Transform2.Identity
+    lineMatrix: Transform2 = Transform2.Identity
 }
 
 private func transformPoint(state: const *GraphicsState, page: const *Page, x, y: f32)->Vector2
@@ -48,6 +44,23 @@ private func nodeNumber(parser: const *PdfParser, nodeId: u32)->f32
 {
     let value = parser.number(nodeId)
     return value < 0 ? -cast(f32) (-value) : cast(f32) value
+}
+
+// Collects the trailing numeric operands of a color operator.
+private func colorComponents(parser: const *PdfParser, operands: Array'u32, target: [..] f32)->u32
+{
+    var count = 0'u64
+    while count < @countof(operands) and count < @countof(target)
+    {
+        let id = parser.resolve(operands[@countof(operands) - count - 1])
+        if id == InvalidNode or (parser.nodes[id].kind != .Integer and parser.nodes[id].kind != .Real) do
+            break
+        count += 1
+    }
+
+    for i in count do
+        target[i] = cast(f32) parser.number(operands[@countof(operands) - count + i])
+    return cast(u32) count
 }
 
 private func currentPath(path: *LinePathList, current: *#null *LinePath, start: Vector2)->*LinePath
@@ -96,145 +109,72 @@ private func fontIndex(parser: const *PdfParser, page: const *Page, resourcesId:
     return Swag.U32.Max
 }
 
-private func decodeText(font: #null const *FontResource, bytes: string)->String
+// Moves the text position along the baseline of the current line.
+private func advanceText(state: *GraphicsState, amount: f32)
 {
-    if !font or !font.unicode.count do
-        return Text.decode(cast(const [..] u8) bytes, .Windows1252)
+    var moved = Transform2.createTranslation(amount, 0)
+    moved.multiply(state.textMatrix)
+    state.textMatrix = moved
+}
 
-    var result: retval
-    var pos       = 0'u64
-    let codeBytes = Math.max(font.codeBytes, 1)
-    while pos + codeBytes <= @countof(bytes)
-    {
-        var code = 0'u32
-        for i in codeBytes do
-            code = code << 8 | bytes[pos + i]
-        pos += codeBytes
-        let entry = font.unicode.tryFind(code)
-        if entry do
-            result += entry.value
-        elif code <= 0xFF do
-            result += Text.decode(@mkslice(cast(const [*] u8) &code, 1), .Windows1252)
-    }
-
-    return result
+// Starts a new line relative to the current one, which is what `Td`, `TD`, `T*` all do.
+private func moveTextLine(state: *GraphicsState, x, y: f32)
+{
+    var moved = Transform2.createTranslation(x, y)
+    moved.multiply(state.lineMatrix)
+    state.lineMatrix = moved
+    state.textMatrix = moved
 }
 
 private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string)
 {
     let index = fontIndex(parser, page, resourcesId, state.fontName.toString())
     let font  = index < page.fonts.count ? &page.fonts[index] : null
-    let text  = decodeText(font, bytes)
-    if text.isEmpty() do
-        return
-    let runeCount = Utf8.countRunes(text.toString())
 
-    var combined = state.textMatrix
-    combined.multiply(state.ctm)
-    let baseline = combined.translation()
-    var item     = Item.createText()
-    item.text      = #move text
-    item.fontSize  = state.fontSize
-    item.fillColor = state.fillColor
-    item.fontIndex = index
-    let m11       = combined.m11
-    let m12       = -combined.m12
-    let m21       = -combined.m21
-    let m22       = combined.m22
-    let baselineX = baseline.x
-    let baselineY = page.height - baseline.y
-    item.transform = Transform2{m11, m12, m21, m22, baselineX - state.fontSize * m21, baselineY - state.fontSize * m22}
-    page.appendItem(#move item)
+    var advance = 0.0'f32
+    if font do
+        advance = font.runAdvance(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
+    else do
+        advance = cast(f32) @countof(bytes) * state.fontSize * 0.5
 
-    state.textMatrix.tx += cast(f32) runeCount * state.fontSize * 0.5
+    // Render modes 3 and 7 add no marks; the text still moves the position, which is how
+    // an invisible layer over a scanned page stays aligned with what it transcribes.
+    let invisible = state.renderMode == 3 or state.renderMode == 7
+    let text      = font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8) bytes, .Windows1252)
+    if !invisible and !text.isEmpty()
+    {
+        var combined = Transform2{state.horizScale, 0, 0, 1, 0, state.rise}
+        combined.multiply(state.textMatrix)
+        combined.multiply(state.ctm)
+
+        let baseline  = combined.translation()
+        let m21       = -combined.m21
+        let m22       = combined.m22
+        let baselineY = page.height - baseline.y
+
+        var item = Item.createText()
+        item.text      = #move text
+        item.fontSize  = state.fontSize
+        item.fillColor = state.fillColor
+        item.fontIndex = index
+        item.transform = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
+        if font and font.hasStandard do
+            item.standardFont = font.standard
+        page.appendItem(#move item)
+    }
+
+    advanceText(state, advance * state.horizScale)
 }
 
-private func decodeImage(parser: *PdfParser, nodeId: u32)->Image fail
+private func appendImageItem(parser: *PdfParser, page: *Page, state: const *GraphicsState, imageId, resourcesId: u32) fail
 {
-    let width  = parser.integer(parser.dict(nodeId, "Width"))
-    let height = parser.integer(parser.dict(nodeId, "Height"))
-    let bits   = parser.integer(parser.dict(nodeId, "BitsPerComponent"), 8)
-    if width <= 0 or height <= 0 or width > Swag.S32.Max or height > Swag.S32.Max do
-        fail InvalidFormatError{"PDF image has invalid dimensions"}
-    if bits != 8 do
-        fail UnsupportedFormatError{"PDF image bit depth is not supported"}
-
-    let filter = parser.name(parser.dict(nodeId, "Filter"))
-    if filter == "DCTDecode" or filter == "DCT"
-    {
-        let id = parser.resolve(nodeId)
-        return try Image.decode(".jpg", parser.nodes[id].stream.toSlice())
-    }
-
-    let bytes      = try parser.decodeStream(nodeId)
-    let colorSpace = parser.name(parser.dict(nodeId, "ColorSpace"))
-    let pixelCount = cast(u64) width * cast(u64) height
-    if colorSpace == "DeviceGray" or colorSpace == "G"
-    {
-        if bytes.count < pixelCount do
-            fail InvalidFormatError{"PDF grayscale image stream is truncated"}
-        var rgb: Array'u8
-        rgb.resize(pixelCount * 3)
-        for y in cast(u64) height
-        {
-            for x in cast(u64) width
-            {
-                let source = y * cast(u64) width + x
-                let target = (cast(u64) height - y - 1) * cast(u64) width + x
-                rgb[target * 3 + 0] = bytes[source]
-                rgb[target * 3 + 1] = bytes[source]
-                rgb[target * 3 + 2] = bytes[source]
-            }
-        }
-
-        return Image.create(cast(s32) width, cast(s32) height, .RGB8, rgb.toSlice())
-    }
-
-    if colorSpace == "DeviceRGB" or colorSpace == "RGB" or !@countof(colorSpace)
-    {
-        if bytes.count < pixelCount * 3 do
-            fail InvalidFormatError{"PDF RGB image stream is truncated"}
-        var rgb: Array'u8
-        rgb.resize(pixelCount * 3)
-        for y in cast(u64) height
-        {
-            let targetY = cast(u64) height - y - 1
-            for x in cast(u64) width
-            {
-                let source = (y * cast(u64) width + x) * 3
-                let target = (targetY * cast(u64) width + x) * 3
-                rgb[target + 0] = bytes[source + 0]
-                rgb[target + 1] = bytes[source + 1]
-                rgb[target + 2] = bytes[source + 2]
-            }
-        }
-
-        return Image.create(cast(s32) width, cast(s32) height, .RGB8, rgb.toSlice())
-    }
-
-    if colorSpace == "DeviceCMYK" or colorSpace == "CMYK"
-    {
-        if bytes.count < pixelCount * 4 do
-            fail InvalidFormatError{"PDF CMYK image stream is truncated"}
-        var rgb: Array'u8
-        rgb.resize(pixelCount * 3)
-        for y in cast(u64) height
-        {
-            for x in cast(u64) width
-            {
-                let source = (y * cast(u64) width + x) * 4
-                let target = ((cast(u64) height - y - 1) * cast(u64) width + x) * 3
-                let color  = cmykColor(bytes[source + 0] / 255.0, bytes[source + 1] / 255.0, bytes[source + 2] / 255.0, bytes[source + 3] / 255.0)
-                rgb[target + 0] = color.r
-                rgb[target + 1] = color.g
-                rgb[target + 2] = color.b
-            }
-        }
-
-        return Image.create(cast(s32) width, cast(s32) height, .RGB8, rgb.toSlice())
-    }
-
-    fail UnsupportedFormatError{"PDF image color space is not supported"}
+    var item = Item.createImage()
+    item.image = try decodeImage(parser, imageId, resourcesId, state.fillColor)
+    let top    = transformPoint(state, page, 0, 1)
+    let right  = transformPoint(state, page, 1, 1)
+    let bottom = transformPoint(state, page, 0, 0)
+    item.transform = Transform2{right.x - top.x, right.y - top.y, bottom.x - top.x, bottom.y - top.y, top.x, top.y}
+    page.appendItem(#move item)
 }
 
 private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, name: string, depth: u32) fail
@@ -274,14 +214,128 @@ private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, st
 
     if subtype != "Image" do
         return
+    try appendImageItem(parser, page, state, id, resourcesId)
+}
 
-    var item = Item.createImage()
-    item.image = try decodeImage(parser, id)
-    let top    = transformPoint(state, page, 0, 1)
-    let right  = transformPoint(state, page, 1, 1)
-    let bottom = transformPoint(state, page, 0, 0)
-    item.transform = Transform2{right.x - top.x, right.y - top.y, bottom.x - top.x, bottom.y - top.y, top.x, top.y}
-    page.appendItem(#move item)
+// Expands the abbreviated key an inline image dictionary uses.
+private func inlineImageKey(key: string)->string
+{
+    switch key
+    {
+    case "BPC": return "BitsPerComponent"
+    case "CS":  return "ColorSpace"
+    case "D":   return "Decode"
+    case "DP":  return "DecodeParms"
+    case "F":   return "Filter"
+    case "H":   return "Height"
+    case "IM":  return "ImageMask"
+    case "I":   return "Interpolate"
+    case "W":   return "Width"
+    case "L":   return "Length"
+    }
+
+    return key
+}
+
+// Reads one `BI ... ID ... EI` inline image and paints it.
+//
+// The dictionary is rebuilt inside the document parser so a named color space still
+// resolves through the page resources, and so the image decoder sees one representation.
+private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState) fail
+{
+    var node: Node
+    node.kind = .Dictionary
+    var imported: HashTable'(u32, u32)
+    for
+    {
+        content.skip()
+        if content.pos >= @countof(content.bytes) do
+            fail InvalidFormatError{"PDF inline image has no data marker"}
+        if content.consumeWord("ID") do
+            break
+        if content.bytes[content.pos] != '/' do
+            fail InvalidFormatError{"PDF inline image dictionary needs a name key"}
+        let keyNode     = try content.parseName()
+        var key: String = inlineImageKey(content.nodes[keyNode].text.toString())
+        let value       = try content.parseValue()
+        node.entries[key] = parser.importNode(content, value, &imported)
+    }
+
+    // Exactly one whitespace byte separates ID from the samples.
+    if content.pos < @countof(content.bytes) and isWhite(content.bytes[content.pos]) do
+        content.pos += 1
+    let start = content.pos
+
+    let imageId = parser.addNode(#move node)
+    var length  = parser.integer(parser.dict(imageId, "Length"), -1)
+    if length < 0 and !parser.streamFilters(imageId).count
+    {
+        // Unfiltered samples have a length the dictionary already implies.
+        let width   = parser.integer(parser.dict(imageId, "Width"))
+        let height  = parser.integer(parser.dict(imageId, "Height"))
+        let bits    = parser.boolean(parser.dict(imageId, "ImageMask")) ? 1's64 : parser.integer(parser.dict(imageId, "BitsPerComponent"), 8)
+        let space   = try resolveImageSpace(parser, parser.dictRaw(imageId, "ColorSpace"), resourcesId, 0)
+        let rowBits = cast(s64) space.components * bits * width
+        if width > 0 and height > 0 and bits > 0 do
+            length = (rowBits + 7) / 8 * height
+    }
+
+    var end = Swag.U64.Max
+    if length >= 0 and start + cast(u64) length <= @countof(content.bytes) do
+        end = start + cast(u64) length
+    else do
+        end = findInlineImageEnd(content.bytes, start)
+    if end == Swag.U64.Max do
+        fail InvalidFormatError{"PDF inline image has no EI marker"}
+
+    parser.nodes[imageId].stream = @mkslice(@dataof(content.bytes) + start, end - start)
+    content.pos = end
+    discard content.consumeWord("EI")
+    try appendImageItem(parser, page, state, imageId, resourcesId)
+}
+
+// Finds the `EI` that closes an inline image whose length cannot be computed.
+private func findInlineImageEnd(bytes: const [..] u8, start: u64)->u64
+{
+    var pos = start
+    while pos + 2 <= @countof(bytes)
+    {
+        if bytes[pos] == 'E' and bytes[pos + 1] == 'I' and pos > start and isWhite(bytes[pos - 1])
+        {
+            if pos + 2 == @countof(bytes) or isDelimiter(bytes[pos + 2]) do
+                return pos - 1
+        }
+
+        pos += 1
+    }
+
+    return Swag.U64.Max
+}
+
+// Reads the parts of an ExtGState that change how later operators paint.
+private func applyExtGState(parser: const *PdfParser, page: const *Page, resourcesId: u32, state: *GraphicsState, name: string)
+{
+    let states = parser.dict(resourcesId, "ExtGState")
+    let entry  = parser.dict(states, name)
+    if entry == InvalidNode do
+        return
+
+    let lineWidth = parser.dict(entry, "LW")
+    if lineWidth != InvalidNode do
+        state.strokeWidth = nodeNumber(parser, lineWidth)
+
+    let font = parser.dict(entry, "Font")
+    if font != InvalidNode and parser.nodes[font].kind == .Array and parser.nodes[font].values.count >= 2
+    {
+        let fontId = parser.resolve(parser.nodes[font].values[0])
+        for resource in page.fonts where resource.objectId == fontId
+        {
+            state.fontName = resource.name
+            break
+        }
+
+        state.fontSize = nodeNumber(parser, parser.nodes[font].values[1])
+    }
 }
 
 private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, bytes: const [..] u8, initialState: #null const *GraphicsState = null, depth = 0'u32) fail
@@ -292,6 +346,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
     var stack:    Array'GraphicsState
     var path:     LinePathList
     var current:  #null *LinePath
+    var values:   [8] f32
 
     while content.pos < @countof(bytes)
     {
@@ -343,29 +398,85 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if operands.count do
                 state.strokeWidth = operandNumber(&content, operands, operands.count - 1)
 
-        case "g":
+        case "gs":
             if operands.count do
+                applyExtGState(parser, page, resourcesId, &state, content.name(operands.back()))
+
+        case "g":
+            if operands.count
+            {
+                state.fillSpace = deviceSpace(.Gray, 1)
                 state.fillColor = grayColor(content.number(operands.back()))
+            }
 
         case "G":
-            if operands.count do
+            if operands.count
+            {
+                state.strokeSpace = deviceSpace(.Gray, 1)
                 state.strokeColor = grayColor(content.number(operands.back()))
+            }
 
         case "rg":
-            if operands.count >= 3 do
+            if operands.count >= 3
+            {
+                state.fillSpace = deviceSpace(.Rgb, 3)
                 state.fillColor = rgbColor(content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+            }
 
         case "RG":
-            if operands.count >= 3 do
+            if operands.count >= 3
+            {
+                state.strokeSpace = deviceSpace(.Rgb, 3)
                 state.strokeColor = rgbColor(content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+            }
 
         case "k":
-            if operands.count >= 4 do
+            if operands.count >= 4
+            {
+                state.fillSpace = deviceSpace(.Cmyk, 4)
                 state.fillColor = cmykColor(content.number(operands[operands.count - 4]), content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+            }
 
         case "K":
-            if operands.count >= 4 do
+            if operands.count >= 4
+            {
+                state.strokeSpace = deviceSpace(.Cmyk, 4)
                 state.strokeColor = cmykColor(content.number(operands[operands.count - 4]), content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+            }
+
+        case "cs", "CS":
+            if operands.count
+            {
+                // The operand is a name parsed by the content scanner, so it is resolved
+                // against the page resources rather than through a document node.
+                var picked = deviceSpace(.Gray, 1)
+                let space  = catch resolveNamedColorSpace(parser, content.name(operands.back()), resourcesId, 0) as spaceError
+                if spaceError == null do
+                    picked = space
+                if op == "cs"
+                {
+                    state.fillColor = initialSpaceColor(&picked)
+                    state.fillSpace = #move picked
+                }
+                else
+                {
+                    state.strokeColor = initialSpaceColor(&picked)
+                    state.strokeSpace = #move picked
+                }
+            }
+
+        case "sc", "scn", "SC", "SCN":
+            let count = colorComponents(&content, operands, values)
+            if count
+            {
+                let stroke = op == "SC" or op == "SCN"
+                let space  = stroke ? &state.strokeSpace : &state.fillSpace
+                let color  = spaceColor(space, values[0 until count])
+                if stroke do
+                    state.strokeColor = color
+                else do
+                    state.fillColor = color
+            }
 
         case "m":
             if operands.count >= 2 do
@@ -386,6 +497,29 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 let c2 = transformPoint(&state, page, operandNumber(&content, operands, n + 2), operandNumber(&content, operands, n + 3))
                 let p  = transformPoint(&state, page, operandNumber(&content, operands, n + 4), operandNumber(&content, operands, n + 5))
                 current!.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
+            }
+
+        case "v":
+
+            // The first control point of `v` is the current point itself.
+            if current and operands.count >= 4
+            {
+                let n  = operands.count - 4
+                let c1 = current!.endPoint
+                let c2 = transformPoint(&state, page, operandNumber(&content, operands, n), operandNumber(&content, operands, n + 1))
+                let p  = transformPoint(&state, page, operandNumber(&content, operands, n + 2), operandNumber(&content, operands, n + 3))
+                current!.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
+            }
+
+        case "y":
+
+            // The second control point of `y` is its own end point.
+            if current and operands.count >= 4
+            {
+                let n  = operands.count - 4
+                let c1 = transformPoint(&state, page, operandNumber(&content, operands, n), operandNumber(&content, operands, n + 1))
+                let p  = transformPoint(&state, page, operandNumber(&content, operands, n + 2), operandNumber(&content, operands, n + 3))
+                current!.bezierTo(p.x, p.y, c1.x, c1.y, p.x, p.y)
             }
 
         case "h":
@@ -446,6 +580,30 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 state.fontSize = operandNumber(&content, operands, operands.count - 1)
             }
 
+        case "Tc":
+            if operands.count do
+                state.charSpacing = operandNumber(&content, operands, operands.count - 1)
+
+        case "Tw":
+            if operands.count do
+                state.wordSpacing = operandNumber(&content, operands, operands.count - 1)
+
+        case "Tz":
+            if operands.count do
+                state.horizScale = operandNumber(&content, operands, operands.count - 1) / 100.0
+
+        case "TL":
+            if operands.count do
+                state.leading = operandNumber(&content, operands, operands.count - 1)
+
+        case "Ts":
+            if operands.count do
+                state.rise = operandNumber(&content, operands, operands.count - 1)
+
+        case "Tr":
+            if operands.count do
+                state.renderMode = content.integer(operands.back())
+
         case "Tm":
             if operands.count >= 6
             {
@@ -454,17 +612,40 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 state.lineMatrix = state.textMatrix
             }
 
-        case "Td", "TD":
+        case "Td":
+            if operands.count >= 2 do
+                moveTextLine(&state, operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
+
+        case "TD":
             if operands.count >= 2
             {
-                state.lineMatrix.tx += operandNumber(&content, operands, operands.count - 2)
-                state.lineMatrix.ty += operandNumber(&content, operands, operands.count - 1)
-                state.textMatrix    = state.lineMatrix
+                let y = operandNumber(&content, operands, operands.count - 1)
+                state.leading = -y
+                moveTextLine(&state, operandNumber(&content, operands, operands.count - 2), y)
             }
 
-        case "Tj", "'", "\"":
+        case "T*":
+            moveTextLine(&state, 0, -state.leading)
+
+        case "Tj":
             if operands.count do
                 appendText(parser, page, resourcesId, &state, content.stringValue(operands.back()))
+
+        case "'":
+            if operands.count
+            {
+                moveTextLine(&state, 0, -state.leading)
+                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back()))
+            }
+
+        case "\"":
+            if operands.count >= 3
+            {
+                state.wordSpacing = operandNumber(&content, operands, operands.count - 3)
+                state.charSpacing = operandNumber(&content, operands, operands.count - 2)
+                moveTextLine(&state, 0, -state.leading)
+                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back()))
+            }
 
         case "TJ":
             if operands.count
@@ -478,7 +659,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                         if id != InvalidNode and content.nodes[id].kind == .String do
                             appendText(parser, page, resourcesId, &state, content.nodes[id].text.toString())
                         elif id != InvalidNode do
-                            state.textMatrix.tx -= cast(f32) content.number(id) * state.fontSize / 1000.0
+                            advanceText(&state, -cast(f32) content.number(id) * state.fontSize * state.horizScale / 1000.0)
                     }
                 }
             }
@@ -488,109 +669,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 try appendXObject(parser, page, resourcesId, &state, content.name(operands.back()), depth)
 
         case "BI":
-            fail UnsupportedFormatError{"PDF inline images are not supported"}
+            try appendInlineImage(parser, &content, page, resourcesId, &state)
 
         default:
             break
         }
 
         operands.clear()
-    }
-}
-
-private func parseToUnicode(font: *FontResource, bytes: const [..] u8)
-{
-    var scanner   = PdfParser{bytes: bytes}
-    var pending: Array'u32
-    var rangeMode = false
-    while scanner.pos < @countof(bytes)
-    {
-        scanner.skip()
-        if scanner.pos >= @countof(bytes) do
-            break
-        let c = bytes[scanner.pos]
-        if c == '<' and !scanner.startsWith("<<")
-        {
-            pending.add(catch scanner.parseHexString())
-            continue
-        }
-
-        if isDelimiter(c)
-        {
-            scanner.pos += 1
-            continue
-        }
-
-        let start = scanner.pos
-        while scanner.pos < @countof(bytes) and !isDelimiter(bytes[scanner.pos]) do
-            scanner.pos += 1
-        let word = cast(string) @mkslice(@dataof(bytes) + start, scanner.pos - start)
-        if word == "beginbfchar"
-        {
-            pending.clear()
-            rangeMode = false
-            continue
-        }
-
-        if word == "beginbfrange"
-        {
-            pending.clear()
-            rangeMode = true
-            continue
-        }
-
-        if word == "endbfchar"
-        {
-            for i in pending.count / 2
-            {
-                let src  = scanner.nodes[pending[i * 2]].text.toString()
-                let dst  = scanner.nodes[pending[i * 2 + 1]].text.toString()
-                var code = 0'u32
-                for value in cast(const [..] u8) src do
-                    code = code << 8 | value
-                font.codeBytes = cast(u32) @countof(src)
-                if @countof(dst) >= 2
-                {
-                    let runeValue = cast(rune) ((cast(u32) dst[0] << 8) | dst[1])
-                    var builder: StrConv.StringBuilder
-                    builder.appendRune(runeValue)
-                    font.unicode[code] = builder.toString()
-                }
-            }
-
-            pending.clear()
-        }
-
-        if word == "endbfrange" and rangeMode
-        {
-            for i in pending.count / 3
-            {
-                let firstBytes = scanner.nodes[pending[i * 3]].text.toString()
-                let lastBytes  = scanner.nodes[pending[i * 3 + 1]].text.toString()
-                let destBytes  = scanner.nodes[pending[i * 3 + 2]].text.toString()
-                var first      = 0'u32
-                var last       = 0'u32
-                var dest       = 0'u32
-                for value in cast(const [..] u8) firstBytes do
-                    first = first << 8 | value
-                for value in cast(const [..] u8) lastBytes do
-                    last = last << 8 | value
-                for value in cast(const [..] u8) destBytes do
-                    dest = dest << 8 | value
-                if first > last or last - first > 4096 do
-                    continue
-                font.codeBytes = cast(u32) @countof(firstBytes)
-                for code in first to last
-                {
-                    var builder: StrConv.StringBuilder
-                    builder.appendRune(cast(rune) (dest + code - first))
-                    font.unicode[code] = builder.toString()
-                }
-            }
-
-            pending.clear()
-            rangeMode = false
-        }
     }
 }
 
@@ -613,22 +698,7 @@ private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
 
         if found do
             continue
-        var font: FontResource
-        font.objectId = fontId
-        font.name     = name[]
-        font.baseName = parser.name(parser.dict(fontId, "BaseFont"))
-        let descriptor = parser.dict(fontId, "FontDescriptor")
-        let file2      = parser.dict(descriptor, "FontFile2")
-        if file2 != InvalidNode do
-            font.bytes = try parser.decodeStream(file2)
-        let toUnicode = parser.dict(fontId, "ToUnicode")
-        if toUnicode != InvalidNode
-        {
-            let cmap = try parser.decodeStream(toUnicode)
-            parseToUnicode(&font, cmap.toSlice())
-        }
-
-        page.fonts.add(#move font)
+        page.fonts.add(try decodeFontResource(parser, fontId, name.toString()))
     }
 }
 
@@ -692,8 +762,10 @@ private func decodePage(parser: *PdfParser, pageId, inheritedResources, inherite
     return result
 }
 
-private func visitPages(parser: *PdfParser, document: *Document, nodeId, inheritedResources, inheritedMediaBox: u32, inheritedRotate: s64) fail
+private func visitPages(parser: *PdfParser, document: *Document, nodeId, inheritedResources, inheritedMediaBox: u32, inheritedRotate: s64, depth: u32) fail
 {
+    if depth >= 64 do
+        fail UnsupportedFormatError{"PDF page tree nesting exceeds the supported depth"}
     let id = parser.resolve(nodeId)
     if id == InvalidNode do
         return
@@ -714,7 +786,7 @@ private func visitPages(parser: *PdfParser, document: *Document, nodeId, inherit
     if kids == InvalidNode or parser.nodes[kids].kind != .Array do
         return
     for child in parser.nodes[kids].values do
-        try visitPages(parser, document, child, nextResources, nextMediaBox, nextRotate)
+        try visitPages(parser, document, child, nextResources, nextMediaBox, nextRotate, depth + 1)
 }
 
 private func metadataString(parser: const *PdfParser, dictId: u32, key: string)->String
@@ -733,24 +805,29 @@ func decodeDocument(bytes: const [..] u8)->Document fail
     var parser = PdfParser{bytes: bytes}
     try parser.scanObjects()
 
-    var catalog   = InvalidNode
-    var info      = InvalidNode
-    var encrypted = false
-    for objectNumber, nodeId in parser.objects
+    // The trailer names the catalog and the metadata; scanning for them is the fallback for a
+    // file whose trailer is missing or damaged, and it is also where a security handler with
+    // no readable trailer is noticed.
+    var catalog = parser.trailerRoot
+    var info    = parser.trailerInfo
+    if catalog == InvalidNode or info == InvalidNode
     {
-        discard objectNumber
-        let id = parser.resolve(nodeId)
-        if id == InvalidNode or parser.nodes[id].kind != .Dictionary do
-            continue
-        if parser.name(parser.dict(id, "Type")) == "Catalog" do
-            catalog = id
-        if parser.name(parser.dict(id, "Filter")) == "Standard" and parser.dict(id, "R") != InvalidNode do
-            encrypted = true
-        if parser.dict(id, "Title") != InvalidNode or parser.dict(id, "Author") != InvalidNode or parser.dict(id, "Subject") != InvalidNode or parser.dict(id, "Keywords") != InvalidNode or parser.dict(id, "Creator") != InvalidNode or parser.dict(id, "Producer") != InvalidNode do
-            info = id
+        for objectNumber, nodeId in parser.objects
+        {
+            discard objectNumber
+            let id = parser.resolve(nodeId)
+            if id == InvalidNode or parser.nodes[id].kind != .Dictionary do
+                continue
+            if parser.name(parser.dict(id, "Filter")) == "Standard" and parser.dict(id, "R") != InvalidNode do
+                parser.isEncrypted = true
+            if catalog == InvalidNode and parser.name(parser.dict(id, "Type")) == "Catalog" do
+                catalog = id
+            if info == InvalidNode and (parser.dict(id, "Producer") != InvalidNode or parser.dict(id, "Creator") != InvalidNode or parser.dict(id, "Title") != InvalidNode) do
+                info = id
+        }
     }
 
-    if encrypted do
+    if parser.isEncrypted do
         fail UnsupportedFormatError{"encrypted PDF documents are not supported"}
     if catalog == InvalidNode do
         fail InvalidFormatError{"PDF catalog is missing"}
@@ -769,7 +846,7 @@ func decodeDocument(bytes: const [..] u8)->Document fail
     let pages = parser.dict(catalog, "Pages")
     if pages == InvalidNode do
         fail InvalidFormatError{"PDF page tree is missing"}
-    try visitPages(&parser, &result, pages, InvalidNode, InvalidNode, 0)
+    try visitPages(&parser, &result, pages, InvalidNode, InvalidNode, 0, 0)
     if !result.pages.count do
         fail InvalidFormatError{"PDF document has no pages"}
     return result

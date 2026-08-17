@@ -39,31 +39,6 @@ internal struct ImagePluginView
 
 internal impl ImagePluginView
 {
-    // Places the decoder's exact explanation immediately under the stable summary. The detail is
-    // the actionable part of the failure, so it uses the theme's critical text color.
-    mtd showDecodeError(summary: string, error: #null any)
-    {
-        .imageView.hide()
-
-        with let stack = StackLayoutCtrl.create(me, .VerticalCenter)
-        {
-            .dockStyle = .Center
-            .padding   = {48, 48, 48, 48}
-            .spacing   = 8
-
-            with let message = Label.create(stack, summary, flags: .WordWrap | .AutoHeight | .SecondaryText)
-            {
-                .setTextAlignment(.Center, .Center)
-            }
-
-            with let detail = Label.create(stack, Errors.message(error), flags: .WordWrap | .AutoHeight)
-            {
-                .setTextAlignment(.Center, .Center)
-                .setTextColor(.themeColors().embInfo_CriticalText)
-            }
-        }
-    }
-
     mtd refreshZoom()
     {
         .zoomLabel.setText(Format.toString("% %", cast(s32) Math.round(.imageView.effectiveZoom() * 100), "%"))
@@ -129,7 +104,7 @@ private impl IWnd for ImagePluginView
 
 private impl ImagePluginView
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*ImagePluginView
+    func create(contentParent, commandParent: *Wnd, fileName: string)->*ImagePluginView fail
     {
         let result = Wnd.create'ImagePluginView(contentParent, "sFileScope.image")
         result.backgroundStyle = .View
@@ -249,42 +224,41 @@ private impl ImagePluginView
             view.refreshFrame()
         }
 
+        var decoded: bool
+        defer if !decoded
+        {
+            result.commands.destroy()
+            result.destroy()
+        }
+
         var extension = String.from(Path.extension(fileName) orelse "")
         extension = extension.toLower()
         if extension == ".gif"
         {
-            discard catch result.imageView.loadGif(fileName) as loadError
-            if loadError != null
-            {
-                result.showDecodeError(imageStrings().ui_ErrGif, loadError)
-            }
-            else
-            {
-                let frame = &result.imageView.movie.frame
-                result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.imageView.movie.frameCount))
-                if result.imageView.movie.frameCount > 1 do
-                    result.showPlayback()
-            }
+            try result.imageView.loadGif(fileName)
+            let frame = &result.imageView.movie.frame
+            result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.imageView.movie.frameCount))
+            if result.imageView.movie.frameCount > 1 do
+                result.showPlayback()
         }
         else
         {
-            let image = catch loadViewerImage(fileName) as loadError
-            if loadError == null
-            {
-                result.details = Format.toString(imageStrings().ui_DetailsStill, image.width, image.height, image.bitsPerPixel)
-                result.imageView.setImage(image)
-            }
-            else
-            {
-                result.showDecodeError(imageStrings().ui_ErrImage, loadError)
-            }
+            let image = try loadViewerImage(fileName)
+            result.details = Format.toString(imageStrings().ui_DetailsStill, image.width, image.height, image.bitsPerPixel)
+            result.imageView.setImage(image)
         }
 
+        decoded = true
         result.refreshZoom()
         result.applyLayout()
         result.setInitialFocus(result.imageView)
         return result
     }
+}
+
+private func createImagePluginView(contentParent, commandParent: *Wnd, fileName: string, view: *#null *ImagePluginView) fail
+{
+    view[] = try ImagePluginView.create(contentParent, commandParent, fileName)
 }
 
 // Creates the image view exported through the sFileScope plugin ABI.
@@ -293,9 +267,16 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     if request.apiVersion != ViewerPluginApiVersion do
         return false
 
-    let view = ImagePluginView.create(request.contentParent, request.commandParent, request.fileName)
+    var view: #null *ImagePluginView
+    catch createImagePluginView(request.contentParent, request.commandParent, request.fileName, &view) as decodeError
+    if decodeError != null
+    {
+        result.failureReason = Errors.message(decodeError)
+        return true
+    }
+
     result.view     = view
-    result.commands = view.commands
-    result.details  = view.details
+    result.commands = view!.commands
+    result.details  = view!.details
     return true
 }

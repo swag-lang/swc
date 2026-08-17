@@ -17,15 +17,29 @@ const HexWindowAlign = 64 * 1024'u64
 // copy without disturbing that window, so a ten-gigabyte file costs exactly what a small one does.
 struct HexDocument
 {
-    stream:      File.FileStream
-    fileSize:    u64
-    windowStart: u64
-    window:      Array'u8
-    readFailed:  bool
+    stream:        File.FileStream
+    fileSize:      u64
+    windowStart:   u64
+    window:        Array'u8
+    readFailed:    bool
+    failureReason: String
+    reportFailure: #null func||(string)
 }
 
 impl HexDocument
 {
+    mtd failRead(reason: string)
+    {
+        if .readFailed do
+            return
+        .failureReason = reason
+        if .failureReason.isEmpty() do
+            .failureReason = "file stream could not be read"
+        .readFailed = true
+        if .reportFailure do
+            .reportFailure!(.failureReason.toString())
+    }
+
     // Opens `fileName` for reading and reports whether its size could be established.
     mtd open(fileName: string)->bool
     {
@@ -34,14 +48,14 @@ impl HexDocument
         .stream = catch File.openRead(fileName) as openError
         if openError != null
         {
-            .readFailed = true
+            .failRead(Errors.message(openError))
             return false
         }
 
         let size = catch .stream.size() as sizeError
         if sizeError != null
         {
-            .readFailed = true
+            .failRead(Errors.message(sizeError))
             .stream.close()
             return false
         }
@@ -56,6 +70,7 @@ impl HexDocument
         .window.clear()
         .windowStart = 0
         .readFailed  = false
+        .failureReason.clear()
     }
 
     // Returns whether `offset` currently sits inside the resident window.
@@ -81,19 +96,32 @@ impl HexDocument
         let start  = offset / HexWindowAlign * HexWindowAlign
         let wanted = Math.min(HexWindowSize, .fileSize - start)
         .window.resize(wanted)
-        discard catch .stream.seek(.Begin, start)
+        catch .stream.seek(.Begin, start) as seekError
+        if seekError != null
+        {
+            .failRead(Errors.message(seekError))
+            .window.clear()
+            return false
+        }
 
         let read = catch .stream.read(.window.toSlice()) as readError
         if readError != null
         {
-            .readFailed = true
+            .failRead(Errors.message(readError))
+            .window.clear()
+            return false
+        }
+
+        if read < wanted
+        {
+            .failRead("file ends before its reported size")
             .window.clear()
             return false
         }
 
         .window.resize(read)
         .windowStart = start
-        return end <= start + read
+        return true
     }
 
     // Returns the byte at `offset`, or zero when it is outside the resident window.
@@ -122,11 +150,25 @@ impl HexDocument
 
         let wanted = Math.min(count, .fileSize - offset)
         result.resize(wanted)
-        discard catch .stream.seek(.Begin, offset)
+        catch .stream.seek(.Begin, offset) as seekError
+        if seekError != null
+        {
+            .failRead(Errors.message(seekError))
+            result.clear()
+            return result
+        }
 
         let read = catch .stream.read(result.toSlice()) as readError
         if readError != null
         {
+            .failRead(Errors.message(readError))
+            result.clear()
+            return result
+        }
+
+        if read < wanted
+        {
+            .failRead("file ends before its reported size")
             result.clear()
             return result
         }

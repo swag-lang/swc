@@ -12,7 +12,6 @@ ui_MenuCopyAll    Copier tout le rapport
 ui_MenuCopyLine   Copier cette ligne
 ui_MenuExpand     Tout déplier
 ui_MenuCollapse   Tout replier
-ui_Unreadable     Ce fichier n'a pas pu être lu.
 
 word_Section      section
 word_Sections     sections

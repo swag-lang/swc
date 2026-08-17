@@ -135,7 +135,7 @@ using Swag
         let chunk = expect stream.readTextChunk(10, .Utf16Le)
         if chunk.isEmpty() do
             break
-        text += chunk
+        text  += chunk
         reads += 1
     }
 

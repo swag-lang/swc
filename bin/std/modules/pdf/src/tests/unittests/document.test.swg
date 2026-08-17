@@ -43,8 +43,15 @@ private func sampleDocument()->Document
 // representations, page inheritance, raster images, and nested vector forms.
 #test
 {
-    discard loadPdfFixture("pdfbox-classic-flate.pdf", 1)
-    discard loadPdfFixture("pdfbox-object-stream.pdf", 1)
+    // A classic file laid out with `Tm` and simple fonts, and a compressed one whose text is
+    // addressed by a composite font through a `/ToUnicode` CMap.
+    let classic = loadPdfFixture("pdfbox-classic-flate.pdf", 1)
+    @assert(pageText(classic.pages[0]).contains("Cell with colspan 3"))
+    @assert(pageText(classic.pages[0]).contains("Cell with rowspan 2"))
+
+    // Its eleven two-byte codes map to nine characters, the other two being unmapped glyphs.
+    let compressed = loadPdfFixture("pdfbox-object-stream.pdf", 1)
+    @assert(Utf8.countRunes(pageText(compressed.pages[0]).toString()) == 9)
 
     let jpeg = loadPdfFixture("pdfbox-jpeg-rgb.pdf", 1)
     var hasImage: bool

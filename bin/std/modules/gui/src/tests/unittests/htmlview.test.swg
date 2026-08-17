@@ -977,3 +977,16 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Pixel.Testing.assertImageGolden(&image, "htmlview.pixel-api")
     view.stopLoading()
 }
+
+// A file-open failure stays inspectable even when no observer was connected during construction.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_html_%.html", Guid64.random()).toString())
+    let view = HtmlView.createFile(&host.root, path)
+    @assert(!view.failureReason.isEmpty())
+    @assert(!view.isLoading())
+}

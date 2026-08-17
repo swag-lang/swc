@@ -16,10 +16,11 @@ const BinaryLoadLimit = 64 * 1024 * 1024'u64
 // every structure it reached rather than stopping at the first bad offset.
 struct BinaryImage
 {
-    fileSize:  u64          // Size the file system reports.
-    bytes:     Array'u8     // Loaded prefix, at most `BinaryLoadLimit` bytes.
-    bigEndian: bool         // Byte order every multi-byte read uses; a parser sets it once.
-    truncated: bool         // Whether a read asked for bytes the prefix does not hold.
+    fileSize:      u64          // Size the file system reports.
+    bytes:         Array'u8     // Loaded prefix, at most `BinaryLoadLimit` bytes.
+    bigEndian:     bool         // Byte order every multi-byte read uses; a parser sets it once.
+    truncated:     bool         // Whether a read asked for bytes the prefix does not hold.
+    failureReason: String       // File-system explanation when loading stops before any byte is available.
 }
 
 impl BinaryImage
@@ -30,15 +31,24 @@ impl BinaryImage
         .bytes.clear()
         .fileSize  = 0
         .truncated = false
+        .failureReason.clear()
 
         var stream = catch File.openRead(fileName) as openError
-        if openError != null do
+        if openError != null
+        {
+            .failureReason = Errors.message(openError)
             return false
+        }
+
         defer stream.close()
 
         let size = catch stream.size() as sizeError
-        if sizeError != null do
+        if sizeError != null
+        {
+            .failureReason = Errors.message(sizeError)
             return false
+        }
+
         .fileSize = size
 
         .bytes.resize(Math.min(size, BinaryLoadLimit))
@@ -48,6 +58,7 @@ impl BinaryImage
         let read = catch stream.read(.bytes.toSlice()) as readError
         if readError != null
         {
+            .failureReason = Errors.message(readError)
             .bytes.clear()
             return false
         }

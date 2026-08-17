@@ -349,16 +349,5 @@ prop_ConfirmLinked         Confirmer l'écrasement
 prop_ConfirmLinkedDesc     Demander confirmation avant d'écraser une image liée à une capture
 prop_HideOnClose           Réduire à la fermeture
 prop_HideOnCloseDesc       Réduire l'éditeur au lieu de le fermer
-prop_Theme                 Thème
-prop_ThemeDesc             Thème de sSnapForge
-prop_Language              Langue
-prop_LanguageDesc          Langue de l'interface
 prop_EditBackColor         Couleur de fond
 prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
-
-prop_ThemeDark             Sombre
-prop_ThemeLight            Clair
-
-prop_LanguageSystem        Système
-prop_LanguageEnglish       Anglais
-prop_LanguageFrench        Français

@@ -2,13 +2,9 @@
 
 using Core, Pixel
 
-// Bytes read from disk per streaming step. Large enough that a multi-megabyte document is read
-// in a handful of frames, small enough that a frame is never held for it.
-private const HtmlStreamChunkSize = 256 * 1024'u64
-
-// Wall-clock budget one streaming step may spend, so the window keeps answering while a document
-// loads.
-private const HtmlStreamFrameBudget = 6_000'u64
+// Bytes read from disk per streaming step. One step consumes exactly one bounded chunk, so even a
+// fast machine presents a multi-megabyte document over several application frames.
+private const HtmlStreamChunkSize = 48 * 1024'u64
 
 // Source bytes read before the first partial rendering. The threshold then grows fourfold at each
 // one, so a document shows its beginning quickly and the intermediate passes stay a bounded share
@@ -51,11 +47,18 @@ struct HtmlCanvas
     owner: *HtmlView
 }
 
+// One independently scrolled element retained while an incremental parse rebuilds the box tree.
+private struct HtmlRegionScrollState
+{
+    node: u32
+    top:  f32
+}
+
 // Displays HTML as a laid-out document.
 //
 // [[Gui.HtmlView.createText]] renders in-memory source, and [[Gui.HtmlView.createFile]] streams a
-// file and follows the stylesheets it links to, relative to its folder. Rendering stays offline:
-// no script runs, and no reference outside the document's own folder is fetched.
+// file and follows local document links and stylesheets relative to its folder. Rendering stays
+// offline: no script runs and remote references are reported through [[Gui.HtmlView.sigLinkActivated]].
 //
 // The document is parsed into a tree, styled through a real CSS cascade, and laid out into boxes,
 // so a page keeps its columns, its tables, its inline styling, and the regions it scrolls on its
@@ -75,7 +78,7 @@ public struct HtmlView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*HtmlView, string)     // Emitted when a rendered link is activated.
+        sigLinkActivated: SigArray'func||(*HtmlView, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
 
         public readonly
         documentStyle: HtmlStyle     // Typography a document inherits before its own CSS applies.
@@ -105,8 +108,10 @@ public struct HtmlView
         nextRefresh: u64
 
         pendingSearch: String
+        pendingFragment: String
         revealOffset:  u64
         hasReveal:     bool
+        hasPendingFragment: bool
         searchNode = HtmlNoNode
         hovered    = HtmlNoNode
     }
@@ -241,7 +246,8 @@ internal impl HtmlView
     // Recomputes styles and boxes, then places them.
     mtd rebuild()
     {
-        let viewport = .viewportSize()
+        let viewport      = .viewportSize()
+        let regionScrolls = .captureRegionScrolls()
 
         // Text is measured against the grid it will be drawn on, so the display scale has to be
         // known before the first word is measured.
@@ -253,6 +259,38 @@ internal impl HtmlView
         .layout.build(&.document, &.resolver, .theme(), &.images)
         .applyLayout()
         .placeDocument()
+        .restoreRegionScrolls(regionScrolls.toSlice())
+    }
+
+    // Captures independently scrolled element positions before a streaming rebuild replaces the
+    // box tree. Node indices remain stable while the parser appends source.
+    private mtd captureRegionScrolls()->Array'HtmlRegionScrollState
+    {
+        var result: retval
+        for box in .layout.boxes where box.node != HtmlNoNode and box.scrollTop > 0
+        {
+            var state: HtmlRegionScrollState
+            state.node = box.node
+            state.top  = box.scrollTop
+            result.add(state)
+        }
+
+        return result
+    }
+
+    private mtd restoreRegionScrolls(states: const [..] HtmlRegionScrollState)
+    {
+        for state in states
+        {
+            let found = .layout.nodeBox.tryFind(state.node)
+            if !found do
+                continue
+
+            let box = .layout.box(found!.value)
+            if !box.scrollable do
+                continue
+            box.scrollTop = Math.clamp(state.top, 0, Math.max(box.scrollHeight - box.content.height, 0))
+        }
     }
 
     // Runs the layout for the current viewport and updates what can be scrolled.
@@ -279,42 +317,32 @@ internal impl HtmlView
     // Feeds one bounded batch of source into the parser.
     mtd streamStep()
     {
-        var stopwatch: Time.Stopwatch
-        stopwatch.start()
-
-        while !.sourceDone
+        if !.sourceDone
         {
             let chunk = catch .stream.readUtf8Chunk(HtmlStreamChunkSize) as readError
             if readError != null
             {
                 .finishSource("<p>Unable to read this HTML document.</p>")
-                break
             }
-
-            if chunk.isEmpty()
+            elif chunk.isEmpty()
             {
                 .finishSource("")
-                break
             }
-
-            .parser.feed(chunk.toString())
-            .bytesRead += chunk.length
-            if .bytesRead >= HtmlMaxDocumentSize
+            else
             {
-                .finishSource("<p>This document is too large to be displayed in full; the rest of the file was not read.</p>")
-                break
+                .parser.feed(chunk.toString())
+                .bytesRead += chunk.length
+                if .bytesRead >= HtmlMaxDocumentSize do
+                    .finishSource("<p>This document is too large to be displayed in full; the rest of the file was not read.</p>")
             }
-
-            if stopwatch.elapsedMicroseconds() >= HtmlStreamFrameBudget do
-                break
         }
 
         // A partial rendering is produced at growing intervals, so a long document shows its
         // beginning quickly without paying for a full pass on every chunk.
-        if .sourceDone or .bytesRead >= .nextRefresh
+        if .sourceDone or .bytesRead >= .nextRefresh or (.layout.root == HtmlNoNode and .bytesRead > 0)
         {
             if !.sourceDone do
-                .nextRefresh = .bytesRead * 4
+                .nextRefresh = .bytesRead * 2
             .rebuild()
             .resolvePending()
         }
@@ -353,6 +381,22 @@ internal impl HtmlView
     // Acts on a search or a reveal that was waiting for the bytes it needs.
     private mtd resolvePending()
     {
+        if .hasPendingFragment
+        {
+            let node = .elementById(.pendingFragment.toString())
+            if node != HtmlNoNode
+            {
+                .hasPendingFragment = false
+                .pendingFragment.clear()
+                discard .scrollToNode(node, useScrollMargin: true)
+            }
+            elif .sourceDone
+            {
+                .hasPendingFragment = false
+                .pendingFragment.clear()
+            }
+        }
+
         if .hasReveal and (.sourceDone or .revealOffset < .bytesRead)
         {
             .hasReveal = false
@@ -401,7 +445,26 @@ internal impl HtmlView
         let hash = Utf8.indexOf(url, '#'rune)
         if hash != 0 do
             return false
-        return .scrollToNode(.elementById(url[1 to]))
+
+        let fragment = url[1 to]
+        if !@countof(fragment)
+        {
+            let position = .scroll.scrollPosition()
+            .scroll.setScrollPos(position.x, 0)
+            return true
+        }
+
+        if .scrollToNode(.elementById(fragment), useScrollMargin: true) do
+            return true
+        if !.sourceDone
+        {
+            .pendingFragment    = fragment
+            .hasPendingFragment = true
+            .scheduleMore()
+        }
+
+        // A fragment belongs to this document even when no matching element exists.
+        return true
     }
 
     // Returns the box that draws a node, walking up to the element that contains it.
@@ -420,7 +483,7 @@ internal impl HtmlView
     }
 
     // Brings the box that draws a node into view.
-    mtd scrollToNode(node: u32)->bool
+    mtd scrollToNode(node: u32, useScrollMargin = false)->bool
     {
         if node == HtmlNoNode do
             return false
@@ -438,11 +501,59 @@ internal impl HtmlView
             break
         }
 
+        var clearance = 24.0'f32
+        if useScrollMargin
+        {
+            let target = .layout.constBox(box)
+            let style  = .layout.constStyle(target.style)
+            clearance = .layout.resolveLength(style.scrollMarginTop, target.style, .layout.viewport.x)
+        }
+
         .searchNode = node
         let position = .scroll.scrollPosition()
-        .scroll.setScrollPos(position.x, Math.max(top - 24, 0))
+        .scroll.setScrollPos(position.x, Math.max(top - clearance, 0))
         .canvas.invalidate()
         return true
+    }
+
+    // Follows a local document link in this view, preserving the host callback for URLs and
+    // destinations this offline renderer does not own.
+    private mtd navigateToLocalDocument(url: string)->bool
+    {
+        if .images.basePath.isEmpty() or !@countof(url) do
+            return false
+        if Utf8.contains(url, "://") or Utf8.startsWith(url, "//") or Utf8.startsWith(url, "data:") do
+            return false
+
+        let hash     = Utf8.indexOf(url, '#'rune)
+        let path     = hash == Swag.U64.Max ? url : url[0 until hash]
+        let fragment = hash == Swag.U64.Max ? "" : url[hash + 1 to]
+        if !@countof(path) do
+            return false
+
+        let colon = Utf8.indexOf(path, ':'rune)
+        if colon != Swag.U64.Max and !(colon == 1 and Path.isRooted(path)) do
+            return false
+
+        var fileName = Path.isRooted(path) ? String.from(path) : Path.combine(.images.basePath.toString(), path)
+        Path.normalize(&fileName)
+        if !File.exists(fileName.toString()) do
+            return false
+
+        if Path.equals(fileName.toString(), .fileName.toString())
+        {
+            return hash == Swag.U64.Max ? true : .navigateToFragment(Format.toString("#%", fragment).toString())
+        }
+
+        .loadFile(fileName.toString(), fragment)
+        return true
+    }
+
+    private mtd activateLink(url: string)->bool
+    {
+        if .navigateToFragment(url) do
+            return true
+        return .navigateToLocalDocument(url)
     }
 
     // Scrolls to the next node whose text contains `text`, wrapping once at the end.
@@ -585,6 +696,45 @@ internal impl HtmlView
         return result
     }
 
+    // Replaces the source state and begins one progressive local-file load.
+    private mtd loadFile(fileName: string, fragment: string = "")
+    {
+        // A local link's fragment can point into the current document's attribute storage, which
+        // is released below. Own it before clearing the document.
+        let fragmentCopy = String.from(fragment)
+
+        .stopLoading()
+        .images.clear()
+        .document.clear()
+        .parser.start(&.document)
+        .layout.boxes.clear()
+        .layout.root = HtmlNoNode
+
+        .fileName           = fileName
+        .images.basePath    = Path.directoryName(fileName) orelse ""
+        .bytesRead          = 0
+        .sourceDone         = false
+        .nextRefresh        = HtmlFirstRefreshSize
+        .revealOffset       = 0
+        .hasReveal          = false
+        .hasPendingFragment = !fragmentCopy.isEmpty()
+        .pendingFragment    = fragmentCopy
+        .searchNode         = HtmlNoNode
+        .hovered            = HtmlNoNode
+        .pendingSearch.clear()
+        .scroll.setScrollPos(0, 0)
+
+        .stream = catch File.openRead(fileName) as openError
+        if openError != null
+        {
+            .finishSource("<p>Unable to read this HTML document.</p>")
+            .rebuild()
+            return
+        }
+
+        .streamStep()
+    }
+
     // Creates a view and renders the complete in-memory HTML source.
     public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
@@ -604,18 +754,7 @@ internal impl HtmlView
     public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = .createBase(contentParent, documentStyle)
-        result.fileName        = fileName
-        result.images.basePath = Path.directoryName(fileName) orelse ""
-
-        result.stream = catch File.openRead(fileName) as openError
-        if openError != null
-        {
-            result.finishSource("<p>Unable to read this HTML document.</p>")
-            result.rebuild()
-            return result
-        }
-
-        result.streamStep()
+        result.loadFile(fileName)
         return result
     }
 }
@@ -706,17 +845,19 @@ internal impl IWnd for HtmlCanvas
 
             // A reference into the document itself is followed here; anything else is a
             // destination only the host knows how to open.
-            if !owner.navigateToFragment(url) do
+            if !owner.activateLink(url) do
                 owner.sigLinkActivated.call(owner, url)
 
         case .Wheel:
 
-            // A region that scrolls on its own takes the wheel while the pointer is over it, and
-            // hands it back to the page once it has reached its end.
+            // A region that scrolls on its own owns the wheel while the pointer is over it, even
+            // at an edge. One frame never moves another frame as a side effect.
             let painter = owner.painter()
             let region  = painter.scrollableAt(point)
-            if region == HtmlNoNode or !owner.scrollRegion(region, -evt.delta.y * 50) do
+            if region == HtmlNoNode do
                 evt.accepted = false
+            else do
+                discard owner.scrollRegion(region, -evt.delta.y * 50)
 
         default:
             evt.accepted = false

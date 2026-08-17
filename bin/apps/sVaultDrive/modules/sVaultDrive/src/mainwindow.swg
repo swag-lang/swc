@@ -179,8 +179,8 @@ struct MainWindow
     // Text and control of the header, kept so a language switch can say it again.
     #[Swag.Late]
     {
-        subtitle:       *Label
-        languageChoice: *ComboBox
+        subtitle:         *Label
+        appearanceButton: *AppearanceButton
     }
 
     // Controls of the automatic-unmount page.
@@ -273,7 +273,8 @@ struct MainWindow
     //
     // It holds [[Gui.ReferenceLanguage]] until the user picks something else: sVaultDrive is an
     // English application that speaks other languages on request, not one that guesses.
-    language: String
+    language:   String
+    themeIndex: u32
 }
 
 // The sentence a reader sees for `err`, in the active language.
@@ -526,6 +527,18 @@ impl MainWindow
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
+        result.appearanceButton = AppearanceButton.create(surface, "sVaultDrive.appearance")
+        result.appearanceButton.sigThemeChanged += func|window = result|(button)
+        {
+            window.themeIndex = button.appearanceTheme == .Light ? 1 : 0
+            catch g_App.saveState()
+        }
+        result.appearanceButton.sigLanguageChanged += func|window = result|(button)
+        {
+            window.language = button.language
+            catch g_App.saveState()
+        }
+
         // One accent rule across the top identifies every standard Swag application surface.
         Separator.create(result, .Top, .Accent)
 
@@ -555,6 +568,7 @@ impl MainWindow
         }
 
         result.watchFormState()
+        result.applyLanguage()
         result.applyLayout()
         result.setState(.Ready)
         result.setStatus(.Ready)
@@ -720,20 +734,8 @@ impl MainWindow
         header.margin    = {32, 20, 32, 0}
         header.spacing   = 4
 
-        // The language picker shares the line of the product name rather than claiming a row of
-        // its own. Its border identifies the field without raising it off the header ground.
         let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
         titleRow.dockStyle = .Top
-
-        .languageChoice             = ComboBox.create(titleRow, flags: .TransparentBackground)
-        .languageChoice.dockStyle   = .Right
-        .languageChoice.anchorStyle = .Bottom
-        .languageChoice.maxSize.y   = .themeMetrics().comboBox_Height
-        .languageChoice.sigChanged  += func|window = me|(combo, index)
-        {
-            discard combo
-            window.chooseLanguage(index)
-        }
 
         let titleFont = .theme().createDefaultFont(34, .Bold)
         let title     = Label.create(titleRow, "sVaultDrive")
@@ -751,7 +753,6 @@ impl MainWindow
         .subtitle.setTextAlignment(.Left, .Top)
         titleRow.applyLayout()
         header.computeLayout()
-        .fillLanguageChoice()
     }
 
     mtd createFooter()
@@ -932,43 +933,17 @@ impl MainWindow
         .statusView.applyLayout()
     }
 
-    // Fills the language picker with the system entry and every registered language.
-    //
-    // A language is named in its own words, so the entries are not translated; only the
-    // system entry is, since it names a rule rather than a language.
-    mtd fillLanguageChoice()
-    {
-        .languageChoice.clear()
-        .languageChoice.addItem(appStrings().ui_LanguageSystem)
-        for &one in Gui.languages() do
-            .languageChoice.addItem(one.nativeName.toString())
-        .languageChoice.setSelectedIndex(.languageChoiceIndex(), notify: false)
-    }
-
-    // Returns the picker entry matching the persisted choice.
-    mtd languageChoiceIndex()->u32
-    {
-        if .language.isEmpty() do
-            return 0
-        for &one, index in Gui.languages() where one.tag == .language do
-            return cast(u32) index + 1
-        return 0
-    }
-
-    // Applies the language the user picked and remembers it across runs.
-    mtd chooseLanguage(index: u32)
-    {
-        let all = Gui.languages()
-        .language = index != 0 and index <= cast(u32) @countof(all) ? all[index - 1].tag : String.from("")
-        .applyLanguage()
-        catch g_App.saveState()
-    }
-
     // Applies the persisted language, or the language of the account when none was picked.
     mtd applyLanguage()
     {
-        let tag = .language.isEmpty() ? Gui.systemLanguage() : .language.toString()
-        catch .app().setLanguage(tag)
+        discard catch .appearanceButton.setAppearanceLanguage(.language.toString())
+    }
+
+    // Applies the persisted standard application palette.
+    mtd applyTheme()
+    {
+        .themeIndex = Math.min(.themeIndex, 1)
+        .appearanceButton.setAppearanceTheme(.themeIndex ? .Light : .Dark)
     }
 
     // Reports the outcome of the latest step on the single status line.
@@ -1367,7 +1342,6 @@ impl MainWindow
         // The create and resize buttons say what they do *now*, so their captions are the
         // state's to write, not this method's: during a creation the first reads "stop".
         .setState(.state)
-        .fillLanguageChoice()
         .refreshStatus()
 
         .applyLayout()
@@ -2168,6 +2142,7 @@ impl IWnd for MainWindow
             // screen area. The surface is built in English, and the restored language
             // reaches it through the notification the switch below emits.
             catch g_App.loadState()
+            .applyTheme()
             .applyLanguage()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
 
@@ -2190,6 +2165,7 @@ impl IWnd for MainWindow
         // the last accepted container, with its recent locations.
         catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("MainWindow.language", &me.language)
+        catch evt.serializer.serialize("MainWindow.themeIndex", &me.themeIndex)
 
         // Paths, drive letters and the read-only choice only: a password is never written
         // anywhere. `mountSettings` prepares the form; `startupVaults` additionally says what

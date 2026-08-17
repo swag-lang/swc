@@ -311,6 +311,9 @@ internal impl Properties
         {
             let value = tsFields[idx]
 
+            if Reflection.hasAttribute(value, Properties.Hidden) do
+                continue
+
             // Opt-in mode (see addStructMulti 'onlyNamed'): a field participates only when it
             // carries an explicit display name. 'using' struct fields always recurse — their own
             // fields decide for themselves.

@@ -50,6 +50,7 @@ enum IconButtonCheckIndicator
 {
     None       // Draws no separate checked-state indicator, and reads as pressed while checked.
     Ink        // Draws no indicator either, and says it is checked with the checked ink alone.
+    Frame      // Draws a softly rounded outline and a light fill around the complete button.
     Bottom     // Draws an indicator along the bottom edge.
     Top        // Draws an indicator along the top edge.
     Left       // Draws an indicator along the left edge.
@@ -175,7 +176,7 @@ impl IWnd for IconButton
         // placements draw nothing at all.
         switch #complete .checkIndicator
         {
-        case .None, .Ink, .Full: break
+        case .None, .Ink, .Frame, .Full: break
         case .Left, .Right:      width += metrics.activeRail_Size + metrics.activeRail_Margin
         case .Bottom, .Top:      height += metrics.activeRail_Size + metrics.activeRail_Margin
         }
@@ -262,10 +263,10 @@ impl IWnd for IconButton
         switch
         {
         case bc.isDisabled:
-            colorBk      = .isChecked ? colors.btnIcon_CheckedDisabledBk : colors.btnIcon_DisabledBk
+            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameDisabledBk : (.isChecked ? colors.btnIcon_CheckedDisabledBk : colors.btnIcon_DisabledBk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedDisabledIcon : colors.btnIcon_DisabledIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedDisabledText : colors.btnIcon_DisabledText
-            colorChecked = colors.btnIcon_CheckedDisabledMark
+            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameDisabledBorder : colors.btnIcon_CheckedDisabledMark
 
         case (.isPressed or .isChecked) and .checkIndicator == .None:
             colorBk      = .isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk
@@ -274,22 +275,22 @@ impl IWnd for IconButton
             colorChecked = colors.btnIcon_CheckedPressedMark
 
         case .isPressed:
-            colorBk      = .isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk
+            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFramePressedBk : (.isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedPressedIcon : colors.btnIcon_PressedIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedPressedText : colors.btnIcon_PressedText
-            colorChecked = colors.btnIcon_CheckedPressedMark
+            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFramePressedBorder : colors.btnIcon_CheckedPressedMark
 
         case .isHot:
-            colorBk      = .isChecked ? colors.btnIcon_CheckedHotBk : colors.btnIcon_HotBk
+            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameHotBk : (.isChecked ? colors.btnIcon_CheckedHotBk : colors.btnIcon_HotBk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedHotIcon : colors.btnIcon_HotIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedHotText : colors.btnIcon_HotText
-            colorChecked = colors.btnIcon_CheckedHotMark
+            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameHotBorder : colors.btnIcon_CheckedHotMark
 
         default:
-            colorBk      = .isChecked ? colors.btnIcon_CheckedBk : colors.btnIcon_Bk
+            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameBk : (.isChecked ? colors.btnIcon_CheckedBk : colors.btnIcon_Bk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedIcon : colors.btnIcon_Icon
             colorText    = .isChecked ? colors.btnIcon_CheckedText : colors.btnIcon_Text
-            colorChecked = colors.btnIcon_CheckedMark
+            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameBorder : colors.btnIcon_CheckedMark
         }
 
         if bc.isDisabled do
@@ -334,7 +335,13 @@ impl IWnd for IconButton
         // `None` then reads as pressed and `Ink` keeps the checked ink, and both leave the box
         // exactly as the state colors above left it.
         let marked = !flat and !overlay and .isChecked and .checkIndicator != .None and .checkIndicator != .Ink
-        if marked and colors.activeRail.a
+        if marked and .checkIndicator == .Frame
+        {
+            var frame = clientRect
+            frame.inflate(-0.5)
+            bc.painter.drawRoundRect(frame, subRectBk!.radius, subRectBk!.radius, colorChecked, 1)
+        }
+        elif marked and colors.activeRail.a
         {
             // The rule stops short of both ends of the edge it runs along, so it reads as a
             // mark placed against the cell rather than as a bar filling one of its sides.

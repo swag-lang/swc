@@ -889,6 +889,12 @@ impl MenuCtrl
                 w += it.rightName.boundRect.width + rsf.font.regular!.height * 3
             }
 
+            // A submenu row paints a chevron after the text column. Reserve that band while
+            // measuring too, otherwise the row is exactly wide enough only until the chevron is
+            // subtracted at paint time and its last word is clipped.
+            if @isset(it.popup) do
+                w += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+
             .position.width  = Math.max(.position.width, w)
             .position.height += it.size
         }

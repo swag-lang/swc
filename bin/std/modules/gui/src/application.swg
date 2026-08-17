@@ -518,15 +518,7 @@ private impl Application
         if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
             .dragEnterWnd = null
 
-        // Be sure there's no timer for that window
-        for t in .timers
-        {
-            if t.target == wnd and !t.isPendingRemoval
-            {
-                .timersToDelete.add(t)
-                t.isPendingRemoval = true
-            }
-        }
+        .unregisterWndTimers(wnd)
 
         // Remove from various lists
         .frameEvents.remove(wnd)
@@ -552,6 +544,30 @@ private impl Application
             let ptr = (e as Event)!
             if ptr.target == wnd do
                 ptr.target = null
+        }
+    }
+
+    // Retires a window's timers before deferred destruction releases its storage.
+    internal mtd unregisterWndTimers(wnd: *Wnd)
+    {
+        for t in .timers
+        {
+            if t.target == wnd and !t.isPendingRemoval
+            {
+                .timersToDelete.add(t)
+                t.isPendingRemoval = true
+            }
+        }
+
+        // A timer created by another timer callback is staged until the current dispatch ends.
+        // Retire that one too when its target is destroyed by the same callback.
+        for t in .timersToAdd
+        {
+            if t.target == wnd and !t.isPendingRemoval
+            {
+                .timersToDelete.add(t)
+                t.isPendingRemoval = true
+            }
         }
     }
 
@@ -1381,15 +1397,19 @@ impl Application
     // Removes and destroys a timer created by `addTimer`.
     mtd removeTimer(timer: *Timer)
     {
+        // Scheduling a target window for destruction retires its timers immediately. Its
+        // onDestroy cleanup can still name the same timer at the end of the frame; that second
+        // request is already satisfied by the queued removal.
+        if timer.isPendingRemoval do
+            return
+
         if .duringTimerEvents
         {
-            Debug.assert(!timer.isPendingRemoval)
             timer.isPendingRemoval = true
             .timersToDelete.add(timer)
         }
         else
         {
-            Debug.assert(!timer.isPendingRemoval)
             Memory.delete(timer)
             .timers.remove(timer)
         }

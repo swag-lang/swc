@@ -176,6 +176,14 @@ struct ThemeColors
         btnIcon_CheckedPressedMark:  Color     // Checked mark under the press.
         btnIcon_CheckedHotMark:      Color     // Checked mark under the pointer.
         btnIcon_CheckedDisabledMark: Color     // Checked mark of a disabled button.
+        btnIcon_CheckedFrameBk:             Color     // Subtle fill of a framed checked icon button.
+        btnIcon_CheckedFrameHotBk:          Color     // Fill of a hovered framed checked icon button.
+        btnIcon_CheckedFramePressedBk:      Color     // Fill of a pressed framed checked icon button.
+        btnIcon_CheckedFrameDisabledBk:     Color     // Fill of a disabled framed checked icon button.
+        btnIcon_CheckedFrameBorder:         Color     // Outline of a framed checked icon button.
+        btnIcon_CheckedFrameHotBorder:      Color     // Outline of a hovered framed checked icon button.
+        btnIcon_CheckedFramePressedBorder:  Color     // Outline of a pressed framed checked icon button.
+        btnIcon_CheckedFrameDisabledBorder: Color     // Outline of a disabled framed checked icon button.
 
         label_Text:         Color     // Primary label text.
         label_TextLight:    Color     // Secondary label text.
@@ -750,6 +758,18 @@ impl ThemeColors
 
         // The mark of a tool that cannot be picked keeps the shape and loses the accent.
         .btnIcon_CheckedDisabledMark = p.line
+
+        // Compact icon bars mark the active tool as one cell, not as a rail attached to an edge.
+        // The fill stays neutral and light; the outline borrows enough of the signature to make
+        // the selection unambiguous without turning the whole control into an accent block.
+        .btnIcon_CheckedFrameBk             = p.hot
+        .btnIcon_CheckedFrameHotBk          = p.pressed
+        .btnIcon_CheckedFramePressedBk      = p.selectHot
+        .btnIcon_CheckedFrameDisabledBk     = .transparent
+        .btnIcon_CheckedFrameBorder         = Color.lerpRgb(p.controlLine, signature.ground, 0.65)
+        .btnIcon_CheckedFrameHotBorder      = signature.ground
+        .btnIcon_CheckedFramePressedBorder  = accentPressed
+        .btnIcon_CheckedFrameDisabledBorder = p.line
 
         .label_Text         = p.text
         .label_TextLight    = p.softText

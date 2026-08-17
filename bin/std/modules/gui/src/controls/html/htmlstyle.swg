@@ -270,6 +270,7 @@ public struct HtmlComputedStyle
     maxWidth               = HtmlLength.auto()
     minHeight              = HtmlLength.auto()
     maxHeight              = HtmlLength.auto()
+    scrollMarginTop:   HtmlLength
     inset                  = HtmlEdges.auto()
     overflowX:         HtmlOverflow
     overflowY:         HtmlOverflow
@@ -494,6 +495,7 @@ public enum HtmlProperty
     MaxWidth
     MinHeight
     MaxHeight
+    ScrollMarginTop
     Top
     Right
     Bottom
@@ -605,6 +607,7 @@ func htmlPropertyFromName(name: string)->HtmlProperty
     case "max-width":                  return .MaxWidth
     case "min-height":                 return .MinHeight
     case "max-height":                 return .MaxHeight
+    case "scroll-margin-top":          return .ScrollMarginTop
     case "top":                        return .Top
     case "right":                      return .Right
     case "bottom":                     return .Bottom
@@ -1370,6 +1373,11 @@ impl HtmlComputedStyle
             let parsed = .length(value, context)
             if parsed.matched do
                 .maxHeight = parsed.length
+
+        case .ScrollMarginTop:
+            let parsed = .length(value, context)
+            if parsed.matched do
+                .scrollMarginTop = parsed.length
 
         case .Top:
             let parsed = .length(value, context)

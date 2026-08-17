@@ -2,8 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const HexGlyphSize = 18.0
-private const HexCommandWidth = 256.0
+private const HexCommandWidth = 376.0
 
 // Hexadecimal view of any file, whatever its size.
 //
@@ -17,12 +16,11 @@ internal struct HexPluginView
 
     #[Swag.Late]
     {
-        commands:        *Wnd
-        inspectorButton: *IconButton
-        widthCombo:      *ComboBox
-        formatCombo:     *ComboBox
-        grid:            *HexGridView
-        inspector:       *HexInspectorView
+        commands:    *Wnd
+        widthCombo:  *ComboBox
+        formatCombo: *ComboBox
+        byteOrder:   *CheckButton
+        grid:        *HexGridView
     }
 
     details: String
@@ -66,52 +64,13 @@ internal impl HexPluginView
         .applyValueMode()
     }
 
-    // Refreshes the value panel when the caret changes. The offset lives beside the value it
-    // qualifies in that panel; Ctrl+G and the context menu keep navigation out of the toolbar.
-    mtd caretMoved()
-    {
-        if .inspector.isLocallyVisible() do
-            .inspector.refresh()
-    }
-
-    mtd showInspector(visible: bool)
-    {
-        if visible do
-            .inspector.show()
-        else do
-            .inspector.hide()
-        .inspectorButton.setChecked(visible)
-        .applyLayout()
-        if visible do
-            .inspector.refresh()
-        .grid.refreshLayout()
-        .invalidate()
-    }
-
-    mtd toggleInspector()
-    {
-        .showInspector(!.inspector.isLocallyVisible())
-    }
-
     // Reveals the byte range the host's search matched.
     mtd revealOffset(offset: u64, text: string)->bool
     {
         if !.grid.revealRange(offset, @countof(text)) do
             return false
-        .caretMoved()
         .grid.setFocus()
         return true
-    }
-}
-
-internal impl IWnd for HexPluginView
-{
-    mtd impl onKeyEvent(evt: *KeyEvent)
-    {
-        if evt.kind == .Pressed and evt.key == .I and evt.modifiers.has(.Control) do
-            .toggleInspector()
-        else do
-            evt.accepted = false
     }
 }
 
@@ -124,17 +83,6 @@ internal impl HexPluginView
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, HexCommandWidth, 36})
         result.commands.backgroundStyle = .Window
-
-        with result.inspectorButton = IconButton.create(result.commands, result.theme().icon(.Information, HexGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
-        {
-            .dockStyle         = .Left
-            .margin.x          = 8
-            .toolTip           = "Value inspector (Ctrl+I)"
-            .sigCheckedChanged += func|view = result|(button)
-            {
-                view.showInspector(button.isChecked)
-            }
-        }
 
         with result.widthCombo = ComboBox.create(result.commands, {0, 0, 80, 36})
         {
@@ -171,19 +119,23 @@ internal impl HexPluginView
             }
         }
 
-        result.grid      = HexGridView.create(result, fileName)
-        result.inspector = HexInspectorView.create(result, result.grid)
-        result.inspectorButton.setChecked(true)
-        result.grid.sigCaretChanged += func|view = result|(grid)
+        with result.byteOrder = CheckButton.create(result.commands, "Little endian", {0, 0, 132, 36})
         {
-            discard grid
-            view.caretMoved()
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = "Read multi-byte values in little-endian order"
+            .setState(.Checked)
+            .sigChanged += func|view = result|(button)
+            {
+                view.grid.setBigEndian(!button.isChecked())
+            }
         }
 
-        result.details = "hex, text, and values · streamed"
+        result.grid = HexGridView.create(result, fileName)
+
+        result.details = "hex and text · streamed"
         result.applyLayout()
         result.grid.refreshLayout()
-        result.caretMoved()
         result.setInitialFocus(result.grid)
         return result
     }

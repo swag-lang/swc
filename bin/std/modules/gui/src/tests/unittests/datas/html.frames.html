@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Independent frame scrolling</title>
+  <style>
+    :root { --header-height: 48px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-size: 16px; }
+    header { position: sticky; z-index: 20; top: 0; height: var(--header-height); background: #111827; color: #ffffff; }
+    main { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; }
+    aside { position: sticky; top: var(--header-height); height: calc(100vh - var(--header-height)); overflow-y: auto; background: #e5e7eb; }
+    aside a { display: block; height: 36px; padding: 7px; }
+    article { min-width: 0; }
+    article section { height: 420px; padding: 12px; }
+    [id] { scroll-margin-top: calc(var(--header-height) + 12px); }
+  </style>
+</head>
+<body>
+  <header id="frame-header">Frame navigation</header>
+  <main>
+    <aside id="frame-rail">
+      <nav>
+        <a href="#frame-target-one">Target one</a>
+        <a href="#frame-target-two">Target two</a>
+        <a href="#frame-target-three">Target three</a>
+        <a href="#frame-target-four">Target four</a>
+        <a href="#frame-target-five">Target five</a>
+        <a href="#frame-target-six">Target six</a>
+        <a href="#frame-target-seven">Target seven</a>
+        <a href="#frame-target-eight">Target eight</a>
+        <a href="html.local-target.html#local-target">Local document</a>
+      </nav>
+    </aside>
+    <article>
+      <section id="frame-target-one">One</section>
+      <section id="frame-target-two">Two</section>
+      <section id="frame-target-three">Three</section>
+      <section id="frame-target-four">Four</section>
+      <section id="frame-target-five">Five</section>
+      <section id="frame-target-six">Six</section>
+      <section id="frame-target-seven">Seven</section>
+      <section id="frame-target-eight">Eight</section>
+    </article>
+  </main>
+</body>
+</html>

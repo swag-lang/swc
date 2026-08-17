@@ -633,7 +633,11 @@ impl Wnd
         .releaseFocus()
         .wndFlags.add(.Hidden)
         .isPendingDestroy = true
+        // A streaming view can still own a short-period timer while it is replaced; retire those
+        // timers now, while leaving posted commands and routing registration alive until the end
+        // of the frame. A popup, for example, posts its selected command and then destroys itself.
         srfn.app.animator.cancelTarget(me)
+        srfn.app.unregisterWndTimers(me)
         for c in .children do
             c.destroy()
         srfn.app.postDestroy.add(me)
@@ -1401,15 +1405,21 @@ impl Wnd
     // Returns this window's rectangle in surface coordinates.
     mtd const surfaceRect()->Math.Rectangle
     {
-        var result: retval = .position
-        var p              = .parent
+        var result: retval  = .position
+        var p               = .parent
+        var ignoresAncestor = .wndFlags.has(.NoScroll)
         while p
         {
             result.x += p.position.x
             result.y += p.position.y
-            result.x -= p.scrollPos.x
-            result.y -= p.scrollPos.y
-            p        = p.parent
+            if !ignoresAncestor
+            {
+                result.x -= p.scrollPos.x
+                result.y -= p.scrollPos.y
+            }
+
+            ignoresAncestor = ignoresAncestor or p.wndFlags.has(.NoScroll)
+            p               = p.parent
         }
 
         return result

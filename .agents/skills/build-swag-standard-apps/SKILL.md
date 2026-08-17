@@ -148,6 +148,29 @@ glyph, another app's icon, or a letter tile.
 - Design both palettes together, verify narrow and minimum-size layouts, and inspect a real native
   surface rather than trusting constants alone.
 
+## Put Theme And Language In The Caption
+
+Every standard application exposes presentation choices through one
+`Gui.AppearanceButton.create(surface)` action in the title bar. The toolkit positions its dedicated
+Appearance glyph immediately to the left of minimize, maximize, and close; never reproduce that
+placement in application layout code.
+
+- Register the application string tables and every supported `Gui.Language` before creating the
+  button, so its language submenu is complete on the first opening.
+- Offer both shipped Swag palettes and every registered language, plus the system-language choice,
+  through this menu. Do not keep a second theme picker, language combo, property-grid row, or
+  options-menu entry in the application body.
+- Restore the persisted choices while the main window is still hidden with
+  `setAppearanceTheme` and `setAppearanceLanguage`. Persist the control's `appearanceTheme` and
+  `language` from `sigThemeChanged` and `sigLanguageChanged`; an empty language means follow the
+  account, while `Gui.ReferenceLanguage` means explicitly use English.
+- The control applies the choice and sends the application notification before its signal. Use the
+  signal only for persistence and for application-owned derived state such as cached artwork; do
+  not apply the palette or language a second time.
+- A language switch must retranslate text assigned at construction and re-run any layout whose
+  measurements depend on that wording. Test the caption action, both palettes, the system choice,
+  and every language the application ships.
+
 ## Keep The Chrome Small And The Air Large
 
 A Swag application is quiet, and quiet is mostly a question of size. An oversized glyph reads as a
@@ -157,6 +180,11 @@ hold it. The interface must read as an instrument at arm's length, never as a to
 - **A glyph takes at most half of its cell.** The rest is not spare room to reclaim; it is what
   separates one control from the next. Take it back and the surface immediately needs a border to
   say where a control ends, which is the failure the previous section describes.
+- **One glyph carries one sign.** At toolbar and caption size, combining a sun with a globe or a
+  folder with a status badge makes two unreadable miniatures, not one informative icon. Choose the
+  dominant concept, let the tooltip name the complete action, and keep shared nouns on shared
+  geometry: every folder action starts from the same folder silhouette, every directional action
+  from the same arrow weight. Inspect the actual 16- and 20-pixel raster, not only the vector cell.
 - **Use one size table for the whole family.** These are logical pixels, and they are ceilings.
 
   | Placement | Glyph | Cell |
@@ -171,11 +199,12 @@ hold it. The interface must read as an instrument at arm's length, never as a to
   the tooltip already carries, and turns a toolbar into a ribbon. A label belongs beside the glyph
   when it is needed at all, on the same line and starting right after it — a word pushed to the
   far edge of a wide cell reads as a second column, not as the name of the glyph.
-- **The rule marking the active item is a mark, not a bar.** Run edge to edge at full weight it
-  competes with the very glyph it points at. Keep it thin, stop it short of both ends of the edge
-  it runs along, and give it a lane of its own: the content of a cell never touches it, and never
-  shifts sideways as the cell is checked. Reserve that lane whatever the state, and count it in
-  the width of the column, not out of the glyph's cell.
+- **A small horizontal icon bar frames its active cell.** Use
+  `IconButtonCheckIndicator.Frame`: its slight themed fill and rounded hairline surround the glyph
+  without looking like part of it. A vertical tool rail may instead keep a leading `Left` rule,
+  as sSnapForge does, because the rule then reads beside the column. Make the indicator an
+  explicit choice; never use a bottom underline on compact horizontal icons, and reserve the
+  rail's lane in every state so vertical content never moves when it is checked.
 - **Nothing sits against the edge of its cell.** A glyph flush with the window edge and a label
   flush with the other side is not a dense toolbar, it is an unfinished one. Give every cell of a
   rail or a command bar the same padding on both sides, and let the column be as wide as that

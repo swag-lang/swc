@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Streaming fragment navigation</title>
+  <style>
+    body { margin: 0; }
+    nav { position: sticky; top: 0; height: 44px; background: #f3f4f6; }
+    section { height: 360px; }
+    [id] { scroll-margin-top: 56px; }
+  </style>
+</head>
+<body>
+  <nav><a href="#stream-late-target">Jump to the late target</a></nav>
+  <section>First streamed section</section>
+  <section>Second streamed section</section>
+  <section>Third streamed section</section>
+  <h2 id="stream-late-target">Late streamed target</h2>
+  <section>Trailing streamed section</section>
+</body>
+</html>

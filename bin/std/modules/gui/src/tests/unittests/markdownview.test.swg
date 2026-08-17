@@ -3,6 +3,33 @@
 
 using Swag, Core
 
+private func markdownFixturePath()->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.comprehensive.md")
+}
+
+// The checked-in Markdown fixture exercises the extended block grammar from its canonical data
+// directory, rather than rebuilding a second document inside the test source.
+#test
+{
+    let source = expect File.readAllText(markdownFixturePath())
+    let blocks = parseMarkdownBlocks(source.toString())
+
+    @assert(blocks.count >= 10)
+    @assert(blocks[0].kind == .Metadata)
+    var hasTable: bool
+    var hasMath:  bool
+    var hasCode:  bool
+    for &block in blocks
+    {
+        hasTable = hasTable or block.kind == .Table
+        hasMath  = hasMath or block.kind == .Math
+        hasCode  = hasCode or block.kind == .Code
+    }
+
+    @assert(hasTable and hasMath and hasCode)
+}
+
 // Three-star delimiters distinguish thematic breaks from bold-italic spans.
 #test
 {

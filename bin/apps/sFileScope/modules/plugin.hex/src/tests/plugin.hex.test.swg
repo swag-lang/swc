@@ -88,8 +88,6 @@ private func createPluginView(host: *Testing.HeadlessHost, fileName: string, wid
     host.focus(grid)
     host.keyPress(.Right)
     @assert(grid.caret == 4 and grid.selectionStart() == 4 and grid.selectionLength() == 4)
-    view.caretMoved()
-    @assert(inspectorValue(view.inspector, "uint32") == "117835012")
 
     grid.setGrouping(.Float64)
     @assert(grid.valueSize() == 8 and grid.selectionStart() == 0 and grid.selectionLength() == 8)
@@ -106,13 +104,6 @@ private func createPluginView(host: *Testing.HeadlessHost, fileName: string, wid
     @assert(grid.grouping == .Float64 and grid.valueSize() == 8)
     view.widthCombo.setSelectedIndex(0)
     @assert(view.formatCombo.items.count == 3 and grid.grouping == .Bytes)
-}
-
-private func inspectorValue(inspector: *HexInspectorView, name: string)->string
-{
-    for line in inspector.lines where line.name == name do
-        return line.value.toString()
-    return ""
 }
 
 // The dump copy is the view in text form: the offset, the grouped bytes, and the text column.
@@ -294,7 +285,7 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     @assert(grid.offsetAt({4, 2}) == Swag.U64.Max)
 }
 
-// The panel spells the bytes under the caret in both byte orders.
+// Byte order is an action-bar option and immediately changes multi-byte decoding.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -306,41 +297,23 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view      = createPluginView(&host, fileName.toString(), 900, 560)
-    let inspector = view.inspector
-    @assert(inspector.isLocallyVisible())
-    @assert(inspectorValue(inspector, "hex8") == "78")
-    @assert(inspectorValue(inspector, "uint8") == "120")
-    @assert(inspectorValue(inspector, "int8") == "120")
-    @assert(inspectorValue(inspector, "binary") == "01111000")
-    @assert(!@countof(inspectorValue(inspector, "uint32")))
-    @assert(inspectorValue(inspector, "offset") == "0x00000000")
-    @assert(inspectorValue(inspector, "selection") == "1 byte")
+    let view = createPluginView(&host, fileName.toString(), 900, 560)
+    @assert(view.byteOrder.isChecked())
+    @assert(!view.grid.bigEndian)
 
     // The combo changes the values drawn by the grid, not only the distance between bytes.
     view.grid.setGrouping(.Unsigned32)
-    view.caretMoved()
-    @assert(inspectorValue(inspector, "hex32") == "0x12345678")
-    @assert(inspectorValue(inspector, "uint32") == "305419896")
-    @assert(!@countof(inspectorValue(inspector, "uint16")))
-    @assert(!@countof(inspectorValue(inspector, "float64")))
     @assert(view.grid.doc.ensure(0, view.grid.doc.fileSize))
     view.grid.buildRow(0)
     @assert(view.grid.scalarAt(0) == 0x12345678)
     @assert(formatHexScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
     @assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "305419896"))
 
-    inspector.toggleByteOrder()
-    @assert(inspector.grid.bigEndian)
-    @assert(inspectorValue(inspector, "uint32") == "2018915346")
+    view.byteOrder.setState(.Unchecked)
+    view.grid.setBigEndian(!view.byteOrder.isChecked())
+    @assert(view.grid.bigEndian)
     view.grid.buildRow(0)
     @assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "2018915346"))
-
-    // The last byte of a file has fewer than eight behind it, and the panel says so.
-    view.grid.moveCaret(8, false)
-    view.caretMoved()
-    @assert(inspectorValue(inspector, "uint32") == "--")
-    @assert(!@countof(inspectorValue(inspector, "uint8")))
 }
 
 // What leaves through the clipboard is what the reader selected, in the form asked for.
@@ -442,7 +415,7 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     @assert(!view.revealOffset(view.grid.doc.fileSize, "hex"))
 }
 
-// The typed command group stays bounded, and the panel can be given its room back.
+// The typed command group stays bounded and keeps byte order beside the representation controls.
 #test
 {
     let fileName = writeSampleFile()
@@ -454,16 +427,8 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
 
     let view = createPluginView(&host, fileName.toString(), 900, 560)
     @assert(view.commands.position.width <= 400)
-    @assert(view.inspector.isLocallyVisible() and view.inspectorButton.isChecked)
-    @assert(view.details == "hex, text, and values · streamed")
-
-    let withPanel = view.grid.clientRect().width
-    view.toggleInspector()
-    @assert(!view.inspector.isLocallyVisible() and !view.inspectorButton.isChecked)
-    @assert(view.grid.clientRect().width > withPanel)
-
-    view.toggleInspector()
-    @assert(view.inspector.isLocallyVisible())
+    @assert(view.byteOrder.parent == view.commands and view.byteOrder.isChecked())
+    @assert(view.details == "hex and text · streamed")
     Testing.assertContentFits(view)
 
     // At the band a window of the host's minimum size leaves, the bytes still hold the clear
@@ -478,7 +443,7 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
 }
 
 // Photographed on the palette the application ships on: the header, faint zero bytes, the caret in
-// both columns, a selection, and the value panel beside them.
+// both columns, and a selection.
 #test
 {
     let fileName = writePreviewFile()
@@ -496,7 +461,6 @@ private func inspectorValue(inspector: *HexInspectorView, name: string)->string
     view.grid.setBytesPerRow(16, false)
     view.grid.moveCaret(0x80, false)
     view.grid.moveCaret(0x89, true)
-    view.caretMoved()
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
 

@@ -68,10 +68,10 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
 // unsupported subtrees that must be skipped without losing following geometry.
 #test
 {
-    const Names: [4] string = ["svg-wpt/radialgradient-basic-002.svg",
-                               "svg-wpt/line-dasharray.svg",
-                               "svg-wpt/circle-01.svg",
-                               "svg-wpt/render-until-error.svg"]
+    const Names: [4] string = ["svg-wpt.radialgradient-basic-002.svg",
+                               "svg-wpt.line-dasharray.svg",
+                               "svg-wpt.circle-01.svg",
+                               "svg-wpt.render-until-error.svg"]
     const ShapeCounts: [4] u64 = [2, 1, 0, 2]
 
     for name, i in Names
@@ -86,7 +86,7 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
 // paint servers survive through the CPU rasterizer.
 #test
 {
-    let text    = expect File.readAllText(getTestDataPath("svg-wpt/radialgradient-basic-002.svg"))
+    let text    = expect File.readAllText(getTestDataPath("svg-wpt.radialgradient-basic-002.svg"))
     let drawing = expect Svg.Drawing.parse(text.toString())
     let image   = drawing.rasterize(48, 36, 1)
     @assert(image.pixelColor(12, 24).a > 0)
@@ -97,7 +97,7 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
 // a 200-unit line turns the authored 3/1 sequence into 24/8 user-unit spans.
 #test
 {
-    let text    = expect File.readAllText(getTestDataPath("svg-wpt/line-dasharray.svg"))
+    let text    = expect File.readAllText(getTestDataPath("svg-wpt.line-dasharray.svg"))
     let drawing = expect Svg.Drawing.parse(text.toString())
     let image   = drawing.rasterize(300, 200, 1)
     @assert(image.pixelColor(60, 100).a > 0)

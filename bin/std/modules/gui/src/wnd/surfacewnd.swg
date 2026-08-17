@@ -23,6 +23,8 @@ public struct SurfaceWnd
         closeBtn:      #null *IconButton       // Close btn associated with this value.
         movingSurface: bool                    // Moving surface associated with this value.
         sizingBorder:  SizingBorder = None     // Sizing border associated with this value.
+
+        internal captionButtons: Array'(*IconButton)     // Application actions immediately before the native caption controls.
     }
 }
 
@@ -179,6 +181,14 @@ impl IWnd for SurfaceWnd
             pos.x -= pos.width
         }
 
+        for button in .captionButtons
+        {
+            if button.isPendingDestroy do
+                continue
+            button.setPosition(pos)
+            pos.x -= pos.width
+        }
+
         .base.IWnd.onResizeEvent(evt)
     }
 
@@ -224,6 +234,8 @@ impl IWnd for SurfaceWnd
                 posClip.setRight(.maximizeBtn!.position.x)
             elif srfn.flags.has(.CloseButton) do
                 posClip.setRight(.closeBtn!.position.x)
+            for button in .captionButtons where !button.isPendingDestroy do
+                posClip.setRight(button.position.x)
             bc.painter.pushClippingRect(posClip)
             defer bc.painter.popClippingRect()
 
@@ -324,7 +336,30 @@ impl SurfaceWnd
             return true
         if .minimizeBtn and .minimizeBtn.position.contains(pos.x, pos.y) do
             return true
+        for button in .captionButtons where !button.isPendingDestroy
+        {
+            if button.position.contains(pos.x, pos.y) do
+                return true
+        }
         return false
+    }
+
+    // Registers an application action in the caption, immediately before the native controls.
+    internal mtd registerCaptionButton(button: *IconButton)
+    {
+        Debug.assert(button.parent == me)
+        .captionButtons.add(button)
+        .sendResizeEvent()
+        .invalidate()
+    }
+
+    // Removes an application caption action before its deferred storage release.
+    internal mtd unregisterCaptionButton(button: *IconButton)
+    {
+        .captionButtons.remove(button)
+        if !.isPendingDestroy do
+            .sendResizeEvent()
+        .invalidate()
     }
 
     mtd hitTestCaption(surfacePos: Math.Point)->bool

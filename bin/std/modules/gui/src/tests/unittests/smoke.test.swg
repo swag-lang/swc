@@ -73,6 +73,69 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(host.app.timers.count == 0)
 }
 
+// Scheduling destruction immediately retires timers even though storage is released only after
+// the frame. A streaming viewer can therefore be replaced without receiving one last timer on an
+// already-discarded document tree.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    var timerCount: u32
+    let view = Wnd.create'Wnd(&host.root)
+    view.hookOnEvent = func|count = &timerCount|(wnd, evt)
+    {
+        discard wnd
+        switch evt
+        {
+        case TimerEvent: count[] += 1
+        }
+
+        return false
+    }
+
+    let timer = view.addTimer(1'ms)
+    view.destroy()
+
+    @assert(view.isPendingDestroy)
+    @assert(timer.isPendingRemoval)
+    host.fireTimer(timer)
+    @assert(timerCount == 0)
+    host.pumpTimerQueues()
+    @assert(host.app.timers.count == 0)
+}
+
+// A timer callback may create another timer and discard its target in the same dispatch. The
+// staged timer must never enter the next frame with a target that is already pending destruction.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    var stagedWasRetired: bool
+    let view = Wnd.create'Wnd(&host.root)
+    view.hookOnEvent = func|retired = &stagedWasRetired|(wnd, evt)
+    {
+        switch evt
+        {
+        case TimerEvent:
+            let staged = wnd.addTimer(1'ms)
+            wnd.destroy()
+            retired[] = staged.isPendingRemoval
+        }
+
+        return false
+    }
+
+    let trigger = view.addTimer(1'ms)
+    host.fireTimer(trigger)
+
+    @assert(stagedWasRetired)
+    @assert(host.app.timers.isEmpty())
+}
+
 #test
 {
     var host: Testing.HeadlessHost

@@ -69,7 +69,6 @@ struct AppStrings
     ui_ColAvailable:         string = "AVAILABLE"
     ui_ColVault:             string = "VAULT"
     ui_Desktop:              string = "Desktop"
-    ui_LanguageSystem:       string = "System language"
     dlg_TitleCreate:         string = "Create an sVaultDrive container"
     dlg_TitleOpen:           string = "Open an encrypted container"
     dlg_TitlePassword:       string = "Change the vault password"

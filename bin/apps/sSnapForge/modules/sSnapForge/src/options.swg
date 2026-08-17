@@ -56,10 +56,10 @@ struct EditorOptions
     #[Description("Minimize the editor instead of closing it")]
     hideOnClose = true
 
-    #[Description("sSnapForge theme")]
+    #[Hidden]
     theme: EditorTheme = Dark
 
-    #[Description("Language of the user interface")]
+    #[Hidden]
     language: EditorLanguage = .English
 
     // Transparent means the editor follows the theme, which is what it does until somebody

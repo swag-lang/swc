@@ -23,6 +23,13 @@ struct Strings
         dlg_InfoTitle:     string = "Information"                             // Title of an informational dialog.
         dlg_MultiLineHint: string = "Press Shift+Enter to add a new line"     // Keyboard hint above a multi-line dialog editor.
 
+        appearance_ToolTip:        string = "Theme and language"     // Tooltip of the application appearance caption button.
+        appearance_Theme:          string = "Theme"                  // Theme submenu label.
+        appearance_Language:       string = "Language"               // Language submenu label.
+        appearance_SystemLanguage: string = "System language"        // Language choice following the user account.
+        appearance_Dark:           string = "Dark"                   // Dark application theme.
+        appearance_Light:          string = "Light"                  // Light application theme.
+
         fileDlg_TitleSaveFile:     string = "Save File"                                   // File dialog title when saving a file.
         fileDlg_TitleSelectFile:   string = "Select File"                                 // File dialog title when picking one file.
         fileDlg_TitleSelectFiles:  string = "Select Files"                                // File dialog title when picking several files.

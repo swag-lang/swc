@@ -141,6 +141,18 @@ graduates into a plan moves to the matching `backlog/todo.*` file and disappears
 - Keep each individual test below 40 seconds of runtime, excluding compilation time.
 - Exercise behavior at its real boundary instead of manufacturing a source test for a command-line, linker, backend, runtime, or internal-only path.
 
+### Keep module test data flat and conventional
+
+- Put immutable fixture files used by a module's tests in that test suite's `unittests/datas/`
+  directory. `datas/` is the canonical fixture location; do not create a competing `files/`
+  directory.
+- Keep fixture files directly in `datas/`. Do not add format or provenance subdirectories such as
+  `datas/html/` or `datas/svg-wpt/`; use descriptive file-name prefixes when grouping helps.
+- Keep generated expectations in `unittests/goldens/`. A source document, image, font, archive, or
+  other input remains test data even when a golden image is produced from it.
+- Resolve fixture paths from `#curlocation.fileName` so focused module tests work from every
+  worktree and current directory.
+
 ## Close Every Downstream Regression With A Suite Test
 
 `bin/unittests` is the net. A compiler defect that a script, an example, an application or a
@@ -178,6 +190,27 @@ change is known in advance.
 A path matching no surface selects the whole set, so an unmapped file costs time rather than
 coverage. When that happens, add the surface to [tools/src/scope.swg](../../../tools/src/scope.swg)
 rather than leaving the next change to pay for it again.
+
+### Keep validation proportionate and know when to stop
+
+Validation is evidence, not a loop that restarts after every edit. Plan it once, use focused tests
+while iterating, and reserve the selected aggregate campaign for the end.
+
+- Run the affected focused suite while developing. Do not rerun an aggregate campaign after a
+  comment, fixture move, diagnostic print removal, formatting pass, or another mechanical change
+  that cannot alter the behavior it already validated.
+- Launch at most one final aggregate campaign after the focused suite is green. If that campaign
+  fails late and a targeted correction follows, rerun the failing surface and configuration; keep
+  the successful earlier surfaces as valid evidence instead of restarting the entire campaign.
+- Escalate from a focused test to a module, importer, configuration, or repository-wide campaign
+  only when the change can plausibly affect that broader boundary. More elapsed time is not more
+  confidence when the additional tests exercise unchanged behavior.
+- Stop when the affected behavior has a regression test, the relevant focused suite is green, any
+  required broader campaign has either passed or supplied still-valid partial evidence, and the
+  final diff introduces no new unvalidated behavior. Report any unrun remainder explicitly.
+- Keep individual regression tests bounded. A large real-world fixture may exercise progressive
+  loading through a representative sequence of frames without parsing or rendering the entire
+  file in every configuration.
 
 ## Validate C++ Changes
 

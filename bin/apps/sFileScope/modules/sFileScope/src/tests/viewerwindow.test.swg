@@ -229,11 +229,15 @@ private func viewerFixturePath()->String
 
     @assert(window.commandBar.position.height == ViewerBarHeight)
     @assert(window.viewerCombo.parent == window.commandBar)
-    @assert(window.optionsButton.parent == window.commandBar)
+    @assert(window.appearanceButton.parent == &host.surfaceWnd)
+    @assert(window.searchBox.parent == window.commandBar)
+    @assert(window.searchBox.isLocallyVisible() and !window.searchBox.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Bottom)
     @assert(window.infoBar.backgroundStyle != window.backgroundStyle)
     @assert(window.openButton.position.x < window.previousButton.position.x)
+    @assert(window.openButton.position.x < window.searchBox.position.x)
+    @assert(window.searchBox.position.x < window.previousButton.position.x)
     @assert(window.previousButton.position.x < window.nextButton.position.x)
     @assert(window.infoTypeLabel.name.raw == "NO FILE")
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
@@ -312,6 +316,42 @@ private func viewerFixturePath()->String
     @assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
 }
 
+// Replacing a streaming document retires its short-period loader before deferred destruction.
+// This is the path exercised by quickly moving from one file to the next in the sibling browser.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let firstFile     = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_switch_first_%.txt", Guid64.random()).toString())
+    let secondFile    = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_switch_second_%.txt", Guid64.random()).toString())
+    defer discard catch File.delete(firstFile)
+    defer discard catch File.delete(secondFile)
+
+    var source: String
+    for 2_000 do
+        source += "A streamed document keeps loading while another file is selected.\n"
+    let bytes = @mkslice(cast(const [*] u8) source.buffer!, source.length)
+    discard expect File.writeAllBytes(firstFile, bytes)
+    discard expect File.writeAllBytes(secondFile, bytes)
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(firstFile)
+
+    let discardedView  = cast(*BasicTextView) window.currentView!
+    let discardedTimer = discardedView.loadTimer!
+    window.openFile(secondFile)
+
+    @assert(discardedView.isPendingDestroy)
+    @assert(window.currentView != discardedView)
+    host.fireTimer(discardedTimer)
+    @assert(discardedView.loadTimer == discardedTimer)
+    host.pumpTimerQueues()
+}
+
 // Pins the shipped empty surface: one accent line, one compact command row, and no eager
 // format-specific controls before a file has selected a plugin.
 #test
@@ -357,6 +397,7 @@ private func viewerFixturePath()->String
 
     @assert(window.viewerCombo.isLocallyVisible())
     @assert(window.currentCommands!.parent == window.commandBar)
+    @assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())
     var dark = host.render(window)
     Pixel.Testing.assertImageGolden(&dark, "sfilescope.viewer.dark")
 

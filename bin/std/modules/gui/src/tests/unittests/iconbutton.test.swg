@@ -186,6 +186,11 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
         var image = host.render()
         @assert(iconButtonColorCount(&image, rail) > 0)
     }
+
+    btn.setCheckIndicator(.Frame)
+    host.finishAnimations()
+    var framed = host.render()
+    @assert(iconButtonColorCount(&framed, host.theme.colors.btnIcon_CheckedFrameBorder) > 0)
 }
 
 // The two indicator-less placements differ by what they leave the state colors saying: `None`

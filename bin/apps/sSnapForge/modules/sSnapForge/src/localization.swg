@@ -362,19 +362,8 @@ struct AppStrings
     prop_ConfirmLinkedDesc:     string = "Require confirmation before overwriting a capture-linked image"     // Description of [[EditorOptions.confirmLinkedOverwrite]].
     prop_HideOnClose:           string = "Hide On Close"                                                      // Label of [[EditorOptions.hideOnClose]].
     prop_HideOnCloseDesc:       string = "Minimize the editor instead of closing it"                          // Description of [[EditorOptions.hideOnClose]].
-    prop_Theme:                 string = "Theme"                                                              // Label of [[EditorOptions.theme]].
-    prop_ThemeDesc:             string = "sSnapForge theme"                                                   // Description of [[EditorOptions.theme]].
-    prop_Language:              string = "Language"                                                           // Label of [[EditorOptions.language]].
-    prop_LanguageDesc:          string = "Language of the user interface"                                     // Description of [[EditorOptions.language]].
     prop_EditBackColor:         string = "Edit Back Color"                                                    // Label of [[EditorOptions.editBackColor]].
     prop_EditBackColorDesc:     string = "Specify the background color of the capture editing window"         // Description of [[EditorOptions.editBackColor]].
-
-    prop_ThemeDark:  string = "Dark"      // Theme entry: the dark one.
-    prop_ThemeLight: string = "Light"     // Theme entry: the light one.
-
-    prop_LanguageSystem:  string = "System"      // Language entry: follow the Windows language.
-    prop_LanguageEnglish: string = "English"     // Language entry: the reference wording.
-    prop_LanguageFrench:  string = "French"      // Language entry: French.
 }
 
 private const FrenchStringsName = "lang/fr/snapforge.tweak"

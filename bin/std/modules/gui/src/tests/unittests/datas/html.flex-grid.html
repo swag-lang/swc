@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Flexible header and grid</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { min-height: 66px; background: #050505; }
+    nav { display: flex; align-items: center; justify-content: space-between; gap: 28px; min-height: 66px; padding: 0 22px; }
+    .brand { flex: none; width: 120px; color: #f7f900; }
+    .links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 6px; }
+    .links a { padding: 5px 8px; color: #ffffff; white-space: nowrap; }
+    main { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .card { min-width: 0; height: 80px; }
+  </style>
+</head>
+<body>
+  <header id="flex-header"><nav><a class="brand">SWAG</a><div class="links" id="header-links"><a>Home</a><a>Documentation</a><a>Runtime</a><a>Std</a><a>YouTube</a><a id="github-link">GitHub</a></div></nav></header>
+  <main><aside>Rail</aside><article class="cards"><div class="card">One</div><div class="card">Two</div><div class="card">Three</div></article></main>
+</body>
+</html>

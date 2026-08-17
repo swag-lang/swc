@@ -56,7 +56,6 @@ ui_ColSize             TAILLE
 ui_ColAvailable        DISPONIBLE
 ui_ColVault            COFFRE
 ui_Desktop             Bureau
-ui_LanguageSystem      Langue du système
 dlg_TitleCreate        Créer un conteneur sVaultDrive
 dlg_TitleOpen          Ouvrir un conteneur chiffré
 dlg_TitlePassword      Changer le mot de passe du coffre

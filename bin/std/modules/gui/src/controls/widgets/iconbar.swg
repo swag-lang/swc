@@ -96,8 +96,8 @@ impl IconBar
         let size   = .iconSize + 2 * .itemPadding
         let button = IconButton.create(me, sizedIcon, {0, 0, size, size}, id, flags)
         button.dockStyle = .orientation == .Vertical ? .Top : .Left
-        button.setForm(.Rectangle)
-        button.setCheckIndicator(.orientation == .Vertical ? .Left : .Bottom)
+        button.setForm(.orientation == .Horizontal ? .RoundedRectangle : .Rectangle)
+        button.setCheckIndicator(.orientation == .Horizontal ? .Frame : .Left)
 
         if flags.has(.Radio) or flags.has(.Toggle) do
             button.sigCheckedChanged += func|bar = me|(btn) { bar.sigCheckedChanged.call(btn) }
@@ -131,9 +131,9 @@ impl IconBar
         for child in .children
         {
             let button = cast(*IconButton) child
-            button.setCheckIndicator(.orientation == .Vertical ? .Left : .Bottom)
+            button.setForm(.orientation == .Horizontal ? .RoundedRectangle : .Rectangle)
+            button.setCheckIndicator(.orientation == .Horizontal ? .Frame : .Left)
         }
-
         .computeLayout()
     }
 

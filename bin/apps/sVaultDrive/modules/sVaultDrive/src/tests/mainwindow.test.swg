@@ -81,8 +81,8 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     @assert(activeLanguage() == ReferenceLanguage)
     @assert(window.createButton.text() == "Create encrypted vault")
     @assert(window.language == ReferenceLanguage)
-    @assert(window.languageChoice.position.height == host.theme.metrics.comboBox_Height)
-    @assert(window.languageChoice.position.y == window.languageChoice.parent!.clientRect().y)
+    @assert(window.appearanceButton.parent == &host.surfaceWnd)
+    @assert(window.appearanceButton.focusPolicy == .None)
 }
 
 // A card's form has to end inside the card, in every language.
@@ -147,7 +147,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // it is what carries the change all the way to the labels.
     let unmount      = window.mountedDrives.unmountButton
     let englishWidth = unmount.position.width
-    window.chooseLanguage(2)
+    expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
     host.notify(.LanguageChanged)
 
     @assert(unmount.text() == "Démonter")
@@ -160,7 +160,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Available).name.raw == "DISPONIBLE")
     @assert(window.mountedDrives.empty.text() == "Aucun lecteur monté.")
 
-    window.chooseLanguage(1)
+    expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
     host.notify(.LanguageChanged)
     @assert(unmount.text() == "Unmount")
     @assert(unmount.position.width == englishWidth)
@@ -174,18 +174,16 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
-    // Entry zero follows the account; the languages come after it, in registration order,
-    // and the window opens on the reference language rather than on the account.
-    @assert(window.languageChoice.items.count == @countof(languages()) + 1)
-    @assert(window.languageChoice.selectedIndex == 1)
+    // The window opens on the reference language rather than on the account.
+    @assert(window.appearanceButton.language == ReferenceLanguage)
 
-    window.chooseLanguage(2)
+    expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
     host.notify(.LanguageChanged)
     @assert(window.language == "fr")
     @assert(activeLanguage() == "fr")
-    @assert(window.languageChoice.selectedIndex == 2)
+    @assert(window.appearanceButton.language == "fr")
 
-    window.chooseLanguage(0)
+    expect window.appearanceButton.setAppearanceLanguage("", notify: true)
     @assert(window.language.isEmpty())
     @assert(activeLanguage() == systemLanguage())
 }
@@ -302,10 +300,9 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // A button that cannot work is down, and the keyboard does not stop on it: on a form with
     // nothing filled in, the action of the create page is out of the ring. So is every control
     // of the two pages that are not on show.
-    @assert(order.stops.count == 8)
-    @assert(order.stops[0] == cast(*Wnd) window.languageChoice)
-    @assert(order.stops[1] == cast(*Wnd) window.tabs)
-    @assert(order.stops[2] == cast(*Wnd) window.createPath)
+    @assert(order.stops.count == 7)
+    @assert(order.stops[0] == cast(*Wnd) window.tabs)
+    @assert(order.stops[1] == cast(*Wnd) window.createPath)
 
     // Live, each action takes its place after the card it answers for, and the dominant one
     // comes last on its card because the bar stacks from its right edge.
@@ -315,40 +312,37 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.passwordButton.enable(true)
 
     let full = Gui.FocusOrder.collect(window)
-    @assert(full.stops.count == 9)
-    @assert(full.stops[0] == cast(*Wnd) window.languageChoice)
-    @assert(full.stops[1] == cast(*Wnd) window.tabs)
-    @assert(full.stops[2] == cast(*Wnd) window.createPath)
-    @assert(full.stops[3] == cast(*Wnd) window.browseCreate)
-    @assert(full.stops[4] == cast(*Wnd) window.createSize)
-    @assert(full.stops[5] == cast(*Wnd) window.createUnit)
-    @assert(full.stops[6] == cast(*Wnd) window.createPassword)
-    @assert(full.stops[7] == cast(*Wnd) window.confirmPassword)
-    @assert(full.stops[8] == cast(*Wnd) window.createButton)
+    @assert(full.stops.count == 8)
+    @assert(full.stops[0] == cast(*Wnd) window.tabs)
+    @assert(full.stops[1] == cast(*Wnd) window.createPath)
+    @assert(full.stops[2] == cast(*Wnd) window.browseCreate)
+    @assert(full.stops[3] == cast(*Wnd) window.createSize)
+    @assert(full.stops[4] == cast(*Wnd) window.createUnit)
+    @assert(full.stops[5] == cast(*Wnd) window.createPassword)
+    @assert(full.stops[6] == cast(*Wnd) window.confirmPassword)
+    @assert(full.stops[7] == cast(*Wnd) window.createButton)
 
     // Bringing up another page swaps the whole middle of the ring for that page's controls, and
     // the dominant action still comes last on its card because the bar stacks from its right edge.
     window.showTab(1)
     let opened = Gui.FocusOrder.collect(window)
-    @assert(opened.stops.count == 10)
-    @assert(opened.stops[0] == cast(*Wnd) window.languageChoice)
-    @assert(opened.stops[1] == cast(*Wnd) window.tabs)
-    @assert(opened.stops[2] == cast(*Wnd) window.mountPath)
-    @assert(opened.stops[3] == cast(*Wnd) window.browseMount)
-    @assert(opened.stops[4] == cast(*Wnd) window.mountPassword)
-    @assert(opened.stops[5] == cast(*Wnd) window.drive)
-    @assert(opened.stops[6] == cast(*Wnd) window.readOnly)
-    @assert(opened.stops[7] == cast(*Wnd) window.passwordButton)
-    @assert(opened.stops[8] == cast(*Wnd) window.resizeButton)
-    @assert(opened.stops[9] == cast(*Wnd) window.mountButton)
+    @assert(opened.stops.count == 9)
+    @assert(opened.stops[0] == cast(*Wnd) window.tabs)
+    @assert(opened.stops[1] == cast(*Wnd) window.mountPath)
+    @assert(opened.stops[2] == cast(*Wnd) window.browseMount)
+    @assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
+    @assert(opened.stops[4] == cast(*Wnd) window.drive)
+    @assert(opened.stops[5] == cast(*Wnd) window.readOnly)
+    @assert(opened.stops[6] == cast(*Wnd) window.passwordButton)
+    @assert(opened.stops[7] == cast(*Wnd) window.resizeButton)
+    @assert(opened.stops[8] == cast(*Wnd) window.mountButton)
 
     window.showTab(3)
     let options = Gui.FocusOrder.collect(window)
-    @assert(options.stops[0] == cast(*Wnd) window.languageChoice)
-    @assert(options.stops[1] == cast(*Wnd) window.tabs)
-    @assert(options.stops[2] == cast(*Wnd) window.unmountOnLock)
-    @assert(options.stops[3] == cast(*Wnd) window.unmountOnSuspend)
-    @assert(options.stops[4] == cast(*Wnd) window.unmountOnIdle)
+    @assert(options.stops[0] == cast(*Wnd) window.tabs)
+    @assert(options.stops[1] == cast(*Wnd) window.unmountOnLock)
+    @assert(options.stops[2] == cast(*Wnd) window.unmountOnSuspend)
+    @assert(options.stops[3] == cast(*Wnd) window.unmountOnIdle)
 
     window.showTab(0)
 }

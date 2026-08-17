@@ -39,6 +39,10 @@ impl Properties
     // Adds explanatory text below the field label.
     attr Description(desc: string)
 
+    // Keeps a reflected field out of generated property grids while leaving it in the structure
+    // for persistence and programmatic use.
+    attr Hidden()
+
     // Sets the preferred width of the field editor.
     attr EditSize(size: s32)
 

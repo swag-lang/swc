@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tables and inline flow</title>
+  <style>
+    body { margin: 0; max-width: 760px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 6px 10px; border: 1px solid #9ca3af; }
+    th { text-align: left; }
+    .narrow { width: 90px; }
+  </style>
+</head>
+<body>
+  <table id="fixture-table">
+    <thead><tr><th class="narrow">Kind</th><th>Description</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td>Alpha</td><td>A long description that establishes the flexible middle column.</td><td>Ready</td></tr>
+      <tr><td>Beta</td><td>Text with <strong>bold</strong>, <em>emphasis</em>, and <code>code</code>.</td><td>Pending</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>

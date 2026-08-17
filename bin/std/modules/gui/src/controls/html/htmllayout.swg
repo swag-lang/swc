@@ -854,11 +854,23 @@ impl HtmlLayout
         }
         elif .boxes[box].kind == .Flex and .styles[.boxes[box].style].flexDirection == .Row
         {
+            var minimum = 0.0'f32
+            var count   = 0'u32
             for child in .boxes[box].children
             {
                 let inner = .intrinsicWidths(child)
                 result.min = Math.max(result.min, inner.min)
                 result.max += inner.max
+                minimum   += inner.min
+                count     += 1
+            }
+
+            if count > 1
+            {
+                let gap = .resolveLength(style.columnGap, .boxes[box].style, .viewport.x) * cast(f32) (count - 1)
+                result.max += gap
+                if style.flexWrap == .NoWrap do
+                    result.min = minimum + gap
             }
         }
         else

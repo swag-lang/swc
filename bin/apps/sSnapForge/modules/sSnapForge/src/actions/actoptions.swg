@@ -25,25 +25,13 @@ impl MainWnd
     {
         if @countof(fieldName) == 0
         {
-            let wasLanguage = String.from(Gui.activeLanguage())
-            .setTheme()
-            .setLanguage()
             .setToolRailWidth()
             .app().invalidate()
-            return wasLanguage != Gui.activeLanguage()
+            return false
         }
 
         switch fieldName
         {
-        case #nameof(EditorOptions.theme):
-            .setTheme()
-            .setToolRailWidth()
-
-        case #nameof(EditorOptions.language):
-            let wasLanguage = String.from(Gui.activeLanguage())
-            .setLanguage()
-            return wasLanguage != Gui.activeLanguage()
-
         case #nameof(EditorOptions.showToolBarLabels):
             .setToolRailWidth()
 

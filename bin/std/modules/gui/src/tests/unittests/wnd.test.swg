@@ -210,3 +210,42 @@ using Swag, Core
     host.pump()
     @assert(container.children.count == 0)
 }
+
+// A no-scroll window and everything it contains ignore scroll offsets above that boundary in
+// painting, hit testing, and coordinate conversion.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 180)
+    defer host.shutdown()
+
+    let scroller = Wnd.create'Wnd(&host.root, null, {10, 20, 200, 140})
+    scroller.scrollPos = {0, 70}
+
+    let normal = Wnd.create'Wnd(scroller, null, {5, 100, 40, 30})
+    @assert(normal.surfaceRect().y == 50)
+
+    let fixed = Wnd.create'Wnd(scroller, null, {5, 30, 80, 60})
+    fixed.wndFlags |= .NoScroll
+    @assert(fixed.surfaceRect().y == 50)
+    @assert(fixed.surfaceToLocal({15, 50}) == Math.Point{0, 0})
+
+    fixed.scrollPos = {0, 6}
+    let nested = Wnd.create'Wnd(fixed, null, {2, 20, 20, 20})
+    @assert(nested.surfaceRect().y == 64)
+}
+
+// Deferred destruction immediately unregisters timers, so one progressive loader cannot receive
+// another callback after its window has stopped being an event target.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 100)
+    defer host.shutdown()
+
+    let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
+    let timer = wnd.addTimer(1'ms)
+    @assert(!timer.isPendingRemoval)
+    wnd.destroy()
+    @assert(timer.isPendingRemoval)
+}

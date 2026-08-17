@@ -3,9 +3,14 @@
 
 using Core, Pixel
 
+private func guiFixturePath(name: string)->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+}
+
 private func htmlFixturePath()->String
 {
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "files/html/comprehensive.html")
+    return guiFixturePath("html.comprehensive.html")
 }
 
 private func parseDocument(source: string)->HtmlDocument
@@ -24,6 +29,49 @@ private func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
     for index in document.nodes.count where document.constNode(cast(u32) index).tag == tag do
         return cast(u32) index
     return HtmlNoNode
+}
+
+// Returns the first element carrying a class used to name fixture structure.
+private func findClass(document: const *HtmlDocument, name: string)->u32
+{
+    for index in document.nodes.count where document.hasClass(cast(u32) index, name) do
+        return cast(u32) index
+    return HtmlNoNode
+}
+
+private struct HtmlLinkHit
+{
+    point: Math.Point
+    found: bool
+}
+
+// Finds a visible point inside a link after sticky and independently scrolled offsets apply.
+private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
+{
+    let viewport = view.scroll.paddedClientRect()
+    let painter  = view.painter()
+    var result: retval
+    var y = 2.0'f32
+    while y < viewport.height
+    {
+        var x = 2.0'f32
+        while x < viewport.width
+        {
+            let point = Math.Point{x, y}
+            if view.linkAt(painter.nodeAt(point)) == url
+            {
+                result.point = point
+                result.found = true
+                return result
+            }
+
+            x += 4
+        }
+
+        y += 4
+    }
+
+    return result
 }
 
 // The tree builder closes what a document leaves open and never lets a hidden element reach the
@@ -574,4 +622,172 @@ private func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
     var home = KeyEvent{kind: .Pressed, key: .Home}
     @assert(scrollDocumentWithKey(view.scroll, &home))
     @assert(view.scroll.scrollPosition().y == 0)
+}
+
+// Every checked-in HTML fixture is a complete document that the streaming parser accepts.
+#test
+{
+    const Names = ["html.comprehensive.html",
+                   "html.flex-grid.html",
+                   "html.frames.html",
+                   "html.local-target.html",
+                   "html.streaming-fragments.html",
+                   "html.tables.html"]
+
+    for name in Names
+    {
+        let source   = expect File.readAllText(guiFixturePath(name))
+        let document = parseDocument(source.toString())
+        @assert(document.nodes.count > 4)
+        @assert(findTag(&document, .Body) != HtmlNoNode)
+    }
+}
+
+// A flexible documentation header keeps all navigation links on its single browser-sized row.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 540)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, guiFixturePath("html.flex-grid.html"))
+    view.resize(960, 540)
+    view.applyLayout()
+    view.rebuild()
+
+    let header = view.layout.constBox(view.boxOfNode(view.elementById("flex-header")))
+    let links  = view.layout.constBox(view.boxOfNode(view.elementById("header-links")))
+    let github = view.layout.constBox(view.boxOfNode(view.elementById("github-link")))
+    @assert(header.rect.height == 66)
+    @assert(!links.children.isEmpty())
+    @assert(Math.abs(github.rect.y - view.layout.constBox(links.children[0]).rect.y) <= 1)
+}
+
+// The left frame owns wheel input under the pointer at every page position, including when its
+// own scrollbar is already at an edge. The document owns wheel input only over the right frame.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, guiFixturePath("html.frames.html"))
+    view.resize(720, 360)
+    view.applyLayout()
+    view.rebuild()
+    discard host.render(view)
+
+    var rail = view.boxOfNode(view.elementById("frame-rail"))
+    @assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
+    view.scroll.setScrollPos(0, 520)
+    let pageStart = view.scroll.scrollPosition().y
+
+    host.mouseWheel({60, 100}, -1)
+    @assert(view.layout.constBox(rail).scrollTop > 0)
+    @assert(view.scroll.scrollPosition().y == pageStart)
+
+    discard view.scrollRegion(rail, 100_000)
+    let railEnd = view.layout.constBox(rail).scrollTop
+    host.mouseWheel({60, 100}, -1)
+    @assert(view.layout.constBox(rail).scrollTop == railEnd)
+    @assert(view.scroll.scrollPosition().y == pageStart)
+
+    host.mouseWheel({420, 180}, -1)
+    @assert(view.scroll.scrollPosition().y > pageStart)
+    @assert(view.layout.constBox(rail).scrollTop == railEnd)
+}
+
+// Clicking a fragment in the independently scrolled rail positions its target after the CSS
+// scroll margin instead of hiding it under the sticky header.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, guiFixturePath("html.frames.html"))
+    view.resize(720, 360)
+    view.applyLayout()
+    view.rebuild()
+    view.scroll.setScrollPos(0, 500)
+    discard host.render(view)
+
+    let hit = findVisibleLink(view, "#frame-target-two")
+    @assert(hit.found)
+    host.click(hit.point)
+
+    let target = view.layout.constBox(view.boxOfNode(view.elementById("frame-target-two")))
+    @assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 60) <= 1)
+}
+
+// A relative local link replaces the displayed file and follows its fragment in the new page.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, guiFixturePath("html.frames.html"))
+    view.resize(720, 360)
+    view.applyLayout()
+    view.rebuild()
+
+    let rail = view.boxOfNode(view.elementById("frame-rail"))
+    discard view.scrollRegion(rail, 100_000)
+    discard host.render(view)
+    let hit = findVisibleLink(view, "html.local-target.html#local-target")
+    @assert(hit.found)
+    host.click(hit.point)
+
+    @assert(Path.fileName(view.fileName) == "html.local-target.html")
+    let target = view.layout.constBox(view.boxOfNode(view.elementById("local-target")))
+    @assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 68) <= 1)
+}
+
+// The generated Pixel API page stays progressive, preserves its independently scrolled rail
+// across partial rebuilds, resolves a fragment from the next chunk, and keeps the browser's
+// one-line header. The test deliberately stops after that second 48 KiB chunk: exercising a
+// progressive frame must not turn every GUI configuration into a full megabyte-layout benchmark.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 540)
+    defer host.shutdown()
+
+    let path = guiFixturePath("std.pixel.html")
+    @assert((expect File.info(path)).size > 1024 * 1024)
+    let view = HtmlView.createFile(&host.root, path)
+    view.resize(960, 540)
+    view.applyLayout()
+    view.rebuild()
+    @assert(view.isLoading())
+
+    let railNode = findClass(&view.document, "left")
+    @assert(railNode != HtmlNoNode)
+    var rail = view.boxOfNode(railNode)
+    @assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
+    @assert(view.elementById("api-reference") == HtmlNoNode)
+    @assert(view.navigateToFragment("#api-reference"))
+    @assert(view.scrollRegion(rail, 180))
+
+    view.streamStep()
+    @assert(view.isLoading())
+    rail = view.boxOfNode(findClass(&view.document, "left"))
+    @assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollTop == 180)
+    @assert(view.elementById("api-reference") != HtmlNoNode)
+
+    let target = view.layout.constBox(view.boxOfNode(view.elementById("api-reference")))
+    @assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 82) <= 1)
+
+    let headerNode = findClass(&view.document, "site-header")
+    let linksNode  = findClass(&view.document, "site-links")
+    let header     = view.layout.constBox(view.boxOfNode(headerNode))
+    let links      = view.layout.constBox(view.boxOfNode(linksNode))
+    @assert(header.rect.height <= 68)
+    @assert(!links.children.isEmpty())
+    let firstY = view.layout.constBox(links.children[0]).rect.y
+    for child in links.children do
+        @assert(Math.abs(view.layout.constBox(child).rect.y - firstY) <= 1)
+
+    view.stopLoading()
 }

@@ -109,6 +109,7 @@ struct MainWnd
         toolTitle:                   *Label
         libraryBtn, captureBtn:      *PushButton
         zoomBtn:                     *IconButton
+        appearanceButton:            *AppearanceButton
     }
 
     sizeBtn:       #null *IconButton
@@ -866,8 +867,8 @@ impl MainWnd
                     .setIconSize(RailGlyphSize, RailGlyphSize)
                 }
 
-                // The active tool is said once, by the Voltage glyph and the rule against
-                // the window edge. A checked fill on top of those would be a third voice.
+                // A vertical tool rail keeps the leading rule: it reads beside the glyph rather
+                // than as part of it, and the reserved lane prevents the content from moving.
                 .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
                 .style.addStyleSheetColors("btnIcon_CheckedText         $btnIcon_Text")
                 .style.addStyleSheetColors("btnIcon_CheckedHotText      $btnIcon_Text")
@@ -876,8 +877,10 @@ impl MainWnd
                 .style.addStyleSheetColors("btnIcon_CheckedHotBk        $btnIcon_HotBk")
                 .style.addStyleSheetColors("btnIcon_CheckedHotIcon      $btnIcon_CheckedHotMark")
                 .style.addStyleSheetColors("btnIcon_CheckedPressedIcon  $btnIcon_CheckedMark")
+
                 .updateFlags(.Radio)
                 .setTextPosition(.Right)
+                .setForm(.Rectangle)
                 .setCheckIndicator(.Left)
             }
         }
@@ -939,11 +942,7 @@ impl MainWnd
 
     mtd setTheme()
     {
-        if .editorOptions.theme == .Dark do
-            .app().theme.setSwagDark()
-        else do
-            .app().theme.setSwagLight()
-        .app().notifyThemeChanged()
+        .appearanceButton.setAppearanceTheme(.editorOptions.theme == .Dark ? .Dark : .Light)
 
         // Pixel-selection forms borrow a theme color, so their retained renderings
         // follow the switch.
@@ -961,15 +960,15 @@ impl MainWnd
     // the interface then simply stays on the reference English wording.
     mtd setLanguage()
     {
-        var tag = Gui.ReferenceLanguage
+        var tag: string = Gui.ReferenceLanguage
         switch #complete .editorOptions.language
         {
-        case .System:  tag = Gui.systemLanguage()
+        case .System:  tag = ""
         case .French:  tag = "fr"
         case .English: break
         }
 
-        catch .app().setLanguage(tag)
+        discard catch .appearanceButton.setAppearanceLanguage(tag)
     }
 
     // Applies the "show tool labels" option. The label never goes under the glyph, which
@@ -980,9 +979,6 @@ impl MainWnd
         let metrics    = .themeMetrics()
         let showLabels = .editorOptions.showToolBarLabels
 
-        // The rule marking the active tool runs in a lane of its own on the leading edge. With
-        // labels, that lane is extra room beside the row. Without labels, its margin replaces
-        // the cell's leading padding, otherwise the same air is counted twice before the glyph.
         let lane  = metrics.activeRail_Size + metrics.activeRail_Margin
         let width = showLabels ? RailLabelWidth + lane : RailCellSize + metrics.activeRail_Size
 
@@ -1046,6 +1042,26 @@ impl MainWnd
             .mdlHighlight    = &res.mdlFormShape
             .mdlPixSel       = &res.mdlFormShape
             .monitors        = Env.getMonitors()
+        }
+
+        res.appearanceButton = AppearanceButton.create(srf, "sSnapForge.appearance")
+        res.appearanceButton.sigThemeChanged += func|main = res|(button)
+        {
+            main.editorOptions.theme = button.appearanceTheme == .Light ? .Light : .Dark
+            let capture = main.editWnd.getCapture()
+            if capture do
+                capture.invalidateAllFormCaches()
+            main.saveAppState()
+        }
+        res.appearanceButton.sigLanguageChanged += func|main = res|(button)
+        {
+            if button.language.isEmpty() do
+                main.editorOptions.language = .System
+            elif button.language == "fr" do
+                main.editorOptions.language = .French
+            else do
+                main.editorOptions.language = .English
+            main.saveAppState()
         }
 
         // One Voltage rail identifies every standard Swag application surface.

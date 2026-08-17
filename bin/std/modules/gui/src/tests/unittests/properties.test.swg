@@ -10,6 +10,14 @@ struct PropHeadlessData
     enabled: bool         = true
 }
 
+struct PropHeadlessHiddenData
+{
+    visible: s32 = 1
+
+    #[Properties.Hidden]
+    persistedOnly: s32 = 2
+}
+
 struct PropHeadlessCustomData
 {
     origin: Math.Point = {10, 20}
@@ -133,6 +141,21 @@ impl IPropertyNotify for PropHeadlessRoData
     prop.clear()
     @assert(prop.items.count == 0)
     @assert(!prop.selItem)
+}
+
+// A field kept for persistence can opt out of a generated editor without leaving its structure.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 180)
+    defer host.shutdown()
+    var data: PropHeadlessHiddenData
+    let prop = Properties.create(&host.root, {0, 0, 240, 160})
+    prop.addStruct(data)
+
+    @assert(prop.items.count == 2)
+    @assert(prop.items[1]!.typeValue.name == #nameof(PropHeadlessHiddenData.visible))
+    @assert(data.persistedOnly == 2)
 }
 
 // PropertiesCtrl keeps visible grid rows after the same staged layout sequence

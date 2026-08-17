@@ -11,6 +11,13 @@ dlg_ErrorTitle   Erreur
 dlg_InfoTitle    Information
 dlg_MultiLineHint Appuyez sur Maj+Entrée pour ajouter une nouvelle ligne
 
+appearance_ToolTip        Thème et langue
+appearance_Theme          Thème
+appearance_Language       Langue
+appearance_SystemLanguage Langue du système
+appearance_Dark           Sombre
+appearance_Light          Clair
+
 fileDlg_TitleSaveFile     Enregistrer un fichier
 fileDlg_TitleSelectFile   Sélectionner un fichier
 fileDlg_TitleSelectFiles  Sélectionner des fichiers

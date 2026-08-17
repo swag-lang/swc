@@ -23,10 +23,9 @@ struct ViewerWindow
         previousButton: *IconButton
         nextButton:     *IconButton
         openButton:     *IconButton
-        searchButton:   *IconButton
         searchBox:      *EditBox
         viewerCombo:    *ComboBox
-        optionsButton:  *IconButton
+        appearanceButton: *AppearanceButton
         infoBar:        *Wnd
         infoTypeLabel:  *Label
         infoNameLabel:  *Label
@@ -56,6 +55,7 @@ struct ViewerWindow
     siblingsDirty        = true
     fileDlgState:    FileDlgState
     themeIndex:      u32
+    language:        String
 }
 
 impl IWnd for ViewerWindow
@@ -144,6 +144,7 @@ impl IWnd for ViewerWindow
 
         catch g_App.loadState()
         .applyTheme(.themeIndex)
+        .applyLanguage()
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
         evt.accepted = true
     }
@@ -152,8 +153,16 @@ impl IWnd for ViewerWindow
     {
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
+        catch evt.serializer.serialize("ViewerWindow.language", &me.language)
         if evt.serializer.isReading() do
             .themeIndex = Math.min(.themeIndex, 1)
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .retranslate()
+        .wnd.IWnd.onNotifyEvent(evt)
     }
 }
 
@@ -162,29 +171,12 @@ impl ViewerWindow
     mtd applyTheme(index: u32)
     {
         .themeIndex = Math.min(index, 1)
-        if .themeIndex do
-            .app().theme.setSwagLight()
-        else do
-            .app().theme.setSwagDark()
-        .app().notifyThemeChanged()
+        .appearanceButton.setAppearanceTheme(.themeIndex ? .Light : .Dark)
     }
 
-    mtd showOptions()
+    mtd applyLanguage()
     {
-        let menu = MenuCtrl.createPopup(.optionsButton, owner: me)
-        menu.updateFlags(.HideShortcuts)
-        menu.addItem(appStrings().ui_ThemeDark, "theme.dark", checked: .themeIndex == 0)
-        menu.addItem(appStrings().ui_ThemeLight, "theme.light", checked: .themeIndex == 1)
-
-        let rect = .optionsButton.surfaceRect()
-        let selected = menu.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true)
-        if selected == "theme.dark" do
-            .applyTheme(0)
-        elif selected == "theme.light" do
-            .applyTheme(1)
-        else do
-            return
-        catch g_App.saveState()
+        discard catch .appearanceButton.setAppearanceLanguage(.language.toString())
     }
 
     func create(parent: *Wnd, index: ViewerPluginIndex)->*ViewerWindow
@@ -194,6 +186,19 @@ impl ViewerWindow
         result.surface!.minSize = {640, 420}
         result.backgroundStyle  = .View
         result.index            = #move index
+        result.language         = Gui.ReferenceLanguage
+
+        result.appearanceButton = AppearanceButton.create(result.surface!, "sFileScope.appearance")
+        result.appearanceButton.sigThemeChanged += func|window = result|(button)
+        {
+            window.themeIndex = button.appearanceTheme == .Light ? 1 : 0
+            catch g_App.saveState()
+        }
+        result.appearanceButton.sigLanguageChanged += func|window = result|(button)
+        {
+            window.language = button.language
+            catch g_App.saveState()
+        }
 
         Separator.create(result, .Top, .Accent)
 
@@ -218,7 +223,7 @@ impl ViewerWindow
 
         with result.searchBox = EditBox.create(result.commandBar, "", {0, 0, 240, 36})
         {
-            .dockStyle = .Right
+            .dockStyle = .Left
             .margin.x  = 12
             .setIcon(result.theme().icon(.Search, 18))
             .setPlaceholder(appStrings().ui_Search)
@@ -232,32 +237,7 @@ impl ViewerWindow
                 discard edit
                 window.hideSearch()
             }
-            .hide()
-        }
-
-        with result.searchButton = IconButton.create(result.commandBar, result.theme().icon(.Search, ViewerGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle = .Right
-            .margin.x  = 12
-            .toolTip   = appStrings().ui_Search
             .enable(false)
-            .sigPressed += func|window = result|(button)
-            {
-                discard button
-                window.showSearch()
-            }
-        }
-
-        with result.optionsButton = IconButton.create(result.commandBar, result.theme().icon(.Options, ViewerGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle = .Right
-            .margin.x  = 8
-            .toolTip   = appStrings().ui_Theme
-            .sigPressed += func|window = result|(button)
-            {
-                discard button
-                window.showOptions()
-            }
         }
 
         with result.previousButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
@@ -334,6 +314,7 @@ impl ViewerWindow
             .setTextAlignment(.Center, .Center)
         }
 
+        result.applyLanguage()
         result.applyLayout()
         return result
     }
@@ -383,6 +364,7 @@ impl ViewerWindow
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .previousButton.enable(false)
         .nextButton.enable(false)
+        .searchBox.enable(false)
         .applyLayout()
     }
 
@@ -417,6 +399,7 @@ impl ViewerWindow
             .activeChoiceIndex = index
             .viewerCombo.setSelectedIndex(index, notify: false)
             .updateFileInfo(choice.name.toString(), instance.details.toString())
+            .updateSearchAvailability()
             .applyLayout()
             .invalidate()
             return true
@@ -460,6 +443,7 @@ impl ViewerWindow
         instance.details     = #move nextDetails
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(choice.name.toString(), instance.details.toString())
+        .updateSearchAvailability()
         .applyLayout()
         .invalidate()
         return true
@@ -467,6 +451,8 @@ impl ViewerWindow
 
     mtd findNext()
     {
+        if !.searchBox.isEnabled() do
+            return
         let text = .searchBox.text()
         if !@countof(text) or .currentFile.isEmpty() do
             return
@@ -485,18 +471,25 @@ impl ViewerWindow
 
     mtd showSearch()
     {
-        .searchButton.hide()
-        .searchBox.show()
+        if !.searchBox.isEnabled() do
+            return
         .searchBox.setFocus()
-        .applyLayout()
     }
 
     mtd hideSearch()
     {
-        .searchBox.hide()
-        .searchButton.show()
-        .searchButton.enable(true)
-        .applyLayout()
+        .currentView?.setFocus()
+    }
+
+    mtd updateSearchAvailability()
+    {
+        let available = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].revealMatch != null
+        .searchBox.enable(available)
+        if !available
+        {
+            .stopSearch()
+            .searchMatch = Swag.U64.Max
+        }
     }
 
     mtd stopSearch()
@@ -622,7 +615,6 @@ impl ViewerWindow
         .stopSearch()
         .searchMatch = Swag.U64.Max
         .searchQuery.clear()
-        .hideSearch()
         if !File.exists(fileName)
         {
             .showEmpty(appStrings().ui_OpenStopped)
@@ -660,13 +652,29 @@ impl ViewerWindow
         }
 
         .emptyLabel.hide()
-        .searchButton.enable(true)
 
         .siblingsDirty = true
 
         .previousButton.enable(true)
         .nextButton.enable(true)
         .applyLayout()
+        .invalidate()
+    }
+
+    mtd retranslate()
+    {
+        let texts = appStrings()
+        .surface?.setTitle(texts.ui_WindowTitle)
+        .openButton.toolTip     = texts.ui_Open
+        .previousButton.toolTip = texts.ui_Previous
+        .nextButton.toolTip     = texts.ui_Next
+        .viewerCombo.toolTip    = texts.ui_Viewer
+        .searchBox.setPlaceholder(texts.ui_Search)
+        if .currentFile.isEmpty()
+        {
+            .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
+            .infoStatsLabel.setText(texts.ui_Ready)
+        }
         .invalidate()
     }
 

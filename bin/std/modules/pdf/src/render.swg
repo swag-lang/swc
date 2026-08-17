@@ -11,7 +11,7 @@ struct RenderOptions
         background:       Color  = Color.fromArgb(Argb.White)     // Ground painted before page content.
         maxDimension:     s32    = 16_384                         // Largest accepted output width or height in pixels.
         maxPixels:        u64    = 67_108_864                     // Largest accepted output pixel count.
-        fallbackFontFile: string = ""                             // Optional TrueType font used when a PDF font cannot be decoded.
+        fallbackFontFile: string = ""                             // Optional TrueType font used when a PDF font cannot be decoded or safely addressed.
     }
 }
 
@@ -45,9 +45,29 @@ private func itemTypeface(page: const *Page, item: const *Item, fallback: *TypeF
     if !resource.bytes.count do
         return fallback
 
+    // A subset program is keyed by the PDF's character codes or CIDs, not by the Unicode
+    // extracted through /ToUnicode. Feeding that Unicode back through the subset's incidental
+    // cmap can select unrelated glyphs even when every lookup succeeds. Until the item model
+    // carries original glyph identifiers, render extracted subset text with the fallback face.
+    if resource.baseName.length > 7 and resource.baseName.toString()[6] == '+' do
+        return fallback
+
     let key    = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(resource.bytes.toSlice()))
     let result = catch createTypeface(key.toString(), resource.bytes.toSlice()) as loadError
     return loadError == null ? result! : fallback
+}
+
+private func fontMapsText(font: *Font, text: string)->bool
+{
+    var result = true
+    Utf8.visitRunes(text)
+    {
+        // Missing whitespace has no visible outline; its PDF advance still separates words.
+        if c > ' ' and !font.glyphIndex(c) do
+            result = false
+    }
+
+    return result
 }
 
 private func pathPen(item: const *Item, scale: f32)->Pen
@@ -148,9 +168,10 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
                 continue
             if !fallback do
                 fallback = try fallbackTypeface(options)
-            let typeface = itemTypeface(page, item, fallback!)
             let fontSize = cast(u32) Math.max(1, Math.round(item.fontSize))
-            let font     = renderer.fontCache().createFont(typeface, fontSize)
+            var font     = renderer.fontCache().createFont(itemTypeface(page, item, fallback!), fontSize)
+            if !fontMapsText(font, item.text.toString()) do
+                font = renderer.fontCache().createFont(fallback!, fontSize)
             painter.drawString(0, 0, item.text.toString(), font, item.fillColor)
 
         case .Path:
@@ -167,6 +188,19 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
     }
 
     painter.resetTransform()
+
+    // Antialiased drawing resolves its coverage through the target alpha channel and therefore
+    // replaces the alpha written by the initial clear. Restore an opaque page ground after the
+    // content, just as ImageCanvas does, while preserving coverage for transparent renders.
+    if options.background.a == 255
+    {
+        painter.setBlendingMode(.Copy)
+        painter.setColorMaskAlpha()
+        painter.fillRect({0, 0, page.width, page.height}, options.background)
+        painter.setColorMaskColor()
+        painter.setBlendingMode(.Alpha)
+    }
+
     painter.unbindRenderTarget()
     painter.end()
 

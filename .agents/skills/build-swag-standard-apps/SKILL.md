@@ -310,7 +310,11 @@ Three things this gets wrong if they are not said:
 
 - Give every application its own workspace at `bin/apps/sName/`. Put the primary executable in
   `bin/apps/sName/modules/sName` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a root-level
-  `datas/` for icons and other immutable app resources. Never put `datas/` under `src/`.
+  `datas/` for icons and other immutable app resources. That root-level `datas/` is what the running
+  program loads, and it never moves under `src/`; the fixtures a test reads are a separate folder,
+  `src/tests/datas/`. An application module lays its tests out exactly like a `bin/std` one — see
+  *Lay Out A Module's Tests The Same Way Every Time* in
+  [modify-swag-codebase](../modify-swag-codebase/SKILL.md).
 - Put every additional application module directly under the same `modules/` directory. A plugin,
   helper library, or optional backend is a normal workspace module, never a nested module hidden
   under the executable and never a special standalone build in `tools/apps.swgs`.

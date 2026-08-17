@@ -93,7 +93,7 @@ works.
 
 ## What a codec is tested against
 
-Every decoding test reads a file from `src/unittests/datas/`, and none of those files is produced
+Every decoding test reads a file from `src/tests/datas/`, and none of those files is produced
 by this module: a codec that only reads back what it wrote proves nothing about the files people
 have. The corpus holds a camera recording, sequences from the standard research collection, one
 clip encoded nine ways by ffmpeg, and copies of that clip with a container shape injected into

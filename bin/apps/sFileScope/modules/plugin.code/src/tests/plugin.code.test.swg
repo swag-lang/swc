@@ -5,7 +5,31 @@ using Core, Pixel, Gui
 
 private func codeFixturePath(name: string)->String
 {
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "files"), name)
+    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+}
+
+// Builds the Swag document the highlighting test lexes.
+//
+// This one fixture is written at run time instead of being stored under 'datas': the compiler
+// collects every '.swg' below 'src' with no exception for a test folder, so a file keeping the
+// extension the lexer is selected by would be compiled into the plugin and would publish its
+// declarations as part of it.
+private func swagSampleSource()->String
+{
+    var result: retval
+    result += "#global public\n"
+    result += "\n"
+    result += "using Core\n"
+    result += "\n"
+    result += "// Swag lexer verification fixture.\n"
+    result += "func answer(value: u32)->u32\n"
+    result += "{\n"
+    result += "    let doubled = value * 2\n"
+    result += "    if doubled > 40 do\n"
+    result += "        return doubled + 2\n"
+    result += "    return 0\n"
+    result += "}\n"
+    return result
 }
 
 private struct CodeLanguageSample
@@ -34,8 +58,10 @@ private struct CodeLanguageSample
 
 #test
 {
-    let fileName = codeFixturePath("sample.swg")
-    let source   = expect File.readAllText(fileName)
+    let source   = swagSampleSource()
+    let fileName = Gui.Testing.tempFilePath("filescope-code-", ".swg")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -49,12 +75,9 @@ private struct CodeLanguageSample
     view.applyLayout()
     view.editor.lexAll()
 
-    let content = view.editor.textAndStyles()
-    var expected: Array'rune
-    for value in source.toRuneArray() where value != '\r' do
-        expected.add(value)
-
-    // RichEdit stores logical line breaks as LF; a Windows checkout gives the fixture CRLF.
+    // RichEdit stores logical line breaks as LF, which is what the document was written with.
+    let content  = view.editor.textAndStyles()
+    let expected = source.toRuneArray()
     @assert(Utf8.fromUnicode(content.text.toSlice()) == Utf8.fromUnicode(expected.toSlice()))
     var colored: bool
     for style in content.styles where style != 0
@@ -151,7 +174,6 @@ private struct CodeLanguageSample
 
 #test
 {
-    @assert(File.exists(codeFixturePath("sample.swg")))
     @assert(File.exists(codeFixturePath("sample.cpp")))
     @assert(File.exists(codeFixturePath("sample.json")))
     @assert(codeLanguage("sample.cpp") == .Cpp)

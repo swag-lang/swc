@@ -5,7 +5,7 @@ using Core, Pixel, Gui, TrueType
 
 private func fontFixturePath()->String
 {
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "../../../../../../std/modules/truetype/src/unittests/datas/segoeui.ttf")
+    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "segoeui.ttf")
 }
 
 private func containsCharacter(characters: const [..] rune, expected: rune)->bool

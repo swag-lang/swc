@@ -29,7 +29,7 @@ private func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 
 private func viewerFixturePath()->String
 {
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "files/comprehensive.txt")
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
 }
 
 #test
@@ -48,7 +48,7 @@ private func viewerFixturePath()->String
     let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_text_stream_%.txt", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
 
-    let fixture = Path.combine(Path.directoryName(#curlocation.fileName)!, "files/comprehensive.txt")
+    let fixture = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
     var source  = expect File.readAllText(fixture)
     for 2_000 do
         source += "A source line that stays readable while the rest remains on disk.\n"

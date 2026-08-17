@@ -136,22 +136,75 @@ graduates into a plan moves to the matching `backlog/todo.*` file and disappears
 
 ## Add Tests At The Correct Boundary
 
+Three test surfaces exist, and they are not interchangeable:
+
+| Surface | Location | What belongs there |
+| --- | --- | --- |
+| Language suites | `bin/unittests/<suite>/` | The language and the compiler, reduced to a standalone source |
+| C++ unit tests | `src/Unittest/` | Compiler internals reachable from C++ alone |
+| Module tests | `<module>/src/tests/` | The behavior a `bin/` module or application publishes |
+
+`unittests` names the language suites and nothing else. A module never has one: its tests live in
+`src/tests`, whether the module sits under `bin/std/modules` or under `bin/apps`.
+
 - Add relevant tests for every new Swag language feature under the appropriate `bin/unittests` folder.
 - Put C++ unit tests in `src/Unittest`.
 - Keep each individual test below 40 seconds of runtime, excluding compilation time.
 - Exercise behavior at its real boundary instead of manufacturing a source test for a command-line, linker, backend, runtime, or internal-only path.
 
-### Keep module test data flat and conventional
+### Lay Out A Module's Tests The Same Way Every Time
 
-- Put immutable fixture files used by a module's tests in that test suite's `unittests/datas/`
-  directory. `datas/` is the canonical fixture location; do not create a competing `files/`
-  directory.
+Every module under `bin/` — standard library, application, and application plugin alike — uses one
+layout. A new module copies it without deciding anything:
+
+```
+<module>/
+    module.swg
+    datas/                     Resources the built program loads at run time (icons, lang, ...)
+    src/                       The implementation
+        <area>/...
+        testing/               PUBLIC test-support API, shipped and documented like the rest
+        tests/                 Test-only sources; never shipped
+            <name>.test.swg    The '#test' bodies
+            helpers.swg        Helpers shared by this suite
+            datas/             Immutable input fixtures
+            goldens/           Recorded expectations, '.txt' and '.png'
+```
+
+- **`src/tests/` is the only test root.** Do not nest a `unittests/` folder inside it, and do not
+  put tests directly under `src/`. A module with many test areas may mirror `src/` one level deep
+  (`src/tests/collections/array.test.swg`); anything flatter than that stays flat.
+- **`*.test.swg` is the only name for a file holding `#test` bodies**, and each opens with
+  `#global if #command == Swag.CompilerCommand.Test`. Every source below `src/` is compiled, so a
+  test file without that guard is built into the shipped module.
+- **`helpers.swg` is the only name for test-only shared code**, under the same guard. One per test
+  folder is enough; do not invent `*.testutils.swg` or a parallel `fixtures/` tree.
+- **`src/testing/` holds test support that is part of the module's public API** — the `Testing`
+  namespace consumers import, such as `Gui.Testing` and `Pixel.Testing`. It carries no `#command`
+  guard, ships in every configuration, and is documented like any other family. Keeping it out of
+  `src/tests/` is what makes `src/tests/` mean exactly "not shipped".
+- **`datas/` beside a module's `module.swg` is the program's own resources, never test data.**
+  Test data is `src/tests/datas/`. The two never merge.
+
+### Keep Module Test Data Flat And Self-Contained
+
+- Put immutable fixture files used by a module's tests in that suite's `datas/` directory. `datas/`
+  is the canonical fixture location; do not create a competing `files/` or `fixtures/` directory.
 - Keep fixture files directly in `datas/`. Do not add format or provenance subdirectories such as
   `datas/html/` or `datas/svg-wpt/`; use descriptive file-name prefixes when grouping helps.
-- Keep generated expectations in `unittests/goldens/`. A source document, image, font, archive, or
-  other input remains test data even when a golden image is produced from it.
+- Keep generated expectations in `goldens/`. A source document, image, font, archive, or other
+  input remains test data even when a golden image is produced from it.
 - Resolve fixture paths from `#curlocation.fileName` so focused module tests work from every
   worktree and current directory.
+- **A test reads fixtures only from its own module's `datas/`.** Reaching across modules or
+  workspaces with `../..` couples two suites' file layouts and makes a rename in one break the
+  other; copy the fixture instead, and let the copy be a fixture rather than a shared asset.
+- **A fixture is never present-or-absent.** A test that returns early when its fixture is missing
+  reports success while proving nothing; a missing fixture must fail the test.
+- **`datas/` holds no `.swg` or `.swgs` file.** The compiler collects every Swag source below `src/`
+  recursively, with no exception for a test folder, so such a fixture is compiled into the module
+  and its public declarations join the module's API. When a test needs a Swag source as *input*,
+  write it to a temporary file at run time.
 
 ## Close Every Downstream Regression With A Suite Test
 

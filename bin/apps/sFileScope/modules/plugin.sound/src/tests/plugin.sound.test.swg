@@ -56,7 +56,7 @@ private func previewWav()->Array'u8
 
 private func waveformFixturePath()->String
 {
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "files/waveform.samples.txt")
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/waveform.samples.txt")
 }
 
 private func writeU16(bytes: *Array'u8, offset: u64, value: u16)
@@ -244,16 +244,12 @@ private func finishWaveform(view: *SoundPluginView)
     @assert(waveformTickText(95, 30) == "1:35")
 }
 
-// Reads a real asset of the repository rather than a generated one. Its metadata and waveform must
-// not depend on whether a playback device can be opened.
+// Reads a recorded sound rather than a synthesized one. Its metadata and waveform must not depend
+// on whether a playback device can be opened.
 #test
 {
-    let sourceDirectory = Path.directoryName(#curlocation.fileName)!
-    let pacmanWav       = Path.combine(sourceDirectory, "../../../../../../examples/scripts/datas/pacman/audio/pacman_beginning.wav")
-    if !File.exists(pacmanWav) do
-        return
-
-    let sound = expect SoundFile.load(pacmanWav.toString())
+    let pacmanWav = Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "pacman_beginning.wav")
+    let sound     = expect SoundFile.load(pacmanWav.toString())
     @assert(sound.sampleRateHz() == 11_025)
     @assert(sound.numChannels() == 1)
     @assert(sound.sampleStorageBits() == 8)

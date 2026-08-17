@@ -2,7 +2,7 @@ using Core, Pixel, Gui, Gui.Testing
 
 private func markdownFixturePath()->String
 {
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "files/comprehensive.md")
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
 }
 
 // File-open failures cross the plugin boundary instead of becoming plugin-specific content.

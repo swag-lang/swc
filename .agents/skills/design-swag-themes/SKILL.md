@@ -287,7 +287,7 @@ After changing `apply`, a palette, or a widget's color choice:
    mark reads on every ground of its own palette, assert the dark and light palettes do not agree
    on more than a handful of colors once the identity tones are set aside, and cover the sheet
    layers.
-2. The command-stream goldens under `bin/std/modules/gui/src/tests/unittests/goldens/` change
+2. The command-stream goldens under `bin/std/modules/gui/src/tests/goldens/` change
    whenever a widget's colors do. A failing test leaves its `.actual` file beside the golden it
    diverged from; `swc tools/goldens.swgs` accepts them in bulk. Review the diff — a golden that
    changed for a part you did not touch is a finding.

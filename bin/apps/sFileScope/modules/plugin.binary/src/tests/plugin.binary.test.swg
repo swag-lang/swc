@@ -3,6 +3,12 @@
 
 using Core, Pixel, Gui
 
+// Returns the path of one immutable fixture of this test suite.
+private func binaryFixturePath(name: string)->String
+{
+    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+}
+
 // Total size of the synthesized image. Two sections of one file-alignment unit each, behind a
 // header block of the same size.
 private const FixtureSize = 0x800'u64
@@ -229,10 +235,7 @@ private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // The binary view exposes every image in an ICO instead of silently keeping only its largest one.
 #test
 {
-    let sourceDirectory = Path.directoryName(#curlocation.fileName)!
-    let fileName        = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.ico")
-    if !File.exists(fileName) do
-        return
+    let fileName = binaryFixturePath("appicon.ico")
 
     var doc: BinaryDocument
     @assert(doc.open(fileName.toString()))
@@ -258,11 +261,8 @@ private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // sSnapForge's preview role is decoded after SCC deflate, using only the public container contract.
 #test
 {
-    let sourceDirectory = Path.directoryName(#curlocation.fileName)!
-    let pngPath         = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.png")
-    if !File.exists(pngPath) do
-        return
-    let png = expect File.readAllBytes(pngPath.toString())
+    let pngPath = binaryFixturePath("appicon.png")
+    let png     = expect File.readAllBytes(pngPath.toString())
 
     let directory = Env.getSpecialDirectory(.Temp)
     let fileName  = Path.combine(directory.toString(), Format.toString("plugin_binary_snapforge_%.scc", Guid64.random()).toString())

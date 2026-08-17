@@ -44,11 +44,11 @@ public func runStd(context: *Context, options: *Options)->s32 fail
 }
 
 // Reports whether a standard library module declares unit tests of its own.
+//
+// Every module keeps them in `src/tests`, so one look answers the question.
 private func hasUnitTests(moduleDir: string)->bool
 {
-    if holdsTestSource(Path.combine(moduleDir, "src", "unittests").toString()) do
-        return true
-    return holdsTestSource(Path.combine(moduleDir, "src", "tests", "unittests").toString())
+    return holdsTestSource(Path.combine(moduleDir, "src", "tests").toString())
 }
 
 private func holdsTestSource(directory: string)->bool

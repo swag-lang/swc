@@ -45,7 +45,7 @@ The gaps are in composition fidelity, color, and the GPU backend.
   refused with `JPEG chroma sampling of 1x2 is not supported`.
 - Consequence: `std/video` opens such an AVI, reports its geometry, its rate and its frame table,
   and then cannot show a single picture — and ffmpeg is the most common producer of these files.
-  `bin/std/modules/video/src/unittests/datas/ffmpeg-mjpeg-422.avi` and its 4:4:4 sibling
+  `bin/std/modules/video/src/tests/datas/ffmpeg-mjpeg-422.avi` and its 4:4:4 sibling
   reproduce it, and the tests in `avi.test.swg` assert the refusal today.
 - Note that the sampling factors cannot simply be reduced by their common divisor: they decide how
   blocks are grouped into a minimum coded unit, so changing them changes the order of the entropy

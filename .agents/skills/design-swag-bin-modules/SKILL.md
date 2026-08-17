@@ -151,7 +151,12 @@ For every reviewed family:
 2. Inspect every declaration and overload for naming, parameter order, defaults,
    units, nullability, ownership, failure, mutation, and visibility.
 3. Add or update tests at the public behavioral boundary, including failure and
-   lifecycle cases. Prefer table-driven coverage for operation matrices.
+   lifecycle cases. Prefer table-driven coverage for operation matrices. They go
+   in `<module>/src/tests`, laid out as *Lay Out A Module's Tests The Same Way
+   Every Time* in [modify-swag-codebase](../modify-swag-codebase/SKILL.md)
+   describes. Test support the module *publishes* — a `Testing` namespace a
+   consumer imports — is public API: it lives in `<module>/src/testing`, and it
+   is reviewed and documented as a family like any other.
 4. Update examples to use the preferred path and remove obsolete workarounds.
 5. Document the exact contract according to `write-swag-public-api-docs`.
 6. Search the entire repository for old spellings and implicit consumers.

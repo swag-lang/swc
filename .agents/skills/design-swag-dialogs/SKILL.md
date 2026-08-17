@@ -15,9 +15,9 @@ voice; [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) governs 
 surface. This governs the box that opens on top of one.
 
 The measurable half is enforced:
-[`dialogs.charter.test.swg`](../../../bin/std/modules/gui/src/tests/unittests/dialogs.charter.test.swg)
+[`dialogs.charter.test.swg`](../../../bin/std/modules/gui/src/tests/dialogs.charter.test.swg)
 builds every predefined box and measures it, and
-[`dialogs.layout.test.swg`](../../../bin/std/modules/gui/src/tests/unittests/dialogs.layout.test.swg)
+[`dialogs.layout.test.swg`](../../../bin/std/modules/gui/src/tests/dialogs.layout.test.swg)
 pins what each one fits itself to. A number argued here without a line there is a number that
 drifts back within a release.
 

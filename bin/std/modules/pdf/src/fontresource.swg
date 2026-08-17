@@ -20,6 +20,11 @@ public struct FontResource
     // Advance widths in fractions of the text size, as `/Widths` or `/W` declares them.
     widths: HashTable'(u32, f32)
 
+    // A CIDFontType2 either addresses the embedded TrueType glyphs directly or provides the
+    // explicit CID-to-GID table used to do so.
+    glyphIndices:  Array'u32
+    identityGlyphs: bool
+
     defaultWidth: f32          = 0.5
     codeBytes:    u32          = 1
     standard:     StandardFont = StandardFont.Helvetica
@@ -43,6 +48,16 @@ impl FontResource
         }
 
         return .defaultWidth
+    }
+
+    // Returns the embedded TrueType glyph index for a PDF character code.
+    mtd const glyphIndex(code: u32)->{index: u32, found: bool}
+    {
+        if .identityGlyphs do
+            return {code, true}
+        if code < .glyphIndices.count do
+            return {.glyphIndices[code], true}
+        return {}
     }
 
     // Returns the character a code stands for, or zero when nothing maps it.
@@ -79,6 +94,43 @@ impl FontResource
             let value = .runeOf(code)
             if value do
                 result.append(value)
+        }
+
+        return result
+    }
+
+    // Retains the PDF character codes that address the embedded font program. Text extraction
+    // maps those codes to Unicode, but rasterization must keep the original font addresses.
+    mtd const decodeCodes(bytes: string)->Array'u32
+    {
+        var result: retval
+        let size = Math.max(.codeBytes, 1)
+        var pos  = 0'u64
+        result.reserve(@countof(bytes) / size)
+        while pos + size <= @countof(bytes)
+        {
+            var code = 0'u32
+            for i in size do
+                code = code << 8 | bytes[pos + i]
+            pos += size
+            result.add(code)
+        }
+
+        return result
+    }
+
+    // Returns each character code's declared PDF advance before horizontal text scaling.
+    mtd const codeAdvances(bytes: string, fontSize, charSpacing, wordSpacing: f32)->Array'f32
+    {
+        var result: retval
+        let codes = .decodeCodes(bytes)
+        result.reserve(codes.count)
+        for code in codes
+        {
+            var advance = .codeWidth(code) * fontSize + charSpacing
+            if .codeBytes == 1 and code == 32 do
+                advance += wordSpacing
+            result.add(advance)
         }
 
         return result
@@ -139,6 +191,20 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
                 metrics             = cid
                 result.defaultWidth = cast(f32) parser.number(parser.dict(cid, "DW"), 1000.0) / 1000.0
                 readCidWidths(parser, &result, parser.dict(cid, "W"))
+
+                if parser.name(parser.dict(cid, "Subtype")) == "CIDFontType2"
+                {
+                    let mapping = parser.dict(cid, "CIDToGIDMap")
+                    if mapping == InvalidNode or (parser.nodes[mapping].kind == .Name and parser.nodes[mapping].text == "Identity") do
+                        result.identityGlyphs = true
+                    elif parser.nodes[mapping].kind != .Name
+                    {
+                        let bytes = try parser.decodeStream(mapping)
+                        result.glyphIndices.reserve(bytes.count / 2)
+                        for i in bytes.count / 2 do
+                            result.glyphIndices.add(cast(u32) bytes[i * 2] << 8 | bytes[i * 2 + 1])
+                    }
+                }
             }
         }
     }

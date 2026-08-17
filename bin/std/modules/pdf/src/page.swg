@@ -130,6 +130,8 @@ public impl Page
     {
         Debug.assert(index < .items.count and .items[index].kind == .Text, "item is not text")
         .items[index].text = text
+        .items[index].textCodes.clear()
+        .items[index].textAdvances.clear()
     }
 
     // Replaces the point size of a text item.
@@ -138,6 +140,8 @@ public impl Page
         Debug.assert(index < .items.count and .items[index].kind == .Text, "item is not text")
         Debug.assert(size > 0 and Math.isFinite(size), "invalid text size")
         .items[index].fontSize = size
+        .items[index].textCodes.clear()
+        .items[index].textAdvances.clear()
     }
 
     // Replaces the standard face a text item is written with.
@@ -145,6 +149,8 @@ public impl Page
     {
         Debug.assert(index < .items.count and .items[index].kind == .Text, "item is not text")
         .items[index].standardFont = font
+        .items[index].textCodes.clear()
+        .items[index].textAdvances.clear()
     }
 
     // Replaces the transform applied to an item during rendering and writing.

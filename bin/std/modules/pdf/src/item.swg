@@ -51,6 +51,8 @@ struct Item
     internal
     {
         text:      String
+        textCodes: Array'u32
+        textAdvances: Array'f32
         path:      LinePathList
         image:     Image
         transform: Transform2 = Transform2.Identity

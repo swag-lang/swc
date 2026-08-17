@@ -1061,7 +1061,7 @@ impl ViewerWindow
         let hasRecent = !.recent.isEmpty()
         .recentLabel.show(hasRecent)
         .recentList.show(hasRecent)
-        .folderLabel.setText(Path.fileName(Path.directoryName(.currentFile.toString()) orelse "") orelse appStrings().ui_Folder)
+        .folderLabel.setText(Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder)
         .filePanel.applyLayout()
     }
 

@@ -222,6 +222,26 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.recent.count == 2 and window.panelVisible)
 }
 
+// The panel opens before any file has been read: there is no folder to name, so the section keeps
+// its own title and both lists stay empty.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+
+    @assert(window.currentFile.isEmpty())
+    window.setFilePanelVisible(true)
+    @assert(window.panelVisible and window.filePanel.isLocallyVisible())
+    @assert(window.folderList.lineCount() == 0 and window.recentList.lineCount() == 0)
+    @assert(!window.recentList.isLocallyVisible())
+    @assert(window.folderLabel.text() == appStrings().ui_Folder)
+}
+
 // Pins the file panel: two named sections share the left edge, the row naming the open file is
 // the selected one, and the document keeps the rest of the surface.
 #test

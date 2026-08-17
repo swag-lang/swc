@@ -66,7 +66,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
 }
 
 // PDF permits rendering-only TrueType subsets to omit standalone `name` and `post` metadata.
-// Object 103 is such a DejaVu Sans subset and must be loaded rather than silently substituted.
+// Object 103 is such a DejaVu Sans subset; its Identity-H CIDs must address its glyphs directly.
 #test
 {
     var reader = expect Reader.open(corpusPdfPath("llvm-polly-impact-2011-slides.pdf"))
@@ -76,6 +76,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     {
         let typeface = (expect createCorpusTypeFace("FKFJSD+DejaVuSans", font.bytes.toSlice()))!
         @assert(typeface.familyName() == "FKFJSD+DejaVuSans")
+        @assert(font.identityGlyphs)
         found = true
         break
     }

@@ -190,9 +190,30 @@ endcmap
     @assert(page.items.count == 2)
     @assert(page.items[0].textValue() == "Hi")
     @assert(page.items[1].textValue() == "H")
+    @assert(page.fonts[0].identityGlyphs)
+    @assert(page.items[0].textCodes.count == 2 and page.items[0].textCodes[0] == 3 and page.items[0].textCodes[1] == 4)
+    @assert(page.items[0].textAdvances.count == 2 and page.items[0].textAdvances[0] == 10 and page.items[0].textAdvances[1] == 5)
+    @assert(page.fonts[0].glyphIndex(4) == {4, true})
 
     // The two glyphs are 500 and 250 thousandths wide at size twenty.
     @assert(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
+}
+
+// An explicit `/CIDToGIDMap` replaces the identity mapping for a TrueType descendant.
+#test
+{
+    const glyphMap: [10] u8 = [0, 0, 0, 1, 0, 2, 0, 7, 0, 8]
+    var objects: Array'u8
+    addObject(&objects, 5, "<< /Type /Font /Subtype /Type0 /BaseFont /Custom /Encoding /Identity-H /DescendantFonts [6 0 R] >>")
+    addObject(&objects, 6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Custom /CIDToGIDMap 7 0 R >>")
+    addStreamObject(&objects, 7, "", glyphMap)
+
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) "", objects.toSlice()).toSlice())
+    let font     = &document.pages[0].fonts[0]
+    @assert(!font.identityGlyphs)
+    @assert(font.glyphIndex(3) == {7, true})
+    @assert(font.glyphIndex(4) == {8, true})
+    @assert(!font.glyphIndex(5).found)
 }
 
 // The writer keeps the face each run asks for, and a decoded document reports the standard

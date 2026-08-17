@@ -156,6 +156,11 @@ private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32,
 
         var item = Item.createText()
         item.text      = #move text
+        if font
+        {
+            item.textCodes    = font.decodeCodes(bytes)
+            item.textAdvances = font.codeAdvances(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
+        }
         item.fontSize  = state.fontSize
         item.fillColor = state.fillColor
         item.fontIndex = index

@@ -20,7 +20,7 @@ private func createPdfFixture()->String
     defer discard catch File.delete(fileName)
 
     var host: HeadlessHost
-    host.setup(960, 680)
+    host.setup(960, 680, dpiScale: 2)
     defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -34,6 +34,10 @@ private func createPdfFixture()->String
     let view = cast(*PdfPluginView) result.view!
     view.resize(960, 640)
     view.applyLayout()
+    @assert(view.rasterScale > 5.7)
+    view.actualSize()
+    @assert(Math.isEqualEpsilon(view.imageView.effectiveZoom(), (96.0'f32 / 72.0) / view.rasterScale, 0.001))
+    view.imageView.zoomToFit()
     @assert(view.reader.pageCount() == 2)
     @assert(view.imageView.isFitted)
     @assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())

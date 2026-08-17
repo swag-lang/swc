@@ -45,11 +45,9 @@ private func itemTypeface(page: const *Page, item: const *Item, fallback: *TypeF
     if !resource.bytes.count do
         return fallback
 
-    // A subset program is keyed by the PDF's character codes or CIDs, not by the Unicode
-    // extracted through /ToUnicode. Feeding that Unicode back through the subset's incidental
-    // cmap can select unrelated glyphs even when every lookup succeeds. Until the item model
-    // carries original glyph identifiers, render extracted subset text with the fallback face.
-    if resource.baseName.length > 7 and resource.baseName.toString()[6] == '+' do
+    // Only CIDFontType2 resources carry a defined path from PDF codes to embedded glyphs.
+    // Other subsets can expose an incidental Unicode cmap unrelated to `/ToUnicode`.
+    if isSubsetFont(resource) and (item.textCodes.isEmpty() or (!resource.identityGlyphs and resource.glyphIndices.isEmpty())) do
         return fallback
 
     let key    = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(resource.bytes.toSlice()))
@@ -68,6 +66,41 @@ private func fontMapsText(font: *Font, text: string)->bool
     }
 
     return result
+}
+
+private func isSubsetFont(resource: const *FontResource)->bool
+{
+    return resource.baseName.length > 7 and resource.baseName.toString()[6] == '+'
+}
+
+// Draws an embedded PDF subset through the original character addresses. Its `/ToUnicode` map
+// is for extraction; the subset program itself is keyed by these PDF codes, and its incidental
+// Unicode cmap can point at unrelated outlines. PDF advances also remain authoritative so runs
+// split across `TJ` entries meet without gaps when the embedded metrics differ from the cmap.
+private func drawAddressedText(painter: *Painter, item: const *Item, resource: const *FontResource, font: *Font)->bool
+{
+    if resource.bytes.isEmpty() or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count do
+        return false
+
+    let info = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
+    var shaped: ShapedRun
+    shaped.font = info.drawFont
+    shaped.glyphs.reserve(item.textCodes.count)
+    for code, index in item.textCodes
+    {
+        let mapped = resource.glyphIndex(code)
+        if !mapped.found do
+            return false
+        var glyph: ShapedGlyph
+        glyph.desc       = info.drawFont.getGlyphDescByIndex(mapped.index)
+        glyph.glyphIndex = mapped.index
+        glyph.cluster    = index
+        glyph.advanceX   = item.textAdvances[index] / info.scale
+        shaped.glyphs.add(glyph)
+    }
+
+    painter.drawShapedRun(0, 0, &shaped, font, Brush.createSolid(item.fillColor))
+    return true
 }
 
 private func pathPen(item: const *Item, scale: f32)->Pen
@@ -170,6 +203,9 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
                 fallback = try fallbackTypeface(options)
             let fontSize = cast(u32) Math.max(1, Math.round(item.fontSize))
             var font     = renderer.fontCache().createFont(itemTypeface(page, item, fallback!), fontSize)
+            let resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
+            if resource and drawAddressedText(&painter, item, resource!, font) do
+                continue
             if !fontMapsText(font, item.text.toString()) do
                 font = renderer.fontCache().createFont(fallback!, fontSize)
             painter.drawString(0, 0, item.text.toString(), font, item.fillColor)

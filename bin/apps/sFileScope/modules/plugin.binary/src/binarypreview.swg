@@ -25,11 +25,11 @@ func isIconContainer(image: *BinaryImage)->bool
 func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *Array'BinaryPreview)
 {
     image.bigEndian = false
-    let count = cast(u64) image.u16At(4)
-    let kind = image.u16At(2)
+    let count      = cast(u64) image.u16At(4)
+    let kind       = image.u16At(2)
     let formatName = kind == 1 ? "Windows icon" : "Windows cursor"
     report.formatName = formatName
-    report.summary = Format.toString("% · % image%", formatName, count, count == 1 ? "" : "s")
+    report.summary    = Format.toString("% · % image%", formatName, count, count == 1 ? "" : "s")
     report.beginGroup("ICONDIR", "", "", offset: 0, length: 6 + count * 16, open: true)
     report.numField(0, 2, "Reserved", 0)
     report.numField(2, 2, "Type", cast(u64) kind, kind == 1 ? "Icon" : "Cursor")
@@ -82,7 +82,7 @@ private func previewGuid(text: string)->Guid128
 }
 
 private func captureContainerKind()->Guid128 => previewGuid("7355af24-cf65-447b-918c-18ac74e6dc66")
-private func capturePreviewRole()->Guid128   => previewGuid("f53e06c1-05a7-4537-9c6a-d85609209874")
+private func capturePreviewRole()->Guid128 => previewGuid("f53e06c1-05a7-4537-9c6a-d85609209874")
 private func captureBackgroundRole()->Guid128 => previewGuid("04267f4e-d659-4d32-9296-cc68be5bdb9d")
 private func captureOriginalRole()->Guid128 => previewGuid("11d1a796-38d8-46ca-a4e6-5e2271ebd321")
 

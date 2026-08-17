@@ -147,18 +147,15 @@ impl IWnd for PushButton
             var rest, hot, pressed: {bk, border, text: Color} = undefined
             switch form
             {
-            case .Strong:
-                rest    = {colors.btnPush_StrongBk, colors.btnPush_StrongBorder, colors.btnPush_StrongText}
+            case .Strong: rest = {colors.btnPush_StrongBk, colors.btnPush_StrongBorder, colors.btnPush_StrongText}
                 hot     = {colors.btnPush_StrongHotBk, colors.btnPush_StrongHotBorder, colors.btnPush_StrongHotText}
                 pressed = {colors.btnPush_StrongPressedBk, colors.btnPush_StrongPressedBorder, colors.btnPush_StrongPressedText}
 
-            case .Alternate:
-                rest    = {colors.btnPush_AlternateBk, colors.btnPush_AlternateBorder, colors.btnPush_AlternateText}
+            case .Alternate: rest = {colors.btnPush_AlternateBk, colors.btnPush_AlternateBorder, colors.btnPush_AlternateText}
                 hot     = {colors.btnPush_AlternateHotBk, colors.btnPush_AlternateHotBorder, colors.btnPush_AlternateHotText}
                 pressed = {colors.btnPush_AlternatePressedBk, colors.btnPush_AlternatePressedBorder, colors.btnPush_AlternatePressedText}
 
-            default:
-                rest    = {colors.btnPush_Bk, colors.btnPush_Border, colors.btnPush_Text}
+            default: rest = {colors.btnPush_Bk, colors.btnPush_Border, colors.btnPush_Text}
                 hot     = {colors.btnPush_HotBk, colors.btnPush_HotBorder, colors.btnPush_HotText}
                 pressed = {colors.btnPush_PressedBk, colors.btnPush_PressedBorder, colors.btnPush_PressedText}
             }

@@ -633,6 +633,7 @@ impl Wnd
         .releaseFocus()
         .wndFlags.add(.Hidden)
         .isPendingDestroy = true
+
         // A streaming view can still own a short-period timer while it is replaced; retire those
         // timers now, while leaving posted commands and routing registration alive until the end
         // of the frame. A popup, for example, posts its selected command and then destroys itself.

@@ -9,28 +9,28 @@ using Core, Gui
 // the same way simply omits them and keeps the reference wording.
 struct HexStrings
 {
-    ui_TipWidth:     string = "Value width"                                          // Tooltip of the scalar width selector.
-    ui_Width8:       string = "8-bit"                                                // One byte at a time.
-    ui_Width16:      string = "16-bit"                                               // Two bytes at a time.
-    ui_Width32:      string = "32-bit"                                               // Four bytes at a time.
-    ui_Width64:      string = "64-bit"                                               // Eight bytes at a time.
-    ui_TipFormat:    string = "Value representation"                                 // Tooltip of the reading selector.
-    ui_FormatHex:    string = "Hex"                                                  // Hexadecimal reading of a scalar.
-    ui_FormatUns:    string = "Unsigned"                                             // Unsigned decimal reading of a scalar.
-    ui_FormatSigned: string = "Signed"                                               // Signed decimal reading of a scalar.
-    ui_FormatFloat:  string = "Float"                                                // Floating-point reading of a 32- or 64-bit scalar.
-    ui_Endian:       string = "Little endian"                                        // Label of the byte-order switch.
-    ui_TipEndian:    string = "Read multi-byte values in little-endian order"        // Tooltip of the byte-order switch.
-    ui_Details:      string = "hex and text · streamed"                              // Summary the host shows beside the file size.
-    ui_GoTo:         string = "Go to offset"                                         // Dialog title and menu entry of the jump command.
+    ui_TipWidth:     string = "Value width"                                                // Tooltip of the scalar width selector.
+    ui_Width8:       string = "8-bit"                                                      // One byte at a time.
+    ui_Width16:      string = "16-bit"                                                     // Two bytes at a time.
+    ui_Width32:      string = "32-bit"                                                     // Four bytes at a time.
+    ui_Width64:      string = "64-bit"                                                     // Eight bytes at a time.
+    ui_TipFormat:    string = "Value representation"                                       // Tooltip of the reading selector.
+    ui_FormatHex:    string = "Hex"                                                        // Hexadecimal reading of a scalar.
+    ui_FormatUns:    string = "Unsigned"                                                   // Unsigned decimal reading of a scalar.
+    ui_FormatSigned: string = "Signed"                                                     // Signed decimal reading of a scalar.
+    ui_FormatFloat:  string = "Float"                                                      // Floating-point reading of a 32- or 64-bit scalar.
+    ui_Endian:       string = "Little endian"                                              // Label of the byte-order switch.
+    ui_TipEndian:    string = "Read multi-byte values in little-endian order"              // Tooltip of the byte-order switch.
+    ui_Details:      string = "hex and text · streamed"                                    // Summary the host shows beside the file size.
+    ui_GoTo:         string = "Go to offset"                                               // Dialog title and menu entry of the jump command.
     ui_GoToMessage:  string = "Hexadecimal offset, or a signed offset from the caret."     // Question of the jump dialog.
-    ui_SelectAll:    string = "Select all"                                           // Menu entry selecting the whole file.
-    ui_RowWidth:     string = "Bytes per row"                                        // Menu grouping the row-width choices.
-    ui_RowAuto:      string = "Fit the window"                                       // Row width following the window width.
+    ui_SelectAll:    string = "Select all"                                                 // Menu entry selecting the whole file.
+    ui_RowWidth:     string = "Bytes per row"                                              // Menu grouping the row-width choices.
+    ui_RowAuto:      string = "Fit the window"                                             // Row width following the window width.
 
-    ui_CopyBytes:    string = "Copy bytes"           // Copy the selection as hexadecimal byte pairs.
-    ui_CopyText:     string = "Copy text"            // Copy the selection as printable text.
-    ui_CopyDump:     string = "Copy dump"            // Copy the selection as an offset/hex/text dump.
+    ui_CopyBytes: string = "Copy bytes"     // Copy the selection as hexadecimal byte pairs.
+    ui_CopyText:  string = "Copy text"      // Copy the selection as printable text.
+    ui_CopyDump:  string = "Copy dump"      // Copy the selection as an offset/hex/text dump.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.

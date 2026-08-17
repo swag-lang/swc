@@ -160,22 +160,22 @@ struct ThemeColors
         btnIcon_HotText:      Color     // Label of a hovered icon button.
         btnIcon_HotBk:        Color     // Fill of a hovered icon button.
 
-        btnIcon_CheckedDisabledIcon: Color     // Glyph of a checked, disabled icon button.
-        btnIcon_CheckedDisabledText: Color     // Label of a checked, disabled icon button.
-        btnIcon_CheckedPressedIcon:  Color     // Glyph of a checked, pressed icon button.
-        btnIcon_CheckedPressedText:  Color     // Label of a checked, pressed icon button.
-        btnIcon_CheckedHotIcon:      Color     // Glyph of a checked, hovered icon button.
-        btnIcon_CheckedHotText:      Color     // Label of a checked, hovered icon button.
-        btnIcon_CheckedIcon:         Color     // Glyph of a checked icon button.
-        btnIcon_CheckedText:         Color     // Label of a checked icon button.
-        btnIcon_CheckedDisabledBk:   Color     // Fill of a checked, disabled icon button.
-        btnIcon_CheckedPressedBk:    Color     // Fill of a checked, pressed icon button.
-        btnIcon_CheckedHotBk:        Color     // Fill of a checked, hovered icon button.
-        btnIcon_CheckedBk:           Color     // Fill of a checked icon button.
-        btnIcon_CheckedMark:         Color     // Mark saying an icon button is checked.
-        btnIcon_CheckedPressedMark:  Color     // Checked mark under the press.
-        btnIcon_CheckedHotMark:      Color     // Checked mark under the pointer.
-        btnIcon_CheckedDisabledMark: Color     // Checked mark of a disabled button.
+        btnIcon_CheckedDisabledIcon:        Color     // Glyph of a checked, disabled icon button.
+        btnIcon_CheckedDisabledText:        Color     // Label of a checked, disabled icon button.
+        btnIcon_CheckedPressedIcon:         Color     // Glyph of a checked, pressed icon button.
+        btnIcon_CheckedPressedText:         Color     // Label of a checked, pressed icon button.
+        btnIcon_CheckedHotIcon:             Color     // Glyph of a checked, hovered icon button.
+        btnIcon_CheckedHotText:             Color     // Label of a checked, hovered icon button.
+        btnIcon_CheckedIcon:                Color     // Glyph of a checked icon button.
+        btnIcon_CheckedText:                Color     // Label of a checked icon button.
+        btnIcon_CheckedDisabledBk:          Color     // Fill of a checked, disabled icon button.
+        btnIcon_CheckedPressedBk:           Color     // Fill of a checked, pressed icon button.
+        btnIcon_CheckedHotBk:               Color     // Fill of a checked, hovered icon button.
+        btnIcon_CheckedBk:                  Color     // Fill of a checked icon button.
+        btnIcon_CheckedMark:                Color     // Mark saying an icon button is checked.
+        btnIcon_CheckedPressedMark:         Color     // Checked mark under the press.
+        btnIcon_CheckedHotMark:             Color     // Checked mark under the pointer.
+        btnIcon_CheckedDisabledMark:        Color     // Checked mark of a disabled button.
         btnIcon_CheckedFrameBk:             Color     // Subtle fill of a framed checked icon button.
         btnIcon_CheckedFrameHotBk:          Color     // Fill of a hovered framed checked icon button.
         btnIcon_CheckedFramePressedBk:      Color     // Fill of a pressed framed checked icon button.

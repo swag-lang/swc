@@ -452,14 +452,14 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
 }
 
-// Visible overflow remains paintable after its short parent has left the viewport.
+// A tall inline image remains paintable after its typographic origin has left the viewport.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(120, 80)
     defer host.shutdown()
 
-    let source = "<style>body{margin:0;background:#fff}#short{height:20px}img{display:block;width:80px;height:160px;background:#f00}</style><div id='short'><img id='picture' src='missing.png'></div>"
+    let source = "<style>body{margin:0;background:#fff}p{margin:0}img{width:80px;height:160px;background:#f00}</style><p id='short'><img id='picture' src='missing.png'></p>"
     let view   = HtmlView.createText(&host.root, source)
     view.resize(120, 80)
     view.applyLayout()
@@ -468,7 +468,7 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let parent  = view.layout.constBox(view.boxOfNode(view.elementById("short")))
     let picture = view.layout.constBox(view.boxOfNode(view.elementById("picture")))
-    @assert(parent.rect.bottom() < view.scroll.scrollPosition().y)
+    @assert(picture.rect.y < view.scroll.scrollPosition().y)
     @assert(parent.paintBounds.bottom() == picture.rect.bottom())
     @assert(view.layout.documentHeight == picture.rect.bottom())
     var image = host.render(view)

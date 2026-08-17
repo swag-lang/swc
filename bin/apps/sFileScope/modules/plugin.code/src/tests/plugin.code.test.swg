@@ -29,6 +29,7 @@ private func codeFixturePath(name: string)->String
     var expected: Array'rune
     for value in source.toRuneArray() where value != '\r' do
         expected.add(value)
+
     // RichEdit stores logical line breaks as LF; a Windows checkout gives the fixture CRLF.
     @assert(Utf8.fromUnicode(content.text.toSlice()) == Utf8.fromUnicode(expected.toSlice()))
     var colored: bool
@@ -64,7 +65,7 @@ private func codeFixturePath(name: string)->String
     view.applyLayout()
 
     let beforeEnd = view.editor.scrollPosition()
-    var end = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
+    var end       = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
     @assert(view.hookOnChildEvent!(view.editor, &end))
     discard host.render(view)
     @assert(view.editor.scrollPosition().y > beforeEnd.y)
@@ -139,7 +140,7 @@ private func codeFixturePath(name: string)->String
     @assert(codeLanguage("sample.csproj") == .Xml)
 
     var lexer: GenericCodeLexer
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     host.setup(640, 180)
     defer host.shutdown()
     let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})

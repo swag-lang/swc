@@ -59,9 +59,9 @@ func hexGroupingSize(grouping: HexGrouping)->u64
 {
     switch grouping
     {
-    case .Hex16, .Unsigned16, .Signed16:                   return 2
-    case .Hex32, .Unsigned32, .Signed32, .Float32:         return 4
-    case .Hex64, .Unsigned64, .Signed64, .Float64:         return 8
+    case .Hex16, .Unsigned16, .Signed16:           return 2
+    case .Hex32, .Unsigned32, .Signed32, .Float32: return 4
+    case .Hex64, .Unsigned64, .Signed64, .Float64: return 8
     default: return 1
     }
 }
@@ -124,10 +124,10 @@ func formatHexScalar(grouping: HexGrouping, raw: u64)->String
     switch grouping
     {
     case .Signed8, .Signed16, .Signed32, .Signed64: return Format.toString("%", hexSignedScalar(raw, hexGroupingSize(grouping)))
-    case .Bytes: return Format.toString("%{X02}", raw)
-    case .Hex16: return Format.toString("0x%{X04}", raw)
-    case .Hex32: return Format.toString("0x%{X08}", raw)
-    case .Hex64: return Format.toString("0x%{X016}", raw)
+    case .Bytes:   return Format.toString("%{X02}", raw)
+    case .Hex16:   return Format.toString("0x%{X04}", raw)
+    case .Hex32:   return Format.toString("0x%{X08}", raw)
+    case .Hex64:   return Format.toString("0x%{X016}", raw)
     case .Float32: return Format.toString("%{g9}", cast #bit (f32) (cast(u32) raw))
     case .Float64: return Format.toString("%{g15}", cast #bit (f64) raw)
     default:       return Format.toString("%", raw)
@@ -295,7 +295,7 @@ struct HexGridView
     offsetDigits = 8'u64
     autoFitRow   = true
     grouping     = HexGrouping.Bytes
-    bigEndian:   bool
+    bigEndian: bool
 
     selecting: bool     // Whether a drag is currently extending the selection.
     layouting: bool     // Guards the resize a scrollbar appearing re-enters.
@@ -419,7 +419,7 @@ impl HexGridView
         if available <= 0 or .charWidth <= 0 do
             return HexMinBytesPerRow
 
-        let unit = .valueSize()
+        let unit      = .valueSize()
         var candidate = HexMaxBytesPerRow / unit * unit
         while candidate > HexMinBytesPerRow
         {
@@ -830,6 +830,7 @@ impl HexGridView
                     target.add(text[index])
                     other.add(' 'u8)
                 }
+
                 var written = @countof(text)
                 while written < .valueCellChars()
                 {
@@ -837,6 +838,7 @@ impl HexGridView
                     other.add(' 'u8)
                     written += 1
                 }
+
                 target.add(' 'u8)
                 other.add(' 'u8)
                 column += .valueSize()
@@ -1191,9 +1193,9 @@ impl HexGridView
         result.scroll          = scroll
         result.backgroundStyle = .View
         result.registerAction'ActionHex()
-        result.focusPolicy     = .Tab
-        result.wndFlags        |= WndFlags.NoScroll | WndFlags.NoFocusRing | WndFlags.ClipChildren
-        result.cursor          = Cursor.from(CursorShape.IBeam)
+        result.focusPolicy = .Tab
+        result.wndFlags    |= WndFlags.NoScroll | WndFlags.NoFocusRing | WndFlags.ClipChildren
+        result.cursor      = Cursor.from(CursorShape.IBeam)
         result.style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
         discard result.doc.open(fileName)
 

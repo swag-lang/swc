@@ -19,18 +19,18 @@ struct ViewerWindow
 
     #[Swag.Late]
     {
-        commandBar:     *Wnd
-        previousButton: *IconButton
-        nextButton:     *IconButton
-        openButton:     *IconButton
-        searchBox:      *EditBox
-        viewerCombo:    *ComboBox
+        commandBar:       *Wnd
+        previousButton:   *IconButton
+        nextButton:       *IconButton
+        openButton:       *IconButton
+        searchBox:        *EditBox
+        viewerCombo:      *ComboBox
         appearanceButton: *AppearanceButton
-        infoBar:        *Wnd
-        infoTypeLabel:  *Label
-        infoNameLabel:  *Label
-        infoStatsLabel: *Label
-        emptyLabel:     *Label
+        infoBar:          *Wnd
+        infoTypeLabel:    *Label
+        infoNameLabel:    *Label
+        infoStatsLabel:   *Label
+        emptyLabel:       *Label
     }
 
     index:           ViewerPluginIndex
@@ -188,7 +188,7 @@ impl ViewerWindow
         result.index            = #move index
         result.language         = Gui.ReferenceLanguage
 
-        result.appearanceButton = AppearanceButton.create(result.surface!, "sFileScope.appearance")
+        result.appearanceButton                 = AppearanceButton.create(result.surface!, "sFileScope.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
             window.themeIndex = button.appearanceTheme == .Light ? 1 : 0
@@ -673,6 +673,7 @@ impl ViewerWindow
             .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
             .infoStatsLabel.setText(texts.ui_Ready)
         }
+
         .invalidate()
     }
 

@@ -13,8 +13,8 @@ using Pixel
 // keep their value whichever way up the theme is read. What a mode changes is only what each
 // one may point with — see [[Gui.ThemeTone]].
 const Voltage: Color = 0xFFF7F900     // The signature: what to do, what is active, where the focus is.
-const Arc: Color = 0xFF38BDF8         // The second tone: another place, another kind, a link.
-const Ink: Color = 0xFF0B0B0D         // The ink every block of the two carries, and the dark ground.
+const Arc:     Color = 0xFF38BDF8     // The second tone: another place, another kind, a link.
+const Ink:     Color = 0xFF0B0B0D     // The ink every block of the two carries, and the dark ground.
 
 // One color of a theme, in the three roles a color is ever used in.
 //

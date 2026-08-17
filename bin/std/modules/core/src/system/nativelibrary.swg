@@ -3,8 +3,8 @@
 using Core.Errors
 
 private const SwagRuntimeHookSymbol = "__swc_rt_stage"
-private const SwagRuntimeHookSync          = 0'u64
-private const SwagRuntimeHookDynamicLoad   = 4'u64
+private const SwagRuntimeHookSync = 0'u64
+private const SwagRuntimeHookDynamicLoad = 4'u64
 private const SwagRuntimeHookDynamicUnload = 5'u64
 
 private func callSwagRuntimeHook(handle: *void, stage: u64)

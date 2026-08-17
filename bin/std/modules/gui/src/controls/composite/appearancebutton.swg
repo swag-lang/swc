@@ -26,13 +26,13 @@ struct AppearanceButton
         public readonly
         {
             appearanceTheme = AppearanceTheme.Dark     // Theme currently selected by the control.
-            language: String                            // Registered language tag, or empty to follow the system.
+            language: String                           // Registered language tag, or empty to follow the system.
         }
     }
 }
 
-private const AppearanceThemeDarkId   = "Gui.Appearance.Theme.Dark"
-private const AppearanceThemeLightId  = "Gui.Appearance.Theme.Light"
+private const AppearanceThemeDarkId = "Gui.Appearance.Theme.Dark"
+private const AppearanceThemeLightId = "Gui.Appearance.Theme.Light"
 private const AppearanceLanguageSysId = "Gui.Appearance.Language.System"
 
 impl IWnd for AppearanceButton
@@ -65,7 +65,7 @@ impl AppearanceButton
             .setForm(.RoundedRectangle)
             .focusPolicy = .None
             .toolTip     = strings().appearance_ToolTip
-            .sigPressed += func(button)
+            .sigPressed  += func(button)
             {
                 (cast(*AppearanceButton) button).showAppearanceMenu()
             }

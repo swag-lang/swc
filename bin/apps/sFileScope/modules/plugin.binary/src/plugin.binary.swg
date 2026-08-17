@@ -38,15 +38,15 @@ internal struct BinaryPluginView
 
     #[Swag.Late]
     {
-        commands:     *Wnd
-        copyButton:   *IconButton
-        list:         *ListCtrl
+        commands:   *Wnd
+        copyButton: *IconButton
+        list:       *ListCtrl
     }
 
     previewBand: #null *StackLayoutCtrl
-    doc:      BinaryDocument
-    rowLines: Array'(#null *ListLine)     // Line created for each report row, in row order.
-    details:  String
+    doc:         BinaryDocument
+    rowLines:    Array'(#null *ListLine)     // Line created for each report row, in row order.
+    details:     String
 }
 
 internal impl BinaryPluginView
@@ -263,6 +263,7 @@ internal impl BinaryPluginView
                 .backgroundStyle = .View
                 .setImage(preview.image)
             }
+
             with let label = Label.create(tile, preview.label.toString(), {0, 0, 160, 24}, null, .SecondaryText | .Ellipsis)
             {
                 .setTextAlignment(.Center, .Center)
@@ -280,7 +281,8 @@ internal impl BinaryPluginView
         let count = band.children.count
         if !count do
             return
-        let room  = Math.max(band.paddedClientRect().width - cast(f32) (count - 1) * band.spacing, 1)
+        let room = Math.max(band.paddedClientRect().width - cast(f32) (count - 1) * band.spacing, 1)
+
         // Leave one logical pixel per card for device-pixel rounding at fractional DPI scales.
         let width = Math.min(160.0, (room - cast(f32) count) / cast(f32) count)
         for child in band.children
@@ -289,6 +291,7 @@ internal impl BinaryPluginView
             for item in child.children do
                 item.resize(width, item.position.height)
         }
+
         band.computeLayout()
     }
 }

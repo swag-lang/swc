@@ -34,6 +34,7 @@ impl BlendColor
         if wnd.app().dirtyTheme != .themeCrc
         {
             .themeCrc = wnd.app().dirtyTheme
+
             // A palette change is one atomic visual state, not an interaction inside the current
             // palette. Cancel any old track and resolve both endpoints in the new palette so a
             // control never drifts through colors that belong to neither theme.

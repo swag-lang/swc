@@ -42,18 +42,18 @@ func takeMoveCtx(v: #move MoveCtxVec) {}
 // reported, and neither reaches code generation.
 #test
 {
-    var v    = MoveCtxVec{1}
-    var w    = MoveCtxVec{2}
-    let cond = v.x == 99
+    var v      = MoveCtxVec{1}
+    var w      = MoveCtxVec{2}
+    let cond   = v.x == 99
     var picked = cond ? w : #move v     // swc-expected-error {{sema_err_move_ref_type_context}}
     discard picked
 }
 
 #test
 {
-    var v    = MoveCtxVec{1}
-    var w    = MoveCtxVec{2}
-    let cond = v.x == 99
+    var v      = MoveCtxVec{1}
+    var w      = MoveCtxVec{2}
+    let cond   = v.x == 99
     var picked = cond ? #move v : w     // swc-expected-error {{sema_err_move_ref_type_context}}
     discard picked
 }

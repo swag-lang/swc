@@ -150,7 +150,7 @@ func pageTitle(page: s32)->string
 
 // The command-line name of each palette and each page, in the order of the two enumerations.
 const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--swagdark", "--swaglight", "--sheet"]
-const PageArgs: [MaxPages] string = ["--colors", "--palettes", "--metrics", "--widgets"]
+const PageArgs:    [MaxPages] string          = ["--colors", "--palettes", "--metrics", "--widgets"]
 
 // Reads the palette and the page the command line asks the inspector to open on.
 //

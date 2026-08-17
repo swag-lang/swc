@@ -296,7 +296,7 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
     for &table in state.tables do
         try applyTableLanguage(table, resources, tag)
 
-    state.language = tag
+    state.language  = tag
     state.resources = resources
 }
 

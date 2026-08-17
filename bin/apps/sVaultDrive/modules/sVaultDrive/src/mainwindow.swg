@@ -527,7 +527,7 @@ impl MainWindow
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
-        result.appearanceButton = AppearanceButton.create(surface, "sVaultDrive.appearance")
+        result.appearanceButton                 = AppearanceButton.create(surface, "sVaultDrive.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
             window.themeIndex = button.appearanceTheme == .Light ? 1 : 0

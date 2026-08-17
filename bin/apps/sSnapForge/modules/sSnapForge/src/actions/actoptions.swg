@@ -32,14 +32,9 @@ impl MainWnd
 
         switch fieldName
         {
-        case #nameof(EditorOptions.showToolBarLabels):
-            .setToolRailWidth()
-
-        case #nameof(EditorOptions.clipToSelection), #nameof(EditorOptions.editBackColor):
-            .editWnd.invalidate()
-
-        case #nameof(ApplicationOptions.showClipRect), #nameof(ApplicationOptions.showLayoutRects), #nameof(ApplicationOptions.showFocusRings):
-            .app().invalidate()
+        case #nameof(EditorOptions.showToolBarLabels): .setToolRailWidth()
+        case #nameof(EditorOptions.clipToSelection), #nameof(EditorOptions.editBackColor): .editWnd.invalidate()
+        case #nameof(ApplicationOptions.showClipRect), #nameof(ApplicationOptions.showLayoutRects), #nameof(ApplicationOptions.showFocusRings): .app().invalidate()
         }
 
         return false

@@ -23,7 +23,7 @@ func verifyDynamicallyLoadedRuntimeContext()
     var second = expect NativeLibrary.load(path)
     @assert(lifecycleCounts() == 0x0000000100000001)
 
-    var dropCount = 0'u32
+    var dropCount            = 0'u32
     let setDropCounterSymbol = library.symbol("ctx_dynamic_set_drop_counter")
     @assert(setDropCounterSymbol != null)
     let setDropCounter = cast(func(*u32)) setDropCounterSymbol!
@@ -34,7 +34,7 @@ func verifyDynamicallyLoadedRuntimeContext()
     second.close()
     @assert(dropCount == 1)
 
-    var reloaded = expect NativeLibrary.load(path)
+    var reloaded             = expect NativeLibrary.load(path)
     let reloadedCountsSymbol = reloaded.symbol("ctx_dynamic_lifecycle_counts")
     @assert(reloadedCountsSymbol != null)
     let reloadedLifecycleCounts = cast(func()->u64) reloadedCountsSymbol!

@@ -27,8 +27,8 @@ struct TweakFile
 // which is what left a registered image-rect folder impossible to write.
 private struct FieldPath
 {
-    offset: u64                     // Byte offset of the value inside the folder.
-    type:   #null typeinfo          // Type the path ends on, or null when the name resolves to nothing.
+    offset: u64                // Byte offset of the value inside the folder.
+    type:   #null typeinfo     // Type the path ends on, or null when the name resolves to nothing.
 }
 
 impl TweakFile
@@ -62,7 +62,7 @@ impl TweakFile
                 return {}
 
             result.offset += field.offset
-            current = field.pointedType!
+            current       = field.pointedType!
             if dot == Swag.U64.Max do
                 break
 
@@ -105,9 +105,9 @@ impl TweakFile
         {
             public
             {
-                folder: *Folder     // Folder where the reference is defined
-                src:    FieldPath   // Source value that is being referenced
-                dst:    FieldPath   // Destination value to copy to
+                folder: *Folder       // Folder where the reference is defined
+                src:    FieldPath     // Source value that is being referenced
+                dst:    FieldPath     // Destination value to copy to
             }
         }
 

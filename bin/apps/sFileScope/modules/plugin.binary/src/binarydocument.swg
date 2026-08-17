@@ -33,11 +33,11 @@ struct BinaryPreview
 // One opened file and everything that could be extracted from it.
 struct BinaryDocument
 {
-    image:  BinaryImage
-    report: BinaryReport
+    image:    BinaryImage
+    report:   BinaryReport
     previews: Array'BinaryPreview
-    kind:   BinaryFormatKind
-    opened: bool
+    kind:     BinaryFormatKind
+    opened:   bool
 }
 
 impl BinaryDocument

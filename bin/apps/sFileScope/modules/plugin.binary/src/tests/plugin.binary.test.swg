@@ -75,12 +75,12 @@ private func buildPeFixture()->Array'u8
     poke(&bytes, optAt + 108, 16, 4)               // NumberOfRvaAndSizes.
 
     let dirAt = optAt + 112
-    poke(&bytes, dirAt, 0x2000, 4)         // Export directory address.
-    poke(&bytes, dirAt + 4, 0x80, 4)       // Export directory size.
-    poke(&bytes, dirAt + 8, 0x2100, 4)     // Import directory address.
-    poke(&bytes, dirAt + 12, 0x28, 4)      // Import directory size.
-    poke(&bytes, dirAt + 48, 0x2180, 4)    // Debug directory address.
-    poke(&bytes, dirAt + 52, 28, 4)        // Debug directory size.
+    poke(&bytes, dirAt, 0x2000, 4)          // Export directory address.
+    poke(&bytes, dirAt + 4, 0x80, 4)        // Export directory size.
+    poke(&bytes, dirAt + 8, 0x2100, 4)      // Import directory address.
+    poke(&bytes, dirAt + 12, 0x28, 4)       // Import directory size.
+    poke(&bytes, dirAt + 48, 0x2180, 4)     // Debug directory address.
+    poke(&bytes, dirAt + 52, 28, 4)         // Debug directory size.
 
     let sectionAt = optAt + 240
     pokeText(&bytes, sectionAt, ".text")
@@ -136,7 +136,7 @@ private func buildPeFixture()->Array'u8
     pokeText(&bytes, codeViewAt, "RSDS")
     for index in 16 do
         bytes[codeViewAt + 4 + index] = cast(u8) (index + 1)
-    poke(&bytes, codeViewAt + 20, 1, 4)             // Age.
+    poke(&bytes, codeViewAt + 20, 1, 4)     // Age.
     pokeText(&bytes, codeViewAt + 24, "fixture.pdb")
 
     return bytes
@@ -230,7 +230,7 @@ private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 #test
 {
     let sourceDirectory = Path.directoryName(#curlocation.fileName)!
-    let fileName = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.ico")
+    let fileName        = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.ico")
     if !File.exists(fileName) do
         return
 
@@ -245,7 +245,7 @@ private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(860, 520)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
-    let view = BinaryPluginView.create(&host.root, commands, fileName.toString())
+    let view     = BinaryPluginView.create(&host.root, commands, fileName.toString())
     view.resize(860, 520)
     view.applyLayout()
     view.layoutPreviews()
@@ -259,7 +259,7 @@ private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 #test
 {
     let sourceDirectory = Path.directoryName(#curlocation.fileName)!
-    let pngPath = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.png")
+    let pngPath         = Path.combine(sourceDirectory, "../../../sFileScope/datas/appicon.png")
     if !File.exists(pngPath) do
         return
     let png = expect File.readAllBytes(pngPath.toString())

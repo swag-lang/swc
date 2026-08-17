@@ -24,7 +24,7 @@ internal func loadViewerImage(fileName: string)->Image fail
 internal struct ImagePluginView
 {
     using wnd: Wnd
-    details: String
+    details:   String
 
     #[Swag.Late]
     {

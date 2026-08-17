@@ -177,8 +177,8 @@ impl IWnd for IconButton
         switch #complete .checkIndicator
         {
         case .None, .Ink, .Frame, .Full: break
-        case .Left, .Right:      width += metrics.activeRail_Size + metrics.activeRail_Margin
-        case .Bottom, .Top:      height += metrics.activeRail_Size + metrics.activeRail_Margin
+        case .Left, .Right:              width += metrics.activeRail_Size + metrics.activeRail_Margin
+        case .Bottom, .Top:              height += metrics.activeRail_Size + metrics.activeRail_Margin
         }
 
         let padding = 2 * metrics.btnIcon_Padding

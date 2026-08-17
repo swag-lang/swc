@@ -1044,7 +1044,7 @@ impl MainWnd
             .monitors        = Env.getMonitors()
         }
 
-        res.appearanceButton = AppearanceButton.create(srf, "sSnapForge.appearance")
+        res.appearanceButton                 = AppearanceButton.create(srf, "sSnapForge.appearance")
         res.appearanceButton.sigThemeChanged += func|main = res|(button)
         {
             main.editorOptions.theme = button.appearanceTheme == .Light ? .Light : .Dark

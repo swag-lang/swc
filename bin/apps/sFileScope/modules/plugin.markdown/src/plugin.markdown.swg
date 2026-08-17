@@ -132,10 +132,10 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
 
     let view = MarkdownView.createFile(request.contentParent, request.fileName, MarkdownStyle.theme())
     applyMarkdownViewerStyle(view, 0, 1)
-    result.view        = view
-    result.commands    = commandGroup
-    result.details     = markdownStrings().ui_Details
-    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
+    result.view           = view
+    result.commands       = commandGroup
+    result.details        = markdownStrings().ui_Details
+    result.revealMatch    = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {
         discard combo

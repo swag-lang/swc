@@ -88,7 +88,7 @@ private func markdownAlertTitle(kind: MarkdownBlockKind)->string
 
 internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
 {
-    var result: retval
+    var result:     retval
     let lines = Tokenize.splitLines(source)
     var index = 0'u64
     var references: Array'MarkdownReference
@@ -140,6 +140,7 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 footnote += renderMarkdownInline(definition.value, references.toSlice())
                 appendMarkdownBlock(&result, .Footnote, #move footnote)
             }
+
             index += 1
             continue
         }
@@ -157,6 +158,7 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 contents += renderMarkdownInline(entry.text, references.toSlice())
                 contents += "\n"
             }
+
             appendMarkdownBlock(&result, .TableOfContents, #move contents)
             index += 1
             continue
@@ -238,9 +240,11 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                     math  += Latin1.trim(lines[index])
                     index += 1
                 }
+
                 if index < lines.count do
                     index += 1
             }
+
             appendMarkdownBlock(&result, .Math, #move math)
             continue
         }
@@ -340,16 +344,18 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                         if quoteKind != .Quote
                         {
                             quote   += Format.toString("<b><p1>%</p></b>", markdownAlertTitle(quoteKind))
-                            content  = Latin1.trim(content[close + 1 to])
+                            content = Latin1.trim(content[close + 1 to])
                         }
                     }
                 }
+
                 if @countof(content)
                 {
                     if !quote.isEmpty() do
                         quote += "\n"
                     quote += renderMarkdownInline(content, references.toSlice())
                 }
+
                 index += 1
             }
 
@@ -361,7 +367,7 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
         index += 1
         while index < lines.count
         {
-            let next = Latin1.trim(lines[index])
+            let next           = Latin1.trim(lines[index])
             let nextDefinition = markdownReferenceDefinition(lines[index])
             if !@countof(next) or markdownHeading(lines[index]).level or markdownRule(lines[index]) or markdownListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or markdownFence(lines[index]).found do
                 break

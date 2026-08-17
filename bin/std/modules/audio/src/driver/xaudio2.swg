@@ -22,16 +22,15 @@ internal func comOwnsInitialization(result: HRESULT)->bool => result == S_OK or 
 internal func makeXAudio2Buffer(data: const *BYTE, size: u32, context: #null *void)->XAUDIO2_BUFFER
 {
     return XAUDIO2_BUFFER{
-        flags:      0,
+        flags: 0,
         audioBytes: size,
         pAudioData: data,
-        playBegin:  0,
+        playBegin: 0,
         playLength: 0,
-        loopBegin:  0,
+        loopBegin: 0,
         loopLength: 0,
-        loopCount:  0,
-        pContext:   context,
-    }
+        loopCount: 0,
+        pContext: context}
 }
 
 struct XAudio2DriverNative
@@ -287,8 +286,8 @@ impl Voice
             if !sizeBuffer do
                 break
 
-            let safePtrBuffer = ptrBuffer!
-            let buffer        = makeXAudio2Buffer(cast(const *BYTE) safePtrBuffer, cast() sizeBuffer, me)
+            let safePtrBuffer      = ptrBuffer!
+            let buffer             = makeXAudio2Buffer(cast(const *BYTE) safePtrBuffer, cast() sizeBuffer, me)
             let submitSourceBuffer = handle.vtbl.submitSourceBuffer
             let hr                 = submitSourceBuffer(handle, &buffer, null)
             if hr != S_OK do

@@ -298,8 +298,9 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 
     for y in height
     {
-        let sourceRow   = y * decoder.yStride
-        let chromaRow   = (y >> 1) * decoder.cStride
+        let sourceRow = y * decoder.yStride
+        let chromaRow = (y >> 1) * decoder.cStride
+
         // VP8 planes are top-down while Image stores row zero at the bottom.
         var destination = cast(u64) (height - y - 1) * width * 4
         let alphaRow    = cast(u64) y * width

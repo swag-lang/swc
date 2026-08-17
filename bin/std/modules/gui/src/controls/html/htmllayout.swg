@@ -1448,7 +1448,9 @@ impl HtmlLayout
             let item = &.boxes[box].items[index]
             switch item.kind
             {
-            case .Text, .Space, .Atomic: return true
+            case .Text, .Space, .Atomic:
+                return true
+
             case .OpenInline, .CloseInline:
                 if item.width do
                     return true

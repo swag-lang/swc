@@ -34,14 +34,10 @@ internal impl HexPluginView
         let format = .formatCombo.selectedIndex
         switch width
         {
-        case 0:
-            return format == 1 ? .Unsigned8 : format == 2 ? .Signed8 : .Bytes
-        case 1:
-            return format == 1 ? .Unsigned16 : format == 2 ? .Signed16 : .Hex16
-        case 2:
-            return format == 1 ? .Unsigned32 : format == 2 ? .Signed32 : format == 3 ? .Float32 : .Hex32
-        default:
-            return format == 1 ? .Unsigned64 : format == 2 ? .Signed64 : format == 3 ? .Float64 : .Hex64
+        case 0:  return format == 1 ? .Unsigned8 : format == 2 ? .Signed8 : .Bytes
+        case 1:  return format == 1 ? .Unsigned16 : format == 2 ? .Signed16 : .Hex16
+        case 2:  return format == 1 ? .Unsigned32 : format == 2 ? .Signed32 : format == 3 ? .Float32 : .Hex32
+        default: return format == 1 ? .Unsigned64 : format == 2 ? .Signed64 : format == 3 ? .Float64 : .Hex64
         }
     }
 

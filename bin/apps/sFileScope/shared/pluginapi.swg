@@ -30,10 +30,10 @@ alias ViewerRevealMatch = func(*Wnd, u64, string)->bool
 // The plugin reads it and never writes it: everything it produces goes through [[ViewerResult]].
 struct ViewerRequest
 {
-    apiVersion:    u32                 // Contract version the host was built against.
-    contentParent: *Wnd = undefined    // Parent the document view must be created under.
-    commandParent: *Wnd = undefined    // Parent the optional command group must be created under.
-    fileName:      string              // File the view has to show.
+    apiVersion:    u32                  // Contract version the host was built against.
+    contentParent: *Wnd = undefined     // Parent the document view must be created under.
+    commandParent: *Wnd = undefined     // Parent the optional command group must be created under.
+    fileName:      string               // File the view has to show.
 }
 
 // What one plugin gives back.

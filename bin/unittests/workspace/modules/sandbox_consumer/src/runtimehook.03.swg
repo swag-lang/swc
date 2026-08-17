@@ -16,4 +16,3 @@ impl RuntimeHookProbe
 
 const Probe: RuntimeHookProbe = 1.0
 #assert(Probe.value == 1.0)
-

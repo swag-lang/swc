@@ -9,8 +9,7 @@ private const TinyWav: [48] u8 = [
     0x10, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
     0x40, 0x1F, 0x00, 0x00, 0x40, 0x1F, 0x00, 0x00,
     0x01, 0x00, 0x08, 0x00, 0x64, 0x61, 0x74, 0x61,
-    0x04, 0x00, 0x00, 0x00, 0x00, 0x80, 0xFF, 0x80,
-]
+    0x04, 0x00, 0x00, 0x00, 0x00, 0x80, 0xFF, 0x80]
 
 // Builds a 16-bit mono WAV whose loudness moves the way real material does, so the picture the
 // plot is judged on shows what the plot is for: bursts that decay, a transient above the body of
@@ -27,11 +26,11 @@ private func previewWav()->Array'u8
         result[index] = value
 
     writeU32(&result, 4, cast(u32) (36 + PayloadSize))
-    result[22] = 1                                            // One channel.
-    writeU32(&result, 24, cast(u32) SampleRate)               // Frames per second.
-    writeU32(&result, 28, cast(u32) (SampleRate * 2))         // Bytes per second.
-    result[32] = 2                                            // Bytes per frame.
-    result[34] = 16                                           // Bits per sample.
+    result[22] = 1                                        // One channel.
+    writeU32(&result, 24, cast(u32) SampleRate)           // Frames per second.
+    writeU32(&result, 28, cast(u32) (SampleRate * 2))     // Bytes per second.
+    result[32] = 2                                        // Bytes per frame.
+    result[34] = 16                                       // Bits per sample.
     writeU32(&result, 40, cast(u32) PayloadSize)
 
     for frame in FrameCount
@@ -45,9 +44,9 @@ private func previewWav()->Array'u8
 
         // The carrier alone would make peak and body the same reading. The click on the first
         // frames of a burst is what separates them, which is the whole point of the two weights.
-        let carrier  = Math.sin(seconds * (520 + 90 * cast(f32) burst) * 6.2831855)
-        let click    = inBurst < 0.01 ? (frame & 1 ? 0.9'f32 : -0.9) : 0
-        let value    = Math.clamp(carrier * envelope + click * envelope, -1, 1)
+        let carrier   = Math.sin(seconds * (520 + 90 * cast(f32) burst) * 6.2831855)
+        let click     = inBurst < 0.01 ? (frame & 1 ? 0.9'f32 : -0.9) : 0
+        let value     = Math.clamp(carrier * envelope + click * envelope, -1, 1)
         let quantized = cast(s16) (value * 32_000)
         writeU16(&result, 44 + frame * 2, cast #bit (u16) quantized)
     }
@@ -116,6 +115,7 @@ private func finishWaveform(view: *SoundPluginView)
     @assert(view.waveform.samples.count == 4)
     finishWaveform(view)
     @assert(view.waveform.readyCount == 4)
+
     // A second file opened after the engine exists must decode exactly like the first one: the
     // waveform of every file but the first went missing when a failure inside the engine was
     // swallowed on its way out of the module.
@@ -242,13 +242,14 @@ private func finishWaveform(view: *SoundPluginView)
         visible = true
         break
     }
+
     @assert(visible)
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    let view = SoundPluginView.create(&host.root, commands, pacmanWav.toString())
+    let view     = SoundPluginView.create(&host.root, commands, pacmanWav.toString())
     @assert(!view.sound.isDataPreloaded())
     finishWaveform(view)
     @assert(view.details.indexOf("11025") != Swag.U64.Max)

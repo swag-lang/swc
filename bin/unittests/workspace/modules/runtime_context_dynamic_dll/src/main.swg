@@ -2,8 +2,8 @@
 
 using Core
 
-private var g_InitCount:       u32
-private var g_PreMainCount:    u32
+private var g_InitCount: u32
+private var g_PreMainCount: u32
 private var g_DropCounter: #null *u32
 
 #init

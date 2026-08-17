@@ -489,7 +489,7 @@ public impl RichEditCtrl
             let lastLine  = pass ? origin.lineIndex : .lines.count - 1
             for lineIndex in firstLine to lastLine
             {
-                let utf8 = Utf8.fromUnicode(.lines[lineIndex]!.chars.toSlice())
+                let utf8      = Utf8.fromUnicode(.lines[lineIndex]!.chars.toSlice())
                 var byteStart = 0'u64
                 if !pass and lineIndex == origin.lineIndex
                 {
@@ -505,8 +505,8 @@ public impl RichEditCtrl
                 var start: RichEditCursor
                 start.lineIndex     = lineIndex
                 start.charPosInLine = Utf8.countRunes(utf8.toSlice()[0 until found])
-                var end             = start
-                end.charPosInLine  += Utf8.countRunes(text)
+                var end = start
+                end.charPosInLine += Utf8.countRunes(text)
                 .setSelection(start, end)
                 .forceCaretVisibleCenter = true
                 .invalidate()

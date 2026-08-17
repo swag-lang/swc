@@ -215,7 +215,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if dynamicLibraryBuildCode != 0 do
         return dynamicLibraryBuildCode
 
-    let dynamicLibrary = Path.combine(workspace.toString(), ".output", "runtime_context_dynamic_dll", "shared-library", buildCfg, options.targetArch.toString(), "runtime_context_dynamic_dll.dll")
+    let dynamicLibrary  = Path.combine(workspace.toString(), ".output", "runtime_context_dynamic_dll", "shared-library", buildCfg, options.targetArch.toString(), "runtime_context_dynamic_dll.dll")
     var dynamicConsumer = workspaceModuleCommand("test", workspace.toString(), "runtime_context_dynamic_consumer", buildCfg)
     dynamicConsumer.add(["--no-test-jit", "--run-arg", Format.toString("--dynamic-runtime-library=%", dynamicLibrary.toString()).toString()])
     options.appendExtra(&dynamicConsumer)

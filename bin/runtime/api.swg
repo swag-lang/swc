@@ -611,7 +611,7 @@ namespace Swag
             traceIndex:       u32                                              // Number of traces in the array
             hasError:         u32                                              // <> 0 if an error is raised
             #[Swag.NoDoc]
-            runtimeTlsIdPlusOne: u64                                           // Process TLS slot shared by dynamically loaded Swag modules.
+            runtimeTlsIdPlusOne: u64     // Process TLS slot shared by dynamically loaded Swag modules.
         }
     }
 

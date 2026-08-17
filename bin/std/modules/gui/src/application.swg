@@ -821,6 +821,7 @@ impl Application
             if .appIconTileList.isValid() do
                 .appIconTileList.release(.renderer)
         }
+
         if @isset(.theme) do
             .theme.freeDefault()
     }

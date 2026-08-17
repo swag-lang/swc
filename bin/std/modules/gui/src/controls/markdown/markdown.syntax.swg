@@ -47,9 +47,9 @@ private func markdownInlineMathEnd(text: string, start: u64)->u64
             continue
         }
 
-        let escaped      = index > start and text[index - 1] == '\\'
-        let spaceBefore  = index == start or Latin1.isSpace(text[index - 1])
-        let digitAfter   = index + 1 < @countof(text) and Latin1.isDigit(text[index + 1])
+        let escaped     = index > start and text[index - 1] == '\\'
+        let spaceBefore = index == start or Latin1.isSpace(text[index - 1])
+        let digitAfter  = index + 1 < @countof(text) and Latin1.isDigit(text[index + 1])
         if !escaped and !spaceBefore and !digitAfter do
             return index
         index += 1
@@ -76,10 +76,10 @@ internal struct MarkdownReference
 
 internal struct MarkdownReferenceInfo
 {
-    found:     bool
-    footnote:  bool
-    name:      string = ""
-    value:     string = ""
+    found:    bool
+    footnote: bool
+    name:     string = ""
+    value:    string = ""
 }
 
 internal func markdownReferenceDefinition(line: string)->MarkdownReferenceInfo
@@ -120,7 +120,7 @@ internal func renderMarkdownInline(text: string, references: #null const [..] Ma
                 result += "<m>"
                 result += markdownRichText(text[index + 2 until end])
                 result += "</m>"
-                index = end + 2
+                index  = end + 2
                 continue
             }
         }
@@ -182,6 +182,7 @@ internal func renderMarkdownInline(text: string, references: #null const [..] Ma
                 index  = labelEnd + 1
                 continue
             }
+
             if labelEnd != Swag.U64.Max and labelEnd + 1 < @countof(text) and text[labelEnd + 1] == '('
             {
                 let urlEnd = Utf8.indexOf(text, ')'rune, labelEnd + 2)
@@ -196,7 +197,6 @@ internal func renderMarkdownInline(text: string, references: #null const [..] Ma
                     continue
                 }
             }
-
 
             if labelEnd != Swag.U64.Max
             {

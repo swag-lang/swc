@@ -121,7 +121,7 @@ internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, c
             mixed /= channels
             let level = Math.abs(mixed)
             peak = Math.max(peak, level)
-            sum += level
+            sum  += level
         }
 
         result[point] = {peak, sum / cast(f32) (last - first)}
@@ -139,11 +139,11 @@ internal func soundDurationText(seconds: f32)->String
 
 internal struct SoundWaveformView
 {
-    using wnd: Wnd
-    samples:   Array'WaveformPoint
+    using wnd:  Wnd
+    samples:    Array'WaveformPoint
     readyCount: u64
-    duration:  f32
-    progress:  f32
+    duration:   f32
+    progress:   f32
 }
 
 // Returns the interval a time scale is graduated at, so the marks land on numbers a reader
@@ -248,12 +248,13 @@ private impl IWnd for SoundWaveformView
         // The alternate theme tone gives the sound its own voice while the signature accent stays
         // reserved for the exact play position. Two opacities preserve transient and body detail.
         let alternate = .theme().palette.alternate.mark
-        let playBody = Color.lerp(colors.view_Bk, alternate, 0.92)
-        let playPeak = Color.lerp(colors.view_Bk, alternate, 0.58)
-        let restBody = Color.lerp(colors.view_Bk, alternate, 0.48)
-        let restPeak = Color.lerp(colors.view_Bk, alternate, 0.25)
+        let playBody  = Color.lerp(colors.view_Bk, alternate, 0.92)
+        let playPeak  = Color.lerp(colors.view_Bk, alternate, 0.58)
+        let restBody  = Color.lerp(colors.view_Bk, alternate, 0.48)
+        let restPeak  = Color.lerp(colors.view_Bk, alternate, 0.25)
 
-        let columns  = cast(u64) Math.max(plot.width, 1)
+        let columns = cast(u64) Math.max(plot.width, 1)
+
         // Pixel alignment keeps the progress boundary crisp instead of blending two adjacent
         // waveform columns into a soft vertical seam.
         let playHead = Math.round(Math.clamp(.progress, 0, 1) * plot.width)
@@ -265,8 +266,8 @@ private impl IWnd for SoundWaveformView
             let last  = Math.max((column + 1) * .samples.count / columns, first + 1)
             if first >= .readyCount do
                 continue
-            var peak  = 0'f32
-            var body  = 0'f32
+            var peak = 0'f32
+            var body = 0'f32
             for index in first until Math.min(last, .readyCount)
             {
                 peak = Math.max(peak, .samples[index].peak)
@@ -305,17 +306,17 @@ internal struct SoundPluginView
         waveform:   *SoundWaveformView
     }
 
-    sound:       SoundFile
-    voice:       #null *Voice
-    timer:       #null *Timer
+    sound:          SoundFile
+    voice:          #null *Voice
+    timer:          #null *Timer
     waveformThread: Thread
     waveformLock:   Sync.Mutex
     waveformBuilt:  u64
-    duration:    f32
-    elapsed:     f32
-    engineReady: bool
-    playing:     bool
-    details:     String
+    duration:       f32
+    elapsed:        f32
+    engineReady:    bool
+    playing:        bool
+    details:        String
 }
 
 internal impl SoundPluginView
@@ -332,21 +333,21 @@ internal impl SoundPluginView
     // from Voice streaming and deliberately owns every block it reads.
     mtd buildWaveformInBackground(thread: Thread)
     {
-        let encoding      = .sound.sampleEncoding()
-        let channels      = .sound.numChannels()
+        let encoding       = .sound.sampleEncoding()
+        let channels       = .sound.numChannels()
         let bytesPerSample = encoding == .Pcm8 ? 1'u64 : (encoding == .Pcm16 ? 2 : (encoding == .Pcm24 ? 3 : 4))
-        let bytesPerFrame = bytesPerSample * channels
-        let frameCount    = .sound.sampleFrameCount()
-        let pointCount    = .waveform.samples.count
+        let bytesPerFrame  = bytesPerSample * channels
+        let frameCount     = .sound.sampleFrameCount()
+        let pointCount     = .waveform.samples.count
         if !bytesPerFrame or !frameCount or !pointCount do
             return
 
-        var byteOffset: u64
-        var frameOffset: u64
+        var byteOffset:   u64
+        var frameOffset:  u64
         var currentPoint: u64
-        var peak: f32
-        var sum: f64
-        var sampleCount: u64
+        var peak:         f32
+        var sum:          f64
+        var sampleCount:  u64
 
         while byteOffset < .sound.payloadSize() and !thread.requestEnd
         {
@@ -368,9 +369,9 @@ internal impl SoundPluginView
                     if (currentPoint + 1) % 32 == 0 do
                         .publishWaveform(currentPoint + 1)
                     currentPoint = target
-                    peak        = 0
-                    sum         = 0
-                    sampleCount = 0
+                    peak         = 0
+                    sum          = 0
+                    sampleCount  = 0
                 }
 
                 var mixed = 0'f32
@@ -381,8 +382,8 @@ internal impl SoundPluginView
                 }
 
                 let level = Math.abs(mixed / channels)
-                peak = Math.max(peak, level)
-                sum += level
+                peak        = Math.max(peak, level)
+                sum         += level
                 sampleCount += 1
                 frameOffset += 1
             }
@@ -593,9 +594,9 @@ internal impl SoundPluginView
         result.waveform.duration = result.duration
         result.startWaveform()
         let durationText = soundDurationText(result.duration)
-        result.details = Format.toString(soundStrings().ui_Details, result.sound.sampleRateHz(), channelCountText(result.sound.numChannels()), result.sound.sampleStorageBits(), durationText)
+        result.details     = Format.toString(soundStrings().ui_Details, result.sound.sampleRateHz(), channelCountText(result.sound.numChannels()), result.sound.sampleStorageBits(), durationText)
         result.engineReady = acquireSoundEngine()
-        result.timer = result.addTimer(33'ms)
+        result.timer       = result.addTimer(33'ms)
         if result.engineReady do
             result.playButton.enable(true)
         result.updatePlaybackUi()

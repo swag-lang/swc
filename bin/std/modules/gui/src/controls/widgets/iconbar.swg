@@ -134,6 +134,7 @@ impl IconBar
             button.setForm(.orientation == .Horizontal ? .RoundedRectangle : .Rectangle)
             button.setCheckIndicator(.orientation == .Horizontal ? .Frame : .Left)
         }
+
         .computeLayout()
     }
 

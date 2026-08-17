@@ -10,9 +10,9 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
 
     registerHtmlStrings(request.contentParent.app())
     let view = HtmlView.createFile(request.contentParent, request.fileName)
-    result.view        = view
-    result.details     = htmlStrings().ui_Details
-    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(offset, text) }
+    result.view           = view
+    result.details        = htmlStrings().ui_Details
+    result.revealMatch    = func(wnd, offset, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(offset, text) }
     view.sigLinkActivated += func(html, url)
     {
         discard html

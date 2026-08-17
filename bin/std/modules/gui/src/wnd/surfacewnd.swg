@@ -341,6 +341,7 @@ impl SurfaceWnd
             if button.position.contains(pos.x, pos.y) do
                 return true
         }
+
         return false
     }
 

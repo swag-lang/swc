@@ -15,18 +15,17 @@ internal struct PageSource
 // Opening indexes the object and page trees but does not decompress page content, images, or
 // fonts. Each call to [[Pdf.Reader.loadPage]] returns an independent owned page; releasing that
 // page releases its decoded resources without affecting this reader.
-#[Swag.NoCopy]
+#[Swag.Opaque, Swag.NoCopy]
 struct Reader
 {
-    public readonly metadata: Metadata     // Descriptive document fields.
-
     // The parser retains slices into the mapped region, so the mapping is owned for the complete
     // reader lifetime.
     internal
     {
-        region:  File.MappedRegion
-        parser:  PdfParser
-        sources: Array'PageSource
+        documentMetadata: Metadata
+        region:           File.MappedRegion
+        parser:           PdfParser
+        sources:          Array'PageSource
     }
 }
 
@@ -40,12 +39,15 @@ public impl Reader
     func open(fileName: string)->Reader fail
     {
         var file = try File.MappedFile.open(fileName)
-        var region = try file.mapAll()
-        let bytes  = region.bytes()
-        var result = Reader{region: #move region, parser: PdfParser{bytes: bytes}}
-        try indexDocument(&result.parser, &result.metadata, &result.sources)
+        var result: retval
+        result.region       = try file.mapAll()
+        result.parser.bytes = result.region.bytes()
+        try indexDocument(&result.parser, &result.documentMetadata, &result.sources)
         return result
     }
+
+    // Returns the document's descriptive fields.
+    mtd const metadata()->Metadata => .documentMetadata
 
     // Returns the number of pages found in the page tree.
     mtd const pageCount()->u64 => .sources.count
@@ -57,7 +59,7 @@ public impl Reader
     mtd loadPage(index: u64)->Page fail
     {
         if index >= .sources.count do
-            fail Errors.BadParameterError{}
+            fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
         let source = .sources[index]
         return try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.rotate)
     }

@@ -142,6 +142,40 @@ private func sampleDocument()->Document
     @assert(loaded.pages[0].items.count == 3)
 }
 
+// The streaming reader indexes every page but does not decode a later page's stream until that
+// page is requested.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pdf-streaming-%{X016}.pdf", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>")
+    addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> /Contents 5 0 R >>")
+    addObject(&bytes, 4, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> /Contents 6 0 R >>")
+    addStreamObject(&bytes, 5, "", cast(const [..] u8) "2 2 20 12 re f")
+    addStreamObject(&bytes, 6, "/Filter /UnsupportedForStreamingTest", cast(const [..] u8) "deferred")
+    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var reader = expect Reader.open(fileName)
+    @assert(reader.pageCount() == 2)
+    var first = expect reader.loadPage(0)
+    @assert(first.width == 40 and first.height == 30 and first.items.count == 1)
+    let image = expect first.render({scale: 1})
+    @assert(image.isValid())
+
+    discard catch reader.loadPage(1) as deferredError
+    @assert(deferredError != null)
+    discard catch reader.loadPage(2) as rangeError
+    @assert(rangeError != null)
+
+    discard catch Document.load(fileName) as eagerError
+    @assert(eagerError != null)
+}
+
 #test
 {
     discard catch Document.decode("not a PDF") as error
@@ -163,4 +197,25 @@ private func sampleDocument()->Document
     let runLength       = expect decodeRunLength(encoded)
     @assert(runLength.count == 6)
     @assert(cast(string) runLength.toSlice() == "ABCZZZ")
+}
+
+// Temporary corpus inventory; replaced by bounded fixture tests after page counts are known.
+#test
+{
+    const names = ["llvm-polly-kernelgen-pavt-2012-slides.pdf"]
+    for name in names
+    {
+        var reader = expect Reader.open(pdfFixturePath(name))
+        Console.println(name, ": ", reader.pageCount(), " pages")
+        let scale = name == "llvm-polly-impact-2011-slides.pdf" ? 96.0 / 72.0 : 0.5
+        for index in 29 to 29
+        {
+            if name == "llvm-polly-raghesh-masters-thesis.pdf" and index >= 10 do
+                continue
+            Console.println("corpus render ", name, " page ", index)
+            var page  = expect reader.loadPage(index)
+            let image = expect page.render({scale: scale, maxDimension: 8192})
+            @assert(image.isValid())
+        }
+    }
 }

@@ -21,8 +21,71 @@ using Core, Core.Errors, Pixel
     @assert(last.pixelColor(0, 0) != last.pixelColor(32, 32))
 }
 
-// The remaining 8-bit plane layouts share the same decoding path, including the
-// specification's implicit 4:2:0 JPEG default when no C tag is present.
+// The plane layouts a real encoder writes, read from streams ffmpeg produced.
+#test
+{
+    const Files = ["ffmpeg-c422.y4m", "ffmpeg-c444.y4m", "ffmpeg-ntsc-c420.y4m"]
+    for file in Files
+    {
+        var reader = expect Reader.open(videoFixturePath(file))
+        @assert(reader.width() == 32 and reader.height() == 24)
+        @assert(reader.frameCount() == 3)
+
+        var frame: Image
+        for index in 3'u64
+        {
+            expect reader.decodeFrameInto(&frame, index)
+            videoAssertFixtureFrame(frame, index, tolerance: 4)
+        }
+    }
+
+    // A broadcast rate stays a ratio, and never becomes 29.97.
+    var broadcast = expect Reader.open(videoFixturePath("ffmpeg-ntsc-c420.y4m"))
+    @assert(broadcast.frameRate() == expect FrameRate.create(30_000, 1_001))
+
+    // A monochrome stream keeps the luma of each quadrant and loses its colour. This one also
+    // carries the full-range tag, which is the other conversion the decoder implements.
+    var mono = expect Reader.open(videoFixturePath("ffmpeg-mono.y4m"))
+    @assert(mono.width() == 32 and mono.height() == 24 and mono.frameCount() == 3)
+    for index in 3'u64 do
+        videoAssertFixtureLumaFrame(expect mono.decodeFrame(index), index, tolerance: 4)
+}
+
+// Two sequences of the standard research corpus, which are what this format is used for.
+//
+// Neither carries a chroma tag, so both exercise the implicit 4:2:0 default of the
+// specification, and both declare a non-square pixel aspect ratio the decoder must ignore
+// rather than refuse. The expected colours come from decoding the same files with ffmpeg.
+#test
+{
+    var claire = expect Reader.open(videoFixturePath("xiph-claire-qcif.y4m"))
+    @assert(claire.width() == 176 and claire.height() == 144)
+    @assert(claire.frameCount() == 30)
+    @assert(claire.frameRate() == expect FrameRate.create(6_000, 1_001))
+
+    var frame: Image
+    expect claire.decodeFrameInto(&frame, 0)
+    videoAssertColor(frame.pixelColor(44, 36), 101, 140, 166, tolerance: 4)
+    expect claire.decodeFrameInto(&frame, 29)
+    videoAssertColor(frame.pixelColor(88, 72), 195, 146, 81, tolerance: 4)
+    videoAssertColor(frame.pixelColor(132, 108), 0, 4, 109, tolerance: 4)
+
+    var bus = expect Reader.open(videoFixturePath("xiph-bus-qcif-15fps.y4m"))
+    @assert(bus.width() == 176 and bus.height() == 144)
+    @assert(bus.frameCount() == 75)
+    @assert(bus.frameRate() == expect FrameRate.create(15, 1))
+    @assert(Math.isEqualEpsilon(bus.durationInSeconds(), 5.0, 0.0001))
+
+    // Reading the last frame first, then the first, proves the computed offsets rather than a
+    // decoder that only ever walks forward.
+    expect bus.decodeFrameInto(&frame, 74)
+    videoAssertColor(frame.pixelColor(88, 72), 108, 103, 100, tolerance: 4)
+    expect bus.decodeFrameInto(&frame, 0)
+    videoAssertColor(frame.pixelColor(44, 36), 23, 25, 20, tolerance: 4)
+}
+
+// The specification's implicit 4:2:0 default and its named spellings all describe one layout,
+// which no encoder writes four ways, so the header is stated here instead.
 #test
 {
     const Modes = ["", " C420", " C420mpeg2", " C420paldv"]
@@ -35,20 +98,6 @@ using Core, Core.Errors, Pixel
         let frame  = expect reader.decodeFrame(0)
         videoAssertColor(frame.pixelColor(1, 1), 255, 0, 0, tolerance: 0)
     }
-
-    var bytes422: Array'u8
-    bytes422.add(cast(const [..] u8) "YUV4MPEG2 W2 H1 F1:1 Ip C422\nFRAME\n")
-    bytes422.add([81'u8, 81, 90, 240])
-    var reader422 = expect Reader.openMemory("subsampled.y4m", bytes422.toSlice())
-    let frame422  = expect reader422.decodeFrame(0)
-    videoAssertColor(frame422.pixelColor(1, 0), 255, 0, 0, tolerance: 0)
-
-    var bytesMono: Array'u8
-    bytesMono.add(cast(const [..] u8) "YUV4MPEG2 W1 H1 F1:1 Ip Cmono\nFRAME\n")
-    bytesMono.add(81'u8)
-    var readerMono = expect Reader.openMemory("mono.y4m", bytesMono.toSlice())
-    let frameMono  = expect readerMono.decodeFrame(0)
-    videoAssertColor(frameMono.pixelColor(0, 0), 76, 76, 76, tolerance: 0)
 }
 
 #test

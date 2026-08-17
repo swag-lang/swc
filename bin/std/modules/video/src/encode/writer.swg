@@ -33,7 +33,10 @@ interface IEncoder
     //
     // `info.frameCount` is zero here: a writer accepts frames until it is ended, so the count
     // is not known when the header is written.
-    mtd begin(sink: *Sink, info: StreamInfo) fail
+    //
+    // `options` is `null` for defaults, or points to the encoder-specific options structure —
+    // [[Avi.EncodeOptions]] for AVI. A format with nothing to configure ignores it.
+    mtd begin(sink: *Sink, info: StreamInfo, options: #null any) fail
 
     // Encodes one frame and appends it to the stream.
     //
@@ -120,11 +123,14 @@ impl Writer
     // The extension selects the encoder. Frames are written as they are appended, so the file
     // grows by one frame at a time and the writer never holds more than one.
     //
+    // `options` is `null` for the defaults of the selected format, or points to that format's
+    // options structure, exactly as the Pixel image encoders take theirs.
+    //
     // ## Example
     //
     // ```swag
     // let rate   = try Video.FrameRate.create(30, 1)
-    // var writer = try Video.Writer.create("capture.y4m", 640, 480, rate)
+    // var writer = try Video.Writer.create("capture.avi", 640, 480, rate, Video.Avi.EncodeOptions{quality: 80})
     // var frame  = Pixel.Image.create(640, 480, .RGB8)
     // for index in 90'u64
     // {
@@ -134,12 +140,12 @@ impl Writer
     //
     // try writer.end()
     // ```
-    func create(fileName: string, width, height: s32, frameRate: FrameRate)->Writer fail
+    func create(fileName: string, width, height: s32, frameRate: FrameRate, options: #null any = null)->Writer fail
     {
         var result: retval
         result.validate(fileName, width, height, frameRate)
         result.sink = Sink.createFile(fileName)
-        result.start(fileName)
+        result.start(fileName, options)
         return result
     }
 
@@ -148,12 +154,12 @@ impl Writer
     // `fileName` selects the encoder by extension; no file is opened. `buffer` is borrowed,
     // must stay valid until the writer is ended, and holds the whole encoded stream, so this
     // is for a stream a caller already knows is bounded.
-    func createMemory(fileName: string, buffer: *ConcatBuffer, width, height: s32, frameRate: FrameRate)->Writer fail
+    func createMemory(fileName: string, buffer: *ConcatBuffer, width, height: s32, frameRate: FrameRate, options: #null any = null)->Writer fail
     {
         var result: retval
         result.validate(fileName, width, height, frameRate)
         result.sink = Sink.createMemory(buffer)
-        result.start(fileName)
+        result.start(fileName, options)
         return result
     }
 
@@ -173,13 +179,13 @@ impl Writer
     }
 
     // Selects the encoder for `fileName`, creates its instance, and writes the stream header.
-    private mtd start(fileName: string) fail
+    private mtd start(fileName: string, options: #null any) fail
     {
         let selected = findEncoder(fileName)!
         .format      = selected.format
         .encoderType = selected.type
         .encoder     = @mkinterface(Memory.new(selected.type), selected.type, IEncoder)
-        .encoder.begin(&.sink, .info)
+        .encoder.begin(&.sink, .info, options)
     }
 
     // Releases the encoder instance and the sink when the writer leaves scope.

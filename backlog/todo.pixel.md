@@ -37,6 +37,24 @@ The gaps are in composition fidelity, color, and the GPU backend.
 
 ## Tier A — Composable image effects
 
+### T-426 — JPEG chroma sampling is limited to one block per unit
+
+- Problem: `Jpg.Decoder` recognizes four layouts by their sampling numbers, and every one of them
+  needs the two chroma components to sample `1x1`. That covers every still image in practice, and
+  not the Motion JPEG ffmpeg writes: its 4:2:2 and 4:4:4 frames sample chroma `1x2`, so they are
+  refused with `JPEG chroma sampling of 1x2 is not supported`.
+- Consequence: `std/video` opens such an AVI, reports its geometry, its rate and its frame table,
+  and then cannot show a single picture — and ffmpeg is the most common producer of these files.
+  `bin/std/modules/video/src/unittests/datas/ffmpeg-mjpeg-422.avi` and its 4:4:4 sibling
+  reproduce it, and the tests in `avi.test.swg` assert the refusal today.
+- Note that the sampling factors cannot simply be reduced by their common divisor: they decide how
+  blocks are grouped into a minimum coded unit, so changing them changes the order of the entropy
+  coded stream and decodes the frame to noise.
+- Fix by walking a minimum coded unit and upsampling chroma from the sampling factors themselves,
+  instead of dispatching to four hand-written converters. Complete when both fixtures decode to
+  the same pictures as their 4:2:0 sibling.
+- Related: T-424 in [todo.video.md](todo.video.md)
+
 ### T-049 — No image filter graph
 
 - Problem: blur exists only as a painter shader (`setBlurShader`), applied to what is being drawn.

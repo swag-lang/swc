@@ -8,7 +8,7 @@ private const PdfRenderScale = 96.0 / 72.0     // PDF points to desktop pixels a
 internal struct PdfPluginView
 {
     using wnd:     Wnd
-    document:      Document
+    reader:        Reader
     pageIndex:     u64
     details:       String
     reportFailure: #null ViewerReportFailure
@@ -28,15 +28,16 @@ private impl PdfPluginView
     mtd refreshNavigation()
     {
         .previousButton.enable(.pageIndex > 0)
-        .nextButton.enable(.pageIndex + 1 < .document.pages.count)
-        .pageLabel.setText(Format.toString("% / %", .pageIndex + 1, .document.pages.count))
+        .nextButton.enable(.pageIndex + 1 < .reader.pageCount())
+        .pageLabel.setText(Format.toString("% / %", .pageIndex + 1, .reader.pageCount()))
     }
 
     mtd showPage(index: u64) fail
     {
-        if index >= .document.pages.count do
+        if index >= .reader.pageCount() do
             return
-        let image = try .document.pages[index].render({scale: PdfRenderScale, maxDimension: 8192})
+        var page  = try .reader.loadPage(index)
+        let image = try page.render({scale: PdfRenderScale, maxDimension: 8192})
         .pageIndex = index
         .imageView.setImage(image)
         .imageView.show()
@@ -53,10 +54,11 @@ private impl PdfPluginView
 
     func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*PdfPluginView fail
     {
-        var document = try Document.load(fileName)
-        if !document.pages.count do
+        var reader = try Reader.open(fileName)
+        if !reader.pageCount() do
             fail Errors.InvalidFormatError{"PDF document contains no page"}
-        let firstPage = try document.pages[0].render({scale: PdfRenderScale, maxDimension: 8192})
+        var page      = try reader.loadPage(0)
+        let firstPage = try page.render({scale: PdfRenderScale, maxDimension: 8192})
 
         let result = Wnd.create'PdfPluginView(contentParent, "sFileScope.pdf")
         result.backgroundStyle = .View
@@ -86,7 +88,7 @@ private impl PdfPluginView
             .sigPressed += func|view = result|(button)
             {
                 discard button
-                if view.pageIndex + 1 < view.document.pages.count do
+                if view.pageIndex + 1 < view.reader.pageCount() do
                     view.showPageOrReport(view.pageIndex + 1)
             }
         }
@@ -124,8 +126,8 @@ private impl PdfPluginView
         result.imageView.dockStyle = .Center
         result.imageView.setImage(firstPage)
 
-        result.document = #move document
-        let count = result.document.pages.count
+        result.reader = #move reader
+        let count = result.reader.pageCount()
         result.details = Format.toString("PDF · % %", count, count == 1 ? pdfStrings().ui_Page : pdfStrings().ui_Pages)
         result.refreshNavigation()
 
@@ -152,15 +154,15 @@ private impl IWnd for PdfPluginView
                 .showPageOrReport(.pageIndex - 1)
 
         case .Right, .PageDown:
-            if .pageIndex + 1 < .document.pages.count do
+            if .pageIndex + 1 < .reader.pageCount() do
                 .showPageOrReport(.pageIndex + 1)
 
         case .Home:
             .showPageOrReport(0)
 
         case .End:
-            if .document.pages.count do
-                .showPageOrReport(.document.pages.count - 1)
+            if .reader.pageCount() do
+                .showPageOrReport(.reader.pageCount() - 1)
 
         case .D0 where evt.modifiers.has(.Control):
             .imageView.actualSize()

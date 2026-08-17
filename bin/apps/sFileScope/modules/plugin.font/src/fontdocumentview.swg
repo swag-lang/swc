@@ -78,17 +78,17 @@ internal struct FontDocumentCell
 // have been measured; a constant would work for one face and let a tall one overlap.
 internal struct FontDocumentLayout
 {
-    nameTop:    f32                          // Top of the family name.
-    metricsTop: f32                          // Top of the style, glyph count and units-per-em line.
-    captionTop: f32                          // Top of the specimen caption.
-    sampleTops: [FontSampleCount] f32        // Top of each specimen line, one per entry of `FontSampleSizes`.
-    mapTop:     f32                          // Top of the character-map caption.
-    gridTop:    f32                          // Top of the first row of cells.
-    gridLeft:   f32                          // Left edge of the first column.
-    cellHeight: f32                          // Height one cell needs for its glyph and its code label.
-    columns:    u32 = 1                      // Cells one row holds.
-    rows:       u64                          // Rows the loaded page fills.
-    height:     f32                          // Total content height, which is what the scrollbar is given.
+    nameTop:    f32                       // Top of the family name.
+    metricsTop: f32                       // Top of the style, glyph count and units-per-em line.
+    captionTop: f32                       // Top of the specimen caption.
+    sampleTops: [FontSampleCount] f32     // Top of each specimen line, one per entry of `FontSampleSizes`.
+    mapTop:     f32                       // Top of the character-map caption.
+    gridTop:    f32                       // Top of the first row of cells.
+    gridLeft:   f32                       // Left edge of the first column.
+    cellHeight: f32                       // Height one cell needs for its glyph and its code label.
+    columns:    u32 = 1                   // Cells one row holds.
+    rows:       u64                       // Rows the loaded page fills.
+    height:     f32                       // Total content height, which is what the scrollbar is given.
 }
 
 // Scrollable specimen and Unicode character map drawn with the inspected face.
@@ -313,7 +313,7 @@ internal impl FontDocumentView
     {
         var y = FontContentInset
         .layout.nameTop = y
-        y += .fontName.height
+        y               += .fontName.height
 
         .layout.metricsTop = y
         y += .fontCode.height + FontSectionGap
@@ -327,14 +327,14 @@ internal impl FontDocumentView
             y += .sampleFont(size).height + FontSampleGap
         }
 
-        .layout.mapTop = y - FontSampleGap + FontSectionGap
-        .layout.gridTop = .layout.mapTop + .fontLabel.height + FontCaptionGap
+        .layout.mapTop     = y - FontSampleGap + FontSectionGap
+        .layout.gridTop    = .layout.mapTop + .fontLabel.height + FontCaptionGap
         .layout.cellHeight = 3 * FontCellPadding + .fontGlyph.height + .fontCode.height
 
         let client = .clientRect()
         let usable = Math.max(client.width - 2 * FontContentInset, FontCellWidth)
         .layout.columns = Math.max(1, cast(u32) ((usable + FontCellGap) / (FontCellWidth + FontCellGap)))
-        .layout.rows = (.cells.count + .layout.columns - 1) / .layout.columns
+        .layout.rows    = (.cells.count + .layout.columns - 1) / .layout.columns
 
         let gridWidth = cast(f32) .layout.columns * FontCellWidth + cast(f32) (.layout.columns - 1) * FontCellGap
         .layout.gridLeft = Math.max(FontContentInset, (client.width - gridWidth) * 0.5)

@@ -52,7 +52,7 @@ public impl Document
     {
         var reader = try Reader.open(fileName)
         var result = Document.create()
-        result.metadata = reader.metadata
+        result.metadata = reader.metadata()
         for index in reader.pageCount()
         {
             var page = try reader.loadPage(index)

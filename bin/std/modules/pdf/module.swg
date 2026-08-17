@@ -28,14 +28,30 @@ Loaded pages are inspected through `Document.pages`. Call
 colors, strokes, or item transforms; the borrow ends before pages are added or
 removed.
 
+For a large file that does not need to be edited as one complete document, open
+[[Pdf.Reader]] instead. It keeps the encoded file mapped and decodes only the
+page requested by [[Pdf.Reader.loadPage]]:
+
+```swag
+var reader = try Reader.open("large.pdf")
+for index in reader.pageCount()
+{
+    var page  = try reader.loadPage(index)
+    var image = try page.render({scale: 1.5})
+    // Display or process image; page resources are released at the end of the iteration.
+}
+```
+
 Text is written with the standard faces of [[Pdf.StandardFont]], which every
 reader provides, so a written document embeds no font program. The same type
 measures a run through its built-in metrics, without reading a font from the
 system.
 
 Loading and rendering reject malformed input and unsupported encodings through
-Swag's normal `fail` mechanism. Embedded actions, scripts, forms, and external
-references are never executed.
+Swag's normal `fail` mechanism. A streaming reader can therefore open a file
+whose later page uses an unsupported encoding and reports that error only when
+that page is requested. Embedded actions, scripts, forms, and external references
+are never executed.
 
 ## What the reader handles
 

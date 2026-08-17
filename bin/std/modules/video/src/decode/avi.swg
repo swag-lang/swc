@@ -7,27 +7,29 @@ using Core, Core.Errors, Pixel
 // Identifiers are compared as little-endian words rather than as text, so walking a container
 // costs one integer comparison per chunk.
 #[Swag.ConstExpr]
-private func fourCc(a, b, c, d: u32) => a | (b << 8) | (c << 16) | (d << 24)
+func fourCc(a, b, c, d: u32) => a | (b << 8) | (c << 16) | (d << 24)
 
 // Identifiers of the container itself.
-private const RiffId = fourCc('R'u32, 'I'u32, 'F'u32, 'F'u32)
-private const AviId = fourCc('A'u32, 'V'u32, 'I'u32, ' 'u32)
-private const ListId = fourCc('L'u32, 'I'u32, 'S'u32, 'T'u32)
-private const HeaderListId = fourCc('h'u32, 'd'u32, 'r'u32, 'l'u32)
-private const StreamListId = fourCc('s'u32, 't'u32, 'r'u32, 'l'u32)
-private const FrameListId = fourCc('m'u32, 'o'u32, 'v'u32, 'i'u32)
+const RiffId         = fourCc('R'u32, 'I'u32, 'F'u32, 'F'u32)
+const AviId          = fourCc('A'u32, 'V'u32, 'I'u32, ' 'u32)
+const ListId         = fourCc('L'u32, 'I'u32, 'S'u32, 'T'u32)
+const HeaderListId   = fourCc('h'u32, 'd'u32, 'r'u32, 'l'u32)
+const StreamListId   = fourCc('s'u32, 't'u32, 'r'u32, 'l'u32)
+const FrameListId    = fourCc('m'u32, 'o'u32, 'v'u32, 'i'u32)
+const MainHeaderId   = fourCc('a'u32, 'v'u32, 'i'u32, 'h'u32)
+const StreamHeaderId = fourCc('s'u32, 't'u32, 'r'u32, 'h'u32)
+const StreamFormatId = fourCc('s'u32, 't'u32, 'r'u32, 'f'u32)
+const IndexId        = fourCc('i'u32, 'd'u32, 'x'u32, '1'u32)
+const VideoStreamId  = fourCc('v'u32, 'i'u32, 'd'u32, 's'u32)
+
+// Identifier of the list an OpenDML file groups its frames into.
 private const RecordListId = fourCc('r'u32, 'e'u32, 'c'u32, ' 'u32)
-private const MainHeaderId = fourCc('a'u32, 'v'u32, 'i'u32, 'h'u32)
-private const StreamHeaderId = fourCc('s'u32, 't'u32, 'r'u32, 'h'u32)
-private const StreamFormatId = fourCc('s'u32, 't'u32, 'r'u32, 'f'u32)
-private const IndexId = fourCc('i'u32, 'd'u32, 'x'u32, '1'u32)
-private const VideoStreamId = fourCc('v'u32, 'i'u32, 'd'u32, 's'u32)
 
 // Codec identifiers whose frames are complete JPEG images.
 //
 // The four spellings all mean Motion JPEG; which one a file carries says who wrote it, not what
-// its frames contain.
-private const MotionJpegIds: [4] u32 = [
+// its frames contain. The first one is what an encoded stream declares.
+const MotionJpegIds: [4] u32 = [
     fourCc('M'u32, 'J'u32, 'P'u32, 'G'u32),
     fourCc('m'u32, 'j'u32, 'p'u32, 'g'u32),
     fourCc('J'u32, 'P'u32, 'E'u32, 'G'u32),
@@ -35,52 +37,27 @@ private const MotionJpegIds: [4] u32 = [
 
 // Codec identifiers whose frames are uncompressed bitmap rows.
 //
-// `BI_RGB` is the value the bitmap header itself defines; the three tags are what writers put
-// there instead when they want the field to read as a name.
+// `BI_RGB` is the value the bitmap header itself defines, and is what ffmpeg writes; the three
+// tags are what other writers put there instead when they want the field to read as a name.
 private const UncompressedIds: [4] u32 = [
     cast(u32) Bmp.BI_RGB,
     fourCc('D'u32, 'I'u32, 'B'u32, ' 'u32),
     fourCc('R'u32, 'A'u32, 'W'u32, ' 'u32),
     fourCc('R'u32, 'G'u32, 'B'u32, ' 'u32)]
 
-// Identifier and size of a frame chunk, and of one entry of the index.
-private const FourCcSize = 4'u64
-private const ChunkHeaderSize = 8'u64
-private const IndexEntrySize = 16'u64
+// Identifier and size of a chunk header, and of one entry of the index.
+const FourCcSize      = 4'u64
+const ChunkHeaderSize = 8'u64
+const IndexEntrySize  = 16'u64
 
 // Extension the frames are handed to the image codecs under.
 //
 // A Motion JPEG frame is a complete JPEG image, so the picture codec is the Pixel one, selected
 // the way every other caller selects it.
-private const JpegName = ".jpg"
+const JpegName = ".jpg"
 
 // Highest stream ordinal a frame chunk identifier can name, since it spells it with two digits.
 private const MaxStreamIndex = 99'u32
-
-// Largest frame side an encoded stream can describe, bounded by the 16-bit frame rectangle of
-// the stream header.
-private const MaxFrameSide = 32_767's32
-
-// Quality the JPEG frames of an encoded stream are compressed with.
-//
-// A video is a long sequence of similar pictures, so the last few percent of detail costs
-// proportionally far more here than it does on a single photograph.
-private const FrameQuality = 90'u8
-
-// `AVIF_HASINDEX`: the file ends with the `idx1` table, which is what makes seeking free.
-private const MainHasIndex = 0x0000_0010'u32
-
-// `AVIIF_KEYFRAME`: every frame of a Motion JPEG stream stands on its own.
-private const IndexKeyFrame = 0x0000_0010'u32
-
-// Quality the stream header reports when the writer does not measure one.
-private const UnknownQuality = 0xFFFF_FFFF'u32
-
-// Largest stream an encoder accepts, in bytes.
-//
-// Every size in the container is a 32-bit field, so the margin below four gigabytes leaves room
-// for the index and the trailing chunk headers a stream still owes when its last frame lands.
-private const MaxStreamSize = 0xFFF0_0000'u64
 
 // Frame index meaning that the decoder sits nowhere in particular.
 //
@@ -90,7 +67,7 @@ private const NoFrameIndex = Swag.U64.Max
 
 // Layout of the `avih` chunk, which describes the file rather than one of its streams.
 #[Swag.Pack(1)]
-private struct MainHeader
+struct MainHeader
 {
     microSecPerFrame:    u32     // Nominal frame duration, in microseconds.
     maxBytesPerSec:      u32     // Average data rate of the whole file.
@@ -109,7 +86,7 @@ private struct MainHeader
 
 // Layout of a `strh` chunk, which describes one stream of the file.
 #[Swag.Pack(1)]
-private struct StreamHeader
+struct StreamHeader
 {
     kind:                u32     // What the stream carries, `vids` for a picture stream.
     handler:             u32     // Codec identifier suggested by the writer.
@@ -132,10 +109,6 @@ private struct StreamHeader
 
 #assert(#sizeof(StreamHeader) == 56)
 
-// Total size of the `hdrl` list an encoder writes, counting its own identifier.
-private const StreamListSize = FourCcSize + ChunkHeaderSize + #sizeof(StreamHeader) + ChunkHeaderSize + #sizeof(Bmp.Header)
-private const HeaderListSize = FourCcSize + ChunkHeaderSize + #sizeof(MainHeader) + ChunkHeaderSize + StreamListSize
-
 // One chunk header: what it identifies, where its payload lies, and where the next one starts.
 private struct Chunk
 {
@@ -150,13 +123,6 @@ private struct FrameEntry
 {
     offset: u64     // Offset of the payload in the stream, in bytes.
     size:   u64     // Length of the payload, in bytes; zero for a frame that repeats the previous one.
-}
-
-// One entry of the index an encoder builds while it writes.
-private struct IndexEntry
-{
-    offset: u32     // Offset of the frame chunk, relative to the frame-list identifier.
-    size:   u32     // Length of the frame payload, in bytes.
 }
 
 // What walking the container found, before it is turned into a stream description.
@@ -174,26 +140,23 @@ private struct Layout
     hasStream:   bool
 }
 
+// Returns the identifier a frame chunk of stream `index` carries.
+//
+// The first two characters spell the stream ordinal and the last two say what the chunk holds:
+// `db` for uncompressed bits and `dc` for compressed ones. Writers disagree on which one an
+// uncompressed stream deserves, so a decoder accepts both.
+#[Swag.ConstExpr]
+func frameChunkId(index: u32, a, b: u32)->u32
+{
+    return fourCc('0'u32 + index / 10, '0'u32 + index % 10, a, b)
+}
+
 // Reads one value of the container's binary layout.
 private func(T) readValue(source: *Source)->T fail
 {
     var result: T = undefined
     source.readExact(@mkslice(cast([*] u8) &result, #sizeof(T)))
     return result
-}
-
-// Appends one value of the container's binary layout.
-private func(T) writeValue(sink: *Sink, value: T) fail
-{
-    var stored = value
-    sink.write(@mkslice(cast(const [*] u8) &stored, #sizeof(T)))
-}
-
-// Rewrites one value of a header the sink already accepted.
-private func(T) patchValue(sink: *Sink, offset: u64, value: T) fail
-{
-    var stored = value
-    sink.patch(offset, @mkslice(cast(const [*] u8) &stored, #sizeof(T)))
 }
 
 // Reads one chunk header and reports where its payload and its successor start.
@@ -210,19 +173,6 @@ private func readChunk(source: *Source, end: u64)->Chunk fail
     result.next = Math.min(result.data + result.size + (result.size & 1), end)
     return result
 }
-
-// Returns the identifier a frame chunk of stream `index` carries.
-//
-// The first two characters spell the stream ordinal and the last two say what the chunk holds:
-// `db` for uncompressed bits and `dc` for compressed ones.
-#[Swag.ConstExpr]
-private func frameChunkId(index: u32, a, b: u32)->u32
-{
-    return fourCc('0'u32 + index / 10, '0'u32 + index % 10, a, b)
-}
-
-// Identifier the frames of an encoded stream carry: compressed pictures of the first stream.
-private const FrameChunkId = frameChunkId(0, 'd'u32, 'c'u32)
 
 // Returns `id` as the four characters a file stores, for an error message.
 //
@@ -647,194 +597,4 @@ private func readChunkIdAt(source: *Source, offset: u64)->u32 fail
 {
     source.seek(offset)
     return readValue'u32(source)
-}
-
-// Writes AVI files one frame at a time, compressing each of them as a JPEG image.
-//
-// Motion JPEG codes every frame on its own, so an encoded stream seeks anywhere at the cost of
-// one frame and survives losing any part of itself, which is what a container written while it
-// is being recorded needs. The totals the header carries — the size of the file, the size of the
-// frame list, the number of frames — are reserved when the header is written and rewritten once
-// the last frame lands, so encoding never holds more than one frame.
-struct Encoder
-{
-    internal
-    {
-        info:          StreamInfo           // Geometry and rate the stream was opened with.
-        index:         Array'IndexEntry     // One entry per written frame, written as `idx1`.
-        mainHeader:    u64                  // Offset of the `avih` payload.
-        streamHeader:  u64                  // Offset of the `strh` payload.
-        frameList:     u64                  // Offset of the `movi` identifier.
-        frameListSize: u64                  // Offset of the size field of the `movi` list.
-        largestFrame:  u64                  // Size of the largest frame written, in bytes.
-    }
-}
-
-impl IEncoder for Encoder
-{
-    mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
-
-    mtd impl begin(sink: *Sink, info: StreamInfo) fail
-    {
-        if info.width > MaxFrameSide or info.height > MaxFrameSide do
-            fail UnsupportedFormatError{"AVI frame dimensions exceed what the container can describe"}
-
-        .info = info
-        writeValue(sink, RiffId)
-        writeValue(sink, 0'u32)
-        writeValue(sink, AviId)
-
-        writeValue(sink, ListId)
-        writeValue(sink, cast(u32) HeaderListSize)
-        writeValue(sink, HeaderListId)
-
-        writeValue(sink, MainHeaderId)
-        writeValue(sink, cast(u32) #sizeof(MainHeader))
-        .mainHeader = sink.position()
-        writeValue(sink, .createMainHeader())
-
-        writeValue(sink, ListId)
-        writeValue(sink, cast(u32) StreamListSize)
-        writeValue(sink, StreamListId)
-
-        writeValue(sink, StreamHeaderId)
-        writeValue(sink, cast(u32) #sizeof(StreamHeader))
-        .streamHeader = sink.position()
-        writeValue(sink, .createStreamHeader())
-
-        writeValue(sink, StreamFormatId)
-        writeValue(sink, cast(u32) #sizeof(Bmp.Header))
-        writeValue(sink, .createFormatHeader())
-
-        writeValue(sink, ListId)
-        .frameListSize = sink.position()
-        writeValue(sink, 0'u32)
-        .frameList = sink.position()
-        writeValue(sink, FrameListId)
-    }
-
-    mtd impl addFrame(sink: *Sink, image: Image) fail
-    {
-        var options: Jpg.EncodeOptions
-        options.quality = FrameQuality
-
-        var encoded = image.encode(JpegName, options)
-        encoded.makeLinear()
-
-        let payload = encoded.toSlice()!
-        let size    = @countof(payload)
-        .reserve(sink, size)
-
-        .index.add({cast(u32) (sink.position() - .frameList), cast(u32) size})
-        writeValue(sink, FrameChunkId)
-        writeValue(sink, cast(u32) size)
-        sink.write(payload)
-
-        // RIFF pads an odd payload so the next chunk starts on an even offset.
-        if size & 1 do
-            writeValue(sink, 0'u8)
-        .largestFrame = Math.max(.largestFrame, size)
-    }
-
-    mtd impl end(sink: *Sink) fail
-    {
-        let frameEnd = sink.position()
-        writeValue(sink, IndexId)
-        writeValue(sink, cast(u32) (.index.count * IndexEntrySize))
-        for entry in .index
-        {
-            writeValue(sink, FrameChunkId)
-            writeValue(sink, IndexKeyFrame)
-            writeValue(sink, entry.offset)
-            writeValue(sink, entry.size)
-        }
-
-        .patchTotals(sink, frameEnd)
-    }
-}
-
-impl Encoder
-{
-    // Offset of the size field of the file, which is the first total to be rewritten.
-    private const RiffSizeOffset = 4'u64
-
-    // Fails unless a frame of `size` bytes still fits in what the container can address.
-    //
-    // Every size in the container is a 32-bit field, so a stream that would run past four
-    // gigabytes is refused while it is still correct rather than written with a size that wraps.
-    private mtd const reserve(sink: *Sink, size: u64) fail
-    {
-        let projected = sink.position() + ChunkHeaderSize + size + 1 + ChunkHeaderSize + (.index.count + 1) * IndexEntrySize
-        if projected > MaxStreamSize do
-            fail UnsupportedFormatError{"AVI stream exceeds the four gigabytes the container can address"}
-    }
-
-    // Returns the header of the file, with the totals it cannot know yet left at zero.
-    private mtd const createMainHeader()->MainHeader
-    {
-        var result: retval
-        result.microSecPerFrame = cast(u32) (1_000_000'u64 * cast(u64) .info.frameRate.denominator() / cast(u64) .info.frameRate.numerator())
-        result.flags            = MainHasIndex
-        result.streams          = 1
-        result.width            = cast(u32) .info.width
-        result.height           = cast(u32) .info.height
-        return result
-    }
-
-    // Returns the header of the video stream, with its length left at zero.
-    private mtd const createStreamHeader()->StreamHeader
-    {
-        var result: retval
-        result.kind        = VideoStreamId
-        result.handler     = MotionJpegIds[0]
-        result.scale       = .info.frameRate.denominator()
-        result.rate        = .info.frameRate.numerator()
-        result.quality     = UnknownQuality
-        result.frameRight  = cast(s16) .info.width
-        result.frameBottom = cast(s16) .info.height
-        return result
-    }
-
-    // Returns the bitmap header describing the frames of the video stream.
-    private mtd const createFormatHeader()->Bmp.Header
-    {
-        var result: retval
-        result.biSize        = cast(u32) #sizeof(Bmp.Header)
-        result.biWidth       = .info.width
-        result.biHeight      = .info.height
-        result.biPlanes      = 1
-        result.biBitCount    = 24
-        result.biCompression = MotionJpegIds[0]
-        result.biSizeImage   = cast(u32) (cast(u64) .info.width * cast(u64) .info.height * 3)
-        return result
-    }
-
-    // Rewrites the header fields only the finished stream knows.
-    private mtd const patchTotals(sink: *Sink, frameEnd: u64) fail
-    {
-        let frames = cast(u32) .index.count
-
-        var main = .createMainHeader()
-        main.totalFrames         = frames
-        main.suggestedBufferSize = cast(u32) .largestFrame
-        main.maxBytesPerSec      = .bytesPerSecond(frameEnd)
-        patchValue(sink, .mainHeader, main)
-
-        var stream = .createStreamHeader()
-        stream.length              = frames
-        stream.suggestedBufferSize = cast(u32) .largestFrame
-        patchValue(sink, .streamHeader, stream)
-
-        patchValue(sink, RiffSizeOffset, cast(u32) (sink.position() - ChunkHeaderSize))
-        patchValue(sink, .frameListSize, cast(u32) (frameEnd - .frameList))
-    }
-
-    // Returns the average data rate of the finished stream, in bytes per second.
-    private mtd const bytesPerSecond(frameEnd: u64)->u32
-    {
-        let seconds = cast(f64) .index.count * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
-        if seconds <= 0 do
-            return 0
-        return cast(u32) Math.min(cast(f64) (frameEnd - .frameList) / seconds, cast(f64) Swag.U32.Max)
-    }
 }

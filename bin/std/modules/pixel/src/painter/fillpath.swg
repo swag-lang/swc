@@ -1,5 +1,58 @@
 using Core, Core.Math
 
+private func contourPointCount(polygon: const *Polygon)->u64
+{
+    let count = polygon.points.count
+    if count > 1 and polygon.points[0].isEqualEpsilon(polygon.points[count - 1]) do
+        return count - 1
+    return count
+}
+
+private func contoursIntersect(a, b: const *Polygon)->bool
+{
+    if a.maxBounds.x < b.minBounds.x or b.maxBounds.x < a.minBounds.x or a.maxBounds.y < b.minBounds.y or b.maxBounds.y < a.minBounds.y do
+        return false
+
+    let countA = contourPointCount(a)
+    let countB = contourPointCount(b)
+    if countA < 2 or countB < 2 do
+        return false
+
+    for i in countA
+    {
+        let a0 = a.points[i]
+        let a1 = a.points[(i + 1) % countA]
+        for j in countB
+        {
+            let b0 = b.points[j]
+            let b1 = b.points[(j + 1) % countB]
+            if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects do
+                return true
+        }
+    }
+
+    return false
+}
+
+private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
+{
+    for p in pathList.paths where !p.polygon.isSimple do
+        return true
+
+    for i in pathList.paths.count
+    {
+        var j = i + 1
+        while j < pathList.paths.count
+        {
+            defer j += 1
+            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon) do
+                return true
+        }
+    }
+
+    return false
+}
+
 public impl Painter
 {
     // Emit a connected, mitered antialiasing fringe ring around a closed polygon
@@ -165,19 +218,22 @@ public impl Painter
         // Flatten all paths
         pathList.flatten(.curState.paintQuality)
 
-        // Poly2Tri expects simple contours. The single-path overload already cleans a
-        // self-intersecting polygon, but callers that naturally produce a path list (PDF and
-        // SVG among them) must get the same protection before any contour reaches the
-        // tessellator. Keep the common case allocation-free and preserve its triangulation
-        // cache; only copy and normalize malformed geometry.
-        for p in pathList.paths where !p.polygon.isSimple
+        // Poly2Tri expects simple, non-intersecting contours. Individual simplicity is not
+        // enough: holes can cross or meet the outer ring or one another. Keep the common case
+        // allocation-free and normalize the whole fill only when one of those conditions occurs.
+        if pathListNeedsCleaning(pathList)
         {
             var cleaned = pathList[]
             cleaned.clean()
-            .fillPath(&cleaned, brush)
+            .fillPreparedPathList(&cleaned, brush)
             return
         }
 
+        .fillPreparedPathList(pathList, brush)
+    }
+
+    private mtd fillPreparedPathList(pathList: *LinePathList, brush: Brush)
+    {
         var flush: #null *LinePath
 
         // Everything in the cache ?

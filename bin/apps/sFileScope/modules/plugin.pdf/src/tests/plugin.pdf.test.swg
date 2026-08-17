@@ -34,7 +34,7 @@ private func createPdfFixture()->String
     let view = cast(*PdfPluginView) result.view!
     view.resize(960, 640)
     view.applyLayout()
-    @assert(view.document.pages.count == 2)
+    @assert(view.reader.pageCount() == 2)
     @assert(view.imageView.isFitted)
     @assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())
     expect view.showPage(1)

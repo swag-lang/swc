@@ -92,20 +92,23 @@ impl Clip
     // `fileName` selects the codec by extension; no file is opened. The result holds the whole
     // encoded stream, which is what a clip already is; [[Video.Clip.save]] streams to a file
     // instead. Fails when the clip has no frame.
-    mtd const encode(fileName: string)->ConcatBuffer fail
+    //
+    // `options` is `null` for the defaults of the selected format, or points to that format's
+    // options structure, such as [[Avi.EncodeOptions]].
+    mtd const encode(fileName: string, options: #null any = null)->ConcatBuffer fail
     {
         .validateEncode(fileName)
 
         var result: retval
-        var writer = Writer.createMemory(fileName, &result, .frameWidth, .frameHeight, .rate)
+        var writer = Writer.createMemory(fileName, &result, .frameWidth, .frameHeight, .rate, options)
         .write(&writer)
         return result
     }
 
     // Encodes the clip to one contiguous owned byte array.
-    mtd const encodeToBytes(fileName: string)->Array'u8 fail
+    mtd const encodeToBytes(fileName: string, options: #null any = null)->Array'u8 fail
     {
-        var buffer = try .encode(fileName)
+        var buffer = try .encode(fileName, options)
         buffer.makeLinear()
 
         var result: retval
@@ -117,11 +120,17 @@ impl Clip
     //
     // Frames are encoded and written one at a time, so saving never holds the encoded stream in
     // addition to the clip.
-    mtd const save(fileName: string) fail
+    //
+    // ## Example
+    //
+    // ```swag
+    // try clip.save("preview.avi", Video.Avi.EncodeOptions{quality: 80})
+    // ```
+    mtd const save(fileName: string, options: #null any = null) fail
     {
         .validateEncode(fileName)
 
-        var writer = Writer.create(fileName, .frameWidth, .frameHeight, .rate)
+        var writer = Writer.create(fileName, .frameWidth, .frameHeight, .rate, options)
         .write(&writer)
     }
 

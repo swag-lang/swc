@@ -153,6 +153,7 @@ public impl Face
         let allocationAllocator = (allocator orelse @getcontext().allocator)!
         let faceData            = Memory.new'FaceImpl(allocationAllocator)
         faceData.allocationAllocator = allocationAllocator
+        defer #fail Memory.delete(faceData, allocationAllocator)
         faceData.fontData.resize(@countof(bytes))
         let fontData = faceData.fontData.buffer!
         Memory.copy(fontData, @dataof(bytes), @countof(bytes))

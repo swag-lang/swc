@@ -30,7 +30,7 @@ struct Node
 
 struct PdfParser
 {
-    bytes:   const [..] u8
+    bytes:   const [..] u8 = cast(const [..] u8) ""
     pos:     u64
     nodes:   Array'Node
     objects: HashTable'(u32, u32)

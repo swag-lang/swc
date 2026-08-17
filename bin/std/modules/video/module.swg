@@ -38,6 +38,11 @@ Two codecs ship in the box:
   ones. It seeks through the index the container carries rather than through the
   frames themselves, so a seek costs one frame whatever the length of the file.
 
+Decoding and encoding are separate implementations of a format, under `src/decode`
+and `src/encode`, laid out as the Pixel image codecs are. A format that has
+something to choose takes an options structure the same way they do, such as
+[[Avi.EncodeOptions]].
+
 Neither format carries audio. Alpha is discarded during encoding, and decoded
 frames use [[Pixel.PixelFormat.RGB8]]. Malformed streams, unsupported codecs,
 inconsistent frames, and file access errors use Swag's normal `fail` mechanism.

@@ -8,15 +8,9 @@ reader costs one frame of memory whatever the length of the file.
 What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
 than in design: what is missing is decoders.
 
-### T-423 — Motion JPEG frames that omit their Huffman tables are refused
-
-- Intent: a camcorder writes the abbreviated JPEG the specification allows — no `DHT` segment,
-  because the decoder is expected to use the standard tables of ITU-T T.81 Annex K. `Pixel`'s JPEG
-  decoder needs the segment, so those AVI files fail on their first frame with a message about a
-  malformed image, which is exactly the file class an AVI reader exists to open.
-- Complete when: a JPEG stream with no Huffman table decodes with the standard tables, in
-  `std/pixel` where every other caller benefits from it, with a test built by stripping the `DHT`
-  segment from a JPEG this repository encodes.
+The picture codec of an AVI stream is the Pixel one, so what Motion JPEG this module reads is
+decided there — [T-426](todo.pixel.md#t-426--jpeg-chroma-sampling-is-limited-to-one-block-per-unit)
+is the layout it does not read yet.
 
 ### T-424 — A video stream carries no sound
 

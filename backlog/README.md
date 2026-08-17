@@ -53,6 +53,7 @@ allowed to stop.
 | [findings.gui.md](findings.gui.md) | `std/gui`, and the widgets and dialogs it ships |
 | [findings.snapforge.md](findings.snapforge.md) | The sSnapForge application |
 | [findings.tooling.md](findings.tooling.md) | The build, the sandbox, and the test harness |
+| [findings.truetype.md](findings.truetype.md) | `std/truetype` font parsing and rasterization |
 
 Put an entry in the file whose area it will be *fixed* in, not the one it was noticed from. Create
 a new file only when a real cluster forms — a category holding one entry costs more to navigate
@@ -76,8 +77,8 @@ The identifier is how an entry is named everywhere else — in conversation, in 
 another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
 changes file; the identifier does not.
 
-Next identifier: F-154
-Next identifier: T-426
+Next identifier: F-155
+Next identifier: T-427
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

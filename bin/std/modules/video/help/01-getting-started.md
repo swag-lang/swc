@@ -49,20 +49,56 @@ computes the offset from the constant size of a frame, and AVI reads it from the
 container carries. Neither holds a decoded frame between two calls, which is why decoding a
 stream out of order costs the same as decoding it in order.
 
+## Controlling how a stream is encoded
+
+A format that has something to configure takes an options structure, exactly as the Pixel image
+encoders do. Pass it to [[Video.Clip.save]], [[Video.Clip.encode]] or [[Video.Writer.create]];
+passing nothing takes the defaults of the selected format.
+
+```swag
+try clip.save("capture.avi", Video.Avi.EncodeOptions{quality: 80})
+```
+
+[[Avi.EncodeOptions]] is the only one today, because YUV4MPEG2 writes one plane layout and one
+colour range and so has nothing to choose.
+
 ## Adding a format
 
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]] and selected
-by filename extension, exactly like the image codecs of the Pixel module. A codec reads through
-[[Video.Source]] and writes through [[Video.Sink]], which are what keep it independent of files
-and memory alike, and it implements random access itself: a fixed frame size computes an offset,
-an indexed container reads the index, and a format with inter-coded frames seeks to a keyframe
-and decodes forward.
+by filename extension, exactly like the image codecs of the Pixel module — and laid out the same
+way, one file per format on each side:
+
+```
+src/decode/reader.swg    the registry, and Video.Reader
+src/decode/y4m.swg       Y4m.Decoder, and the layout of the format
+src/decode/avi.swg       Avi.Decoder, and the layout of the container
+src/encode/writer.swg    the registry, and Video.Writer
+src/encode/y4m.swg       Y4m.Encoder
+src/encode/avi.swg       Avi.Encoder
+```
+
+Decoding and encoding one format are two independent implementations that share only its binary
+layout, and that layout is declared on the decoding side, where reading it comes first.
+
+A codec reads through [[Video.Source]] and writes through [[Video.Sink]], which are what keep it
+independent of files and memory alike, and it implements random access itself: a fixed frame size
+computes an offset, an indexed container reads the index, and a format with inter-coded frames
+seeks to a keyframe and decodes forward.
 
 A container whose header carries a total it only learns at the end — the size of the file, the
 number of frames, the offset of an index — reserves that field when it writes the header and
 rewrites it with [[Video.Sink.patch]] once the last frame lands. That is what keeps a writer at
 the memory cost of one frame instead of the cost of the result, and it is how the AVI encoder
 works.
+
+## What a codec is tested against
+
+Every decoding test reads a file from `src/unittests/datas/`, and none of those files is produced
+by this module: a codec that only reads back what it wrote proves nothing about the files people
+have. The corpus holds a camera recording, sequences from the standard research collection, one
+clip encoded nine ways by ffmpeg, and copies of that clip with a container shape injected into
+them that no single writer produces. `datas/SOURCES.md` states where each one came from, what it
+exercises, and under what terms it is redistributed.
 
 Neither format has an audio stream. Audio tracks and synchronization will belong to future
 container codecs and will compose with the standard Audio module rather than adding a second

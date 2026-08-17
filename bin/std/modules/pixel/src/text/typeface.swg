@@ -14,6 +14,7 @@ public struct TypeFace
         allocationAllocator: IAllocator = undefined     // Allocator that owns this cached value.
         buffer:              Array'u8                   // Owned font bytes kept alive for the native face.
         face:                *Face      = undefined     // Borrowed TrueType face backed by `buffer`.
+        faceLoaded:          bool                       // Whether `face` can be destroyed during cleanup.
         forceBoldDiv:        u32        = 11            // Em-size divisor used for synthetic bold strength.
         forceItalic:         bool                       // Whether every rasterized glyph is synthetically slanted.
         forceBold:           bool                       // Whether every rasterized glyph is synthetically emboldened.
@@ -68,7 +69,7 @@ public impl TypeFace
     // Destroys the native face associated with this value.
     mtd opDrop()
     {
-        if .face do
+        if .faceLoaded do
             .face.destroy()
     }
 
@@ -98,7 +99,8 @@ public impl TypeFace
         tf.buffer   = bytes
 
         let face = try Face.load(tf.buffer.toSlice(), allocator)
-        tf.face = face!
+        tf.face       = face!
+        tf.faceLoaded = true
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -134,7 +136,8 @@ public impl TypeFace
         }
 
         let face = try Face.load(tf.buffer.toSlice(), allocator)
-        tf.face = face!
+        tf.face       = face!
+        tf.faceLoaded = true
 
         g_HashTypeFace.add(fullname, tf)
         return tf

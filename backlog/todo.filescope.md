@@ -187,7 +187,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | --- | --- | --- | --- | --- |
 | WAV PCM and float | `.wav` | full, streamed | ADPCM | T-169 |
 | Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | audio | T-424 |
-| Motion JPEG video | `.avi` | full, silent, seeked through the container index | audio, and frames with no Huffman table | T-423, T-424 |
+| Motion JPEG video | `.avi` | full, silent, seeked through the container index | audio, and the chroma layouts ffmpeg writes | T-426, T-424 |
 | Compressed audio | `.mp3` `.flac` `.ogg` `.opus` `.m4a` | structure | Audio codec, then a viewer path | T-404 |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | signature | box, EBML and RIFF tree | T-412 |
 | Video playback | `.mp4` `.mkv` `.webm` `.mov` | none | decode and play the picture | T-420 |

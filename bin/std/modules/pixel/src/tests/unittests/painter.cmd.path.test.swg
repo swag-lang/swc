@@ -74,6 +74,34 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.fill.hole")
 }
 
+// Several holes in this real PDF glyph-like outline meet at exact vertices. Each contour is
+// simple by itself, but Poly2Tri also requires contours to be mutually disjoint.
+#test
+{
+    func addContour(list: *LinePathList, points: const [..] Math.Vector2)
+    {
+        let path = list.newPath()
+        path.start(points[0].x, points[0].y)
+        for point in points where @index do
+            path.lineTo(point.x, point.y)
+        path.close()
+    }
+
+    var painter: Painter
+    var list:    LinePathList
+    addContour(&list, [{115.8, 226}, {118.5, 232.7}, {119, 233.8}, {117.9, 233.2}, {115.5, 231.7}, {112.9, 233.2}, {111.9, 233.8}, {112.3, 232.7}, {115.1, 226}, {115.5, 225.1}])
+    addContour(&list, [{117.8, 233}, {118.2, 232.8}, {118.4, 232.5}, {117.3, 231.9}])
+    addContour(&list, [{115.5, 227.2}, {113.6, 231.8}, {115.2, 230.9}, {115.5, 230.8}, {115.6, 230.9}, {117.3, 231.9}])
+    addContour(&list, [{115.1, 226.3}, {115.5, 227.2}, {115.8, 226.3}, {115.5, 226.2}])
+    addContour(&list, [{115.2, 231.6}, {115.5, 231.7}, {115.6, 231.6}, {115.5, 231.3}])
+    addContour(&list, [{112.5, 232.5}, {112.7, 232.8}, {113.1, 233}, {113.6, 231.8}])
+
+    painter.begin()
+    painter.fillPath(&list, Color.fromArgb(Argb.Red))
+    painter.end()
+    Testing.assertGolden(&painter, "path.fill.touching-holes")
+}
+
 #test
 {
     var painter: Painter

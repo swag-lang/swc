@@ -2,26 +2,6 @@
 
 using Core, Core.Errors, Pixel
 
-// Describes the video stream a decoder opened.
-struct StreamInfo
-{
-    public
-    {
-        width:  s32     // Frame width, in pixels.
-        height: s32     // Frame height, in pixels.
-
-        frameRate: FrameRate     // Exact playback rate.
-
-        // Number of frames in the stream, or zero when the format cannot report it without
-        // decoding the whole stream.
-        //
-        // Zero is not an error and not an empty stream: it means the count is unknown, so a
-        // caller reads frames in order until decoding fails at the end of the stream instead
-        // of driving a bounded loop.
-        frameCount: u64
-    }
-}
-
 // One registered decoder: the format it reads, and the type that reads it.
 internal struct DecoderDesc
 {
@@ -37,9 +17,9 @@ internal struct DecoderDesc
 // ten-frame stream and on a ten-hour one.
 //
 // The two positioning operations are separate on purpose. `seekFrame` is where a format
-// implements random access — a trivial multiplication for a fixed frame size, a keyframe
-// lookup followed by decoding forward for a compressed format — while `decodeFrame` only
-// ever decodes the frame the decoder is already positioned on.
+// implements random access — a trivial multiplication for a fixed frame size, an index lookup
+// for a container that carries one, a keyframe followed by decoding forward for an inter-coded
+// format — while `decodeFrame` only ever decodes the frame the decoder is already positioned on.
 interface IDecoder
 {
     // Describes the format this decoder reads.
@@ -147,7 +127,7 @@ impl Reader
     // ## Example
     //
     // ```swag
-    // var reader = try Video.Reader.open("clip.y4m")
+    // var reader = try Video.Reader.open("clip.avi")
     // var frame: Pixel.Image
     // for index in reader.frameCount() do
     //     try reader.decodeFrameInto(&frame, index)

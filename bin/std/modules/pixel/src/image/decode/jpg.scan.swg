@@ -337,8 +337,11 @@ impl Decoder
             }
             else
             {
+                // The decoder reads the four layouts a chroma plane of one block per minimum
+                // coded unit describes, which is every subsampling in common use. A frame whose
+                // chroma samples more than that is well formed, and simply not read here.
                 if (.compSampH[1] != 1) or (.compSampV[1] != 1) or (.compSampH[2] != 1) or (.compSampV[2] != 1) do
-                    fail InvalidFormatError{"invalid samp factors"}
+                    fail UnsupportedFormatError{Errors.mkString(Format.toString("JPEG chroma sampling of %x% is not supported", .compSampH[1], .compSampV[1]))}
 
                 if (.compSampH[0] == 1) and (.compSampV[0] == 1)
                 {
@@ -582,6 +585,12 @@ impl Decoder
 
     mtd checkHuffTables() fail
     {
+        // An abbreviated stream defines no entropy coding of its own and relies on the tables of
+        // the specification, which is exactly how a camera writes the Motion JPEG frames of a
+        // recording.
+        if .hasNoHuffTable() do
+            .installDefaultHuffTables()
+
         for i in .compsInScan
         {
             if (.spectralStart == 0) and (.huffNum[.compDcTab[.compList[i]]].isEmpty()) do

@@ -3,321 +3,175 @@
 
 using Core, Core.Errors, Pixel
 
-// One colour of the quadrant frame the encoding tests compress.
-private struct AviColor
+// One point of a decoded frame, and the colour an independent decoder reads there.
+//
+// Every expected value in this file comes from decoding the same fixture with ffmpeg, so a
+// change in this module cannot move the expectation with it.
+private struct AviProbe
 {
+    frame:   u64
+    x, y:    s32
     r, g, b: u8
 }
 
-// The four quadrants, in the order the top-left corner of a frame reaches them.
-private const AviQuadrants: [4] AviColor = [{255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {255, 255, 255}]
-
-// Returns the quadrant colour at the top-left coordinates `x, y` of a frame of `size` pixels.
-private func aviQuadrantColor(size, x, y: s32)->AviColor
+// Reads `fileName` and asserts that every probe holds.
+private func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s32)
 {
-    return AviQuadrants[(y < size / 2 ? 0 : 2) + (x < size / 2 ? 0 : 1)]
+    var reader = expect Reader.open(videoFixturePath(fileName))
+    var frame: Image
+    for probe in probes
+    {
+        expect reader.decodeFrameInto(&frame, probe.frame)
+        videoAssertColor(frame.pixelColor(probe.x, probe.y), probe.r, probe.g, probe.b, tolerance)
+    }
 }
 
-// Returns a frame of four solid quadrants.
+// A recording written by a camera, which is the file class an AVI reader exists for.
 //
-// Solid blocks are what makes a lossy round trip provable: the middle of a quadrant is far
-// enough from every edge that compressing it and reading it back cannot move it much, while
-// four different quadrants still prove the frame was not turned over or transposed.
-private func aviQuadrantImage(size: s32)->Image
-{
-    var result: retval = Image.create(size, size, .RGB8)
-    for y in size
-    {
-        for x in size
-        {
-            let color = aviQuadrantColor(size, x, y)
-            let pixel = result.pixels.buffer! + cast(u64) (size - y - 1) * cast(u64) result.rowStride + cast(u64) x * 3
-            pixel[0] = color.r
-            pixel[1] = color.g
-            pixel[2] = color.b
-        }
-    }
-
-    return result
-}
-
-// Asserts that `frame` is the quadrant frame, sampled at the middle of each quadrant.
-private func aviAssertQuadrants(frame: Image, size: s32, tolerance: s32)
-{
-    let samples: [2] s32 = [size / 4, size - size / 4 - 1]
-    for y in samples
-    {
-        for x in samples
-        {
-            let color = aviQuadrantColor(size, x, y)
-            videoAssertColor(frame.pixelColor(x, y), color.r, color.g, color.b, tolerance)
-        }
-    }
-}
-
-// Returns the little-endian 32-bit value the container stores at `offset`.
-private func aviReadU32(bytes: const [..] u8, offset: u64)->u32
-{
-    var result = 0'u32
-    for shift in 4 do
-        result |= cast(u32) bytes[offset + cast(u64) shift] << cast(u32) (shift * 8)
-    return result
-}
-
-// Reports whether the four characters of `id` sit at `offset`.
-private func aviHasId(bytes: const [..] u8, offset: u64, id: string)->bool
-{
-    for index in 4 where bytes[offset + cast(u64) index] != id[index] do
-        return false
-    return true
-}
-
-// Assembles an AVI file byte by byte.
-//
-// A decoding test needs to state exactly what a container says, including the things no encoder
-// writes: an index counted from the file rather than from the frame list, a frame chunk with no
-// payload, a codec nothing supports.
-private struct AviWriter
-{
-    bytes: Array'u8
-}
-
-private impl AviWriter
-{
-    // Appends one little-endian 16-bit value.
-    mtd addU16(value: u16)
-    {
-        .bytes.add(cast(u8) (value & 0xFF))
-        .bytes.add(cast(u8) (value >> 8))
-    }
-
-    // Appends one little-endian 32-bit value.
-    mtd addU32(value: u32)
-    {
-        for shift in 4 do
-            .bytes.add(cast(u8) ((value >> cast(u32) (shift * 8)) & 0xFF))
-    }
-
-    // Appends the four characters of a chunk identifier.
-    mtd addId(id: string)
-    {
-        for index in 4 do
-            .bytes.add(id[index])
-    }
-
-    // Opens a chunk and returns where its size field went.
-    mtd beginChunk(id: string)->u64
-    {
-        .addId(id)
-        let result = .bytes.count
-        .addU32(0)
-        return result
-    }
-
-    // Closes the chunk whose size field is at `at`, and pads an odd payload the way RIFF does.
-    mtd endChunk(at: u64)
-    {
-        let size  = .bytes.count - at - 4
-        let value = cast(u32) size
-        for shift in 4 do
-            .bytes[at + cast(u64) shift] = cast(u8) ((value >> cast(u32) (shift * 8)) & 0xFF)
-        if size & 1 do
-            .bytes.add(0)
-    }
-}
-
-// The container a decoding test builds, and the frames it holds.
-private struct AviCase
-{
-    width:           s32    = 2
-    height:          s32    = 2
-    streamKind:      string = "vids"
-    compression:     string = "DIB "
-    bitCount:        u16    = 24
-    scale:           u32    = 1
-    rate:            u32    = 25
-    isTopDown:       bool
-    hasIndex:        bool   = true
-    isIndexAbsolute: bool
-    isGrouped:       bool
-    frames:          Array'(Array'u8)
-}
-
-private impl AviCase
-{
-    // Adds one frame payload, exactly as the container will store it.
-    mtd addFrame(payload: const [..] u8)
-    {
-        var frame: Array'u8
-        frame.add(payload)
-        .frames.add(#move frame)
-    }
-
-    // Adds one frame that carries no picture, which is how the container repeats the previous one.
-    mtd addRepeatedFrame()
-    {
-        var frame: Array'u8
-        .frames.add(#move frame)
-    }
-
-    // Returns the bytes of the described file.
-    mtd build()->Array'u8
-    {
-        var file: AviWriter
-        let riff = file.beginChunk("RIFF")
-        file.addId("AVI ")
-        .writeHeaderList(&file)
-
-        var offsets: Array'u64
-        let list      = file.beginChunk("LIST")
-        let frameList = file.bytes.count
-        file.addId("movi")
-        for position in .frames.count
-        {
-            // An OpenDML file wraps each set of frames in a `rec ` list, so the walk has to
-            // descend one level to reach them.
-            let group = .isGrouped ? file.beginChunk("LIST") : 0
-            if .isGrouped do
-                file.addId("rec ")
-
-            let frame = &.frames[position]
-            offsets.add(file.bytes.count)
-            let chunk = file.beginChunk("00db")
-            file.bytes.add(frame.toSlice())
-            file.endChunk(chunk)
-            if .isGrouped do
-                file.endChunk(group)
-        }
-
-        file.endChunk(list)
-        if .hasIndex
-        {
-            let table = file.beginChunk("idx1")
-            for offset, position in offsets
-            {
-                file.addId("00db")
-                file.addU32(0x10)
-                file.addU32(cast(u32) (.isIndexAbsolute ? offset : offset - frameList))
-                file.addU32(cast(u32) .frames[position].count)
-            }
-
-            file.endChunk(table)
-        }
-
-        file.endChunk(riff)
-        return #move file.bytes
-    }
-
-    // Writes the `hdrl` list, which describes the file and its single stream.
-    private mtd writeHeaderList(file: *AviWriter)
-    {
-        let list = file.beginChunk("LIST")
-        file.addId("hdrl")
-
-        let main = file.beginChunk("avih")
-        file.addU32(1_000_000 * .scale / .rate)
-        file.addU32(0)
-        file.addU32(0)
-        file.addU32(.hasIndex ? 0x10 : 0)
-        file.addU32(cast(u32) .frames.count)
-        file.addU32(0)
-        file.addU32(1)
-        file.addU32(0)
-        file.addU32(cast(u32) .width)
-        file.addU32(cast(u32) .height)
-        for 4 do
-            file.addU32(0)
-        file.endChunk(main)
-
-        let stream = file.beginChunk("LIST")
-        file.addId("strl")
-        .writeStreamHeader(file)
-        .writeFormatHeader(file)
-        file.endChunk(stream)
-
-        file.endChunk(list)
-    }
-
-    // Writes the `strh` chunk of the stream.
-    private mtd writeStreamHeader(file: *AviWriter)
-    {
-        let chunk = file.beginChunk("strh")
-        file.addId(.streamKind)
-        .writeCompression(file)
-        file.addU32(0)
-        file.addU16(0)
-        file.addU16(0)
-        file.addU32(0)
-        file.addU32(.scale)
-        file.addU32(.rate)
-        file.addU32(0)
-        file.addU32(cast(u32) .frames.count)
-        file.addU32(0)
-        file.addU32(0)
-        file.addU32(0)
-        for 4 do
-            file.addU16(0)
-        file.endChunk(chunk)
-    }
-
-    // Writes the codec identifier, which the `BI_RGB` spelling stores as a zero rather than a name.
-    private mtd writeCompression(file: *AviWriter)
-    {
-        if !@countof(.compression) do
-            file.addU32(0)
-        else do
-            file.addId(.compression)
-    }
-
-    // Writes the `strf` chunk, which is the bitmap header describing the frames.
-    private mtd writeFormatHeader(file: *AviWriter)
-    {
-        // A top-down frame is spelled with a negative height, which the field stores as bits.
-        let stored = .isTopDown ? 0 - .height : .height
-        let chunk  = file.beginChunk("strf")
-        file.addU32(40)
-        file.addU32(cast(u32) .width)
-        file.addU32(cast #bit (u32) stored)
-        file.addU16(1)
-        file.addU16(.bitCount)
-        .writeCompression(file)
-        file.addU32(0)
-        file.addU32(0)
-        file.addU32(0)
-        file.addU32(0)
-        file.addU32(0)
-        file.endChunk(chunk)
-    }
-}
-
-// One uncompressed 2x2 frame, stored the way a bitmap stores it: blue and white on the top row,
-// red and green below, each row padded from six bytes to eight.
-private const AviBottomUpFrame: [16] u8 = [
-    0, 0, 255, 0, 255, 0, 0, 0,
-    255, 0, 0, 255, 255, 255, 0, 0]
-
-// The same frame with its two rows exchanged, so the two row orders decode to the same picture.
-private const AviTopDownFrame: [16] u8 = [
-    255, 0, 0, 255, 255, 255, 0, 0,
-    0, 0, 255, 0, 255, 0, 0, 0]
-
-// Asserts that `frame` is the picture both 2x2 fixtures describe.
-private func aviAssertCornerFrame(frame: Image)
-{
-    videoAssertColor(frame.pixelColor(0, 0), 0, 0, 255, tolerance: 0)
-    videoAssertColor(frame.pixelColor(1, 0), 255, 255, 255, tolerance: 0)
-    videoAssertColor(frame.pixelColor(0, 1), 255, 0, 0, tolerance: 0)
-    videoAssertColor(frame.pixelColor(1, 1), 0, 255, 0, tolerance: 0)
-}
-
-// A clip encoded as Motion JPEG reads back as the picture it was built from, and the container
-// around it says what the frames say.
+// `cogliati-turning-pages.avi` was written by a Canon camera and nothing here matches what this
+// module produces: its frames are 4:2:2 Motion JPEG with restart intervals and no Huffman table
+// of their own, it interleaves a PCM audio stream this module has no use for, and its header
+// list carries chunks this decoder never heard of.
 #test
 {
-    const Size = 16's32
+    var reader = expect Reader.open(videoFixturePath("cogliati-turning-pages.avi"))
+    @assert(reader.width() == 160 and reader.height() == 120)
+    @assert(reader.frameCount() == 233)
+
+    // The camera states its rate as 1000000/66666 rather than 15/1, and the decoder keeps what
+    // the file says instead of rounding it to the rate the camera meant.
+    @assert(reader.frameRate() == expect FrameRate.create(1_000_000, 66_666))
+    @assert(Math.isEqualEpsilon(reader.frameRate().framesPerSecond(), 15.0, 0.001))
+    @assert(Math.isEqualEpsilon(reader.durationInSeconds(), 15.53, 0.01))
+
+    // The interleaved sound chunks are not pictures, and counting them as frames would be the
+    // easiest mistake to make here.
+    const Probes: [3] AviProbe = [{0, 40, 30, 151, 119, 92},
+                                  {116, 80, 60, 160, 117, 84},
+                                  {232, 120, 90, 142, 105, 74}]
+    aviAssertProbes("cogliati-turning-pages.avi", Probes, tolerance: 6)
+}
+
+// The same recording read backwards gives the same pictures as reading it forwards, because the
+// container index says where every frame lies rather than the decoder remembering.
+#test
+{
+    const Backwards: [3] AviProbe = [{232, 120, 90, 142, 105, 74},
+                                     {116, 80, 60, 160, 117, 84},
+                                     {0, 40, 30, 151, 119, 92}]
+    aviAssertProbes("cogliati-turning-pages.avi", Backwards, tolerance: 6)
+
+    // Decoding a whole recording holds one frame, so the image the reader fills is the same one
+    // from the first frame to the last.
+    var reader = expect Reader.open(videoFixturePath("cogliati-turning-pages.avi"))
+    var frame: Image
+    expect reader.decodeFrameInto(&frame, 0)
+    let storage = frame.pixels.buffer
+    for index in 8'u64 do
+        expect reader.decodeFrameInto(&frame, index * 29)
+    @assert(frame.pixels.buffer == storage)
+}
+
+// Motion JPEG written by ffmpeg.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-mjpeg-420.avi"))
+    @assert(reader.width() == 64 and reader.height() == 48)
+    @assert(reader.frameCount() == 10)
+    @assert(reader.frameRate() == expect FrameRate.create(25, 1))
+
+    var frame: Image
+    const Sampled: [3] u64 = [0, 1, 9]
+    for index in Sampled
+    {
+        expect reader.decodeFrameInto(&frame, index)
+        videoAssertFixtureFrame(frame, index, tolerance: 4)
+    }
+}
+
+// ffmpeg codes 4:2:2 and 4:4:4 Motion JPEG with two chroma blocks per minimum coded unit, which
+// the Pixel JPEG decoder does not read. The container is opened all the same — the geometry, the
+// rate and the frame table all come out — and only decoding a picture reports the limit.
+#test
+{
+    const Files = ["ffmpeg-mjpeg-422.avi", "ffmpeg-mjpeg-444.avi"]
+    for file in Files
+    {
+        var reader = expect Reader.open(videoFixturePath(file))
+        @assert(reader.width() == 64 and reader.height() == 48)
+        @assert(reader.frameCount() == 10)
+
+        discard catch reader.decodeFrame(0) as sampling
+        @assert(sampling is UnsupportedFormatError)
+    }
+}
+
+// A broadcast rate is a ratio, and the stream header is what carries it exactly.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-mjpeg-ntsc.avi"))
+    @assert(reader.frameRate() == expect FrameRate.create(30_000, 1_001))
+    @assert(reader.frameRate().framesPerSecond() > 29.97 and reader.frameRate().framesPerSecond() < 29.971)
+    videoAssertFixtureFrame(expect reader.decodeFrame(9), 9, tolerance: 4)
+}
+
+// Uncompressed frames, in the two depths the format carries and at a width whose rows need
+// padding. ffmpeg stores them top-down, with a negative bitmap height and no codec name at all.
+#test
+{
+    var deep = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-bgra.avi"))
+    @assert(deep.width() == 32 and deep.height() == 24 and deep.frameCount() == 6)
+    videoAssertFixtureFrame(expect deep.decodeFrame(5), 5, tolerance: 0)
+
+    var flat = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
+    videoAssertFixtureFrame(expect flat.decodeFrame(0), 0, tolerance: 0)
+
+    // 33 pixels of 24 bits fill 99 bytes, and a bitmap row is padded to 100.
+    var odd = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-odd.avi"))
+    @assert(odd.width() == 33 and odd.height() == 25 and odd.frameCount() == 3)
+    for index in 3'u64 do
+        videoAssertFixtureFrame(expect odd.decodeFrame(index), index, tolerance: 0)
+}
+
+// The container shapes a writer other than ffmpeg produces, injected into a file ffmpeg wrote so
+// that only the shape under test differs: rows the other way up, no index at all, an index
+// counted from the file, and frames grouped in the lists an OpenDML file uses.
+#test
+{
+    const Files = ["edited-bottom-up.avi", "edited-no-index.avi", "edited-absolute-index.avi", "edited-record-groups.avi"]
+    for file in Files
+    {
+        var reader = expect Reader.open(videoFixturePath(file))
+        @assert(reader.width() == 32 and reader.height() == 24)
+        @assert(reader.frameCount() == 6)
+        videoAssertFixtureFrame(expect reader.decodeFrame(0), 0, tolerance: 0)
+        videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
+        videoAssertFixtureFrame(expect reader.decodeFrame(3), 3, tolerance: 0)
+    }
+}
+
+// A frame that carries no payload repeats the picture before it, which is how the container
+// holds a stream that pauses at a constant frame rate.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("edited-dropped-frames.avi"))
+    @assert(reader.frameCount() == 6)
+
+    // Frames 3 and 4 were emptied, so both show the picture of frame 2. Reading them out of
+    // order proves the answer does not depend on what was decoded before.
+    videoAssertFixtureFrame(expect reader.decodeFrame(4), 2, tolerance: 0)
+    videoAssertFixtureFrame(expect reader.decodeFrame(0), 0, tolerance: 0)
+    videoAssertFixtureFrame(expect reader.decodeFrame(3), 2, tolerance: 0)
+    videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
+}
+
+// A clip encoded as Motion JPEG reads back as the picture it was built from.
+#test
+{
+    const Size = 32's32
     let rate = expect FrameRate.create(30, 1)
     var clip = expect Clip.create(Size, Size, rate)
-    expect clip.addFrame(aviQuadrantImage(Size))
+    expect clip.addFrame(videoGrayImage(Size, Size, 90))
     expect clip.addFrame(videoGrayImage(Size, Size, 200))
 
     let bytes  = expect clip.encodeToBytes("clip.avi")
@@ -329,11 +183,31 @@ private func aviAssertCornerFrame(frame: Image)
     @assert(Math.isEqualEpsilon(reader.durationInSeconds(), 2.0 / 30.0, 0.0001))
 
     // Reading the second frame first proves the index, not the order frames were written in.
-    let second = expect reader.decodeFrame(1)
-    videoAssertColor(second.pixelColor(Size / 2, Size / 2), 200, 200, 200, tolerance: 10)
+    videoAssertGray((expect reader.decodeFrame(1)).pixelColor(16, 16), 200, tolerance: 6)
+    videoAssertGray((expect reader.decodeFrame(0)).pixelColor(16, 16), 90, tolerance: 6)
+}
 
-    let first = expect reader.decodeFrame(0)
-    aviAssertQuadrants(first, Size, tolerance: 10)
+// The quality of the frames is what the caller asks for, and nothing else about the stream
+// changes with it.
+#test
+{
+    let rate = expect FrameRate.create(25, 1)
+    var clip = expect Clip.create(64, 48, rate)
+    for index in 4'u64 do
+        expect clip.addFrame(videoGrayImage(64, 48, cast(u8) (40 + index * 40)))
+
+    var low: Avi.EncodeOptions
+    low.quality = 20
+    var high: Avi.EncodeOptions
+    high.quality = 100
+
+    let coarse = expect clip.encodeToBytes("coarse.avi", low)
+    let fine   = expect clip.encodeToBytes("fine.avi", high)
+    @assert(coarse.count < fine.count)
+
+    var reader = expect Reader.openMemory("coarse.avi", coarse.toSlice())
+    @assert(reader.frameCount() == 4)
+    videoAssertGray((expect reader.decodeFrame(3)).pixelColor(32, 24), 160, tolerance: 10)
 }
 
 // The encoded container is a real AVI file: the totals its header carries are the ones the
@@ -342,9 +216,8 @@ private func aviAssertCornerFrame(frame: Image)
 {
     let rate = expect FrameRate.create(24, 1)
     var clip = expect Clip.create(8, 4, rate)
-    expect clip.addFrame(videoGrayImage(8, 4, 64))
-    expect clip.addFrame(videoGrayImage(8, 4, 192))
-    expect clip.addFrame(videoGrayImage(8, 4, 255))
+    for 3 do
+        expect clip.addFrame(videoGrayImage(8, 4, 64))
 
     let bytes = expect clip.encodeToBytes("totals.avi")
     let raw   = bytes.toSlice()
@@ -371,134 +244,6 @@ private func aviAssertCornerFrame(frame: Image)
     @assert(indexStart + 8 + 3 * 16 == bytes.count)
 }
 
-// Uncompressed frames decode from the padded bitmap rows the container stores, in both row
-// orders, and the two orders describe the same picture.
-#test
-{
-    var bottomUp: AviCase
-    bottomUp.addFrame(AviBottomUpFrame)
-    let bottomUpBytes = bottomUp.build()
-
-    var reader = expect Reader.openMemory("bottom-up.avi", bottomUpBytes.toSlice())
-    @assert(reader.width() == 2 and reader.height() == 2 and reader.frameCount() == 1)
-    @assert(reader.frameRate() == expect FrameRate.create(25, 1))
-    aviAssertCornerFrame(expect reader.decodeFrame(0))
-
-    var topDown: AviCase
-    topDown.isTopDown = true
-    topDown.addFrame(AviTopDownFrame)
-    let topDownBytes = topDown.build()
-
-    var flipped = expect Reader.openMemory("top-down.avi", topDownBytes.toSlice())
-    aviAssertCornerFrame(expect flipped.decodeFrame(0))
-}
-
-// A row is padded to a multiple of four bytes whatever the width, and a 32-bit frame carries an
-// alpha byte the decoder drops.
-#test
-{
-    var wide: AviCase
-    wide.width  = 3
-    wide.height = 1
-    wide.addFrame([0'u8, 0, 255, 0, 255, 0, 255, 0, 0, 0, 0, 0])
-
-    let wideBytes = wide.build()
-    var reader    = expect Reader.openMemory("padded.avi", wideBytes.toSlice())
-    let row       = expect reader.decodeFrame(0)
-    videoAssertColor(row.pixelColor(0, 0), 255, 0, 0, tolerance: 0)
-    videoAssertColor(row.pixelColor(1, 0), 0, 255, 0, tolerance: 0)
-    videoAssertColor(row.pixelColor(2, 0), 0, 0, 255, tolerance: 0)
-
-    var deep: AviCase
-    deep.width    = 2
-    deep.height   = 1
-    deep.bitCount = 32
-    deep.addFrame([0'u8, 0, 255, 128, 0, 255, 0, 255])
-
-    let deepBytes = deep.build()
-    var alpha     = expect Reader.openMemory("deep.avi", deepBytes.toSlice())
-    let opaque    = expect alpha.decodeFrame(0)
-    videoAssertColor(opaque.pixelColor(0, 0), 255, 0, 0, tolerance: 0)
-    videoAssertColor(opaque.pixelColor(1, 0), 0, 255, 0, tolerance: 0)
-}
-
-// The index is a shortcut, not the only way in: a file without one, and a file whose index
-// counts from the start of the file rather than from the frame list, both read the same.
-#test
-{
-    var walked: AviCase
-    walked.hasIndex = false
-    walked.addFrame(AviBottomUpFrame)
-    walked.addFrame(AviBottomUpFrame)
-
-    let walkedBytes = walked.build()
-    var reader      = expect Reader.openMemory("walked.avi", walkedBytes.toSlice())
-    @assert(reader.frameCount() == 2)
-    aviAssertCornerFrame(expect reader.decodeFrame(1))
-
-    var absolute: AviCase
-    absolute.isIndexAbsolute = true
-    absolute.addFrame(AviBottomUpFrame)
-    absolute.addFrame(AviBottomUpFrame)
-
-    let absoluteBytes = absolute.build()
-    var addressed     = expect Reader.openMemory("absolute.avi", absoluteBytes.toSlice())
-    @assert(addressed.frameCount() == 2)
-    aviAssertCornerFrame(expect addressed.decodeFrame(1))
-
-    // An OpenDML file groups its frames into `rec ` lists, so walking one has to step into them
-    // instead of over them.
-    var grouped: AviCase
-    grouped.hasIndex  = false
-    grouped.isGrouped = true
-    grouped.addFrame(AviBottomUpFrame)
-    grouped.addFrame(AviBottomUpFrame)
-
-    let groupedBytes = grouped.build()
-    var records      = expect Reader.openMemory("grouped.avi", groupedBytes.toSlice())
-    @assert(records.frameCount() == 2)
-    aviAssertCornerFrame(expect records.decodeFrame(1))
-}
-
-// The codec of an uncompressed stream is spelled as a zero as often as it is spelled as a name,
-// and both say the same thing.
-#test
-{
-    var raw: AviCase
-    raw.compression = ""
-    raw.addFrame(AviBottomUpFrame)
-
-    let bytes  = raw.build()
-    var reader = expect Reader.openMemory("raw.avi", bytes.toSlice())
-    @assert(reader.frameCount() == 1)
-    aviAssertCornerFrame(expect reader.decodeFrame(0))
-}
-
-// A frame that repeats the picture before it is stored as a chunk with no payload, and reading
-// it must produce that picture whichever order the frames are asked for.
-#test
-{
-    var repeated: AviCase
-    repeated.addFrame(AviBottomUpFrame)
-    repeated.addRepeatedFrame()
-    repeated.addRepeatedFrame()
-
-    let bytes  = repeated.build()
-    var reader = expect Reader.openMemory("repeated.avi", bytes.toSlice())
-    @assert(reader.frameCount() == 3)
-    aviAssertCornerFrame(expect reader.decodeFrame(2))
-    aviAssertCornerFrame(expect reader.decodeFrame(1))
-    aviAssertCornerFrame(expect reader.decodeFrame(0))
-
-    // A stream whose first frame carries no picture has nothing to repeat.
-    var headless: AviCase
-    headless.addRepeatedFrame()
-    let headlessBytes = headless.build()
-    var empty         = expect Reader.openMemory("headless.avi", headlessBytes.toSlice())
-    discard catch empty.decodeFrame(0) as noPicture
-    @assert(noPicture is InvalidFormatError)
-}
-
 // A stream written to a file reads back through the file-backed sink, which is the path where
 // the header totals are rewritten in place rather than in memory.
 #test
@@ -519,12 +264,12 @@ private func aviAssertCornerFrame(frame: Image)
 
     var frame: Image
     expect reader.decodeFrameInto(&frame, 2)
-    videoAssertColor(frame.pixelColor(4, 4), 224, 224, 224, tolerance: 10)
+    videoAssertGray(frame.pixelColor(4, 4), 224, tolerance: 10)
 
     // Decoding into the same image reuses its storage instead of allocating another frame.
     let storage = frame.pixels.buffer
     expect reader.decodeFrameInto(&frame, 0)
-    videoAssertColor(frame.pixelColor(4, 4), 32, 32, 32, tolerance: 10)
+    videoAssertGray(frame.pixelColor(4, 4), 32, tolerance: 10)
     @assert(frame.pixels.buffer == storage)
 
     reader.close()
@@ -538,29 +283,25 @@ private func aviAssertCornerFrame(frame: Image)
     @assert(notRiff is InvalidFormatError)
     @assert(notAvi is InvalidFormatError)
 
-    var silent: AviCase
-    silent.streamKind = "auds"
-    silent.addFrame(AviBottomUpFrame)
-    let silentBytes = silent.build()
-    discard catch Reader.openMemory("silent.avi", silentBytes.toSlice()) as noVideo
-    @assert(noVideo is UnsupportedFormatError)
+    // A container this module reads, truncated to its headers, has no frame to decode.
+    var whole = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
+    discard catch Reader.openMemory("short.avi", whole.toSlice()[0 until 2048]) as truncated
+    @assert(truncated != null)
+}
 
-    var exotic: AviCase
-    exotic.compression = "XVID"
-    exotic.addFrame(AviBottomUpFrame)
-    let exoticBytes = exotic.build()
-    discard catch Reader.openMemory("exotic.avi", exoticBytes.toSlice()) as noCodec
-    @assert(noCodec is UnsupportedFormatError)
+// Returns the little-endian 32-bit value the container stores at `offset`.
+private func aviReadU32(bytes: const [..] u8, offset: u64)->u32
+{
+    var result = 0'u32
+    for shift in 4 do
+        result |= cast(u32) bytes[offset + cast(u64) shift] << cast(u32) (shift * 8)
+    return result
+}
 
-    var indexed: AviCase
-    indexed.bitCount = 8
-    indexed.addFrame(AviBottomUpFrame)
-    let indexedBytes = indexed.build()
-    discard catch Reader.openMemory("indexed.avi", indexedBytes.toSlice()) as noDepth
-    @assert(noDepth is UnsupportedFormatError)
-
-    var barren: AviCase
-    let barrenBytes = barren.build()
-    discard catch Reader.openMemory("barren.avi", barrenBytes.toSlice()) as noFrame
-    @assert(noFrame is InvalidFormatError)
+// Reports whether the four characters of `id` sit at `offset`.
+private func aviHasId(bytes: const [..] u8, offset: u64, id: string)->bool
+{
+    for index in 4 where bytes[offset + cast(u64) index] != id[index] do
+        return false
+    return true
 }

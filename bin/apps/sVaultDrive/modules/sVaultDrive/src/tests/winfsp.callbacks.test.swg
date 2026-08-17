@@ -36,6 +36,7 @@ func statusForError(kind: ErrorKind)->s32
 {
     @assert(WinFsp.statusBits(cast #bit (s32) 0x80070430'u32) == 0x80070430)
     @assert(statusForError(.InvalidInput) == WinFsp.StatusInvalidParameter)
+    @assert(statusForError(.SparseContainer) == WinFsp.StatusInvalidParameter)
     @assert(statusForError(.NotFound) == WinFsp.StatusObjectNameNotFound)
     @assert(statusForError(.AlreadyExists) == WinFsp.StatusObjectNameCollision)
     @assert(statusForError(.AccessDenied) == WinFsp.StatusAccessDenied)

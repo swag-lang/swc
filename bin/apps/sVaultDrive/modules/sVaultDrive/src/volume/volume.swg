@@ -115,6 +115,7 @@ struct Volume
     path:               String
     label:              String
     containerSize:      u64
+    physicalSize:       u64     // Authenticated file length, including the random camouflage tail.
     blockCount:         u64
     sequence:           u64     // Sequence of the last durable change, checkpoint or journal record.
     checkpointAt:       u64     // Sequence of the last checkpoint; journal records above it are live.
@@ -148,8 +149,63 @@ struct Volume
     readOnly: bool
 }
 
+// Chooses a byte-granular physical length above the logical capacity. The
+// optional avoided length makes an explicit camouflage refresh observable.
+func camouflageSize(logicalSize: u64, avoidedSize = 0'u64)->u64 fail
+{
+    var minimum = CamouflageMinimum
+    var maximum = CamouflageMaximum
+    #static if #command != Swag.CompilerCommand.Test
+    {
+        minimum = Math.min(Math.max(minimum, logicalSize / 32), 512'u64 * 1024 * 1024)
+        maximum = Math.min(Math.max(64'u64 * 1024 * 1024, logicalSize / 8), maximum)
+    }
+
+    if logicalSize > Swag.U64.Max - minimum do
+        failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
+    maximum = Math.min(maximum, Swag.U64.Max - logicalSize)
+    if maximum < minimum do
+        failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
+
+    var random = 0'u64
+    Core.Crypto.randomBytes(@mkslice(cast([*] u8) &random, #sizeof(random)))
+    let range = maximum - minimum + 1
+    var result = logicalSize + minimum + random % range
+    if result == avoidedSize do
+        result = result == logicalSize + maximum ? logicalSize + minimum : result + 1
+    return result
+}
+
 impl Volume
 {
+
+    // Fills a physical range rather than merely resizing the file. This keeps
+    // the container fully allocated and makes the camouflage tail look exactly
+    // like encrypted data.
+    mtd randomizeRange(first, last: u64, progress: #null *VolumeProgress, progressBase: u64, canceledMessage: string) fail
+    {
+        if first >= last do
+            return
+
+        var randomChunk: Array'u8
+        randomChunk.resize(RandomizeChunkSize)
+        defer Core.Crypto.secureClear(randomChunk.toSlice())
+
+        var offset = first
+        while offset < last
+        {
+            if progress and progress!.isCanceled() do
+                failWith(canceledMessage, .Canceled)
+
+            let count = Math.min(last - offset, randomChunk.count)
+            Core.Crypto.randomBytes(randomChunk[0 until count])
+            .file.writeAllAt(offset, randomChunk[0 until count])
+            offset += count
+            if progress do
+                progress!.publish(progressBase + offset - first)
+        }
+    }
+
     // Refuses an operation that would change a container opened read only.
     //
     // Every entry point that can reach the file goes through it first, so a caller gets the same
@@ -217,6 +273,7 @@ impl Volume
             .checkpointAt  = 0
             .path          = path
             .containerSize = requestedSize
+            .physicalSize  = try camouflageSize(requestedSize)
             .blockCount    = (requestedSize - DataOffset) / BlockRecordSize
             .nextNodeId    = RootNodeId + 1
             .label         = "sVaultDrive"
@@ -224,7 +281,7 @@ impl Volume
 
         result.file = File.open(path, .CreateNew, .ReadWrite, .Read)
         created     = true
-        result.file.resize(requestedSize)
+        result.file.resize(result.physicalSize)
 
         // Fill the whole container with random bytes before anything real is
         // written. Encrypted blocks are indistinguishable from random, so this is
@@ -236,29 +293,11 @@ impl Volume
         // was measured instead and is far slower here: the system generator runs at about
         // 5.5 GiB/s while `Core.Crypto.chacha20Xor` runs at about 50 MiB/s, and the disk
         // bounds this loop long before either of them does.
-        var randomChunk: Array'u8
-        randomChunk.resize(RandomizeChunkSize)
-        defer Core.Crypto.secureClear(randomChunk.toSlice())
-
         if progress do
-            progress!.setTotal(requestedSize)
-
-        var offset = 0'u64
-        while offset < requestedSize
-        {
-            // Cancellation is checked once per chunk, which bounds how long the caller waits
-            // for the operation to notice without making the fill itself check anything.
-            if progress and progress!.isCanceled() do
-                failWith("Container creation was canceled.", .Canceled)
-
-            let count = Math.min(requestedSize - offset, randomChunk.count)
-            Core.Crypto.randomBytes(randomChunk[0 until count])
-            result.file.writeAllAt(offset, randomChunk[0 until count])
-            offset += count
-
-            if progress do
-                progress!.publish(offset)
-        }
+            progress!.setTotal(result.physicalSize)
+        try result.randomizeRange(0, result.physicalSize, progress, 0, "Container creation was canceled.")
+        if (try File.attributes(path)).has(.SparseFile) do
+            failWith("Sparse container files are not supported.", .SparseContainer)
 
         // The master key is drawn once and never derived. A password only ever
         // unwraps it, which is what makes changing a password cheap.
@@ -301,6 +340,9 @@ impl Volume
     // attempted. It is also what lets a container be read while another tool holds it.
     func open(path: string, password: const [..] u8, readOnly = false)->Volume fail
     {
+        if (try File.attributes(path)).has(.SparseFile) do
+            failWith("Sparse container files are not supported.", .SparseContainer)
+
         var result: retval
         result.dirty    = false
         result.readOnly = readOnly
@@ -316,10 +358,11 @@ impl Volume
                 result.close()
         }
 
-        result.containerSize = result.file.size()
-        if result.containerSize < MinimumSize do
+        result.physicalSize = result.file.size()
+        if result.physicalSize < MinimumSize do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
-        result.blockCount = (result.containerSize - DataOffset) / BlockRecordSize
+        result.containerSize = result.physicalSize
+        result.blockCount = (result.physicalSize - DataOffset) / BlockRecordSize
 
         try result.unlock(password)
 
@@ -351,9 +394,9 @@ impl Volume
         // A shrink publishes its authenticated geometry before truncating the now-unused tail.
         // If the process stopped between those steps, the next writable open completes the
         // truncation; a read-only open simply ignores the unauthenticated excess bytes.
-        if !readOnly and result.file.size() > result.containerSize
+        if !readOnly and result.file.size() > result.physicalSize
         {
-            result.file.resize(result.containerSize)
+            result.file.resize(result.physicalSize)
             result.file.flush()
         }
 
@@ -519,6 +562,8 @@ impl Volume
     mtd grow(requestedSize: u64, progress: #null *VolumeProgress = null) fail
     {
         try .requireWritable()
+        if progress and progress!.isCanceled() do
+            failWith("Growing the container was canceled.", .Canceled)
         if requestedSize <= .containerSize do
             failWith("A container can only grow.", .InvalidInput)
 
@@ -530,7 +575,9 @@ impl Volume
         // already claims. `committed` is set on the last line, so every failure — including the
         // cancellation — unwinds through here.
         let previousSize       = .containerSize
+        let previousPhysical   = .physicalSize
         let previousBlockCount = .blockCount
+        let targetPhysical     = try camouflageSize(requestedSize)
         var previousFree: Array'FreeExtent
         previousFree.add(.blocks.free.toSlice())
 
@@ -541,39 +588,24 @@ impl Volume
             {
                 .blocks.free   = #move previousFree
                 .containerSize = previousSize
+                .physicalSize  = previousPhysical
                 .blockCount    = previousBlockCount
-                discard catch .file.resize(previousSize)
+                discard catch .file.resize(previousPhysical)
             }
         }
 
-        .file.resize(requestedSize)
-
-        // The added region has to look like the rest of the container, or the growth would draw
-        // a visible line between the blocks that hold data and the ones that never have.
-        var randomChunk: Array'u8
-        randomChunk.resize(RandomizeChunkSize)
-        defer Core.Crypto.secureClear(randomChunk.toSlice())
-
+        let addedPhysical = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
         if progress do
-            progress!.setTotal(requestedSize - previousSize)
-
-        var offset = previousSize
-        while offset < requestedSize
+            progress!.setTotal(addedPhysical)
+        if targetPhysical > previousPhysical
         {
-            if progress and progress!.isCanceled() do
-                failWith("Growing the container was canceled.", .Canceled)
-
-            let count = Math.min(requestedSize - offset, randomChunk.count)
-            Core.Crypto.randomBytes(randomChunk[0 until count])
-            .file.writeAllAt(offset, randomChunk[0 until count])
-            offset += count
-
-            if progress do
-                progress!.publish(offset - previousSize)
+            .file.resize(targetPhysical)
+            try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Growing the container was canceled.")
         }
 
         .file.flush()
         .containerSize = requestedSize
+        .physicalSize  = targetPhysical
         .blockCount    = newBlockCount
         .blocks.extend(previousBlockCount, newBlockCount - previousBlockCount)
         .scalarsDirty = true
@@ -581,6 +613,55 @@ impl Volume
         try .checkpoint()
 
         committed = true
+        if targetPhysical < previousPhysical
+        {
+            .file.resize(targetPhysical)
+            .file.flush()
+        }
+    }
+
+    // Chooses and authenticates a fresh random physical size while leaving the
+    // logical capacity and every live block in place. It can be repeated on an
+    // existing volume whenever its current file size has become identifying.
+    mtd reapplyCamouflage(progress: #null *VolumeProgress = null) fail
+    {
+        try .requireWritable()
+        let previousPhysical = .physicalSize
+        let targetPhysical   = try camouflageSize(.containerSize, previousPhysical)
+        let addedPhysical    = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
+        if progress do
+            progress!.setTotal(addedPhysical)
+
+        var committed = false
+        defer
+        {
+            if !committed
+            {
+                .physicalSize = previousPhysical
+                discard catch .file.resize(previousPhysical)
+            }
+        }
+
+        if targetPhysical > previousPhysical
+        {
+            .file.resize(targetPhysical)
+            try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Camouflage refresh was canceled.")
+            .file.flush()
+        }
+        elif progress and progress!.isCanceled() do
+            failWith("Camouflage refresh was canceled.", .Canceled)
+
+        .physicalSize = targetPhysical
+        .scalarsDirty = true
+        .dirty        = true
+        try .checkpoint()
+        committed = true
+
+        if targetPhysical < previousPhysical
+        {
+            .file.resize(targetPhysical)
+            .file.flush()
+        }
     }
 
     // Changes the physical capacity in either direction.
@@ -602,6 +683,8 @@ impl Volume
     mtd shrink(requestedSize: u64, progress: #null *VolumeProgress = null) fail
     {
         try .requireWritable()
+        if progress and progress!.isCanceled() do
+            failWith("Resizing the container was canceled.", .Canceled)
         if requestedSize < MinimumSize do
             failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
         if requestedSize >= .containerSize do
@@ -628,7 +711,9 @@ impl Volume
         previousFree.add(.blocks.free.toSlice())
         let previousFreeBlocksCount = .blocks.freeBlocksCount
         let previousSize            = .containerSize
+        let previousPhysical        = .physicalSize
         let previousBlockCount      = .blockCount
+        let targetPhysical          = try camouflageSize(requestedSize)
 
         var committed = false
         defer
@@ -640,9 +725,11 @@ impl Volume
                 .blocks.free            = #move previousFree
                 .blocks.freeBlocksCount = previousFreeBlocksCount
                 .containerSize          = previousSize
+                .physicalSize           = previousPhysical
                 .blockCount             = previousBlockCount
                 .scalarsDirty           = false
                 .dirty                  = false
+                discard catch .file.resize(previousPhysical)
             }
         }
 
@@ -658,10 +745,17 @@ impl Volume
             }
         }
 
+        let addedPhysical = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
         if progress do
-            progress!.setTotal(blocksToMove * BlockSize)
+            progress!.setTotal(addedPhysical + blocksToMove * BlockSize)
+        if targetPhysical > previousPhysical
+        {
+            .file.resize(targetPhysical)
+            try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Resizing the container was canceled.")
+            .file.flush()
+        }
 
-        var moved = 0'u64
+        var moved = addedPhysical
         var plain: Array'u8
         plain.resize(MaximumIoBatchBlocks * BlockSize)
         defer Core.Crypto.secureClear(plain.toSlice())
@@ -711,6 +805,7 @@ impl Volume
         }
 
         .containerSize = requestedSize
+        .physicalSize  = targetPhysical
         .blockCount    = newBlockCount
         .blocks.trim(newBlockCount)
         .scalarsDirty = true
@@ -721,7 +816,7 @@ impl Volume
         // From this point the smaller geometry is durable. Leaving the physical tail in place on
         // a truncation error is recoverable and must not resurrect the old mappings in memory.
         committed = true
-        .file.resize(requestedSize)
+        .file.resize(targetPhysical)
         .file.flush()
     }
 
@@ -779,6 +874,10 @@ impl Volume
             index += count
         }
 
+        // Appended to version 3 so existing readers can ignore it and existing
+        // volumes without it keep using their logical size as their file size.
+        writer.writeLittleEndian(.physicalSize)
+
         if result.count > HeaderPlainSize do
             failWith("The metadata page index no longer fits in the header.", .DiskFull)
         return result
@@ -798,6 +897,7 @@ impl Volume
     mtd restore(plain: const [..] u8) fail
     {
         var reader = ByteStream.openRead(plain)
+        var physicalLengthNeedsRepair = false
 
         var magic: [#sizeof(HeaderMagic)] u8
         reader.readBytes(&magic[0], #sizeof(magic))
@@ -812,14 +912,14 @@ impl Volume
         .checkpointAt = .sequence
         if .sequence == Swag.U64.Max do
             failWith("The container sequence can no longer advance.", .Corrupted)
-        let physicalSize = .containerSize
+        let actualSize   = .physicalSize
         let storedSize   = reader.readLittleEndian'u64()
         .blockCount   = reader.readLittleEndian'u64()
         .nextNodeId   = reader.readLittleEndian'u64()
         .label        = reader.readSizedString(MaximumLabelSize)
         .keySlotMask  = reader.readLittleEndian'u32()
         .metadataSize = reader.readLittleEndian'u64()
-        if storedSize < MinimumSize or storedSize > physicalSize or .blockCount != (storedSize - DataOffset) / BlockRecordSize do
+        if storedSize < MinimumSize or storedSize > actualSize or .blockCount != (storedSize - DataOffset) / BlockRecordSize do
             failWith("The container geometry does not match its size.", .Corrupted)
         .containerSize = storedSize
 
@@ -845,6 +945,20 @@ impl Volume
         if .metadataPages.count != expectedPages do
             failWith("The metadata index is incomplete.", .Corrupted)
 
+        // A version-3 header written before physical camouflage has no trailing
+        // length. Treating it as exact makes the next refresh a safe migration.
+        .physicalSize = storedSize
+        if !reader.isEof()
+        {
+            let storedPhysicalSize = reader.readLittleEndian'u64()
+            if storedPhysicalSize < storedSize do
+                failWith("The container geometry does not match its size.", .Corrupted)
+            // Only the unauthenticated random tail is missing. An older reader
+            // can have truncated it to the logical size without touching data.
+            .physicalSize = Math.min(storedPhysicalSize, actualSize)
+            physicalLengthNeedsRepair = storedPhysicalSize != actualSize
+        }
+
         var image: Array'u8
         defer Core.Crypto.secureClear(image.toSlice())
         image.resize(.metadataPages.count * BlockSize)
@@ -860,6 +974,12 @@ impl Volume
         // would be replayed again on every open, forever.
         .dirty = false
         try .replayJournal()
+
+        if physicalLengthNeedsRepair
+        {
+            .scalarsDirty = true
+            .dirty        = true
+        }
 
         if .nodeById(RootNodeId) == null do
             failWith("The container has no root directory.", .Corrupted)

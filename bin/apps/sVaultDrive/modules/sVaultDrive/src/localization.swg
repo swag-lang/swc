@@ -17,7 +17,7 @@ struct AppStrings
     ui_MountCardTitle:   string = "Open an existing vault"
     ui_MountCardHelp:    string = "Unlock a container and expose it on any available drive letter. Resizing the vault and changing its password ask for that same password."
     ui_MountedCardTitle: string = "Mounted drives"
-    ui_OptionsCardTitle: string = "Automatic unmounting"
+    ui_OptionsCardTitle: string = "Privacy and automatic unmounting"
 
     // One word per tab. The card under it says the whole sentence, so a tab that repeats it
     // spends the width of a heading to name what the heading already names.
@@ -27,7 +27,7 @@ struct AppStrings
     ui_OptionsTab: string = "Options"
 
     ui_MountedCardHelp:      string = "Every drive sVaultDrive currently exposes. Check one to have it mounted again the next time sVaultDrive starts."
-    ui_OptionsCardHelp:      string = "Choose when protected drives close automatically. Closing sVaultDrive always unmounts every drive."
+    ui_OptionsCardHelp:      string = "Keep vault locations private and choose when protected drives close automatically."
     ui_NoDriveMounted:       string = "No drive is mounted."
     ui_ContainerFile:        string = "CONTAINER FILE"
     ui_Browse:               string = "Browse"
@@ -46,6 +46,8 @@ struct AppStrings
     ui_DriveHelp:            string = "The drive is available to Windows while sVaultDrive runs, and appears under Mounted."
     ui_ReadOnly:             string = "Mount read only"
     ui_ReadOnlyHelp:         string = "The drive opens for reading alone: nothing can add to the vault, change it, or delete from it while it is mounted."
+    ui_PrivacyMode:          string = "Privacy mode"
+    ui_PrivacyModeHelp:      string = "Do not save container paths, browse history, or startup mounts."
     ui_UnmountOnLock:        string = "Unmount when Windows locks"
     ui_UnmountOnLockHelp:    string = "Protected drives close as soon as the current Windows session is locked."
     ui_UnmountOnSuspend:     string = "Unmount before sleep"
@@ -55,12 +57,14 @@ struct AppStrings
     ui_IdleTimeout:          string = "INACTIVITY TIMEOUT"
     ui_Minutes:              string = "% minutes"
     ui_RemovePasswordHelp:   string = "Leave it empty to remove the password. The vault then opens without one."
-    ui_CurrentCapacityHelp:  string = "Currently %. Reducing it moves every used block that would no longer fit."
+    ui_NewCapacityHelp:      string = "Changing capacity may move used blocks that no longer fit."
+    ui_KeepCapacity:         string = "Keep the current capacity"
+    ui_KeepCapacityHelp:     string = "Refresh the randomized physical size without moving vault data."
     ui_CreateVault:          string = "Create encrypted vault"
     ui_StopCreating:         string = "Stop creating"
     ui_StopResizing:         string = "Stop resizing"
     ui_ChangePassword:       string = "Password…"
-    ui_Resize:               string = "Capacity…"
+    ui_Resize:               string = "Capacity and camouflage…"
     ui_MountDrive:           string = "Mount drive"
     ui_Unmount:              string = "Unmount"
     ui_ColStartup:           string = "AT STARTUP"
@@ -72,12 +76,11 @@ struct AppStrings
     dlg_TitleCreate:         string = "Create an sVaultDrive container"
     dlg_TitleOpen:           string = "Open an encrypted container"
     dlg_TitlePassword:       string = "Change the vault password"
-    dlg_TitleResize:         string = "Resize the vault"
+    dlg_TitleResize:         string = "Change capacity or camouflage"
     dlg_TitleUnlock:         string = "Unlock %"     // '%' is the file name of the container being mounted at startup.
     dlg_BtnCreate:           string = "Create"
     dlg_BtnOpen:             string = "Open"
     dlg_BtnApply:            string = "Apply"
-    dlg_BtnGrow:             string = "Resize"
     dlg_BtnSkip:             string = "Skip"
     msg_Ready:               string = "Ready — create a vault or choose one to open."
     msg_OperationStopped:    string = "The operation stopped."
@@ -107,12 +110,13 @@ struct AppStrings
     msg_MountedReadOnly:     string = "Encrypted drive mounted read only on %."
     msg_UnmountSyncStopped:  string = "The drive was unmounted, but final synchronization stopped."
     msg_Unmounted:           string = "Drive unmounted safely."
-    msg_SameCapacity:        string = "Choose a capacity different from the current one."
     msg_Resizing:            string = "Resizing the container... %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
+    msg_Camouflaging:        string = "Refreshing physical camouflage... %{#0}%%"
     msg_ResizeCanceled:      string = "Resizing stopped. The vault kept its previous size."
     msg_ResizeStopped:       string = "Resizing stopped."
     msg_ResizeFailed:        string = "Could not resize the container."
     msg_Resized:             string = "The vault now holds %."
+    msg_Camouflaged:         string = "The vault kept its capacity and received a new physical size."
     msg_AutoUnmounted:       string = "Protected drives were unmounted automatically."
     msg_AutoUnmountStopped:  string = "Protected drives were unmounted, but final synchronization stopped."
     msg_ChangingPassword:    string = "Rewriting the key slot..."
@@ -129,6 +133,7 @@ struct AppStrings
     msg_ErrAlreadyExists:     string = "A file with this name already exists."                      // The name is taken.
     msg_ErrAccessDenied:      string = "Access to the container was refused."                       // The entry exists and refuses the operation.
     msg_ErrReadOnly:          string = "The vault is mounted read only."                            // The container refuses every change.
+    msg_ErrSparse:            string = "The container is sparse. Convert it to a fully allocated file before opening it."
     msg_ErrDiskFull:          string = "There is no room left in the container."                    // No room is left for blocks, metadata, or key slots.
     msg_ErrIo:                string = "The container could not be read or written."                // The underlying file could not be reached.
     msg_ErrInvalidRequest:    string = "The container cannot answer that request."                  // The operation asked for something the container refuses outright.

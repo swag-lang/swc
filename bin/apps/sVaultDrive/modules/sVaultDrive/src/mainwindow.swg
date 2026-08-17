@@ -48,9 +48,11 @@ internal enum StatusMessage
     MountedReadOnly        // A drive is mounted for reading alone; `statusDrive` names its letter.
     Unmounted              // The drive was unmounted safely.
     Resizing               // Blocks are being moved or added; `statusProgress` says how far.
+    Camouflaging           // The random physical tail is being refreshed.
     ResizeCanceled         // Resizing stopped on request and left the previous geometry.
     ResizeStopped          // Resizing stopped.
     Resized                // The container has another capacity; `statusDrive` says how much it holds.
+    Camouflaged            // The logical capacity stayed unchanged and the physical size changed.
     AutoUnmounted          // A configured security event closed every protected drive.
     AutoUnmountStopped     // The drives closed, but at least one final synchronization stopped.
     ChangingPassword       // The key slot is being rewritten.
@@ -83,6 +85,7 @@ internal enum MountRow
 // Rows of the automatic-unmount form, in the order `createOptionsCard` adds them.
 internal enum OptionsRow
 {
+    Privacy
     SessionLock
     Suspend
     Idle
@@ -155,6 +158,7 @@ struct VaultOperation
     mount:       String                  // Stable backend destination identifier requested by a mount operation.
     mountLabel:  String                  // Host-facing destination name reported when the operation completes.
     size:        u64                     // Container size requested by a create or a grow.
+    camouflageOnly: bool                 // Whether resize only refreshes the random physical tail.
     password:    Array'u8                // Password copy owned by the operation and wiped when it ends.
     replacement: Array'u8                // New password of a change, empty when the change removes it.
     volume:      #null *MountedVault     // Mount a mount operation produced, or the one an unmount closes.
@@ -186,6 +190,7 @@ struct MainWindow
     // Controls of the automatic-unmount page.
     #[Swag.Late]
     {
+        privacyModeControl: *CheckButton
         unmountOnLock:    *CheckButton
         unmountOnSuspend: *CheckButton
         unmountOnIdle:    *CheckButton
@@ -245,6 +250,7 @@ struct MainWindow
     mountedDrives: MountedDrives
 
     fileDlgState: FileDlgState
+    privacyMode: bool = true
     state:        AppState
     shuttingDown: bool
     operation:    VaultOperation
@@ -320,6 +326,9 @@ internal func caughtMessage(err: #null any)->String
 
         case .WriteProtected:
             return s.msg_ErrReadOnly
+
+        case .SparseContainer:
+            return s.msg_ErrSparse
 
         case .DiskFull:
             return s.msg_ErrDiskFull
@@ -451,9 +460,10 @@ internal struct PasswordChangeFields
 // What the resize box asks for.
 internal struct VaultResizeFields
 {
-    current:  *PasswordEdit     // Password the vault opens with.
-    capacity: *EditBox          // Capacity the vault should hold from now on.
-    unit:     *ComboBox         // Unit `capacity` is written in; `parseCapacity` reads this order.
+    current:      *PasswordEdit     // Password the vault opens with.
+    capacity:     *EditBox          // Capacity the vault should hold from now on.
+    unit:         *ComboBox         // Unit `capacity` is written in; `parseCapacity` reads this order.
+    keepCapacity: *CheckButton      // Whether only the physical camouflage is refreshed.
 }
 
 // Fills `dialog` with what a password change asks for, and returns its fields.
@@ -477,22 +487,14 @@ internal func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
 //
 // The password comes first here as it does in the box above: every box that changes a vault opens
 // on the one question that has to be answered before any of the others matter.
-internal func buildVaultResizeForm(dialog: *FormDlg, currentSize: u64)->VaultResizeFields
+internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
 {
     let texts = appStrings()
     let form  = dialog.form
 
     let current = form.addPasswordField(texts.ui_CurrentPassword, placeholder: texts.ui_ContainerPassword, help: texts.ui_CurrentPasswordHelp)
 
-    // The field opens on the capacity the vault already has, in the unit that says it in whole
-    // numbers. A reader raises a number they can see rather than typing one blind against a
-    // sentence underneath.
-    const Gibibyte = 1024'u64 * 1024 * 1024
-    let inGibibytes = currentSize >= Gibibyte and !(currentSize % Gibibyte)
-    let divisor     = inGibibytes ? Gibibyte : 1024'u64 * 1024
-    let rounded     = Format.toString("%", (currentSize + divisor - 1) / divisor)
-
-    let capacity = form.addTextField(texts.ui_NewCapacity, rounded.toString(), help: Format.toString(texts.ui_CurrentCapacityHelp, capacityText(currentSize)).toString())
+    let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
     capacity.setUnsignedIntegerRange(1, 1024 * 1024)
     capacity.selectAll()
     setMachineFont(capacity)
@@ -500,11 +502,22 @@ internal func buildVaultResizeForm(dialog: *FormDlg, currentSize: u64)->VaultRes
     let unit = form.addRowChoice()
     unit.addItem("MiB")
     unit.addItem("GiB")
-    unit.setSelectedIndex(inGibibytes ? 1 : 0, notify: false)
+    unit.setSelectedIndex(0, notify: false)
     setMachineFont(unit)
 
+    let keepCapacity = form.addOptionField(texts.ui_KeepCapacity, help: texts.ui_KeepCapacityHelp)
+    keepCapacity.setState(.Checked)
+    capacity.enable(false)
+    unit.enable(false)
+    keepCapacity.sigChanged += func|capacity, unit|(button)
+    {
+        let enabled = !button.isChecked()
+        capacity.enable(enabled)
+        unit.enable(enabled)
+    }
+
     form.computeLayout()
-    return {current, capacity, unit}
+    return {current, capacity, unit, keepCapacity}
 }
 
 impl MainWindow
@@ -513,7 +526,7 @@ impl MainWindow
     // the widest card's form plus its padding, and French wraps widest, so it is the language
     // that sizes this. The height is the tallest card, which is the one that opens a vault.
     const WindowWidth  = 720's32
-    const WindowHeight = 890's32
+    const WindowHeight = 930's32
 
     // The page that opens a vault.
     const OpenTabIndex = 1'u32
@@ -843,6 +856,7 @@ impl MainWindow
         .optionsCard = card
         card.actions.hide()
 
+        .privacyModeControl = form.addOptionField(appStrings().ui_PrivacyMode, help: appStrings().ui_PrivacyModeHelp)
         .unmountOnLock    = form.addOptionField(appStrings().ui_UnmountOnLock, help: appStrings().ui_UnmountOnLockHelp)
         .unmountOnSuspend = form.addOptionField(appStrings().ui_UnmountOnSuspend, help: appStrings().ui_UnmountOnSuspendHelp)
         .unmountOnIdle    = form.addOptionField(appStrings().ui_UnmountOnIdle, help: appStrings().ui_UnmountOnIdleHelp)
@@ -851,6 +865,11 @@ impl MainWindow
         for minutes in [5'u32, 15, 30, 60] do
             .idleTimeout.addItem(Format.toString(appStrings().ui_Minutes, minutes).toString())
 
+        .privacyModeControl.sigChanged += func|window = me|(button)
+        {
+            discard button
+            window.readPrivacyControl()
+        }
         .unmountOnLock.sigChanged += func|window = me|(button)
         {
             discard button
@@ -873,9 +892,42 @@ impl MainWindow
             window.readAutoUnmountControls()
         }
 
+        .applyPrivacyControl()
         .applyAutoUnmountControls()
         card.endForm()
         return card.panel
+    }
+
+    // Applies privacy without firing the control's save callback.
+    mtd applyPrivacyControl()
+    {
+        .privacyModeControl.setState(.privacyMode ? .Checked : .Unchecked)
+        .mountedDrives.setStartupEnabled(!.privacyMode)
+    }
+
+    // Removes every persisted or pending path while retaining appearance and
+    // automatic-unmount preferences.
+    mtd clearPrivateState()
+    {
+        .fileDlgState = {}
+        .mountSettings = {}
+        .startupVaults.clear()
+        .startupQueue.clear()
+        for &one in .mountedDrives.drives do
+            one.atStartup = false
+        .mountedDrives.startupEnabled = false
+        .mountedDrives.refresh()
+        clearLegacyStateFiles()
+    }
+
+    mtd readPrivacyControl()
+    {
+        .privacyMode = .privacyModeControl.isChecked()
+        if .privacyMode do
+            .clearPrivateState()
+        else do
+            .mountedDrives.setStartupEnabled(true)
+        catch g_App.saveState()
     }
 
     mtd idleMinutesAt(index: u32)->u32
@@ -997,6 +1049,7 @@ impl MainWindow
              .Mounted,
              .MountedReadOnly,
              .Resizing,
+             .Camouflaging,
              .ChangingPassword: return .Active
 
         case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .AutoUnmountStopped: return .Stopped
@@ -1007,6 +1060,7 @@ impl MainWindow
              .Unmounted,
              .ResizeCanceled,
              .Resized,
+             .Camouflaged,
              .AutoUnmounted,
              .PasswordChanged,
              .PasswordRemoved: return .Idle
@@ -1032,9 +1086,11 @@ impl MainWindow
         case .MountedReadOnly:    return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
         case .Unmounted:          return String.from(texts.msg_Unmounted)
         case .Resizing:           return Format.toString(texts.msg_Resizing, .statusProgress)
+        case .Camouflaging:       return Format.toString(texts.msg_Camouflaging, .statusProgress)
         case .ResizeCanceled:     return String.from(texts.msg_ResizeCanceled)
         case .ResizeStopped:      return String.from(texts.msg_ResizeStopped)
         case .Resized:            return Format.toString(texts.msg_Resized, .statusDrive)
+        case .Camouflaged:        return String.from(texts.msg_Camouflaged)
         case .AutoUnmounted:      return String.from(texts.msg_AutoUnmounted)
         case .AutoUnmountStopped: return String.from(texts.msg_AutoUnmountStopped)
         case .ChangingPassword:   return String.from(texts.msg_ChangingPassword)
@@ -1327,16 +1383,19 @@ impl MainWindow
         .passwordButton.setText(texts.ui_ChangePassword)
 
         .optionsCard.setTexts(texts.ui_OptionsCardTitle, texts.ui_OptionsCardHelp)
+        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Privacy, texts.ui_PrivacyModeHelp)
         .optionsCard.form.setRowHelp(cast(u64) OptionsRow.SessionLock, texts.ui_UnmountOnLockHelp)
         .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Suspend, texts.ui_UnmountOnSuspendHelp)
         .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Idle, texts.ui_UnmountOnIdleHelp)
         .optionsCard.form.setRowLabel(cast(u64) OptionsRow.IdleTimeout, texts.ui_IdleTimeout)
+        .privacyModeControl.setText(texts.ui_PrivacyMode)
         .unmountOnLock.setText(texts.ui_UnmountOnLock)
         .unmountOnSuspend.setText(texts.ui_UnmountOnSuspend)
         .unmountOnIdle.setText(texts.ui_UnmountOnIdle)
         .idleTimeout.clear()
         for minutes in [5'u32, 15, 30, 60] do
             .idleTimeout.addItem(Format.toString(texts.ui_Minutes, minutes).toString())
+        .applyPrivacyControl()
         .applyAutoUnmountControls()
 
         // The create and resize buttons say what they do *now*, so their captions are the
@@ -1357,7 +1416,7 @@ impl MainWindow
     mtd chooseContainer(target: *EditBox, create: bool)
     {
         var options: FileDlgOptions
-        options.state             = &.fileDlgState
+        options.state             = .privacyMode ? null : &.fileDlgState
         options.mode              = create ? .CreateFile : .SelectFile
         options.title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
         options.confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
@@ -1646,42 +1705,42 @@ impl MainWindow
             return
         }
 
-        let info = catch File.info(path.toString()) as infoError
-        if infoError != null
+        if !File.exists(path.toString())
         {
-            .showError(appStrings().msg_ChooseExisting, infoError)
+            .showError(appStrings().msg_ChooseExisting)
             return
         }
 
         var options: FormDlgOptions
         options.title             = appStrings().dlg_TitleResize
-        options.confirmButtonText = appStrings().dlg_BtnGrow
+        options.confirmButtonText = appStrings().dlg_BtnApply
         options.width             = 520
         options.height            = 240
 
         let dialog = FormDlg.create(.surface!, options)
-        let fields = buildVaultResizeForm(dialog, info.size)
+        let fields = buildVaultResizeForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
-        if !size.error.isEmpty()
+        var requestedSize = 0'u64
+        let camouflageOnly = fields.keepCapacity.isChecked()
+        if !camouflageOnly
         {
-            .showError(size.error.toString())
-            return
-        }
-
-        if size.bytes == info.size
-        {
-            .showError(appStrings().msg_SameCapacity)
-            return
+            let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
+            if !size.error.isEmpty()
+            {
+                .showError(size.error.toString())
+                return
+            }
+            requestedSize = size.bytes
         }
 
         .operation.path = path
-        .operation.size = size.bytes
+        .operation.size = requestedSize
+        .operation.camouflageOnly = camouflageOnly
         .operation.password.add(fields.current.bytes())
         .statusProgress = 0
-        .setStatus(.Resizing)
+        .setStatus(camouflageOnly ? .Camouflaging : .Resizing)
         .setState(.Resizing)
         .beginOperation(.Resize)
     }
@@ -1726,8 +1785,16 @@ impl MainWindow
             .operation.error = openError
             if openError == null
             {
-                discard catch volume.resize(.operation.size, &.operation.progress) as growError
-                .operation.error = growError
+                if .operation.camouflageOnly
+                {
+                    discard catch volume.reapplyCamouflage(&.operation.progress) as resizeError
+                    .operation.error = resizeError
+                }
+                else
+                {
+                    discard catch volume.resize(.operation.size, &.operation.progress) as resizeError
+                    .operation.error = resizeError
+                }
                 volume.close()
             }
 
@@ -1760,7 +1827,7 @@ impl MainWindow
         if .operation.progress.isCanceled() do
             return
         .statusProgress = cast(s32) (.operation.progress.ratio() * 100)
-        .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : StatusMessage.Resizing)
+        .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : (.operation.camouflageOnly ? StatusMessage.Camouflaging : StatusMessage.Resizing))
     }
 
     mtd finishOperation()
@@ -1848,8 +1915,13 @@ impl MainWindow
             }
             else
             {
-                .statusDrive = capacityText(.operation.size)
-                .setStatus(.Resized)
+                if .operation.camouflageOnly do
+                    .setStatus(.Camouflaged)
+                else
+                {
+                    .statusDrive = capacityText(.operation.size)
+                    .setStatus(.Resized)
+                }
             }
 
         case .ChangePassword:
@@ -1872,6 +1944,7 @@ impl MainWindow
         .operation.removesPassword = false
         .operation.fromStartup     = false
         .operation.securityStopped = false
+        .operation.camouflageOnly  = false
         .operation.path.clear()
         .operation.mount.clear()
         .operation.mountLabel.clear()
@@ -1886,9 +1959,12 @@ impl MainWindow
     {
         let known = .startupIndex(.operation.path.toString())
 
-        .mountSettings.path     = .operation.path
-        .mountSettings.drive    = .operation.mount
-        .mountSettings.readOnly = .operation.readOnly
+        if !.privacyMode
+        {
+            .mountSettings.path     = .operation.path
+            .mountSettings.drive    = .operation.mount
+            .mountSettings.readOnly = .operation.readOnly
+        }
 
         with var entry: MountedDrive
         {
@@ -1898,7 +1974,7 @@ impl MainWindow
             .mountLabel    = me.operation.mountLabel
             .needsPassword = me.operation.usedPassword
             .readOnly      = me.operation.readOnly
-            .atStartup     = known != Swag.U64.Max
+            .atStartup     = !me.privacyMode and known != Swag.U64.Max
         }
 
         if .operation.volume
@@ -1910,7 +1986,7 @@ impl MainWindow
 
         // The letter is remembered as the one actually used, so a startup vault comes back on
         // the drive it was last seen on rather than on the one it was first marked with.
-        if known != Swag.U64.Max
+        if !.privacyMode and known != Swag.U64.Max
         {
             .startupVaults[known].drive    = .operation.mount
             .startupVaults[known].readOnly = .operation.readOnly
@@ -1924,6 +2000,8 @@ impl MainWindow
     // Keeps the startup list truthful after a password change.
     mtd rememberPasswordChange()
     {
+        if .privacyMode do
+            return
         let index = .startupIndex(.operation.path.toString())
         if index != Swag.U64.Max
         {
@@ -1946,6 +2024,8 @@ impl MainWindow
     // start, not what it happens to be showing now.
     mtd applyStartupMarks()
     {
+        if .privacyMode do
+            return
         for &one, index in .mountedDrives.drives
         {
             let checked = .mountedDrives.list.isLineChecked(cast(u32) index)
@@ -2142,6 +2222,11 @@ impl IWnd for MainWindow
             // screen area. The surface is built in English, and the restored language
             // reaches it through the notification the switch below emits.
             catch g_App.loadState()
+            if .privacyMode
+            {
+                .clearPrivateState()
+                catch g_App.saveState()
+            }
             .applyTheme()
             .applyLanguage()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
@@ -2151,7 +2236,8 @@ impl IWnd for MainWindow
 
             // The startup mounts wait for a surface a reader can see: the first one may need a
             // password, and a box on a window that is not up yet has nothing to sit on.
-            .startupQueue.add(.startupVaults.toSlice())
+            if !.privacyMode do
+                .startupQueue.add(.startupVaults.toSlice())
             if .startupQueue.count do
                 .startupTimer = .app().addTimer(200'ms, me)
 
@@ -2161,17 +2247,18 @@ impl IWnd for MainWindow
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
-        // The browse dialogs share this state, so they reopen on the folder that held
-        // the last accepted container, with its recent locations.
-        catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
+        catch evt.serializer.serialize("MainWindow.privacyMode", &me.privacyMode)
         catch evt.serializer.serialize("MainWindow.language", &me.language)
         catch evt.serializer.serialize("MainWindow.themeIndex", &me.themeIndex)
 
-        // Paths, drive letters and the read-only choice only: a password is never written
-        // anywhere. `mountSettings` prepares the form; `startupVaults` additionally says what
-        // sVaultDrive should mount on its own.
-        catch evt.serializer.serialize("MainWindow.mountSettings", &me.mountSettings)
-        catch evt.serializer.serialize("MainWindow.startupVaults", &me.startupVaults)
+        // Privacy is the default, including for state written before this setting
+        // existed. Only an explicit opt-out permits paths or browse history on disk.
+        if !.privacyMode
+        {
+            catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
+            catch evt.serializer.serialize("MainWindow.mountSettings", &me.mountSettings)
+            catch evt.serializer.serialize("MainWindow.startupVaults", &me.startupVaults)
+        }
         catch evt.serializer.serialize("MainWindow.autoUnmount", &me.autoUnmount)
 
         // The window reopens on the page it was left on, so a reader who only ever mounts an
@@ -2180,7 +2267,11 @@ impl IWnd for MainWindow
         catch evt.serializer.serialize("MainWindow.selectedTab", &selectedTab)
         if evt.serializer.isReading()
         {
-            .restoreMountSettings()
+            if .privacyMode do
+                .clearPrivateState()
+            else do
+                .restoreMountSettings()
+            .applyPrivacyControl()
             .applyAutoUnmountControls()
             .showTab(Math.min(selectedTab, cast(u32) .tabs.items.count - 1))
         }

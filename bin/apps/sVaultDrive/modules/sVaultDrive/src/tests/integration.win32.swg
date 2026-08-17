@@ -169,7 +169,7 @@ namespace Integration
                 failWith("Windows did not provide a temporary directory for the sandbox.")
             result.root = Path.combine(temp, Format.toString("sVaultDrive-Integration-%", Guid64.random()))
             Directory.create(result.root)
-            result.container  = Path.combine(result.root, "integration.scrypt")
+            result.container  = Path.combine(result.root, "integration")
             result.source     = Path.combine(result.root, "external-source.bin")
             result.recovered  = Path.combine(result.root, "recovered-from-volume.bin")
             result.mountPoint = try findFreeMountPoint()

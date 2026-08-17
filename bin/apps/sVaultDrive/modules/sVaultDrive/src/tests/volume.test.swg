@@ -193,6 +193,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let security: [6] u8 = [1, 4, 9, 16, 25, 36]
     var volume           = expect Volume.create(path, testPassword(), MinimumSize)
     @assert(volume.containerSize == MinimumSize)
+    @assert(volume.physicalSize > volume.containerSize)
+    @assert(!(expect File.attributes(path)).has(.SparseFile))
     var storedLocator: [Crypto.RecordLocatorSize] u8
     @assert(expect volume.file.readExactAt(HeaderAreaOffset + volume.activeSlot * HeaderSlotSize, storedLocator))
     var expectedLocator = expect Crypto.recordLocator(volume.keys.locator, HeaderLocatorKind, volume.activeSlot)
@@ -229,10 +231,11 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     expect volume.renameNode(fileId, "\\documents\\renamed.bin", false)
     @assert(volume.resolve("\\documents\\sample.bin") == null)
     @assert(volume.resolve("\\documents\\renamed.bin") != null)
+    let physicalSize = volume.physicalSize
     volume.close()
 
     var raw = expect File.open(path, .Open, .ReadWrite, .Read)
-    @assert(expect raw.size() == MinimumSize)
+    @assert(expect raw.size() == physicalSize)
     raw.close()
 
     let beforeFirst  = headerDigest(path, 0)
@@ -848,9 +851,10 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(volume.containerSize == grownSize)
     @assert(volume.blockCount == originalBlocks + 64)
     @assert(volume.freeBlockCount() == originalFree + 64)
+    let grownPhysical = volume.physicalSize
     volume.close()
 
-    @assert(expect File.info(path).size == grownSize)
+    @assert(expect File.info(path).size == grownPhysical)
 
     // The new geometry survives the round trip, and the added blocks are usable: the free list
     // is derived from what the node table references, so a block that was never published
@@ -884,13 +888,14 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     progress.cancel()
 
     var stopped = expect Volume.open(path, testPassword())
+    let previousPhysical = stopped.physicalSize
     discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelError
     @assert(cancelError != null)
     @assert((cast(Error) cancelError).kind == .Canceled)
     @assert(stopped.containerSize == MinimumSize)
     stopped.close()
 
-    @assert(expect File.info(path).size == MinimumSize)
+    @assert(expect File.info(path).size == previousPhysical)
     var reopened = expect Volume.open(path, testPassword())
     @assert(reopened.containerSize == MinimumSize)
     @assert(reopened.resolve("\\kept.bin") != null)
@@ -925,8 +930,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     expect volume.resize(MinimumSize)
     @assert(volume.containerSize == MinimumSize)
     @assert(volume.blockCount == (MinimumSize - DataOffset) / BlockRecordSize)
+    let shrunkPhysical = volume.physicalSize
     volume.close()
-    @assert(expect File.info(path).size == MinimumSize)
+    @assert(expect File.info(path).size == shrunkPhysical)
 
     var reopened = expect Volume.open(path, testPassword())
     var readBack: [2 * BlockSize] u8
@@ -937,12 +943,12 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // This is the recoverable state left by a process that stopped after publishing the smaller
     // header but before truncating. The next writable open completes that last step.
     var tail = expect File.open(path, .Open, .ReadWrite, .Read)
-    expect tail.resize(InitialSize)
+    expect tail.resize(shrunkPhysical + RandomizeChunkSize)
     tail.close()
     var recovered = expect Volume.open(path, testPassword())
     @assert(recovered.containerSize == MinimumSize)
     recovered.close()
-    @assert(expect File.info(path).size == MinimumSize)
+    @assert(expect File.info(path).size == shrunkPhysical)
 }
 
 #test
@@ -966,11 +972,42 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var progress: VolumeProgress
     progress.cancel()
+    let previousPhysical = volume.physicalSize
     discard catch volume.resize(MinimumSize, &progress) as cancelError
     @assert(cancelError != null and (cast(Error) cancelError).kind == .Canceled)
     @assert(volume.containerSize == InitialSize)
     volume.close()
-    @assert(expect File.info(path).size == InitialSize)
+    @assert(expect File.info(path).size == previousPhysical)
+}
+
+// An existing volume can refresh its camouflage repeatedly. Its logical capacity and payload
+// never move, while every refresh chooses another physical length.
+#test
+{
+    let path = testContainerPath("existing-camouflage")
+    defer discard catch File.delete(path)
+
+    var built = expect Volume.create(path, testPassword(), MinimumSize)
+    let fileId = expect built.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
+    var payload: [BlockSize] u8 = [73]
+    @assert(expect built.writeNode(fileId, 0, payload, false, false) == BlockSize)
+    expect built.checkpoint()
+    built.close()
+
+    var volume = expect Volume.open(path, testPassword())
+    @assert(volume.containerSize == MinimumSize)
+    let originalPhysical = volume.physicalSize
+    expect volume.reapplyCamouflage()
+    let firstPhysical = volume.physicalSize
+    @assert(firstPhysical > MinimumSize)
+    @assert(firstPhysical != originalPhysical)
+    expect volume.reapplyCamouflage()
+    @assert(volume.physicalSize > MinimumSize)
+    @assert(volume.physicalSize != firstPhysical)
+    var readBack: [BlockSize] u8
+    @assert(expect volume.readNode(volume.resolve("\\kept.bin")!.id, 0, readBack) == BlockSize)
+    @assert(sameTestBytes(payload, readBack))
+    volume.close()
 }
 
 // A container opened read only refuses every change, and the refusal is the file handle's.

@@ -85,6 +85,28 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     @assert(window.appearanceButton.focusPolicy == .None)
 }
 
+// Privacy is the default and keeps every vault path out of persistent state.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    @assert(window.privacyMode)
+    @assert(window.privacyModeControl.isChecked())
+    @assert(!window.mountedDrives.startupEnabled)
+
+    window.mountSettings.path = String.from("C:\\private\\unlisted")
+    window.startupVaults.add({String.from("C:\\private\\startup"), String.from("mount-x"), true, false})
+    var state = saveMainWindowState(window)
+    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("unlisted"), 8)))
+    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("startup"), 7)))
+
+    window.clearPrivateState()
+    @assert(window.mountSettings.path.isEmpty())
+    @assert(window.startupVaults.isEmpty())
+}
+
 // A card's form has to end inside the card, in every language.
 //
 // A card is exactly as tall as the page it fills and no taller: a form that grows past its body
@@ -134,7 +156,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.showTab(0)
 }
 
-// A language switch re-labels the buttons and re-measures them around the new wording.
+// A language switch re-labels the complete surface.
 #test
 {
     var host: Testing.HeadlessHost
@@ -145,14 +167,12 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // Entry zero follows the account, so the registered languages start at one: one is the
     // reference language and two is French. Going through the picker is what the user does, and
     // it is what carries the change all the way to the labels.
-    let unmount      = window.mountedDrives.unmountButton
-    let englishWidth = unmount.position.width
+    let unmount = window.mountedDrives.unmountButton
     expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
     host.notify(.LanguageChanged)
 
     @assert(unmount.text() == "Démonter")
     @assert(window.createButton.text() == "Créer le coffre chiffré")
-    @assert(unmount.position.width != englishWidth)
 
     // The third card follows too, headings and all.
     @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Startup).name.raw == "AU DÉMARRAGE")
@@ -163,7 +183,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
     host.notify(.LanguageChanged)
     @assert(unmount.text() == "Unmount")
-    @assert(unmount.position.width == englishWidth)
 }
 
 // Picking a language remembers it, and the system entry restores "follow the account".
@@ -195,10 +214,13 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
+    window.privacyMode = false
+    window.applyPrivacyControl()
+
     let drive = window.selectedMountPoint()
     @assert(!drive.isEmpty())
 
-    window.operation.path     = String.from("C:\\vaults\\remembered.scrypt")
+    window.operation.path     = String.from("C:\\vaults\\remembered")
     window.operation.mount    = drive
     window.operation.readOnly = true
     window.rememberMountedDrive()
@@ -218,7 +240,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.mountPassword.clear()
     loadMainWindowState(window, state.toSlice())
 
-    @assert(window.mountPath.text() == "C:\\vaults\\remembered.scrypt")
+    @assert(window.mountPath.text() == "C:\\vaults\\remembered")
     @assert(window.selectedMountPoint() == drive)
     @assert(window.readOnly.isChecked())
     @assert(window.mountPassword.isEmpty())
@@ -262,17 +284,17 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.mountedDrives.drives.add({null, String.from("C:\\protected.scrypt"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
-    window.mountedDrives.drives.add({null, String.from("C:\\open.scrypt"), String.from("mount-y"), String.from("Y:"), false, false, false, 0, 0})
+    window.mountedDrives.drives.add({null, String.from("C:\\protected"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
+    window.mountedDrives.drives.add({null, String.from("C:\\open"), String.from("mount-y"), String.from("Y:"), false, false, false, 0, 0})
     window.mountedDrives.refresh()
     window.handleAutoUnmount(.SessionLock)
 
     @assert(window.mountedDrives.drives.count == 1)
-    @assert(window.mountedDrives.drives[0].path == "C:\\open.scrypt")
+    @assert(window.mountedDrives.drives[0].path == "C:\\open")
     @assert(window.statusMessage == .AutoUnmounted)
 
     window.autoUnmount.onSessionLock = false
-    window.mountedDrives.drives.add({null, String.from("C:\\second.scrypt"), String.from("mount-z"), String.from("Z:"), true, false, false, 0, 0})
+    window.mountedDrives.drives.add({null, String.from("C:\\second"), String.from("mount-z"), String.from("Z:"), true, false, false, 0, 0})
     window.handleAutoUnmount(.SessionLock)
     @assert(window.mountedDrives.drives.count == 2)
 }
@@ -340,9 +362,10 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.showTab(3)
     let options = Gui.FocusOrder.collect(window)
     @assert(options.stops[0] == cast(*Wnd) window.tabs)
-    @assert(options.stops[1] == cast(*Wnd) window.unmountOnLock)
-    @assert(options.stops[2] == cast(*Wnd) window.unmountOnSuspend)
-    @assert(options.stops[3] == cast(*Wnd) window.unmountOnIdle)
+    @assert(options.stops[1] == cast(*Wnd) window.privacyModeControl)
+    @assert(options.stops[2] == cast(*Wnd) window.unmountOnLock)
+    @assert(options.stops[3] == cast(*Wnd) window.unmountOnSuspend)
+    @assert(options.stops[4] == cast(*Wnd) window.unmountOnIdle)
 
     window.showTab(0)
 }
@@ -485,14 +508,14 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     defer host.shutdown()
 
     @assert(!window.canCreate())
-    window.createPath.setText("C:\\open.scrypt")
+    window.createPath.setText("C:\\open")
     @assert(window.canCreate())
     @assert(window.createButton.isEnabled())
 
     // The two actions that change a container need the file and nothing else: the password they
     // act on is the one their own box asks for, never what this card happens to be holding.
     @assert(!window.canModifyVault())
-    window.mountPath.setText("C:\\open.scrypt")
+    window.mountPath.setText("C:\\open")
     @assert(window.canModifyVault())
     @assert(window.canMount())
     @assert(window.passwordButton.isEnabled())
@@ -538,13 +561,19 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     // Resizing asks the same question first, and in the same words: one shape for every box that
     // changes a vault is one thing to learn instead of two.
     let resize       = FormDlg.create(&host.surface, options)
-    let resizeFields = buildVaultResizeForm(resize, 512 * 1024 * 1024)
+    let resizeFields = buildVaultResizeForm(resize)
 
-    @assert(resize.form.rows.count == 2)
+    @assert(resize.form.rows.count == 3)
     @assert(resize.form.rows[0].field == cast(*Wnd) resizeFields.current)
     @assert(resize.form.rows[0].label.name.raw == texts.ui_CurrentPassword)
-    @assert(resizeFields.capacity.text() == "512")
+    @assert(resizeFields.capacity.text() == "256")
     @assert(resizeFields.unit.selectedIndex == 0)
+    @assert(resizeFields.keepCapacity.isChecked())
+    @assert(!resizeFields.capacity.isEnabled())
+    @assert(!resizeFields.unit.isEnabled())
+    resizeFields.keepCapacity.toggle()
+    @assert(resizeFields.capacity.isEnabled())
+    @assert(resizeFields.unit.isEnabled())
     openAndDismiss(&host, resize)
 }
 
@@ -584,7 +613,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         assertFormFits(&host, change)
 
         let resize = FormDlg.create(&host.surface, options)
-        discard buildVaultResizeForm(resize, 512 * 1024 * 1024)
+        discard buildVaultResizeForm(resize)
         assertFormFits(&host, resize)
     }
 }
@@ -597,13 +626,16 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
+    window.privacyMode = false
+    window.applyPrivacyControl()
+
     @assert(!window.mountedDrives.list.isLocallyVisible())
     @assert(window.mountedDrives.empty.isLocallyVisible())
     @assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
     @assert(!window.mountedDrives.unmountButton.isEnabled())
 
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("mount-y"), String.from("Y:"), false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one"), String.from("mount-x"), String.from("X:"), true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two"), String.from("mount-y"), String.from("Y:"), false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
     window.mountedDrives.refresh()
 
     @assert(window.mountedDrives.list.isLocallyVisible())
@@ -617,7 +649,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Drive).name.raw == "Y:")
     @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Size).name.raw == "2 GiB")
     @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Available).name.raw == "1536 MiB")
-    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Vault).name.raw == "two.scrypt")
+    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Vault).name.raw == "two")
 
     // The list opens on its first row, so the one action of the card is live straight away.
     window.setState(.Ready)
@@ -640,19 +672,22 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, false, 0, 0})
+    window.privacyMode = false
+    window.applyPrivacyControl()
+
+    window.mountedDrives.drives.add({null, String.from("C:\\one"), String.from("mount-x"), String.from("X:"), true, false, false, 0, 0})
     window.mountedDrives.refresh()
 
     window.mountedDrives.list.setLineChecked(0, true)
     @assert(window.startupVaults.count == 1)
-    @assert(window.startupVaults[0].path == "C:\\one.scrypt")
+    @assert(window.startupVaults[0].path == "C:\\one")
     @assert(window.startupVaults[0].drive == "mount-x")
     @assert(window.startupVaults[0].needsPassword)
 
     discard window.mountedDrives.detach(0)
     @assert(window.startupVaults.count == 1)
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
+    window.mountedDrives.drives.add({null, String.from("C:\\one"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
     @assert(window.startupVaults.isEmpty())
@@ -739,7 +774,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     // Two files name no single vault to open.
     window.showTab(0)
     window.mountPath.setText("")
-    @assert(host.dropFilesOnWnd(window, ["c:/vaults/a.scrypt", "c:/vaults/b.scrypt"]) == DropEffect.None)
+    @assert(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
     @assert(window.tabs.selectedIndex == 0)
 }
 

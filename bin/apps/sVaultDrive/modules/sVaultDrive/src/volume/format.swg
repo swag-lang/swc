@@ -1,7 +1,7 @@
 using Core
 
-// On-disk layout of an sVaultDrive container. The published '.scrypt' extension and header bytes
-// retain their legacy spelling so existing volumes remain mountable:
+// On-disk layout of an sVaultDrive container. The encrypted header bytes retain
+// their legacy spelling so existing volumes remain mountable:
 //
 //     [ key slots ][ header slot 0 ][ header slot 1 ][ journal ][ block 0 ]...
 //
@@ -68,6 +68,21 @@ const RootNodeId = 1'u64
 // Size of the buffer used to randomize a new container. Large enough to keep
 // the write pattern sequential, small enough to stay off the heap's slow path.
 const RandomizeChunkSize = 1'u64 * 1024 * 1024
+
+// The authenticated capacity ends at `containerSize`; the file continues with
+// an unrelated random tail. Byte-granular bounds deliberately avoid producing
+// another recognizable round size. Tests keep the tail small because they
+// create many containers and exercise the same layout contract.
+#static if #command == Swag.CompilerCommand.Test
+{
+    const CamouflageMinimum = 4'u64 * 1024
+    const CamouflageMaximum = 16'u64 * 1024
+}
+else
+{
+    const CamouflageMinimum = 8'u64 * 1024 * 1024
+    const CamouflageMaximum = 2'u64 * 1024 * 1024 * 1024
+}
 
 // Upper bounds enforced while parsing metadata. The plaintext is
 // attacker-controlled once the password is known, so every count that drives an

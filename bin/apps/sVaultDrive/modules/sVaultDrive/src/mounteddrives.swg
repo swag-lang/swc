@@ -43,6 +43,7 @@ struct MountedDrives
     empty:         *Label      = undefined
     unmountButton: *PushButton = undefined
     drives:        Array'MountedDrive
+    startupEnabled: bool = true
 
     // Emitted once the table says what `drives` now holds. Whether the action of the card can
     // work depends on the selection *and* on what the window is doing, so the window is what
@@ -143,7 +144,7 @@ impl MountedDrives
             }
 
             let line = .list.createLine("")
-            line.canCheck = true
+            line.canCheck = .startupEnabled
 
             // The padlock is the whole of what says the drive is read only, so it stands on the
             // letter itself: a mark in the vault column would read as a property of the file,
@@ -157,7 +158,7 @@ impl MountedDrives
             line.setItem(cast(u32) MountedColumn.Vault, Path.fileName(one.path.toString()) orelse one.path.toString())
         }
 
-        for &one, index in .drives where one.atStartup do
+        for &one, index in .drives where .startupEnabled and one.atStartup do
             .list.setLineChecked(cast(u32) index, true, notify: false)
 
         let filled = !.drives.isEmpty()
@@ -173,6 +174,14 @@ impl MountedDrives
         }
 
         .sigDrivesChanged.call(me)
+    }
+
+    mtd setStartupEnabled(enabled: bool)
+    {
+        if .startupEnabled == enabled do
+            return
+        .startupEnabled = enabled
+        .refresh()
     }
 
     // Divides the complete visible width into stable semantic lanes.

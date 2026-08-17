@@ -4,6 +4,20 @@ const AppIcon = #include("../datas/appicon.png")
 
 var g_App: Application
 
+// Removes state files used by earlier releases once privacy mode takes over.
+// The current state file is retained because its non-sensitive appearance and
+// window settings are still useful; its next atomic save contains no paths.
+func clearLegacyStateFiles()
+{
+    #static if #command == Swag.CompilerCommand.Test do
+        return
+
+    let appData     = Env.getSpecialDirectory(.UserAppData)
+    let stateFolder = Path.combine(appData, "sVaultDrive")
+    discard catch File.delete(Path.combine(stateFolder, "sVaultDrive.cfg"))
+    discard catch File.delete(Path.combine(appData, "sCrypt", "sCrypt.cfg"))
+}
+
 #main
 {
     if isMountHostInvocation() do
@@ -18,20 +32,15 @@ var g_App: Application
 
     try Jobs.initialize()
 
-    // Persisted window placement and browse-dialog state. A failure to prepare the
-    // folder only costs the memory between runs, never the application start.
+    // Persisted non-sensitive preferences. A failure to prepare the folder only
+    // costs the memory between runs, never the application start.
     let stateFolder = Path.combine(Env.getSpecialDirectory(.UserAppData), "sVaultDrive")
     if !Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
     if Directory.exists(stateFolder)
     {
-        let statePath       = Path.combine(stateFolder, "sVaultDrive.scc")
-        let previousPath    = Path.combine(stateFolder, "sVaultDrive.cfg")
-        let legacyStatePath = Path.combine(Env.getSpecialDirectory(.UserAppData), "sCrypt", "sCrypt.cfg")
-        let fallback        = File.exists(previousPath) ? previousPath : legacyStatePath
-        if !File.exists(statePath) and File.exists(fallback) do
-            discard catch File.duplicate(statePath, fallback)
-        g_App.setStatePath(statePath)
+        g_App.setStatePath(Path.combine(stateFolder, "sVaultDrive.scc"))
+        clearLegacyStateFiles()
     }
 
     let appIcon = expect Image.decode(".png", AppIcon)

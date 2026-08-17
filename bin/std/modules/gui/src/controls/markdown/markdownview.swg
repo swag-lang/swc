@@ -643,18 +643,33 @@ public impl MarkdownView
         if !@countof(text) or .blocks.isEmpty() do
             return false
 
+        for &block in .blocks
+        {
+            if block.inline do
+                block.inline!.clearSearchHighlight()
+            if block.table do
+                block.table!.clearSearchHighlight()
+        }
+
         let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
         for offset in .blocks.count
         {
-            let index  = (first + offset) % .blocks.count
-            let source = .blocks[index].searchText.toString()
-            if Utf8.indexOf(source, text, 0, .Latin1NoCase) == Swag.U64.Max do
+            let index = (first + offset) % .blocks.count
+            let block = &.blocks[index]
+            var found: bool
+            if block.inline do
+                found = block.inline!.highlightText(text)
+            elif block.table do
+                found = block.table!.highlightText(text)
+            if !found do
+                found = Utf8.indexOf(block.searchText.toString(), text, 0, .Latin1NoCase) != Swag.U64.Max
+            if !found do
                 continue
 
             .searchBlockIndex = index
             let position = .scroll.scrollPosition()
-            .scroll.setScrollPos(position.x, .blocks[index].wnd.position.y - .documentStyle.topInset)
-            .blocks[index].wnd.setFocus()
+            .scroll.setScrollPos(position.x, block.wnd.position.y - .documentStyle.topInset)
+            block.wnd.setFocus()
             return true
         }
 

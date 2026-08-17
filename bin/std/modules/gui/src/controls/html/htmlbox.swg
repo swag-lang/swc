@@ -35,17 +35,19 @@ public enum HtmlInlineKind
 #[Swag.NoDoc]
 public struct HtmlInlineItem
 {
-    kind:    HtmlInlineKind
-    style:   u32
-    node:    u32 = HtmlNoNode
-    box:     u32 = HtmlNoNode
-    text:    String
-    width:   f32
-    ascent:  f32
-    descent: f32
-    x:       f32
-    y:       f32
-    visible: bool
+    kind:        HtmlInlineKind
+    style:       u32
+    node:        u32 = HtmlNoNode
+    box:         u32 = HtmlNoNode
+    text:        String
+    sourceStart: u64
+    sourceEnd:   u64
+    width:       f32
+    ascent:      f32
+    descent:     f32
+    x:           f32
+    y:           f32
+    visible:     bool
 }
 
 // One laid-out line of an inline formatting context.

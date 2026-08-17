@@ -295,6 +295,80 @@ private func htmlColorFunctionParts(value: string, name, alternate: string)->{ p
     return result
 }
 
+private func htmlColorMixStop(value: string)->{ color: Color, weight: f32 = -1, matched: bool }
+{
+    var result: retval
+    let parts = htmlSplitValue(value)
+    if parts.isEmpty() do
+        return result
+
+    let color = htmlParseColor(parts[0].toString())
+    if !color.matched or color.current do
+        return result
+    result.color   = color.color
+    result.matched = true
+
+    if parts.count < 2 do
+        return result
+    let percent = parts[1].toString()
+    if !Utf8.endsWith(percent, "%") do
+        return result
+    let number = htmlParseNumber(percent[0 until @countof(percent) - 1])
+    if number.eat do
+        result.weight = Math.max(number.value / 100, 0)
+    return result
+}
+
+// Mixes two sRGB colors through premultiplied alpha. Keeping the channels premultiplied until the
+// final division is what makes a color mixed with `transparent` retain its hue instead of turning
+// into a dark translucent fringe.
+private func htmlParseColorMix(value: string)->HtmlColorValue
+{
+    var result: retval
+    let call = htmlFunctionArguments(value, "color-mix")
+    if !call.matched or call.arguments.count != 3 or Latin1.trim(call.arguments[0].toString()) != "in srgb" do
+        return result
+
+    let first  = htmlColorMixStop(call.arguments[1].toString())
+    let second = htmlColorMixStop(call.arguments[2].toString())
+    if !first.matched or !second.matched do
+        return result
+
+    var firstWeight  = first.weight
+    var secondWeight = second.weight
+    if firstWeight < 0 and secondWeight < 0
+    {
+        firstWeight  = 0.5
+        secondWeight = 0.5
+    }
+    elif firstWeight < 0 do
+        firstWeight = Math.max(1 - secondWeight, 0)
+    elif secondWeight < 0 do
+        secondWeight = Math.max(1 - firstWeight, 0)
+
+    let total = firstWeight + secondWeight
+    if total <= 0 do
+        return result
+    let alphaScale = Math.min(total, 1)
+    firstWeight  /= total
+    secondWeight /= total
+
+    let firstAlpha  = cast(f32) first.color.a / 255
+    let secondAlpha = cast(f32) second.color.a / 255
+    let alpha       = firstAlpha * firstWeight + secondAlpha * secondWeight
+    var red, green, blue: f32
+    if alpha > 0
+    {
+        red   = (cast(f32) first.color.r * firstAlpha * firstWeight + cast(f32) second.color.r * secondAlpha * secondWeight) / alpha
+        green = (cast(f32) first.color.g * firstAlpha * firstWeight + cast(f32) second.color.g * secondAlpha * secondWeight) / alpha
+        blue  = (cast(f32) first.color.b * firstAlpha * firstWeight + cast(f32) second.color.b * secondAlpha * secondWeight) / alpha
+    }
+
+    result.color   = Color.fromArgb(cast(u8) Math.round(alpha * alphaScale * 255), cast(u8) Math.round(red), cast(u8) Math.round(green), cast(u8) Math.round(blue))
+    result.matched = true
+    return result
+}
+
 // Parses any color notation a document uses.
 //
 // `currentColor` is reported rather than resolved, because the value it refers to is only known
@@ -321,6 +395,10 @@ func htmlParseColor(text: string)->HtmlColorValue
         result.current = true
         return result
     }
+
+    let mixed = htmlParseColorMix(lower.toString())
+    if mixed.matched do
+        return mixed
 
     let rgb = htmlColorFunctionParts(lower.toString(), "rgb", "rgba")
     if rgb.matched and rgb.parts.count >= 3

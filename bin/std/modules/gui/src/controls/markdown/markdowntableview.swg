@@ -52,6 +52,7 @@ private func markdownTableCells(line: string)->Array'String
             index += 2
             continue
         }
+
         if trimmed[index] == '|'
         {
             result.add(String.from(Latin1.trim(cell.toString())))
@@ -59,15 +60,31 @@ private func markdownTableCells(line: string)->Array'String
             index += 1
             continue
         }
+
         cell  += trimmed[index until index + 1]
         index += 1
     }
+
     result.add(String.from(Latin1.trim(cell.toString())))
     return result
 }
 
 internal impl MarkdownTableView
 {
+    mtd clearSearchHighlight()
+    {
+        for &cell in .cells do
+            cell.view.clearSearchHighlight()
+    }
+
+    mtd highlightText(text: string)->bool
+    {
+        .clearSearchHighlight()
+        for &cell in .cells where cell.view.highlightText(text) do
+            return true
+        return false
+    }
+
     mtd addRow(parent: *Wnd, cells: const [..] String, row: u32, header: bool)
     {
         for column in .columnCount
@@ -88,6 +105,7 @@ internal impl MarkdownTableView
             case .Right:  view.horizontalAlignment = .Right
             default:      view.horizontalAlignment = .Left
             }
+
             .cells.add(MarkdownTableCell{view, row, column})
         }
     }
@@ -117,6 +135,7 @@ internal impl MarkdownTableView
                 let x = cast(f32) cell.column * columnWidth
                 cell.view.setPosition({x + 10, y + 4, Math.max(columnWidth - 20, 1), .rowHeights[row] - 8})
             }
+
             y += .rowHeights[row]
         }
 
@@ -162,6 +181,7 @@ internal impl MarkdownTableView
             result.addRow(result, row.toSlice(), result.rowCount, false)
             result.rowCount += 1
         }
+
         return result
     }
 }
@@ -177,12 +197,13 @@ internal impl IWnd for MarkdownTableView
             painter.fillRect({0, 0, rect.width, .rowHeights[0]}, .themeColors().edit_Bk)
 
         let border = .themeColors().edit_Border
-        var y = 0'f32
+        var y      = 0'f32
         for height in .rowHeights
         {
             painter.fillRect({0, y, rect.width, 1}, border)
             y += height
         }
+
         painter.fillRect({0, y - 1, rect.width, 1}, border)
 
         if .columnCount

@@ -868,8 +868,12 @@ private impl EditBox
         var result: retval = undefined
 
         var clientRect = .editRect()
-        if .icon.isValid() do
-            clientRect.x += .icon.sizeX + 4
+        if .icon.isValid()
+        {
+            let textLeft = .leftTextMargin()
+            clientRect.width -= textLeft - clientRect.x
+            clientRect.x     = textLeft
+        }
 
         result = clientRect
         let fontR = .font().regular

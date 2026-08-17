@@ -521,7 +521,7 @@ func hidden(value: s32)->s32
         return Result::Error;
 
     // The sidebar indexes every documented symbol so a reader never has to guess a spelling.
-    if (!content.contains("<details class=\"toc-group\"") || !content.contains("<ul class=\"toc-symbols\">"))
+    if (!content.contains("<details class=\"toc-group\"") || !content.contains("<ul class=\"toc-symbols\">") || !content.contains("<span class=\"toc-label\">"))
         return Result::Error;
 
     const fs::path stylesheetPath = directory.root() / "style.css";
@@ -535,6 +535,8 @@ func hidden(value: s32)->s32
     if (!content.contains(".right p {\n    width: 100%;\n    max-width: 100%;\n    text-wrap: pretty;") || !content.contains(".container table,\n.code-block,\n.blockquote {\n    width: 100%;\n    max-width: 100%;"))
         return Result::Error;
     if (!content.contains("border-radius: 4px;") || !content.contains(".api-member-details") || !content.contains("clip-path: polygon(0 0, calc(100% - 18px)") || content.contains("scroll-behavior: smooth"))
+        return Result::Error;
+    if (!content.contains("--swag-rail-width: 328px;") || !content.contains("--swag-rail-width: 272px;") || !content.contains("overflow-x: hidden;") || !content.contains("text-overflow: ellipsis;"))
         return Result::Error;
 }
 SWC_TEST_END()

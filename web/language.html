@@ -610,6 +610,13 @@ indent-style = spaces
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p><span class="code-inline">#load</span> includes source selected by the compiler, while <span class="code-inline">#import</span> establishes a module dependency. They solve different problems and are not interchangeable.</p>
 </div>
+<h3 id="_002_001_workspaces_modules_and_dependencies_swg_Sharing_Source_Between_Modules">Sharing Source Between Modules</h3>
+<p><span class="code-inline">#load</span> belongs in <span class="code-inline">module.swg</span> too, and names one extra source file by path. The file becomes part of the module, exactly as if it sat under <span class="code-inline">src</span>:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"gui"</span>, location: <span class="SStr">"swag@std"</span>)
+<span class="SCmp">#load</span>(<span class="SStr">"../../shared/pluginapi.swg"</span>)
+</span></div>
+<p>A loaded file may state <span class="code-inline">#import</span> and <span class="code-inline">#load</span> of its own, and it may declare against the module's dependencies: its declarations are compiled with the regular sources, after every import is resolved.</p>
+<p>Use it when several modules must agree on the same declarations — a version constant, an entry-point signature, the shape of a structure crossing a library boundary — and none of them owns runnable code for it. Making that agreement a module instead would add an entry to the build graph and an artifact under <span class="code-inline">.output</span> to publish names that carry no code. Reach for <span class="code-inline">#import</span> as soon as the shared thing has an implementation: each loading module compiles its own copy of a loaded file, which is what makes it the wrong tool for anything but declarations.</p>
 <h3 id="_002_002_source_files_swg">Source Files</h3>
 <h3 id="_002_002_source_files_swg_Source_Files">Source Files</h3>
 <p>Regular Swag source files use the <span class="code-inline">.swg</span> extension and UTF-8 encoding. A module compiles every <span class="code-inline">.swg</span> file below its <span class="code-inline">src</span> directory as one program. Directory names do not affect symbol names, declaration order, or visibility.</p>
@@ -10225,7 +10232,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.145</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
 </footer>
 </section>
 </main>
@@ -10515,6 +10522,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Workspaces and Modules|_002_001_workspaces_modules_and_dependencies_swg_Workspaces_and_Modules|",
 "h|The module.swg File|_002_001_workspaces_modules_and_dependencies_swg_The__module_swg__File|",
 "h|Importing Another Module|_002_001_workspaces_modules_and_dependencies_swg_Importing_Another_Module|",
+"h|Sharing Source Between Modules|_002_001_workspaces_modules_and_dependencies_swg_Sharing_Source_Between_Modules|",
 "h|Source Files|_002_002_source_files_swg|",
 "h|Source Files|_002_002_source_files_swg_Source_Files|",
 "h|Script Files|_002_002_source_files_swg_Script_Files|",

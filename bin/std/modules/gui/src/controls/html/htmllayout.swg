@@ -324,6 +324,14 @@ impl HtmlLayout
         if style == HtmlNoNode do
             return
 
+        if .styles[style].isOutOfFlow()
+        {
+            let item = .newBox(HtmlNoNode, style, HtmlLayout.kindFor(.styles[style].display))
+            .boxes[item].parent = parentBox
+            .boxes[parentBox].children.add(item)
+            return
+        }
+
         // A generated box inside a flex or grid container is one of its items, and is therefore
         // block-level whatever it asked for. That is what makes a decorative rule with a width
         // and a height draw its bar instead of collapsing into an empty inline box.
@@ -642,13 +650,15 @@ impl HtmlLayout
                 if keepBreaks
                 {
                     var item: HtmlInlineItem
-                    item.kind  = .Break
-                    item.style = styleIndex
-                    item.node  = node
+                    item.kind        = .Break
+                    item.style       = styleIndex
+                    item.node        = node
+                    item.sourceStart = index
+                    item.sourceEnd   = index + eat
                     pending.add(#move item)
                 }
                 else do
-                    .appendSpace(pending, node, styleIndex, font, collapse)
+                    .appendSpace(pending, node, styleIndex, font, collapse, index, index + eat)
                 index += eat
                 continue
             }
@@ -657,7 +667,7 @@ impl HtmlLayout
             {
                 if !keepSpaces
                 {
-                    .appendSpace(pending, node, styleIndex, font, collapse)
+                    .appendSpace(pending, node, styleIndex, font, collapse, index, index + 1)
                     index += 1
                     continue
                 }
@@ -667,13 +677,15 @@ impl HtmlLayout
                     end += 1
 
                 var item: HtmlInlineItem
-                item.kind    = .Space
-                item.style   = styleIndex
-                item.node    = node
-                item.text    = text[index until end]
-                item.width   = .measure(styleIndex, item.text.toString())
-                item.ascent  = font.ascent
-                item.descent = -font.descent
+                item.kind        = .Space
+                item.style       = styleIndex
+                item.node        = node
+                item.text        = text[index until end]
+                item.sourceStart = index
+                item.sourceEnd   = end
+                item.width       = .measure(styleIndex, item.text.toString())
+                item.ascent      = font.ascent
+                item.descent     = -font.descent
                 pending.add(#move item)
                 index = end
                 continue
@@ -684,39 +696,47 @@ impl HtmlLayout
                 end += 1
 
             var item: HtmlInlineItem
-            item.kind    = .Text
-            item.style   = styleIndex
-            item.node    = node
-            item.text    = HtmlLayout.transform(text[index until end], style.textTransform)
-            item.width   = .measure(styleIndex, item.text.toString())
-            item.ascent  = font.ascent
-            item.descent = -font.descent
+            item.kind        = .Text
+            item.style       = styleIndex
+            item.node        = node
+            item.text        = HtmlLayout.transform(text[index until end], style.textTransform)
+            item.sourceStart = index
+            item.sourceEnd   = end
+            item.width       = .measure(styleIndex, item.text.toString())
+            item.ascent      = font.ascent
+            item.descent     = -font.descent
             pending.add(#move item)
             index = end
         }
     }
 
     // Adds one collapsible space, unless the previous item already opened one.
-    private mtd appendSpace(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, font: *Font, collapse: bool)
+    private mtd appendSpace(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, font: *Font, collapse: bool, sourceStart, sourceEnd: u64)
     {
         if collapse and pending.count
         {
             let previous = pending.backPtr()
-            if previous.kind == .Space or previous.kind == .Break do
+            if previous.kind == .Space or previous.kind == .Break
+            {
+                if previous.node == node do
+                    previous.sourceEnd = sourceEnd
                 return
+            }
         }
 
         if collapse and pending.isEmpty() do
             return
 
         var item: HtmlInlineItem
-        item.kind    = .Space
-        item.style   = styleIndex
-        item.node    = node
-        item.text    = " "
-        item.width   = .measure(styleIndex, " ")
-        item.ascent  = font.ascent
-        item.descent = -font.descent
+        item.kind        = .Space
+        item.style       = styleIndex
+        item.node        = node
+        item.text        = " "
+        item.sourceStart = sourceStart
+        item.sourceEnd   = sourceEnd
+        item.width       = .measure(styleIndex, " ")
+        item.ascent      = font.ascent
+        item.descent     = -font.descent
         pending.add(#move item)
     }
 }
@@ -861,8 +881,8 @@ impl HtmlLayout
                 let inner = .intrinsicWidths(child)
                 result.min = Math.max(result.min, inner.min)
                 result.max += inner.max
-                minimum   += inner.min
-                count     += 1
+                minimum    += inner.min
+                count      += 1
             }
 
             if count > 1
@@ -957,6 +977,26 @@ impl HtmlLayout
 
         .boxes[box].rect.offset(dx, dy)
         .boxes[box].content.offset(dx, dy)
+        for &item in .boxes[box].items
+        {
+            item.x += dx
+            item.y += dy
+        }
+
+        let children = .boxes[box].children
+        for child in children do
+            .translate(child, dx, dy)
+        for index in .boxes[box].items.count where .boxes[box].items[index].box != HtmlNoNode do
+            .translate(.boxes[box].items[index].box, dx, dy)
+    }
+
+    // Moves what a box contains while leaving its own border and content rectangles in place.
+    // Table-cell alignment uses this after the row has established a taller shared cell height.
+    private mtd translateContents(box: u32, dx, dy: f32)
+    {
+        if !dx and !dy do
+            return
+
         for &item in .boxes[box].items
         {
             item.x += dx
@@ -1133,6 +1173,11 @@ impl HtmlLayout
         }
 
         usedHeight = .clampHeight(usedHeight, style, styleIndex, containing, extraY)
+
+        // A single flex line consumes a definite or minimum cross size. Aligning it only inside
+        // its natural text height pins a min-height navigation bar to the top of its own band.
+        if .boxes[box].kind == .Flex and usedHeight > contentHeight do
+            .expandSingleFlexLine(box, usedHeight - contentHeight, contentWidth)
 
         // A region that limits its height and admits overflow scrolls on its own.
         .boxes[box].scrollable   = false
@@ -1504,6 +1549,38 @@ impl HtmlLayout
         return Math.max(y - contentY, 0)
     }
 
+    // Expands the cross axis of a non-wrapping row flex container after min/explicit height has
+    // settled the content box. Multi-line and column containers distribute that room differently.
+    private mtd expandSingleFlexLine(box: u32, extra, contentWidth: f32)
+    {
+        if extra <= 0 do
+            return
+        let style = &.styles[.boxes[box].style]
+        if style.flexWrap != .NoWrap or style.flexDirection == .Column or style.flexDirection == .ColumnReverse do
+            return
+
+        for child in .boxes[box].children where !.styles[.boxes[child].style].isOutOfFlow()
+        {
+            let childStyle = &.styles[.boxes[child].style]
+            let align      = childStyle.hasAlignSelf ? childStyle.alignSelf : style.alignItems
+            switch align
+            {
+            case .Center:
+                .translate(child, 0, extra * 0.5)
+
+            case .End:
+                .translate(child, 0, extra)
+
+            case .Stretch:
+                if childStyle.height.isAuto()
+                {
+                    .boxes[child].rect.height    += extra
+                    .boxes[child].content.height = Math.max(.boxes[child].rect.height - .verticalExtra(child, contentWidth), 0)
+                }
+            }
+        }
+    }
+
     // Sizes and places one flex line, then aligns it on both axes.
     private mtd layoutFlexLine(box: u32, items: const [..] u32, bases: const [..] f32, contentX, lineTop, contentWidth, total, gap: f32, containing: HtmlContainingBlock)->f32
     {
@@ -1808,8 +1885,16 @@ impl HtmlLayout
 
             for index in cells.count
             {
+                let naturalHeight = .boxes[cells[index]].rect.height
                 .boxes[cells[index]].rect.height    = height
                 .boxes[cells[index]].content.height = Math.max(height - .verticalExtra(cells[index], contentWidth), 0)
+
+                let extra = height - naturalHeight
+                let align = .styles[.boxes[cells[index]].style].verticalAlign
+                if align == .Middle do
+                    .translateContents(cells[index], 0, extra * 0.5)
+                elif align == .Bottom or align == .TextBottom do
+                    .translateContents(cells[index], 0, extra)
             }
 
             .boxes[row].rect    = {contentX, y, contentWidth, height}

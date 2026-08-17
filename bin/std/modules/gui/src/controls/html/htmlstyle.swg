@@ -179,6 +179,13 @@ public enum HtmlTextDecoration
     LineThrough
 }
 
+#[Swag.NoDoc]
+public enum HtmlTextDecorationStyle
+{
+    Solid
+    Dotted
+}
+
 // The four sides of a box, in CSS order.
 #[Swag.NoDoc]
 public struct HtmlEdges
@@ -232,51 +239,55 @@ public struct HtmlComputedStyle
     clearRight: bool
 
     // Inherited.
-    color:               Color
-    fontSize:            f32               = 16
-    fontWeight:          u32               = 400
-    italic:              bool
-    fontFamily:          HtmlFontFamilyKind
-    lineHeight                             = HtmlLength.auto()
-    letterSpacing:       f32
-    wordSpacing:         f32
-    textAlign:           HtmlTextAlign
-    textTransform:       HtmlTextTransform
-    textIndent:          HtmlLength
-    whiteSpace:          HtmlWhiteSpace
-    listStyleType:       HtmlListStyleType = .Disc
-    listStyleInside:     bool
-    visible                                = true
-    cursorPointer:       bool
-    textDecoration                         = HtmlTextDecoration.None
-    textDecorationColor: Color
-    hasDecorationColor:  bool
+    color:                   Color
+    fontSize:                f32               = 16
+    fontWeight:              u32               = 400
+    italic:                  bool
+    fontFamily:              HtmlFontFamilyKind
+    lineHeight                                 = HtmlLength.auto()
+    letterSpacing:           f32
+    wordSpacing:             f32
+    textAlign:               HtmlTextAlign
+    textTransform:           HtmlTextTransform
+    textIndent:              HtmlLength
+    whiteSpace:              HtmlWhiteSpace
+    listStyleType:           HtmlListStyleType = .Disc
+    listStyleInside:         bool
+    visible                                    = true
+    cursorPointer:           bool
+    textDecoration                             = HtmlTextDecoration.None
+    textDecorationColor:     Color
+    hasDecorationColor:      bool
+    textDecorationStyle:     HtmlTextDecorationStyle
+    textDecorationThickness: f32
+    textUnderlineOffset:     f32
 
     // Not inherited.
-    background:        Color
-    margin:            HtmlEdges
-    padding:           HtmlEdges
-    borderTop:         HtmlBorderEdge
-    borderRight:       HtmlBorderEdge
-    borderBottom:      HtmlBorderEdge
-    borderLeft:        HtmlBorderEdge
-    radiusTopLeft:     f32
-    radiusTopRight:    f32
-    radiusBottomRight: f32
-    radiusBottomLeft:  f32
-    width                  = HtmlLength.auto()
-    height                 = HtmlLength.auto()
-    minWidth               = HtmlLength.auto()
-    maxWidth               = HtmlLength.auto()
-    minHeight              = HtmlLength.auto()
-    maxHeight              = HtmlLength.auto()
-    scrollMarginTop:   HtmlLength
-    inset                  = HtmlEdges.auto()
-    overflowX:         HtmlOverflow
-    overflowY:         HtmlOverflow
-    opacity:           f32 = 1
-    zIndex:            s32
-    verticalAlign:     HtmlVerticalAlign
+    background:           Color
+    margin:               HtmlEdges
+    padding:              HtmlEdges
+    borderTop:            HtmlBorderEdge
+    borderRight:          HtmlBorderEdge
+    borderBottom:         HtmlBorderEdge
+    borderLeft:           HtmlBorderEdge
+    radiusTopLeft:        f32
+    radiusTopRight:       f32
+    radiusBottomRight:    f32
+    radiusBottomLeft:     f32
+    width                     = HtmlLength.auto()
+    height                    = HtmlLength.auto()
+    minWidth                  = HtmlLength.auto()
+    maxWidth                  = HtmlLength.auto()
+    minHeight                 = HtmlLength.auto()
+    maxHeight                 = HtmlLength.auto()
+    scrollMarginTop:      HtmlLength
+    inset                     = HtmlEdges.auto()
+    overflowX:            HtmlOverflow
+    overflowY:            HtmlOverflow
+    textOverflowEllipsis: bool
+    opacity:              f32 = 1
+    zIndex:               s32
+    verticalAlign:        HtmlVerticalAlign
 
     flexDirection:  HtmlFlexDirection
     flexWrap:       HtmlFlexWrap
@@ -339,25 +350,28 @@ impl HtmlComputedStyle
     func inherited(parent: HtmlComputedStyle)->HtmlComputedStyle
     {
         var result: retval
-        result.color               = parent.color
-        result.fontSize            = parent.fontSize
-        result.fontWeight          = parent.fontWeight
-        result.italic              = parent.italic
-        result.fontFamily          = parent.fontFamily
-        result.lineHeight          = parent.lineHeight
-        result.letterSpacing       = parent.letterSpacing
-        result.wordSpacing         = parent.wordSpacing
-        result.textAlign           = parent.textAlign
-        result.textTransform       = parent.textTransform
-        result.textIndent          = parent.textIndent
-        result.whiteSpace          = parent.whiteSpace
-        result.listStyleType       = parent.listStyleType
-        result.listStyleInside     = parent.listStyleInside
-        result.visible             = parent.visible
-        result.cursorPointer       = parent.cursorPointer
-        result.textDecoration      = parent.textDecoration
-        result.textDecorationColor = parent.textDecorationColor
-        result.hasDecorationColor  = parent.hasDecorationColor
+        result.color                   = parent.color
+        result.fontSize                = parent.fontSize
+        result.fontWeight              = parent.fontWeight
+        result.italic                  = parent.italic
+        result.fontFamily              = parent.fontFamily
+        result.lineHeight              = parent.lineHeight
+        result.letterSpacing           = parent.letterSpacing
+        result.wordSpacing             = parent.wordSpacing
+        result.textAlign               = parent.textAlign
+        result.textTransform           = parent.textTransform
+        result.textIndent              = parent.textIndent
+        result.whiteSpace              = parent.whiteSpace
+        result.listStyleType           = parent.listStyleType
+        result.listStyleInside         = parent.listStyleInside
+        result.visible                 = parent.visible
+        result.cursorPointer           = parent.cursorPointer
+        result.textDecoration          = parent.textDecoration
+        result.textDecorationColor     = parent.textDecorationColor
+        result.hasDecorationColor      = parent.hasDecorationColor
+        result.textDecorationStyle     = parent.textDecorationStyle
+        result.textDecorationThickness = parent.textDecorationThickness
+        result.textUnderlineOffset     = parent.textUnderlineOffset
         return result
     }
 
@@ -449,6 +463,10 @@ public enum HtmlProperty
     TextDecoration
     TextDecorationLine
     TextDecorationColor
+    TextDecorationStyle
+    TextDecorationThickness
+    TextUnderlineOffset
+    TextOverflow
     WhiteSpace
     VerticalAlign
     ListStyleType
@@ -561,6 +579,10 @@ func htmlPropertyFromName(name: string)->HtmlProperty
     case "text-decoration":            return .TextDecoration
     case "text-decoration-line":       return .TextDecorationLine
     case "text-decoration-color":      return .TextDecorationColor
+    case "text-decoration-style":      return .TextDecorationStyle
+    case "text-decoration-thickness":  return .TextDecorationThickness
+    case "text-underline-offset":      return .TextUnderlineOffset
+    case "text-overflow":              return .TextOverflow
     case "white-space":                return .WhiteSpace
     case "vertical-align":             return .VerticalAlign
     case "list-style-type":            return .ListStyleType
@@ -1136,6 +1158,22 @@ impl HtmlComputedStyle
                 .textDecorationColor = color
                 .hasDecorationColor  = true
             }
+
+        case .TextDecorationStyle:
+            .textDecorationStyle = value == "dotted" ? .Dotted : .Solid
+
+        case .TextDecorationThickness:
+            let parsed = .length(value, context)
+            if parsed.matched do
+                .textDecorationThickness = Math.max(parsed.length.resolve(context.pool, context.length), 0)
+
+        case .TextUnderlineOffset:
+            let parsed = .length(value, context)
+            if parsed.matched do
+                .textUnderlineOffset = parsed.length.resolve(context.pool, context.length)
+
+        case .TextOverflow:
+            .textOverflowEllipsis = value == "ellipsis"
 
         case .WhiteSpace:
             switch value

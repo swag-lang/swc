@@ -23,6 +23,16 @@ struct HtmlPainter
     // comparison per drawn item and no layout at all.
     hoverLink = HtmlNoNode
     hotLink: Color
+
+    searchNode = HtmlNoNode
+    searchStart: u64
+    searchEnd:   u64
+    selection:   Color
+
+    scrollTrack:    Color
+    scrollThumb:    Color
+    scrollBarSize:  f32
+    scrollThumbMin: f32
 }
 
 impl HtmlPainter
@@ -228,13 +238,31 @@ impl HtmlPainter
             return
 
         let color     = HtmlPainter.withAlpha(style.hasDecorationColor ? style.textDecorationColor : style.color, alpha)
-        let thickness = Math.max(Math.round(style.fontSize / 14), 1)
+        let thickness = style.textDecorationThickness > 0 ? style.textDecorationThickness : Math.max(Math.round(style.fontSize / 14), 1)
+        let offset    = style.textUnderlineOffset != 0 ? style.textUnderlineOffset : thickness
         if style.textDecoration.has(.Underline) do
-            .painter.fillRect({x, Math.round(y + item.ascent + thickness), item.width, thickness}, color)
+            .paintDecorationLine({x, Math.round(y + item.ascent + offset), item.width, thickness}, color, style.textDecorationStyle)
         if style.textDecoration.has(.Overline) do
-            .painter.fillRect({x, Math.round(y), item.width, thickness}, color)
+            .paintDecorationLine({x, Math.round(y), item.width, thickness}, color, style.textDecorationStyle)
         if style.textDecoration.has(.LineThrough) do
-            .painter.fillRect({x, Math.round(y + item.ascent * 0.68), item.width, thickness}, color)
+            .paintDecorationLine({x, Math.round(y + item.ascent * 0.68), item.width, thickness}, color, style.textDecorationStyle)
+    }
+
+    private mtd paintDecorationLine(rect: Math.Rectangle, color: Color, style: HtmlTextDecorationStyle)
+    {
+        if style == .Solid
+        {
+            .painter.fillRect(rect, color)
+            return
+        }
+
+        let dot = Math.max(rect.height, 1)
+        var x   = rect.x
+        while x < rect.right()
+        {
+            .painter.fillRect({x, rect.y, Math.min(dot, rect.right() - x), rect.height}, color)
+            x += dot * 2
+        }
     }
 
     // Reports whether a node is `ancestor` or sits under it.
@@ -284,26 +312,90 @@ impl HtmlPainter
                 .painter.fillRect({x, y - padTop, item.width, item.ascent + item.descent + padTop + padBottom}, HtmlPainter.withAlpha(style.background, alpha))
             }
 
+            .paintSearchHit(item, alpha, x, y)
+
             if item.kind == .Space
             {
                 .paintDecorationLines(item, style, alpha, x, y)
                 continue
             }
 
-            let font = .layout.font(item.style)
-            let hot  = .hoverLink != HtmlNoNode and .hotLink.a and .isInside(item.node, .hoverLink)
-            let ink  = HtmlPainter.withAlpha(hot ? .hotLink : style.color, alpha * style.opacity)
-            if style.letterSpacing != 0
-            {
-                // Extra tracking is a property of the shaped run, not of the draw call, so a run
-                // that asks for it is shaped here rather than drawn straight.
-                var shaped = Painter.shapeRun(item.text.toString(), font, DefaultTextTabSize, style.letterSpacing)
-                .painter.drawShapedRun(x, y, &shaped, font, Brush.createSolid(ink))
-            }
+            let font      = .layout.font(item.style)
+            let hot       = .hoverLink != HtmlNoNode and .hotLink.a and .isInside(item.node, .hoverLink)
+            let ink       = HtmlPainter.withAlpha(hot ? .hotLink : style.color, alpha * style.opacity)
+            let boxStyle  = .layout.constStyle(target.style)
+            let clipRight = target.content.right() + offset.x
+            let ellipsis  = boxStyle.textOverflowEllipsis and boxStyle.overflowX != .Visible and style.whiteSpace == .NoWrap and x + item.width > clipRight
+            if ellipsis and clipRight > x do
+                .paintEllipsized(item, style, font, ink, x, y, clipRight - x)
             else do
-                .painter.drawString(x, y, item.text.toString(), font, ink)
+                .paintTextRun(item.text.toString(), style, font, ink, x, y)
             .paintDecorationLines(item, style, alpha, x, y)
         }
+    }
+
+    private mtd paintTextRun(text: string, style: const *HtmlComputedStyle, font: *Font, ink: Color, x, y: f32)
+    {
+        if style.letterSpacing != 0
+        {
+            // Extra tracking is a property of the shaped run, not of the draw call, so a run
+            // that asks for it is shaped here rather than drawn straight.
+            var shaped = Painter.shapeRun(text, font, DefaultTextTabSize, style.letterSpacing)
+            .painter.drawShapedRun(x, y, &shaped, font, Brush.createSolid(ink))
+        }
+        else do
+            .painter.drawString(x, y, text, font, ink)
+    }
+
+    // Draws the longest UTF-8 prefix that leaves room for a visible truncation marker.
+    private mtd paintEllipsized(item: const *HtmlInlineItem, style: const *HtmlComputedStyle, font: *Font, ink: Color, x, y, room: f32)
+    {
+        const Marker = "..."
+        let markerWidth = .layout.measure(item.style, Marker)
+        if room < markerWidth do
+            return
+
+        let source = item.text.toString()
+        var end    = 0'u64
+        while end < @countof(source)
+        {
+            let {?, eat} = Utf8.decodeRune(source[end to])
+            let next     = end + eat
+            if .layout.measure(item.style, source[0 until next]) + markerWidth > room do
+                break
+            end = next
+        }
+
+        var clipped: String
+        if end do
+            clipped += source[0 until end]
+        clipped += Marker
+        .paintTextRun(clipped.toString(), style, font, ink, x, y)
+    }
+
+    // Marks the part of a text run covered by the current find result. Source offsets remain on
+    // each inline item, so a match split by wrapping or inline markup still paints continuously.
+    private mtd paintSearchHit(item: const *HtmlInlineItem, alpha: f32, x: f32, y: f32)
+    {
+        if item.node != .searchNode or .searchEnd <= item.sourceStart or .searchStart >= item.sourceEnd do
+            return
+
+        var left         = x
+        var width        = item.width
+        let sourceLength = item.sourceEnd - item.sourceStart
+        if sourceLength == @countof(item.text) and sourceLength
+        {
+            let start = Math.max(.searchStart, item.sourceStart) - item.sourceStart
+            let end   = Math.min(.searchEnd, item.sourceEnd) - item.sourceStart
+            left  += .layout.measure(item.style, item.text[0 until start])
+            width = .layout.measure(item.style, item.text[start until end])
+        }
+
+        if width <= 0 do
+            return
+        let padTop    = item.ascent * 0.28
+        let padBottom = item.descent * 0.4
+        .painter.fillRect({left, y - padTop, width, item.ascent + item.descent + padTop + padBottom}, HtmlPainter.withAlpha(.selection, alpha))
     }
 
     // Draws the marker a list item or a disclosure summary carries beside its content.
@@ -387,6 +479,33 @@ impl HtmlPainter
         .paintChildren(box, offset, alpha)
     }
 
+    // Draws a compact themed scrollbar over an independently scrolling CSS region. Keeping the
+    // region inside the document tree preserves CSS layout and hit testing; a native child window
+    // per `overflow` box would split one DOM into unrelated coordinate systems.
+    private mtd paintRegionScrollBar(box: u32, rect: Math.Rectangle, alpha: f32)
+    {
+        let target = .layout.constBox(box)
+        if !target.scrollable or target.scrollHeight <= target.content.height or rect.height <= 0 do
+            return
+
+        let width = Math.min(Math.max(.scrollBarSize, 2), rect.width)
+        var track = rect
+        track.x     = rect.right() - width
+        track.width = width
+        if .scrollTrack.a do
+            .painter.fillRect(track, HtmlPainter.withAlpha(.scrollTrack, alpha))
+
+        let limit       = target.scrollHeight - target.content.height
+        let thumbHeight = Math.min(Math.max(track.height * target.content.height / target.scrollHeight, .scrollThumbMin), track.height)
+        let travel      = Math.max(track.height - thumbHeight, 0)
+        var thumb       = track
+        thumb.y      += limit > 0 ? travel * target.scrollTop / limit : 0
+        thumb.height = thumbHeight
+        thumb.x      += width * 0.25
+        thumb.width  -= width * 0.5
+        .painter.fillRect(thumb, HtmlPainter.withAlpha(.scrollThumb, alpha))
+    }
+
     // Draws one box and everything under it.
     mtd paintBox(box: u32, parentOffset: Math.Point, alpha: f32)
     {
@@ -432,6 +551,7 @@ impl HtmlPainter
             defer .painter.popClippingRect()
             inner.y -= .layout.constBox(box).scrollTop
             .paintContents(box, inner, combined)
+            .paintRegionScrollBar(box, clip, combined)
             return
         }
 

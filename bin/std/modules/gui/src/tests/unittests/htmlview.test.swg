@@ -51,7 +51,7 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let viewport = view.scroll.paddedClientRect()
     let painter  = view.painter()
     var result: retval
-    var y = 2.0'f32
+    var y        = 2.0'f32
     while y < viewport.height
     {
         var x = 2.0'f32
@@ -220,6 +220,9 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(htmlParseColor("rgb(255, 0, 0)").color == Color.fromArgb(0xFFFF0000))
     @assert(htmlParseColor("rgba(255 0 0 / 50%)").color.a == 128)
     @assert(htmlParseColor("hsl(0, 100%, 50%)").color == Color.fromArgb(0xFFFF0000))
+    let translucent = htmlParseColor("color-mix(in srgb, #ff0000 25%, transparent)")
+    @assert(translucent.matched and translucent.color.a == 64 and translucent.color.r == 255 and !translucent.color.g and !translucent.color.b)
+    @assert(htmlParseColor("color-mix(in srgb, #0000ff 20%, #ffffff)").color == Color.fromArgb(0xFFCCCCFF))
     @assert(htmlParseColor("rebeccapurple").color == Color.fromArgb(0xFF663399))
     @assert(htmlParseColor("transparent").matched and !htmlParseColor("transparent").color.a)
     @assert(!htmlParseColor("inherit").matched)
@@ -354,6 +357,28 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(wide.rect.x == narrow.rect.right())
 }
 
+// A table cell aligns its contents inside the row height established by a taller sibling.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 140)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } td { padding: 4px } #bottom { vertical-align: bottom }</style>"
+    source += "<table><tr><td><div style=\"height:80px\"></div></td><td id=\"bottom\">Bottom</td></tr></table>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(300, 140)
+    view.applyLayout()
+    view.rebuild()
+
+    let cell = view.layout.constBox(view.boxOfNode(view.elementById("bottom")))
+    @assert(!cell.children.isEmpty())
+    let content = view.layout.constBox(cell.children[0])
+    @assert(!content.items.isEmpty())
+    @assert(content.items[0].y + content.items[0].ascent + content.items[0].descent >= cell.content.bottom() - 1)
+}
+
 // A bounded overflow region moves its own contents and never paints them outside its viewport.
 #test
 {
@@ -384,6 +409,7 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var image = host.render(view)
     @assert(image.pixelColor(20, 60).argb == 0xFF0000FF)
+    @assert(image.pixelColor(97, 90).argb == host.theme.colors.scrollBar_Box.argb)
     @assert(image.pixelColor(20, 30).argb != 0xFFFF0000 and image.pixelColor(20, 30).argb != 0xFF0000FF)
     @assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
 }
@@ -521,6 +547,7 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(view.pendingSearch.isEmpty())
     @assert(view.searchNode != HtmlNoNode)
     @assert(Utf8.contains(view.document.constNode(view.searchNode).text.toString(), query))
+    @assert(view.searchEnd - view.searchStart == @countof(query))
 
     // The match is what the viewport shows, not an estimate of where it might be.
     let box = view.boxOfNode(view.searchNode)
@@ -622,6 +649,41 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var home = KeyEvent{kind: .Pressed, key: .Home}
     @assert(scrollDocumentWithKey(view.scroll, &home))
     @assert(view.scroll.scrollPosition().y == 0)
+
+    // A pointer gesture on prose restores the document after another control temporarily owned
+    // the keyboard, so later navigation keys cannot disappear into stale focus.
+    host.focus(&host.root)
+    @assert(!view.hasFocus())
+    host.click({20, 20})
+    @assert(view.hasFocus())
+}
+
+// An absolutely positioned generated rule is a box of its own, and a functional color paints it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 80)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0; background: #ffffff }"
+    source += "h2 { position: relative; margin: 0; padding-top: 14px }"
+    source += "h2::before { content: ''; position: absolute; top: 0; left: 0; width: 32px; height: 4px; background: color-mix(in srgb, #ff0000 50%, #ffffff) }"
+    source += "</style><h2 id='section'>Section</h2>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(160, 80)
+    view.applyLayout()
+    view.rebuild()
+
+    let heading = view.layout.constBox(view.boxOfNode(view.elementById("section")))
+    var bar     = HtmlNoNode
+    for child in heading.children where view.layout.constStyle(view.layout.constBox(child).style).background.a do
+        bar = child
+    @assert(bar != HtmlNoNode)
+    let decoration = view.layout.constBox(bar)
+    @assert(decoration.rect.width == 32 and decoration.rect.height == 4)
+    var image = host.render(view)
+    @assert(image.pixelColor(cast(u32) decoration.rect.horzCenter(), cast(u32) decoration.rect.vertCenter()).argb == 0xFFFF8080)
 }
 
 // Every checked-in HTML fixture is a complete document that the streaming parser accepts.
@@ -656,9 +718,11 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let header = view.layout.constBox(view.boxOfNode(view.elementById("flex-header")))
+    let brand  = view.layout.constBox(view.boxOfNode(findClass(&view.document, "brand")))
     let links  = view.layout.constBox(view.boxOfNode(view.elementById("header-links")))
     let github = view.layout.constBox(view.boxOfNode(view.elementById("github-link")))
     @assert(header.rect.height == 66)
+    @assert(Math.abs(brand.rect.vertCenter() - header.rect.vertCenter()) <= 1)
     @assert(!links.children.isEmpty())
     @assert(Math.abs(github.rect.y - view.layout.constBox(links.children[0]).rect.y) <= 1)
 }
@@ -789,5 +853,24 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     for child in links.children do
         @assert(Math.abs(view.layout.constBox(child).rect.y - firstY) <= 1)
 
+    view.stopLoading()
+}
+
+// Pins the visible generated API frame: centered header content, independent navigation rail,
+// section ornaments, note fills, and table alignment all pass through the production HTML view.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, guiFixturePath("std.pixel.html"))
+    view.resize(960, 680)
+    view.applyLayout()
+    view.rebuild()
+    view.streamStep()
+
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "htmlview.pixel-api")
     view.stopLoading()
 }

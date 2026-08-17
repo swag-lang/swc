@@ -814,7 +814,7 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
             document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
             return;
         }
-        document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary>{}<span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= tocOpenLimit ? " open" : "", Utf8Helper::escapeHtml(title), count, anchor, Utf8Helper::escapeHtml(title)));
+        document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary><span class=\"toc-label\">{}</span><span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= tocOpenLimit ? " open" : "", Utf8Helper::escapeHtml(title), count, anchor, Utf8Helper::escapeHtml(title)));
         appendEntries();
         document.toc += "</ul>\n</details>\n";
     };

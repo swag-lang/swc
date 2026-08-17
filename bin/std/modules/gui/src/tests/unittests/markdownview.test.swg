@@ -94,6 +94,25 @@ private func markdownFixturePath()->String
     Testing.assertContentFits(view)
 }
 
+// Find marks the visible words of a match, including one split by inline markup.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+
+    let view = MarkdownView.createText(&host.root, "Before **split search** result.")
+    view.resize(640, 240)
+    view.applyLayout()
+    view.layoutDocument()
+
+    @assert(view.findText("split search"))
+    var hits = 0'u32
+    for &atom in view.blocks[0].inline!.atoms where atom.searchHit do
+        hits += 1
+    @assert(hits >= 2)
+}
+
 // A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
 // boundary through the real focused keyboard path; End still waits for the real EOF.
 #test

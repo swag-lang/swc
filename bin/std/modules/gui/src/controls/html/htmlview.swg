@@ -107,12 +107,14 @@ public struct HtmlView
         loadTimer:   #null *Timer
         nextRefresh: u64
 
-        pendingSearch: String
-        pendingFragment: String
-        revealOffset:  u64
-        hasReveal:     bool
+        pendingSearch:      String
+        pendingFragment:    String
+        revealOffset:       u64
+        hasReveal:          bool
         hasPendingFragment: bool
         searchNode = HtmlNoNode
+        searchStart:        u64
+        searchEnd:          u64
         hovered    = HtmlNoNode
     }
 }
@@ -509,7 +511,6 @@ internal impl HtmlView
             clearance = .layout.resolveLength(style.scrollMarginTop, target.style, .layout.viewport.x)
         }
 
-        .searchNode = node
         let position = .scroll.scrollPosition()
         .scroll.setScrollPos(position.x, Math.max(top - clearance, 0))
         .canvas.invalidate()
@@ -576,10 +577,17 @@ internal impl HtmlView
             let node  = .document.constNode(index)
             if node.kind != .Text or node.text.isEmpty() do
                 continue
-            if Utf8.indexOf(node.text.toString(), text, 0, .Latin1NoCase) == Swag.U64.Max do
+            let match = Utf8.indexOf(node.text.toString(), text, 0, .Latin1NoCase)
+            if match == Swag.U64.Max do
                 continue
-            if .scrollToNode(index) do
+            if .scrollToNode(index)
+            {
+                .searchNode  = index
+                .searchStart = match
+                .searchEnd   = match + @countof(text)
+                .canvas.invalidate()
                 return true
+            }
         }
 
         return false
@@ -612,13 +620,21 @@ internal impl HtmlView
         // offset puts every box into; the scroll position is kept separately because a sticky box
         // needs to know where the document really is.
         var result: retval
-        result.layout    = &.layout
-        result.images    = &.images
-        result.renderer  = .app().renderer
-        result.scrollY   = .scroll.scrollPosition().y
-        result.visible   = .scroll.paddedClientRect()
-        result.hotLink   = .themeColors().url_HotText
-        result.hoverLink = .linkElementAt(.hovered)
+        result.layout         = &.layout
+        result.images         = &.images
+        result.renderer       = .app().renderer
+        result.scrollY        = .scroll.scrollPosition().y
+        result.visible        = .scroll.paddedClientRect()
+        result.hotLink        = .themeColors().url_HotText
+        result.hoverLink      = .linkElementAt(.hovered)
+        result.searchNode     = .searchNode
+        result.searchStart    = .searchStart
+        result.searchEnd      = .searchEnd
+        result.selection      = .styleDefaults().selection
+        result.scrollTrack    = .themeColors().scrollBar_Bk
+        result.scrollThumb    = .themeColors().scrollBar_Box
+        result.scrollBarSize  = .themeMetrics().scrollBar_SmallSize
+        result.scrollThumbMin = .themeMetrics().scrollBar_BoxMinSize
         return result
     }
 
@@ -635,6 +651,9 @@ internal impl HtmlView
         if .sourceDone or offset < .bytesRead
         {
             let node = .nodeAtSourceOffset(Math.min(offset, .bytesRead))
+            .searchNode  = node == 0 ? HtmlNoNode : node - 1
+            .searchStart = 0
+            .searchEnd   = 0
             discard .scrollToNode(node)
             .resolvePending()
             return true
@@ -720,6 +739,8 @@ internal impl HtmlView
         .hasPendingFragment = !fragmentCopy.isEmpty()
         .pendingFragment    = fragmentCopy
         .searchNode         = HtmlNoNode
+        .searchStart        = 0
+        .searchEnd          = 0
         .hovered            = HtmlNoNode
         .pendingSearch.clear()
         .scroll.setScrollPos(0, 0)
@@ -835,6 +856,7 @@ internal impl IWnd for HtmlCanvas
             }
 
         case .Pressed where evt.button == .Left:
+            owner.setFocus()
             let painter = owner.painter()
             let url     = owner.linkAt(painter.nodeAt(point))
             if !@countof(url)

@@ -151,6 +151,23 @@ func editHeadlessEscape(eb: *EditBox)
     @assert(drift <= 1.0)
 }
 
+// A leading icon reserves the same themed gap for the caret, glyphs, selection, and hit testing.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 60)
+    defer host.shutdown()
+
+    let edit = EditBox.create(&host.root, "query", {0, 0, 280, 36})
+    edit.setIcon(host.theme.icon(.Search, 18))
+    host.focus(edit)
+    edit.setSelection(@countof(edit.text()), @countof(edit.text()))
+
+    let caret    = edit.caretRect()
+    let expected = edit.leftTextMargin() + edit.posSelEnd
+    @assert(Math.abs(caret.x - expected) <= 0.5)
+}
+
 // Clicking maps the X position to a byte index using the same snapped advances the
 // glyphs are drawn with: indices are non-decreasing as the click moves right, the
 // far left lands on 0 and the far right lands on the last index.

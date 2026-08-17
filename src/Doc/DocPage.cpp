@@ -50,7 +50,7 @@ Utf8 DocPage::styles()
     --swag-kind-func: #15803d;
 
     --swag-header-height: 66px;
-    --swag-rail-width: 306px;
+    --swag-rail-width: 328px;
     --swag-measure: 120ch;
     --swag-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --swag-font-mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Consolas, monospace;
@@ -394,6 +394,7 @@ body {
     position: sticky;
     top: var(--swag-header-height);
     height: calc(100vh - var(--swag-header-height));
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
     border-right: 1px solid var(--swag-line);
@@ -443,11 +444,14 @@ body {
 
 .left a {
     display: block;
+    overflow: hidden;
     padding: 4px 10px 4px 21px;
     color: var(--swag-ink-soft);
     border-left: 2px solid transparent;
     font-size: .9rem;
     text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .left a:hover,
@@ -489,6 +493,13 @@ body {
     cursor: pointer;
     list-style: none;
     user-select: none;
+}
+
+.toc-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .toc-group > summary::-webkit-details-marker {
@@ -1247,7 +1258,7 @@ body {
 
 @media (max-width: 1100px) {
     :root {
-        --swag-rail-width: 250px;
+        --swag-rail-width: 272px;
     }
 
     .container {

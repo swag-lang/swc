@@ -30,6 +30,7 @@ private struct MarkdownInlineAtom
     isSpace:    bool
     isBreak:    bool
     visible:    bool
+    searchHit:  bool
 }
 
 private struct MarkdownInlineState
@@ -86,6 +87,53 @@ public struct MarkdownInlineView
 
 internal impl MarkdownInlineView
 {
+    mtd clearSearchHighlight()
+    {
+        var changed: bool
+        for &atom in .atoms where atom.searchHit
+        {
+            atom.searchHit = false
+            changed        = true
+        }
+
+        if changed do
+            .invalidate()
+    }
+
+    // Highlights every rendered atom touched by the first case-insensitive match.
+    mtd highlightText(text: string)->bool
+    {
+        .clearSearchHighlight()
+        var source: String
+        for &atom in .atoms
+        {
+            if atom.isBreak do
+                source += "\n"
+            elif atom.isSpace do
+                source += " "
+            elif !atom.isMath do
+                source += atom.text
+        }
+
+        let match = Utf8.indexOf(source.toString(), text, 0, .Latin1NoCase)
+        if match == Swag.U64.Max do
+            return false
+
+        let matchEnd = match + @countof(text)
+        var start    = 0'u64
+        for &atom in .atoms
+        {
+            let length = atom.isBreak or atom.isSpace ? 1 : (atom.isMath ? 0 : @countof(atom.text))
+            let end    = start + length
+            if end > match and start < matchEnd do
+                atom.searchHit = true
+            start = end
+        }
+
+        .invalidate()
+        return true
+    }
+
     mtd appendTextAtom(text: string, state: MarkdownInlineState, isSpace = false, isBreak = false)
     {
         var atom: MarkdownInlineAtom
@@ -569,9 +617,9 @@ internal impl IWnd for MarkdownInlineView
         for &atom in .atoms where atom.visible
         {
             let color = .color(atom)
-            if atom.flags.has(.Code) or atom.flags.has(.Highlight)
+            if atom.flags.has(.Code) or atom.flags.has(.Highlight) or atom.searchHit
             {
-                let ground     = atom.flags.has(.Highlight) ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
+                let ground     = atom.flags.has(.Highlight) or atom.searchHit ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
                 var background = atom.position
                 background.x      -= 2
                 background.width  += 4

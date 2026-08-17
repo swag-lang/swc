@@ -27,7 +27,8 @@ let bitmap = &face.glyph.bitmap
 The module covers TrueType `glyf` outlines, `ttcf` collections, Unicode character
 maps including variation sequences, kerning from `GPOS` and from the legacy
 `kern` table, grayscale rasterization, and single- or multi-channel
-signed-distance fields.
+signed-distance fields. [[TrueType.Face.loadSubset]] also accepts rendering-only
+document subsets whose family identity is supplied outside the font program.
 
 It does not shape text. Ligatures, mark attachment and script-specific reordering
 need `GSUB` and the rest of `GPOS`, so Arabic, Indic and Thai are positioned

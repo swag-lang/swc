@@ -16,6 +16,22 @@ The input is a TrueType font with `glyf` outlines. OpenType files carrying CFF
 outlines (`OTTO`) and WOFF containers are recognized and reported as unsupported,
 so a failure names what the file actually is.
 
+## Rendering-only subsets
+
+PDF and similar document formats may embed a TrueType subset without the `name`
+and `post` metadata required of an installable font. Use
+[[TrueType.Face.loadSubset]] for those programs and provide the family identity
+from the document's font descriptor. The outline, location, character-map, and
+horizontal-metric tables are still validated normally.
+
+```swag
+let face = (try Face.loadSubset(embeddedBytes, "DocumentSans"))!
+defer face.destroy()
+```
+
+Keep [[TrueType.Face.load]] for standalone font files; it deliberately remains
+strict about their required metadata.
+
 ## Font collections
 
 A `ttcf` collection packs several faces into one file, which is how Windows ships

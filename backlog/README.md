@@ -53,7 +53,6 @@ allowed to stop.
 | [findings.gui.md](findings.gui.md) | `std/gui`, and the widgets and dialogs it ships |
 | [findings.snapforge.md](findings.snapforge.md) | The sSnapForge application |
 | [findings.tooling.md](findings.tooling.md) | The build, the sandbox, and the test harness |
-| [findings.truetype.md](findings.truetype.md) | `std/truetype` font parsing and rasterization |
 
 Put an entry in the file whose area it will be *fixed* in, not the one it was noticed from. Create
 a new file only when a real cluster forms — a category holding one entry costs more to navigate

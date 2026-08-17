@@ -887,7 +887,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var progress: VolumeProgress
     progress.cancel()
 
-    var stopped = expect Volume.open(path, testPassword())
+    var stopped          = expect Volume.open(path, testPassword())
     let previousPhysical = stopped.physicalSize
     discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelError
     @assert(cancelError != null)
@@ -980,6 +980,39 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(expect File.info(path).size == previousPhysical)
 }
 
+// A version-3 container written before physical camouflage has no physical-length field after
+// its metadata-page runs. Reaching the exact end of that header must select the legacy path.
+#test
+{
+    let path = testContainerPath("legacy-physical-size")
+    defer discard catch File.delete(path)
+
+    var built           = expect Volume.create(path, testPassword(), MinimumSize)
+    let fileId          = expect built.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
+    let payload: [4] u8 = [1, 3, 3, 7]
+    @assert(expect built.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
+    expect built.checkpoint()
+
+    var legacyHeader = expect built.serializeHeader()
+    @assert(legacyHeader.count >= #sizeof(u64))
+    legacyHeader.resize(legacyHeader.count - #sizeof(u64))
+    expect built.writeFramedRecord(HeaderAreaOffset + cast(u64) built.activeSlot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, built.activeSlot, legacyHeader.toSlice())
+    let logicalSize = built.containerSize
+    built.close()
+
+    var file = expect File.open(path, .Open, .ReadWrite, .Read)
+    expect file.resize(logicalSize)
+    file.close()
+
+    var reopened = expect Volume.open(path, testPassword())
+    defer reopened.close()
+    @assert(reopened.containerSize == logicalSize)
+    @assert(reopened.physicalSize == logicalSize)
+    var readBack: [4] u8
+    @assert(expect reopened.readNode(reopened.resolve("\\kept.bin")!.id, 0, readBack) == #sizeof(readBack))
+    @assert(sameTestBytes(readBack, payload))
+}
+
 // An existing volume can refresh its camouflage repeatedly. Its logical capacity and payload
 // never move, while every refresh chooses another physical length.
 #test
@@ -987,7 +1020,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("existing-camouflage")
     defer discard catch File.delete(path)
 
-    var built = expect Volume.create(path, testPassword(), MinimumSize)
+    var built  = expect Volume.create(path, testPassword(), MinimumSize)
     let fileId = expect built.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
     var payload: [BlockSize] u8 = [73]
     @assert(expect built.writeNode(fileId, 0, payload, false, false) == BlockSize)

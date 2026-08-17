@@ -85,22 +85,41 @@ func decodeBestName(nameTable: #null const [..] u8, nameID: u16)->String fail
     return result
 }
 
-func parseNames(faceData: *FaceImpl) fail
+func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 {
-    let nameTable = getTableSlice(faceData, TAG_NAME, 0x91)
+    let defaultStyle = String.from(DEFAULT_STYLE_NAME)
+    let rec = findTable(faceData, TAG_NAME)
+    if !rec
+    {
+        if !@countof(fallbackFamilyName) do
+            fault(0x91)
+        faceData.face.setNames(String.from(fallbackFamilyName), defaultStyle)
+        return
+    }
+
+    let nameTable = getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
 
     var familyName = decodeBestName(nameTable, NAME_ID_FAMILY)
     var styleName  = decodeBestName(nameTable, NAME_ID_STYLE)
     if familyName.length == 0 do
-        familyName = DEFAULT_FAMILY_NAME
+        familyName = String.from(@countof(fallbackFamilyName) ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
     if styleName.length == 0 do
-        styleName = DEFAULT_STYLE_NAME
+        styleName = defaultStyle
     faceData.face.setNames(familyName, styleName)
 }
 
-func parsePost(faceData: *FaceImpl) fail
+func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
 {
-    let postTable = getTableSlice(faceData, TAG_POST, 0x94)
+    let rec = findTable(faceData, TAG_POST)
+    if !rec
+    {
+        if allowMissing do
+            return
+        fault(0x94)
+    }
+
+    let record    = rec!
+    let postTable = getSlice(faceData.fontData.toSlice(), record.offset, record.length)
     let format    = readU32(postTable, 0)
     if format != 0x00010000 and format != 0x00020000 and format != 0x00025000 and format != 0x00030000 do
         fault(0x9A)
@@ -362,7 +381,7 @@ func familyNameIn(data: #null const [..] u8, faceIndex: u32)->String fail
     return familyName
 }
 
-func parseFace(faceData: *FaceImpl, faceIndex: u32) fail
+func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string = "") fail
 {
     let data       = faceData.fontData.toSlice()
     let faceOffset = findFaceOffset(data, faceIndex)
@@ -406,8 +425,8 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32) fail
     buildGlyphMetrics(faceData)
     buildGlyphLocations(faceData)
     parseCMap(faceData)
-    parseNames(faceData)
-    parsePost(faceData)
+    parseNames(faceData, fallbackFamilyName)
+    parsePost(faceData, @countof(fallbackFamilyName) != 0)
     parseKern(faceData)
     parseGpos(faceData)
     parseOS2(faceData)

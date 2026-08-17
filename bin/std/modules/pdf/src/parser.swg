@@ -364,6 +364,40 @@ impl PdfParser
         return Swag.U64.Max
     }
 
+    // Resolves a forward indirect integer before the main object scan has reached it. Stream
+    // lengths are commonly stored in the object immediately after the stream, and scanning for
+    // `endstream` cannot distinguish a delimiter newline from a final data byte with value 10.
+    mtd findForwardIntegerObject(objectNumber: u32)->s64
+    {
+        var probe = PdfParser{bytes: .bytes, pos: .pos}
+        while probe.pos < @countof(probe.bytes)
+        {
+            let start = probe.pos
+            var number, generation: u64
+            if probe.parseUnsigned(&number) and probe.parseUnsigned(&generation) and number == objectNumber and probe.consumeWord("obj")
+            {
+                let valueId = catch probe.parseValue() as parseError
+                if parseError == null and probe.nodes[valueId].kind == .Integer do
+                    return probe.nodes[valueId].integer
+            }
+
+            probe.pos = start + 1
+        }
+
+        return -1
+    }
+
+    mtd declaredStreamLength(nodeId: u32)->s64
+    {
+        let raw = .dictRaw(nodeId, "Length")
+        let id  = .resolve(raw)
+        if id != InvalidNode and .nodes[id].kind == .Integer do
+            return .nodes[id].integer
+        if raw != InvalidNode and .nodes[raw].kind == .Reference do
+            return .findForwardIntegerObject(.nodes[raw].reference)
+        return -1
+    }
+
     mtd attachStream(nodeId: u32) fail
     {
         let saved = .pos
@@ -378,7 +412,7 @@ impl PdfParser
         if .pos < @countof(.bytes) and .bytes[.pos] == '\n' do
             .pos += 1
         let start          = .pos
-        let declaredLength = .integer(.dict(nodeId, "Length"), -1)
+        let declaredLength = .declaredStreamLength(nodeId)
         if declaredLength >= 0
         {
             let length = cast(u64) declaredLength

@@ -845,11 +845,35 @@ impl Tessellate
     {
         .points.grow(.points.count + poly.points.count)
 
+        // Poly2Tri cannot represent two constraints that share a vertex. PDF glyph-like paths
+        // nevertheless use touching holes, so separate a repeated point by one thousandth of a
+        // path-space pixel toward the contour it belongs to. The perturbation is subpixel even
+        // at extreme display scales and turns an undefined topology into the intended tiny
+        // bridge of fill between the holes.
+        let count = poly.points.count - 1
+        var center: Math.Vector2
+        for i in count do
+            center += poly.points[i]
+        if count do
+            center /= cast(f32) count
+
         .startPolyLine()
-        for i in 0 until poly.points.count - 1
+        for i in count
         {
             let p  = newPoint()
-            let pt = poly.pointAt(i)
+            var pt = poly.points[i]
+            for existing in .points
+            {
+                if Math.abs(pt.x - existing.x) >= 0.0005 or Math.abs(pt.y - existing.y) >= 0.0005 do
+                    continue
+
+                var direction = Math.Vector2.normalizedOrZero(center - pt)
+                if direction.isEqualEpsilon({}) do
+                    direction = {1, 0}
+                pt += direction * 0.001
+                break
+            }
+
             p.x = pt.x
             p.y = pt.y
             .points.add(p)

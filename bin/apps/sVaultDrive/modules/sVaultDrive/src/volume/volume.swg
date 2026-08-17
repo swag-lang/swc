@@ -169,7 +169,7 @@ func camouflageSize(logicalSize: u64, avoidedSize = 0'u64)->u64 fail
 
     var random = 0'u64
     Core.Crypto.randomBytes(@mkslice(cast([*] u8) &random, #sizeof(random)))
-    let range = maximum - minimum + 1
+    let range  = maximum - minimum + 1
     var result = logicalSize + minimum + random % range
     if result == avoidedSize do
         result = result == logicalSize + maximum ? logicalSize + minimum : result + 1
@@ -178,7 +178,6 @@ func camouflageSize(logicalSize: u64, avoidedSize = 0'u64)->u64 fail
 
 impl Volume
 {
-
     // Fills a physical range rather than merely resizing the file. This keeps
     // the container fully allocated and makes the camouflage tail look exactly
     // like encrypted data.
@@ -362,7 +361,7 @@ impl Volume
         if result.physicalSize < MinimumSize do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
         result.containerSize = result.physicalSize
-        result.blockCount = (result.physicalSize - DataOffset) / BlockRecordSize
+        result.blockCount    = (result.physicalSize - DataOffset) / BlockRecordSize
 
         try result.unlock(password)
 
@@ -912,8 +911,8 @@ impl Volume
         .checkpointAt = .sequence
         if .sequence == Swag.U64.Max do
             failWith("The container sequence can no longer advance.", .Corrupted)
-        let actualSize   = .physicalSize
-        let storedSize   = reader.readLittleEndian'u64()
+        let actualSize = .physicalSize
+        let storedSize = reader.readLittleEndian'u64()
         .blockCount   = reader.readLittleEndian'u64()
         .nextNodeId   = reader.readLittleEndian'u64()
         .label        = reader.readSizedString(MaximumLabelSize)
@@ -948,14 +947,15 @@ impl Volume
         // A version-3 header written before physical camouflage has no trailing
         // length. Treating it as exact makes the next refresh a safe migration.
         .physicalSize = storedSize
-        if !reader.isEof()
+        if @countof(reader.remainingBytes())
         {
             let storedPhysicalSize = reader.readLittleEndian'u64()
             if storedPhysicalSize < storedSize do
                 failWith("The container geometry does not match its size.", .Corrupted)
+
             // Only the unauthenticated random tail is missing. An older reader
             // can have truncated it to the logical size without touching data.
-            .physicalSize = Math.min(storedPhysicalSize, actualSize)
+            .physicalSize             = Math.min(storedPhysicalSize, actualSize)
             physicalLengthNeedsRepair = storedPhysicalSize != actualSize
         }
 

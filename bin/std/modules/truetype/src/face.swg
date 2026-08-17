@@ -51,6 +51,21 @@ public struct Face
     }
 }
 
+private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: #null IAllocator)->#null *Face fail
+{
+    if @countof(bytes) == 0 do
+        fault(0x06)
+    let allocationAllocator = (allocator orelse @getcontext().allocator)!
+    let faceData            = Memory.new'FaceImpl(allocationAllocator)
+    faceData.allocationAllocator = allocationAllocator
+    defer #fail Memory.delete(faceData, allocationAllocator)
+    faceData.fontData.resize(@countof(bytes))
+    let fontData = faceData.fontData.buffer!
+    Memory.copy(fontData, @dataof(bytes), @countof(bytes))
+    parseFace(faceData, faceIndex, fallbackFamilyName)
+    return &faceData.face
+}
+
 public impl Face
 {
     internal mtd setNames(familyName, styleName: String)
@@ -129,6 +144,22 @@ public impl Face
         return Face.loadAt(bytes, 0, allocator)
     }
 
+    // Loads a rendering-only TrueType subset from an in-memory font program.
+    //
+    // Document formats such as PDF may legally omit the `name` and `post` tables that an
+    // installable OpenType font requires. `familyName` supplies the missing family identity;
+    // absent style and underline metadata use `Regular` and zero. All outline, location, mapping,
+    // and horizontal-metric tables remain mandatory. Use [[TrueType.Face.load]] for standalone
+    // font files, where missing metadata is an error.
+    //
+    // Ownership and cleanup match [[TrueType.Face.load]].
+    func loadSubset(bytes: const [..] u8, familyName: string, allocator: #null IAllocator = null)->#null *Face fail
+    {
+        if !@countof(familyName) do
+            fault(0x06)
+        return loadFaceBytes(bytes, 0, familyName, allocator)
+    }
+
     // Loads one face of a TrueType collection by index.
     //
     // A `ttcf` collection packs several faces into one file, which is the form a
@@ -148,17 +179,7 @@ public impl Face
     // ```
     func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: #null IAllocator = null)->#null *Face fail
     {
-        if @countof(bytes) == 0 do
-            fault(0x06)
-        let allocationAllocator = (allocator orelse @getcontext().allocator)!
-        let faceData            = Memory.new'FaceImpl(allocationAllocator)
-        faceData.allocationAllocator = allocationAllocator
-        defer #fail Memory.delete(faceData, allocationAllocator)
-        faceData.fontData.resize(@countof(bytes))
-        let fontData = faceData.fontData.buffer!
-        Memory.copy(fontData, @dataof(bytes), @countof(bytes))
-        parseFace(faceData, faceIndex)
-        return &faceData.face
+        return loadFaceBytes(bytes, faceIndex, "", allocator)
     }
 
     // Returns how many faces an in-memory font file holds.

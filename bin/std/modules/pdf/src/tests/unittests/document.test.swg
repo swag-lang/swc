@@ -199,23 +199,23 @@ private func sampleDocument()->Document
     @assert(cast(string) runLength.toSlice() == "ABCZZZ")
 }
 
-// Temporary corpus inventory; replaced by bounded fixture tests after page counts are known.
+// A forward indirect length must win over delimiter scanning. This stream's final Adler-32 byte
+// is itself LF (0x0A), so trimming line endings before resolving object 5 corrupts valid Flate.
 #test
 {
-    const names = ["llvm-polly-kernelgen-pavt-2012-slides.pdf"]
-    for name in names
-    {
-        var reader = expect Reader.open(pdfFixturePath(name))
-        Console.println(name, ": ", reader.pageCount(), " pages")
-        let scale = name == "llvm-polly-impact-2011-slides.pdf" ? 96.0 / 72.0 : 0.5
-        for index in 29 to 29
-        {
-            if name == "llvm-polly-raghesh-masters-thesis.pdf" and index >= 10 do
-                continue
-            Console.println("corpus render ", name, " page ", index)
-            var page  = expect reader.loadPage(index)
-            let image = expect page.render({scale: scale, maxDimension: 8192})
-            @assert(image.isValid())
-        }
-    }
+    const compressed: [9] u8 = [0x78, 0x9C, 0xE3, 0x04, 0x00, 0x00, 0x0A, 0x00, 0x0A]
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    addObject(&bytes, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
+    addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> /Contents 4 0 R >>")
+    bytes.add(cast(const [..] u8) "4 0 obj\n<< /Length 5 0 R /Filter /FlateDecode >>\nstream\n")
+    bytes.add(compressed)
+    bytes.add(cast(const [..] u8) "endstream\nendobj\n")
+    addObject(&bytes, 5, "9")
+    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+
+    let document = expect Document.decode(bytes.toSlice())
+    @assert(document.pages.count == 1)
+    @assert(document.pages[0].items.count == 0)
 }

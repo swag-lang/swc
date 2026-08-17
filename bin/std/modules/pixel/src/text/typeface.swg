@@ -82,7 +82,10 @@ public impl TypeFace
     // Returns the family name stored in the font.
     mtd const familyName()->string => .face.familyName
 
-    // Get or create a new typeface from a memory buffer
+    // Gets or creates a typeface from an in-memory TrueType program.
+    //
+    // `fullname` is both the cache identity and the fallback family name for a rendering-only
+    // subset that legally omits standalone font metadata such as `name` and `post`.
     func create(fullname: string, bytes: const [..] u8)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
@@ -98,7 +101,7 @@ public impl TypeFace
         tf.fullname = fullname
         tf.buffer   = bytes
 
-        let face = try Face.load(tf.buffer.toSlice(), allocator)
+        let face = try Face.loadSubset(tf.buffer.toSlice(), fullname, allocator)
         tf.face       = face!
         tf.faceLoaded = true
 

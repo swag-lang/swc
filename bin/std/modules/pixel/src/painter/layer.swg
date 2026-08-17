@@ -167,6 +167,55 @@ impl Layer
         .resolved      = true
     }
 
+    // Replaces the resolved content with a separable Gaussian blur.
+    //
+    // Repeated calls compose, which lets importers preserve the declared order of blur nodes.
+    internal mtd applyBlur(radius: f32)
+    {
+        Debug.assert(!.active)
+        if radius <= 0 do
+            return
+
+        .resolve()
+        let renderer = .renderer!
+        let painter  = .painter!
+        let content  = .contentTarget!
+        let target1  = renderer.acquireRenderTarget(.deviceWidth(), .deviceHeight())
+        let target2  = renderer.acquireRenderTarget(.deviceWidth(), .deviceHeight())
+        let dstRect  = Math.Rectangle{0, 0, .width, .height}
+        let srcRect  = Math.Rectangle{0, 0, .contentDeviceWidth(), .contentDeviceHeight()}
+
+        with painter
+        {
+            .bindRenderTarget(target1)
+            .setBlurShader(0, radius)
+            .setBlendingMode(.Copy)
+            .setColorMaskFull()
+            .clear(Argb.Zero)
+            .drawTexture(dstRect, srcRect, content.colorBuffer)
+            .setDefaultShader()
+            .unbindRenderTarget()
+        }
+
+        with painter
+        {
+            .bindRenderTarget(target2)
+            .setBlurShader(1, radius)
+            .setBlendingMode(.Copy)
+            .setColorMaskFull()
+            .clear(Argb.Zero)
+            .drawTexture(dstRect, srcRect, target1.colorBuffer)
+            .setDefaultShader()
+            .unbindRenderTarget()
+            .releaseRenderTarget(content)
+            .releaseRenderTarget(target1)
+        }
+
+        if .paintTarget == content do
+            .paintTarget = null
+        .contentTarget = target2
+    }
+
     // Builds the optional blurred shadow and composites the layer content into it.
     //
     // Recording must have ended. A disabled shadow leaves the layer unchanged.

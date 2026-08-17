@@ -39,6 +39,7 @@ enum CommandId
     DrawTriangles             // Draw a contiguous vertex-buffer range.
     BindTexture0              // Bind the current brush texture or gradient.
     ResetTexture0             // Restore the default brush texture.
+    ReleaseTexture            // Release a transient renderer-owned texture.
     StartFont                 // Begin bitmap-font rendering.
     StartMsdfFont             // Begin multi-channel signed-distance-field text rendering.
     EndFont                   // End the current font batch.
@@ -295,7 +296,9 @@ struct Painter
 
             // Reusable shaped run for the immediate drawString path, so per-frame text drawing
             // shapes without allocating a fresh glyph buffer on every call.
-            scratchShaped: ShapedRun     // Reusable shaping result for immediate text drawing.
+            scratchShaped:     ShapedRun                 // Reusable shaping result for immediate text drawing.
+            transientTextures: Array'Texture             // Renderer-owned images released after the recorded frame.
+            transientTargets:  Array'(*RenderTarget)     // Off-screen targets released after nested alpha replay.
         }
 
         // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
@@ -425,6 +428,12 @@ impl Painter
     {
         Debug.assert(.rendererItf != null, "painter has no renderer")
         return .rendererItf!
+    }
+
+    // Queues a transient texture for release after every preceding command has consumed it.
+    internal mtd releaseTexture(texture: Texture)
+    {
+        .transientTextures.add(texture)
     }
 
     // Submits the completed command stream to the selected renderer.
@@ -838,6 +847,8 @@ impl Painter
         .commandBuffer.clear()
         .vertexBuffer.clear()
         .gradientStops.clear()
+        .transientTextures.clear()
+        .transientTargets.clear()
 
         .drawingBegin   = true
         .layoutOnly     = layoutOnly
@@ -856,6 +867,18 @@ impl Painter
     mtd end()
     {
         Debug.assert(.drawingBegin)
+        for texture in .transientTextures
+        {
+            let cmd = .newCommand(.ReleaseTexture, true)
+            cmd.texture0.texture = texture
+        }
+
+        for target in .transientTargets
+        {
+            let cmd = .newCommand(.ReleaseRenderTarget)
+            cmd.renderTgt.tgt = target
+        }
+
         .drawingBegin = false
     }
 
@@ -1277,8 +1300,7 @@ impl Painter
     {
         if !tgt do
             return
-        let cmd = .newCommand(.ReleaseRenderTarget)
-        cmd.renderTgt.tgt = tgt
+        .transientTargets.add(tgt!)
     }
 
     // Set the current shader

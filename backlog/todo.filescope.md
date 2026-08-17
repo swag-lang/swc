@@ -172,7 +172,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | Raster | `.bmp` `.gif` `.ico` `.jpg` `.png` `.tga` `.tiff` `.webp` | full | — | — |
-| Vector | `.svg` | full | text, images, filters, patterns | T-187, T-188, T-190, T-193 |
+| Vector | `.svg` | full | clipping, masks, markers, symbols | T-189, T-191, T-192, T-326 |
 | Metadata | EXIF, ICC, XMP | none | panel, orientation, color management | T-405 |
 | Simple raster | `.qoi` `.pnm` `.ppm` | none | Pixel codec, only QOI is planned | T-055 |
 | Modern codecs | `.avif` `.heic` `.jxl` | none | Pixel codec, HEIC unplanned | T-203, T-204 |

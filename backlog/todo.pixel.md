@@ -90,20 +90,7 @@ Merge an ordered set of graph inputs without requiring them to be blended pairwi
   object-bounding-box ellipses still need a brush representation that both renderers share.
 - Gradient inheritance resolves an already parsed `href`; forward inheritance chains and cycles
   still need a deferred resolver with explicit invalid-reference behavior.
-- Related: T-187, T-188, T-189, T-190, T-191, T-192, T-193
-
-### T-187 — SVG text elements are not parsed
-
-Implement `text` and `tspan` layout with an explicit supported subset of SVG text semantics.
-
-- Related: T-069, T-186
-
-### T-188 — SVG image elements are not parsed
-
-Load bounded embedded or referenced raster images through Pixel's codec registry, with a clear
-external-resource policy.
-
-- Related: T-186
+- Related: T-189, T-191, T-192
 
 ### T-189 — SVG clipping paths are not parsed
 
@@ -117,12 +104,6 @@ Implement `mask` as a compositing operation over render targets independently of
 
 - Related: T-049, T-186, T-189
 
-### T-190 — SVG patterns are not parsed
-
-Implement `pattern` paint servers independently of gradients and masks.
-
-- Related: T-186
-
 ### T-191 — SVG markers are not parsed
 
 Implement start, mid, and end markers with correct path tangent orientation.
@@ -134,12 +115,6 @@ Implement start, mid, and end markers with correct path tangent orientation.
 Implement `symbol` instancing and viewport behavior independently of ordinary `use` references.
 
 - Related: T-186
-
-### T-193 — SVG filters are not parsed
-
-Map a declared subset of SVG filter primitives onto the effect graph from T-049.
-
-- Related: T-049, T-186
 
 ---
 

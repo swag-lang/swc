@@ -1232,6 +1232,10 @@ impl RenderOgl
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
             }
 
+        case .ReleaseTexture:
+            var texture = cmd.texture0.texture
+            me.removeTextureImpl(&texture)
+
         case .BindRenderTarget:
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
             let curRT = .curRT!

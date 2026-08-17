@@ -1804,6 +1804,10 @@ private impl RenderCpu
                 .gradientStops = null
             .paintOn = true
 
+        case .ReleaseTexture:
+            var texture = cmd.texture0.texture
+            me.removeTextureImpl(&texture)
+
         case .BindRenderTarget:
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
             let target = .curRT!

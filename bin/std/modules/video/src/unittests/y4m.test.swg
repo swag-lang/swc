@@ -3,6 +3,11 @@
 
 using Core, Core.Errors, Pixel
 
+private func videoFixturePath(name: string)->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+}
+
 private func videoTestImage(width, height: s32, pixels: const [..] u8)->Image
 {
     return Image.create(width, height, .RGB8, pixels)
@@ -13,6 +18,51 @@ private func videoAssertColor(actual: Color, r, g, b: u8, tolerance = 3)
     @assert(Math.abs(cast(s32) actual.r - r) <= tolerance)
     @assert(Math.abs(cast(s32) actual.g - g) <= tolerance)
     @assert(Math.abs(cast(s32) actual.b - b) <= tolerance)
+}
+
+// A production Y4M fixture exercises the common 4:2:0 JPEG chroma layout through the
+// file-backed index and frame decoder.
+#test
+{
+    let clip = expect Clip.load(videoFixturePath("rav1e-c420jpeg.y4m"))
+    @assert(clip.width() == 64 and clip.height() == 64)
+    @assert(clip.frameRate() == expect FrameRate.create(25, 1))
+    @assert(clip.frameCount() == 5)
+
+    let first = expect clip.decodeFrame(0)
+    let last  = expect clip.decodeFrame(4)
+    @assert(first.isValid() and last.isValid())
+    videoAssertColor(first.pixelColor(0, 0), 36, 41, 53, tolerance: 0)
+    videoAssertColor(first.pixelColor(32, 32), 173, 218, 253, tolerance: 0)
+    @assert(last.pixelColor(0, 0) != last.pixelColor(32, 32))
+}
+
+// The remaining 8-bit plane layouts share the same indexing path, including the
+// specification's implicit 4:2:0 JPEG default when no C tag is present.
+#test
+{
+    const Modes = ["", " C420", " C420mpeg2", " C420paldv"]
+    for mode in Modes
+    {
+        var bytes: Array'u8
+        bytes.add(cast(const [..] u8) Format.toString("YUV4MPEG2 W2 H2 F1:1 Ip%\nFRAME\n", mode).toString())
+        bytes.add([81'u8, 81, 81, 81, 90, 240])
+        let clip  = expect Clip.decode("subsampled.y4m", bytes.toSlice())
+        let frame = expect clip.decodeFrame(0)
+        videoAssertColor(frame.pixelColor(1, 1), 255, 0, 0, tolerance: 0)
+    }
+
+    var bytes422: Array'u8
+    bytes422.add(cast(const [..] u8) "YUV4MPEG2 W2 H1 F1:1 Ip C422\nFRAME\n")
+    bytes422.add([81'u8, 81, 90, 240])
+    let frame422 = expect (expect Clip.decode("subsampled.y4m", bytes422.toSlice())).decodeFrame(0)
+    videoAssertColor(frame422.pixelColor(1, 0), 255, 0, 0, tolerance: 0)
+
+    var bytesMono: Array'u8
+    bytesMono.add(cast(const [..] u8) "YUV4MPEG2 W1 H1 F1:1 Ip Cmono\nFRAME\n")
+    bytesMono.add(81'u8)
+    let frameMono = expect (expect Clip.decode("mono.y4m", bytesMono.toSlice())).decodeFrame(0)
+    videoAssertColor(frameMono.pixelColor(0, 0), 76, 76, 76, tolerance: 0)
 }
 
 #test
@@ -108,7 +158,7 @@ private func videoAssertColor(actual: Color, r, g, b: u8, tolerance = 3)
 #test
 {
     discard catch Clip.decode("bad.y4m", "not video") as missingHeader
-    discard catch Clip.decode("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C420\nFRAME\nabc") as chroma
+    discard catch Clip.decode("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C420p10\nFRAME\nabc") as chroma
     discard catch Clip.decode("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\nFRAME\nab") as truncated
     discard catch Clip.decode("bad.mp4", "") as extension
     @assert(missingHeader is InvalidFormatError)

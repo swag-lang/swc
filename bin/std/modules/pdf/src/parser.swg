@@ -560,10 +560,20 @@ impl PdfParser
         let result = .addNode(#move node)
         imported[sourceId] = result
 
-        for value in sourceNode.values do
-            .nodes[result].values.add(.importNode(source, value, imported))
-        for key, value in sourceNode.entries do
-            .nodes[result].entries[key[]] = .importNode(source, value, imported)
+        // Recursive imports can grow the node array, so reacquire the destination after
+        // each child returns.
+        for value in sourceNode.values
+        {
+            let importedValue = .importNode(source, value, imported)
+            .nodes[result].values.add(importedValue)
+        }
+
+        for key, value in sourceNode.entries
+        {
+            let importedValue = .importNode(source, value, imported)
+            .nodes[result].entries[key[]] = importedValue
+        }
+
         return result
     }
 

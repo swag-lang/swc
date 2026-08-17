@@ -1,5 +1,19 @@
 using Core, Pixel
 
+private func pdfFixturePath(name: string)->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+}
+
+private func loadPdfFixture(name: string, pageCount: u64)->Document
+{
+    let result = expect Document.load(pdfFixturePath(name))
+    @assert(result.pages.count == pageCount)
+    for page in result.pages do
+        @assert(page.width > 0 and page.height > 0 and Math.isFinite(page.width) and Math.isFinite(page.height))
+    return result
+}
+
 private func sampleDocument()->Document
 {
     var document = Document.create()
@@ -23,6 +37,30 @@ private func sampleDocument()->Document
     page.addImage(image, 144, 40, 64, 64)
     document.addPage(#move page)
     return document
+}
+
+// Real files from an independent PDF implementation cover classic and compressed object
+// representations, page inheritance, raster images, and nested vector forms.
+#test
+{
+    discard loadPdfFixture("pdfbox-classic-flate.pdf", 1)
+    discard loadPdfFixture("pdfbox-object-stream.pdf", 1)
+
+    let jpeg = loadPdfFixture("pdfbox-jpeg-rgb.pdf", 1)
+    var hasImage: bool
+    for item in jpeg.pages[0].items where item.kind == .Image do
+        hasImage = true
+    @assert(hasImage)
+
+    let rotation = loadPdfFixture("pdfbox-rotation.pdf", 2)
+    @assert(rotation.pages[0].width == rotation.pages[1].height)
+    @assert(rotation.pages[0].height == rotation.pages[1].width)
+
+    let form = loadPdfFixture("pdfbox-form-xobject.pdf", 1)
+    var pathCount: u64
+    for item in form.pages[0].items where item.kind == .Path do
+        pathCount += 1
+    @assert(pathCount > 100)
 }
 
 // Covers the complete in-memory chain: edit, encode, decode, inspect, and render.

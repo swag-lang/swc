@@ -2,8 +2,9 @@
 
 [[Video.Clip]] represents a silent timed sequence of equal-sized [[Pixel.Image]] values. The
 initial YUV4MPEG2 codec deliberately favors a small, portable implementation over
-compression: it stores progressive 8-bit Y, Cb, and Cr planes at full 4:4:4
-resolution.
+compression. The decoder accepts progressive 8-bit monochrome, 4:2:0
+JPEG/MPEG-2/PAL-DV, 4:2:2, and 4:4:4 planar streams. Encoding always writes
+4:4:4 frames.
 
 Use [[Video.Clip.load]] for playback. It reads the header and indexes frame payloads, but
 does not decode their pixels. [[Video.Clip.decodeFrame]] then reopens the source and reads

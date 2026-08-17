@@ -30,6 +30,7 @@ struct Clip
         encodedBytes: Array'u8
         path:         String
         colorRange:   Y4m.ColorRange
+        chromaMode:   Y4m.ChromaMode
     }
 }
 
@@ -109,8 +110,8 @@ impl Clip
         switch .sourceKind
         {
         case .Frames: return .frames[index]
-        case .Memory: return Y4m.decodeFrame(.encodedBytes.toSlice(), .frameOffsets[index], .frameWidth, .frameHeight, .colorRange)
-        case .File:   return Y4m.decodeFrame(.path.toString(), .frameOffsets[index], .frameWidth, .frameHeight, .colorRange)
+        case .Memory: return Y4m.decodeFrame(.encodedBytes.toSlice(), .frameOffsets[index], .frameWidth, .frameHeight, .colorRange, .chromaMode)
+        case .File:   return Y4m.decodeFrame(.path.toString(), .frameOffsets[index], .frameWidth, .frameHeight, .colorRange, .chromaMode)
         case .None:   fail BadParameterError{"video clip has no source"}
         }
     }
@@ -131,6 +132,7 @@ impl Clip
         result.frameHeight  = index.height
         result.rate         = index.rate
         result.colorRange   = index.colorRange
+        result.chromaMode   = index.chromaMode
         result.frameOffsets = #move index.frameOffsets
         result.encodedBytes.add(bytes)
         return result
@@ -152,6 +154,7 @@ impl Clip
         result.frameHeight  = index.height
         result.rate         = index.rate
         result.colorRange   = index.colorRange
+        result.chromaMode   = index.chromaMode
         result.frameOffsets = #move index.frameOffsets
         result.path         = fileName
         return result

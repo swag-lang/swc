@@ -2,8 +2,9 @@
 Video reads and writes silent video streams as timed sequences of [[Pixel.Image]]
 frames.
 
-The first codec is YUV4MPEG2 (`.y4m`) with progressive 8-bit 4:4:4 YCbCr
-frames. File-backed clips index their frame payloads without decoding them, then
+The first codec is YUV4MPEG2 (`.y4m`) with progressive 8-bit monochrome, 4:2:0,
+4:2:2, or 4:4:4 YCbCr frames. File-backed clips index their frame payloads without
+decoding them, then
 materialize one frame at a time through [[Video.Clip.decodeFrame]]. This keeps
 playback memory bounded independently of the file duration.
 

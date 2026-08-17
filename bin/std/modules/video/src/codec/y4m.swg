@@ -10,12 +10,21 @@ internal enum ColorRange
     Full
 }
 
+internal enum ChromaMode
+{
+    Yuv420
+    Yuv422
+    Yuv444
+    Mono
+}
+
 internal struct Index
 {
     width:        s32
     height:       s32
     rate:         FrameRate
     colorRange:   ColorRange
+    chromaMode:   ChromaMode
     frameOffsets: Array'u64
 }
 
@@ -34,7 +43,8 @@ private func parseHeader(line: string)->Index fail
         fail InvalidFormatError{"YUV4MPEG2 stream header is missing"}
 
     var result: retval
-    var hasWidth, hasHeight, hasRate, hasInterlace, hasChroma: bool
+    result.chromaMode = .Yuv420
+    var hasWidth, hasHeight, hasRate, hasInterlace: bool
     for token in tokens[1 until tokens.count]
     {
         if @countof(token) < 2 do
@@ -72,9 +82,14 @@ private func parseHeader(line: string)->Index fail
             hasInterlace = true
 
         case 'C':
-            if value != "444" do
-                fail UnsupportedFormatError{"video decoder only supports YUV4MPEG2 C444 chroma"}
-            hasChroma = true
+            switch value
+            {
+            case "420", "420jpeg", "420mpeg2", "420paldv": result.chromaMode = .Yuv420
+            case "422":  result.chromaMode = .Yuv422
+            case "444":  result.chromaMode = .Yuv444
+            case "mono": result.chromaMode = .Mono
+            default:     fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support YUV4MPEG2 C% chroma", value))}
+            }
 
         case 'X':
             if value == "COLORRANGE=FULL" do
@@ -95,14 +110,28 @@ private func parseHeader(line: string)->Index fail
         fail InvalidFormatError{"YUV4MPEG2 stream needs a frame rate"}
     if !hasInterlace do
         fail InvalidFormatError{"YUV4MPEG2 stream needs an interlacing mode"}
-    if !hasChroma do
-        fail InvalidFormatError{"YUV4MPEG2 stream needs a chroma mode"}
     return result
 }
 
-private func framePayloadSize(width, height: s32)->u64
+private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
 {
-    return cast(u64) width * cast(u64) height * 3
+    let lumaSize = cast(u64) width * cast(u64) height
+    switch chromaMode
+    {
+    case .Yuv420:
+        let chromaSize = (cast(u64) width + 1) / 2 * ((cast(u64) height + 1) / 2)
+        return lumaSize + chromaSize * 2
+
+    case .Yuv422:
+        let chromaSize = (cast(u64) width + 1) / 2 * cast(u64) height
+        return lumaSize + chromaSize * 2
+
+    case .Yuv444:
+        return lumaSize * 3
+
+    case .Mono:
+        return lumaSize
+    }
 }
 
 private func isFrameMarker(line: string)->bool
@@ -160,7 +189,7 @@ internal func index(bytes: const [..] u8)->Index fail
 {
     var offset: u64
     var result      = parseHeader(readMemoryLine(bytes, &offset))
-    let payloadSize = framePayloadSize(result.width, result.height)
+    let payloadSize = framePayloadSize(result.width, result.height, result.chromaMode)
 
     while offset < @countof(bytes)
     {
@@ -182,7 +211,7 @@ internal func index(fileName: string)->Index fail
 {
     var stream      = File.openRead(fileName)
     var result      = parseHeader(readStreamLine(&stream).toString())
-    let payloadSize = framePayloadSize(result.width, result.height)
+    let payloadSize = framePayloadSize(result.width, result.height, result.chromaMode)
 
     while stream.position() < stream.size()
     {
@@ -202,12 +231,14 @@ internal func index(fileName: string)->Index fail
 
 private func clampByte(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
 
-private func decodePayload(payload: const [..] u8, width, height: s32, colorRange: ColorRange)->Image
+private func decodePayload(payload: const [..] u8, width, height: s32, colorRange: ColorRange, chromaMode: ChromaMode)->Image
 {
-    let planeSize      = cast(u64) width * cast(u64) height
-    let yPlane         = @dataof(payload)
-    let uPlane         = yPlane + planeSize
-    let vPlane         = uPlane + planeSize
+    let lumaSize       = cast(u64) width * cast(u64) height
+    let chromaWidth    = chromaMode == .Yuv444 ? cast(u64) width : (cast(u64) width + 1) / 2
+    let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64) height + 1) / 2 : cast(u64) height
+    let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
+    let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0
+    let chromaColShift = chromaMode == .Yuv444 ? 0 : 1
     var result: retval = Image.create(width, height, .RGB8)
 
     for y in height
@@ -215,11 +246,12 @@ private func decodePayload(payload: const [..] u8, width, height: s32, colorRang
         let destinationRow = cast(u64) (height - y - 1) * cast(u64) result.rowStride
         for x in width
         {
-            let source = cast(u64) y * cast(u64) width + cast(u64) x
-            let luma   = cast(s32) yPlane[source]
-            let d      = cast(s32) uPlane[source] - 128
-            let e      = cast(s32) vPlane[source] - 128
-            let target = result.pixels.buffer! + destinationRow + cast(u64) x * 3
+            let source       = cast(u64) y * cast(u64) width + cast(u64) x
+            let chromaSource = cast(u64) (y >> chromaRowShift) * chromaWidth + cast(u64) (x >> chromaColShift)
+            let luma         = cast(s32) payload[source]
+            let d            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSource] - 128
+            let e            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSize + chromaSource] - 128
+            let target       = result.pixels.buffer! + destinationRow + cast(u64) x * 3
             if colorRange == .Full
             {
                 target[0] = clampByte(luma + ((359 * e + 128) >> 8))
@@ -239,17 +271,17 @@ private func decodePayload(payload: const [..] u8, width, height: s32, colorRang
     return result
 }
 
-internal func decodeFrame(bytes: const [..] u8, offset: u64, width, height: s32, colorRange: ColorRange)->Image fail
+internal func decodeFrame(bytes: const [..] u8, offset: u64, width, height: s32, colorRange: ColorRange, chromaMode: ChromaMode)->Image fail
 {
-    let payloadSize = framePayloadSize(width, height)
+    let payloadSize = framePayloadSize(width, height, chromaMode)
     if offset > @countof(bytes) or payloadSize > @countof(bytes) - offset do
         fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
-    return decodePayload(bytes[offset until offset + payloadSize], width, height, colorRange)
+    return decodePayload(bytes[offset until offset + payloadSize], width, height, colorRange, chromaMode)
 }
 
-internal func decodeFrame(fileName: string, offset: u64, width, height: s32, colorRange: ColorRange)->Image fail
+internal func decodeFrame(fileName: string, offset: u64, width, height: s32, colorRange: ColorRange, chromaMode: ChromaMode)->Image fail
 {
-    let payloadSize = framePayloadSize(width, height)
+    let payloadSize = framePayloadSize(width, height, chromaMode)
     var payload: Array'u8
     payload.resize(payloadSize)
 
@@ -259,7 +291,7 @@ internal func decodeFrame(fileName: string, offset: u64, width, height: s32, col
     stream.seek(.Begin, offset)
     if stream.read(payload.toSlice()) != payloadSize do
         fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
-    return decodePayload(payload.toSlice(), width, height, colorRange)
+    return decodePayload(payload.toSlice(), width, height, colorRange, chromaMode)
 }
 
 private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s32 }

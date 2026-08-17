@@ -142,7 +142,7 @@ private impl ImagePluginView
         with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .toolTip    = "Zoom out"
+            .toolTip    = imageStrings().ui_TipZoomOut
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -154,7 +154,7 @@ private impl ImagePluginView
         {
             .dockStyle  = .Left
             .margin.z   = 8
-            .toolTip    = "Zoom in"
+            .toolTip    = imageStrings().ui_TipZoomIn
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -162,11 +162,11 @@ private impl ImagePluginView
             }
         }
 
-        with let fit = PushButton.create(result.commands, "Fit", {0, 0, 48, 36})
+        with let fit = PushButton.create(result.commands, imageStrings().ui_Fit, {0, 0, 48, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
-            .toolTip    = "Fit image"
+            .toolTip    = imageStrings().ui_TipFit
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -178,7 +178,7 @@ private impl ImagePluginView
         {
             .dockStyle  = .Left
             .margin.x   = 8
-            .toolTip    = "Actual size"
+            .toolTip    = imageStrings().ui_TipActual
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -190,7 +190,7 @@ private impl ImagePluginView
         {
             .dockStyle  = .Left
             .margin.x   = 8
-            .toolTip    = "Rotate clockwise"
+            .toolTip    = imageStrings().ui_TipRotate
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -202,7 +202,7 @@ private impl ImagePluginView
         {
             .dockStyle = .Left
             .margin.x  = 10
-            .toolTip   = "Play or pause"
+            .toolTip   = imageStrings().ui_TipPlay
             .hide()
             .sigPressed += func|view = result|(button)
             {
@@ -256,12 +256,12 @@ private impl ImagePluginView
             discard catch result.imageView.loadGif(fileName) as loadError
             if loadError != null
             {
-                result.showDecodeError("This GIF could not be decoded.", loadError)
+                result.showDecodeError(imageStrings().ui_ErrGif, loadError)
             }
             else
             {
                 let frame = &result.imageView.movie.frame
-                result.details = Format.toString("% × % px · % frame%", frame.width, frame.height, result.imageView.movie.frameCount, result.imageView.movie.frameCount == 1 ? "" : "s")
+                result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.imageView.movie.frameCount))
                 if result.imageView.movie.frameCount > 1 do
                     result.showPlayback()
             }
@@ -271,12 +271,12 @@ private impl ImagePluginView
             let image = catch loadViewerImage(fileName) as loadError
             if loadError == null
             {
-                result.details = Format.toString("% × % px · % bit", image.width, image.height, image.bitsPerPixel)
+                result.details = Format.toString(imageStrings().ui_DetailsStill, image.width, image.height, image.bitsPerPixel)
                 result.imageView.setImage(image)
             }
             else
             {
-                result.showDecodeError("This image could not be decoded.", loadError)
+                result.showDecodeError(imageStrings().ui_ErrImage, loadError)
             }
         }
 

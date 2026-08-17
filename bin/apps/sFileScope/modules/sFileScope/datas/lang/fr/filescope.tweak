@@ -5,9 +5,12 @@ ui_Open         Ouvrir
 ui_Previous     Fichier précédent
 ui_Next         Fichier suivant
 ui_Viewer       Visionneuse
+ui_BasicText    Texte brut
+ui_WrapOn       Retour
+ui_WrapOff      Sans retour
 ui_Search       Rechercher dans le document
-ui_NoMatch      Aucun rÃ©sultat
-ui_Searching    Rechercheâ€¦
+ui_NoMatch      Aucun résultat
+ui_Searching    Recherche…
 ui_DropTitle    Déposez un fichier pour l'afficher
 ui_Ready        Prêt
 ui_Unsupported  Aucun plugin installé ne peut afficher ce fichier.

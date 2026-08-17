@@ -428,7 +428,7 @@ internal impl SoundPluginView
     mtd updatePlaybackUi()
     {
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, SoundGlyphSize))
-        .playButton.toolTip = .playing ? "Pause" : "Play"
+        .playButton.toolTip = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
         .stopButton.enable(.voice != null)
         .waveform.progress = .duration > 0 ? .elapsed / .duration : 0
         .waveform.invalidate()
@@ -550,7 +550,7 @@ internal impl SoundPluginView
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, SoundGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
-            .toolTip   = "Play"
+            .toolTip   = soundStrings().ui_TipPlay
             .enable(false)
             .sigPressed += func|view = result|(button)
             {
@@ -563,7 +563,7 @@ internal impl SoundPluginView
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = "Stop"
+            .toolTip   = soundStrings().ui_TipStop
             .enable(false)
             .sigPressed += func|view = result|(button)
             {
@@ -579,8 +579,8 @@ internal impl SoundPluginView
         let sound = catch SoundFile.load(fileName, preloadData: false) as loadError
         if loadError != null
         {
-            result.details = "WAV · decode failed"
-            let label = Label.create(result, "This WAV file could not be decoded.", {}, null, .WordWrap | .SecondaryText)
+            result.details = soundStrings().ui_DetailsError
+            let label = Label.create(result, soundStrings().ui_ErrDecode, {}, null, .WordWrap | .SecondaryText)
             label.dockStyle = .Center
             label.setTextAlignment(.Center, .Center)
             result.waveform.hide()
@@ -593,14 +593,14 @@ internal impl SoundPluginView
         result.waveform.duration = result.duration
         result.startWaveform()
         let durationText = soundDurationText(result.duration)
-        result.details = Format.toString("% Hz · % channel% · % bit · %", result.sound.sampleRateHz(), result.sound.numChannels(), result.sound.numChannels() == 1 ? "" : "s", result.sound.sampleStorageBits(), durationText)
+        result.details = Format.toString(soundStrings().ui_Details, result.sound.sampleRateHz(), channelCountText(result.sound.numChannels()), result.sound.sampleStorageBits(), durationText)
         result.engineReady = acquireSoundEngine()
         result.timer = result.addTimer(33'ms)
         if result.engineReady do
             result.playButton.enable(true)
         result.updatePlaybackUi()
         if !result.engineReady do
-            result.playButton.toolTip = "Playback unavailable"
+            result.playButton.toolTip = soundStrings().ui_NoEngine
         result.applyLayout()
         result.setInitialFocus(result.playButton)
         return result
@@ -613,6 +613,7 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     if request.apiVersion != ViewerPluginApiVersion do
         return false
 
+    registerSoundStrings(request.contentParent.app())
     let view = SoundPluginView.create(request.contentParent, request.commandParent, request.fileName)
     result.view     = view
     result.commands = view.commands

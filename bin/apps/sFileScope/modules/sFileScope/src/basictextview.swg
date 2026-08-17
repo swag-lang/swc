@@ -197,7 +197,7 @@ impl BasicTextView
     mtd updateWrap()
     {
         .editor.setFlags(.ReadOnly | (.wrapping ? RichEditFlags.WordWrap : .None))
-        .wrapButton.setText(.wrapping ? "Wrap on" : "Wrap off")
+        .wrapButton.setText(.wrapping ? appStrings().ui_WrapOn : appStrings().ui_WrapOff)
         .scheduleMore()
     }
 
@@ -259,7 +259,7 @@ impl BasicTextView
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 104, 36})
         result.commands.backgroundStyle = .Window
 
-        with result.wrapButton = PushButton.create(result.commands, "Wrap on", {0, 0, 96, 36})
+        with result.wrapButton = PushButton.create(result.commands, appStrings().ui_WrapOn, {0, 0, 96, 36})
         {
             .dockStyle  = .Left
             .sigPressed += func|view = result|(button)

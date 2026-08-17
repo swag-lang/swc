@@ -12,6 +12,15 @@ struct TestStrings
 
 var g_TestStrings: TestStrings
 
+// A second table, registered only once a language is already active, the way a plugin library
+// loaded on demand registers its own.
+struct LateStrings
+{
+    hello: string = "Hello"
+}
+
+var g_LateStrings: LateStrings
+
 const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
 // The reference wording is the declared one, and 'en' is always active at start.
@@ -48,6 +57,27 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     @assert(activeLanguage() == "en")
     @assert(g_TestStrings.hello == "Hello")
     @assert(strings().dlg_Cancel == "Cancel")
+}
+
+// A table registered after the switch takes the active language on the spot. This is the whole
+// reason a viewer plugin loaded on demand opens in the language of the window around it instead
+// of in English until the next switch.
+#test
+{
+    var res: Resources.Bundle
+    registerDefaultStrings(&res)
+    res.addEmbedded("lang/fr/latetable.tweak", cast(const [..] u8) TestFrench)
+    defer discard catch applyLanguage(&res, "en")
+
+    expect applyLanguage(&res, "fr")
+    @assert(g_LateStrings.hello == "Hello")
+
+    registerStrings'LateStrings(&g_LateStrings, "latetable")
+    @assert(g_LateStrings.hello == "Bonjour")
+
+    // And it follows every later switch like any other table.
+    expect applyLanguage(&res, "en")
+    @assert(g_LateStrings.hello == "Hello")
 }
 
 // An unregistered tag fails without touching the tables.

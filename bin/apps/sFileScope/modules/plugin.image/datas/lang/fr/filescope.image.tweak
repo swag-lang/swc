@@ -1,0 +1,14 @@
+# French strings of the sFileScope image viewer. A key omitted here keeps its English value.
+
+ui_TipZoomOut  Dézoomer
+ui_TipZoomIn   Zoomer
+ui_Fit         Ajuster
+ui_TipFit      Ajuster l'image à la fenêtre
+ui_TipActual   Taille réelle
+ui_TipRotate   Pivoter dans le sens horaire
+ui_TipPlay     Lire ou mettre en pause
+ui_ErrGif      Ce GIF n'a pas pu être décodé.
+ui_ErrImage    Cette image n'a pas pu être décodée.
+
+word_Frame     image
+word_Frames    images

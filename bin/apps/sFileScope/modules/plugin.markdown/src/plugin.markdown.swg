@@ -105,22 +105,24 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     if request.apiVersion != ViewerPluginApiVersion do
         return false
 
+    registerMarkdownStrings(request.contentParent.app())
+
     let commandGroup = Wnd.create'Wnd(request.commandParent, {0, 0, 264, 36})
     commandGroup.backgroundStyle = .Window
     let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
     widthCombo.dockStyle = .Right
-    widthCombo.toolTip   = "Reading width"
-    widthCombo.addItem("Narrow")
-    widthCombo.addItem("Medium")
-    widthCombo.addItem("Wide")
-    widthCombo.addItem("Fluid")
+    widthCombo.toolTip   = markdownStrings().ui_TipWidth
+    widthCombo.addItem(markdownStrings().ui_Narrow)
+    widthCombo.addItem(markdownStrings().ui_Medium)
+    widthCombo.addItem(markdownStrings().ui_Wide)
+    widthCombo.addItem(markdownStrings().ui_Fluid)
     widthCombo.setSelectedIndex(1, notify: false)
 
     let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
     themeCombo.dockStyle = .Right
     themeCombo.margin.z  = 8
-    themeCombo.toolTip   = "Markdown appearance"
-    themeCombo.addItem("Application")
+    themeCombo.toolTip   = markdownStrings().ui_TipTheme
+    themeCombo.addItem(markdownStrings().ui_ThemeApp)
     themeCombo.addItem("GitHub")
     themeCombo.addItem("Newsprint")
     themeCombo.addItem("Night")
@@ -132,7 +134,7 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     applyMarkdownViewerStyle(view, 0, 1)
     result.view        = view
     result.commands    = commandGroup
-    result.details     = "Markdown · UTF-8 · streamed"
+    result.details     = markdownStrings().ui_Details
     result.revealMatch = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {

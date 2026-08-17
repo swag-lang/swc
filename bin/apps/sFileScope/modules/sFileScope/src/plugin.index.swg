@@ -123,7 +123,7 @@ impl ViewerPluginIndex
             result.add(ViewerChoice{.Plugin, index, spec.displayName})
 
         if BasicTextView.supports(fileName) do
-            result.add(ViewerChoice{.BasicText, Swag.U64.Max, "Basic text"})
+            result.add(ViewerChoice{.BasicText, Swag.U64.Max, appStrings().ui_BasicText})
 
         for spec, index in .specs where .matches(spec, extension.toString(), wildcard: true) do
             result.add(ViewerChoice{.Plugin, index, spec.displayName})

@@ -1,0 +1,28 @@
+# French strings of the sFileScope hexadecimal viewer. A key omitted here keeps its English value.
+# The reading names a binary format uses for itself are written the same way in French, so
+# `ui_FormatHex` and `ui_Endian` are deliberately absent.
+
+ui_TipWidth      Largeur des valeurs
+ui_Width8        8 bits
+ui_Width16       16 bits
+ui_Width32       32 bits
+ui_Width64       64 bits
+ui_TipFormat     Représentation des valeurs
+ui_FormatUns     Non signé
+ui_FormatSigned  Signé
+ui_FormatFloat   Flottant
+ui_TipEndian     Lire les valeurs multi-octets en ordre petit-boutiste
+ui_Details       hexa et texte · en flux
+ui_GoTo          Aller au décalage
+ui_GoToMessage   Décalage hexadécimal, ou décalage signé depuis le curseur.
+ui_SelectAll     Tout sélectionner
+ui_RowWidth      Octets par ligne
+ui_RowAuto       Ajuster à la fenêtre
+
+ui_CopyBytes     Copier les octets
+ui_CopyText      Copier le texte
+ui_CopyDump      Copier le dump
+
+ui_CopyBytesMax  Copier les % premiers en octets
+ui_CopyTextMax   Copier les % premiers en texte
+ui_CopyDumpMax   Copier les % premiers en dump

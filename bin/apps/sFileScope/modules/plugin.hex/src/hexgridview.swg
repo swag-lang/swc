@@ -733,8 +733,8 @@ impl HexGridView
         appendHexDigits(&current, .caret, .offsetDigits)
 
         var options: EditDlgOptions
-        options.title   = "Go to offset"
-        options.message = "Hexadecimal offset, or a signed offset from the caret."
+        options.title   = hexStrings().ui_GoTo
+        options.message = hexStrings().ui_GoToMessage
         options.text    = @mkstring(current.buffer!, current.count)
 
         let dialog = EditDlg.createSingleLine(surface!, options)
@@ -892,39 +892,40 @@ impl IActionUI for ActionHex
     {
         let grid    = cast(*HexGridView) cxt.wnd!
         let bounded = grid.selectionLength() > HexCopyLimit
+        let limit   = StrConv.toDisplaySize(HexCopyLimit)
 
         switch cxt.id
         {
         case ActionHex.CopyBytes:
             evt.updatedFields |= .Name | .Shortcut
-            evt.name          = bounded ? "Copy the first 1 MiB as bytes" : "Copy bytes"
+            evt.name          = bounded ? Format.toString(hexStrings().ui_CopyBytesMax, limit) : String.from(hexStrings().ui_CopyBytes)
             evt.shortcut      = "Ctrl+C"
 
         case ActionHex.CopyText:
             evt.updatedFields |= .Name
-            evt.name          = bounded ? "Copy the first 1 MiB as text" : "Copy text"
+            evt.name          = bounded ? Format.toString(hexStrings().ui_CopyTextMax, limit) : String.from(hexStrings().ui_CopyText)
 
         case ActionHex.CopyDump:
             evt.updatedFields |= .Name
-            evt.name          = bounded ? "Copy the first 1 MiB as a dump" : "Copy dump"
+            evt.name          = bounded ? Format.toString(hexStrings().ui_CopyDumpMax, limit) : String.from(hexStrings().ui_CopyDump)
 
         case ActionHex.SelectAll:
             evt.updatedFields |= .Name | .Shortcut
-            evt.name          = "Select all"
+            evt.name          = hexStrings().ui_SelectAll
             evt.shortcut      = "Ctrl+A"
 
         case ActionHex.GoTo:
             evt.updatedFields |= .Name | .Shortcut
-            evt.name          = "Go to offset"
+            evt.name          = hexStrings().ui_GoTo
             evt.shortcut      = "Ctrl+G"
 
         case ActionHex.RowWidth:
             evt.updatedFields |= .Name
-            evt.name          = "Bytes per row"
+            evt.name          = hexStrings().ui_RowWidth
 
         case ActionHex.RowAuto:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
-            evt.name          = "Fit the window"
+            evt.name          = hexStrings().ui_RowAuto
             evt.checked       = grid.autoFitRow
             evt.renderingHint = .ExclusiveGroup
 

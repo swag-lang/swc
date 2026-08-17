@@ -250,18 +250,14 @@ func binStrings()->const *BinaryStrings => &g_BinaryStrings
 
 // Registers this plugin's string table with the host that loaded it.
 //
-// A plugin enters the process long after the host chose a language, and the localization registry
-// only fills a table when a language is applied. So the resource is published into the host's
-// bundle and the active language is applied again, which is what makes a lazily loaded viewer
-// speak the same language as the window around it.
+// A plugin enters the process long after the host chose a language, so its translations are
+// published into the host's bundle before the table is registered: [[Gui.registerStrings]] then
+// finds them and the viewer opens in the language of the window around it. Calling this again
+// is a no-op, so the first view of this format pays for it and no other does.
 func registerBinaryStrings(app: *Application)
 {
-    Gui.registerStrings'BinaryStrings(&g_BinaryStrings, "filescope.binary")
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-
-    let active = Gui.activeLanguage()
-    if active != Gui.ReferenceLanguage do
-        discard catch Gui.applyLanguage(&app.resources, active)
+    Gui.registerStrings'BinaryStrings(&g_BinaryStrings, "filescope.binary")
 }
 
 // Returns `count` followed by the noun in the form that count calls for.

@@ -54,11 +54,11 @@ internal impl HexPluginView
     {
         let previous = .formatCombo.selectedIndex
         .formatCombo.clear()
-        .formatCombo.addItem("Hex")
-        .formatCombo.addItem("Unsigned")
-        .formatCombo.addItem("Signed")
+        .formatCombo.addItem(hexStrings().ui_FormatHex)
+        .formatCombo.addItem(hexStrings().ui_FormatUns)
+        .formatCombo.addItem(hexStrings().ui_FormatSigned)
         if .widthCombo.selectedIndex >= 2 do
-            .formatCombo.addItem("Float")
+            .formatCombo.addItem(hexStrings().ui_FormatFloat)
         let next = previous < .formatCombo.items.count ? previous : 0
         .formatCombo.setSelectedIndex(cast(u32) next, notify: false)
         .applyValueMode()
@@ -88,11 +88,11 @@ internal impl HexPluginView
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = "Value width"
-            .addItem("8-bit")
-            .addItem("16-bit")
-            .addItem("32-bit")
-            .addItem("64-bit")
+            .toolTip   = hexStrings().ui_TipWidth
+            .addItem(hexStrings().ui_Width8)
+            .addItem(hexStrings().ui_Width16)
+            .addItem(hexStrings().ui_Width32)
+            .addItem(hexStrings().ui_Width64)
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = result|(combo, index)
             {
@@ -106,10 +106,10 @@ internal impl HexPluginView
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = "Value representation"
-            .addItem("Hex")
-            .addItem("Unsigned")
-            .addItem("Signed")
+            .toolTip   = hexStrings().ui_TipFormat
+            .addItem(hexStrings().ui_FormatHex)
+            .addItem(hexStrings().ui_FormatUns)
+            .addItem(hexStrings().ui_FormatSigned)
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = result|(combo, index)
             {
@@ -119,11 +119,11 @@ internal impl HexPluginView
             }
         }
 
-        with result.byteOrder = CheckButton.create(result.commands, "Little endian", {0, 0, 132, 36})
+        with result.byteOrder = CheckButton.create(result.commands, hexStrings().ui_Endian, {0, 0, 132, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = "Read multi-byte values in little-endian order"
+            .toolTip   = hexStrings().ui_TipEndian
             .setState(.Checked)
             .sigChanged += func|view = result|(button)
             {
@@ -133,7 +133,7 @@ internal impl HexPluginView
 
         result.grid = HexGridView.create(result, fileName)
 
-        result.details = "hex and text · streamed"
+        result.details = hexStrings().ui_Details
         result.applyLayout()
         result.grid.refreshLayout()
         result.setInitialFocus(result.grid)
@@ -147,6 +147,7 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     if request.apiVersion != ViewerPluginApiVersion do
         return false
 
+    registerHexStrings(request.contentParent.app())
     let view = HexPluginView.create(request.contentParent, request.commandParent, request.fileName)
     result.view        = view
     result.commands    = view.commands

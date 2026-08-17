@@ -1,0 +1,11 @@
+# French strings of the sFileScope sound viewer. A key omitted here keeps its English value.
+
+ui_TipPlay       Lire
+ui_TipPause      Mettre en pause
+ui_TipStop       Arrêter
+ui_NoEngine      Lecture indisponible
+ui_ErrDecode     Ce fichier WAV n'a pas pu être décodé.
+ui_DetailsError  WAV · échec du décodage
+
+word_Channel     canal
+word_Channels    canaux

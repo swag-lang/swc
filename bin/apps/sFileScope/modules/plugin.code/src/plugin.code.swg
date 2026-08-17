@@ -316,9 +316,10 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     if request.apiVersion != ViewerPluginApiVersion do
         return false
 
+    registerCodeStrings(request.contentParent.app())
     let view = CodePluginView.create(request.contentParent, request.fileName)
     result.view        = view
-    result.details     = Format.toString("% · UTF-8 · streamed", view.languageName)
+    result.details     = Format.toString(codeStrings().ui_Details, view.languageName)
     result.revealMatch = func(wnd, offset, text)->bool { return (cast(*CodePluginView) wnd).revealOffset(offset, text) }
     return true
 }

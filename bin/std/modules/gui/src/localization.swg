@@ -146,16 +146,25 @@ private struct LocalizationState
     tables:    Array'StringTable     // Registered tables, applied in registration order.
     languages: Array'Language        // Presentable languages, `ReferenceLanguage` first.
     language:  String                // Active tag; empty means the reference `"en"`.
+
+    // Bundle the active language was applied from, borrowed for as long as it stays active.
+    // A table registered after the switch is translated from it, which is what makes a
+    // shared library loaded on demand arrive in the language already on screen.
+    resources: #null const *Resources.Bundle
 }
 
 private var g_Localization: LocalizationState
 
 // Registers a string table so language switches retarget it.
 //
-// `table` is borrowed for the whole program: it must be a global. `file` names the
-// per-language resource, resolved as `lang/<tag>/<file>.tweak`. Registering the same
-// table again is a no-op. Register before switching languages: a table registered
-// afterwards keeps its reference strings until the next switch. GUI thread only.
+// `table` is borrowed for the whole program: a global of the module or the application
+// that owns it, or of a shared library that is never unloaded, since a registration
+// cannot be withdrawn. `file` names the per-language resource, resolved as
+// `lang/<tag>/<file>.tweak`. Registering the same table again is a no-op.
+//
+// The table is translated on the spot when a language is already active, so a table that
+// arrives with a library loaded on demand shows the language already on screen rather
+// than waiting for the next switch. Add its resource to the bundle first. GUI thread only.
 func(T) registerStrings(table: *T, file: string)
 {
     #static if !Reflection.isStruct(T) do
@@ -172,6 +181,13 @@ func registerStrings(type: typeinfo, table: *void, file: string)
     for &existing in state.tables where existing.data == table do
         return
     state.tables.add({type, table, file})
+
+    // A table joining an already-translated program takes the active language now. A file it
+    // has no translation for, or one a disk override left malformed, leaves it on its
+    // reference wording — the same outcome [[Gui.applyLanguage]] gives an untranslated table.
+    if state.language.isEmpty() or !state.resources do
+        return
+    discard catch applyTableLanguage(state.tables.backPtr(), state.resources!, state.language.toString())
 }
 
 // Returns the active language tag, `"en"` by default. The value is borrowed and
@@ -255,8 +271,11 @@ func systemLanguage()->string
 // Fails without touching any table when the tag is not registered through
 // [[Gui.registerLanguage]], or when no registered table has a file for it, so a mistyped
 // tag cannot present itself as applied; a malformed file fails mid-way with the earlier
-// tables already switched. Prefer [[Application.setLanguage]], which also notifies every
-// surface. GUI thread only.
+// tables already switched.
+//
+// `resources` is remembered while the tag stays active, so a table registered later is
+// translated from the same bundle instead of waiting for the next switch. Prefer
+// [[Application.setLanguage]], which also notifies every surface. GUI thread only.
 func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
 {
     Debug.assert(@countof(tag) != 0, "empty language tag")
@@ -274,21 +293,27 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
             fail FileNotFoundError{fileName: Errors.mkString(tag)}
     }
 
-    for &table in state.tables
-    {
-        resetTable(table)
-        if tag == ReferenceLanguage do
-            continue
-
-        let resName = langResourceName(tag, table.file)
-        if !resources.has(resName.toString()) do
-            continue
-
-        let bytes = try resources.load(resName.toString())
-        try parseStringsContent(table.type, cast([*] u8) table.data!, cast(string) bytes.toSlice(), &table.pool)
-    }
+    for &table in state.tables do
+        try applyTableLanguage(table, resources, tag)
 
     state.language = tag
+    state.resources = resources
+}
+
+// Resets one table and decodes its resource for `tag`, leaving it on its reference
+// strings when it has no file for that language.
+private func applyTableLanguage(table: *StringTable, resources: const *Resources.Bundle, tag: string) fail
+{
+    resetTable(table)
+    if tag == ReferenceLanguage do
+        return
+
+    let resName = langResourceName(tag, table.file)
+    if !resources.has(resName.toString()) do
+        return
+
+    let bytes = try resources.load(resName.toString())
+    try parseStringsContent(table.type, cast([*] u8) table.data!, cast(string) bytes.toSlice(), &table.pool)
 }
 
 // Decodes `content` against the string table type `T` without touching any live table.

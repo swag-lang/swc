@@ -1395,11 +1395,17 @@ impl Application
     }
 
     // Removes and destroys a timer created by `addTimer`.
+    //
+    // Scheduling a target window for destruction retires its timers, so a window that still names
+    // one from its own cleanup lands here on a timer this application no longer owns. The registry
+    // is what answers that: once a retirement has been flushed the timer is released, and reading
+    // its own fields to recognize the duplicate request would read freed memory.
     mtd removeTimer(timer: *Timer)
     {
-        // Scheduling a target window for destruction retires its timers immediately. Its
-        // onDestroy cleanup can still name the same timer at the end of the frame; that second
-        // request is already satisfied by the queued removal.
+        if !.ownsTimer(timer) do
+            return
+
+        // Retirement is already queued for the end of the current dispatch.
         if timer.isPendingRemoval do
             return
 
@@ -1413,6 +1419,16 @@ impl Application
             Memory.delete(timer)
             .timers.remove(timer)
         }
+    }
+
+    // Reports whether this application still owns `timer`, without reading through it.
+    private mtd const ownsTimer(timer: const *Timer)->bool
+    {
+        for t in .timers where t == timer do
+            return true
+        for t in .timersToAdd where t == timer do
+            return true
+        return false
     }
 
     // Asks for [[Gui.IWnd.onFrameEvent]] on `target` at the start of every rendered frame.

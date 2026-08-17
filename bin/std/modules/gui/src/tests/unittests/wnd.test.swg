@@ -249,3 +249,19 @@ using Swag, Core
     wnd.destroy()
     @assert(timer.isPendingRemoval)
 }
+
+// A window that still names its own timer after the retirement was flushed asks about a timer the
+// application has already released. The registry is what answers, so the second request finds
+// nothing instead of reading — and freeing — a released block.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 100)
+    defer host.shutdown()
+
+    let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
+    let timer = wnd.addTimer(1'ms)
+    wnd.destroy()
+    host.pumpTimerQueues()
+    host.app.removeTimer(timer)
+}

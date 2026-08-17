@@ -89,8 +89,10 @@ public struct HtmlBox
     items:    Array'HtmlInlineItem
     lines:    Array'HtmlLineBox
 
-    rect:    Math.Rectangle
-    content: Math.Rectangle
+    rect:        Math.Rectangle
+    content:     Math.Rectangle
+    // Complete subtree extent used to prune painting without losing visible overflow.
+    paintBounds: Math.Rectangle
 
     // A list item draws its own marker, which sits outside the content box.
     marker:      String

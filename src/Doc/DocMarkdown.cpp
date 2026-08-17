@@ -27,6 +27,32 @@ Utf8 DocMarkdown::makeAnchor(const std::string_view value)
 
 namespace
 {
+    std::string_view trimCodeBoundaryLines(const std::string_view code)
+    {
+        size_t first = 0;
+        size_t last  = 0;
+        for (size_t lineStart = 0; lineStart < code.size();)
+        {
+            const size_t lineBreak = code.find('\n', lineStart);
+            size_t       lineEnd   = lineBreak == std::string_view::npos ? code.size() : lineBreak;
+            if (lineEnd > lineStart && code[lineEnd - 1] == '\r')
+                lineEnd--;
+
+            if (!Utf8Helper::trim(code.substr(lineStart, lineEnd - lineStart)).empty())
+            {
+                if (!last)
+                    first = lineStart;
+                last = lineEnd;
+            }
+
+            if (lineBreak == std::string_view::npos)
+                break;
+            lineStart = lineBreak + 1;
+        }
+
+        return last ? code.substr(first, last - first) : std::string_view{};
+    }
+
     Utf8 resolveReference(const DocRenderContext& renderCtx, const std::string_view name)
     {
         if (renderCtx.references)
@@ -267,10 +293,11 @@ Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view
 {
     // A source file that opens or closes on a documentation comment produces an empty
     // segment on each side of it; an empty frame on the page would only be noise.
-    if (Utf8Helper::trim(code).empty())
+    const std::string_view trimmedCode = trimCodeBoundaryLines(code);
+    if (trimmedCode.empty())
         return {};
 
-    const Utf8 escaped = Utf8Helper::escapeHtml(code);
+    const Utf8 escaped = Utf8Helper::escapeHtml(trimmedCode);
     Utf8       rendered;
     if (swagSyntax)
     {

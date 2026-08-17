@@ -101,7 +101,15 @@ SWC_TEST_BEGIN(Compiler_DocMarkdownRendersSupportedBlocks)
 > NOTE: Read this.
 
 ```swag
+
 const value = 1
+
+```
+
+```
+
+plain payload
+
 ```
 
 ```
@@ -120,6 +128,8 @@ const value = 1
     if (!html.contains("blockquote-note"))
         return Result::Error;
     if (!html.contains("class=\"code-block\""))
+        return Result::Error;
+    if (!html.contains("<div class=\"code-block\"><span class=\"SCde\">plain payload</span></div>\n"))
         return Result::Error;
 
     // An empty fenced block carries nothing, so it never reaches the page.
@@ -159,7 +169,7 @@ SWC_TEST_BEGIN(Compiler_DocMarkdownRendersCompleteLists)
         return Result::Error;
     if (!html.contains("<ol>\n<li>A numbered item that continues on the following source line.</li>\n<li>Another numbered item.</li>\n</ol>"))
         return Result::Error;
-    if (!html.contains("A nested code item:\n<div class=\"code-block\"><span class=\"SCde\">payload\n</span></div>\n</li>"))
+    if (!html.contains("A nested code item:\n<div class=\"code-block\"><span class=\"SCde\">payload</span></div>\n</li>"))
         return Result::Error;
     if (!html.contains(R"(<div class="description-list-title"><p><span class="code-inline">fmt</span></p></div>)"))
         return Result::Error;

@@ -42,28 +42,24 @@
 <h2 id="Run_a_first_script">Run a first script</h2>
 <p>Create a standalone script and run it directly:</p>
 <div class="code-block"><span class="SCde">swc new script hello
-swc hello.swgs
-</span></div>
+swc hello.swgs</span></div>
 <p><span class="code-inline">swc new script</span> adds the <span class="code-inline">.swgs</span> extension when it is omitted and never overwrites an existing path. The generated source is:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#main</span>
 {
     <span class="SItr">@print</span>(<span class="SStr">"Hello, world!\n"</span>)
-}
-</span></div>
+}</span></div>
 <p>A script is compiled and executed through the JIT. It does not leave an executable beside the source. See <a href="swag-as-script.html">Scripting with Swag</a> for imports, additional files, arguments, and the script cache.</p>
 <h2 id="Create_a_workspace_module">Create a workspace module</h2>
 <p>Use a workspace when the program has modules, produces a native artifact, or will be consumed by another module:</p>
 <div class="code-block"><span class="SCde">swc new module hello
-swc run --workspace hello --workspace-module hello
-</span></div>
+swc run --workspace hello --workspace-module hello</span></div>
 <p>The first command creates this maintained source tree:</p>
 <div class="code-block"><span class="SCde">hello/
 `-- modules/
     `-- hello/
         |-- module.swg
         `-- src/
-            `-- main.swg
-</span></div>
+            `-- main.swg</span></div>
 <p><span class="code-inline">module.swg</span> executes at compile time and configures the module. The starter selects an executable backend; <span class="code-inline">src/main.swg</span> contains the same <span class="code-inline">#main</span> hook as the script example.</p>
 <p>Compilation owns three generated directories at the workspace root:</p>
 <table class="table-markdown">
@@ -77,18 +73,15 @@ swc run --workspace hello --workspace-module hello
 </tbody>
 </table>
 <p>Add another module without replacing the workspace:</p>
-<div class="code-block"><span class="SCde">swc new module tools --workspace hello
-</span></div>
+<div class="code-block"><span class="SCde">swc new module tools --workspace hello</span></div>
 <h2 id="Build_and_select_a_configuration">Build and select a configuration</h2>
 <div class="code-block"><span class="SCde">swc build -w hello -m hello
 swc build -w hello -m hello -bc debug
-swc build -w hello -m hello -bc release
-</span></div>
+swc build -w hello -m hello -bc release</span></div>
 <p><span class="code-inline">fast-debug</span> is the default configuration. It keeps safety and sanity checks while using optimized code. <span class="code-inline">debug</span> favors diagnostics, and <span class="code-inline">release</span> favors runtime performance. Use <span class="code-inline">swc help build</span> for the authoritative option list and <span class="code-inline">--show-config</span> to inspect the resolved toolchain and output paths.</p>
 <h2 id="Import_a_standard_module">Import a standard module</h2>
 <p>Module dependencies are declared at the top level of <span class="code-inline">module.swg</span>. This imports the standard <span class="code-inline">core</span> module:</p>
-<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
-</span></div>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)</span></div>
 <p>Source files can then use qualified names such as <span class="code-inline">Core.String</span>, or bring selected names into scope with <span class="code-inline">using Core</span>.</p>
 <h2 id="Continue_learning">Continue learning</h2>
 <ul>
@@ -100,7 +93,7 @@ swc build -w hello -m hello -bc release
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

@@ -55,24 +55,20 @@
 
     <span class="SCmp">#assert</span>(<span class="SCst">Expected</span> == <span class="SNum">42</span>)
     <span class="SItr">@assert</span>(value == <span class="SCst">Expected</span>)
-}
-</span></div>
+}</span></div>
 <p>The default <span class="code-inline">test</span> command runs <span class="code-inline">#test</span> functions through both the JIT and native backend. A layer runner narrows those paths when the layer itself is the subject.</p>
 <h2 id="Match_an_expected_diagnostic">Match an expected diagnostic</h2>
 <p>Put rejected programs under the matching <span class="code-inline">bin/unittests/errors</span> stage. Match the stable diagnostic identifier at the source location that proves the error:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
 
-<span class="SNum">0b__0</span>     <span class="SCmt">// swc-expected-error {{lex_err_consecutive_num_sep}}</span>
-</span></div>
+<span class="SNum">0b__0</span>     <span class="SCmt">// swc-expected-error {{lex_err_consecutive_num_sep}}</span></span></div>
 <p>Use <span class="code-inline">// swc-expected-error@+ {{diagnostic_id}}</span> when the diagnostic belongs to the next line. Run with <span class="code-inline">--verbose-verify</span> while diagnosing a match that the harness normally consumes.</p>
 <h2 id="Run_the_test">Run the test</h2>
 <p>Build the <span class="code-inline">DevMode|x64</span> compiler first, then run the narrow layer:</p>
-<div class="code-block"><span class="SCde">swc tools\unittests.swgs dm sema
-</span></div>
+<div class="code-block"><span class="SCde">swc tools\unittests.swgs dm sema</span></div>
 <p>Before submitting a compiler change, follow the validation sequence in the repository's <span class="code-inline">AGENTS.md</span>. The common aggregate commands are:</p>
 <div class="code-block"><span class="SCde">swc tools\tests.swgs dm
-swc tools\tests.swgs dm --all-cfg
-</span></div>
+swc tools\tests.swgs dm --all-cfg</span></div>
 <p><span class="code-inline">tests.swgs</span> runs the default suite once. <span class="code-inline">tests.swgs --all-cfg</span> repeats it for <span class="code-inline">release</span>, <span class="code-inline">debug</span>, and <span class="code-inline">fast-debug</span> language configurations.</p>
 <h2 id="Keep_failures_reviewable">Keep failures reviewable</h2>
 <ul>
@@ -86,7 +82,7 @@ swc tools\tests.swgs dm --all-cfg
 <p>The executable <a href="language.html">language reference</a> is also a regression suite, but it should teach supported behavior. Put edge cases and rejected forms in <span class="code-inline">bin/unittests</span> unless they materially improve the explanation.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

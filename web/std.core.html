@@ -2066,8 +2066,7 @@
 
 <span class="SKwd">var</span> lines: <span class="SFct">Array</span>'<span class="SCst"><a href="#Core_String">String</a></span>
 <span class="SLgc">for</span> line <span class="SLgc">in</span> text.<span class="SFct">splitLines</span>() <span class="SLgc">do</span>
-lines.<span class="SFct">add</span>(line)
-</span></div>
+lines.<span class="SFct">add</span>(line)</span></div>
 <p>Owned containers release their storage automatically. Slices and string views borrow storage instead; keep their source alive and do not retain them across an operation that can reallocate that source.</p>
 <h2 id="overview_Derive_short-lived_key_material">Derive short-lived key material</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
@@ -2077,8 +2076,7 @@ lines.<span class="SFct">add</span>(line)
 <span class="SKwd">var</span> key: [<span class="SNum">32</span>] <span class="STpe">u8</span>
 
 <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">pbkdf2HmacSha256</span>(password, salt, <span class="SNum">200_000</span>, key)
-<span class="SLgc">defer</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">secureClear</span>(key)
-</span></div>
+<span class="SLgc">defer</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">secureClear</span>(key)</span></div>
 <p>Cryptographic randomness and guaranteed clearing use the target operating system behind the portable <a href="#namespace_Core_Crypto">Core.Crypto</a> API.</p>
 <h2 id="overview_Store_independently_readable_payloads">Store independently readable payloads</h2>
 <p><a href="#namespace_Core_Scc">Core.Scc</a> writes a versioned Swag Chunk Container whose manifest remains cheap to read. Each payload has a stable type, role, codec, checksum, and file range, so an application can load a thumbnail or metadata chunk without reading the main document.</p>
@@ -2094,8 +2092,7 @@ writer.<span class="SFct">initialize</span>(profile)
 
 <span class="SKwd">var</span> reader: <span class="SCst"><a href="#namespace_Core_Scc">Scc</a></span>.<span class="SCst"><a href="#Core_Scc_Reader">Reader</a></span>
 <span class="SKwd">try</span> reader.<span class="SFct">initialize</span>(<span class="SStr">"capture.scc"</span>)
-<span class="SKwd">let</span> preview = <span class="SKwd">try</span> reader.<span class="SFct">readChunk</span>(previewId)
-</span></div>
+<span class="SKwd">let</span> preview = <span class="SKwd">try</span> reader.<span class="SFct">readChunk</span>(previewId)</span></div>
 </section>
 <section class="api-guide"><h2 id="guide_Core_at_a_glance">Core at a glance</h2>
 <p>Core supplies the building blocks used throughout the standard workspace. Pick an area by the problem you need to solve:</p>
@@ -2134,8 +2131,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Ada"</span>, <span clas
 scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span class="SNum">12</span>)
 
 <span class="SLgc">if</span> <span class="SKwd">let</span> entry = scores.<span class="SFct">tryFind</span>(<span class="SStr">"Ada"</span>) <span class="SLgc">do</span>
-    <span class="SCst"><a href="#namespace_Core_Console">Console</a></span>.<span class="SFct">printLn</span>(entry.value)
-</span></div>
+    <span class="SCst"><a href="#namespace_Core_Console">Console</a></span>.<span class="SFct">printLn</span>(entry.value)</span></div>
 <h3 id="guide_Collections_and_borrowing_Ordering_and_ranges">Ordering and ranges</h3>
 <p>Ordered collections and priority queues take an explicit comparator. Its arguments are borrowed. Return a negative value when the left argument belongs before the right argument, zero when their ordering keys are equal, and a positive value otherwise.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> ranking: <span class="SFct">OrderedMap</span>'(<span class="STpe">u32</span>, <span class="SCst"><a href="#Core_String">String</a></span>)
@@ -2150,8 +2146,7 @@ ranking.<span class="SFct">add</span>(<span class="SNum">10</span>, <span class=
 work.<span class="SFct">initialize</span>(<span class="SKwd">func</span>(left, right: <span class="SKwd">const</span> *<span class="STpe">u32</span>)-&gt;<span class="STpe">s32</span> =&gt; left[] &lt;=&gt; right[])
 work.<span class="SFct">push</span>(<span class="SNum">30</span>)
 work.<span class="SFct">push</span>(<span class="SNum">10</span>)
-<span class="SKwd">let</span> first = work.<span class="SFct">pop</span>()
-</span></div>
+<span class="SKwd">let</span> first = work.<span class="SFct">pop</span>()</span></div>
 <p>Ranges are half-open: <span class="code-inline">range(lower, upper)</span> contains keys greater than or equal to <span class="code-inline">lower</span> and less than <span class="code-inline">upper</span>. A range is a borrowed slice and is invalidated by insertion or removal.</p>
 <h3 id="guide_Collections_and_borrowing_Ownership_rule">Ownership rule</h3>
 <p>An owning collection controls its elements and buffer. A slice returned by <span class="code-inline">toSlice</span>, <span class="code-inline">range</span>, a pointer returned by lookup, or an iterator variable borrows that storage. Adding, removing, resizing, clearing, or freeing the collection can invalidate those borrowed values.</p>
@@ -2189,8 +2184,7 @@ work.<span class="SFct">push</span>(<span class="SNum">10</span>)
 {
     <span class="SKwd">let</span> source = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">readAllText</span>(configPath)
     <span class="SCmt">// Decode the source at the application boundary.</span>
-}
-</span></div>
+}</span></div>
 <p>Use whole-file helpers for small resources and configuration. Prefer streams for large files, bounded memory use, or processing that can start before the complete file is available.</p>
 <h3 id="guide_Files__paths__and_serialization_Memory-mapped_files">Memory-mapped files</h3>
 <p><a href="#Core_File_MappedFile">Core.File.MappedFile</a> creates independently owned <a href="#Core_File_MappedRegion">Core.File.MappedRegion</a> views for random access to large files. A region may start at any byte offset; the platform alignment is handled internally.</p>
@@ -2199,8 +2193,7 @@ work.<span class="SFct">push</span>(<span class="SNum">10</span>)
 <span class="SKwd">var</span> file   = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SCst"><a href="#Core_File_MappedFile">MappedFile</a></span>.<span class="SFct">open</span>(<span class="SStr">"archive.bin"</span>, .<span class="SCst">ReadWrite</span>)
 <span class="SKwd">var</span> header = <span class="SKwd">try</span> file.<span class="SFct">map</span>(<span class="SNum">0</span>, <span class="SNum">4096</span>)
 header.<span class="SFct">writableBytes</span>()[<span class="SNum">0</span>] = <span class="SNum">1</span>
-<span class="SKwd">try</span> header.<span class="SFct">flush</span>()
-</span></div>
+<span class="SKwd">try</span> header.<span class="SFct">flush</span>()</span></div>
 <p>Close all regions before resizing. A region remains usable if its source <a href="#Core_File_MappedFile">Core.File.MappedFile</a> is closed, but its byte slices become invalid as soon as the region itself closes. <span class="code-inline">CopyOnWrite</span> regions are writable private copies; their changes are intentionally never persisted.</p>
 <h3 id="guide_Files__paths__and_serialization_Watching_a_directory">Watching a directory</h3>
 <p><a href="#Core_Directory_Watcher">Core.Directory.Watcher</a> provides a cancellable stream for tools that react to file edits. Each read has an explicit <a href="#Core_Directory_WatchStatus">Core.Directory.WatchStatus</a>: changes, timeout, overflow, or cancellation.</p>
@@ -2222,8 +2215,7 @@ options.recurse = <span class="SKwd">true</span>
         <span class="SLgc">break</span>
     <span class="SLgc">for</span> change <span class="SLgc">in</span> batch.changes <span class="SLgc">do</span>
         <span class="SCst"><a href="#Core_Log">Log</a></span>.<span class="SFct">write</span>(change.path)
-}
-</span></div>
+}</span></div>
 <p>Rename records are paired even when a host buffer boundary splits them. A timeout leaves the native request pending, so repeated timed reads do not create a notification gap. Call <span class="code-inline">cancel</span> from another thread to wake an unbounded <span class="code-inline">next</span>; call <span class="code-inline">close</span> only after the reading thread has returned.</p>
 <h3 id="guide_Files__paths__and_serialization_Structured_data">Structured data</h3>
 <p><a href="#namespace_Core_Serialization">Core.Serialization</a> provides a shared traversal model with JSON, XML, and tagged-binary readers and writers. JSON is declaration-driven and accepts reordered, missing, and unknown properties for forward-compatible interchange. The read side reports malformed input through <span class="code-inline">fail</span>; the write side serializes values according to their reflected fields and serialization attributes.</p>
@@ -2283,8 +2275,7 @@ options.recurse = <span class="SKwd">true</span>
 <span class="SKwd">var</span> encoder: <span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SFct">Encoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization">Serialization</a></span>.<span class="SCst"><a href="#namespace_Core_Serialization_Write">Write</a></span>.<span class="SCst">Json</span>
 encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <span class="SKwd">var</span> output: <span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>
-<span class="SKwd">try</span> encoder.<span class="SFct">writeAll</span>(&amp;output, settings[])
-</span></div>
+<span class="SKwd">try</span> encoder.<span class="SFct">writeAll</span>(&amp;output, settings[])</span></div>
 <p>Malformed UTF-8, invalid escapes and numbers, duplicate properties, trailing commas, excessive nesting, and data after the root value fail with a <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a>. The decoder owns the returned struct; release it with <a href="#Core_Memory_delete">Core.Memory.delete</a>. Because JSON has no representation for NaN or infinity, the writer emits <span class="code-inline">null</span> for non-finite floating-point values.</p>
 <h3 id="guide_JSON_and_globalization_Culture-aware_presentation">Culture-aware presentation</h3>
 <p><a href="#Core_Globalization_CultureInfo">Core.Globalization.CultureInfo</a> groups number, currency, date/time, collation, plural, and case rules for one BCP 47 locale name. Pass a culture explicitly through application code when output must be deterministic. <a href="#Core_Globalization_currentCulture">Core.Globalization.currentCulture</a> remains available for process-wide defaults used by the existing numeric conversion routines.</p>
@@ -2293,8 +2284,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <span class="SKwd">let</span> culture = <span class="SCst"><a href="#namespace_Core_Globalization">Globalization</a></span>.<span class="SCst"><a href="#Core_Globalization_CultureInfo">CultureInfo</a></span>.<span class="SFct">fromName</span>(<span class="SStr">"fr-FR"</span>)
 <span class="SKwd">let</span> amount  = culture.currencyFormat.<span class="SFct">format</span>(<span class="SNum">12345.5</span>, culture.numberFormat)
 <span class="SKwd">let</span> when    = culture.dateTimeFormat.<span class="SFct">formatDateTime</span>(<span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>{<span class="SNum">2026</span>, <span class="SNum">8</span>, <span class="SNum">13</span>, <span class="SNum">18</span>, <span class="SNum">30</span>})
-<span class="SKwd">let</span> form    = culture.<span class="SFct">cardinalPlural</span>(<span class="SNum">2</span>)
-</span></div>
+<span class="SKwd">let</span> form    = culture.<span class="SFct">cardinalPlural</span>(<span class="SNum">2</span>)</span></div>
 <p>The built-in profiles cover common conventions for English, French, German, Hindi, Turkish, Russian, Arabic, Japanese, Swedish, Polish, and Czech. Unknown locale names use invariant English display data and general plural rules; applications that need exhaustive CLDR tailoring can keep that policy above this compact core layer.</p>
 </section>
 <section class="api-overview">
@@ -10238,8 +10228,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>, <span class="SStr">"c:/swag/bin"</span>)
 
 <span class="SKwd">var</span> info = <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>{fileName: <span class="SStr">"swc.exe"</span>, arguments: <span class="SStr">"test"</span>, environment: &amp;environment}
-<span class="SKwd">let</span> process = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SFct">runProcess</span>(info)
-</span></div>
+<span class="SKwd">let</span> process = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SFct">runProcess</span>(info)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_ProcessEnvironment">ProcessEnvironment</a></span></span></div>
 </section>
 <h3 id="Core_Env_ProcessEnvironment_methods">Methods</h3>
@@ -12918,8 +12907,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> bundle: <span class="SCst"><a href="#namespace_Core_Resources">Resources</a></span>.<span class="SCst"><a href="#Core_Resources_Bundle">Bundle</a></span>
 bundle.<span class="SFct">addEmbedded</span>(<span class="SStr">"lang/fr/app.tweak"</span>, <span class="SCst">EmbeddedFrench</span>)
 bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
-<span class="SKwd">let</span> bytes = <span class="SKwd">try</span> bundle.<span class="SFct">load</span>(<span class="SStr">"lang/fr/app.tweak"</span>)
-</span></div>
+<span class="SKwd">let</span> bytes = <span class="SKwd">try</span> bundle.<span class="SFct">load</span>(<span class="SStr">"lang/fr/app.tweak"</span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Resources_Bundle">Bundle</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -13229,8 +13217,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <p>Serialization decoder. This is a high level decoder that needs a specific implementation like <a href="#Core_Serialization_Read_TagBin">Core.Serialization.Read.TagBin</a> or <a href="#Core_Serialization_Read_Json">Core.Serialization.Read.Json</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> res = <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(file)
 <span class="SKwd">var</span> decoder: <span class="SFct">Decoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization_Read">Read</a></span>.<span class="SCst">TagBin</span>
-<span class="SKwd">let</span> myStruct = <span class="SKwd">catch</span> decoder.<span class="SFct">readAll</span>'<span class="SFct">MyStruct</span>(res.<span class="SFct">toSlice</span>())
-</span></div>
+<span class="SKwd">let</span> myStruct = <span class="SKwd">catch</span> decoder.<span class="SFct">readAll</span>'<span class="SFct">MyStruct</span>(res.<span class="SFct">toSlice</span>())</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SCst"><a href="#Core_Serialization_Decoder">Decoder</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -13264,8 +13251,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> buf:     <span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>
 <span class="SKwd">var</span> encoder: <span class="SFct">Encoder</span>'<span class="SCst"><a href="#namespace_Core_Serialization_Write">Write</a></span>.<span class="SCst">TagBin</span>
 encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
-<span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">writeAllBytes</span>(file, buf)
-</span></div>
+<span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">writeAllBytes</span>(file, buf)</span></div>
 <p>Can be serialized:</p>
 <ul>
 <li>All simple types: <span class="code-inline">bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64</span></li>
@@ -17632,8 +17618,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">randomBytes</span>(salt)
 
 <span class="SKwd">var</span> key: [<span class="SNum">32</span>] <span class="STpe">u8</span>
-<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">argon2id</span>(<span class="SStr">"correct horse battery staple"</span>, salt, {memoryKib: <span class="SNum">65536</span>, iterations: <span class="SNum">3</span>, parallelism: <span class="SNum">4</span>}, key)
-</span></div>
+<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">argon2id</span>(<span class="SStr">"correct horse battery staple"</span>, salt, {memoryKib: <span class="SNum">65536</span>, iterations: <span class="SNum">3</span>, parallelism: <span class="SNum">4</span>}, key)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">argon2id</span>(password, salt: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, parameters: <span class="SCst"><a href="#Core_Crypto_Argon2Parameters">Argon2Parameters</a></span>, destination: [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 <p>Derives <span class="code-inline">destination</span> with Argon2id, additionally binding a secret and an associated-data string into the derivation.</p>
 <p><span class="code-inline">secret</span> is the RFC 9106 key input: a value the verifier holds but the password database does not, at most 64 bytes. <span class="code-inline">associatedData</span> binds a context such as a user identifier. Both are optional, and both must be reproduced exactly to reproduce the tag.</p>
@@ -17661,8 +17646,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 
 <span class="SKwd">var</span> ciphertext: [<span class="SNum">5</span>] <span class="STpe">u8</span>
 <span class="SKwd">var</span> tag: <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SCst"><a href="#Core_Crypto_Poly1305Tag">Poly1305Tag</a></span>
-<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">chacha20Poly1305Seal</span>(key, nonce, <span class="SStr">"hello"</span>, <span class="SStr">""</span>, ciphertext, tag)
-</span></div>
+<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">chacha20Poly1305Seal</span>(key, nonce, <span class="SStr">"hello"</span>, <span class="SStr">""</span>, ciphertext, tag)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">chacha20Poly1305Seal</span>(key, nonce, plaintext, associatedData: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, ciphertext: [..] <span class="STpe">u8</span>, tag: [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18421,8 +18405,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> process = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SFct">runProcess</span>(<span class="SStr">"swc.exe"</span>, <span class="SStr">"--help"</span>)
 <span class="SLgc">if</span> process.<span class="SFct">exitCode</span>() != <span class="SNum">0</span> <span class="SLgc">do</span>
     <span class="SKwd">fail</span> <span class="SCst"><a href="#namespace_Core_Errors">Errors</a></span>.<span class="SCst"><a href="#Core_Errors_BadParameterError">BadParameterError</a></span>{<span class="SStr">"the compiler refused to answer"</span>}
-<span class="SItr">@print</span>(process.<span class="SFct">standardOutput</span>())
-</span></div>
+<span class="SItr">@print</span>(process.<span class="SFct">standardOutput</span>())</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runProcess</span>(fileName: <span class="STpe">string</span>, arguments: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
 <p>Starts the process <span class="code-inline">info</span> describes, waits for it to exit, and returns it.</p>
 <p>Redirection follows <span class="code-inline">info</span>: a stream left to <a href="#Core_Env_StreamRedirection_Inherit">Core.Env.StreamRedirection.Inherit</a> is not captured, and the matching accessor stays empty.</p>
@@ -18820,14 +18803,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Format_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.toString</span> <a class="api-item-permalink" href="#Core_Format_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L74">src</a></div>
 <p>Format a string and returns the result as a String. Use <span class="code-inline">%</span> as a place holder for a value.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> x = <span class="SCst"><a href="#namespace_Core_Format">Format</a></span>.<span class="SFct">toString</span>(<span class="SStr">"my life is %"</span>, myLife)
-</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> x = <span class="SCst"><a href="#namespace_Core_Format">Format</a></span>.<span class="SFct">toString</span>(<span class="SStr">"my life is %"</span>, myLife)</span></div>
 <p><span class="code-inline">%</span> can be followed by a format option between <span class="code-inline">{}</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> x = <span class="SCst"><a href="#namespace_Core_Format">Format</a></span>.<span class="SFct">toString</span>(<span class="SStr">"my life in hexadecimal is %{X}"</span>, myLife)
-</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> x = <span class="SCst"><a href="#namespace_Core_Format">Format</a></span>.<span class="SFct">toString</span>(<span class="SStr">"my life in hexadecimal is %{X}"</span>, myLife)</span></div>
 <p><span class="code-inline">%{#n}</span> targets the 0-based argument <span class="code-inline">n</span> instead of the next one, so a translated format string can reorder its arguments. An indexed placeholder does not advance the running argument position, and it can carry a format option after <span class="code-inline">:</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> x = <span class="SCst"><a href="#namespace_Core_Format">Format</a></span>.<span class="SFct">toString</span>(<span class="SStr">"%{#1} before %{#0:X}"</span>, <span class="SNum">255</span>, <span class="SStr">"written"</span>)
-</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> x = <span class="SCst"><a href="#namespace_Core_Format">Format</a></span>.<span class="SFct">toString</span>(<span class="SStr">"%{#1} before %{#0:X}"</span>, <span class="SNum">255</span>, <span class="SStr">"written"</span>)</span></div>
 <ul>
 <li>See <a href="#Core_StrConv_ConvertFormatInt_setFormat">ConvertFormatInt.setFormat</a> for some valid format options</li>
 <li>See <a href="#Core_StrConv_ConvertFormatFloat_setFormat">ConvertFormatFloat.setFormat</a> for some valid format options</li>
@@ -25484,7 +25464,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

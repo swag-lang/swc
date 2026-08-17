@@ -36,8 +36,7 @@
 <p>The exact toolset and SDK are pinned in <span class="code-inline">swc.vcxproj</span>. If MSBuild reports that either component is missing, install that component through Visual Studio Installer before changing the project target.</p>
 <h2 id="Build_the_compiler">Build the compiler</h2>
 <p>Open a Developer PowerShell for Visual Studio, change to the repository root, and build the release configuration:</p>
-<div class="code-block"><span class="SCde">msbuild swc.sln /m /p:Configuration=Release /p:Platform=x64
-</span></div>
+<div class="code-block"><span class="SCde">msbuild swc.sln /m /p:Configuration=Release /p:Platform=x64</span></div>
 <p>The solution also opens directly in Visual Studio. Select <span class="code-inline">x64</span> and the desired configuration, then build the <span class="code-inline">swc</span> project.</p>
 <table class="table-markdown">
 <thead>
@@ -52,14 +51,12 @@
 <p>All intermediate C++ files stay under the repository's <span class="code-inline">.tmp/x64</span> tree.</p>
 <h2 id="Register_the_checkout">Register the checkout</h2>
 <p>Run this once from the repository root:</p>
-<div class="code-block"><span class="SCde">bin\swc.exe tools\setup.swgs
-</span></div>
+<div class="code-block"><span class="SCde">bin\swc.exe tools\setup.swgs</span></div>
 <p>Open a new terminal afterward. The script adds <span class="code-inline">bin</span> to the user <span class="code-inline">PATH</span>, sets <span class="code-inline">SWAG_PATH</span>, and hands the <span class="code-inline">.swgs</span> extension to the compiler. <span class="code-inline">swc.exe</span> finds its runtime and standard workspace beside itself; with more than one checkout, run each one's tools with its own <span class="code-inline">bin\swc.exe</span> so both come from that tree.</p>
 <p>Verify both the compiler and native toolchain:</p>
 <div class="code-block"><span class="SCde">swc help
 swc new module hello
-swc run -w hello -m hello
-</span></div>
+swc run -w hello -m hello</span></div>
 <h2 id="Validate_repository_changes">Validate repository changes</h2>
 <p>Build <span class="code-inline">DevMode</span> before using the <span class="code-inline">dm</span> form of a tool. The narrow commands are useful while iterating:</p>
 <table class="table-markdown">
@@ -81,12 +78,11 @@ swc run -w hello -m hello
 <p>The repository's <a href="https://github.com/swag-lang/swc/blob/master/AGENTS.md">agent guide</a> defines the required validation sequence for each change type.</p>
 <h2 id="Regenerate_the_website">Regenerate the website</h2>
 <p>After a DevMode build, regenerate the complete documentation site with:</p>
-<div class="code-block"><span class="SCde">swc tools\web.swgs dm
-</span></div>
+<div class="code-block"><span class="SCde">swc tools\web.swgs dm</span></div>
 <p>The command rebuilds the brand assets, standard-library API pages, runtime API, language reference, and editorial pages. It deletes existing root HTML files in <span class="code-inline">web</span> first, so edit their sources under <span class="code-inline">bin/reference</span>, <span class="code-inline">bin/runtime</span>, <span class="code-inline">bin/std</span>, or <span class="code-inline">bin/examples</span> rather than editing generated HTML.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

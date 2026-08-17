@@ -1035,7 +1035,35 @@ impl HtmlLayout
         let contentHeight = .layoutBlockChildren(.root, 0, 0, .viewport.x, containing)
         .boxes[.root].rect.height    = contentHeight
         .boxes[.root].content.height = contentHeight
-        .documentHeight              = contentHeight
+        let paintBounds = .computePaintBounds(.root)
+        .documentHeight = Math.max(contentHeight, paintBounds.bottom())
+    }
+
+    // Records the complete visible extent of every subtree. A parent with visible overflow can
+    // leave the viewport before a tall image or positioned descendant that escapes it does.
+    private mtd computePaintBounds(box: u32)->Math.Rectangle
+    {
+        var result  = .boxes[box].rect
+        let style   = &.styles[.boxes[box].style]
+        let expands = style.overflowX == .Visible and style.overflowY == .Visible
+
+        let children = .boxes[box].children
+        for child in children
+        {
+            let childBounds = .computePaintBounds(child)
+            if expands do
+                result.combine(childBounds)
+        }
+
+        for item in .boxes[box].items where item.box != HtmlNoNode
+        {
+            let childBounds = .computePaintBounds(item.box)
+            if expands do
+                result.combine(childBounds)
+        }
+
+        .boxes[box].paintBounds = result
+        return result
     }
 
     // Stacks the in-flow children of a block container, collapsing the margins between them.
@@ -1413,6 +1441,23 @@ impl HtmlLayout
     }
 
     // Breaks the inline items of a block into lines and returns the height they took.
+    private mtd const hasLineContent(box: u32, first, end: u64)->bool
+    {
+        for index in first until end
+        {
+            let item = &.boxes[box].items[index]
+            switch item.kind
+            {
+            case .Text, .Space, .Atomic: return true
+            case .OpenInline, .CloseInline:
+                if item.width do
+                    return true
+            }
+        }
+
+        return false
+    }
+
     private mtd layoutInline(box: u32, contentX, contentY, contentWidth: f32)->f32
     {
         .boxes[box].lines.clear()
@@ -1477,7 +1522,8 @@ impl HtmlLayout
             pen += width
         }
 
-        y += .finishLine(box, lineStart, count, y, contentX, contentWidth)
+        if .hasLineContent(box, lineStart, count) do
+            y += .finishLine(box, lineStart, count, y, contentX, contentWidth)
         return Math.max(y - contentY, 0)
     }
 }

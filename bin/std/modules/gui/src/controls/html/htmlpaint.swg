@@ -614,15 +614,18 @@ impl HtmlPainter
         var offset = parentOffset
         offset.y += .stickyOffset(box, parentOffset)
 
-        var rect = .layout.constBox(box).rect
+        var rect   = .layout.constBox(box).rect
+        var bounds = .layout.constBox(box).paintBounds
         rect.offset(offset.x, offset.y)
+        bounds.offset(offset.x, offset.y)
 
         let combined = alpha * style.opacity
         if combined <= 0.004 do
             return
 
-        // A box outside the visible band hides everything it contains.
-        if !rect.intersects(.visible) do
+        // Visible overflow can outlive the parent's own rectangle, so prune by the complete
+        // subtree extent rather than clipping an image or positioned descendant too early.
+        if !bounds.intersects(.visible) do
             return
 
         .paintDecorations(rect, style, combined)

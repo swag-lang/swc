@@ -127,8 +127,7 @@
 <span class="SKwd">try</span> face.<span class="SFct">loadChar</span>('<span class="SFct">A</span>', .<span class="SCst"><a href="#TrueType_LoadFlag_Render">Render</a></span>)
 
 <span class="SKwd">let</span> bitmap = &amp;face.glyph.bitmap
-<span class="SCmt">// bitmap.buffer remains valid until this face loads or renders another glyph.</span>
-</span></div>
+<span class="SCmt">// bitmap.buffer remains valid until this face loads or renders another glyph.</span></span></div>
 <p>The module covers TrueType <span class="code-inline">glyf</span> outlines, <span class="code-inline">ttcf</span> collections, Unicode character maps including variation sequences, kerning from <span class="code-inline">GPOS</span> and from the legacy <span class="code-inline">kern</span> table, grayscale rasterization, and single- or multi-channel signed-distance fields.</p>
 <p>It does not shape text. Ligatures, mark attachment and script-specific reordering need <span class="code-inline">GSUB</span> and the rest of <span class="code-inline">GPOS</span>, so Arabic, Indic and Thai are positioned incorrectly rather than imperfectly. OpenType files carrying CFF outlines (<span class="code-inline">OTTO</span>) and WOFF containers are reported as unsupported rather than read.</p>
 </section>
@@ -138,8 +137,7 @@
 
 <span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
 <span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
-<span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
-</span></div>
+<span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
 <p>The input is a TrueType font with <span class="code-inline">glyf</span> outlines. OpenType files carrying CFF outlines (<span class="code-inline">OTTO</span>) and WOFF containers are recognized and reported as unsupported, so a failure names what the file actually is.</p>
 <h3 id="guide_Loading_fonts_and_glyphs_Font_collections">Font collections</h3>
 <p>A <span class="code-inline">ttcf</span> collection packs several faces into one file, which is how Windows ships many of its font families. <a href="#TrueType_Face_countFaces">TrueType.Face.countFaces</a> reports how many a buffer holds and <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> selects one; <a href="#TrueType_Face_load">TrueType.Face.load</a> takes the first. A bare font file answers a count of one, so the same code path serves both.</p>
@@ -154,16 +152,14 @@
     <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SItr">@index</span>))!
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
     <span class="SLgc">break</span>
-}
-</span></div>
+}</span></div>
 <h3 id="guide_Loading_fonts_and_glyphs_The_reusable_glyph_slot">The reusable glyph slot</h3>
 <p>Each face exposes one <a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a> through <a href="#TrueType_Face_glyph">TrueType.Face.glyph</a>. Every call to <a href="#TrueType_Face_loadGlyph">TrueType.Face.loadGlyph</a> or <a href="#TrueType_Face_loadChar">TrueType.Face.loadChar</a> replaces the slot's outline and bitmap storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">try</span> face.<span class="SFct">setPixelSize</span>(<span class="SNum">0</span>, <span class="SNum">32</span>)
 <span class="SKwd">try</span> face.<span class="SFct">loadChar</span>('<span class="SFct">A</span>')
 
 <span class="SKwd">let</span> advance  = face.glyph.advance.x / <span class="SNum">64.0</span>
-<span class="SKwd">let</span> commands = face.glyph.outline.<span class="SFct">decompose</span>()
-</span></div>
+<span class="SKwd">let</span> commands = face.glyph.outline.<span class="SFct">decompose</span>()</span></div>
 <p>The array returned by <a href="#TrueType_Outline_decompose">TrueType.Outline.decompose</a> is owned and can be retained. Raw point arrays and <a href="#TrueType_Bitmap_buffer">TrueType.Bitmap.buffer</a> are borrowed: consume or copy them before loading or rendering another glyph, and never use them after destroying the face.</p>
 <h3 id="guide_Loading_fonts_and_glyphs_Character_and_glyph_indices">Character and glyph indices</h3>
 <p>Use <a href="#TrueType_Face_glyphIndex">TrueType.Face.glyphIndex</a> when caching or laying out glyphs by index. Index zero is the conventional missing-glyph entry, so a zero result means that the requested character has no distinct glyph. Use <a href="#TrueType_Face_loadChar">TrueType.Face.loadChar</a> for the simple one-step path.</p>
@@ -177,8 +173,7 @@
     <span class="SKwd">let</span> left  = face.<span class="SFct">glyphIndex</span>('<span class="SFct">A</span>')
     <span class="SKwd">let</span> right = face.<span class="SFct">glyphIndex</span>('<span class="SFct">V</span>')
     <span class="SKwd">let</span> pen   = face.<span class="SFct">getKerning</span>(left, right).x / <span class="SNum">64.0</span>
-}
-</span></div>
+}</span></div>
 </section>
 <section class="api-guide"><h2 id="guide_Metrics__outlines__and_rendering">Metrics, outlines, and rendering</h2>
 <p>TrueType exposes font data in three unit systems:</p>
@@ -210,8 +205,7 @@
 <span class="SKwd">try</span> face.<span class="SFct">hintVertical</span>()
 <span class="SKwd">try</span> face.<span class="SFct">renderGlyph</span>()
 
-<span class="SKwd">let</span> bitmap = &amp;face.glyph.bitmap
-</span></div>
+<span class="SKwd">let</span> bitmap = &amp;face.glyph.bitmap</span></div>
 <p><a href="#TrueType_Face_hintVertical">TrueType.Face.hintVertical</a>, <a href="#TrueType_Outline_translate">TrueType.Outline.translate</a>, <a href="#TrueType_Outline_transform">TrueType.Outline.transform</a>, <a href="#TrueType_Outline_embolden">TrueType.Outline.embolden</a>, and <a href="#TrueType_GlyphSlot_oblique">TrueType.GlyphSlot.oblique</a> mutate the current outline. Reload the glyph to recover its original scaled shape.</p>
 <p>Distance-field rendering intentionally follows a separate path. Do not apply pixel-grid hinting before generating an SDF or MSDF atlas. The <span class="code-inline">spread</span> argument controls the transition range and is clamped to 1 through 64 pixels.</p>
 </section>
@@ -877,8 +871,7 @@
 {
     <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SItr">@index</span>)) == <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
         <span class="SLgc">break</span>
-}
-</span></div>
+}</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">familyNameAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -940,8 +933,7 @@
 <p><span class="code-inline">bytes</span> may be a bare TrueType file or a <span class="code-inline">ttcf</span> collection, of which the first face is taken; use <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> to reach the others. OpenType files carrying CFF outlines and WOFF containers are reported as unsupported rather than as an unknown format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
 <span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
-<span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
-</span></div>
+<span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -954,8 +946,7 @@
 {
     <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SItr">@index</span>))!
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
-}
-</span></div>
+}</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -1030,7 +1021,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

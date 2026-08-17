@@ -337,6 +337,22 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(broken.lines.count == 2)
 }
 
+// A terminal preserved newline ends the last line without creating another blank line.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 160)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, "<style>body{margin:0}#code{white-space:pre}</style><div id='code'><span>first\nsecond\n</span></div>")
+    view.resize(400, 160)
+    view.applyLayout()
+    view.rebuild()
+
+    let code = view.layout.constBox(view.boxOfNode(view.elementById("code")))
+    @assert(code.lines.count == 2)
+}
+
 // A block stays inside the measure its ancestors set, however deep it sits.
 #test
 {
@@ -434,6 +450,29 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(image.pixelColor(97, 90).argb == host.theme.colors.scrollBar_Box.argb)
     @assert(image.pixelColor(20, 30).argb != 0xFFFF0000 and image.pixelColor(20, 30).argb != 0xFF0000FF)
     @assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
+}
+
+// Visible overflow remains paintable after its short parent has left the viewport.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(120, 80)
+    defer host.shutdown()
+
+    let source = "<style>body{margin:0;background:#fff}#short{height:20px}img{display:block;width:80px;height:160px;background:#f00}</style><div id='short'><img id='picture' src='missing.png'></div>"
+    let view   = HtmlView.createText(&host.root, source)
+    view.resize(120, 80)
+    view.applyLayout()
+    view.rebuild()
+    view.scroll.setScrollPos(0, 40)
+
+    let parent  = view.layout.constBox(view.boxOfNode(view.elementById("short")))
+    let picture = view.layout.constBox(view.boxOfNode(view.elementById("picture")))
+    @assert(parent.rect.bottom() < view.scroll.scrollPosition().y)
+    @assert(parent.paintBounds.bottom() == picture.rect.bottom())
+    @assert(view.layout.documentHeight == picture.rect.bottom())
+    var image = host.render(view)
+    @assert(image.pixelColor(20, 20).argb == 0xFFFF0000)
 }
 
 // A CSS region scrollbar pages through its track and drags its thumb like a native vertical bar.

@@ -650,8 +650,7 @@
 
 <span class="SKwd">var</span> image = <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">320</span>, <span class="SNum">180</span>, .<span class="SCst"><a href="#Pixel_PixelFormat_RGBA8">RGBA8</a></span>)
 image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">24</span>, <span class="SNum">32</span>, <span class="SNum">48</span>))
-<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"preview.png"</span>)
-</span></div>
+<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"preview.png"</span>)</span></div>
 <h2 id="overview_Record_and_render_with_the_CPU_backend">Record and render with the CPU backend</h2>
 <p>Create the concrete backend first, borrow it as an <a href="#Pixel_IRenderer">Pixel.IRenderer</a>, then create the <a href="#Pixel_Painter">Pixel.Painter</a> with that renderer. The painter records commands; <a href="#Pixel_Painter_render">Pixel.Painter.render</a> submits them to the renderer selected at creation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> cpu: <span class="SCst"><a href="#Pixel_RenderCpu">RenderCpu</a></span>
@@ -668,8 +667,7 @@ painter.<span class="SFct">end</span>()
 painter.<span class="SFct">render</span>()
 renderer.<span class="SFct">end</span>()
 
-<span class="SKwd">let</span> image = cpu.<span class="SFct">surfaceImage</span>()
-</span></div>
+<span class="SKwd">let</span> image = cpu.<span class="SFct">surfaceImage</span>()</span></div>
 <p>The filename extension selects the encoder when loading or saving. Operations that can reject malformed data, fail to access a file, or fail in a backend use Swag's normal <span class="code-inline">fail</span> mechanism.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Getting_started">Getting started</h2>
@@ -696,8 +694,7 @@ renderer.<span class="SFct">end</span>()
 
 <span class="SKwd">var</span> image = <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">320</span>, <span class="SNum">180</span>, .<span class="SCst"><a href="#Pixel_PixelFormat_RGBA8">RGBA8</a></span>)
 image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">24</span>, <span class="SNum">32</span>, <span class="SNum">48</span>))
-<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"preview.png"</span>)
-</span></div>
+<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"preview.png"</span>)</span></div>
 <p>Image operations that change dimensions or encoding update the same value. Copying an image copies its owned bytes; it does not create a shared view.</p>
 <p>For vector drawing, create a concrete renderer, borrow it as an <a href="#Pixel_IRenderer">Pixel.IRenderer</a>, and pass that interface to <a href="#Pixel_Painter_create">Pixel.Painter.create</a>. The renderer owns textures and targets; the painter only records the commands that refer to them. See <a href="#guide_Rendering_recorded_commands">Rendering recorded commands</a> for complete CPU and OpenGL lifecycles.</p>
 <h3 id="guide_Getting_started_Coordinate_and_color_conventions">Coordinate and color conventions</h3>
@@ -717,8 +714,7 @@ image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">C
 <span class="SKwd">var</span> image = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">load</span>(<span class="SStr">"portrait.png"</span>)
 image.<span class="SFct">crop</span>(<span class="SNum">40</span>, <span class="SNum">20</span>, <span class="SNum">640</span>, <span class="SNum">640</span>)
 image.<span class="SFct">resize</span>(<span class="SNum">256</span>, <span class="SNum">256</span>, .<span class="SCst"><a href="#Image_ResizeMode_Bilinear">Bilinear</a></span>)
-<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"avatar.png"</span>)
-</span></div>
+<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"avatar.png"</span>)</span></div>
 <p><span class="code-inline">crop</span>, <span class="code-inline">resize</span>, <span class="code-inline">flip</span>, filters, and channel operations mutate the image. This makes a processing pipeline read naturally and avoids a chain of short-lived image values.</p>
 <h3 id="guide_Images_and_codecs_Choose_a_pixel_format">Choose a pixel format</h3>
 <p>Use <a href="#Pixel_PixelFormat">Pixel.PixelFormat</a> <span class="code-inline">RGBA8</span> for general-purpose color with alpha and <span class="code-inline">RGB8</span> when opacity is guaranteed. Grayscale formats are useful for masks and image analysis. Query <a href="#Pixel_PixelFormat_bitsPerPixel">Pixel.PixelFormat.bitsPerPixel</a>, <a href="#Pixel_PixelFormat_channels">Pixel.PixelFormat.channels</a>, and <a href="#Pixel_PixelFormat_hasAlpha">Pixel.PixelFormat.hasAlpha</a> when generic code must adapt to the encoding.</p>
@@ -751,8 +747,7 @@ painter.<span class="SFct">begin</span>()
 painter.<span class="SFct">clear</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">18</span>, <span class="SNum">20</span>, <span class="SNum">28</span>))
 painter.<span class="SFct">fillRoundRect</span>(<span class="SNum">24</span>, <span class="SNum">24</span>, <span class="SNum">220</span>, <span class="SNum">96</span>, <span class="SNum">14</span>, <span class="SNum">14</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">62</span>, <span class="SNum">132</span>, <span class="SNum">220</span>))
 painter.<span class="SFct">drawRect</span>(<span class="SNum">24</span>, <span class="SNum">24</span>, <span class="SNum">220</span>, <span class="SNum">96</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">230</span>, <span class="SNum">240</span>, <span class="SNum">255</span>), <span class="SNum">2</span>)
-painter.<span class="SFct">end</span>()
-</span></div>
+painter.<span class="SFct">end</span>()</span></div>
 <p><span class="code-inline">begin</span> clears previously recorded vertices and commands and restores the default drawing state. <a href="#Pixel_Painter_render">Pixel.Painter.render</a> submits the finished stream to the renderer selected by <a href="#Pixel_Painter_create">Pixel.Painter.create</a>. A default-initialized painter remains useful for command inspection and goldens, but it cannot render or allocate a <a href="#Pixel_Layer">Pixel.Layer</a> until <a href="#Pixel_Painter_setRenderer">Pixel.Painter.setRenderer</a> is called.</p>
 <h3 id="guide_Vector_drawing_Paths">Paths</h3>
 <p>Use <a href="#Pixel_LinePath">Pixel.LinePath</a> for one contour and <a href="#Pixel_LinePathList">Pixel.LinePathList</a> for several contours. A path starts at one point, accepts line, curve, Bézier, or arc segments, and may be closed before filling.</p>
@@ -765,8 +760,7 @@ path.<span class="SFct">close</span>()
 painter.<span class="SFct">begin</span>()
 painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">245</span>, <span class="SNum">190</span>, <span class="SNum">48</span>))
 painter.<span class="SFct">drawPath</span>(&amp;path, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">80</span>, <span class="SNum">54</span>, <span class="SNum">10</span>), <span class="SNum">2</span>)
-painter.<span class="SFct">end</span>()
-</span></div>
+painter.<span class="SFct">end</span>()</span></div>
 <h3 id="guide_Vector_drawing_Brushes_and_pens">Brushes and pens</h3>
 <p><a href="#Pixel_Brush">Pixel.Brush</a> describes fills: solid colors, textures, hatches, and linear, radial, or sweep gradients. <a href="#Pixel_Pen">Pixel.Pen</a> adds stroke width, joins, end caps, and dash behavior around a brush.</p>
 <h3 id="guide_Vector_drawing_Blend_modes">Blend modes</h3>
@@ -781,8 +775,7 @@ painter.<span class="SFct">setBlendingMode</span>(.<span class="SCst"><a href="#
 painter.<span class="SFct">fillCircle</span>(<span class="SNum">96</span>, <span class="SNum">72</span>, <span class="SNum">48</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SNum">180</span>, <span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_RoyalBlue">RoyalBlue</a></span>))
 painter.<span class="SFct">setBlendingMode</span>(.<span class="SCst"><a href="#Pixel_BlendingMode_Screen">Screen</a></span>)
 painter.<span class="SFct">fillCircle</span>(<span class="SNum">132</span>, <span class="SNum">72</span>, <span class="SNum">48</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SNum">180</span>, <span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_Tomato">Tomato</a></span>))
-painter.<span class="SFct">popState</span>()
-</span></div>
+painter.<span class="SFct">popState</span>()</span></div>
 <p><a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> supports every mode. Before using an artistic mode with an unknown OpenGL context, query <a href="#Pixel_RenderOgl_supportsAdvancedBlending">Pixel.RenderOgl.supportsAdvancedBlending</a> after renderer initialization. <span class="code-inline">Min</span> and <span class="code-inline">Max</span> remain raw component equations; use <span class="code-inline">Darken</span> and <span class="code-inline">Lighten</span> for source-over artistic blending with partial alpha.</p>
 <p>Use <a href="#Pixel_Painter_pushState">Pixel.Painter.pushState</a> and <a href="#Pixel_Painter_popState">Pixel.Painter.popState</a> around local changes to transforms, clipping, blending, interpolation, or quality. This keeps a component's drawing code independent from its caller.</p>
 <div class="blockquote blockquote-tip">
@@ -800,8 +793,7 @@ painter.<span class="SFct">popState</span>()
 <span class="SKwd">var</span> painter: <span class="SCst"><a href="#Pixel_Painter">Painter</a></span>
 painter.<span class="SFct">begin</span>()
 painter.<span class="SFct">drawString</span>(<span class="SNum">24</span>, <span class="SNum">32</span>, <span class="SStr">"Hello, Pixel"</span>, font, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">245</span>, <span class="SNum">245</span>, <span class="SNum">245</span>))
-painter.<span class="SFct">end</span>()
-</span></div>
+painter.<span class="SFct">end</span>()</span></div>
 <p><a href="#Pixel_FontRenderMode">Pixel.FontRenderMode</a> <span class="code-inline">Auto</span> chooses between bitmap and multi-channel signed-distance-field rendering according to the effective on-screen size. Select a specific mode only when stable atlas behavior or a particular rendering technique matters more than automatic quality.</p>
 <h3 id="guide_Text_and_mathematical_layout_Rich_text">Rich text</h3>
 <p><a href="#Pixel_RichString_set">Pixel.RichString.set</a> parses Pixel's lightweight inline markup. <a href="#Pixel_RichString_compute">Pixel.RichString.compute</a> rebuilds shaped chunks after text or layout inputs change, and <a href="#Pixel_Painter_drawRichString">Pixel.Painter.drawRichString</a> records the result.</p>
@@ -829,8 +821,7 @@ painter.<span class="SFct">end</span>()
 <p>There is no central renderer registry or closed backend enum. Any type that implements <a href="#Pixel_IRenderer">Pixel.IRenderer</a> is available immediately. Keep the concrete value alive, borrow it as the interface, and create each painter with that interface:</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> cpu: <span class="SCst"><a href="#Pixel_RenderCpu">RenderCpu</a></span>
 <span class="SKwd">let</span> renderer: <span class="SCst"><a href="#Pixel_IRenderer">IRenderer</a></span> = &amp;cpu
-<span class="SKwd">var</span> painter = <span class="SCst"><a href="#Pixel_Painter">Painter</a></span>.<span class="SFct">create</span>(renderer)
-</span></div>
+<span class="SKwd">var</span> painter = <span class="SCst"><a href="#Pixel_Painter">Painter</a></span>.<span class="SFct">create</span>(renderer)</span></div>
 <p>The interface, painter, contexts, textures, and render targets do not own the concrete renderer. They must not outlive it. Resources also stay tied to the renderer that created them and cannot be moved to another backend.</p>
 <h3 id="guide_Rendering_recorded_commands_CPU_frame_lifecycle">CPU frame lifecycle</h3>
 <p><a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> needs no native window, display server, GPU, or driver. Its output is deterministic and <a href="#Pixel_RenderCpu_surfaceImage">Pixel.RenderCpu.surfaceImage</a> returns an owned copy of the current surface.</p>
@@ -850,8 +841,7 @@ painter.<span class="SFct">end</span>()
 painter.<span class="SFct">render</span>()
 
 renderer.<span class="SFct">end</span>()
-<span class="SKwd">let</span> image = cpu.<span class="SFct">surfaceImage</span>()
-</span></div>
+<span class="SKwd">let</span> image = cpu.<span class="SFct">surfaceImage</span>()</span></div>
 <p>The concrete <a href="#Pixel_RenderCpu_begin">Pixel.RenderCpu.begin</a> overload taking width and height is a convenience for CPU-only code. The interface/context form above is preferable when the caller can work with any renderer.</p>
 <h3 id="guide_Rendering_recorded_commands_OpenGL_frame_lifecycle">OpenGL frame lifecycle</h3>
 <p><a href="#Pixel_RenderOgl">Pixel.RenderOgl</a> uses the same interface. Pass the platform window handle to <a href="#Pixel_IRenderer_createContext">Pixel.IRenderer.createContext</a>, make the first context current, then initialize renderer-owned OpenGL resources. A context created with <span class="code-inline">shared</span> uses the same renderer resources as that earlier context.</p>
@@ -870,8 +860,7 @@ painter.<span class="SFct">begin</span>()
 <span class="SCmt">// Record shapes, textures, and text here.</span>
 painter.<span class="SFct">end</span>()
 painter.<span class="SFct">render</span>()
-renderer.<span class="SFct">end</span>()
-</span></div>
+renderer.<span class="SFct">end</span>()</span></div>
 <p>Update <a href="#Pixel_RenderContext_width">Pixel.RenderContext.width</a> and <a href="#Pixel_RenderContext_height">Pixel.RenderContext.height</a> after a drawable resize. Keep OpenGL calls on the thread required by the platform integration.</p>
 <h3 id="guide_Rendering_recorded_commands_Render_targets_and_layers">Render targets and layers</h3>
 <p>Use <a href="#Pixel_RenderTarget">Pixel.RenderTarget</a> for a manually managed off-screen pass. <a href="#Pixel_Layer">Pixel.Layer</a> packages temporary targets, supersampling, resolution, blur, and composition. A layer obtains its renderer from the painter, so its call site does not repeat or risk contradicting backend selection:</p>
@@ -879,14 +868,12 @@ renderer.<span class="SFct">end</span>()
 layer.<span class="SFct">begin</span>(&amp;painter, {width: <span class="SNum">320</span>, height: <span class="SNum">180</span>})
 <span class="SCmt">// Record layer content with painter.</span>
 layer.<span class="SFct">end</span>()
-layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">320</span>, <span class="SNum">180</span>}})
-</span></div>
+layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">320</span>, <span class="SNum">180</span>}})</span></div>
 <p>Textures created by <a href="#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a> and targets created by <a href="#Pixel_IRenderer_createRenderTarget">Pixel.IRenderer.createRenderTarget</a> belong to that renderer. Release them through the same interface. CPU and OpenGL handles are not interchangeable.</p>
 <h3 id="guide_Rendering_recorded_commands_Pixel_goldens">Pixel goldens</h3>
 <p><a href="#Pixel_Testing_assertImageGolden">Pixel.Testing.assertImageGolden</a> stores a rendered PNG beside the calling test. The default comparison is exact; pass <a href="#Pixel_Testing_ImageGoldenOptions">Pixel.Testing.ImageGoldenOptions</a> only when a workflow has a justified bounded tolerance.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> image = cpu.<span class="SFct">surfaceImage</span>()
-<span class="SCst"><a href="#namespace_Pixel_Testing">Testing</a></span>.<span class="SFct">assertImageGolden</span>(&amp;image, <span class="SStr">"toolbar.enabled"</span>)
-</span></div>
+<span class="SCst"><a href="#namespace_Pixel_Testing">Testing</a></span>.<span class="SFct">assertImageGolden</span>(&amp;image, <span class="SStr">"toolbar.enabled"</span>)</span></div>
 <p>The first run creates <span class="code-inline">goldens/toolbar.enabled.png</span> and passes so the new file can be reviewed. A mismatch fails and writes <span class="code-inline">toolbar.enabled.actual.png</span>. After reviewing both images, <span class="code-inline">swc tools\goldens.swgs</span> promotes pending snapshots.</p>
 <p>Use <a href="#Pixel_Testing_assertImagesNear">Pixel.Testing.assertImagesNear</a> when two backends render the same scene in one test. It writes both images on failure. The channel-delta limit absorbs small rounding differences; the different-pixel limit separately bounds raster-edge outliers, so neither tolerance can hide a broad rendering regression.</p>
 <p><a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> interprets built-in shapes, brushes, textures, clipping, blending, bitmap and MSDF text effects, render targets, blur, and supersampling. Custom GLSL shaders remain OpenGL-only. Keep a small OpenGL integration suite for shader compiler, driver, context, and presentation coverage, and compare its portable scenes with CPU output.</p>
@@ -2624,8 +2611,7 @@ subject.<span class="SFct">add</span>({x: <span class="SNum">0</span>, y: <span 
 <span class="SKwd">var</span> transform: <span class="SCst"><a href="#namespace_Pixel_Clipper">Clipper</a></span>.<span class="SCst"><a href="#Pixel_Clipper_Transform">Transform</a></span>
 transform.<span class="SFct">addPath</span>(&amp;subject, .<span class="SCst"><a href="#Pixel_Clipper_PolyType_Subject">Subject</a></span>)
 <span class="SKwd">var</span> solution: <span class="SCst"><a href="#namespace_Pixel_Clipper">Clipper</a></span>.<span class="SCst">ClipperPaths</span>
-transform.<span class="SFct">execute</span>(.<span class="SCst"><a href="#Pixel_Clipper_ClipType_Union">Union</a></span>, &amp;solution, .<span class="SCst">NonZero</span>, .<span class="SCst">NonZero</span>)
-</span></div>
+transform.<span class="SFct">execute</span>(.<span class="SCst"><a href="#Pixel_Clipper_ClipType_Union">Union</a></span>, &amp;solution, .<span class="SCst">NonZero</span>, .<span class="SCst">NonZero</span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Clipper_Transform">Transform</a></span></span></div>
 </section>
@@ -2760,8 +2746,7 @@ transform.<span class="SFct">execute</span>(.<span class="SCst"><a href="#Pixel_
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> brush = <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>.<span class="SFct">createLinearGradient</span>({<span class="SNum">0</span>, <span class="SNum">0</span>}, {<span class="SNum">160</span>, <span class="SNum">0</span>},
                                        <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_DodgerBlue">DodgerBlue</a></span>),
                                        <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_DeepPink">DeepPink</a></span>))
-brush.<span class="SFct">addGradientStop</span>(<span class="SNum">0.5</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>))
-</span></div>
+brush.<span class="SFct">addGradientStop</span>(<span class="SNum">0.5</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>))</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Brush">Brush</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -3025,8 +3010,7 @@ brush.<span class="SFct">addGradientStop</span>(<span class="SNum">0.5</span>, <
 <p>Glyph quads and metrics scale from the cache reference size when drawn or measured.</p>
 <h2 id="Pixel_Font_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> font = <span class="SKwd">try</span> renderer.<span class="SFct">fontCache</span>().<span class="SFct">createFont</span>(<span class="SStr">"Inter-Regular.ttf"</span>, <span class="SNum">18</span>)
-painter.<span class="SFct">drawString</span>(<span class="SNum">20</span>, <span class="SNum">32</span>, <span class="SStr">"Hello, Pixel"</span>, font, <span class="SCst"><a href="#namespace_Pixel">Pixel</a></span>.<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>)
-</span></div>
+painter.<span class="SFct">drawString</span>(<span class="SNum">20</span>, <span class="SNum">32</span>, <span class="SStr">"Hello, Pixel"</span>, font, <span class="SCst"><a href="#namespace_Pixel">Pixel</a></span>.<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Font">Font</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -3264,8 +3248,7 @@ painter.<span class="SFct">drawString</span>(<span class="SNum">20</span>, <span
 <p>Pixels are stored row by row without padding in the format given by <a href="#Pixel_PixelFormat">Pixel.PixelFormat</a>. Copying an image copies its owned byte array; temporary working storage is never shared.</p>
 <h2 id="Pixel_Image_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> image = <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">64</span>, <span class="SNum">64</span>, .<span class="SCst"><a href="#Pixel_PixelFormat_RGBA8">RGBA8</a></span>)
-image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">18</span>, <span class="SNum">24</span>, <span class="SNum">32</span>))
-</span></div>
+image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">18</span>, <span class="SNum">24</span>, <span class="SNum">32</span>))</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -3469,8 +3452,7 @@ path.<span class="SFct">close</span>()
 canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">247</span>, <span class="SNum">249</span>, <span class="SNum">0</span>))
 
 <span class="SKwd">var</span> image = <span class="SKwd">try</span> canvas.<span class="SFct">toImage</span>()
-<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"triangle.png"</span>)
-</span></div>
+<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"triangle.png"</span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -3777,8 +3759,7 @@ canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst">
 path.<span class="SFct">start</span>(<span class="SNum">12</span>, <span class="SNum">12</span>)
 path.<span class="SFct">lineTo</span>(<span class="SNum">84</span>, <span class="SNum">12</span>)
 path.<span class="SFct">lineTo</span>(<span class="SNum">48</span>, <span class="SNum">72</span>)
-path.<span class="SFct">close</span>()
-</span></div>
+path.<span class="SFct">close</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -3895,8 +3876,7 @@ path.<span class="SFct">close</span>()
 <p>Parse expressions once when they are drawn repeatedly:</p>
 <h2 id="Pixel_MathExpression_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> expression = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Pixel">Pixel</a></span>.<span class="SCst"><a href="#Pixel_MathExpression">MathExpression</a></span>.<span class="SFct">parse</span>(<span class="SItr">#raw</span> <span class="SStr">"\frac{x_i^2}{\sqrt{1+x}}"</span>)
-<span class="SKwd">let</span> metrics = painter.<span class="SFct">drawMath</span>(<span class="SNum">20</span>, <span class="SNum">30</span>, &amp;expression, font, <span class="SCst"><a href="#namespace_Pixel">Pixel</a></span>.<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_MidnightBlue">MidnightBlue</a></span>)
-</span></div>
+<span class="SKwd">let</span> metrics = painter.<span class="SFct">drawMath</span>(<span class="SNum">20</span>, <span class="SNum">30</span>, &amp;expression, font, <span class="SCst"><a href="#namespace_Pixel">Pixel</a></span>.<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_MidnightBlue">MidnightBlue</a></span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_MathExpression">MathExpression</a></span></span></div>
 </section>
@@ -3980,8 +3960,7 @@ path.<span class="SFct">close</span>()
 painter.<span class="SFct">begin</span>()
 painter.<span class="SFct">clear</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">24</span>, <span class="SNum">32</span>, <span class="SNum">48</span>))
 painter.<span class="SFct">fillCircle</span>(<span class="SNum">48</span>, <span class="SNum">48</span>, <span class="SNum">24</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">72</span>, <span class="SNum">149</span>, <span class="SNum">239</span>))
-painter.<span class="SFct">end</span>()
-</span></div>
+painter.<span class="SFct">end</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Painter">Painter</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -4505,8 +4484,7 @@ painter.<span class="SFct">end</span>()
 <h2 id="Pixel_RichString_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> label: <span class="SCst"><a href="#namespace_Pixel">Pixel</a></span>.<span class="SCst"><a href="#Pixel_RichString">RichString</a></span>
 label = <span class="SStr">"Status: &lt;b&gt;&lt;p1&gt;ready&lt;/p&gt;&lt;/b&gt;"</span>
-label.<span class="SFct">compute</span>()
-</span></div>
+label.<span class="SFct">compute</span>()</span></div>
 <p>See <a href="#Pixel_RichString_set">Pixel.RichString.set</a> for the complete marker set.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_RichString">RichString</a></span></span></div>
 </section>
@@ -5112,8 +5090,7 @@ polygon.<span class="SFct">recompute</span>()
 <span class="SKwd">var</span> tessellator: <span class="SCst"><a href="#namespace_Pixel">Pixel</a></span>.<span class="SCst"><a href="#namespace_Pixel_Poly2Tri">Poly2Tri</a></span>.<span class="SCst"><a href="#Pixel_Poly2Tri_Tessellate">Tessellate</a></span>
 tessellator.<span class="SFct">addPolyLine</span>(polygon)
 tessellator.<span class="SFct">triangulate</span>()
-<span class="SKwd">let</span> triangles = tessellator.<span class="SFct">takeResult</span>().triIndices
-</span></div>
+<span class="SKwd">let</span> triangles = tessellator.<span class="SFct">takeResult</span>().triIndices</span></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SAtr">#[Swag.NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Poly2Tri_Tessellate">Tessellate</a></span></span></div>
@@ -5154,8 +5131,7 @@ path.<span class="SFct">close</span>()
 <span class="SKwd">var</span> doc = <span class="SCst"><a href="#namespace_Pixel_Svg">Svg</a></span>.<span class="SCst"><a href="#Pixel_Svg_Document">Document</a></span>.<span class="SFct">create</span>(<span class="SNum">64</span>, <span class="SNum">64</span>)
 doc.<span class="SFct">setBackground</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">11</span>, <span class="SNum">11</span>, <span class="SNum">13</span>))
 doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">247</span>, <span class="SNum">249</span>, <span class="SNum">0</span>))
-<span class="SKwd">try</span> doc.<span class="SFct">save</span>(<span class="SStr">"mark.svg"</span>)
-</span></div>
+<span class="SKwd">try</span> doc.<span class="SFct">save</span>(<span class="SStr">"mark.svg"</span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Svg_Document">Document</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -7119,8 +7095,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <p>An icon is picked by size at display time, so a favicon carrying 16, 32, and 48 pixel entries stays sharp in a tab, a bookmark, and a shortcut alike. Each image is written as a 32-bit BGRA entry whose alpha channel carries transparency.</p>
 <h2 id="Pixel_Ico_encodeAll_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> sizes: [<span class="SNum">3</span>] <span class="SCst"><a href="#Pixel_Image">Image</a></span> = [mark16, mark32, mark48]
-<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Pixel_Ico">Ico</a></span>.<span class="SFct">save</span>(<span class="SStr">"favicon.ico"</span>, sizes)
-</span></div>
+<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Pixel_Ico">Ico</a></span>.<span class="SFct">save</span>(<span class="SStr">"favicon.ico"</span>, sizes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodeAll</span>(images: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -7215,8 +7190,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <p>When <span class="code-inline">buffer</span> is provided, its bytes are copied into the new image. Its length must exactly match the byte count implied by the dimensions and format.</p>
 <h2 id="Pixel_Image_create_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> pixels: [<span class="SNum">4</span>] <span class="STpe">u8</span> = {<span class="SNum">255</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">255</span>}
-<span class="SKwd">let</span> image = <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">1</span>, <span class="SNum">1</span>, .<span class="SCst"><a href="#Pixel_PixelFormat_RGBA8">RGBA8</a></span>, pixels)
-</span></div>
+<span class="SKwd">let</span> image = <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">1</span>, <span class="SNum">1</span>, .<span class="SCst"><a href="#Pixel_PixelFormat_RGBA8">RGBA8</a></span>, pixels)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>, pixelFormat: <span class="SCst"><a href="#Pixel_PixelFormat">PixelFormat</a></span>, buffer: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -7526,8 +7500,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> photo  = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">load</span>(<span class="SStr">"photo.png"</span>)
 <span class="SKwd">var</span> canvas = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span>.<span class="SFct">create</span>(photo)
 canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum">8</span>, <span class="SNum">8</span>, <span class="SStr">"caption"</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">255</span>, <span class="SNum">255</span>, <span class="SNum">255</span>))
-<span class="SKwd">var</span> stamped = <span class="SKwd">try</span> canvas.<span class="SFct">toImage</span>()
-</span></div>
+<span class="SKwd">var</span> stamped = <span class="SKwd">try</span> canvas.<span class="SFct">toImage</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(image: <span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -8773,8 +8746,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <li><span class="code-inline">&lt;p3&gt;</span> =&gt; color palette 3</li>
 <li><span class="code-inline">&lt;url&gt;</span> =&gt; clickable</li>
 </ul>
-<div class="code-block"><span class="SCde">&lt;b&gt;this <span class="SLgc">is</span> bold&lt;/b&gt; but this <span class="SLgc">is</span> normal &lt;i&gt;<span class="SLgc">and</span> this <span class="SLgc">is</span> italic&lt;/i&gt;
-</span></div>
+<div class="code-block"><span class="SCde">&lt;b&gt;this <span class="SLgc">is</span> bold&lt;/b&gt; but this <span class="SLgc">is</span> normal &lt;i&gt;<span class="SLgc">and</span> this <span class="SLgc">is</span> italic&lt;/i&gt;</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">set</span>(text: <span class="SItr">#null</span> <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -8814,8 +8786,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <h2 id="Pixel_Svg_trace_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> image = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">load</span>(<span class="SStr">"icon.png"</span>)
 <span class="SKwd">let</span> doc   = <span class="SCst"><a href="#namespace_Pixel_Svg">Svg</a></span>.<span class="SFct">trace</span>(&amp;image)
-<span class="SKwd">try</span> doc.<span class="SFct">save</span>(<span class="SStr">"icon.svg"</span>)
-</span></div>
+<span class="SKwd">try</span> doc.<span class="SFct">save</span>(<span class="SStr">"icon.svg"</span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trace</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Image">Image</a></span>, options: <span class="SCst"><a href="#Pixel_Svg_TraceOptions">TraceOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Svg_Document">Document</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -9002,7 +8973,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

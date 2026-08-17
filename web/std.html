@@ -27,8 +27,7 @@
 <h1 id="Standard_library">Standard library</h1>
 <p>The standard workspace lives under <span class="code-inline">bin/std</span> beside the compiler. Its modules are built from the same revision as <span class="code-inline">swc</span>, and their generated API pages link back to the maintained declarations and comments in <a href="https://github.com/swag-lang/swc/tree/master/bin/std/modules">`bin/std/modules`</a>.</p>
 <p>Import a standard module from <span class="code-inline">module.swg</span> or a script setup section:</p>
-<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
-</span></div>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)</span></div>
 <p><span class="code-inline">swag@std</span> is the standard library beside the compiler that runs the build. <span class="code-inline">SWAG_PATH</span> answers instead for a compiler installed without one, and points to that library's <span class="code-inline">bin</span> directory.</p>
 <h2 id="Application_libraries">Application libraries</h2>
 <table class="table-markdown">
@@ -64,7 +63,7 @@
 <p>Standard modules build as shared libraries unless their setup selects an export binding. Workspace output and exported APIs are grouped by backend kind, build configuration, and architecture under <span class="code-inline">bin/std/.output</span>.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

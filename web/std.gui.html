@@ -1440,8 +1440,7 @@ button.dockStyle = .<span class="SCst"><a href="#Gui_DockStyle_CenterKeepSizeVer
 
 surface.<span class="SFct">show</span>()
 <span class="SLgc">return</span> app.<span class="SFct">run</span>()
-}
-</span></div>
+}</span></div>
 <p>Coordinates and sizes are logical pixels. Windows are owned by their application; use <a href="#Gui_Wnd_destroy">Gui.Wnd.destroy</a> for deferred destruction during event dispatch.</p>
 <p>Finite transitions use the application-owned <a href="#Gui_Animator">Gui.Animator</a>. Typed tracks can be retargeted by <a href="#Gui_AnimationChannel">Gui.AnimationChannel</a>, grouped in parallel or sequence, and are cancelled automatically when their target is hidden or destroyed. See <span class="code-inline">help/08-animation.md</span> for the motion and presentation contract.</p>
 </section>
@@ -1462,14 +1461,12 @@ surface.<span class="SFct">show</span>()
 
     surface.<span class="SFct">show</span>()
     <span class="SLgc">return</span> app.<span class="SFct">run</span>()
-}
-</span></div>
+}</span></div>
 <p>The first surface initializes the selected <a href="std.pixel.html#Pixel_IRenderer">Pixel.IRenderer</a> and default theme. OpenGL is selected by default. To use the CPU renderer or a third-party backend, select it before creating the first surface; the concrete renderer must outlive the application:</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> cpu: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_RenderCpu">RenderCpu</a></span>
 <span class="SKwd">var</span> app: <span class="SCst"><a href="#Gui_Application">Application</a></span>
 app.<span class="SFct">setRenderer</span>(&amp;cpu)
-<span class="SKwd">let</span> surface = (<span class="SKwd">try</span> app.<span class="SFct">createSurface</span>(<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">640</span>, <span class="SNum">420</span>))!
-</span></div>
+<span class="SKwd">let</span> surface = (<span class="SKwd">try</span> app.<span class="SFct">createSurface</span>(<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">640</span>, <span class="SNum">420</span>))!</span></div>
 <p>Additional surfaces use the same renderer and participate in the same event loop. Their painters are bound automatically; paint handlers use the renderer exposed by <a href="#Gui_PaintContext">Gui.PaintContext</a>.</p>
 <p>Use <a href="#Gui_Application_postEvent">Gui.Application.postEvent</a> to enqueue work for the UI loop. <a href="#Gui_Application_sendEvent">Gui.Application.sendEvent</a> dispatches immediately and should only be used when the caller is already on the UI thread and understands event propagation.</p>
 </section>
@@ -1493,8 +1490,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <h3 id="guide_Windows_and_layout_Let_the_content_decide">Let the content decide</h3>
 <p>An axis you leave unsized belongs to the content. <a href="#Gui_Wnd_measure">Gui.Wnd.measure</a> asks the window through <a href="#Gui_IWnd_measureContent">Gui.IWnd.measureContent</a>, and the answer becomes its preferred size: a caption widens its button, a list of entries widens its combo box, a wrapped paragraph reports the height it needs at the width it is offered, and a band docked with no height is as tall as what it holds. An axis carrying a size the caller stated keeps it, unmeasured.</p>
 <div class="code-block"><span class="SCde"><span class="SCmt">// The height is a design decision; the width is the caption's business.</span>
-<span class="SKwd">let</span> action = <span class="SCst"><a href="#Gui_PushButton">PushButton</a></span>.<span class="SFct">create</span>(bar, <span class="SStr">"Create encrypted vault"</span>, {<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">36</span>})
-</span></div>
+<span class="SKwd">let</span> action = <span class="SCst"><a href="#Gui_PushButton">PushButton</a></span>.<span class="SFct">create</span>(bar, <span class="SStr">"Create encrypted vault"</span>, {<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">36</span>})</span></div>
 <p>This is what keeps a surface correct when its text changes — a translation, a document title, a user-supplied name. Implement <span class="code-inline">measureContent</span> on a custom control that draws its own text or items; the default reports nothing, which keeps the authored size on both axes.</p>
 <p>Use coordinate conversion methods on <a href="#Gui_Wnd">Gui.Wnd</a> when crossing local, surface, and screen spaces. Keep hit testing and painting in the coordinate system named by the event or drawing API.</p>
 </section>
@@ -1543,8 +1539,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
     <span class="SLgc">if</span> evt.kind == .<span class="SCst"><a href="#Gui_DragDropEvent_Kind_Drop">Drop</a></span> <span class="SLgc">do</span>
         .<span class="SFct">openContainer</span>(path)
     evt.effect = <span class="SFct">pickDropEffect</span>(evt.allowed &amp; (<span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>.<span class="SCst">Copy</span> | <span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>.<span class="SCst">Link</span>), evt.modifiers)
-}
-</span></div>
+}</span></div>
 <p><a href="#Gui_DragData">Gui.DragData</a> is the payload, borrowed for the duration of one callback: a target that wants to keep a path, a text or an image copies it out. It answers safely whatever the drag carries — <a href="#Gui_DragData_hasFiles">Gui.DragData.hasFiles</a>, <a href="#Gui_DragData_singleFile">Gui.DragData.singleFile</a>, <a href="#Gui_DragData_hasText">Gui.DragData.hasText</a> and <a href="#Gui_DragData_hasImage">Gui.DragData.hasImage</a> are all cheap, and only <a href="#Gui_DragData_image">Gui.DragData.image</a> pays for a decode. That matters because a drag hovering a window asks the same questions on every mouse move.</p>
 <p>Two controls already answer for themselves. An <a href="#Gui_EditBox">Gui.EditBox</a> takes dropped text at the character under the pointer, and with <a href="#Gui_EditBoxFlags_AcceptFileDrop">Gui.EditBoxFlags.AcceptFileDrop</a> a single dropped file replaces its content with that path — which is what a field naming a document wants, and what <span class="code-inline">Properties.FilePath</span> declares on a property-grid row.</p>
 <p>A test drives the whole path with no desktop under it: <span class="code-inline">Testing.HeadlessHost.dropFilesOnWnd</span> releases a payload on one control, <span class="code-inline">Testing.HeadlessHost.dragFilesOver</span> moves a gesture across the tree, and <span class="code-inline">Testing.HeadlessHost.cancelDrag</span> ends one the way Escape does.</p>
@@ -1553,8 +1548,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> data: <span class="SCst"><a href="#Gui_DragData">DragData</a></span>
 data.<span class="SFct">addFile</span>(exportedPath)
 <span class="SKwd">try</span> data.<span class="SFct">setImage</span>(picture)
-<span class="SKwd">discard</span> thumbnail.<span class="SFct">startDrag</span>(&amp;data, <span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>.<span class="SCst">Copy</span>)
-</span></div>
+<span class="SKwd">discard</span> thumbnail.<span class="SFct">startDrag</span>(&amp;data, <span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>.<span class="SCst">Copy</span>)</span></div>
 <p>A press only becomes a drag once the pointer has travelled far enough, which <a href="#Gui_Wnd_exceedsDragThreshold">Gui.Wnd.exceedsDragThreshold</a> answers from the distance the desktop is configured with, so a shaky hand on a click does not start dragging.</p>
 <p>Two consequences of the desktop running the gesture are worth knowing before writing the handler. The call does not return until the drop, and the window stops painting for that whole time — every application that drags behaves this way. And the button that started the drag comes back up <i>inside</i> that loop, so the control has to forget its own press before calling, rather than waiting for a release event that will never arrive:</p>
 <div class="code-block"><span class="SCde"><span class="SLgc">if</span> evt.kind == .<span class="SCst">Move</span> <span class="SLgc">and</span> .pressedItem != <span class="SCst">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst">Max</span>
@@ -1565,8 +1559,7 @@ data.<span class="SFct">addFile</span>(exportedPath)
         .<span class="SFct">dragOutItem</span>()
         <span class="SLgc">return</span>
     }
-}
-</span></div>
+}</span></div>
 </section>
 <section class="api-guide"><h2 id="guide_Painting_and_themes">Painting and themes</h2>
 <p>Paint handlers receive a <a href="#Gui_PaintEvent">Gui.PaintEvent</a> whose <a href="#Gui_PaintContext">Gui.PaintContext</a> connects the current Pixel painter and renderer. Drawing uses the same logical-pixel coordinate system as the window. <a href="#Gui_Application_renderer">Gui.Application.renderer</a> is a <a href="std.pixel.html#Pixel_IRenderer">Pixel.IRenderer</a>, so the same paint path can target OpenGL in a native application, <a href="std.pixel.html#Pixel_RenderCpu">Pixel.RenderCpu</a> in deterministic tests, or another renderer selected through <a href="#Gui_Application_setRenderer">Gui.Application.setRenderer</a>.</p>
@@ -1588,14 +1581,12 @@ data.<span class="SFct">addFile</span>(exportedPath)
 palette.accent   = <span class="SNum">0xFF00A0FF</span>
 palette.onAccent = <span class="SNum">0xFF000000</span>
 app.theme.<span class="SFct">setPalette</span>(palette)
-app.<span class="SFct">notifyThemeChanged</span>()
-</span></div>
+app.<span class="SFct">notifyThemeChanged</span>()</span></div>
 <p><span class="code-inline">bin/examples/modules/gui10</span> is the theme inspector: it lists every color of every palette by reflection, flags any value one palette answers for and another does not, and shows every widget in every state.</p>
 <p>Read theme data through the current window so custom controls respect local style overrides:</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> colors  = wnd.<span class="SFct">getThemeColors</span>()
 <span class="SKwd">let</span> metrics = wnd.<span class="SFct">getThemeMetrics</span>()
-<span class="SKwd">let</span> font    = wnd.<span class="SFct">getFont</span>()
-</span></div>
+<span class="SKwd">let</span> font    = wnd.<span class="SFct">getFont</span>()</span></div>
 <p>Paint only inside the invalidated region when possible. Call <a href="#Gui_Wnd_invalidate">Gui.Wnd.invalidate</a> after a visual state change, and <a href="#Gui_Wnd_invalidateRect">Gui.Wnd.invalidateRect</a> when only a bounded region changed. <a href="#Gui_Application_notifyThemeChanged">Gui.Application.notifyThemeChanged</a> recomputes styles and invalidates the interface after editing shared theme data.</p>
 <h3 id="guide_Painting_and_themes_Headless_paint_tests">Headless paint tests</h3>
 <p><a href="#Gui_Testing_HeadlessHost">Gui.Testing.HeadlessHost</a> builds a deterministic application and widget tree without creating an OS window. <a href="#Gui_Testing_HeadlessHost_render">Gui.Testing.HeadlessHost.render</a> runs the normal surface paint pipeline through Pixel's software renderer and returns owned pixels.</p>
@@ -1607,8 +1598,7 @@ app.<span class="SFct">notifyThemeChanged</span>()
 
     <span class="SKwd">let</span> image = host.<span class="SFct">render</span>()
     <span class="SCst">Pixel</span>.<span class="SCst"><a href="#namespace_Gui_Testing">Testing</a></span>.<span class="SFct">assertImageGolden</span>(&amp;image, <span class="SStr">"continue-button"</span>)
-}
-</span></div>
+}</span></div>
 <p>Use structural and event assertions for behavior, command goldens for emitted paint operations, and PNG goldens for the final composition. A small OpenGL integration suite remains necessary for context, shader compiler, and driver coverage.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Controls_and_dialogs">Controls and dialogs</h2>
@@ -1649,8 +1639,7 @@ markdown.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 {
     <span class="SKwd">discard</span> view
     <span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SFct">openUrl</span>(url)
-}
-</span></div>
+}</span></div>
 <p>The renderer supports GFM headings, lists, tasks, fenced code, tables, autolinks, reference links, alerts, footnotes, metadata, and thematic rules, plus Typora-style highlight, subscript, superscript, table of contents, and TeX delimiters. Inline and display TeX are laid out by <a href="std.pixel.html#Pixel_MathExpression">Pixel.MathExpression</a>; the widget does not substitute approximate Unicode glyphs or execute embedded HTML.</p>
 <p>Every surface, rule, link, selection, notice, and text color comes from the active GUI theme. A theme change relayouts the document and all mathematical expressions without rebuilding the source model.</p>
 </section>
@@ -1667,8 +1656,7 @@ markdown.sigLinkActivated += <span class="SKwd">func</span>(view, url)
     <span class="SKwd">let</span> surface = notnull (<span class="SKwd">try</span> app.<span class="SFct">createSurface</span>(<span class="SNum">100</span>, <span class="SNum">100</span>, <span class="SNum">640</span>, <span class="SNum">420</span>, <span class="SCst"><a href="#Gui_SurfaceFlags">SurfaceFlags</a></span>.<span class="SCst"><a href="#Gui_SurfaceFlags_StandardWindow">StandardWindow</a></span>))
     surface.<span class="SFct">show</span>()
     <span class="SLgc">return</span> app.<span class="SFct">run</span>()
-}
-</span></div>
+}</span></div>
 <h3 id="guide_Resources_and_localization_Theme_sheets">Theme sheets</h3>
 <p>A theme sheet is a tweak text with up to four folders whose keys are the reflected field names of <a href="#Gui_ThemePalette">Gui.ThemePalette</a>, <a href="#Gui_ThemeColors">Gui.ThemeColors</a>, <a href="#Gui_ThemeMetrics">Gui.ThemeMetrics</a>, and <a href="#Gui_ThemeImageRects">Gui.ThemeImageRects</a>. An omitted key keeps its current value, so a sheet is a delta over the active theme, and <span class="code-inline">$name</span> copies another key of the same folder:</p>
 <div class="code-block"><span class="SCde">/ThemePalette
@@ -1681,8 +1669,7 @@ btnPush_Bk       0xFF202026
 btnPush_Height   32
 /ThemeImageRects
 btnPush_Normal   {{1 29 27 27} 0}
-btnPush_Hot      $btnPush_Normal
-</span></div>
+btnPush_Hot      $btnPush_Normal</span></div>
 <p>A whole theme is the first folder and nothing else: naming any palette token re-derives every semantic color from the tokens, so a sheet of thirty lines answers for the three hundred parts of the interface and cannot leave one of them carrying the color of the theme it started from. The other folders are for the parts a theme wants different from what its own tokens derive, and they are read after the derivation whatever order they appear in. <span class="code-inline">bin/examples/modules/gui10/src/sepia.tweak</span> is a complete worked sheet.</p>
 <p>Apply a sheet with <a href="#Gui_Theme_applySheet">Gui.Theme.applySheet</a>, or resolve <span class="code-inline">themes/&lt;name&gt;.tweak</span> through the bundle and refresh every surface with <a href="#Gui_Application_loadTheme">Gui.Application.loadTheme</a>. An unknown key fails with the faulty line number, so a broken sheet is reported instead of half-applied silently.</p>
 <h3 id="guide_Resources_and_localization_String_tables">String tables</h3>
@@ -1698,13 +1685,11 @@ btnPush_Hot      $btnPush_Normal
 {
     <span class="SCst"><a href="#namespace_Gui">Gui</a></span>.<span class="SFct">registerStrings</span>'<span class="SFct">AppStrings</span>(&amp;g_AppStrings, <span class="SStr">"myapp"</span>)
     <span class="SCmt">// ...</span>
-}
-</span></div>
+}</span></div>
 <p>A language file is one <span class="code-inline">key value</span> line per overridden field, resolved as the resource <span class="code-inline">lang/&lt;tag&gt;/&lt;file&gt;.tweak</span>. A key the file omits keeps its reference value, so a translation only carries what it changes. <a href="#Gui_Application_setLanguage">Gui.Application.setLanguage</a> retargets every registered table and sends a <span class="code-inline">LanguageChanged</span> notification through every surface; command-driven controls pick the new wording up on their next update, while text set once at construction must listen for the notification or be rebuilt.</p>
 <h3 id="guide_Resources_and_localization_Languages">Languages</h3>
 <p>A tag is only presentable once it is registered with its name, so a picker can list what the application ships without hard-coding it:</p>
-<div class="code-block"><span class="SCde"><span class="SCst"><a href="#namespace_Gui">Gui</a></span>.<span class="SFct">registerLanguage</span>(<span class="SStr">"fr"</span>, <span class="SStr">"FranÃ§ais"</span>)
-</span></div>
+<div class="code-block"><span class="SCde"><span class="SCst"><a href="#namespace_Gui">Gui</a></span>.<span class="SFct">registerLanguage</span>(<span class="SStr">"fr"</span>, <span class="SStr">"FranÃ§ais"</span>)</span></div>
 <p><a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a> — <span class="code-inline">"en"</span> — is always registered and always comes first: it names the declared reference wording and needs no resource file. <a href="#Gui_languages">Gui.languages</a> returns what a picker should show, and a language is named in its own words, so those names are never translated.</p>
 <p>English is the language an application starts in. Following the account instead is a choice the user makes, not a guess the application makes on its behalf: <a href="#Gui_systemLanguage">Gui.systemLanguage</a> resolves <a href="std.core.html#Core_Env_userLocaleName">Core.Env.userLocaleName</a> against the registered tags and falls back to the reference language, and <a href="#Gui_Application_setSystemLanguage">Gui.Application.setSystemLanguage</a> applies it. Applying a tag that was never registered fails rather than silently presenting itself as applied.</p>
 <p>Embed the translation and validate it when the module compiles: a mistyped key becomes a build error with its line number instead of a runtime fallback.</p>
@@ -1713,8 +1698,7 @@ btnPush_Hot      $btnPush_Normal
 <span class="SFct">#run</span>
 {
     <span class="SKwd">expect</span> <span class="SCst"><a href="#namespace_Gui">Gui</a></span>.<span class="SFct">validateStrings</span>'<span class="SFct">AppStrings</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) <span class="SCst">FrenchStrings</span>)
-}
-</span></div>
+}</span></div>
 <h3 id="guide_Resources_and_localization_Wording_a_literal_cannot_carry">Wording a literal cannot carry</h3>
 <p>Two places state a wording where a string table cannot reach: a property attribute and a menu item built from a literal. Both have a hook.</p>
 <p>A property attribute value is a compile-time constant, so the grid generates <span class="code-inline">#[Properties.Name("Thickness")]</span> exactly as declared. Install one resolver and that literal becomes a key instead — every label, description, category segment, heading, note, unit and enumeration entry the grid builds passes through it:</p>
@@ -1725,12 +1709,10 @@ btnPush_Hot      $btnPush_Normal
     <span class="SLgc">case</span> <span class="SStr">"Thickness"</span>: <span class="SLgc">return</span> <span class="SFct">appStrings</span>().propThickness
     }
     <span class="SLgc">return</span> <span class="SKwd">null</span>
-})
-</span></div>
+})</span></div>
 <p>Answer <span class="code-inline">null</span> for a string the resolver does not own: the strings this module declares answer next, and the declared wording stands when nobody does. Rows resolve as they are built, so rebuild a grid that has to follow a switch — <a href="#Gui_PropertiesCtrl_clear">Gui.PropertiesCtrl.clear</a> and the same <span class="code-inline">addStruct</span> calls again.</p>
 <p>A menu bar copies the wording into its item once, so the entries of a bar built at start-up would keep the language they were built in while everything below them refreshes through the command state. Build them from a <a href="#Gui_MenuLabelResolver">Gui.MenuLabelResolver</a> instead, and the label is read again on every layout:</p>
-<div class="code-block"><span class="SCde">topMenu.<span class="SFct">addPopup</span>(<span class="SKwd">func</span>()-&gt;<span class="STpe">string</span> =&gt; <span class="SFct">appStrings</span>().menuFile, fileMenu)
-</span></div>
+<div class="code-block"><span class="SCde">topMenu.<span class="SFct">addPopup</span>(<span class="SKwd">func</span>()-&gt;<span class="STpe">string</span> =&gt; <span class="SFct">appStrings</span>().menuFile, fileMenu)</span></div>
 <h3 id="guide_Resources_and_localization_Sizes_belong_to_the_text">Sizes belong to the text</h3>
 <p>Translated wording is longer than the reference more often than not, so a surface that survives a language switch is one that never wrote its sizes down. Leave an axis unsized and the layout pass asks the window itself through <a href="#Gui_IWnd_measureContent">Gui.IWnd.measureContent</a>: a button widens with its caption, a combo box with its widest entry, a wrapped paragraph grows taller, and a band docked without a height is as tall as what it holds. An axis carrying an explicit size keeps it, so this is opt-in per widget and per axis.</p>
 <div class="code-block"><span class="SCde"><span class="SCmt">// Width measured from the caption, height stated because the row is a design decision.</span>
@@ -1738,8 +1720,7 @@ btnPush_Hot      $btnPush_Normal
 
 <span class="SCmt">// A paragraph that decides its own height, whatever the language costs.</span>
 <span class="SKwd">let</span> help = <span class="SCst"><a href="#Gui_Label">Label</a></span>.<span class="SFct">create</span>(card, <span class="SFct">appStrings</span>().createHelp, {}, <span class="SKwd">null</span>, .<span class="SCst">WordWrap</span> | .<span class="SCst"><a href="#Gui_LabelFlags_SecondaryText">SecondaryText</a></span> | .<span class="SCst"><a href="#Gui_LabelFlags_AutoHeight">AutoHeight</a></span>)
-help.dockStyle = .<span class="SCst">Top</span>
-</span></div>
+help.dockStyle = .<span class="SCst">Top</span></span></div>
 <p>Re-label with <a href="#Gui_Button_setText">Gui.Button.setText</a>, <a href="#Gui_Label_setText">Gui.Label.setText</a> and <a href="#Gui_FormLayoutCtrl_setRowLabel">Gui.FormLayoutCtrl.setRowLabel</a> when the notification arrives, then arrange again: the sizes follow the new wording on their own. Prove it rather than trust it — <span class="code-inline">Gui.Testing.assertContentFits</span> walks a surface and fails on the first window smaller than what it says it needs, so a test that loops over <a href="#Gui_languages">Gui.languages</a> is enough to keep every shipped translation honest.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Animation">Animation</h2>
@@ -1757,8 +1738,7 @@ options.easing   = .<span class="SCst">EaseOut</span>
     {-<span class="SNum">24</span>, <span class="SNum">0</span>},
     {},
     <span class="SKwd">func</span>(wnd, value) { wnd.<span class="SFct">setPresentationOffset</span>(value); },
-    options)
-</span></div>
+    options)</span></div>
 <p>An <a href="#Gui_AnimationHandle">Gui.AnimationHandle</a> does not retain the target. Keep it only when an operation needs to cancel or inspect that exact run. Prefer stable, descriptive channel names over global counters: the channel is what gives retargeting its property identity.</p>
 <h3 id="guide_Animation_Coordinate_tracks">Coordinate tracks</h3>
 <p>An <a href="#Gui_AnimationGroup">Gui.AnimationGroup</a> starts tracks together or in insertion order. Transfer the completed group to the scheduler with <span class="code-inline">#move</span>.</p>
@@ -1767,8 +1747,7 @@ group.<span class="SFct">addF32</span>(card, <span class="SCst"><a href="#Gui_An
              <span class="SKwd">func</span>(wnd, value) { wnd.<span class="SFct">setPresentationOpacity</span>(value); }, options)
 group.<span class="SFct">addPoint</span>(card, <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>.<span class="SFct">from</span>(<span class="SStr">"Example.CardOffset"</span>), {<span class="SNum">16</span>, <span class="SNum">0</span>}, {},
                <span class="SKwd">func</span>(wnd, value) { wnd.<span class="SFct">setPresentationOffset</span>(value); }, options)
-<span class="SKwd">discard</span> app.animator.<span class="SFct">start</span>(<span class="SItr">#move</span> group)
-</span></div>
+<span class="SKwd">discard</span> app.animator.<span class="SFct">start</span>(<span class="SItr">#move</span> group)</span></div>
 <p>Use <a href="#Gui_AnimationGroup_sequence">Gui.AnimationGroup.sequence</a> for a short ordered disclosure. Springs, keyframes, and reflection-based field mutation are deliberately outside this API: each track remains bounded, typed, and explicit about its invalidation cost.</p>
 <h3 id="guide_Animation_Choose_a_curve">Choose a curve</h3>
 <p><a href="#Gui_AnimationEasing">Gui.AnimationEasing</a> carries nine shapes. The first four stay inside the zero-to-one interval and suit any value, including opacity and color. The five others anticipate or overshoot on purpose, which reads as weight on a position or a scale and as nothing at all on a value the compositor clamps:</p>
@@ -1788,8 +1767,7 @@ options.autoReverse = <span class="SKwd">true</span>
 options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essential">Essential</a></span>
 
 <span class="SKwd">discard</span> app.animator.<span class="SFct">animateF32</span>(dot, <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>.<span class="SFct">from</span>(<span class="SStr">"Example.Pulse"</span>), <span class="SNum">1</span>, <span class="SNum">0.4</span>,
-                                <span class="SKwd">func</span>(wnd, value) { wnd.<span class="SFct">setPresentationOpacity</span>(value); }, options)
-</span></div>
+                                <span class="SKwd">func</span>(wnd, value) { wnd.<span class="SFct">setPresentationOpacity</span>(value); }, options)</span></div>
 <p>An endless track never gives its turn back, so keep one in a parallel group rather than in the middle of a sequence. Reduced motion collapses an endless <i>decorative</i> loop to the state it keeps returning to instead of leaving it running behind a preference that asked for none.</p>
 <h3 id="guide_Animation_Keep_geometry_logical">Keep geometry logical</h3>
 <p><a href="#Gui_Wnd_presentationOpacity">Gui.Wnd.presentationOpacity</a>, <a href="#Gui_Wnd_presentationOffset">Gui.Wnd.presentationOffset</a>, <a href="#Gui_Wnd_presentationScale">Gui.Wnd.presentationScale</a>, and <a href="#Gui_Wnd_presentationClip">Gui.Wnd.presentationClip</a> affect painting for the complete window subtree. They do not change layout, hit testing, or keyboard focus. This is the normal choice for decorative movement; call <a href="#Gui_Wnd_resetPresentation">Gui.Wnd.resetPresentation</a> from completion when a custom transition has finished, so a settled window costs the painter nothing.</p>
@@ -6881,8 +6859,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <span class="SKwd">let</span> name = dlg.form.<span class="SFct">addTextField</span>(<span class="SStr">"FOLDER NAME"</span>, <span class="SStr">"New Folder"</span>)
 dlg.form.<span class="SFct">computeLayout</span>()
 <span class="SLgc">if</span> dlg.<span class="SFct">doModal</span>() == <span class="SCst"><a href="#Gui_Dialog">Dialog</a></span>.<span class="SCst">BtnOk</span> <span class="SLgc">do</span>
-    <span class="SFct">createFolder</span>(name.<span class="SFct">text</span>())
-</span></div>
+    <span class="SFct">createFolder</span>(name.<span class="SFct">text</span>())</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormDlg">FormDlg</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -6941,8 +6918,7 @@ dlg.form.<span class="SFct">computeLayout</span>()
 <span class="SKwd">let</span> path = form.<span class="SFct">addTextField</span>(<span class="SStr">"CONTAINER FILE"</span>, placeholder: <span class="SStr">"C:\\private.scrypt"</span>)
 <span class="SKwd">let</span> browse = form.<span class="SFct">addRowAction</span>(<span class="SStr">"Browse"</span>)
 <span class="SKwd">let</span> password = form.<span class="SFct">addPasswordField</span>(<span class="SStr">"PASSWORD"</span>)
-form.<span class="SFct">computeLayout</span>()
-</span></div>
+form.<span class="SFct">computeLayout</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormLayoutCtrl">FormLayoutCtrl</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -7290,8 +7266,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 {
     <span class="SKwd">discard</span> view
     <span class="SCst"><a href="std.core.html#namespace_Core_Console">Console</a></span>.<span class="SFct">println</span>(url)
-}
-</span></div>
+}</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -9855,8 +9830,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <p>Draws a plain rule between the docked block before it and the one after it.</p>
 <p>The form carries the thickness and the color together, so a surface never repeats those measurements and every rule of an application agrees with the theme.</p>
 <p>A rule is the last way to separate two groups, after a raised background and after spacing: one per group turns a window into a grid of boxes. Reach for <span class="code-inline">Hairline</span> where neither works, and for <span class="code-inline">Accent</span> once, across the top edge of an application surface.</p>
-<div class="code-block"><span class="SCde"><span class="SCst"><a href="#Gui_Separator">Separator</a></span>.<span class="SFct">create</span>(mainWnd, .<span class="SCst">Top</span>, .<span class="SCst"><a href="#Gui_SeparatorForm_Accent">Accent</a></span>)
-</span></div>
+<div class="code-block"><span class="SCde"><span class="SCst"><a href="#Gui_Separator">Separator</a></span>.<span class="SFct">create</span>(mainWnd, .<span class="SCst">Top</span>, .<span class="SCst"><a href="#Gui_SeparatorForm_Accent">Accent</a></span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Separator">Separator</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -10051,8 +10025,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <p>The ring is drawn, never sampled from an atlas, so it is exact at any size and at any display density — a spinner is the one piece of theme art that is always in motion, which is exactly where a resampled bitmap shows. Use it for a wait with no measurable progress; a <a href="#Gui_ProgressBar">Gui.ProgressBar</a> carrying <span class="code-inline">Indeterminate</span> says the same thing along a docked edge.</p>
 <p>It animates while it is visible and costs nothing while it is not, so the caller only shows and hides it:</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> busy = <span class="SCst"><a href="#Gui_Spinner">Spinner</a></span>.<span class="SFct">create</span>(view, {<span class="SNum">4</span>, <span class="SNum">4</span>})
-busy.<span class="SFct">hide</span>()
-</span></div>
+busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Spinner">Spinner</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -15170,7 +15143,7 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_MarkVoltage">MarkVoltage</a></span> = <span class="SCst"><a href="#Gui_Voltage">Voltage</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_ReferenceLanguage" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.ReferenceLanguage</span> <a class="api-item-permalink" href="#Gui_ReferenceLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L183">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_ReferenceLanguage" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.ReferenceLanguage</span> <a class="api-item-permalink" href="#Gui_ReferenceLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L199">src</a></div>
 <p>Tag of the reference wording declared by the string tables.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_ReferenceLanguage">ReferenceLanguage</a></span> = <span class="SStr">"en"</span></span></div>
 </section>
@@ -15363,7 +15336,7 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">deltaSeconds</span>() =&gt; .timing</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_directoryIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.directoryIcon</span> <a class="api-item-permalink" href="#Gui_Application_directoryIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1493">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_directoryIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.directoryIcon</span> <a class="api-item-permalink" href="#Gui_Application_directoryIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1509">src</a></div>
 <p>Returns the native shell icon for a directory.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">directoryIcon</span>(name: <span class="STpe">string</span>, small = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span> =&gt; .fileOrDirectoryIcon</span></div>
 </section>
@@ -15375,12 +15348,12 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">doModalLoop</span>(surface: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Surface">Surface</a></span>, cb: <span class="SItr">#null</span> <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Gui_Application">Application</a></span>) = <span class="SKwd">null</span>, restoreTo: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Surface">Surface</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_WndId">WndId</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_exitModal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.exitModal</span> <a class="api-item-permalink" href="#Gui_Application_exitModal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1483">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_exitModal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.exitModal</span> <a class="api-item-permalink" href="#Gui_Application_exitModal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1499">src</a></div>
 <p>Ends the innermost modal loop with <span class="code-inline">exitId</span> as its result.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">exitModal</span>(exitId: <span class="STpe">string</span> = <span class="SStr">""</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_fileIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.fileIcon</span> <a class="api-item-permalink" href="#Gui_Application_fileIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1490">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_fileIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.fileIcon</span> <a class="api-item-permalink" href="#Gui_Application_fileIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1506">src</a></div>
 <p>Returns the native shell icon for a file name or extension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fileIcon</span>(name: <span class="STpe">string</span>, small = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span> =&gt; .fileOrDirectoryIcon</span></div>
 </section>
@@ -15446,7 +15419,7 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postQuitEvent</span>(quitCode: <span class="STpe">s32</span> = <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_registerFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_registerFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1431">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_registerFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_registerFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1447">src</a></div>
 <p>Asks for <a href="#Gui_IWnd_onFrameEvent">Gui.IWnd.onFrameEvent</a> on <span class="code-inline">target</span> at the start of every rendered frame.</p>
 <p>A surface view is sent one <span class="code-inline">FrameEvent</span> before the loop starts, carrying <span class="code-inline">firstFrame</span>; that is a startup hook. This is the per-frame half, and it is how a window defers work to the next frame — a rebuild asked for from inside a change notification, where rebuilding on the spot would destroy the control that is reporting.</p>
 <p>Registration was <span class="code-inline">internal</span> and had no caller, so <span class="code-inline">sendFrameEvents</span> walked an empty array for the whole run and every deferral written against it silently never happened.</p>
@@ -15454,17 +15427,18 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">registerFrameEvent</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_registerHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerHotKey</span> <a class="api-item-permalink" href="#Gui_Application_registerHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1512">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_registerHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerHotKey</span> <a class="api-item-permalink" href="#Gui_Application_registerHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1528">src</a></div>
 <p>Registers or replaces a system-wide keyboard shortcut routed to <span class="code-inline">target</span> as <span class="code-inline">wndId</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">registerHotKey</span>(modifiers: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_Key">Key</a></span>, wndId: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>, target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_removeTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.removeTimer</span> <a class="api-item-permalink" href="#Gui_Application_removeTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1399">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_removeTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.removeTimer</span> <a class="api-item-permalink" href="#Gui_Application_removeTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1404">src</a></div>
 <p>Removes and destroys a timer created by <span class="code-inline">addTimer</span>.</p>
+<p>Scheduling a target window for destruction retires its timers, so a window that still names one from its own cleanup lands here on a timer this application no longer owns. The registry is what answers that: once a retirement has been flushed the timer is released, and reading its own fields to recognize the duplicate request would read freed memory.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeTimer</span>(timer: *<span class="SCst"><a href="#Gui_Timer">Timer</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_run" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.run</span> <a class="api-item-permalink" href="#Gui_Application_run" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1462">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_run" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.run</span> <a class="api-item-permalink" href="#Gui_Application_run" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1478">src</a></div>
 <p>Processes frames until a quit event is received and returns its exit code.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">run</span>()-&gt;<span class="STpe">s32</span></span></div>
@@ -15497,12 +15471,12 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAppIcon</span>(img: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setFrameCursor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setFrameCursor</span> <a class="api-item-permalink" href="#Gui_Application_setFrameCursor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1455">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setFrameCursor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setFrameCursor</span> <a class="api-item-permalink" href="#Gui_Application_setFrameCursor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1471">src</a></div>
 <p>Selects the cursor for the current frame; the next frame restores automatic selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrameCursor</span>(cursor: <span class="SCst"><a href="#Gui_Cursor">Cursor</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setGlobalHotKeysEnabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setGlobalHotKeysEnabled</span> <a class="api-item-permalink" href="#Gui_Application_setGlobalHotKeysEnabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1496">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setGlobalHotKeysEnabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setGlobalHotKeysEnabled</span> <a class="api-item-permalink" href="#Gui_Application_setGlobalHotKeysEnabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1512">src</a></div>
 <p>Enables or disables all shortcuts registered with <a href="#Gui_Application_registerHotKey">registerHotKey</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setGlobalHotKeysEnabled</span>(enabled = <span class="SKwd">true</span>)</span></div>
 </section>
@@ -15535,17 +15509,17 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSystemLanguage</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_unregisterAllHotKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterAllHotKeys</span> <a class="api-item-permalink" href="#Gui_Application_unregisterAllHotKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1547">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_unregisterAllHotKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterAllHotKeys</span> <a class="api-item-permalink" href="#Gui_Application_unregisterAllHotKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1563">src</a></div>
 <p>Unregisters every system-wide keyboard shortcut owned by this application.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unregisterAllHotKeys</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_unregisterFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_unregisterFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1438">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_unregisterFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_unregisterFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1454">src</a></div>
 <p>Stops sending <span class="code-inline">target</span> the per-frame event. Sending it one it no longer wants is harmless.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unregisterFrameEvent</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_unregisterHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterHotKey</span> <a class="api-item-permalink" href="#Gui_Application_unregisterHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1530">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_unregisterHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterHotKey</span> <a class="api-item-permalink" href="#Gui_Application_unregisterHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1546">src</a></div>
 <p>Unregisters a system-wide keyboard shortcut and returns whether it existed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unregisterHotKey</span>(modifiers: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_Key">Key</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -16561,24 +16535,25 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRowTrack</span>(row: <span class="STpe">s32</span>, kind: <span class="SCst"><a href="#Gui_GridTrackKind">GridTrackKind</a></span>, value: <span class="STpe">f32</span> = <span class="SNum">1</span>, minimum: <span class="STpe">f32</span> = <span class="SNum">0</span>, maximum: <span class="STpe">f32</span> = <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_activeLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.activeLanguage</span> <a class="api-item-permalink" href="#Gui_activeLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L180">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_activeLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.activeLanguage</span> <a class="api-item-permalink" href="#Gui_activeLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L196">src</a></div>
 <p>Returns the active language tag, <span class="code-inline">"en"</span> by default. The value is borrowed and stays valid until the next language switch.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">activeLanguage</span>()-&gt;<span class="STpe">string</span> =&gt; g_Localization.language.<span class="SFct">isEmpty</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_applyLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.applyLanguage</span> <a class="api-item-permalink" href="#Gui_applyLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L261">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_applyLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.applyLanguage</span> <a class="api-item-permalink" href="#Gui_applyLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L280">src</a></div>
 <p>Applies the language <span class="code-inline">tag</span> to every registered string table.</p>
 <p><a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a> restores the declared reference strings. Any other tag first resets each table, then decodes its <span class="code-inline">lang/&lt;tag&gt;/&lt;file&gt;.tweak</span> resource from <span class="code-inline">resources</span>; a table without a file for that tag keeps its reference strings.</p>
-<p>Fails without touching any table when the tag is not registered through <a href="#Gui_registerLanguage">Gui.registerLanguage</a>, or when no registered table has a file for it, so a mistyped tag cannot present itself as applied; a malformed file fails mid-way with the earlier tables already switched. Prefer <a href="#Gui_Application_setLanguage">Application.setLanguage</a>, which also notifies every surface. GUI thread only.</p>
+<p>Fails without touching any table when the tag is not registered through <a href="#Gui_registerLanguage">Gui.registerLanguage</a>, or when no registered table has a file for it, so a mistyped tag cannot present itself as applied; a malformed file fails mid-way with the earlier tables already switched.</p>
+<p><span class="code-inline">resources</span> is remembered while the tag stays active, so a table registered later is translated from the same bundle instead of waiting for the next switch. Prefer <a href="#Gui_Application_setLanguage">Application.setLanguage</a>, which also notifies every surface. GUI thread only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">applyLanguage</span>(resources: <span class="SKwd">const</span> *<span class="SCst"><a href="std.core.html#namespace_Core_Resources">Resources</a></span>.<span class="SCst"><a href="std.core.html#Core_Resources_Bundle">Bundle</a></span>, tag: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_findLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.findLanguage</span> <a class="api-item-permalink" href="#Gui_findLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L228">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_findLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.findLanguage</span> <a class="api-item-permalink" href="#Gui_findLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L244">src</a></div>
 <p>Returns the registered language named by <span class="code-inline">tag</span>, or <span class="code-inline">null</span> when no language carries it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">findLanguage</span>(tag: <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Gui_Language">Language</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_languages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.languages</span> <a class="api-item-permalink" href="#Gui_languages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L221">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_languages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.languages</span> <a class="api-item-permalink" href="#Gui_languages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L237">src</a></div>
 <p>Returns the registered languages, <a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a> first.</p>
 <p>The elements are borrowed and stay valid until the next registration.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">languages</span>()-&gt;<span class="SKwd">const</span> [..] <span class="SCst"><a href="#Gui_Language">Language</a></span></span></div>
@@ -16602,15 +16577,16 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pickDropEffect</span>(allowed: <span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>, modifiers: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_KeyModifiers">KeyModifiers</a></span>)-&gt;<span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_registerLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.registerLanguage</span> <a class="api-item-permalink" href="#Gui_registerLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L204">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_registerLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.registerLanguage</span> <a class="api-item-permalink" href="#Gui_registerLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L220">src</a></div>
 <p>Registers a language the interface can present.</p>
 <p><span class="code-inline">tag</span> is a short language tag such as <span class="code-inline">"fr"</span>, and <span class="code-inline">nativeName</span> is the name of the language written in that language, because a picker lists it beside the others rather than inside a translated sentence. Registering a tag again replaces its name. <a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a> is always registered and always comes first. A module or an application registers its own tag next to the resources that carry it. GUI thread only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerLanguage</span>(tag, nativeName: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_registerStrings" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.registerStrings</span> <a class="api-item-permalink" href="#Gui_registerStrings" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L160">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_registerStrings" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.registerStrings</span> <a class="api-item-permalink" href="#Gui_registerStrings" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L169">src</a></div>
 <p>Registers a string table so language switches retarget it.</p>
-<p><span class="code-inline">table</span> is borrowed for the whole program: it must be a global. <span class="code-inline">file</span> names the per-language resource, resolved as <span class="code-inline">lang/&lt;tag&gt;/&lt;file&gt;.tweak</span>. Registering the same table again is a no-op. Register before switching languages: a table registered afterwards keeps its reference strings until the next switch. GUI thread only.</p>
+<p><span class="code-inline">table</span> is borrowed for the whole program: a global of the module or the application that owns it, or of a shared library that is never unloaded, since a registration cannot be withdrawn. <span class="code-inline">file</span> names the per-language resource, resolved as <span class="code-inline">lang/&lt;tag&gt;/&lt;file&gt;.tweak</span>. Registering the same table again is a no-op.</p>
+<p>The table is translated on the spot when a language is already active, so a table that arrives with a library loaded on demand shows the language already on screen rather than waiting for the next switch. Add its resource to the bundle first. GUI thread only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerStrings</span>(table: *<span class="SCst">T</span>, file: <span class="STpe">string</span>)</span></div>
 <p>Registers a string table through its reflected type; prefer the typed overload.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerStrings</span>(type: <span class="STpe">typeinfo</span>, table: *<span class="STpe">void</span>, file: <span class="STpe">string</span>)</span></div>
@@ -16621,13 +16597,13 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">strings</span>()-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Gui_Strings">Strings</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_systemLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.systemLanguage</span> <a class="api-item-permalink" href="#Gui_systemLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L242">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_systemLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.systemLanguage</span> <a class="api-item-permalink" href="#Gui_systemLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L258">src</a></div>
 <p>Returns the registered tag that best matches the language of the user account.</p>
 <p>The locale reported by <a href="std.core.html#Core_Env_userLocaleName">Core.Env.userLocaleName</a> is a full name such as <span class="code-inline">fr-FR</span>, so the primary language subtag decides: <span class="code-inline">fr-CA</span> selects a registered <span class="code-inline">fr</span>. Falls back to <a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a> when nothing matches, which is why an application can apply the result without handling a miss.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">systemLanguage</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_validateStrings" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.validateStrings</span> <a class="api-item-permalink" href="#Gui_validateStrings" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L299">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_validateStrings" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.validateStrings</span> <a class="api-item-permalink" href="#Gui_validateStrings" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/localization.swg#L324">src</a></div>
 <p>Decodes <span class="code-inline">content</span> against the string table type <span class="code-inline">T</span> without touching any live table.</p>
 <p>Intended for a <span class="code-inline">#run</span> block, so an embedded language file with a mistyped key or a non-string target is a build error carrying the faulty line, not a runtime surprise.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">validateStrings</span>(content: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
@@ -17027,7 +17003,7 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wndAt</span>(pt: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlEdges_auto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlEdges.auto</span> <a class="api-item-permalink" href="#Gui_HtmlEdges_auto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlstyle.swg#L335">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlEdges_auto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlEdges.auto</span> <a class="api-item-permalink" href="#Gui_HtmlEdges_auto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlstyle.swg#L336">src</a></div>
 <p>The four automatic offsets a statically placed box carries, which is what <span class="code-inline">inset</span> means before a document says anything.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">auto</span>()-&gt;<span class="SCst">HtmlEdges</span> =&gt;</span></div>
@@ -17043,45 +17019,45 @@ busy.<span class="SFct">hide</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">theme</span>()-&gt;<span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L776">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L782">src</a></div>
 <p>Creates a view and progressively loads a UTF-8 HTML file.</p>
 <p>File-open and decoding failures are displayed inside the returned view rather than reported to the caller.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, fileName: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L761">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L767">src</a></div>
 <p>Creates a view and renders the complete in-memory HTML source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createText</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, source: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L433">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L439">src</a></div>
 <p>Returns the element carrying an identifier, or <span class="code-inline">HtmlNoNode</span> when the document has none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">elementById</span>(id: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L562">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L568">src</a></div>
 <p>Scrolls to the next node whose text contains <span class="code-inline">text</span>, wrapping once at the end.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isLoading</span> <a class="api-item-permalink" href="#Gui_HtmlView_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L178">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isLoading</span> <a class="api-item-permalink" href="#Gui_HtmlView_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L184">src</a></div>
 <p>Reports whether source remains to be read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isLoading</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L446">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L452">src</a></div>
 <p>Scrolls to the element a document-internal reference names.</p>
 <p>Returns false when the reference points outside the document, which is what tells the caller to treat the link as a destination of its own.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">navigateToFragment</span>(url: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L646">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L652">src</a></div>
 <p>Repositions a streamed document on the node a byte offset belongs to.</p>
 <p>The document is read up to that offset first when it is not there yet, so a match reported by a search over the raw file always lands on what draws it. An empty <span class="code-inline">text</span> only scrolls.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealFileOffset</span>(offset: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L670">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/htmlview.swg#L676">src</a></div>
 <p>Replaces the document defaults and restyles what is already loaded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentStyle</span>(documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span>)</span></div>
 </section>
@@ -18716,8 +18692,7 @@ busy.<span class="SFct">hide</span>()
     <span class="SLgc">case</span> <span class="SStr">"Thickness"</span>: <span class="SLgc">return</span> <span class="SFct">appStrings</span>().prop_Thickness
     }
     <span class="SLgc">return</span> <span class="SKwd">null</span>
-})
-</span></div>
+})</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setTextResolver</span>(resolver: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_PropertyTextResolver">PropertyTextResolver</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -19943,8 +19918,7 @@ btnPush_Bk       0xFF202026
 btnPush_Height   32
 /ThemeImageRects
 btnPush_Normal   {{1 29 27 27} 0}
-btnPush_Hot      $btnPush_Normal
-</span></div>
+btnPush_Hot      $btnPush_Normal</span></div>
 <p>A whole theme is written in the first folder: naming any palette token re-derives every color from the tokens, so a sheet of thirty lines answers for the three hundred parts of the interface and cannot leave one of them behind. The other folders are for the parts a theme wants different from what its own tokens derive, and they are read after the derivation whatever order they appear in.</p>
 <p>An unknown key or a malformed value fails with <a href="std.core.html#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a> carrying the line number; the theme keeps the values already applied before the error. Call <a href="#Gui_Application_notifyThemeChanged">Gui.Application.notifyThemeChanged</a> afterwards when the theme is already on screen.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">applySheet</span>(sheet: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
@@ -20829,7 +20803,7 @@ btnPush_Hot      $btnPush_Normal
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

@@ -1665,8 +1665,7 @@
     <span class="SKwd">let</span> cfg = <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()!
     cfg.warnings.asErrors = <span class="SStr">"all"</span>
     cfg.warnings.disabled = <span class="SStr">"sema_warn_unreachable_code"</span>
-}
-</span></div>
+}</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_BuildCfgWarnings">BuildCfgWarnings</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -3972,8 +3971,7 @@
 <p>Decide how one warning, a list of warnings, or every warning is reported inside the annotated declaration, block, or file. A warning is named by its diagnostic identifier, the string <span class="code-inline">--diagnostic-id</span> prints; <span class="code-inline">"all"</span> names every warning at once.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Warning("sema_warn_unreachable_code", .Disable)]</span>
 <span class="SAtr">#[Swag.Warning("sema_warn_unreachable_code|sema_warn_compiler_warning", .Error)]</span>
-<span class="SCmp">#global</span> <span class="SAtr">#[Swag.Warning("all", .Error)]</span>
-</span></div>
+<span class="SCmp">#global</span> <span class="SAtr">#[Swag.Warning("all", .Error)]</span></span></div>
 <p>A decision that names a warning outranks a decision that says <span class="code-inline">"all"</span>, and this attribute outranks both <a href="#Swag_BuildCfgWarnings">BuildCfgWarnings</a> and the <span class="code-inline">--warn-*</span> command-line options.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
 <span class="SKwd">attr</span> <span class="SFct">Warning</span>(what: <span class="STpe">string</span>, level: <span class="SCst"><a href="#Swag_WarningLevel">WarningLevel</a></span>)</span></div>
@@ -3996,7 +3994,7 @@
 </section>
 <h3 id="other-symbols">Other symbols</h3>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag</span> <a class="api-item-permalink" href="#Swag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L2">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag</span> <a class="api-item-permalink" href="#Swag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2">src</a></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-namespace"><span id="Swag_F32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.F32</span> <a class="api-item-permalink" href="#Swag_F32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L402">src</a></div>
@@ -4030,7 +4028,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

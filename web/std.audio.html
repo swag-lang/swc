@@ -147,8 +147,7 @@
 <span class="SLgc">defer</span> <span class="SFct">destroyEngine</span>()
 
 <span class="SKwd">let</span> sound = <span class="SKwd">try</span> <span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span>.<span class="SFct">load</span>(<span class="SStr">"assets/notify.wav"</span>)
-<span class="SKwd">try</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">play</span>(&amp;sound)
-</span></div>
+<span class="SKwd">try</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">play</span>(&amp;sound)</span></div>
 <p>Failures use normal Swag error propagation. Loading currently accepts WAV files; unsupported containers or encodings fail instead of being guessed.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Engine_and_first_sound">Engine and first sound</h2>
@@ -161,8 +160,7 @@
 <span class="SLgc">defer</span> <span class="SFct">destroyEngine</span>()
 
 <span class="SKwd">let</span> sound = <span class="SKwd">try</span> <span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span>.<span class="SFct">load</span>(<span class="SStr">"assets/click.wav"</span>)
-<span class="SKwd">try</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">play</span>(&amp;sound)
-</span></div>
+<span class="SKwd">try</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">play</span>(&amp;sound)</span></div>
 <p><a href="#Audio_Voice_play">Audio.Voice.play</a> is the fire-and-forget path: it creates a voice, starts playback, and requests automatic destruction when playback stops. Keep the returned <a href="#Audio_Voice">Audio.Voice</a> only when you need to change playback after it starts.</p>
 <h3 id="guide_Engine_and_first_sound_Run_without_an_audio_device">Run without an audio device</h3>
 <p>Use <a href="#Audio_createNoSoundEngine">Audio.createNoSoundEngine</a> in tests, command-line tools, and CI jobs. It keeps file loading, voice state, routing validation, and lifetime behavior available without depending on audio hardware.</p>
@@ -173,8 +171,7 @@
 <span class="SKwd">let</span> voice = <span class="SKwd">try</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">create</span>(&amp;sound)!
 <span class="SKwd">try</span> voice.<span class="SFct">play</span>()
 <span class="SKwd">try</span> voice.<span class="SFct">stop</span>()
-voice.<span class="SFct">destroy</span>()
-</span></div>
+voice.<span class="SFct">destroy</span>()</span></div>
 <p><a href="#Audio_destroyEngine">Audio.destroyEngine</a> stops and releases any remaining voices and buses before closing the backend. Pointers to those objects are invalid afterward.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Loading__streaming__and_voices">Loading, streaming, and voices</h2>
@@ -184,8 +181,7 @@ voice.<span class="SFct">destroy</span>()
 <span class="SLgc">defer</span> voice.<span class="SFct">destroy</span>()
 
 <span class="SKwd">try</span> voice.<span class="SFct">setVolume</span>(<span class="SNum">0.35</span>)
-<span class="SKwd">try</span> voice.<span class="SFct">play</span>(.<span class="SCst"><a href="#Audio_VoicePlayFlags_Loop">Loop</a></span>)
-</span></div>
+<span class="SKwd">try</span> voice.<span class="SFct">play</span>(.<span class="SCst"><a href="#Audio_VoicePlayFlags_Loop">Loop</a></span>)</span></div>
 <p>The <a href="#Audio_SoundFile">Audio.SoundFile</a> must outlive every <a href="#Audio_Voice">Audio.Voice</a> created from it. Streaming voices also keep the source path and open the file on demand.</p>
 <p><a href="#Audio_SoundFile_readPayload">Audio.SoundFile.readPayload</a> reads an owned, bounded range without changing a voice's streaming position. It is suitable for background analysis such as a waveform: walk the payload in small blocks and publish partial results while the voice remains free to start immediately.</p>
 <p>Use <a href="#Audio_Voice_pause">Audio.Voice.pause</a> to preserve the current playback position and <a href="#Audio_Voice_play">Audio.Voice.play</a> to resume. <a href="#Audio_Voice_stop">Audio.Voice.stop</a> ends the current playback and rewinds it to the beginning; when <a href="#Audio_VoicePlayFlags_DestroyOnStop">Audio.VoicePlayFlags.DestroyOnStop</a> is active it also schedules the voice for destruction.</p>
@@ -201,8 +197,7 @@ voice.<span class="SFct">destroy</span>()
 
 <span class="SKwd">try</span> voice.<span class="SFct">setRouting</span>([effects])
 <span class="SKwd">try</span> effects.<span class="SFct">setVolumeDb</span>(-<span class="SNum">6</span>)
-<span class="SKwd">try</span> voice.<span class="SFct">play</span>()
-</span></div>
+<span class="SKwd">try</span> voice.<span class="SFct">play</span>()</span></div>
 <p>An empty routing slice sends a voice to the mastering output. Do not destroy a bus while voices or child buses still depend on it.</p>
 <p><a href="#Audio_DriverKind_Default">Audio.DriverKind.Default</a> selects the platform backend. Windows uses XAudio2; other targets and explicit headless runs can use <a href="#Audio_DriverKind_NoSound">Audio.DriverKind.NoSound</a>. Applications use the backend-independent <a href="#Audio_Voice_setVolume">Audio.Voice.setVolume</a>, <a href="#Audio_Voice_setFrequencyRatio">Audio.Voice.setFrequencyRatio</a>, <a href="#Audio_Voice_setRouting">Audio.Voice.setRouting</a>, and <a href="#Audio_Bus_setVolume">Audio.Bus.setVolume</a> methods.</p>
 <p>The codec interface is an extension point for converting a source <a href="#Audio_SoundFileEncoding">Audio.SoundFileEncoding</a> into a backend-supported encoding. Register codec implementations with <a href="#Audio_registerCodec">Audio.registerCodec</a> during initialization. Codecs operate on caller-owned buffers and report both consumed input bytes and produced output bytes.</p>
@@ -1037,7 +1032,7 @@ voice.<span class="SFct">destroy</span>()
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.148</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
 </footer>
 </section>
 </main>

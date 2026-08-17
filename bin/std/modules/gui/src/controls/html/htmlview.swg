@@ -116,6 +116,12 @@ public struct HtmlView
         searchStart:        u64
         searchEnd:          u64
         hovered    = HtmlNoNode
+
+        scrollDragBox = HtmlNoNode
+        scrollDragTrackTop: f32
+        scrollDragTravel:   f32
+        scrollDragGrab:     f32
+        scrollDragLimit:    f32
     }
 }
 
@@ -837,6 +843,12 @@ internal impl IWnd for HtmlCanvas
         switch evt.kind
         {
         case .Move:
+            if owner.scrollDragBox != HtmlNoNode
+            {
+                owner.dragRegionScroll(point.y)
+                return
+            }
+
             let painter = owner.painter()
             let node    = painter.nodeAt(point)
             if node != owner.hovered
@@ -858,7 +870,26 @@ internal impl IWnd for HtmlCanvas
         case .Pressed where evt.button == .Left:
             owner.setFocus()
             let painter = owner.painter()
-            let url     = owner.linkAt(painter.nodeAt(point))
+            let bar     = painter.scrollBarAt(point)
+            if bar.box != HtmlNoNode
+            {
+                // The visible thumb is intentionally narrow, but the whole track width remains
+                // its pointer target so it is as easy to grab as a native compact scrollbar.
+                if point.y >= bar.thumb.y and point.y <= bar.thumb.bottom()
+                {
+                    owner.beginRegionScrollDrag(bar, point.y)
+                    .captureMouse()
+                }
+                else
+                {
+                    let page = owner.layout.constBox(bar.box).content.height
+                    discard owner.scrollRegion(bar.box, point.y < bar.thumb.y ? -page : page)
+                }
+
+                return
+            }
+
+            let url = owner.linkAt(painter.nodeAt(point))
             if !@countof(url)
             {
                 evt.accepted = false
@@ -869,6 +900,17 @@ internal impl IWnd for HtmlCanvas
             // destination only the host knows how to open.
             if !owner.activateLink(url) do
                 owner.sigLinkActivated.call(owner, url)
+
+        case .Released where evt.button == .Left:
+            if owner.scrollDragBox == HtmlNoNode
+            {
+                evt.accepted = false
+                return
+            }
+
+            owner.endRegionScrollDrag()
+            if .mouseCapture() == me do
+                .releaseMouse()
 
         case .Wheel:
 
@@ -889,6 +931,37 @@ internal impl IWnd for HtmlCanvas
 
 internal impl HtmlView
 {
+    private mtd beginRegionScrollDrag(bar: HtmlRegionScrollBar, pointerY: f32)
+    {
+        let target = .layout.constBox(bar.box)
+        .scrollDragBox      = bar.box
+        .scrollDragTrackTop = bar.track.y
+        .scrollDragTravel   = Math.max(bar.track.height - bar.thumb.height, 0)
+        .scrollDragGrab     = pointerY - bar.thumb.y
+        .scrollDragLimit    = Math.max(target.scrollHeight - target.content.height, 0)
+    }
+
+    private mtd dragRegionScroll(pointerY: f32)
+    {
+        if .scrollDragBox == HtmlNoNode or .scrollDragTravel <= 0 do
+            return
+
+        let thumbY = Math.clamp(pointerY - .scrollDragGrab - .scrollDragTrackTop, 0, .scrollDragTravel)
+        let target = .layout.box(.scrollDragBox)
+        let wanted = thumbY * .scrollDragLimit / .scrollDragTravel
+        if wanted == target.scrollTop do
+            return
+
+        target.scrollTop = wanted
+        .canvas.invalidate()
+    }
+
+    private mtd endRegionScrollDrag()
+    {
+        .scrollDragBox = HtmlNoNode
+        .scrollDragTrackTop, .scrollDragTravel, .scrollDragGrab, .scrollDragLimit = 0
+    }
+
     // Moves an independently scrolled region, and reports whether it actually moved.
     mtd scrollRegion(box: u32, delta: f32)->bool
     {

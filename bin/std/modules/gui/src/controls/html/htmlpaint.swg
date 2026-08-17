@@ -35,6 +35,14 @@ struct HtmlPainter
     scrollThumbMin: f32
 }
 
+// Geometry of one independently scrolling region's vertical bar in canvas coordinates.
+struct HtmlRegionScrollBar
+{
+    box = HtmlNoNode
+    track: Math.Rectangle
+    thumb: Math.Rectangle
+}
+
 impl HtmlPainter
 {
     private func withAlpha(color: Color, alpha: f32)->Color
@@ -561,28 +569,39 @@ impl HtmlPainter
     // Draws a compact themed scrollbar over an independently scrolling CSS region. Keeping the
     // region inside the document tree preserves CSS layout and hit testing; a native child window
     // per `overflow` box would split one DOM into unrelated coordinate systems.
-    private mtd paintRegionScrollBar(box: u32, rect: Math.Rectangle, alpha: f32)
+    private mtd const regionScrollBar(box: u32, rect: Math.Rectangle)->HtmlRegionScrollBar
     {
+        var result: retval
         let target = .layout.constBox(box)
         if !target.scrollable or target.scrollHeight <= target.content.height or rect.height <= 0 do
-            return
+            return result
 
         let width = Math.min(Math.max(.scrollBarSize, 2), rect.width)
-        var track = rect
-        track.x     = rect.right() - width
-        track.width = width
-        if .scrollTrack.a do
-            .painter.fillRect(track, HtmlPainter.withAlpha(.scrollTrack, alpha))
+        result.box         = box
+        result.track       = rect
+        result.track.x     = rect.right() - width
+        result.track.width = width
 
         let limit       = target.scrollHeight - target.content.height
-        let thumbHeight = Math.min(Math.max(track.height * target.content.height / target.scrollHeight, .scrollThumbMin), track.height)
-        let travel      = Math.max(track.height - thumbHeight, 0)
-        var thumb       = track
-        thumb.y      += limit > 0 ? travel * target.scrollTop / limit : 0
-        thumb.height = thumbHeight
-        thumb.x      += width * 0.25
-        thumb.width  -= width * 0.5
-        .painter.fillRect(thumb, HtmlPainter.withAlpha(.scrollThumb, alpha))
+        let thumbHeight = Math.min(Math.max(result.track.height * target.content.height / target.scrollHeight, .scrollThumbMin), result.track.height)
+        let travel      = Math.max(result.track.height - thumbHeight, 0)
+        result.thumb        = result.track
+        result.thumb.y      += limit > 0 ? travel * target.scrollTop / limit : 0
+        result.thumb.height = thumbHeight
+        result.thumb.x      += width * 0.25
+        result.thumb.width  -= width * 0.5
+        return result
+    }
+
+    private mtd paintRegionScrollBar(box: u32, rect: Math.Rectangle, alpha: f32)
+    {
+        let bar = .regionScrollBar(box, rect)
+        if bar.box == HtmlNoNode do
+            return
+
+        if .scrollTrack.a do
+            .painter.fillRect(bar.track, HtmlPainter.withAlpha(.scrollTrack, alpha))
+        .painter.fillRect(bar.thumb, HtmlPainter.withAlpha(.scrollThumb, alpha))
     }
 
     // Draws one box and everything under it.
@@ -679,6 +698,91 @@ impl HtmlPainter
 // Hit testing.
 impl HtmlPainter
 {
+    // Returns the frontmost region scrollbar under a point.
+    mtd const scrollBarAt(point: Math.Point)->HtmlRegionScrollBar
+    {
+        if .layout.root == HtmlNoNode do
+            return {}
+        return .scrollBarAtBox(.layout.root, point, {0, -.scrollY})
+    }
+
+    private mtd const scrollBarAtStackedChildren(box: u32, point: Math.Point, offset: Math.Point, positive: bool)->HtmlRegionScrollBar
+    {
+        let children = .layout.constBox(box).children
+        var previous:    s32
+        var hasPrevious: bool
+        while true
+        {
+            let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
+            if !next.found do
+                return {}
+            for index in children.count
+            {
+                let child = children[children.count - index - 1]
+                if .stackingLevel(child) != next.value do
+                    continue
+                let found = .scrollBarAtBox(child, point, offset)
+                if found.box != HtmlNoNode do
+                    return found
+            }
+
+            previous    = next.value
+            hasPrevious = true
+        }
+    }
+
+    private mtd const scrollBarAtChildren(box: u32, point: Math.Point, offset: Math.Point)->HtmlRegionScrollBar
+    {
+        let positive = .scrollBarAtStackedChildren(box, point, offset, true)
+        if positive.box != HtmlNoNode do
+            return positive
+
+        let children = .layout.constBox(box).children
+        for index in children.count
+        {
+            let child = children[children.count - index - 1]
+            if .stackingLevel(child) != 0 do
+                continue
+            let found = .scrollBarAtBox(child, point, offset)
+            if found.box != HtmlNoNode do
+                return found
+        }
+
+        return .scrollBarAtStackedChildren(box, point, offset, false)
+    }
+
+    private mtd const scrollBarAtBox(box: u32, point: Math.Point, parentOffset: Math.Point)->HtmlRegionScrollBar
+    {
+        let style = .layout.constStyle(.layout.constBox(box).style)
+        if !style.visible or style.display == .None do
+            return {}
+
+        var offset = parentOffset
+        offset.y += .stickyOffset(box, parentOffset)
+
+        var rect = .layout.constBox(box).rect
+        rect.offset(offset.x, offset.y)
+        if !rect.contains(point) do
+            return {}
+
+        // A region paints its own bar after its contents, so that bar also wins hit testing over
+        // any descendant that happens to extend beneath it.
+        var clip = rect
+        clip.x      += style.borderLeft.width
+        clip.y      += style.borderTop.width
+        clip.width  -= style.borderLeft.width + style.borderRight.width
+        clip.height -= style.borderTop.width + style.borderBottom.width
+        let result = .regionScrollBar(box, clip)
+        if result.box != HtmlNoNode and result.track.contains(point) do
+            return result
+
+        var inner = offset
+        if .layout.constBox(box).scrollable do
+            inner.y -= .layout.constBox(box).scrollTop
+
+        return .scrollBarAtChildren(box, point, inner)
+    }
+
     // Returns the innermost node drawn at a point, or `HtmlNoNode` when nothing is.
     mtd const nodeAt(point: Math.Point)->u32
     {

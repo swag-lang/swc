@@ -436,6 +436,36 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
 }
 
+// A CSS region scrollbar pages through its track and drags its thumb like a native vertical bar.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 180)
+    defer host.shutdown()
+
+    let source = "<style>body{margin:0}#rail{width:100px;height:100px;overflow-y:auto}.page{height:100px}</style><aside id='rail'><div class='page'></div><div class='page'></div><div class='page'></div></aside>"
+    let view   = HtmlView.createText(&host.root, source)
+    view.resize(240, 180)
+    view.applyLayout()
+    view.rebuild()
+    discard host.render(view)
+
+    let rail = view.boxOfNode(view.elementById("rail"))
+    @assert(rail != HtmlNoNode)
+    let bar = view.painter().scrollBarAt({96, 75})
+    @assert(bar.box == rail and bar.track.contains(Math.Point{96, 75}))
+
+    host.click({96, 75})
+    @assert(view.layout.constBox(rail).scrollTop == 100)
+
+    let moved = view.painter().scrollBarAt({96, 50})
+    @assert(moved.box == rail and moved.thumb.y <= 50 and moved.thumb.bottom() >= 50)
+    host.mouseDown({91, 50})
+    host.moveMouse({91, 95})
+    host.mouseUp({91, 95})
+    @assert(view.layout.constBox(rail).scrollTop > 190)
+}
+
 // A viewport-relative rail has a definite height even though its document parent grows with its
 // content. This is the two-pane shape used by generated module pages: the outer view owns the
 // page scrollbar while the rail consumes the wheel independently.

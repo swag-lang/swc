@@ -255,7 +255,7 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
             try File.delete(file.fullname.toString())
     }
 
-    for pluginKind in ["code", "image", "markdown", "html", "hex", "sound", "video", "binary"]
+    for pluginKind in ["code", "image", "markdown", "html", "pdf", "hex", "sound", "video", "binary"]
     {
         let moduleName = Format.toString("plugin.%", pluginKind)
         let pluginDir  = Path.combine(applicationWorkspace(context, "sFileScope").toString(), ".output", moduleName.toString(), "shared-library", options.buildCfg.toString(), context.targetArch.toString())
@@ -270,13 +270,17 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
             try copyBeside(pdbPath.toString(), outputDir.toString(), outputPdb.toString())
     }
 
-    // The host does not import audio itself, so publishing the application cannot infer the
-    // runtime needed by the lazily loaded sound plugin. Package that standard module explicitly.
-    let audioPaths = context.artifactPaths("std/audio", "shared-library", options.buildCfg.toString())
-    try copyBeside(Path.combine(audioPaths.outDir.toString(), "audio.dll").toString(), appDir, "audio.dll")
-    let audioPdb = Path.combine(audioPaths.outDir.toString(), "audio.pdb")
-    if File.exists(audioPdb) do
-        try copyBeside(audioPdb.toString(), appDir, "audio.pdb")
+    // The host does not import these modules itself, so publishing the application cannot infer
+    // the runtimes needed by the lazily loaded sound and PDF plugins. Package them explicitly.
+    for dependency in ["audio", "pdf"]
+    {
+        let paths = context.artifactPaths(Format.toString("std/%", dependency).toString(), "shared-library", options.buildCfg.toString())
+        let dll   = Format.toString("%.dll", dependency)
+        try copyBeside(Path.combine(paths.outDir.toString(), dll.toString()).toString(), appDir, dll.toString())
+        let pdb = Path.combine(paths.outDir.toString(), Format.toString("%.pdb", dependency).toString())
+        if File.exists(pdb) do
+            try copyBeside(pdb.toString(), appDir, Format.toString("%.pdb", dependency).toString())
+    }
 
     // The video plugin is loaded through the same runtime boundary and owns the only import of
     // std/video in this application workspace.

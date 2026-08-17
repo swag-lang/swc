@@ -146,3 +146,33 @@ Entries are sorted by identifier, ascending; position carries no priority.
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
+
+## Numeric code generation
+
+### F-151 — A negative runtime `f32` cast to `s64` is zero-extended from 32 bits
+
+- Area: compiler
+- Found while: writing integral PDF coordinates in `std/pdf`.
+- Observation: casting a negative runtime `f32` to `s64` produces the corresponding unsigned
+  32-bit value instead of the signed integer; positive values and the adjacent `f64`/`f32`
+  conversions remain correct.
+- Evidence: the original `pdfNumber` implementation passed `cast(s64) value` to `Format` after
+  proving `value` was integral. For an image scale of `64`, the runtime value `-64'f32` serialized
+  as `4294967232`; converting `Math.abs(value)` first and applying the sign after the cast emits
+  `-64` and makes the PDF encode/decode/render round trip pass.
+- Next step: add an encoder regression covering a non-constant negative `f32` to each signed
+  integer width, then inspect the signedness selected for `ConvertFloatToInt` and its widening to
+  the 64-bit destination.
+
+### F-152 — A namespace used as an aggregate type reaches a `TypeManager` assertion
+
+- Area: compiler
+- Found while: naming the first internal `std/pdf` parser `Parser` and initializing it with
+  `Parser{bytes: bytes}` while the imported standard modules also exposed the `Parser` namespace.
+- Observation: the compiler reports the invalid namespace/type use, then DevMode aborts instead of
+  stopping cleanly after the diagnostic.
+- Evidence: `swc tools/std.swgs dm build pdf` reached the `typeRef.isValid()` assertion at
+  `src/Compiler/Sema/Type/TypeManager.cpp:324`; renaming the internal type to `PdfParser` made the
+  same module compile normally.
+- Next step: preserve the colliding namespace/aggregate spelling as a semantic regression and
+  keep the invalid `TypeRef` out of type matching after the primary diagnostic is emitted.

@@ -157,7 +157,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | T-408 |
 | Log | `.log` | text | level coloring, timestamps, tail | T-409 |
 | Tabular text | `.csv` `.tsv` | text | aligned table, frozen header | T-402 |
-| PDF | `.pdf` | signature | page rendering | T-401 |
+| PDF | `.pdf` | page rendering, editing and writing | lazy pages, Type1/CFF and specialized image filters | T-401 |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | T-407 |
 | OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | T-407 |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope, see below | — |
@@ -221,16 +221,15 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Complete when: a registry line can carry a filename pattern, the code viewer claims the remaining
   usual extensionless names, and a first-bytes rule catches a shebang.
 
-### T-401 — PDF is only identified
+### T-401 — PDF coverage still needs lazy pages and specialized fonts and images
 
-- Intent: the single most requested viewer format on any platform, and the one absence that makes
-  "universal viewer" indefensible. Every competitor renders it; here it reaches the entropy line.
-- Complete when: a `plugin.pdf` renders pages with text, embedded images and vector content through
-  Pixel, streams rather than loading the document, and never executes an embedded action.
-- Note: honestly expensive — an object parser, the standard filters, a font stack including Type1
-  and CFF, and a content-stream interpreter. `Core.Inflate` and Pixel's path rendering cover part of
-  it, and `truetype` covers another part once T-068 lands. Scope it to reading, not to forms, not to
-  encryption.
+- Intent: `std/pdf` and `plugin.pdf` now decode, edit, render and write the common Flate/TrueType/
+  JPEG/vector path, but an eager document model and the missing Type1, CFF, LZW, CCITT, JBIG2 and
+  JPEG 2000 paths still reject or omit valid production files.
+- Complete when: page content is decoded on demand from the mapped document, Type1 and CFF text
+  renders, and the remaining standard image/filter families either render or report a precise
+  per-item limitation without losing the rest of the page.
+- Note: keep interactive forms and encryption out of scope, and never execute an embedded action.
 - Related: T-068
 
 ### T-402 — Tabular text has no table view

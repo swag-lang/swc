@@ -41,7 +41,7 @@ private func containsCharacter(characters: const [..] rune, expected: rune)->boo
     @assert(result.details.indexOf("Segoe UI") != Swag.U64.Max)
 
     let view = cast(*FontPluginView) result.view!
-    @assert(containsCharacter(view.document.characters.toSlice(), 'A'))
+    @assert(view.document.hasCharacter('A'))
     let firstStart = view.document.pageStart
     view.document.nextPage()
     @assert(view.document.pageStart > firstStart)
@@ -77,6 +77,14 @@ private func containsCharacter(characters: const [..] rune, expected: rune)->boo
     host.settleAnimations(&host.root, 4)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "plugin.font.document")
+
+    // Scrolled, because the document draws in content coordinates and the host translates it: a
+    // view that also subtracted the position itself would scroll twice and leave the viewport empty
+    // long before the end of the page, which is invisible in the golden above.
+    let document = view.document
+    document.scroll.setScrollPos(0, document.layout.gridTop + document.layout.cellHeight * 1.5)
+    var scrolled = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&scrolled, "plugin.font.scrolled")
 }
 
 #test

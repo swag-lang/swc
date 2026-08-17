@@ -47,7 +47,7 @@ only decoder that comes from outside the module is Core's Flate and Pixel's JPEG
 - The Flate, LZW, ASCII hexadecimal, ASCII85, and run-length filters, with the
   TIFF and PNG predictors at every supported bit depth.
 - The text, vector, color space, and inline image operators, including the
-  complete text state, so a run lands where its producer placed it.
+  complete text state and stroked-path cap, join, miter, and dash geometry.
 - Simple and composite fonts: `/Widths` and `/W` metrics, the standard, WinAnsi
   and MacRoman encodings, `/Differences`, `/ToUnicode` CMaps, and embedded
   TrueType or OpenType programs.

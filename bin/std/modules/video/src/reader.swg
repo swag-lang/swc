@@ -275,4 +275,5 @@ impl Reader
 #init
 {
     Reader.registerDecoder'(Y4m.Decoder)()
+    Reader.registerDecoder'(Avi.Decoder)()
 }

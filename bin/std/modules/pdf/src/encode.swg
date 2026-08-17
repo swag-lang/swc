@@ -138,6 +138,34 @@ private func appendColor(result: *String, color: Color, stroke: bool)
     result.appendFormat("% % % %\n", pdfNumber(color.r / 255.0), pdfNumber(color.g / 255.0), pdfNumber(color.b / 255.0), stroke ? "RG" : "rg")
 }
 
+private func appendStrokeStyle(result: *String, item: const *Item)
+{
+    var cap: u32
+    switch item.strokeStyle.cap
+    {
+    case .Butt:   cap = 0
+    case .Round:  cap = 1
+    case .Square: cap = 2
+    }
+    var join: u32
+    switch item.strokeStyle.join
+    {
+    case .Miter: join = 0
+    case .Round: join = 1
+    case .Bevel: join = 2
+    }
+
+    result.appendFormat("% J\n% j\n% M\n[", cap, join, pdfNumber(item.strokeStyle.miterLimit))
+    for length, index in item.strokeStyle.dashPattern
+    {
+        if index do
+            result[] += ' '
+        result[] += pdfNumber(length)
+    }
+
+    result.appendFormat("] % d\n", pdfNumber(item.strokeStyle.dashPhase))
+}
+
 private func encodedPoint(page: const *Page, item: const *Item, point: Vector2)->Vector2
 {
     let transformed = item.transform.transformPoint(point)
@@ -216,6 +244,7 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
     {
         appendColor(result, item.strokeColor, true)
         result.appendFormat("% w\n", pdfNumber(item.strokeWidth))
+        appendStrokeStyle(result, item)
     }
 
     if item.hasFill and item.hasStroke do

@@ -34,6 +34,7 @@ allowed to stop.
 | [todo.gui.md](todo.gui.md) | `std/gui` |
 | [todo.pixel.md](todo.pixel.md) | `std/pixel` |
 | [todo.audio.md](todo.audio.md) | `std/audio` |
+| [todo.video.md](todo.video.md) | `std/video` |
 | [todo.truetype.md](todo.truetype.md) | `std/truetype` |
 | [todo.filescope.md](todo.filescope.md) | The sFileScope application |
 | [todo.snapforge.md](todo.snapforge.md) | The sSnapForge application |
@@ -76,7 +77,7 @@ another backlog entry, in a code comment. A title gets rewritten, a position mov
 changes file; the identifier does not.
 
 Next identifier: F-154
-Next identifier: T-423
+Next identifier: T-426
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

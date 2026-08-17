@@ -265,7 +265,7 @@ internal func createVideoPluginView(contentParent, commandParent: *Wnd, fileName
     view[] = try VideoPluginView.create(contentParent, commandParent, fileName, reportFailure)
 }
 
-// Creates the YUV4MPEG2 playback view exported through the sFileScope plugin ABI.
+// Creates the video playback view exported through the sFileScope plugin ABI.
 func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
     if request.apiVersion != ViewerPluginApiVersion do

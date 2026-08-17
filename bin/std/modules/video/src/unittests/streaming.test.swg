@@ -121,7 +121,7 @@ private const WrittenFrameCount = 300'u64
 // read back the same way.
 #test
 {
-    let fileName = videoTempPath("stream")
+    let fileName = videoTempPath("stream", "y4m")
     defer discard catch File.delete(fileName)
 
     let rate   = expect FrameRate.create(30, 1)
@@ -169,7 +169,7 @@ private const HoleFrameCount = 600'u64
 // instead of playing it.
 #test
 {
-    let fileName = videoTempPath("hole")
+    let fileName = videoTempPath("hole", "y4m")
     defer discard catch File.delete(fileName)
 
     let header      = "YUV4MPEG2 W320 H240 F25:1 Ip C420jpeg\n"

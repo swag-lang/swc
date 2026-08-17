@@ -165,6 +165,19 @@ public impl Painter
         // Flatten all paths
         pathList.flatten(.curState.paintQuality)
 
+        // Poly2Tri expects simple contours. The single-path overload already cleans a
+        // self-intersecting polygon, but callers that naturally produce a path list (PDF and
+        // SVG among them) must get the same protection before any contour reaches the
+        // tessellator. Keep the common case allocation-free and preserve its triangulation
+        // cache; only copy and normalize malformed geometry.
+        for p in pathList.paths where !p.polygon.isSimple
+        {
+            var cleaned = pathList[]
+            cleaned.clean()
+            .fillPath(&cleaned, brush)
+            return
+        }
+
         var flush: #null *LinePath
 
         // Everything in the cache ?

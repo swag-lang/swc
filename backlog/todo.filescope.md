@@ -186,7 +186,8 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | WAV PCM and float | `.wav` | full, streamed | ADPCM | T-169 |
-| Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | compressed codecs and audio | T-420 |
+| Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | audio | T-424 |
+| Motion JPEG video | `.avi` | full, silent, seeked through the container index | audio, and frames with no Huffman table | T-423, T-424 |
 | Compressed audio | `.mp3` `.flac` `.ogg` `.opus` `.m4a` | structure | Audio codec, then a viewer path | T-404 |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | signature | box, EBML and RIFF tree | T-412 |
 | Video playback | `.mp4` `.mkv` `.webm` `.mov` | none | decode and play the picture | T-420 |
@@ -326,11 +327,12 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-420 — Common compressed video cannot be played
 
-- Intent: the videos people encounter still open on their signature line because no compressed
-  picture codec or mainstream container is decoded. What is missing is decoders, not a design:
-  `std/video` streams frames through a codec registry, so a format is a `Video.IDecoder` reading
-  a `Video.Source` and answering `seekFrame` its own way — an offset for a fixed frame size, a
-  keyframe followed by decoding forward for a compressed one.
+- Intent: `.mp4`, `.mkv`, `.webm` and `.mov` still open on their signature line, because the
+  containers people actually receive carry H.264, VP9 or AV1 and none of them is decoded. What is
+  missing is decoders, not a design: `std/video` streams frames through a codec registry, so a
+  format is a `Video.IDecoder` reading a `Video.Source` and answering `seekFrame` its own way — an
+  offset for a fixed frame size, a container index for AVI, a keyframe followed by decoding
+  forward for an inter-coded one.
 - Complete when: a `plugin.video` shows the picture with transport, a seekable timeline and the
   frame position for H.264 in MP4 and VP9 or AV1 in WebM and Matroska, and the registry moves those
   extensions off the binary line for playback while T-412 keeps the structure reader available as

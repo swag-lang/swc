@@ -38,11 +38,12 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.fillpolygon.triangle")
 }
 
-// A self-intersecting outline exercises the tessellator's crossing handling.
+// A self-intersecting outline in a list must be normalized before reaching Poly2Tri.
 #test
 {
     var painter: Painter
-    var path:    LinePath
+    var list:    LinePathList
+    let path = list.newPath()
 
     path.start(10, 10)
     path.lineTo(90, 90)
@@ -51,7 +52,7 @@ using Swag, Core
     path.close()
 
     painter.begin()
-    painter.fillPath(&path, Color.fromArgb(Argb.Red))
+    painter.fillPath(&list, Color.fromArgb(Argb.Red))
     painter.end()
     Testing.assertGolden(&painter, "path.fill.selfintersect")
 }

@@ -15,13 +15,14 @@ struct Sink
 {
     internal
     {
-        stream:       File.FileStream         // Open file, when the sink writes to a file.
-        buffer:       #null *ConcatBuffer     // Borrowed destination, when the sink writes to memory.
-        path:         String                  // File the sink writes, empty for a memory sink.
-        pending:      Array'u8                // Write window holding bytes not yet handed to the file.
-        pendingCount: u64                     // Number of valid bytes in the write window.
-        written:      u64                     // Total number of bytes accepted by this sink.
-        isFile:       bool                    // Whether the sink writes to `stream`.
+        stream:       File.FileStream          // Open file, when the sink writes to a file.
+        buffer:       #null *ConcatBuffer      // Borrowed destination, when the sink writes to memory.
+        origin:       ConcatBufferPosition     // Cursor the borrowed buffer held when the sink took it.
+        path:         String                   // File the sink writes, empty for a memory sink.
+        pending:      Array'u8                 // Write window holding bytes not yet handed to the file.
+        pendingCount: u64                      // Number of valid bytes in the write window.
+        written:      u64                      // Total number of bytes accepted by this sink.
+        isFile:       bool                     // Whether the sink writes to `stream`.
     }
 }
 
@@ -44,10 +45,14 @@ impl Sink
     }
 
     // Appends the encoded stream to `buffer`.
+    //
+    // Whatever `buffer` already holds stays untouched, and stream offsets remain relative to the
+    // first byte this sink writes, so a codec computes them the same way on both backings.
     func createMemory(buffer: *ConcatBuffer)->Sink
     {
         var result: retval
         result.buffer = buffer
+        result.origin = buffer.position()
         return result
     }
 
@@ -92,6 +97,42 @@ impl Sink
     mtd writeText(text: string) fail
     {
         .write(cast(const [..] u8) text)
+    }
+
+    // Rewrites bytes this sink already accepted, at `offset` bytes from the start of its stream.
+    //
+    // A container header carries totals a codec only learns once the last frame is written — a
+    // file size, a frame count, the size of the chunk holding the frames. Patching is how those
+    // fields are filled without holding the stream: the encoder writes a placeholder in the
+    // header, remembers where it went, and overwrites it here.
+    //
+    // The patched range must lie entirely inside what the sink already wrote; a range reaching
+    // past the end fails rather than extending the stream. The write position is unchanged, so
+    // appending resumes exactly where it stopped.
+    mtd patch(offset: u64, bytes: const [..] u8) fail
+    {
+        let count = @countof(bytes)
+        if !count do
+            return
+        if offset > .written or count > .written - offset do
+            fail BadParameterError{"video stream patch runs past the end of the written stream"}
+
+        if !.isFile
+        {
+            let target = .buffer!
+            let resume = target.position()
+            target.setPosition(.origin)
+            target.advance(offset)
+            target.addBytes(bytes, contiguous: false)
+            target.setPosition(resume)
+            return
+        }
+
+        // The window can still hold bytes covering the patched range, so what is buffered reaches
+        // the file first; the patch would otherwise be overwritten by the next flush.
+        .flush()
+        .stream.writeAllAt(offset, bytes)
+        .stream.seek(.Begin, .written)
     }
 
     // Hands every buffered byte to the file.

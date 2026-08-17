@@ -45,12 +45,20 @@ public impl Document
         return try decodeDocument(bytes)
     }
 
-    // Loads and decodes a PDF file through a read-only memory mapping.
+    // Loads and decodes every page of a PDF file.
+    //
+    // Use [[Pdf.Reader.open]] when pages should be decoded on demand.
     func load(fileName: string)->Document fail
     {
-        var file = try File.MappedFile.open(fileName)
-        var view = try file.mapAll()
-        return try decodeDocument(view.bytes())
+        var reader = try Reader.open(fileName)
+        var result = Document.create()
+        result.metadata = reader.metadata
+        for index in reader.pageCount()
+        {
+            var page = try reader.loadPage(index)
+            result.addPage(#move page)
+        }
+        return result
     }
 
     // Appends a page and transfers its owned content into the document.

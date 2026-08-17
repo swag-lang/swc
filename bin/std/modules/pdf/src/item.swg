@@ -10,6 +10,35 @@ enum ItemKind
     Image     // One decoded raster image.
 }
 
+// Selects the shape at the open ends of a stroked PDF path and its dash segments.
+enum StrokeCap
+{
+    Butt       // End exactly at the path endpoint.
+    Round      // Add a semicircular cap.
+    Square     // Extend by half the stroke width with a square cap.
+}
+
+// Selects how consecutive segments of a stroked PDF path meet.
+enum StrokeJoin
+{
+    Miter      // Extend the outer edges until the miter limit, then bevel the corner.
+    Round      // Join the segments with a circular arc.
+    Bevel      // Cut the outer corner with a straight edge.
+}
+
+// Describes the geometry of a PDF path stroke.
+struct PathStrokeStyle
+{
+    public
+    {
+        cap:         StrokeCap = .Butt       // Shape at open path ends and dash ends.
+        join:        StrokeJoin = .Miter     // Shape between consecutive segments.
+        miterLimit:  f32        = 10         // Maximum miter length relative to the stroke width; at least one.
+        dashPattern: Array'f32               // Alternating painted and blank lengths in PDF points; empty means solid.
+        dashPhase:   f32                     // Signed distance into the repeated dash pattern in PDF points.
+    }
+}
+
 // Describes one page item in Pixel's top-left coordinate system.
 //
 // Use the matching [[Pdf.Page.addText]], [[Pdf.Page.addPath]], or
@@ -30,6 +59,7 @@ struct Item
         strokeColor:  Color        = Color.fromArgb(Argb.Black)
         fontSize:     f32
         strokeWidth:  f32          = 1
+        strokeStyle:  PathStrokeStyle
         hasFill:      bool
         hasStroke:    bool
         fontIndex:    u32          = Swag.U32.Max
@@ -60,8 +90,11 @@ public impl Item
     // the face the writer would use again.
     mtd const textFont()->StandardFont => .standardFont
 
-    // Returns the stroke width in PDF points, or zero when the item has no stroke.
+    // Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.
     mtd const pathStrokeWidth()->f32 => .kind == .Path and .hasStroke ? .strokeWidth : 0
+
+    // Returns the stroke geometry of a path item, or the default solid style for another kind.
+    mtd const pathStrokeStyle()->PathStrokeStyle => .kind == .Path ? .strokeStyle : PathStrokeStyle{}
 
     // Returns a borrowed path list for a path item.
     //

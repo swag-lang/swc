@@ -185,7 +185,7 @@ using Core, Core.Errors, Pixel
 
 #test
 {
-    let fileName = videoTempPath("roundtrip")
+    let fileName = videoTempPath("roundtrip", "y4m")
     defer discard catch File.delete(fileName)
 
     let rate   = expect FrameRate.create(12, 1)
@@ -231,12 +231,16 @@ using Core, Core.Errors, Pixel
 #test
 {
     @assert(Reader.canOpen("clip.y4m") and Reader.canOpen("CLIP.Y4M"))
+    @assert(Reader.canOpen("clip.avi") and Reader.canOpen("CLIP.AVI"))
     @assert(!Reader.canOpen("clip.mp4") and !Reader.canOpen("clip") and !Reader.canOpen(""))
-    @assert(Writer.canCreate("clip.y4m") and !Writer.canCreate("clip.mkv"))
+    @assert(Writer.canCreate("clip.y4m") and Writer.canCreate("clip.avi") and !Writer.canCreate("clip.mkv"))
 
+    // Every format is both read and written; a codec registered on one side alone would be a
+    // stream this module can produce and not open again, or the reverse.
     let decodable = Reader.decodableFormats()
     let encodable = Writer.encodableFormats()
-    @assert(decodable.count == 1 and encodable.count == 1)
-    @assert(decodable[0].name == encodable[0].name)
-    @assert(decodable[0].matches("a.y4m"))
+    @assert(decodable.count == 2 and encodable.count == 2)
+    for format, index in decodable do
+        @assert(format.name == encodable[index].name)
+    @assert(decodable[0].matches("a.y4m") and decodable[1].matches("a.avi"))
 }

@@ -7,6 +7,36 @@ private func isFiniteTransform(transform: Transform2)->bool
     return Math.isFinite(transform.m11) and Math.isFinite(transform.m12) and Math.isFinite(transform.m21) and Math.isFinite(transform.m22) and Math.isFinite(transform.tx) and Math.isFinite(transform.ty)
 }
 
+private func isValidStrokeStyle(style: const *PathStrokeStyle)->bool
+{
+    if style.miterLimit < 1 or !Math.isFinite(style.miterLimit) or !Math.isFinite(style.dashPhase) do
+        return false
+
+    var hasPositiveLength = false
+    for length in style.dashPattern
+    {
+        if length < 0 or !Math.isFinite(length) do
+            return false
+        hasPositiveLength = hasPositiveLength or length > 0
+    }
+
+    return !style.dashPattern.count or hasPositiveLength
+}
+
+// PDF repeats an odd dash array before alternating painted and blank intervals.
+private func normalizedStrokeStyle(style: PathStrokeStyle)->PathStrokeStyle
+{
+    var result: retval = style
+    if result.dashPattern.count & 1
+    {
+        let count = result.dashPattern.count
+        for i in count do
+            result.dashPattern.add(result.dashPattern[i])
+    }
+
+    return result
+}
+
 // Stores one editable PDF page.
 //
 // Dimensions and item coordinates are expressed in PDF points, with an origin at
@@ -56,11 +86,13 @@ public impl Page
     // Appends one vector path.
     //
     // `fill` and `stroke` independently select the two paint operations. At least
-    // one must be enabled. Path coordinates are copied into the page.
-    mtd addPath(path: LinePathList, fill = true, fillColor = Color.fromArgb(Argb.Black), stroke = false, strokeColor = Color.fromArgb(Argb.Black), strokeWidth = 1.0)
+    // one must be enabled. `strokeStyle` selects the cap, join, miter, and dash
+    // geometry when stroking. Path coordinates and dash data are copied into the page.
+    mtd addPath(path: LinePathList, fill = true, fillColor = Color.fromArgb(Argb.Black), stroke = false, strokeColor = Color.fromArgb(Argb.Black), strokeWidth = 1.0, strokeStyle: PathStrokeStyle = {})
     {
         Debug.assert(fill or stroke, "path has no paint operation")
-        Debug.assert(!stroke or (strokeWidth > 0 and Math.isFinite(strokeWidth)), "invalid stroke width")
+        Debug.assert(!stroke or (strokeWidth >= 0 and Math.isFinite(strokeWidth)), "invalid stroke width")
+        Debug.assert(!stroke or isValidStrokeStyle(&strokeStyle), "invalid path stroke style")
         var item = Item.createPath()
         item.path        = path
         item.hasFill     = fill
@@ -68,6 +100,7 @@ public impl Page
         item.hasStroke   = stroke
         item.strokeColor = strokeColor
         item.strokeWidth = strokeWidth
+        item.strokeStyle = normalizedStrokeStyle(strokeStyle)
         .items.add(#move item)
     }
 
@@ -137,12 +170,25 @@ public impl Page
         .items[index].hasStroke   = true
     }
 
-    // Replaces the positive stroke width of a path item and enables its stroke.
+    // Replaces the non-negative stroke width of a path item and enables its stroke.
+    //
+    // A zero width is rendered as a device-pixel hairline.
     mtd setPathStrokeWidth(index: u64, width: f32)
     {
         Debug.assert(index < .items.count and .items[index].kind == .Path, "item is not a path")
-        Debug.assert(width > 0 and Math.isFinite(width), "invalid stroke width")
+        Debug.assert(width >= 0 and Math.isFinite(width), "invalid stroke width")
         .items[index].strokeWidth = width
+        .items[index].hasStroke   = true
+    }
+
+    // Replaces the cap, join, miter, and dash geometry of a path stroke.
+    //
+    // Dash lengths and phase are expressed in PDF points; the phase may be negative. An odd-length pattern is repeated once, as required by PDF, before its painted and blank intervals alternate.
+    mtd setPathStrokeStyle(index: u64, style: PathStrokeStyle)
+    {
+        Debug.assert(index < .items.count and .items[index].kind == .Path, "item is not a path")
+        Debug.assert(isValidStrokeStyle(&style), "invalid path stroke style")
+        .items[index].strokeStyle = normalizedStrokeStyle(style)
         .items[index].hasStroke   = true
     }
 

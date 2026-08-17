@@ -3,7 +3,7 @@ html|HTML|plugin.html.dll|.htm;.html;.shtml;.xht;.xhtml
 code|Code|plugin.code.dll|.swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;.nix
 markdown|Markdown|plugin.markdown.dll|.markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd
 image|Image|plugin.image.dll|.bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp
-video|Video|plugin.video.dll|.y4m
+video|Video|plugin.video.dll|.y4m;.avi
 pdf|PDF|plugin.pdf.dll|.pdf
 sound|Sound|plugin.sound.dll|.wav
 font|Font|plugin.font.dll|.ttf;.ttc

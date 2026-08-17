@@ -17,8 +17,9 @@ internal struct EncoderDesc
 // a long video costs the memory of one frame.
 //
 // `begin`, `addFrame` and `end` are called in that order, exactly once for the first and the
-// last. A format whose header needs a value known only at the end — a frame count, an index —
-// writes it in `end`, either as a trailer or by keeping that part of the stream bounded.
+// last. A format whose header needs a value known only at the end — a frame count, a total size,
+// an index — writes it in `end`, either as a trailer, or by reserving the field in the header and
+// rewriting it with [[Video.Sink.patch]] once the last frame is written.
 interface IEncoder
 {
     // Describes the format this encoder writes.
@@ -254,4 +255,5 @@ impl Writer
 #init
 {
     Writer.registerEncoder'(Y4m.Encoder)()
+    Writer.registerEncoder'(Avi.Encoder)()
 }

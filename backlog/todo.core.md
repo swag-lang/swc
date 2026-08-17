@@ -349,7 +349,9 @@ without coupling it to the first non-blocking socket backend.
 - Promote the contract into Core — a buffered, seekable byte source and sink with file and memory
   backings — and move `std/video` and `std/audio` onto it. Read `Video.Source` first: it is the
   shape a codec actually needs, including a read that bypasses the window when it is larger
-  than the window itself.
+  than the window itself. Read `Video.Sink.patch` beside it: a container writer reserves the
+  totals of its header and rewrites them once the last frame lands, and that operation is what
+  keeps a writer at the cost of one frame instead of the cost of the file.
 - Related: T-162
 
 ---

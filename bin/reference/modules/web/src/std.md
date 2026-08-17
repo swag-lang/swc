@@ -24,6 +24,7 @@ that library's `bin` directory.
 | [std.pdf](std.pdf.html) | `Pdf` | PDF decoding, editable pages, Pixel rendering, metadata, vector and image content, and PDF writing |
 | [std.gui](std.gui.html) | `Gui` | Native desktop applications, surfaces, controls, layouts, events, themes, dialogs, and actions |
 | [std.audio](std.audio.html) | `Audio` | WAV loading, decoding, streaming, voices, buses, codecs, and process-wide playback |
+| [std.video](std.video.html) | `Video` | Streamed video reading and writing, frame by frame, with YUV4MPEG2 and Motion JPEG AVI codecs |
 | [std.truetype](std.truetype.html) | `TrueType` | TrueType parsing, metrics, outlines, rasterization, kerning, and distance fields |
 
 These modules expose Swag-owned abstractions and task-oriented guides in

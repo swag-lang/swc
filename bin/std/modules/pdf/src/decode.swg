@@ -10,6 +10,7 @@ private struct GraphicsState
     fillColor:   Color      = Color.fromArgb(Argb.Black)
     strokeColor: Color      = Color.fromArgb(Argb.Black)
     strokeWidth: f32        = 1
+    strokeStyle: PathStrokeStyle
     fillSpace:   ImageSpace
     strokeSpace: ImageSpace
 
@@ -89,6 +90,7 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
     item.fillColor   = state.fillColor
     item.strokeColor = state.strokeColor
     item.strokeWidth = state.strokeWidth
+    item.strokeStyle = state.strokeStyle
     page.appendItem(#move item)
     @init(path, 1)
 }
@@ -395,8 +397,86 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "w":
-            if operands.count do
-                state.strokeWidth = operandNumber(&content, operands, operands.count - 1)
+            if operands.count
+            {
+                let width = operandNumber(&content, operands, operands.count - 1)
+                if width < 0 or !Math.isFinite(width) do
+                    fail InvalidFormatError{"PDF line width needs a non-negative finite number"}
+                state.strokeWidth = width
+            }
+
+        case "J":
+            if operands.count
+            {
+                let valueId = content.resolve(operands.back())
+                if valueId == InvalidNode or content.nodes[valueId].kind != .Integer do
+                    fail InvalidFormatError{"PDF line cap needs an integer from 0 to 2"}
+                switch content.nodes[valueId].integer
+                {
+                case 0: state.strokeStyle.cap = .Butt
+                case 1: state.strokeStyle.cap = .Round
+                case 2: state.strokeStyle.cap = .Square
+                default: fail InvalidFormatError{"PDF line cap accepts values from 0 to 2"}
+                }
+            }
+
+        case "j":
+            if operands.count
+            {
+                let valueId = content.resolve(operands.back())
+                if valueId == InvalidNode or content.nodes[valueId].kind != .Integer do
+                    fail InvalidFormatError{"PDF line join needs an integer from 0 to 2"}
+                switch content.nodes[valueId].integer
+                {
+                case 0: state.strokeStyle.join = .Miter
+                case 1: state.strokeStyle.join = .Round
+                case 2: state.strokeStyle.join = .Bevel
+                default: fail InvalidFormatError{"PDF line join accepts values from 0 to 2"}
+                }
+            }
+
+        case "M":
+            if operands.count
+            {
+                let limit = operandNumber(&content, operands, operands.count - 1)
+                if limit < 1 or !Math.isFinite(limit) do
+                    fail InvalidFormatError{"PDF miter limit needs a finite number of at least 1"}
+                state.strokeStyle.miterLimit = limit
+            }
+
+        case "d":
+            if operands.count >= 2
+            {
+                let arrayId = content.resolve(operands[operands.count - 2])
+                let phase   = operandNumber(&content, operands, operands.count - 1)
+                if arrayId == InvalidNode or content.nodes[arrayId].kind != .Array do
+                    fail InvalidFormatError{"PDF dash pattern needs an array"}
+                if !Math.isFinite(phase) do
+                    fail InvalidFormatError{"PDF dash phase needs a finite number"}
+
+                var pattern: Array'f32
+                var hasPositiveLength = false
+                for valueId in content.nodes[arrayId].values
+                {
+                    let value = nodeNumber(&content, valueId)
+                    if value < 0 or !Math.isFinite(value) do
+                        fail InvalidFormatError{"PDF dash lengths need non-negative finite numbers"}
+                    pattern.add(value)
+                    hasPositiveLength = hasPositiveLength or value > 0
+                }
+
+                if pattern.count and !hasPositiveLength do
+                    fail InvalidFormatError{"PDF dash pattern needs a positive length"}
+                if pattern.count & 1
+                {
+                    let count = pattern.count
+                    for i in count do
+                        pattern.add(pattern[i])
+                }
+
+                state.strokeStyle.dashPattern = #move pattern
+                state.strokeStyle.dashPhase   = phase
+            }
 
         case "gs":
             if operands.count do
@@ -702,7 +782,7 @@ private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
     }
 }
 
-private func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox: u32, rotate: s64)->Page fail
+internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox: u32, rotate: s64)->Page fail
 {
     let mediaId = parser.dict(pageId, "MediaBox")
     let media   = mediaId != InvalidNode ? mediaId : inheritedMediaBox
@@ -762,7 +842,7 @@ private func decodePage(parser: *PdfParser, pageId, inheritedResources, inherite
     return result
 }
 
-private func visitPages(parser: *PdfParser, document: *Document, nodeId, inheritedResources, inheritedMediaBox: u32, inheritedRotate: s64, depth: u32) fail
+private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, inheritedResources, inheritedMediaBox: u32, inheritedRotate: s64, depth: u32) fail
 {
     if depth >= 64 do
         fail UnsupportedFormatError{"PDF page tree nesting exceeds the supported depth"}
@@ -777,8 +857,7 @@ private func visitPages(parser: *PdfParser, document: *Document, nodeId, inherit
     let nextRotate    = rotateId != InvalidNode ? parser.integer(rotateId) : inheritedRotate
     if parser.name(parser.dict(id, "Type")) == "Page"
     {
-        var page = try decodePage(parser, id, nextResources, nextMediaBox, nextRotate)
-        document.addPage(#move page)
+        pages.add(PageSource{id, nextResources, nextMediaBox, nextRotate})
         return
     }
 
@@ -786,7 +865,7 @@ private func visitPages(parser: *PdfParser, document: *Document, nodeId, inherit
     if kids == InvalidNode or parser.nodes[kids].kind != .Array do
         return
     for child in parser.nodes[kids].values do
-        try visitPages(parser, document, child, nextResources, nextMediaBox, nextRotate, depth + 1)
+        try collectPages(parser, pages, child, nextResources, nextMediaBox, nextRotate, depth + 1)
 }
 
 private func metadataString(parser: const *PdfParser, dictId: u32, key: string)->String
@@ -800,9 +879,8 @@ private func metadataString(parser: const *PdfParser, dictId: u32, key: string)-
     return Text.decode(cast(const [..] u8) raw, .Windows1252)
 }
 
-func decodeDocument(bytes: const [..] u8)->Document fail
+internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Array'PageSource) fail
 {
-    var parser = PdfParser{bytes: bytes}
     try parser.scanObjects()
 
     // The trailer names the catalog and the metadata; scanning for them is the fallback for a
@@ -832,22 +910,34 @@ func decodeDocument(bytes: const [..] u8)->Document fail
     if catalog == InvalidNode do
         fail InvalidFormatError{"PDF catalog is missing"}
 
-    var result: retval = Document.create()
     if info != InvalidNode
     {
-        result.metadata.title    = metadataString(&parser, info, "Title")
-        result.metadata.author   = metadataString(&parser, info, "Author")
-        result.metadata.subject  = metadataString(&parser, info, "Subject")
-        result.metadata.keywords = metadataString(&parser, info, "Keywords")
-        result.metadata.creator  = metadataString(&parser, info, "Creator")
-        result.metadata.producer = metadataString(&parser, info, "Producer")
+        metadata.title    = metadataString(parser, info, "Title")
+        metadata.author   = metadataString(parser, info, "Author")
+        metadata.subject  = metadataString(parser, info, "Subject")
+        metadata.keywords = metadataString(parser, info, "Keywords")
+        metadata.creator  = metadataString(parser, info, "Creator")
+        metadata.producer = metadataString(parser, info, "Producer")
     }
 
-    let pages = parser.dict(catalog, "Pages")
-    if pages == InvalidNode do
+    let pageTree = parser.dict(catalog, "Pages")
+    if pageTree == InvalidNode do
         fail InvalidFormatError{"PDF page tree is missing"}
-    try visitPages(&parser, &result, pages, InvalidNode, InvalidNode, 0, 0)
-    if !result.pages.count do
+    try collectPages(parser, pages, pageTree, InvalidNode, InvalidNode, 0, 0)
+    if !pages.count do
         fail InvalidFormatError{"PDF document has no pages"}
+}
+
+func decodeDocument(bytes: const [..] u8)->Document fail
+{
+    var parser = PdfParser{bytes: bytes}
+    var sources: Array'PageSource
+    var result: retval = Document.create()
+    try indexDocument(&parser, &result.metadata, &sources)
+    for source in sources
+    {
+        var page = try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.rotate)
+        result.addPage(#move page)
+    }
     return result
 }

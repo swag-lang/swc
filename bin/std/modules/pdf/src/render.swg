@@ -50,10 +50,47 @@ private func itemTypeface(page: const *Page, item: const *Item, fallback: *TypeF
     return loadError == null ? result! : fallback
 }
 
-private func scaledTransform(transform: Transform2, scale: f32)->Transform2
+private func pathPen(item: const *Item, scale: f32)->Pen
 {
-    var result = transform
-    result.multiply(Transform2.createScale(scale, scale, 0, 0))
+    let strokeWidth   = item.strokeWidth ? item.strokeWidth : 1 / scale
+    var result: retval = Pen.createSolid(item.strokeColor, strokeWidth)
+    switch item.strokeStyle.cap
+    {
+    case .Butt:
+        result.begCapStyle     = .None
+        result.endCapStyle     = .None
+        result.dashBegCapStyle = .None
+        result.dashEndCapStyle = .None
+
+    case .Round:
+        result.begCapStyle     = .Round
+        result.endCapStyle     = .Round
+        result.dashBegCapStyle = .Round
+        result.dashEndCapStyle = .Round
+
+    case .Square:
+        result.begCapStyle     = .Square
+        result.endCapStyle     = .Square
+        result.dashBegCapStyle = .Square
+        result.dashEndCapStyle = .Square
+    }
+
+    switch item.strokeStyle.join
+    {
+    case .Miter: result.joinStyle = .MiterBevel
+    case .Round: result.joinStyle = .Round
+    case .Bevel: result.joinStyle = .Bevel
+    }
+    result.joinMiterLimit = item.strokeStyle.miterLimit
+    result.dashOffset     = item.strokeStyle.dashPhase
+    if item.strokeStyle.dashPattern.count
+    {
+        result.dashStyle = .Pattern
+        result.pattern.reserve(item.strokeStyle.dashPattern.count)
+        for length in item.strokeStyle.dashPattern do
+            result.pattern.add(length / strokeWidth)
+    }
+
     return result
 }
 
@@ -92,6 +129,7 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
     renderer.end()
 
     var painter = Painter.create(renderer)
+    painter.setContentScale(options.scale)
     painter.begin()
     painter.bindRenderTarget(&target, true)
     painter.setColorMaskFull()
@@ -102,7 +140,7 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
     var textureIndex = 0'u64
     for item in page.items
     {
-        painter.setTransform(scaledTransform(item.transform, options.scale))
+        painter.setTransform(item.transform)
         switch item.kind
         {
         case .Text:
@@ -120,7 +158,7 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
             if item.hasFill do
                 painter.fillPath(&paths, item.fillColor)
             if item.hasStroke do
-                painter.drawPath(&paths, Pen.createSolid(item.strokeColor, item.strokeWidth), .Separate)
+                painter.drawPath(&paths, pathPen(item, options.scale), .Separate)
 
         case .Image:
             painter.drawTexture(0, 0, 1, 1, textures[textureIndex])

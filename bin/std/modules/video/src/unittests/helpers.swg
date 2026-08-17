@@ -9,10 +9,12 @@ func videoFixturePath(name: string)->String
 }
 
 // Returns a unique path in the temporary directory, for a stream a test writes itself.
-func videoTempPath(name: string)->String
+//
+// `extension` carries no leading dot; it is what selects the codec the stream is written with.
+func videoTempPath(name, extension: string)->String
 {
     let directory = Env.getSpecialDirectory(.Temp)
-    return Path.combine(directory.toString(), Format.toString("video-%-%.y4m", name, Guid64.random()).toString())
+    return Path.combine(directory.toString(), Format.toString("video-%-%.%", name, Guid64.random(), extension).toString())
 }
 
 func videoTestImage(width, height: s32, pixels: const [..] u8)->Image

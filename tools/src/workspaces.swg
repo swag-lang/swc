@@ -255,7 +255,7 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
             try File.delete(file.fullname.toString())
     }
 
-    for pluginKind in ["code", "image", "markdown", "html", "hex", "sound", "binary"]
+    for pluginKind in ["code", "image", "markdown", "html", "hex", "sound", "video", "binary"]
     {
         let moduleName = Format.toString("plugin.%", pluginKind)
         let pluginDir  = Path.combine(applicationWorkspace(context, "sFileScope").toString(), ".output", moduleName.toString(), "shared-library", options.buildCfg.toString(), context.targetArch.toString())
@@ -277,6 +277,14 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
     let audioPdb = Path.combine(audioPaths.outDir.toString(), "audio.pdb")
     if File.exists(audioPdb) do
         try copyBeside(audioPdb.toString(), appDir, "audio.pdb")
+
+    // The video plugin is loaded through the same runtime boundary and owns the only import of
+    // std/video in this application workspace.
+    let videoPaths = context.artifactPaths("std/video", "shared-library", options.buildCfg.toString())
+    try copyBeside(Path.combine(videoPaths.outDir.toString(), "video.dll").toString(), appDir, "video.dll")
+    let videoPdb = Path.combine(videoPaths.outDir.toString(), "video.pdb")
+    if File.exists(videoPdb) do
+        try copyBeside(videoPdb.toString(), appDir, "video.pdb")
 
     try copyBeside(Path.combine(moduleDir, "datas", "plugins", "plugin.index.filescope").toString(), outputDir.toString(), "plugin.index.filescope")
     return 0

@@ -52,6 +52,9 @@ hexadecimal alternative instead of guessing an encoding.
 - `plugin.image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, and Pixel's
   vector parser for SVG. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF
   playback and seeking.
+- `plugin.video` uses the Video module for silent YUV4MPEG2 streams. It indexes frame payloads
+  without decoding the file up front, materializes only the selected frame, and provides play,
+  pause, stop, frame seeking, and the current frame position. YUV4MPEG2 carries no audio track.
 - `plugin.sound` uses the Audio module to stream PCM or float WAV files. It opens from the header,
   starts playback without retaining the complete payload, and builds its peak/body waveform in a
   separate low-priority thread from bounded blocks. The progressively published waveform uses the

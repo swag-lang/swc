@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container">
+<aside class="left"><nav class="left-page" aria-label="Contents">
+<h2>Video documentation</h2>
+<h3>Start here</h3>
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#guide_Reading_and_writing_video">Reading and writing video</a></li>
+</ul>
+<h3>API reference</h3>
+<ul>
+<li><a href="#api-reference">At a glance</a></li>
+<li><a href="#detailed-reference">Detailed reference</a></li>
+</ul>
+<details class="toc-group" open>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">1</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-namespaces">All Namespaces</a></li>
+<li><a href="#namespace_Video">Video</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Types</span><span class="toc-count">2</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-types">All Types</a></li>
+<li><a href="#Video_Clip">Video.Clip</a></li>
+<li><a href="#Video_FrameRate">Video.FrameRate</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Functions</span><span class="toc-count">20</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-functions">All Functions</a></li>
+<li><a href="#Video_Clip_addFrame">Clip.addFrame</a></li>
+<li><a href="#Video_Clip_create">Clip.create</a></li>
+<li><a href="#Video_Clip_decode">Clip.decode</a></li>
+<li><a href="#Video_Clip_decodeFrame">Clip.decodeFrame</a></li>
+<li><a href="#Video_Clip_durationInSeconds">Clip.durationInSeconds</a></li>
+<li><a href="#Video_Clip_encode">Clip.encode</a></li>
+<li><a href="#Video_Clip_encodeToBytes">Clip.encodeToBytes</a></li>
+<li><a href="#Video_Clip_frameCount">Clip.frameCount</a></li>
+<li><a href="#Video_Clip_frameRate">Clip.frameRate</a></li>
+<li><a href="#Video_Clip_height">Clip.height</a></li>
+<li><a href="#Video_Clip_isValid">Clip.isValid</a></li>
+<li><a href="#Video_Clip_load">Clip.load</a></li>
+<li><a href="#Video_Clip_save">Clip.save</a></li>
+<li><a href="#Video_Clip_sourcePath">Clip.sourcePath</a></li>
+<li><a href="#Video_Clip_width">Clip.width</a></li>
+<li><a href="#Video_FrameRate_create">FrameRate.create</a></li>
+<li><a href="#Video_FrameRate_denominator">FrameRate.denominator</a></li>
+<li><a href="#Video_FrameRate_framesPerSecond">FrameRate.framesPerSecond</a></li>
+<li><a href="#Video_FrameRate_isValid">FrameRate.isValid</a></li>
+<li><a href="#Video_FrameRate_numerator">FrameRate.numerator</a></li>
+</ul>
+</details>
+</nav></aside>
+<section class="right"><article class="right-page" id="content">
+<section class="module-overview"><h1 id="overview">Video</h1>
+<p>Video reads and writes silent video streams as timed sequences of <a href="std.pixel.html#Pixel_Image">Pixel.Image</a> frames.</p>
+<p>The first codec is YUV4MPEG2 (<span class="code-inline">.y4m</span>) with progressive 8-bit 4:4:4 YCbCr frames. File-backed clips index their frame payloads without decoding them, then materialize one frame at a time through <a href="#Video_Clip_decodeFrame">Video.Clip.decodeFrame</a>. This keeps playback memory bounded independently of the file duration.</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"video"</span>)
+
+<span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Video">Video</a></span>
+
+<span class="SKwd">let</span> rate = <span class="SKwd">try</span> <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span>.<span class="SFct">create</span>(<span class="SNum">24</span>, <span class="SNum">1</span>)
+<span class="SKwd">var</span> clip = <span class="SKwd">try</span> <span class="SCst"><a href="#Video_Clip">Clip</a></span>.<span class="SFct">create</span>(<span class="SNum">320</span>, <span class="SNum">180</span>, rate)
+<span class="SKwd">let</span> frame = <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">320</span>, <span class="SNum">180</span>, .<span class="SCst">RGB8</span>)
+<span class="SKwd">try</span> clip.<span class="SFct">addFrame</span>(frame)
+<span class="SKwd">try</span> clip.<span class="SFct">save</span>(<span class="SStr">"preview.y4m"</span>)
+
+<span class="SKwd">let</span> loaded = <span class="SKwd">try</span> <span class="SCst"><a href="#Video_Clip">Clip</a></span>.<span class="SFct">load</span>(<span class="SStr">"preview.y4m"</span>)
+<span class="SKwd">let</span> first = <span class="SKwd">try</span> loaded.<span class="SFct">decodeFrame</span>(<span class="SNum">0</span>)</span></div>
+<p>YUV4MPEG2 carries no audio. Alpha is discarded during encoding, and decoded frames use <a href="std.pixel.html#Pixel_PixelFormat_RGB8">Pixel.PixelFormat.RGB8</a>. Malformed streams, unsupported chroma or interlacing, inconsistent frames, and file access errors use Swag's normal <span class="code-inline">fail</span> mechanism.</p>
+</section>
+<section class="api-guide"><h2 id="guide_Reading_and_writing_video">Reading and writing video</h2>
+<p><a href="#Video_Clip">Video.Clip</a> represents a silent timed sequence of equal-sized <a href="std.pixel.html#Pixel_Image">Pixel.Image</a> values. The initial YUV4MPEG2 codec deliberately favors a small, portable implementation over compression: it stores progressive 8-bit Y, Cb, and Cr planes at full 4:4:4 resolution.</p>
+<p>Use <a href="#Video_Clip_load">Video.Clip.load</a> for playback. It reads the header and indexes frame payloads, but does not decode their pixels. <a href="#Video_Clip_decodeFrame">Video.Clip.decodeFrame</a> then reopens the source and reads only the selected frame. Keep the source file available for as long as frames may still be requested.</p>
+<p>Create an empty clip with fixed geometry and a <a href="#Video_FrameRate">Video.FrameRate</a>, add matching images, then call <a href="#Video_Clip_save">Video.Clip.save</a>. The writer accepts every 8-bit Pixel RGB or BGR format and drops alpha. It converts through limited-range BT.601 YCbCr; the decoder also honors the YUV4MPEG2 full-range tag. A decoded round trip can differ by a few channel values.</p>
+<p>YUV4MPEG2 has no audio stream. Audio tracks and synchronization will belong to future container codecs and will compose with the standard Audio module rather than adding a second sound implementation here.</p>
+</section>
+<section class="api-overview">
+<h2 id="api-reference">API reference</h2>
+<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>
+<h3 id="summary-namespaces">Namespaces</h3>
+<table class="api-summary">
+<thead><tr><th>Namespace</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#namespace_Video">Video</a></td></tr>
+</tbody>
+</table>
+<h3 id="summary-types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Clip">Video.Clip</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns or indexes a silent sequence of equal-sized image frames.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate">Video.FrameRate</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes an exact number of video frames per second.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="summary-functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Clip_addFrame">Clip.addFrame</a></td><td><p>Adds an owned copy of one frame to a created clip.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_create">Clip.create</a></td><td><p>Creates an empty clip with fixed geometry and timing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_decode">Clip.decode</a></td><td><p>Decodes and indexes a complete encoded memory buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_decodeFrame">Clip.decodeFrame</a></td><td><p>Decodes one frame to an owned RGB8 image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_durationInSeconds">Clip.durationInSeconds</a></td><td><p>Returns the clip duration in seconds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_encode">Clip.encode</a></td><td><p>Encodes the clip to an owned segmented memory buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_encodeToBytes">Clip.encodeToBytes</a></td><td><p>Encodes the clip to one contiguous owned byte array.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_frameCount">Clip.frameCount</a></td><td><p>Returns the number of frames in the clip.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_frameRate">Clip.frameRate</a></td><td><p>Returns the exact frame rate.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_height">Clip.height</a></td><td><p>Returns the frame height, in pixels.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_isValid">Clip.isValid</a></td><td><p>Reports whether the clip has valid geometry and timing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_load">Clip.load</a></td><td><p>Loads and indexes a YUV4MPEG2 file without decoding its frame pixels.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_save">Clip.save</a></td><td><p>Encodes the clip and writes it to <span class="code-inline">fileName</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_sourcePath">Clip.sourcePath</a></td><td><p>Returns the file used by <a href="#Video_Clip_load">Video.Clip.load</a>, or an empty string otherwise.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_width">Clip.width</a></td><td><p>Returns the frame width, in pixels.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_create">FrameRate.create</a></td><td><p>Creates an exact positive frame rate.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_denominator">FrameRate.denominator</a></td><td><p>Returns the rate denominator, in seconds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_framesPerSecond">FrameRate.framesPerSecond</a></td><td><p>Returns the approximate number of frames per second.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_isValid">FrameRate.isValid</a></td><td><p>Reports whether both parts are positive.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_numerator">FrameRate.numerator</a></td><td><p>Returns the rate numerator, in frames.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h2 id="detailed-reference">Detailed reference</h2>
+<h3 id="namespaces">Namespaces</h3>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Video" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Video</span> <a class="api-item-permalink" href="#namespace_Video" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Video</span>.</p>
+<h3 id="namespace_Video_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Clip">Video.Clip</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns or indexes a silent sequence of equal-sized image frames.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate">Video.FrameRate</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes an exact number of video frames per second.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h3 id="types">Types</h3>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Video_Clip" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.Clip</span> <a class="api-item-permalink" href="#Video_Clip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L21">src</a></div>
+<p>Owns or indexes a silent sequence of equal-sized image frames.</p>
+<p>A clip created with <a href="#Video_Clip_create">Video.Clip.create</a> owns every image added to it. A clip decoded from memory owns a copy of the encoded bytes. A file-backed clip keeps only the source path and frame offsets; keep that file available while calling <a href="#Video_Clip_decodeFrame">Video.Clip.decodeFrame</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Clip">Clip</a></span></span></div>
+</section>
+<h3 id="Video_Clip_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Clip_addFrame">addFrame</a></td><td><p>Adds an owned copy of one frame to a created clip.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_create">create</a></td><td><p>Creates an empty clip with fixed geometry and timing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_decode">decode</a></td><td><p>Decodes and indexes a complete encoded memory buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_decodeFrame">decodeFrame</a></td><td><p>Decodes one frame to an owned RGB8 image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_durationInSeconds">durationInSeconds</a></td><td><p>Returns the clip duration in seconds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_encode">encode</a></td><td><p>Encodes the clip to an owned segmented memory buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_encodeToBytes">encodeToBytes</a></td><td><p>Encodes the clip to one contiguous owned byte array.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_frameCount">frameCount</a></td><td><p>Returns the number of frames in the clip.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_frameRate">frameRate</a></td><td><p>Returns the exact frame rate.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_height">height</a></td><td><p>Returns the frame height, in pixels.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_isValid">isValid</a></td><td><p>Reports whether the clip has valid geometry and timing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_load">load</a></td><td><p>Loads and indexes a YUV4MPEG2 file without decoding its frame pixels.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_save">save</a></td><td><p>Encodes the clip and writes it to <span class="code-inline">fileName</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_sourcePath">sourcePath</a></td><td><p>Returns the file used by <a href="#Video_Clip_load">Video.Clip.load</a>, or an empty string otherwise.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Clip_width">width</a></td><td><p>Returns the frame width, in pixels.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Video_FrameRate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.FrameRate</span> <a class="api-item-permalink" href="#Video_FrameRate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L11">src</a></div>
+<p>Describes an exact number of video frames per second.</p>
+<p>The rate is <span class="code-inline">numerator / denominator</span>. Both parts are positive and remain unchanged, so broadcast rates such as <span class="code-inline">30000 / 1001</span> do not lose precision.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span></span></div>
+</section>
+<h3 id="Video_FrameRate_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_FrameRate_create">create</a></td><td><p>Creates an exact positive frame rate.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_denominator">denominator</a></td><td><p>Returns the rate denominator, in seconds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_framesPerSecond">framesPerSecond</a></td><td><p>Returns the approximate number of frames per second.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_isValid">isValid</a></td><td><p>Reports whether both parts are positive.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_FrameRate_numerator">numerator</a></td><td><p>Returns the rate numerator, in frames.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="functions">Functions</h3>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_addFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.addFrame</span> <a class="api-item-permalink" href="#Video_Clip_addFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L89">src</a></div>
+<p>Adds an owned copy of one frame to a created clip.</p>
+<p>The image dimensions must match the clip. All four 8-bit Pixel RGB and BGR formats are accepted; alpha is retained in memory and discarded only when encoding YUV4MPEG2. Frames cannot be appended to a loaded or decoded clip.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addFrame</span>(frame: <span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.create</span> <a class="api-item-permalink" href="#Video_Clip_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L43">src</a></div>
+<p>Creates an empty clip with fixed geometry and timing.</p>
+<p>Add at least one matching frame before encoding or saving it. Fails when dimensions are not positive or the frame rate is invalid.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>, frameRate: <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span>)-&gt;<span class="SCst"><a href="#Video_Clip">Clip</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.decode</span> <a class="api-item-permalink" href="#Video_Clip_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L123">src</a></div>
+<p>Decodes and indexes a complete encoded memory buffer.</p>
+<p><span class="code-inline">fileName</span> selects the codec by extension. The returned clip owns a copy of <span class="code-inline">bytes</span>, and later frame decoding does not borrow the caller's buffer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(fileName: <span class="STpe">string</span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Video_Clip">Clip</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_decodeFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.decodeFrame</span> <a class="api-item-permalink" href="#Video_Clip_decodeFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L105">src</a></div>
+<p>Decodes one frame to an owned RGB8 image.</p>
+<p><span class="code-inline">index</span> is zero-based and must be smaller than <a href="#Video_Clip_frameCount">Video.Clip.frameCount</a>. Created clips return a copy of their stored image. File-backed clips reopen their source and read only the selected YUV4MPEG2 payload.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decodeFrame</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_durationInSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.durationInSeconds</span> <a class="api-item-permalink" href="#Video_Clip_durationInSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L74">src</a></div>
+<p>Returns the clip duration in seconds.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">durationInSeconds</span>()-&gt;<span class="STpe">f64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.encode</span> <a class="api-item-permalink" href="#Video_Clip_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L166">src</a></div>
+<p>Encodes the clip to an owned segmented memory buffer.</p>
+<p><span class="code-inline">fileName</span> selects the codec by extension; no file is opened. YUV4MPEG2 encoding uses progressive 8-bit 4:4:4 limited-range BT.601 YCbCr and carries no audio. Fails when the clip has no frame.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.encodeToBytes</span> <a class="api-item-permalink" href="#Video_Clip_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L179">src</a></div>
+<p>Encodes the clip to one contiguous owned byte array.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_frameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.frameCount</span> <a class="api-item-permalink" href="#Video_Clip_frameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L71">src</a></div>
+<p>Returns the number of frames in the clip.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .sourceKind == .<span class="SCst">Frames</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_frameRate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.frameRate</span> <a class="api-item-permalink" href="#Video_Clip_frameRate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L68">src</a></div>
+<p>Returns the exact frame rate.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameRate</span>()-&gt;<span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_height" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.height</span> <a class="api-item-permalink" href="#Video_Clip_height" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L65">src</a></div>
+<p>Returns the frame height, in pixels.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">height</span>()-&gt;<span class="STpe">s32</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.isValid</span> <a class="api-item-permalink" href="#Video_Clip_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L59">src</a></div>
+<p>Reports whether the clip has valid geometry and timing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span> =&gt; .frameWidth &gt; <span class="SNum">0</span> <span class="SLgc">and</span> .frameHeight &gt; <span class="SNum">0</span> <span class="SLgc">and</span> .rate.<span class="SFct">isValid</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.load</span> <a class="api-item-permalink" href="#Video_Clip_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L144">src</a></div>
+<p>Loads and indexes a YUV4MPEG2 file without decoding its frame pixels.</p>
+<p>The file is reopened by <a href="#Video_Clip_decodeFrame">Video.Clip.decodeFrame</a>, so it must remain available and unchanged for the lifetime of the loaded clip.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Video_Clip">Clip</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.save</span> <a class="api-item-permalink" href="#Video_Clip_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L190">src</a></div>
+<p>Encodes the clip and writes it to <span class="code-inline">fileName</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_sourcePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.sourcePath</span> <a class="api-item-permalink" href="#Video_Clip_sourcePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L82">src</a></div>
+<p>Returns the file used by <a href="#Video_Clip_load">Video.Clip.load</a>, or an empty string otherwise.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Clip_width" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.width</span> <a class="api-item-permalink" href="#Video_Clip_width" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L62">src</a></div>
+<p>Returns the frame width, in pixels.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">width</span>()-&gt;<span class="STpe">s32</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_FrameRate_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.create</span> <a class="api-item-permalink" href="#Video_FrameRate_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L25">src</a></div>
+<p>Creates an exact positive frame rate.</p>
+<p>Fails when either part is zero.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(numerator, denominator: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_FrameRate_denominator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.denominator</span> <a class="api-item-permalink" href="#Video_FrameRate_denominator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L36">src</a></div>
+<p>Returns the rate denominator, in seconds.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">denominator</span>()-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_FrameRate_framesPerSecond" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.framesPerSecond</span> <a class="api-item-permalink" href="#Video_FrameRate_framesPerSecond" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L39">src</a></div>
+<p>Returns the approximate number of frames per second.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">framesPerSecond</span>()-&gt;<span class="STpe">f64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_FrameRate_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.isValid</span> <a class="api-item-permalink" href="#Video_FrameRate_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L47">src</a></div>
+<p>Reports whether both parts are positive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span> =&gt; .numeratorValue != <span class="SNum">0</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_FrameRate_numerator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.numerator</span> <a class="api-item-permalink" href="#Video_FrameRate_numerator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L33">src</a></div>
+<p>Returns the rate numerator, in frames.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">numerator</span>()-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+</section>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
+</footer>
+</section>
+</main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section",
+        v: "field", k: "case"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            if (left.item.name === right.item.name)
+                return 0;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|Video|namespace_Video|",
+"s|Video.Clip|Video_Clip|Owns or indexes a silent sequence of equal-sized image frames.",
+"s|Video.FrameRate|Video_FrameRate|Describes an exact number of video frames per second.",
+"f|Video.Clip.addFrame|Video_Clip_addFrame|Adds an owned copy of one frame to a created clip.",
+"f|Video.Clip.create|Video_Clip_create|Creates an empty clip with fixed geometry and timing.",
+"f|Video.Clip.decode|Video_Clip_decode|Decodes and indexes a complete encoded memory buffer.",
+"f|Video.Clip.decodeFrame|Video_Clip_decodeFrame|Decodes one frame to an owned RGB8 image.",
+"f|Video.Clip.durationInSeconds|Video_Clip_durationInSeconds|Returns the clip duration in seconds.",
+"f|Video.Clip.encode|Video_Clip_encode|Encodes the clip to an owned segmented memory buffer.",
+"f|Video.Clip.encodeToBytes|Video_Clip_encodeToBytes|Encodes the clip to one contiguous owned byte array.",
+"f|Video.Clip.frameCount|Video_Clip_frameCount|Returns the number of frames in the clip.",
+"f|Video.Clip.frameRate|Video_Clip_frameRate|Returns the exact frame rate.",
+"f|Video.Clip.height|Video_Clip_height|Returns the frame height, in pixels.",
+"f|Video.Clip.isValid|Video_Clip_isValid|Reports whether the clip has valid geometry and timing.",
+"f|Video.Clip.load|Video_Clip_load|Loads and indexes a YUV4MPEG2 file without decoding its frame pixels.",
+"f|Video.Clip.save|Video_Clip_save|Encodes the clip and writes it to fileName.",
+"f|Video.Clip.sourcePath|Video_Clip_sourcePath|Returns the file used by Video.Clip.load, or an empty string otherwise.",
+"f|Video.Clip.width|Video_Clip_width|Returns the frame width, in pixels.",
+"f|Video.FrameRate.create|Video_FrameRate_create|Creates an exact positive frame rate.",
+"f|Video.FrameRate.denominator|Video_FrameRate_denominator|Returns the rate denominator, in seconds.",
+"f|Video.FrameRate.framesPerSecond|Video_FrameRate_framesPerSecond|Returns the approximate number of frames per second.",
+"f|Video.FrameRate.isValid|Video_FrameRate_isValid|Reports whether both parts are positive.",
+"f|Video.FrameRate.numerator|Video_FrameRate_numerator|Returns the rate numerator, in frames.",
+"h|Reading and writing video|guide_Reading_and_writing_video|",
+]);
+</script>
+</body>
+</html>

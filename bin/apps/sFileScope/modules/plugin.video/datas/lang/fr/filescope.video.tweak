@@ -1,0 +1,11 @@
+# French strings of the sFileScope video viewer. A key omitted here keeps its English value.
+
+ui_TipPlay       Lire
+ui_TipPause      Mettre en pause
+ui_TipStop       Arrêter
+ui_TipSeek       Rechercher une image
+ui_ErrDecode     Cette vidéo YUV4MPEG2 n'a pas pu être décodée.
+ui_DetailsError  YUV4MPEG2 · échec du décodage
+
+word_Frame       image
+word_Frames      images

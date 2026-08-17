@@ -186,6 +186,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | WAV PCM and float | `.wav` | full, streamed | ADPCM | T-169 |
+| Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | compressed codecs and audio | T-420 |
 | Compressed audio | `.mp3` `.flac` `.ogg` `.opus` `.m4a` | structure | Audio codec, then a viewer path | T-404 |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | signature | box, EBML and RIFF tree | T-412 |
 | Video playback | `.mp4` `.mkv` `.webm` `.mov` | none | decode and play the picture | T-420 |
@@ -340,18 +341,15 @@ viewer" claim is currently weakest. Read the `Today` column as:
   displayed, with the metadata panel from T-405 beside it.
 - Related: T-405
 
-### T-420 — A video file cannot be played
+### T-420 — Common compressed video cannot be played
 
-- Intent: a video opens on its signature line and nothing else. This is not a decision to stay out
-  of the format — it is the largest thing still missing, and it will be done.
+- Intent: the YUV4MPEG2 proof of concept establishes the standard Video module, silent frame
+  streaming, and `plugin.video`, but the videos people encounter still open on their signature
+  line because no compressed picture codec or mainstream container is decoded.
 - Complete when: a `plugin.video` shows the picture with transport, a seekable timeline and the
-  frame position, streaming from the container rather than decoding the file up front, and the
-  registry moves the video extensions off the binary line for playback while T-412 keeps the
-  structure reading available as a second viewer for the same file.
-- Note on sequencing, not on scope: the picture needs a decoder Swag does not have yet, so the
-  honest order is the container first (T-412), then a decoder, then this. Start from the codecs a
-  reader actually meets — H.264 in MP4, VP9 and AV1 in WebM and Matroska — and treat audio through
-  `std/audio` and synchronization as part of this entry rather than a separate one.
+  frame position for H.264 in MP4 and VP9 or AV1 in WebM and Matroska, and the registry moves those
+  extensions off the binary line for playback while T-412 keeps the structure reader available as
+  a second viewer. Audio uses `std/audio` and stays synchronized with the picture.
 - Related: T-412, T-404
 
 ### T-415 — EPUB stops at the ZIP structure

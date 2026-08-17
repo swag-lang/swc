@@ -211,6 +211,28 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(htmlParseLength(&pool, "auto", context).length.isAuto())
 }
 
+// Polygonal clip paths remain paintable decorations rather than being treated as unsupported
+// masks, which is what gives documentation overview cards their cut corners and visible fill.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(120, 80)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, "<style>.cut{width:80px;height:50px;background:#f00;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}</style><div class='cut'></div>")
+    view.resize(120, 80)
+    view.applyLayout()
+    view.rebuild()
+
+    let node  = findClass(&view.document, "cut")
+    let style = view.layout.constStyle(view.layout.constBox(view.boxOfNode(node)).style)
+    @assert(style.clipPath != HtmlNoNode)
+    @assert(!style.masked)
+
+    var image = host.render(view)
+    @assert(image.isValid())
+}
+
 // Every color notation a document uses reads back as the same paint.
 #test
 {
@@ -856,16 +878,21 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.stopLoading()
 }
 
-// Pins the visible generated API frame: centered header content, independent navigation rail,
-// section ornaments, note fills, and table alignment all pass through the production HTML view.
+// Pins the generated API page in the browser reference's light palette and wide viewport: the
+// overview cut, typography, section ornaments, note fills, and table alignment all pass through
+// the production HTML view.
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(960, 680)
+    host.setup(1660, 1324)
     defer host.shutdown()
 
+    host.theme.setSwagLight()
+    host.app.notifyThemeChanged()
+    host.notify(.ThemeChanged)
+
     let view = HtmlView.createFile(&host.root, guiFixturePath("std.pixel.html"))
-    view.resize(960, 680)
+    view.resize(1660, 1324)
     view.applyLayout()
     view.rebuild()
     view.streamStep()

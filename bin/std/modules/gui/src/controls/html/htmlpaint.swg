@@ -111,6 +111,12 @@ impl HtmlPainter
     // Fills the background and strokes the borders of one box.
     private mtd paintDecorations(rect: Math.Rectangle, style: const *HtmlComputedStyle, alpha: f32)
     {
+        if style.clipPath != HtmlNoNode
+        {
+            .paintClippedDecorations(rect, style, alpha)
+            return
+        }
+
         let radius = Math.max(Math.max(style.radiusTopLeft, style.radiusTopRight), Math.max(style.radiusBottomRight, style.radiusBottomLeft))
         if style.background.a and !style.masked
         {
@@ -181,6 +187,79 @@ impl HtmlPainter
             else do
                 .fillSide(inRight, top, style.borderRight.width, bottom - top, color)
         }
+    }
+
+    // Resolves `polygon()` pairs against the painted border box. This covers the generated
+    // documentation's cut cards, tags, and outline buttons while retaining the same percentage
+    // and `calc()` rules as the rest of the style engine.
+    private mtd clipPolygon(rect: Math.Rectangle, style: const *HtmlComputedStyle)->Array'Math.Vector2
+    {
+        var result: retval
+        let parsed = htmlFunctionArguments(.layout.pool.text(style.clipPath), "polygon")
+        if !parsed.matched or parsed.arguments.count < 3 do
+            return result
+
+        var values:  HtmlValuePool
+        var context: HtmlLengthContext
+        context.fontSize       = style.fontSize
+        context.rootFontSize   = .layout.defaults.fontSize
+        context.viewportWidth  = .layout.viewport.x
+        context.viewportHeight = .layout.viewport.y
+        context.hasBasis       = true
+
+        for argument in parsed.arguments
+        {
+            let coordinates = htmlSplitValue(argument.toString())
+            if coordinates.count != 2
+            {
+                result.clear()
+                return result
+            }
+
+            context.basis = rect.width
+            let x  = htmlParseLength(&values, coordinates[0].toString(), context)
+            let px = x.length.resolve(&values, context)
+            context.basis = rect.height
+            let y  = htmlParseLength(&values, coordinates[1].toString(), context)
+            let py = y.length.resolve(&values, context)
+            if !x.matched or !y.matched
+            {
+                result.clear()
+                return result
+            }
+
+            result.add(HtmlPainter.point(rect.x + px, rect.y + py))
+        }
+
+        return result
+    }
+
+    // Paints a clipped fill and, when the four border sides form one outline, traces that same
+    // polygon. Different side colors are intentionally omitted: clipping each of those sides
+    // needs polygon intersection rather than a misleading rectangular approximation.
+    private mtd paintClippedDecorations(rect: Math.Rectangle, style: const *HtmlComputedStyle, alpha: f32)
+    {
+        var points = .clipPolygon(rect, style)
+        if points.count < 3 do
+            return
+
+        if style.background.a and !style.masked do
+            .painter.fillPolygon(points.toSlice(), Brush.createSolid(HtmlPainter.withAlpha(style.background, alpha)))
+
+        let border = &style.borderTop
+        if border.width <= 0 or border.style == .None or !border.color.a do
+            return
+        if style.borderRight.width != border.width or style.borderBottom.width != border.width or style.borderLeft.width != border.width do
+            return
+        if style.borderRight.color != border.color or style.borderBottom.color != border.color or style.borderLeft.color != border.color do
+            return
+
+        var path: LinePath
+        path.start(points[0].x, points[0].y)
+        for index in 1 until points.count do
+            path.lineTo(points[index].x, points[index].y)
+        path.close()
+        .painter.drawPath(&path, HtmlPainter.withAlpha(border.color, alpha), border.width)
     }
 
     // Reports whether the four sides differ enough for the diagonal between them to be visible.

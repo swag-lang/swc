@@ -313,9 +313,10 @@ public struct HtmlComputedStyle
     content:    u32 = HtmlNoNode
     hasContent: bool
 
-    // A box whose fill is cut by a mask this engine cannot apply. Painting the fill whole would
-    // put a solid block where a shape belongs, which reads worse than drawing nothing.
-    masked: bool
+    // Masks remain an unsupported image operation. A polygonal clip path is kept separately so
+    // the painter can cut ordinary fills and outlines instead of dropping the decorated box.
+    masked:   bool
+    clipPath: u32 = HtmlNoNode
 }
 
 impl HtmlEdges
@@ -1015,8 +1016,11 @@ impl HtmlComputedStyle
             if number.eat do
                 .opacity = Math.clamp(number.value, 0, 1)
 
-        case .Mask, .MaskImage, .WebkitMask, .WebkitMaskImage, .ClipPath:
+        case .Mask, .MaskImage, .WebkitMask, .WebkitMaskImage:
             .masked = value != "none"
+
+        case .ClipPath:
+            .clipPath = value == "none" ? HtmlNoNode : context.pool.addString(value)
 
         case .Visibility:
             .visible = value != "hidden" and value != "collapse"

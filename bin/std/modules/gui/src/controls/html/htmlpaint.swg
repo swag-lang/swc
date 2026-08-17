@@ -376,21 +376,23 @@ impl HtmlPainter
             if !item.visible do
                 continue
 
-            let x = item.x + offset.x
-            let y = item.y + offset.y
-            if y > .visible.bottom() or y + item.ascent + item.descent < .visible.y do
-                continue
-
             let style = .layout.constStyle(item.style)
             if !style.visible do
                 continue
 
+            // An atomic inline owns a real box, whose extent can be much taller than the font
+            // metrics carried by its line item. Let paintBox prune it by that box's bounds.
             if item.kind == .Atomic
             {
                 if item.box != HtmlNoNode do
                     .paintBox(item.box, offset, alpha * style.opacity)
                 continue
             }
+
+            let x = item.x + offset.x
+            let y = item.y + offset.y
+            if y > .visible.bottom() or y + item.ascent + item.descent < .visible.y do
+                continue
 
             if style.background.a
             {

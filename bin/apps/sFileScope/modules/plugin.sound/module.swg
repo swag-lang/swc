@@ -1,5 +1,5 @@
 #import("gui", location: "swag@std")
-#import("plugin.api")
+#load("../../shared/pluginapi.swg")
 #import("audio", location: "swag@std")
 
 #run

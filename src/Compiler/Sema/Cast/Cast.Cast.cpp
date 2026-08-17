@@ -1614,6 +1614,13 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
+    // '#move x' hands over storage, not a value, and an 'opCast' operator is called on a value.
+    // Rescuing a move reference with one selects an operator declared on the pointee for an
+    // operand that has none, and code generation then has nothing to pass: it used to assert
+    // while preparing the call. A move that no value route accepted is simply not a conversion.
+    if (res != Result::Continue && srcType.isMoveReference())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
     if (res != Result::Continue)
     {
         SymbolFunction*     calledFn = nullptr;

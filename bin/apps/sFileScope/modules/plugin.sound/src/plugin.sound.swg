@@ -1,6 +1,6 @@
 #global public
 
-using Core, Pixel, Gui, Audio, FileScopePluginApi, Threading
+using Core, Pixel, Gui, Audio, Threading
 
 private const SoundGlyphSize = 18.0
 
@@ -608,13 +608,14 @@ internal impl SoundPluginView
 }
 
 // Creates the WAV playback and waveform view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
+func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
-    if apiVersion != ViewerPluginApiVersion do
-        return null
-    let view = SoundPluginView.create(contentParent, commandParent, fileName)
-    revealMatch[] = null
-    commands[] = view.commands
-    details[] = view.details
-    return view
+    if request.apiVersion != ViewerPluginApiVersion do
+        return false
+
+    let view = SoundPluginView.create(request.contentParent, request.commandParent, request.fileName)
+    result.view     = view
+    result.commands = view.commands
+    result.details  = view.details
+    return true
 }

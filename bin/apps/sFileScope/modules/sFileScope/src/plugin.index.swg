@@ -1,4 +1,4 @@
-using Core, Core.Errors, Gui, FileScopePluginApi
+using Core, Core.Errors, Gui
 
 // One viewer plugin associated with a set of lowercase filename extensions.
 struct ViewerPluginSpec
@@ -201,12 +201,12 @@ impl ViewerPluginManager
     }
 
     // Creates one selected plugin view, loading its library when first needed.
-    mtd createView(contentParent, commandParent: *Wnd, fileName: string, spec: const *ViewerPluginSpec, directory: string, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd fail
+    mtd createView(request: const *ViewerRequest, result: *ViewerResult, spec: const *ViewerPluginSpec, directory: string) fail
     {
         let plugin = try .plugin(spec, directory)
-        let view   = plugin.create(contentParent, commandParent, fileName, ViewerPluginApiVersion, commands, details, revealMatch)
-        if !view do
+        if !plugin.create(request, result) do
             fail UnsupportedFormatError{"viewer plugin does not support this API version"}
-        return view!
+        if !result.view do
+            fail UnsupportedFormatError{"viewer plugin accepted the request without producing a view"}
     }
 }

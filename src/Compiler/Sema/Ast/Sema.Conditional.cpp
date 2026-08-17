@@ -264,6 +264,14 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeFalseView));
     sema.setIsValue(*this);
 
+    // A branch is a value the join produces, so it cannot transfer ownership: only a '#move'
+    // parameter receives a move reference, and a conditional is not one. Both branches are
+    // checked here so the two spellings report the same thing — a '#move' in the true branch
+    // used to be caught later, by the deduced storage type, and one in the false branch not
+    // at all.
+    SWC_RESULT(SemaCheck::noMoveRefType(sema, nodeTrueView.typeRef(), sema.node(nodeTrueRef).codeRef()));
+    SWC_RESULT(SemaCheck::noMoveRefType(sema, nodeFalseView.typeRef(), sema.node(nodeFalseRef).codeRef()));
+
     // Condition must be bool
     SWC_RESULT(SemaCheck::castToBool(sema, nodeCondView));
 

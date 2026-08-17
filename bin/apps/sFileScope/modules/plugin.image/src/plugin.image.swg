@@ -1,6 +1,6 @@
 #global public
 
-using Core, Pixel, Gui, FileScopePluginApi
+using Core, Pixel, Gui
 
 private const ImageGlyphSize = 18.0
 private const ImageCommandWidth = 362.0
@@ -288,13 +288,14 @@ private impl ImagePluginView
 }
 
 // Creates the image view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
+func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
-    if apiVersion != ViewerPluginApiVersion do
-        return null
-    let view = ImagePluginView.create(contentParent, commandParent, fileName)
-    revealMatch[] = null
-    commands[] = view.commands
-    details[] = view.details
-    return view
+    if request.apiVersion != ViewerPluginApiVersion do
+        return false
+
+    let view = ImagePluginView.create(request.contentParent, request.commandParent, request.fileName)
+    result.view     = view
+    result.commands = view.commands
+    result.details  = view.details
+    return true
 }

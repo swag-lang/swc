@@ -138,6 +138,25 @@ private func workspaceModuleCommand(verb: string, workspace: string, module: str
     return result
 }
 
+// Reports whether the test phase of one workspace test command compiled `module`.
+//
+// A test run builds the workspace first, so a dependent finds the interface a test compile never
+// publishes. Both phases then report the same module, and only the test one states a test count:
+// that is what tells a reused build apart from a reused test, without reading a file count that
+// moves whenever the fixture gains a source.
+private func testPhaseCompiled(output, module: string)->bool
+{
+    for line in Tokenize.splitLines(output)
+    {
+        if Utf8.contains(line, "workspace") do
+            continue
+        if Utf8.contains(line, module) and Utf8.contains(line, "tests") and !Utf8.contains(line, "up-to-date") do
+            return true
+    }
+
+    return false
+}
+
 // Runs the multi-module workspace suite.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
@@ -246,7 +265,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
-    if verifiedAgain.contains("verify_expectations • up-to-date")
+    if !testPhaseCompiled(verifiedAgain.toString(), "verify_expectations")
     {
         Console.println("Workspace test reused a module with source-driven Verify directives.")
         return 1

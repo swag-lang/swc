@@ -1682,6 +1682,30 @@ namespace
         const std::scoped_lock lock(mutex);
         return claimedModules.insert(moduleName).second;
     }
+
+    // The standard library as a whole, built on demand at most once per compiler process.
+    //
+    // The claim above answers for one module; this one answers for the set. A module that imports
+    // several standard roots used to discover them one at a time and build each on its own, which
+    // interleaves building with loading: the first root's build maps 'core.dll' from the workspace
+    // mirror for compile-time execution, and the next root's build then has to publish another
+    // 'core.dll' over the file this very process is running. Building the set in one workspace run
+    // resolves the shared dependency once, before any of it is loaded.
+    //
+    // `claim` takes that single build; without it the call only reports whether it was taken.
+    bool onDemandStdWorkspaceBuild(const bool claim)
+    {
+        static std::mutex mutex;
+        static bool       claimed = false;
+
+        const std::scoped_lock lock(mutex);
+        if (!claim)
+            return claimed;
+        if (claimed)
+            return false;
+        claimed = true;
+        return true;
+    }
 }
 
 struct ModuleSetupInputApplier
@@ -1697,25 +1721,27 @@ struct ModuleSetupInputApplier
 
     explicit ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext);
 
-    Result apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot);
-    Result resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    Result resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    bool   mirrorsDependencies() const;
-    Result mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    Result mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    bool   tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    bool   canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const;
-    Result buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest);
-    Result resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
-    Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
+    Result      apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot);
+    Result      resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    Result      resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    bool        mirrorsDependencies() const;
+    Result      mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    Result      mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    Result      mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    bool        tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    bool        canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const;
+    CommandLine makeSwagStdBuildCommandLine(const fs::path& workspacePath, std::string_view moduleFilter) const;
+    Result      buildSwagStdWorkspaceOnDemand(std::span<const CompilerInstance::ModuleSetupImport> imports);
+    Result      buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest);
+    Result      resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
+    Result      captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
     // Parsing+sema'ing a dependency's .dep metadata file is expensive and the same file is reached
     // by both the processImports walk and the collectDependencyClosure walk (and by multiple
     // importers of a shared dependency). Cache the resulting import list keyed by the resolved .dep
     // path so each metadata file is captured at most once per setup.
-    Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
-    Result collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot);
-    Result processImports(std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot, bool recordDirectImports);
+    Result      captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
+    Result      collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot);
+    Result      processImports(std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot, bool recordDirectImports);
 
     CompilerInstance& instance() const
     {
@@ -1753,6 +1779,7 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
     instance().nativeRuntimeImports_.clear();
     instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
 
+    SWC_RESULT(buildSwagStdWorkspaceOnDemand(setupSnapshot.imports));
     SWC_RESULT(processImports(setupSnapshot.imports, nullptr, true));
 
     for (const fs::path& filePath : setupSnapshot.loadedFiles)
@@ -1905,10 +1932,49 @@ bool ModuleSetupInputApplier::canBuildSwagStdModuleOnDemand(const CompilerInstan
     return importRequest.location == "swag@std";
 }
 
+// Builds every standard root one module setup names, in a single workspace run, when it names more
+// than one. Each root would otherwise be built on its own, and the shared dependency underneath
+// them — `core` — would be published again for each, over the copy the first build already mapped
+// into this process. One run resolves that dependency once. A setup naming a single root keeps the
+// narrow build: nothing else in the library has to exist for it.
+Result ModuleSetupInputApplier::buildSwagStdWorkspaceOnDemand(std::span<const CompilerInstance::ModuleSetupImport> imports)
+{
+    std::unordered_set<Utf8> stdModules;
+    for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
+    {
+        if (canBuildSwagStdModuleOnDemand(importRequest))
+            stdModules.insert(importRequest.moduleName);
+    }
+
+    if (stdModules.size() < 2)
+        return Result::Continue;
+    if (!onDemandStdWorkspaceBuild(true))
+        return Result::Continue;
+
+    fs::path workspacePath;
+    SWC_RESULT(resolveSwagStdWorkspaceRoot(workspacePath, taskCtx()));
+
+    Utf8 because;
+    if (FileSystem::resolveExistingFolder(workspacePath, because) != Result::Continue)
+        return Result::Continue;
+
+    CommandLine      stdCmdLine = makeSwagStdBuildCommandLine(workspacePath, {});
+    CompilerInstance stdCompiler(instance().global(), stdCmdLine);
+    if (stdCompiler.runWorkspace() != ExitCode::Success)
+        return Result::Error;
+
+    return Result::Continue;
+}
+
 Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest)
 {
     outBuilt = false;
     if (!canBuildSwagStdModuleOnDemand(importRequest))
+        return Result::Continue;
+
+    // The whole library was already built in this process, so there is nothing left to produce and
+    // nothing to gain from replacing a shared library this process may already have mapped.
+    if (onDemandStdWorkspaceBuild(false))
         return Result::Continue;
 
     if (!claimOnDemandStdModuleBuild(importRequest.moduleName))
@@ -1927,6 +1993,20 @@ Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const
     if (FileSystem::resolveExistingFolder(moduleDir, because) != Result::Continue)
         return Result::Continue;
 
+    CommandLine      stdCmdLine = makeSwagStdBuildCommandLine(workspacePath, importRequest.moduleName.view());
+    CompilerInstance stdCompiler(instance().global(), stdCmdLine);
+    if (stdCompiler.runWorkspace() != ExitCode::Success)
+        return Result::Error;
+
+    outBuilt = true;
+    return Result::Continue;
+}
+
+// The command line a nested standard-library build runs under: an ordinary workspace build of the
+// library, narrowed to `moduleFilter` when one is given, and never a script — nothing it imports
+// can come back here, so this cannot recurse.
+CommandLine ModuleSetupInputApplier::makeSwagStdBuildCommandLine(const fs::path& workspacePath, const std::string_view moduleFilter) const
+{
     CommandLine stdCmdLine           = instance().cmdLine();
     stdCmdLine.command               = CommandKind::Build;
     stdCmdLine.commandExplicit       = true;
@@ -1934,7 +2014,7 @@ Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const
     stdCmdLine.sourceDrivenTest      = false;
     stdCmdLine.publish               = false;
     stdCmdLine.workspacePath         = workspacePath;
-    stdCmdLine.workspaceModuleFilter = importRequest.moduleName;
+    stdCmdLine.workspaceModuleFilter = moduleFilter;
     stdCmdLine.moduleFilePath.clear();
     stdCmdLine.modulePath.clear();
     stdCmdLine.directories.clear();
@@ -1951,18 +2031,21 @@ Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const
     stdCmdLine.workDirExplicit = false;
     stdCmdLine.name.clear();
     stdCmdLine.artifactNameExplicit = false;
+    // What the requester asked to be built for itself says nothing about the library it depends
+    // on: each standard module states its own artifact kind and namespace, and this build must be
+    // the same one `tools/std.swgs` runs. Inheriting them turns `--artifact-kind executable` into
+    // "link every standard module as a program" and `--module-namespace X` into "call them all X".
+    stdCmdLine.backendKind          = Runtime::BuildCfgBackendKind::Executable;
+    stdCmdLine.artifactKindExplicit = false;
+    stdCmdLine.moduleNamespace.clear();
+    stdCmdLine.moduleNamespaceStorage.clear();
+    stdCmdLine.moduleNamespaceExplicit = false;
     // This nested build can be the first code to load and initialize a standard-library DLL.
     // Those lifecycle hooks are process-wide, so they must inherit the effective arguments of
     // the program that requested the build before their one-time guards close over the state.
     stdCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(instance().cmdLine());
     CommandLineParser::refreshBuildCfg(stdCmdLine);
-
-    CompilerInstance stdCompiler(instance().global(), stdCmdLine);
-    if (stdCompiler.runWorkspace() != ExitCode::Success)
-        return Result::Error;
-
-    outBuilt = true;
-    return Result::Continue;
+    return stdCmdLine;
 }
 
 bool ModuleSetupInputApplier::tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
@@ -2285,6 +2368,34 @@ namespace
     }
 }
 
+// Builds the same workspace selection this test run covers, so every module that a tested module
+// imports has published its interface and its link artifacts before the tests are compiled. The
+// nested run is an ordinary build: its command is not `test`, so it cannot come back here.
+ExitCode CompilerInstance::runWorkspacePublishPass() const
+{
+    // `publish` is deliberately inherited: this is a build of the workspace under test, and a link
+    // that does not publish *removes* the runtime files a previous link put beside the artifact.
+    CommandLine buildCmdLine      = cmdLine();
+    buildCmdLine.command          = CommandKind::Build;
+    buildCmdLine.commandExplicit  = true;
+    buildCmdLine.sourceDrivenTest = false;
+    buildCmdLine.outDir.clear();
+    buildCmdLine.workDir.clear();
+    buildCmdLine.outDirStorage.clear();
+    buildCmdLine.workDirStorage.clear();
+    buildCmdLine.outDirExplicit  = false;
+    buildCmdLine.workDirExplicit = false;
+    // This pass can be the first code in the process to load and initialize a shared module, and
+    // those lifecycle hooks are process-wide: they must close over the arguments of the test run
+    // that asked for the build, not over a plain build's. Without this the isolation a test run
+    // imposes on itself is decided, once, by a build that is not under test.
+    buildCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(cmdLine());
+    CommandLineParser::refreshBuildCfg(buildCmdLine);
+
+    CompilerInstance buildCompiler(global(), buildCmdLine);
+    return buildCompiler.runWorkspace();
+}
+
 ExitCode CompilerInstance::runWorkspace()
 {
     TaskContext    ctx(*this);
@@ -2493,6 +2604,31 @@ ExitCode CompilerInstance::runWorkspace()
     workspaceBuildLogState_.filteredModules   = filteredModuleCount;
     workspaceBuildLogState_.ignoredModules    = ignoredModuleCount;
     workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
+
+    // A test compile never publishes its module's interface: it also sees test-gated declarations,
+    // and the api directory it would write into is the one every later build reads. A dependent
+    // tested in the same run still has to find that interface, so the workspace is built first and
+    // the tests then run against what the build published — the order `tools/std.swgs` already
+    // uses to test a standard-library module. The build is artifact-cached, so a repeated test run
+    // pays for it once, and a workspace whose active modules do not import one another skips it.
+    if (cmdLine().command == CommandKind::Test)
+    {
+        bool hasActiveWorkspaceDependency = false;
+        for (size_t i = 0; i < modules.size() && !hasActiveWorkspaceDependency; ++i)
+        {
+            if (!isWorkspaceModuleActive(modules[i]))
+                continue;
+            for (const size_t dependentIndex : dependents[i])
+                hasActiveWorkspaceDependency = hasActiveWorkspaceDependency || isWorkspaceModuleActive(modules[dependentIndex]);
+        }
+
+        if (hasActiveWorkspaceDependency)
+        {
+            const ExitCode buildExitCode = runWorkspacePublishPass();
+            if (buildExitCode != ExitCode::Success)
+                return buildExitCode;
+        }
+    }
 
     // A workspace narrowed down to a single module reads like a plain build, so it gets the same
     // phase-by-phase report. Any wider selection keeps one summary line per module. The choice is

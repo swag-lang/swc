@@ -960,6 +960,11 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         // like in a scalar initialization, so it can later cast to a 'typeinfo' field.
         SWC_RESULT(SemaCheck::isValueOrType(sema, view));
 
+        // A literal is materialized as a value, so a field cannot hand over storage: there is
+        // no slot for the move to land in, and the moved source has nothing left to copy from.
+        // Reported here rather than at the conversion, so the '#move' itself is what the
+        // diagnostic points at.
+        SWC_RESULT(SemaCheck::noMoveRefType(sema, view.typeRef(), sema.node(child).codeRef()));
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
 
         memberTypes.push_back(view.typeRef());

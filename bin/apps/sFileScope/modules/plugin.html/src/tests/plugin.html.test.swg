@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui, FileScopePluginApi
+using Core, Gui
 
 // The plugin remains a thin ABI adapter around the reusable GUI control.
 #test
@@ -16,11 +16,10 @@ using Core, Gui, FileScopePluginApi
     host.setup(640, 360)
     defer host.shutdown()
 
-    var commands: #null *Wnd
-    var details:  String
-    var reveal:   #null ViewerRevealMatch
-    let wnd = sFileScopePluginCreate(&host.root, &host.root, fileName, ViewerPluginApiVersion, &commands, &details, &reveal)
-    @assert(wnd != null)
-    @assert(commands == null and reveal != null)
-    @assert(Utf8.contains(details.toString(), "HTML"))
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName.toString()}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.view != null)
+    @assert(result.commands == null and result.revealMatch != null)
+    @assert(Utf8.contains(result.details.toString(), "HTML"))
 }

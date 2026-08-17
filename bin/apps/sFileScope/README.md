@@ -95,22 +95,27 @@ extensions declared by specialized plugins. Normal launches never write the regi
 
 ## Adding a plugin
 
+The contract lives in [shared/pluginapi.swg](shared/pluginapi.swg), which is not a module: the host
+and every plugin `#load` it from their own `module.swg`, so the four declarations it holds are
+compiled into each of them. A shared declaration set that carries no code does not need a module of
+its own, an entry in the build graph, or an export artifact.
+
 A plugin is a standalone shared-library module exporting:
 
 ```swag
-func sFileScopePluginCreate(contentParent, commandParent: *Gui.Wnd, fileName: string,
-                         apiVersion: u32, commands: *#null *Gui.Wnd,
-                         details: *Core.String,
-                         revealMatch: *#null func(*Gui.Wnd, u64, string)->bool)->#null *Gui.Wnd
+func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 ```
 
-Return null only when the ABI version is not supported. Put optional compact controls in one group
-under `commandParent` and return it through `commands`; return null through `commands` when the view
-needs no actions. Return a concise format-specific summary through `details`; the host combines it
-with the viewer type and file size. Decode errors belong inside a returned view so the host stays
-format-agnostic. A searchable plugin returns a `revealMatch` callback that materializes and reveals
-the bounded window containing the supplied byte offset; the host owns the asynchronous file scan.
-Packaged plugin libraries and symbols use the `plugin.<what>` naming family.
+Return false only when `request.apiVersion` is not the version the plugin implements; the host then
+declines the viewer and leaves `result` alone. Otherwise create the document view under
+`request.contentParent` and return it through `result.view`. Put optional compact controls in one
+group under `request.commandParent` and return that group through `result.commands`; leave it null
+when the view needs no actions. Return a concise format-specific summary through `result.details`;
+the host combines it with the viewer type and file size. Decode errors belong inside the returned
+view so the host stays format-agnostic. A searchable plugin returns a `result.revealMatch` callback
+that materializes and reveals the bounded window containing the supplied byte offset; the host owns
+the asynchronous file scan. Packaged plugin libraries and symbols use the `plugin.<what>` naming
+family.
 
 `swc tools/apps.swgs dm test sFileScope` tests the host and every shipped plugin as an independent
 executable. `swc tools/apps.swgs dm build sFileScope` packages the DLLs, the registry, and the Audio

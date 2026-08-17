@@ -750,7 +750,7 @@ internal namespace Win32Priv
     {
         let h = Win32Priv.CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
         if h == null do
-            try Win32.failWinError(GetLastError())
+            failWinError(GetLastError())
         return h
     }
 

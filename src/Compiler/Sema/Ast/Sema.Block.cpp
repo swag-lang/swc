@@ -43,22 +43,24 @@ namespace
         scope.addUsingSymMap(usingSymMap);
     }
 
-    // Reports whether this file is one the script states its module setup in.
+    // Reports whether this file states a module setup *and* is compiled as ordinary source.
     //
-    // That is the script itself, and every file a setup '#load' reached from it: a loaded file
-    // may state '#import' and '#load' of its own, so it is read by the same two passes under the
-    // same rule.
-    bool isScriptModuleFile(const Sema& sema)
+    // Two files answer yes. A script is its own module file, and every file a setup '#load'
+    // reaches — from a script or from a 'module.swg' — is one too: a loaded file may state
+    // '#import' and '#load' of its own, so it is read by the same two passes under the same
+    // rule. A 'module.swg' is not on this list: it is never compiled as source, so its content
+    // belongs to the setup pass whole.
+    bool isModuleSetupStatedSourceFile(const Sema& sema)
     {
-        const CommandLine& cmdLine = sema.ctx().cmdLine();
-        if (!cmdLine.scriptMode || cmdLine.moduleFilePath.empty())
-            return false;
-
         const SourceFile* file = sema.file();
         if (!file)
             return false;
         if (file->hasFlag(FileFlagsE::SetupLoaded))
             return true;
+
+        const CommandLine& cmdLine = sema.ctx().cmdLine();
+        if (!cmdLine.scriptMode || cmdLine.moduleFilePath.empty())
+            return false;
         return FileSystem::pathEquals(file->path(), cmdLine.moduleFilePath);
     }
 
@@ -83,13 +85,16 @@ namespace
 
     Result filterScriptModuleSetupChild(Sema& sema, const AstNodeRef childRef)
     {
-        if (!isScriptModuleFile(sema))
+        if (!isModuleSetupStatedSourceFile(sema))
             return Result::Continue;
 
-        // The script file is both its module-setup file and its regular source file. Process
-        // setup directives only during the setup pass, and everything else only during the
-        // regular pass. Runtime bootstrap files still need full processing in the setup unit
-        // so declarations such as `@compiler` remain visible to setup `#run` blocks.
+        // Such a file is both a module-setup file and a regular source file. Process setup
+        // directives only during the setup pass, and everything else only during the regular
+        // pass. This is what lets a loaded file declare against the module's dependencies: the
+        // setup pass runs before any import is applied, so a 'using Core' read there would name
+        // a module that does not exist yet, while the regular pass sees the whole dependency
+        // set. Runtime bootstrap files still need full processing in the setup unit so
+        // declarations such as `@compiler` remain visible to setup `#run` blocks.
         const bool setupDirective = isScriptModuleSetupChild(sema, childRef);
         if (sema.compiler().isModuleSetupMode())
             return setupDirective ? Result::Continue : Result::SkipChildren;

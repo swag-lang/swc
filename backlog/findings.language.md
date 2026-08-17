@@ -880,3 +880,28 @@ Entries are sorted by identifier, ascending; position carries no priority.
   always true; test the pointed value with '[]', or declare the pointer '#null' if absence is
   the question"). Before deciding error versus warning, survey generic instantiations that test
   `if x` where `T` arrives as a non-null pointer.
+
+## Where a move can land
+
+### F-149 — A moved value cannot initialize an aggregate literal field or a conditional branch
+
+- Area: language
+- Found while: fixing F-139, where those two expressions asserted in code generation instead of
+  being diagnosed
+- Observation: `blocks.add(MarkdownBlock{kind, #move text})` and
+  `var value = condition ? String.from("rule") : #move block.text` now report a clear error
+  rather than crashing the compiler, but both read like ordinary Swag and the language has no
+  short spelling for what they mean. The workaround is to write the move as its own statement
+  first, which costs a named temporary every time.
+- Evidence: `#move x` produces a move reference, and only a `#move` parameter consumes one. A
+  literal is materialized as a value and a conditional joins two values, so neither offers a slot
+  for the transfer to land in. `SemaCheck::noMoveRefType` states that from
+  `finalizeAggregateStruct` ([SemaHelpers.Type.cpp](../src/Compiler/Sema/Helpers/SemaHelpers.Type.cpp)),
+  `AstArrayLiteral::semaPostNode`, and `AstConditionalExpr::semaPostNode`.
+- Elsewhere: C++ and Rust both accept it. `Pair{kind, std::move(text)}` move-constructs the field,
+  and Rust moves out of a binding in any value position, a `match` arm included. No neighbouring
+  language with move semantics restricts a move to a call argument.
+- Next step: decide whether a literal field and a conditional branch should move-construct their
+  destination. The rule is not the obstacle, the lowering is: an aggregate literal is materialized
+  as one value through `emitAggregateLiteralPayload`, so a moved field needs its own store plus
+  the source's post-move invalidation instead of that path.

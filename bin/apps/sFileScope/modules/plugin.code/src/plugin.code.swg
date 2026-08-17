@@ -1,6 +1,6 @@
 #global public
 
-using Core, Pixel, Gui, FileScopePluginApi
+using Core, Pixel, Gui
 
 private const CodeStreamChunkSize = 16 * 1024'u64
 private const CodeStreamLookAhead = 2.0
@@ -311,14 +311,14 @@ internal impl IWnd for CodePluginView
 }
 
 // Creates the syntax-colored Swag source view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
+func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
-    discard commandParent
-    if apiVersion != ViewerPluginApiVersion do
-        return null
-    commands[] = null
-    let view = CodePluginView.create(contentParent, fileName)
-    revealMatch[] = func(wnd, offset, text)->bool { return (cast(*CodePluginView) wnd).revealOffset(offset, text) }
-    details[]     = Format.toString("% · UTF-8 · streamed", view.languageName)
-    return view
+    if request.apiVersion != ViewerPluginApiVersion do
+        return false
+
+    let view = CodePluginView.create(request.contentParent, request.fileName)
+    result.view        = view
+    result.details     = Format.toString("% · UTF-8 · streamed", view.languageName)
+    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*CodePluginView) wnd).revealOffset(offset, text) }
+    return true
 }

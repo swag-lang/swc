@@ -1,6 +1,6 @@
 #global public
 
-using Core, Gui, FileScopePluginApi
+using Core, Gui
 
 internal func markdownViewerStyle(themeIndex, widthIndex: u32)->MarkdownStyle
 {
@@ -100,12 +100,12 @@ internal func applyMarkdownViewerStyle(view: *MarkdownView, themeIndex, widthInd
 }
 
 // Creates the Markdown view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
+func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
-    if apiVersion != ViewerPluginApiVersion do
-        return null
+    if request.apiVersion != ViewerPluginApiVersion do
+        return false
 
-    let commandGroup = Wnd.create'Wnd(commandParent, {0, 0, 264, 36})
+    let commandGroup = Wnd.create'Wnd(request.commandParent, {0, 0, 264, 36})
     commandGroup.backgroundStyle = .Window
     let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
     widthCombo.dockStyle = .Right
@@ -128,11 +128,12 @@ func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string
     themeCombo.addItem("Whitey")
     themeCombo.setSelectedIndex(0, notify: false)
 
-    commands[] = commandGroup
-    details[]  = "Markdown · UTF-8 · streamed"
-    let view = MarkdownView.createFile(contentParent, fileName, MarkdownStyle.theme())
+    let view = MarkdownView.createFile(request.contentParent, request.fileName, MarkdownStyle.theme())
     applyMarkdownViewerStyle(view, 0, 1)
-    revealMatch[]         = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
+    result.view        = view
+    result.commands    = commandGroup
+    result.details     = "Markdown · UTF-8 · streamed"
+    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {
         discard combo
@@ -148,5 +149,6 @@ func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string
         discard markdown
         Env.openUrl(url)
     }
-    return view
+
+    return true
 }

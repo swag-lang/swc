@@ -1,4 +1,4 @@
-using Core, Pixel, Gui, Gui.Testing, FileScopePluginApi
+using Core, Pixel, Gui, Gui.Testing
 
 private func markdownFixturePath()->String
 {
@@ -20,14 +20,15 @@ private func markdownFixturePath()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    var commands:    #null *Wnd
-    var details:     String
-    var revealMatch: #null ViewerRevealMatch
-    let wnd = sFileScopePluginCreate(&host.root, &host.root, fileName, ViewerPluginApiVersion, &commands, &details, &revealMatch)
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName.toString()}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    let wnd = result.view
     @assert(wnd != null)
-    @assert(commands != null)
-    @assert(revealMatch != null)
-    @assert(Utf8.contains(details.toString(), "Markdown"))
+    @assert(result.commands != null)
+    @assert(result.revealMatch != null)
+    @assert(Utf8.contains(result.details.toString(), "Markdown"))
+    let commands = result.commands
     commands!.applyLayout()
 
     // Pointer use of either document command must return focus to the Markdown canvas after the

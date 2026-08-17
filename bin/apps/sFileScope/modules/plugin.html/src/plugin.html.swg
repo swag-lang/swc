@@ -1,22 +1,22 @@
 #global public
 
-using Core, Gui, FileScopePluginApi
+using Core, Gui
 
 // Creates the reusable HTML view through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
+func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
-    discard commandParent
-    if apiVersion != ViewerPluginApiVersion do
-        return null
+    if request.apiVersion != ViewerPluginApiVersion do
+        return false
 
-    commands[] = null
-    details[]  = "HTML · UTF-8 · streamed"
-    let view = HtmlView.createFile(contentParent, fileName)
-    revealMatch[]         = func(wnd, offset, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(offset, text) }
+    let view = HtmlView.createFile(request.contentParent, request.fileName)
+    result.view        = view
+    result.details     = "HTML · UTF-8 · streamed"
+    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(offset, text) }
     view.sigLinkActivated += func(html, url)
     {
         discard html
         Env.openUrl(url)
     }
-    return view
+
+    return true
 }

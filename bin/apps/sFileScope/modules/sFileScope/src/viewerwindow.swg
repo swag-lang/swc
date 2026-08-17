@@ -1,4 +1,4 @@
-using Core, Pixel, Gui, FileScopePluginApi
+using Core, Pixel, Gui
 
 const ViewerBarHeight       = 48.0
 const ViewerInfoHeight      = 36.0
@@ -422,42 +422,40 @@ impl ViewerWindow
             return true
         }
 
-        var nextCommands: #null *Wnd              = null
-        var nextView:     #null *Wnd              = null
-        var nextReveal:   #null ViewerRevealMatch = null
-        var nextDetails:  String                  = {}
+        var next: ViewerResult
         if choice.kind == .BasicText
         {
             let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
-            nextView     = basic
-            nextCommands = basic.commands
-            nextReveal   = &basicTextRevealMatch
-            nextDetails  = "UTF-8 · streamed"
+            next.view        = basic
+            next.commands    = basic.commands
+            next.revealMatch = &basicTextRevealMatch
+            next.details     = "UTF-8 · streamed"
         }
         else
         {
-            let spec = &.index.specs[choice.specIndex]
-            nextView = catch .plugins.createView(me, .commandBar, .currentFile.toString(), spec, .index.directory.toString(), &nextCommands, &nextDetails, &nextReveal) as pluginError
-            if pluginError != null or !nextView
+            let spec    = &.index.specs[choice.specIndex]
+            let request = ViewerRequest{ViewerPluginApiVersion, me, .commandBar, .currentFile.toString()}
+            catch .plugins.createView(&request, &next, spec, .index.directory.toString()) as pluginError
+            if pluginError != null or !next.view
             {
-                if nextCommands do
-                    nextCommands!.destroy()
+                if next.commands do
+                    next.commands!.destroy()
                 return false
             }
         }
 
         .currentCommands?.hide()
         .currentView?.hide()
-        .currentView            = nextView
-        .currentCommands        = nextCommands
+        .currentView            = next.view
+        .currentCommands        = next.commands
         .activeChoiceIndex      = index
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .Right
         instance.view        = .currentView
         instance.commands    = .currentCommands
-        instance.revealMatch = nextReveal
-        instance.details     = #move nextDetails
+        instance.revealMatch = next.revealMatch
+        instance.details     = #move next.details
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(choice.name.toString(), instance.details.toString())
         .applyLayout()

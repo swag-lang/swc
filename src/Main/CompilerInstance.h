@@ -400,6 +400,7 @@ private:
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
     ExitCode          runWorkspace();
+    ExitCode          runWorkspacePublishPass() const;
     Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleOrdinal, uint32_t moduleCount, bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);
     const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;

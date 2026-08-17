@@ -1,6 +1,6 @@
 #global public
 
-using Core, Pixel, Gui, FileScopePluginApi
+using Core, Pixel, Gui
 
 private const HexGlyphSize = 18.0
 private const HexCommandWidth = 256.0
@@ -190,13 +190,15 @@ internal impl HexPluginView
 }
 
 // Creates the hexadecimal view exported through the sFileScope plugin ABI.
-func sFileScopePluginCreate(contentParent, commandParent: *Wnd, fileName: string, apiVersion: u32, commands: *#null *Wnd, details: *String, revealMatch: *#null ViewerRevealMatch)->#null *Wnd
+func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult)->bool
 {
-    if apiVersion != ViewerPluginApiVersion do
-        return null
-    let view = HexPluginView.create(contentParent, commandParent, fileName)
-    revealMatch[] = func(wnd, offset, text)->bool { return (cast(*HexPluginView) wnd).revealOffset(offset, text) }
-    commands[]    = view.commands
-    details[]     = view.details
-    return view
+    if request.apiVersion != ViewerPluginApiVersion do
+        return false
+
+    let view = HexPluginView.create(request.contentParent, request.commandParent, request.fileName)
+    result.view        = view
+    result.commands    = view.commands
+    result.details     = view.details
+    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*HexPluginView) wnd).revealOffset(offset, text) }
+    return true
 }

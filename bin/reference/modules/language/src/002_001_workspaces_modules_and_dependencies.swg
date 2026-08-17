@@ -67,3 +67,27 @@ scope; use qualified names or a targeted 'using' declaration in source files.
 > '#load' includes source selected by the compiler, while '#import' establishes a
 > module dependency. They solve different problems and are not interchangeable.
 */
+
+/**
+# Sharing Source Between Modules
+
+'#load' belongs in 'module.swg' too, and names one extra source file by path. The
+file becomes part of the module, exactly as if it sat under 'src':
+
+```swag
+#import("gui", location: "swag@std")
+#load("../../shared/pluginapi.swg")
+```
+
+A loaded file may state '#import' and '#load' of its own, and it may declare
+against the module's dependencies: its declarations are compiled with the regular
+sources, after every import is resolved.
+
+Use it when several modules must agree on the same declarations — a version
+constant, an entry-point signature, the shape of a structure crossing a library
+boundary — and none of them owns runnable code for it. Making that agreement a
+module instead would add an entry to the build graph and an artifact under
+'.output' to publish names that carry no code. Reach for '#import' as soon as the
+shared thing has an implementation: each loading module compiles its own copy of a
+loaded file, which is what makes it the wrong tool for anything but declarations.
+*/

@@ -8,6 +8,12 @@ private func codeFixturePath(name: string)->String
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "files"), name)
 }
 
+private struct CodeLanguageSample
+{
+    language: CodeLanguage
+    source:   string
+}
+
 #test
 {
     let fileName = codeFixturePath("sample.swg")
@@ -138,6 +144,32 @@ private func codeFixturePath(name: string)->String
     @assert(codeLanguage("sample.sql") == .Sql)
     @assert(codeLanguage("sample.yaml") == .Yaml)
     @assert(codeLanguage("sample.csproj") == .Xml)
+    @assert(codeLanguage("sample.html") == .Html)
+    @assert(codeLanguage("sample.asm") == .Assembly)
+    @assert(codeLanguage("sample.zig") == .Zig)
+    @assert(codeLanguage("sample.nim") == .Nim)
+    @assert(codeLanguage("sample.hs") == .Haskell)
+    @assert(codeLanguage("sample.scala") == .Scala)
+    @assert(codeLanguage("sample.groovy") == .Groovy)
+    @assert(codeLanguage("sample.exs") == .Elixir)
+    @assert(codeLanguage("sample.erl") == .Erlang)
+    @assert(codeLanguage("sample.clj") == .Clojure)
+    @assert(codeLanguage("sample.jl") == .Julia)
+    @assert(codeLanguage("sample.f90") == .Fortran)
+    @assert(codeLanguage("sample.pas") == .Pascal)
+    @assert(codeLanguage("sample.d") == .D)
+    @assert(codeLanguage("sample.mm") == .ObjectiveC)
+    @assert(codeLanguage("sample.m") == .Matlab)
+    @assert(codeLanguage("sample.tcl") == .Tcl)
+    @assert(codeLanguage("sample.awk") == .Awk)
+    @assert(codeLanguage("sample.vim") == .Vim)
+    @assert(codeLanguage("sample.tex") == .Latex)
+    @assert(codeLanguage("sample.proto") == .Protobuf)
+    @assert(codeLanguage("sample.graphql") == .GraphQl)
+    @assert(codeLanguage("sample.gradle") == .Gradle)
+    @assert(codeLanguage("Makefile") == .Makefile)
+    @assert(codeLanguage("Dockerfile") == .Dockerfile)
+    @assert(codeLanguage("sample.nix") == .Nix)
 
     var lexer: GenericCodeLexer
     var host:  Testing.HeadlessHost
@@ -154,6 +186,44 @@ private func codeFixturePath(name: string)->String
     @assert(content.styles[7] == GenericCodeLexer.Style.Keyword)
     @assert(content.styles[13] == GenericCodeLexer.Style.Keyword)
     @assert(content.styles[content.styles.count - 1] == GenericCodeLexer.Style.Comment)
+
+    const Samples: [26] CodeLanguageSample = [
+        {.Html,       "<main>content</main>"},
+        {.Assembly,   "MOV eax, ebx ; comment"},
+        {.Zig,        "const answer = 42;"},
+        {.Nim,        "proc answer(): int = 42"},
+        {.Haskell,    "module Answer where"},
+        {.Scala,      "class Answer"},
+        {.Groovy,     "class Answer"},
+        {.Elixir,     "def answer do 42 end"},
+        {.Erlang,     "case Value of ok -> true end"},
+        {.Clojure,    "defn answer [] 42"},
+        {.Julia,      "function answer() 42 end"},
+        {.Fortran,    "PROGRAM ANSWER"},
+        {.Pascal,     "program Answer;"},
+        {.D,          "module answer;"},
+        {.ObjectiveC, "@interface Answer"},
+        {.Matlab,     "function answer()"},
+        {.Tcl,        "proc answer {} { return 42 }"},
+        {.Awk,        "BEGIN { print 42 }"},
+        {.Vim,        "function Answer()"},
+        {.Latex,      "\\section{Answer}"},
+        {.Protobuf,   "message Answer {}"},
+        {.GraphQl,    "type Answer { value: Int }"},
+        {.Gradle,     "class Answer {}"},
+        {.Makefile,   "include common.mk"},
+        {.Dockerfile, "FROM scratch"},
+        {.Nix,        "let answer = 42; in answer"}]
+
+    for sample in Samples
+    {
+        var sampleLexer: GenericCodeLexer
+        sampleLexer.configure(sample.language)
+        editor.setLexer(&sampleLexer)
+        editor.setText(sample.source)
+        editor.lexAll()
+        @assert(editor.textAndStyles().styles[0] == GenericCodeLexer.Style.Keyword)
+    }
 }
 
 #test

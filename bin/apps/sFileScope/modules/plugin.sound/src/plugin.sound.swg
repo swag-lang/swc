@@ -616,8 +616,13 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
 
     registerSoundStrings(request.contentParent.app())
     let view = SoundPluginView.create(request.contentParent, request.commandParent, request.fileName)
-    result.view     = view
-    result.commands = view.commands
-    result.details  = view.details
+    result.view      = view
+    result.commands  = view.commands
+    result.details   = view.details
+    result.isLoading = func(wnd)->bool
+    {
+        let soundView = cast(*SoundPluginView) wnd
+        return soundView.waveform.readyCount < soundView.waveform.samples.count
+    }
     return true
 }

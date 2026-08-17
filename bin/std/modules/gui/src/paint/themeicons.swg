@@ -67,6 +67,7 @@ enum ThemeIcons
     Lock             // Closed padlock, for a protected or read-only object.
     Eye              // Reveals content while its action is held.
     Appearance       // Theme and language application settings.
+    History          // Previously visited items or states.
 }
 
 impl Theme

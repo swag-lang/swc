@@ -25,6 +25,19 @@ using Core
     @assert(unknown[1].name == "Hexadecimal")
     @assert(index.explicitlySupports("clip.gif"))
     @assert(!index.explicitlySupports("clip.bin"))
+
+    let named = expect ViewerPluginIndex.parse("code|Code|plugin.code.dll|.html;makefile;dockerfile\nhtml|HTML|plugin.html.dll|.html", "plugins")
+    @assert(named.explicitlySupports("Makefile"))
+    @assert(named.explicitlySupports("DOCKERFILE"))
+    let html = named.choices("page.html")
+    @assert(html.count == 2)
+    @assert(html[0].name == "Code" and html[1].name == "HTML")
+
+    let shipped     = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let shippedHtml = shipped.choices("page.html")
+    @assert(shippedHtml[0].name == "HTML" and shippedHtml[1].name == "Code")
+    @assert(shipped.choices("Makefile")[0].name == "Code")
+    @assert(shipped.choices("Dockerfile")[0].name == "Code")
 }
 
 #test

@@ -13,7 +13,7 @@ using Swag, Core, Pixel
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let icons = [ThemeIcons.Appearance, .OpenFile, .ParentFolder]
+    let icons = [ThemeIcons.Appearance, .OpenFile, .ParentFolder, .History]
     for icon, idx in icons
     {
         let x = 8 + cast(f32) idx * 48

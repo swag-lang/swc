@@ -168,4 +168,8 @@
     <path d="M12 3A9 9 0 0 0 12 21Z" fill="#ffffff"/>
     <circle cx="12" cy="12" r="9" fill="none" stroke="#ffffff" stroke-width="2"/>
   </g>
+  <g id="History" transform="translate(72 144)">
+    <circle cx="12" cy="12" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <path d="M11 7C11 6.44772 11.4477 6 12 6C12.5523 6 13 6.44772 13 7V11.5858L16.2071 14.7929C16.5976 15.1834 16.5976 15.8166 16.2071 16.2071C15.8166 16.5976 15.1834 16.5976 14.7929 16.2071L11.2929 12.7071C11.1054 12.5196 11 12.2652 11 12V7Z" fill="#ffffff"/>
+  </g>
 </svg>

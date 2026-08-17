@@ -964,7 +964,14 @@ private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.resize(1660, 1324)
     view.applyLayout()
     view.rebuild()
-    view.streamStep()
+    var steps: u64
+    while view.isLoading() and steps < 4_000
+    {
+        view.streamStep()
+        steps += 1
+    }
+
+    @assert(!view.isLoading())
 
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.pixel-api")

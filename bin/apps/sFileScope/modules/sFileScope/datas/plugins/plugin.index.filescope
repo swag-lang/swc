@@ -3,6 +3,7 @@ code|Code|plugin.code.dll|.swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp
 markdown|Markdown|plugin.markdown.dll|.markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd
 html|HTML|plugin.html.dll|.htm;.html;.shtml;.xht;.xhtml
 image|Image|plugin.image.dll|.bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp
+pdf|PDF|plugin.pdf.dll|.pdf
 sound|Sound|plugin.sound.dll|.wav
-binary|Binary|plugin.binary.dll|.exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.ttf;.otf;.ttc;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.pdf;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm
+binary|Binary|plugin.binary.dll|.exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.ttf;.otf;.ttc;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm
 hex|Hexadecimal|plugin.hex.dll|*

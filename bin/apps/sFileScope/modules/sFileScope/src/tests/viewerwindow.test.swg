@@ -87,6 +87,162 @@ private func viewerFixturePath()->String
     @assert(view.editor.scrollPosition().y > beforeEnd.y)
 }
 
+private func writeTempFile(suffix: string, bytes: const [..] u8)->String
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_%_%", Guid64.random(), suffix).toString())
+    discard expect File.writeAllBytes(fileName.toString(), bytes)
+    return fileName
+}
+
+// A file that is not UTF-8 is read as text rather than sent to the hexadecimal view: the mark
+// names the encoding, the mark itself never reaches the document, and the reader sees characters.
+#test
+{
+    var utf16: Array'u8
+    utf16.add(0xFF)
+    utf16.add(0xFE)
+    for c in "Hello, wide world" { utf16.add(cast(u8) c); utf16.add(0) }
+    let wideFile = writeTempFile("utf16.txt", utf16.toSlice())
+    defer discard catch File.delete(wideFile.toString())
+
+    @assert(BasicTextView.supports(wideFile.toString()))
+    let probed = BasicTextView.probe(wideFile.toString())
+    @assert(probed.encoding == .Utf16Le and probed.contentStart == 2 and probed.accepted)
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let view     = BasicTextView.create(&host.root, commands, wideFile.toString())
+    view.resize(800, 520)
+    view.applyLayout()
+
+    @assert(view.encoding == .Utf16Le)
+    @assert(view.editor.text() == "Hello, wide world")
+    @assert(view.encodingCombo.selectedIndex == 1)
+}
+
+// A single-byte page has no mark to announce it, and every byte decodes, so the accented byte is
+// what the reader is shown rather than a fallback to bytes.
+#test
+{
+    let latin: [11] u8 = ['c', 'a', 'f', 0xE9, ' ', 'n', 'a', 0xEF, 'v', 'e', '\n']
+    let file  = writeTempFile("cp1252.txt", latin)
+    defer discard catch File.delete(file.toString())
+
+    @assert(BasicTextView.probe(file.toString()).encoding == .Windows1252)
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let view     = BasicTextView.create(&host.root, commands, file.toString())
+    view.resize(800, 520)
+    view.applyLayout()
+    @assert(view.editor.text() == "café naïve\n")
+
+    // A reader who disagrees with the detection corrects it, and the same bytes read differently.
+    view.applyEncoding(.Utf16Le)
+    @assert(view.encoding == .Utf16Le)
+    @assert(view.editor.text() != "café naïve\n")
+}
+
+// Deciding an encoding is not accepting the file: code page 1252 gives every byte a meaning, so
+// what keeps a binary out of the text view is the content it decodes to.
+#test
+{
+    var binary: Array'u8
+    for i in 512'u32 do
+        binary.add(cast(u8) ((i * 7) & 0xFF))
+    let file = writeTempFile("binary.bin", binary.toSlice())
+    defer discard catch File.delete(file.toString())
+    @assert(!BasicTextView.supports(file.toString()))
+}
+
+// The panel lists what is beside the current file and what was read before it, and a row opens
+// its file without the window being rebuilt.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_panel_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    var names: Array'String
+    for i in 3'u32
+    {
+        let one = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
+        discard expect File.writeAllBytes(one.toString(), cast(const [..] u8) "a readable line\n")
+        names.add(one)
+    }
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(names[0].toString())
+
+    @assert(!window.panelVisible and !window.filePanel.isLocallyVisible())
+    window.toggleFilePanel()
+    @assert(window.panelVisible and window.filePanel.isLocallyVisible())
+    @assert(window.folderList.lineCount() == 3)
+    @assert(window.recentList.lineCount() == 1)
+
+    // Choosing a sibling opens it, and the recent list grows by exactly that file.
+    window.folderList.selectLine(2)
+    @assert(window.currentFile == names[2])
+    @assert(window.recent.count == 2 and window.recent[0] == names[2])
+
+    // Opening the same file again moves it to the head instead of repeating it.
+    window.openFile(names[0].toString())
+    @assert(window.recent.count == 2 and window.recent[0] == names[0])
+
+    let state = saveViewerState(window)
+    window.recent.clear()
+    window.setFilePanelVisible(false)
+    loadViewerState(window, state.toSlice())
+    @assert(window.recent.count == 2 and window.panelVisible)
+}
+
+// Pins the file panel: two named sections share the left edge, the row naming the open file is
+// the selected one, and the document keeps the rest of the surface.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), "sfilescope_panel_golden")
+    discard catch Directory.delete(folder.toString(), recurse: true)
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    let names: [4] string = ["changelog.md", "notes.txt", "report.txt", "sample.json"]
+    for one in names do
+        discard expect File.writeAllBytes(Path.combine(folder.toString(), one).toString(), cast(const [..] u8) "a readable line\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
+    window.toggleFilePanel()
+    window.applyLayout()
+    host.settleAnimations(window, 4)
+
+    @assert(window.folderList.lineCount() == 4)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "sfilescope.panel")
+    Testing.assertContentFits(window)
+}
+
 // Keeps the virtual document extent monotonic while several large-file chunks arrive between
 // paints, and exercises complete keyboard navigation through the real focused editor.
 #test

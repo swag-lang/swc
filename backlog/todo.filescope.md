@@ -75,14 +75,6 @@ where files are actually selected, and the format table below is what a reader c
   usable without the application window. That constraint is worth checking before committing.
 - Related: T-396, T-418
 
-### T-390 — A text file that is not UTF-8 is sent to the hexadecimal view
-
-- Intent: UTF-16 LE/BE, UTF-32, Windows-1252 and the common single-byte pages are read as text.
-  Today `basictextview.swg` accepts valid UTF-8 and directs everything else to hex, so a plain
-  Windows-1252 log or a UTF-16 export reads as bytes.
-- Complete when: encoding is detected from a BOM and from content, is displayed, can be overridden
-  from the action bar, and the streaming window still works under a variable-width decoder.
-
 ### T-391 — Search cannot be constrained, reversed, or counted
 
 - Intent: `viewerwindow.searchStep` scans forward with `Utf8.indexOf(..., .Latin1NoCase)` and wraps
@@ -90,13 +82,6 @@ where files are actually selected, and the format table below is what a reader c
   regular expression.
 - Complete when: case sensitivity and whole-word are togglable, Shift+F3 walks backwards, the status
   bar reports the match ordinal, and the chosen semantics are documented in the README.
-
-### T-392 — No recent files and no list of the current folder
-
-- Intent: Left/Right walks the folder blind. A reader cannot see what else is beside the current
-  file, nor return to what was viewed yesterday.
-- Complete when: a dismissible list of the current folder's viewable files, and a recent-files list
-  persisted in the existing application state, both navigate without reopening the window.
 
 ### T-393 — The file being viewed cannot be acted on
 
@@ -164,7 +149,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | Plain text | `.txt` `.ini` `.cfg` | full, streamed | — | — |
-| Other encodings | UTF-16/32, Windows-1252, Shift-JIS | none, sent to hex | detection and override | T-390 |
+| Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | the multi-byte pages: Shift-JIS, GBK, EUC | — |
 | Source code | 90 extensions | full, lexer coloring | extensionless names, ~25 languages | T-399, T-400 |
 | Markdown | `.md` `.markdown` | full | — | — |
 | HTML | `.html` `.htm` `.xhtml` | full | box model | T-387 |

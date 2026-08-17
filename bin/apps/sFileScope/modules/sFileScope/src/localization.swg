@@ -16,6 +16,11 @@ struct AppStrings
     ui_BasicText:   string = "Basic text"                                  // Name of the host's own text viewer in that selector.
     ui_WrapOn:      string = "Wrap on"                                     // Wrapping button while long lines are folded.
     ui_WrapOff:     string = "Wrap off"                                    // Wrapping button while long lines run off the edge.
+    ui_Encoding:    string = "Character encoding"                          // Tooltip of the encoding selector.
+    ui_Files:       string = "Files beside this one"                       // Tooltip of the file-panel button.
+    ui_Recent:      string = "Recent"                                      // Panel section listing what was read before.
+    ui_Folder:      string = "Folder"                                      // Panel section listing the current folder, before one is open.
+    ui_NotText:     string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads it as text.
     ui_Search:      string = "Find in document"                            // Placeholder of the search field.
     ui_NoMatch:     string = "No match"                                    // Status line when a search reached the end with nothing.
     ui_Searching:   string = "Searching…"                                  // Status line while a search scans the file.

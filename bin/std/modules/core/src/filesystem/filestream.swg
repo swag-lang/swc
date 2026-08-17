@@ -207,6 +207,60 @@ impl FileStream
         return String.from(@mkstring(bytes.buffer!, accepted))
     }
 
+    // Reads the next bounded segment of text and returns it as UTF-8, whatever `encoding` the file
+    // spells its characters in.
+    //
+    // The stream position advances by the bytes consumed, which is what the caller counts in: a
+    // segment of UTF-16 returns roughly half as many UTF-8 bytes as it consumed, so the returned
+    // length is never an offset. `maxBytes` needs at least four bytes so every character can make
+    // progress. An empty result means end of file.
+    //
+    // No character is ever split across two calls: a UTF-8 sequence, a surrogate pair, or a wide
+    // unit cut by `maxBytes` is left for the next one. A malformed sequence is decoded to the
+    // replacement character rather than reported, except under [[Core.Text.Encoding.Utf8]] where
+    // [[Core.FileStream.readUtf8Chunk]] answers and keeps its stricter contract.
+    mtd readTextChunk(maxBytes: u64, encoding: Text.Encoding)->String fail
+    {
+        if encoding == .Utf8 do
+            return .readUtf8Chunk(maxBytes)
+        if maxBytes < 4 do
+            fail Errors.BadParameterError{"text chunk size needs at least four bytes"}
+
+        let start    = .position()
+        let fileSize = .size()
+        if start >= fileSize do
+            return {}
+
+        let unit   = Text.unitSize(encoding)
+        var target = Math.min(maxBytes, fileSize - start)
+        target -= target % unit
+        if !target do
+            return {}
+
+        var bytes: Array'u8
+        bytes.resize(target)
+        let count = .read(bytes.toSlice())
+        bytes.resize(count - count % unit)
+        if bytes.isEmpty()
+        {
+            .seek(.Begin, start)
+            return {}
+        }
+
+        // A high surrogate at the very end spells a character whose second half is in the next
+        // segment. Leaving it there costs two bytes and keeps every segment self-contained.
+        if unit == 2 and bytes.count >= 2
+        {
+            let last = cast(u32) bytes[bytes.count - 2] | (cast(u32) bytes[bytes.count - 1] << 8)
+            let high = encoding == .Utf16Le ? last : ((last & 0xFF) << 8) | (last >> 8)
+            if high >= Utf16.Surr1 and high < Utf16.Surr2 and bytes.count > 2 do
+                bytes.resize(bytes.count - 2)
+        }
+
+        .seek(.Begin, start + bytes.count)
+        return Text.decode(bytes.toSlice(), encoding)
+    }
+
     // Writes at most the size of `buffer` and returns the number of bytes written.
     mtd write(buffer: const [..] u8)->u64 fail
     {

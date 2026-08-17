@@ -5,6 +5,15 @@ const ViewerInfoHeight      = 36.0
 const ViewerGlyphSize       = 20.0
 const ViewerSearchChunkSize = 256 * 1024'u64
 
+// The panel that lists what is beside the current file, and what was read before it.
+const ViewerPanelWidth      = 268.0
+const ViewerPanelLabel      = 26.0
+const ViewerRecentHeight    = 152.0
+
+// Files the recent list keeps. Long enough to cross a working session, short enough that the list
+// stays something a reader scans rather than searches.
+const ViewerRecentCount     = 12'u64
+
 struct ViewerInstance
 {
     view:        #null *Wnd
@@ -23,6 +32,7 @@ struct ViewerWindow
         previousButton:   *IconButton
         nextButton:       *IconButton
         openButton:       *IconButton
+        filesButton:      *IconButton
         searchBox:        *EditBox
         viewerCombo:      *ComboBox
         appearanceButton: *AppearanceButton
@@ -31,6 +41,11 @@ struct ViewerWindow
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
         emptyLabel:       *Label
+        filePanel:        *Wnd
+        recentLabel:      *Label
+        recentList:       *ListCtrl
+        folderLabel:      *Label
+        folderList:       *ListCtrl
     }
 
     index:           ViewerPluginIndex
@@ -53,6 +68,9 @@ struct ViewerWindow
     siblings:        Array'String
     siblingIndex:    u64
     siblingsDirty        = true
+    recent:          Array'String
+    panelVisible:    bool
+    refreshingLists: bool
     fileDlgState:    FileDlgState
     themeIndex:      u32
     language:        String
@@ -145,6 +163,7 @@ impl IWnd for ViewerWindow
         catch g_App.loadState()
         .applyTheme(.themeIndex)
         .applyLanguage()
+        .setFilePanelVisible(.panelVisible)
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
         evt.accepted = true
     }
@@ -154,8 +173,14 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
-        if evt.serializer.isReading() do
+        catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
+        catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
+        if evt.serializer.isReading()
+        {
             .themeIndex = Math.min(.themeIndex, 1)
+            while .recent.count > ViewerRecentCount do
+                .recent.removeAtOrdered(.recent.count - 1)
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -221,6 +246,18 @@ impl ViewerWindow
             }
         }
 
+        with result.filesButton = IconButton.create(result.commandBar, result.theme().icon(.ParentFolder, ViewerGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle  = .Left
+            .margin.z   = 8
+            .toolTip    = appStrings().ui_Files
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.toggleFilePanel()
+            }
+        }
+
         with result.searchBox = EditBox.create(result.commandBar, "", {0, 0, 240, 36})
         {
             .dockStyle = .Left
@@ -264,7 +301,9 @@ impl ViewerWindow
             }
         }
 
-        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 140, 36})
+        // Wide enough for the longest viewer name a shipped plugin registers, so the selector
+        // never cuts the one word that says which viewer is showing the file.
+        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 156, 36})
         {
             .dockStyle = .Left
             .margin.x  = 12
@@ -305,6 +344,56 @@ impl ViewerWindow
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setTextAlignment(.Left, .Center)
+        }
+
+        // What is beside the current file, and what was read before it. The panel is docked before
+        // the document so the two lists take their width off the left edge, and it stays hidden
+        // until a reader asks for it: the document keeps the whole surface by default.
+        with result.filePanel = Wnd.create'Wnd(result, {0, 0, ViewerPanelWidth, 0})
+        {
+            .dockStyle       = .Left
+            .backgroundStyle = .Window
+            .padding         = {10, 8, 10, 8}
+            .hide()
+        }
+
+        Separator.create(result.filePanel, .Right)
+
+        with result.recentLabel = Label.create(result.filePanel, appStrings().ui_Recent, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        {
+            .dockStyle = .Top
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+
+        with result.recentList = ListCtrl.createSimple(result.filePanel, {0, 0, 0, ViewerRecentHeight})
+        {
+            .dockStyle = .Top
+            .margin.w  = 10
+            .setSelectionMode(.Single)
+            .updateFlags(.HotTrack)
+            .sigSelectionChanged += func|window = result|(list)
+            {
+                window.openListSelection(list, window.recent.toSlice())
+            }
+        }
+
+        with result.folderLabel = Label.create(result.filePanel, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        {
+            .dockStyle = .Top
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+
+        with result.folderList = ListCtrl.createSimple(result.filePanel)
+        {
+            .dockStyle = .Center
+            .setSelectionMode(.Single)
+            .updateFlags(.HotTrack)
+            .sigSelectionChanged += func|window = result|(list)
+            {
+                window.openListSelection(list, window.siblings.toSlice())
+            }
         }
 
         with result.emptyLabel = Label.create(result, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {}, null, .WordWrap)
@@ -652,6 +741,9 @@ impl ViewerWindow
         .emptyLabel.hide()
 
         .siblingsDirty = true
+        .rememberRecent(.currentFile.toString())
+        if .panelVisible do
+            .refreshFileLists()
 
         .previousButton.enable(true)
         .nextButton.enable(true)
@@ -664,10 +756,14 @@ impl ViewerWindow
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
         .openButton.toolTip     = texts.ui_Open
+        .filesButton.toolTip    = texts.ui_Files
         .previousButton.toolTip = texts.ui_Previous
         .nextButton.toolTip     = texts.ui_Next
         .viewerCombo.toolTip    = texts.ui_Viewer
         .searchBox.setPlaceholder(texts.ui_Search)
+        .recentLabel.setText(texts.ui_Recent)
+        if .currentFile.isEmpty() do
+            .folderLabel.setText(texts.ui_Folder)
         if .currentFile.isEmpty()
         {
             .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
@@ -675,6 +771,99 @@ impl ViewerWindow
         }
 
         .invalidate()
+    }
+
+    // Shows or hides the panel listing what is beside the current file.
+    mtd toggleFilePanel()
+    {
+        .setFilePanelVisible(!.panelVisible)
+        catch g_App.saveState()
+    }
+
+    mtd setFilePanelVisible(visible: bool)
+    {
+        .panelVisible = visible
+        if visible
+        {
+            .refreshFileLists()
+            .filePanel.show()
+        }
+        else do
+            .filePanel.hide()
+
+        .applyLayout()
+        .invalidate()
+    }
+
+    // Puts `fileName` at the head of the recent list, keeping it free of repeats and bounded.
+    mtd rememberRecent(fileName: string)
+    {
+        for one, index in .recent where one[] == fileName
+        {
+            .recent.removeAtOrdered(index)
+            break
+        }
+
+        .recent.insertAt(0, String.from(fileName))
+        while .recent.count > ViewerRecentCount do
+            .recent.removeAtOrdered(.recent.count - 1)
+    }
+
+    // Fills one list with file names, selecting the row that names the current file.
+    private mtd fillFileList(list: *ListCtrl, files: const [..] String)
+    {
+        list.clear()
+        for one, index in files
+        {
+            let name = one[].toString()
+            discard list.createLine(Path.fileName(name) orelse name)
+            if .currentFile == name do
+                list.selectLine(cast(u32) index)
+        }
+
+        list.computeLayout()
+    }
+
+    // Rebuilds both sections of the panel from what the window already knows.
+    mtd refreshFileLists()
+    {
+        if .siblingsDirty do
+            .rebuildSiblings()
+
+        .refreshingLists = true
+        defer .refreshingLists = false
+
+        // A file read yesterday may be gone today, and a list offering it would be a list of
+        // dead ends. The check costs one stat per row and only runs when the panel is opened.
+        var alive: Array'String
+        for one in .recent where File.exists(one[].toString()) do
+            alive.add(one[])
+        .recent = #move alive
+
+        .fillFileList(.recentList, .recent.toSlice())
+        .fillFileList(.folderList, .siblings.toSlice())
+
+        let hasRecent = !.recent.isEmpty()
+        .recentLabel.show(hasRecent)
+        .recentList.show(hasRecent)
+        .folderLabel.setText(Path.fileName(Path.directoryName(.currentFile.toString()) orelse "") orelse appStrings().ui_Folder)
+        .filePanel.applyLayout()
+    }
+
+    // Opens the file a panel row names, unless the row was selected by the refresh itself.
+    private mtd openListSelection(list: *ListCtrl, files: const [..] String)
+    {
+        if .refreshingLists do
+            return
+        let selected = list.selectedLines()
+        if selected.isEmpty() or !selected[0] do
+            return
+        let index = selected[0]!.index
+        if index >= @countof(files) do
+            return
+        let fileName = files[index].toString()
+        if .currentFile != fileName do
+            .openFile(fileName)
     }
 
     mtd rebuildSiblings()

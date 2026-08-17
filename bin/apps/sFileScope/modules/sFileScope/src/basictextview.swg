@@ -5,16 +5,36 @@ private const TextStreamLookAhead = 2.0
 private const TextResidentWindowSize = 256 * 1024'u64
 private const TextRevealContextSize = 4 * 1024'u64
 
-// Host-owned text view available for supported UTF-8 content without loading a plugin.
+// Head of the file the encoding is decided from. A few kilobytes name every encoding a text file
+// uses; reading more answers no better and delays the first screen.
+private const TextProbeSize = 4 * 1024'u64
+
+// The encodings offered in the action bar, in the order the selector lists them.
+private const TextEncodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
+
+// Names of those encodings. They are the standard spelling of a format rather than prose, so they
+// read the same in every language.
+private const TextEncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
+
+// What the head of a file says about how it spells its characters.
+struct TextProbe
+{
+    encoding:     Text.Encoding     // How the bytes read as characters.
+    contentStart: u64               // First byte of text, past a byte-order mark.
+    accepted:     bool              // Whether what it decodes to is text a reader should be shown.
+}
+
+// Host-owned text view available for readable text content without loading a plugin.
 struct BasicTextView
 {
     using wnd: Wnd
 
     #[Swag.Late]
     {
-        commands:   *Wnd
-        editor:     *RichEditCtrl
-        wrapButton: *PushButton
+        commands:      *Wnd
+        editor:        *RichEditCtrl
+        wrapButton:    *PushButton
+        encodingCombo: *ComboBox
     }
 
     stream:            File.FileStream
@@ -30,6 +50,8 @@ struct BasicTextView
     pendingSeek:       bool
     pendingSeekOffset: u64
     repositioning:     bool
+    encoding:          Text.Encoding
+    contentStart:      u64
     wrapping = true
 }
 
@@ -40,17 +62,37 @@ func basicTextRevealMatch(wnd: *Wnd, offset: u64, text: string)->bool
 
 impl BasicTextView
 {
-    // Reports whether the beginning of a file is supported UTF-8 text. The basic renderer is a
-    // fallback for textual content, not an alternate spelling of every binary format.
-    func supports(fileName: string)->bool
+    // Reads the head of a file once and reports how it spells its characters.
+    //
+    // Deciding and accepting are two questions: code page 1252 gives every byte a meaning, so an
+    // executable also decodes into characters. The encoding answers the first, and what those
+    // characters are answers the second.
+    func probe(fileName: string)->TextProbe
     {
+        var result: retval
         var stream = catch File.openRead(fileName) as openError
         if openError != null do
-            return false
+            return result
         defer stream.close()
 
-        let chunk = catch stream.readUtf8Chunk(TextStreamChunkSize) as readError
-        return readError == null and Utf8.indexOf(chunk.toSlice(), 0'rune) == Swag.U64.Max
+        var bytes: Array'u8
+        bytes.resize(TextProbeSize)
+        let count = catch stream.read(bytes.toSlice()) as readError
+        if readError != null do
+            return result
+        bytes.resize(count)
+
+        result.encoding     = Text.detectEncoding(bytes.toSlice())
+        result.contentStart = Text.hasBom(bytes.toSlice(), result.encoding) ? Text.bomLength(result.encoding) : 0
+        result.accepted     = Text.looksLikeText(bytes.toSlice()[result.contentStart to], result.encoding)
+        return result
+    }
+
+    // Reports whether the beginning of a file reads as text. The basic renderer is a fallback for
+    // textual content, not an alternate spelling of every binary format.
+    func supports(fileName: string)->bool
+    {
+        return probe(fileName).accepted
     }
 
     mtd hasMore()->bool
@@ -117,7 +159,7 @@ impl BasicTextView
     mtd showReadError()
     {
         .stopLoading()
-        let message = "This file does not contain supported UTF-8 text. Select Hexadecimal to inspect its bytes."
+        let message = appStrings().ui_NotText
         if !.hasText do
             .editor.setText(message)
         else do
@@ -131,7 +173,7 @@ impl BasicTextView
             return
 
         let oldPosition = .editor.scrollPosition()
-        let chunk       = catch .stream.readUtf8Chunk(TextStreamChunkSize) as readError
+        let chunk       = catch .stream.readTextChunk(TextStreamChunkSize, .encoding) as readError
         if readError != null or Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
         {
             .showReadError()
@@ -162,15 +204,21 @@ impl BasicTextView
         .repositioning = true
         defer .repositioning = false
         let requested = Math.min(offset, .fileSize)
-        let start     = requested > TextRevealContextSize ? requested - TextRevealContextSize : 0
+
+        // The window opens on a character boundary. UTF-8 finds it by stepping forward until the
+        // bytes decode, and a wide encoding by counting whole units from the first byte of text.
+        let unit      = Text.unitSize(.encoding)
+        var start     = requested > TextRevealContextSize ? requested - TextRevealContextSize : 0
+        start = Math.max(start, .contentStart)
+        start -= (start - .contentStart) % unit
         for adjustment in 4
         {
             .stream = catch File.openRead(.fileName.toString()) as openError
             if openError != null do
                 return false
-            let actual = Math.min(start + adjustment, .fileSize)
+            let actual = Math.min(start + adjustment * unit, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readUtf8Chunk(TextResidentWindowSize) as readError
+            let chunk = catch .stream.readTextChunk(TextResidentWindowSize, .encoding) as readError
             if readError != null
             {
                 .stream.close()
@@ -199,6 +247,31 @@ impl BasicTextView
         .editor.setFlags(.ReadOnly | (.wrapping ? RichEditFlags.WordWrap : .None))
         .wrapButton.setText(.wrapping ? appStrings().ui_WrapOn : appStrings().ui_WrapOff)
         .scheduleMore()
+    }
+
+    // Rereads the resident window under `encoding`, keeping the reader where they were.
+    //
+    // A byte-order mark only belongs to the encoding that writes it, so a file read against
+    // another one shows its mark as content rather than hiding bytes that mean nothing there.
+    mtd applyEncoding(encoding: Text.Encoding)
+    {
+        if encoding == .encoding do
+            return
+        .encoding = encoding
+
+        var head: Array'u8
+        head.resize(Text.bomLength(encoding))
+        var stream = catch File.openRead(.fileName.toString()) as openError
+        if openError == null
+        {
+            let count = catch stream.read(head.toSlice()) as readError
+            head.resize(readError == null ? count : 0)
+            stream.close()
+        }
+
+        .contentStart = Text.hasBom(head.toSlice(), encoding) ? Text.bomLength(encoding) : 0
+        .virtualHeight = 0
+        discard .revealOffset(Math.max(.residentStart, .contentStart), "")
     }
 
     mtd toggleWrap()
@@ -256,16 +329,40 @@ impl BasicTextView
         result.backgroundStyle = .View
         result.fileName        = fileName
 
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 104, 36})
+        let probed = probe(fileName)
+        result.encoding     = probed.encoding
+        result.contentStart = probed.contentStart
+
+        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 312, 36})
         result.commands.backgroundStyle = .Window
 
-        with result.wrapButton = PushButton.create(result.commands, appStrings().ui_WrapOn, {0, 0, 96, 36})
+        // Sized for the longest wording any shipped language gives this button, not for the
+        // English one: a label that only fits in the reference language is a cut label elsewhere.
+        with result.wrapButton = PushButton.create(result.commands, appStrings().ui_WrapOn, {0, 0, 148, 36})
         {
             .dockStyle  = .Left
             .sigPressed += func|view = result|(button)
             {
                 discard button
                 view.toggleWrap()
+            }
+        }
+
+        // The detected encoding is shown rather than assumed: a file that reads as nonsense is
+        // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
+        with result.encodingCombo = ComboBox.create(result.commands, {0, 0, 156, 36})
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = appStrings().ui_Encoding
+            for name in TextEncodingNames do
+                .addItem(name)
+            for candidate, index in TextEncodings where candidate == probed.encoding do
+                .setSelectedIndex(cast(u32) index, notify: false)
+            .sigChanged += func|view = result|(combo, index)
+            {
+                discard combo
+                view.applyEncoding(TextEncodings[index])
             }
         }
 
@@ -346,8 +443,15 @@ impl BasicTextView
                 result.fileSize = size
                 if !size do
                     result.stream.close()
-                else do
+                else
+                {
+                    // A byte-order mark is part of the file and not part of the text, so reading
+                    // starts past it and every offset the view reports stays a file offset.
+                    discard catch result.stream.seek(.Begin, result.contentStart)
+                    result.bytesRead     = result.contentStart
+                    result.residentStart = result.contentStart
                     result.loadNextChunk()
+                }
             }
         }
 

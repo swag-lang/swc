@@ -162,6 +162,23 @@ impl HtmlValuePool
 
         return 0
     }
+
+    // Reports whether one math expression needs the containing block as a percentage basis.
+    // Viewport units are definite on their own: `calc(100vh - 64px)` remains usable even when
+    // the parent has an automatic height.
+    mtd const calcNeedsBasis(index: u32)->bool
+    {
+        if index >= .calc.count do
+            return false
+
+        let node = &.calc[index]
+        if node.op == .Value do
+            return node.percent != 0
+
+        if .calcNeedsBasis(node.left) or .calcNeedsBasis(node.right) do
+            return true
+        return node.op == .Clamp and .calcNeedsBasis(node.extra)
+    }
 }
 
 impl HtmlLength
@@ -196,12 +213,13 @@ impl HtmlLength
     }
 
     // Reports whether the length produces a pixel value without measuring anything.
-    mtd const isDefinite(hasBasis: bool)->bool
+    mtd const isDefinite(pool: const *HtmlValuePool, hasBasis: bool)->bool
     {
         switch .kind
         {
         case .Pixels, .ViewportWidth, .ViewportHeight: return true
-        case .Percent, .Calc: return hasBasis
+        case .Percent: return hasBasis
+        case .Calc:    return hasBasis or !pool.calcNeedsBasis(cast(u32) .value)
         }
 
         return false

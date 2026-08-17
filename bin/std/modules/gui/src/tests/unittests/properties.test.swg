@@ -736,7 +736,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     let optionLabel = cast(*Label) option.line.children[1]
     @assert(option.checkBox.dockStyle == .Left)
     @assert(option.line.position.height == prop.gridLineHeight)
-    @assert(option.checkBox.position.right() <= optionLabel.position.x)
+    @assert(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
     @assert(option.checkBox.position.vertCenter() == optionLabel.position.vertCenter())
 }
 
@@ -1740,6 +1740,42 @@ struct PropDecorData
 struct PropHeadlessFontStyleData
 {
     style = Pixel.FontFamilyStyle.Regular
+}
+
+struct PropHeadlessPanelStringData
+{
+    #[Properties.Name("Dynamic text")]
+    dynamic: String
+
+    #[Properties.Name("Fixed text")]
+    fixed: string = "Read only"
+}
+
+// Panel string fields keep a persistent, aligned label. A placeholder stops naming a field as
+// soon as it contains a value, and the static-string variant must not fall back to a stacked row.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 260)
+    defer host.shutdown()
+
+    var data: PropHeadlessPanelStringData
+    data.dynamic = "Editable"
+    let prop = Properties.create(&host.root, {0, 0, 300, 240}, kind: .Panel)
+    prop.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    let dynamic     = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.dynamic))!
+    let fixed       = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))!
+    let dynamicCtrl = cast(*EditCtrl) dynamic.line.children[1]
+    let fixedCtrl   = cast(*EditCtrl) fixed.line.children[1]
+    @assert(!dynamic.label.isVisible() and !fixed.label.isVisible())
+    @assert(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
+    @assert(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
+    @assert(dynamicCtrl.edit.position.x == fixedCtrl.edit.position.x)
+    @assert(dynamicCtrl.edit.text() == "Editable" and fixedCtrl.edit.text() == "Read only")
+    @assert(fixedCtrl.edit.flags.has(.ReadOnly))
 }
 
 // The bold/italic buttons of the FontFamilyStyle editor are independent toggles: a

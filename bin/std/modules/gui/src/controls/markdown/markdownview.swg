@@ -5,6 +5,7 @@ using Core, Pixel
 private const MarkdownStreamChunkSize = 8 * 1024'u64
 private const MarkdownStreamCarryLimit = 16 * 1024'u64
 private const MarkdownRevealContextSize = 64 * 1024'u64
+private const MarkdownReverseContextSize = MarkdownStreamChunkSize
 private const MarkdownRevealChunkSize = MarkdownRevealContextSize + MarkdownStreamChunkSize
 private const MarkdownStreamLookAhead = 2.0
 private const MarkdownStreamFrameBudget = 3_000'u64
@@ -94,9 +95,9 @@ struct MarkdownView
             loadTimer:           #null *Timer
             contentHeight:       f32
             jumpToEnd:           bool
-            pauseStreaming:      bool
             hasPendingTarget:    bool
             pendingTarget:       f32
+            pendingTargetOffset: u64 = Swag.U64.Max
             searchBlockIndex:    u64 = Swag.U64.Max
             documentThemeColors: String
             blocks:              Array'MarkdownVisualBlock
@@ -203,12 +204,15 @@ private impl MarkdownView
         let loadedHeight    = .contentHeight + .documentStyle.bottomInset
         var estimatedHeight = loadedHeight
         let consumed        = .bytesRead - .residentStart
-        if consumed and .bytesRead < .fileSize
+        if consumed and (.bytesRead < .fileSize or .residentStart)
         {
             let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
             .virtualHeight  = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
             estimatedHeight = Math.max(.virtualHeight, loadedHeight)
         }
+
+        if .hasPendingTarget and .pendingTargetOffset != Swag.U64.Max and .fileSize do
+            .pendingTarget = .virtualHeight * cast(f32) .pendingTargetOffset / cast(f32) .fileSize
 
         let height   = Math.max(estimatedHeight, viewport.height)
         let position = .scroll.scrollPosition()
@@ -295,8 +299,6 @@ private impl MarkdownView
             return false
         if .blocks.isEmpty() do
             return true
-        if .pauseStreaming do
-            return false
         if .jumpToEnd or .hasPendingTarget do
             return true
         let viewport = .scroll.paddedClientRect()
@@ -386,7 +388,8 @@ private impl MarkdownView
 
         if .hasPendingTarget and (.pendingTarget + .scroll.paddedClientRect().height <= .contentHeight or !.isLoading())
         {
-            .hasPendingTarget = false
+            .hasPendingTarget    = false
+            .pendingTargetOffset = Swag.U64.Max
             let position = .scroll.scrollPosition()
             .scroll.setScrollPos(position.x, .pendingTarget)
         }
@@ -443,9 +446,9 @@ private impl MarkdownView
             forward = true
 
         case .Home where evt.modifiers == .None or evt.modifiers == .Control:
-            .jumpToEnd        = false
-            .pauseStreaming   = false
-            .hasPendingTarget = false
+            .jumpToEnd           = false
+            .hasPendingTarget    = false
+            .pendingTargetOffset = Swag.U64.Max
             if .residentStart do
                 discard .revealFileOffset(0, "")
             .scroll.setScrollPos(position.x, 0)
@@ -474,12 +477,12 @@ private impl MarkdownView
             return false
         }
 
-        .jumpToEnd      = false
-        .pauseStreaming = false
+        .jumpToEnd = false
         if forward and .isLoading() and target + viewport.height > .contentHeight
         {
-            .hasPendingTarget = true
-            .pendingTarget    = target
+            .hasPendingTarget    = true
+            .pendingTarget       = target
+            .pendingTargetOffset = Swag.U64.Max
             .scheduleMore()
             return true
         }
@@ -536,9 +539,10 @@ public impl MarkdownView
             discard scroll
             if view.jumpToEnd do
                 return
-            if view.pauseStreaming and newPosition.y < oldPosition.y do
-                view.pauseStreaming = false
-            if view.virtualHeight > 0 and !view.blocks.isEmpty() and (newPosition.y + view.scroll.paddedClientRect().height < view.virtualOrigin or newPosition.y > view.contentHeight)
+            let viewport                 = view.scroll.paddedClientRect()
+            let beforeResident           = newPosition.y + viewport.height < view.virtualOrigin
+            let approachingResidentStart = view.residentStart and newPosition.y < oldPosition.y and newPosition.y < view.virtualOrigin + viewport.height * MarkdownStreamLookAhead
+            if view.virtualHeight > 0 and !view.blocks.isEmpty() and view.pendingSearch.isEmpty() and !view.hasPendingTarget and (beforeResident or approachingResidentStart or newPosition.y > view.contentHeight)
             {
                 let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
@@ -688,16 +692,27 @@ public impl MarkdownView
                 continue
             }
 
-            let localTarget    = requested > actual ? Math.min(requested - actual, chunk.length) : 0
-            let boundary       = markdownStreamBoundary(chunk.toString()[0 until localTarget])
+            let localTarget = requested > actual ? Math.min(requested - actual, chunk.length) : 0
+
+            // Start on a complete block near the beginning of the context window, not on the
+            // last block before the target. Keeping that leading source resident is what lets a
+            // reader move upward without immediately leaving every materialized block behind.
+            let probeEnd = localTarget > MarkdownReverseContextSize ? localTarget - MarkdownReverseContextSize : Math.min(localTarget, MarkdownStreamChunkSize)
+            var boundary = markdownStreamBoundary(chunk.toString()[0 until probeEnd])
+            if !boundary and localTarget > probeEnd do
+                boundary = markdownStreamBoundary(chunk.toString()[0 until localTarget])
+
             let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
-            .residentStart = actual + boundary
-            .bytesRead     = actual + chunk.length
-            .sourceCarry   = String.from(chunk.toString()[boundary to])
-            .sourceDone    = .bytesRead >= .fileSize
-            .virtualHeight = Math.max(previousHeight, .scroll.paddedClientRect().height)
-            .virtualOrigin = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
-            .contentHeight = .virtualOrigin + .documentStyle.topInset
+            .residentStart       = actual + boundary
+            .bytesRead           = actual + chunk.length
+            .sourceCarry         = String.from(chunk.toString()[boundary to])
+            .sourceDone          = .bytesRead >= .fileSize
+            .virtualHeight       = Math.max(previousHeight, .scroll.paddedClientRect().height)
+            .virtualOrigin       = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+            .contentHeight       = .virtualOrigin + .documentStyle.topInset
+            .pendingTarget       = .fileSize ? .virtualHeight * cast(f32) requested / cast(f32) .fileSize : 0
+            .hasPendingTarget    = !.jumpToEnd
+            .pendingTargetOffset = .hasPendingTarget ? requested : Swag.U64.Max
             .layoutDocument()
             if !.jumpToEnd do
                 .scroll.setScrollPos(0, .virtualOrigin)

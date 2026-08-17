@@ -104,14 +104,14 @@ internal impl Properties
         let focusRail = Math.Rectangle{r.x, r.y + 5, 2, Math.max(r.height - 10, 4.0)}
         painter.fillRect(focusRail, item.aniFocusBorder.cur())
 
-        // List rows: a field whose value differs from its declared default is marked by a
-        // small vertical accent bar along the row's left edge (the VSCode settings look).
-        // Sized from the un-inflated content rect so the bar's rounded caps are never
-        // clipped by the row window. Grid keeps its revert-arrow column instead.
-        if !.isGridLike() and item.isModified and item != .selItem and .revertButtonsVisible
+        // List rows: a field whose value differs from its declared default gets a small neutral
+        // square in the reserved edge lane. Selection owns the accent rail; giving both states
+        // the same rail made a changed value read as selected. Grid keeps its revert-arrow column.
+        if !.isGridLike() and item.isModified and .revertButtonsVisible
         {
-            let bar = Math.Rectangle{rowRect.x, rowRect.y + 5, 2, Math.max(rowRect.height - 10, 4.0)}
-            painter.fillRect(bar, colors.prop_FocusBorder)
+            const MarkerSize = 4'f32
+            let marker = Math.Rectangle{rowRect.x + 4, Math.round(rowRect.vertCenter() - MarkerSize * 0.5), MarkerSize, MarkerSize}
+            painter.fillRect(marker, colors.label_TextFaint)
         }
 
         // Validation feedback: an inline colored message bar stacked under the value cell,

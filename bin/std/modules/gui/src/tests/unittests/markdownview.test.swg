@@ -141,3 +141,72 @@ using Swag, Core
     @assert(view.residentStart == 0)
     @assert(view.scroll.scrollPosition().y == 0)
 }
+
+// A resident window opened near EOF retains blocks before its target and requests the preceding
+// window while those blocks are still visible. Reverse scrolling must never alternate between a
+// forward-only island and an empty virtual gap.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_markdown_reverse_stream_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for index in 16_000 do
+        source += Format.toString("## Section %\n\nThe resident window keeps useful context on both sides.\n\n", index)
+    const RevealContextSize  = 64 * 1024'u64
+    const ReverseContextSize = 8 * 1024'u64
+    @assert(source.length > RevealContextSize * 8)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+    let view = MarkdownView.createFile(&host.root, fileName)
+    view.resize(720, 360)
+    view.applyLayout()
+
+    // The ordinary first resident blocks establish the document's byte-to-height estimate before
+    // the reader asks for the end, exactly as the visible application does.
+    host.fireTimer(view.loadTimer)
+    @assert(view.virtualHeight > view.scroll.paddedClientRect().height)
+
+    let requested = source.length - 1
+    @assert(view.revealFileOffset(requested, ""))
+    var steps = 0'u32
+    while view.hasPendingTarget and steps < 512
+    {
+        host.fireTimers()
+        steps += 1
+    }
+
+    @assert(!view.hasPendingTarget and !view.blocks.isEmpty())
+    @assert(requested - view.residentStart > ReverseContextSize / 2)
+    let firstResidentStart = view.residentStart
+    let viewport           = view.scroll.paddedClientRect()
+    let nearResidentStart  = view.virtualOrigin + viewport.height * 0.5
+    view.scroll.setScrollPos(0, nearResidentStart)
+
+    // The old resident content still covers the viewport when the reverse seek is requested.
+    @assert(view.pendingSeek)
+    @assert(view.scroll.scrollPosition().y + viewport.height > view.virtualOrigin)
+    host.fireTimers()
+
+    steps = 0
+    while view.hasPendingTarget and steps < 512
+    {
+        host.fireTimers()
+        steps += 1
+    }
+
+    @assert(!view.hasPendingTarget and view.residentStart < firstResidentStart)
+    let position = view.scroll.scrollPosition().y
+    var visibleBlock: bool
+    for &block in view.blocks
+    {
+        if block.wnd.position.bottom() > position and block.wnd.position.y < position + viewport.height do
+            visibleBlock = true
+    }
+
+    @assert(visibleBlock)
+}

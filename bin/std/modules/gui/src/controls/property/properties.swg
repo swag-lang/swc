@@ -101,6 +101,9 @@ enum PropertiesKind
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
 internal const PropCondensedControlHeight = 20'f32
 
+// Air between a condensed enum-flag marker and the wording in the adjacent cell.
+internal const PropCondensedCheckTextGap = 6'f32
+
 // Builds and edits reflected structure fields with validation, filtering, defaults, and undo support.
 struct Properties
 {

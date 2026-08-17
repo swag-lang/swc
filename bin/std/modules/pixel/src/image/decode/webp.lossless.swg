@@ -663,7 +663,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
                            (cast(u32) output[cachedOffset + 1] << 8) |
                            output[cachedOffset + 2] |
                            (cast(u32) output[cachedOffset + 3] << 24)
-                colorCache[(argb * LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = argb
+                colorCache[(argb * #wrap LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = argb
                 cachedOffset += 4
             }
 
@@ -671,9 +671,9 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             if green >= colorCache.count do
                 fail InvalidFormatError{"WebP lossless color-cache index is out of range"}
             let argb = colorCache[green]
-            output[offset + 0] = cast(u8) (argb >> 16)
-            output[offset + 1] = cast(u8) (argb >> 8)
-            output[offset + 2] = cast(u8) argb
+            output[offset + 0] = cast #wrap (u8) (argb >> 16)
+            output[offset + 1] = cast #wrap (u8) (argb >> 8)
+            output[offset + 2] = cast #wrap (u8) argb
             output[offset + 3] = cast(u8) (argb >> 24)
             offset             += 4
 
@@ -713,7 +713,7 @@ func losslessClampAddSubtractHalf(a, b: u8)->u8
 func losslessAddAt(pixels: *Array'u8, offset: u64, value: u8)
 {
     let data = cast([*] u8) pixels.buffer!
-    data[offset] = cast(u8) (cast(u32) data[offset] + value)
+    data[offset] += #wrap value
 }
 
 func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, height: s32)
@@ -879,15 +879,15 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array'u8,
         {
             if (x & mask) == 0
             {
-                redToBlue       = cast(s8) transform.pixels[transformOffset + 0]
-                greenToBlue     = cast(s8) transform.pixels[transformOffset + 1]
-                greenToRed      = cast(s8) transform.pixels[transformOffset + 2]
+                redToBlue       = cast #bit (s8) transform.pixels[transformOffset + 0]
+                greenToBlue     = cast #bit (s8) transform.pixels[transformOffset + 1]
+                greenToRed      = cast #bit (s8) transform.pixels[transformOffset + 2]
                 transformOffset += 4
             }
 
-            let green = cast(s32) cast(s8) data[offset + 1]
+            let green = cast(s32) cast #bit (s8) data[offset + 1]
             let red   = cast(s32) data[offset + 0] + ((greenToRed * green) >> 5)
-            let blue  = cast(s32) data[offset + 2] + ((greenToBlue * green) >> 5) + ((redToBlue * cast(s32) cast(s8) losslessWrap8(red)) >> 5)
+            let blue  = cast(s32) data[offset + 2] + ((greenToBlue * green) >> 5) + ((redToBlue * cast(s32) cast #bit (s8) losslessWrap8(red)) >> 5)
             data[offset + 0] = losslessWrap8(red)
             data[offset + 2] = losslessWrap8(blue)
             offset           += 4

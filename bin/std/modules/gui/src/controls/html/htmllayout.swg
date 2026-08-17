@@ -1114,7 +1114,7 @@ impl HtmlLayout
         }
 
         var usedHeight = contentHeight
-        if !style.height.isAuto() and !style.height.isNone() and style.height.isDefinite(containing.hasHeight)
+        if !style.height.isAuto() and !style.height.isNone() and style.height.isDefinite(.pool, containing.hasHeight)
         {
             let value = style.height.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), contentHeight)
             usedHeight = style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value
@@ -1166,13 +1166,13 @@ impl HtmlLayout
     private mtd const clampHeight(height: f32, style: const *HtmlComputedStyle, styleIndex: u32, containing: HtmlContainingBlock, extraY: f32)->f32
     {
         var result = height
-        if !style.maxHeight.isAuto() and !style.maxHeight.isNone() and style.maxHeight.isDefinite(containing.hasHeight)
+        if !style.maxHeight.isAuto() and !style.maxHeight.isNone() and style.maxHeight.isDefinite(.pool, containing.hasHeight)
         {
             let value = style.maxHeight.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), result)
             result = Math.min(result, style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value)
         }
 
-        if !style.minHeight.isAuto() and !style.minHeight.isNone() and style.minHeight.isDefinite(containing.hasHeight)
+        if !style.minHeight.isAuto() and !style.minHeight.isNone() and style.minHeight.isDefinite(.pool, containing.hasHeight)
         {
             let value = style.minHeight.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), 0)
             result = Math.max(result, style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value)

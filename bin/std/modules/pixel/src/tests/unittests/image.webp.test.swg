@@ -157,6 +157,42 @@ func assertEncodedWebpRoundtrip(source: Image)
     checkWebpAgainstPng("gopher-doc.with-alpha.lossless.webp", "gopher-doc.with-alpha.png", 75, 100)
 }
 
+// The VP8L color-cache hash wraps its multiplication to 32 bits.
+#test
+{
+    let decoded = expect Image.load(getTestDataPath("color-cache.lossless.webp"))
+    @assert(decoded.isValid())
+    @assert(decoded.width == 32)
+    @assert(decoded.height == 32)
+    @assert(decoded.pixelFormat == .RGBA8)
+    assertWebpPixelFromTop(decoded, 0, 0, 165, 0, 67, 255)
+    assertWebpPixelFromTop(decoded, 16, 16, 173, 0, 123, 255)
+}
+
+// The VP8L predictor reconstructs each channel with modulo-256 addition.
+#test
+{
+    let decoded = expect Image.load(getTestDataPath("transforms.lossless.webp"))
+    @assert(decoded.isValid())
+    @assert(decoded.width == 32)
+    @assert(decoded.height == 32)
+    @assert(decoded.pixelFormat == .RGBA8)
+    assertWebpPixelFromTop(decoded, 31, 0, 217, 155, 147, 77)
+    assertWebpPixelFromTop(decoded, 0, 31, 93, 85, 15, 201)
+}
+
+// VP8L stores signed cross-color coefficients in their raw eight-bit representation.
+#test
+{
+    let decoded = expect Image.load(getTestDataPath("cross-color.lossless.webp"))
+    @assert(decoded.isValid())
+    @assert(decoded.width == 32)
+    @assert(decoded.height == 32)
+    @assert(decoded.pixelFormat == .RGBA8)
+    assertWebpPixelFromTop(decoded, 0, 0, 255, 0, 255, 255)
+    assertWebpPixelFromTop(decoded, 16, 16, 31, 224, 79, 255)
+}
+
 // Metadata-only decoding reads dimensions without allocating the pixel buffer.
 #test
 {

@@ -112,16 +112,28 @@ internal impl Properties
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(item.line, data![as String])
+        var ed: #null *EditBox
+        if .kind == .Panel
         {
-            if me.kind == .Panel
+            if @isset(item.label) do
+                item.label.hide()
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as String], flags: .ReleaseFocusOnEnterOrEscape)
             {
                 .anchorStyle = .Right
-                .setPlaceholder(itemDisplayName(value).toString())
+                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
             }
-            elif me.isGridLike() do
+
+            ed = ctrl.edit
+        }
+        else do
+            ed = EditBox.create(item.line, data![as String])
+
+        let edit = ed!
+        with edit
+        {
+            if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
-            else do
+            elif me.kind != .Panel do
                 .preferredSize.x = editWidth
 
             if me.kind != .Panel do
@@ -135,18 +147,18 @@ internal impl Properties
             .sigFocusLost += func|prop = me, item|(ed) { prop.validateDynamicString(item); }
         }
 
-        me.adaptCondensedControl(ed)
-        me.flattenCondensedEdit(ed)
-        item.assignEditBox(ed)
+        me.adaptCondensedControl(edit)
+        me.flattenCondensedEdit(edit)
+        item.assignEditBox(edit)
 
         // The MultiLine attribute adds a '...' button opening a multi-line edition dialog
         if Reflection.hasAttribute(value, .MultiLine)
         {
-            ed.setTrailingMargin(24)
-            with let btn = IconButton.create(ed, .theme().icon(.More, 20), {0, 0, 20, 20})
+            edit.setTrailingMargin(24)
+            with let btn = IconButton.create(edit, .theme().icon(.More, 20), {0, 0, 20, 20})
             {
                 .dockStyle  = .Right
-                .sigPressed += func|prop = me, item, ed|(btn)
+                .sigPressed += func|prop = me, item, ed = edit|(btn)
                 {
                     var editOptions: EditDlgOptions
                     editOptions.text = ed.text()
@@ -167,18 +179,36 @@ internal impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(item.line, data![as string])
+        var ed: #null *EditBox
+        if .kind == .Panel
         {
-            .maxSize.x = editWidth
+            if @isset(item.label) do
+                item.label.hide()
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as string])
+            {
+                .anchorStyle = .Right
+                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
+            }
+
+            ed = ctrl.edit
+        }
+        else do
+            ed = EditBox.create(item.line, data![as string])
+
+        let edit = ed!
+        with edit
+        {
+            if me.kind != .Panel do
+                .maxSize.x = editWidth
             if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
-            else do
+            elif me.kind != .Panel do
                 .preferredSize.x = editWidth
             .updateFlags(.ReadOnly)
         }
 
-        me.adaptCondensedControl(ed)
-        me.flattenCondensedEdit(ed)
-        item.assignEditBox(ed)
+        me.adaptCondensedControl(edit)
+        me.flattenCondensedEdit(edit)
+        item.assignEditBox(edit)
     }
 }

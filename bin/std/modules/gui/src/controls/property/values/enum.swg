@@ -216,6 +216,8 @@ internal impl Properties
             with let label1 = Label.create(line, "", {item.line.position.height, 0, Math.max(labelWidth, 1.0)})
             {
                 .dockStyle = .Center
+                if me.kind == .Condensed do
+                    .margin.x = PropCondensedCheckTextGap
                 .updateFlags(.WordWrap | .AutoHeight)
                 .setTextHorizontalAlignment(.Left)
                 .setText(dispDescStr)

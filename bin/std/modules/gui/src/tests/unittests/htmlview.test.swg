@@ -340,6 +340,36 @@ private func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
     @assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
 }
 
+// A viewport-relative rail has a definite height even though its document parent grows with its
+// content. This is the two-pane shape used by generated module pages: the outer view owns the
+// page scrollbar while the rail consumes the wheel independently.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 180)
+    defer host.shutdown()
+
+    var source: String = "<style>"
+    source += ":root { --header-height: 40px } body { margin: 0 }"
+    source += "aside { height: calc(100vh - var(--header-height)); overflow-y: auto }"
+    source += ".page { height: 140px }"
+    source += "</style><div style=\"height:40px\"></div><aside id=\"rail\"><div class=\"page\"></div><div class=\"page\"></div></aside>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(240, 180)
+    view.applyLayout()
+    view.rebuild()
+    discard host.render(view)
+
+    let rail = view.boxOfNode(view.elementById("rail"))
+    @assert(rail != HtmlNoNode)
+    @assert(Math.abs(view.layout.constBox(rail).content.height - (view.layout.viewport.y - 40)) <= 1)
+    @assert(view.layout.constBox(rail).scrollable)
+    @assert(view.painter().scrollableAt({20, 80}) == rail)
+    @assert(view.scrollRegion(rail, 70))
+    @assert(view.layout.constBox(rail).scrollTop == 70)
+}
+
 // A positive z-index keeps a sticky header above siblings that occur later in the document.
 #test
 {

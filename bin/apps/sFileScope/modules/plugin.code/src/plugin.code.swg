@@ -321,5 +321,6 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     result.view        = view
     result.details     = Format.toString(codeStrings().ui_Details, view.languageName)
     result.revealMatch = func(wnd, offset, text)->bool { return (cast(*CodePluginView) wnd).revealOffset(offset, text) }
+    result.isLoading   = func(wnd)->bool { return (cast(*CodePluginView) wnd).loadTimer != null }
     return true
 }

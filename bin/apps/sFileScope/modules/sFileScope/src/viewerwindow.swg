@@ -6,19 +6,20 @@ const ViewerGlyphSize       = 20.0
 const ViewerSearchChunkSize = 256 * 1024'u64
 
 // The panel that lists what is beside the current file, and what was read before it.
-const ViewerPanelWidth      = 268.0
-const ViewerPanelLabel      = 26.0
-const ViewerRecentHeight    = 152.0
+const ViewerPanelWidth   = 268.0
+const ViewerPanelLabel   = 26.0
+const ViewerRecentHeight = 152.0
 
 // Files the recent list keeps. Long enough to cross a working session, short enough that the list
 // stays something a reader scans rather than searches.
-const ViewerRecentCount     = 12'u64
+const ViewerRecentCount = 12'u64
 
 struct ViewerInstance
 {
     view:        #null *Wnd
     commands:    #null *Wnd
     revealMatch: #null ViewerRevealMatch
+    isLoading:   #null ViewerIsLoading
     details:     String
 }
 
@@ -40,6 +41,7 @@ struct ViewerWindow
         infoTypeLabel:    *Label
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
+        loadingSpinner:   *Spinner
         emptyLabel:       *Label
         filePanel:        *Wnd
         recentLabel:      *Label
@@ -57,6 +59,7 @@ struct ViewerWindow
     activeChoiceIndex    = Swag.U32.Max
     startupTimer:    #null *Timer
     searchTimer:     #null *Timer
+    loadingTimer:    #null *Timer
     searchStream:    File.FileStream
     searchQuery:     String
     searchCarry:     String
@@ -118,6 +121,14 @@ impl IWnd for ViewerWindow
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .loadingTimer
+        {
+            .removeTimer(evt.timer)
+            .loadingTimer = null
+            .updateLoadingIndicator()
+            return
+        }
+
         if evt.timer == .searchTimer
         {
             .removeTimer(evt.timer)
@@ -145,6 +156,7 @@ impl IWnd for ViewerWindow
     {
         catch g_App.saveState()
         .stopSearch()
+        .stopLoadingIndicator()
         if .startupTimer
         {
             .removeTimer(.startupTimer!)
@@ -246,15 +258,16 @@ impl ViewerWindow
             }
         }
 
-        with result.filesButton = IconButton.create(result.commandBar, result.theme().icon(.ParentFolder, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.filesButton = IconButton.create(result.commandBar, result.theme().icon(.History, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
-            .dockStyle  = .Left
-            .margin.z   = 8
-            .toolTip    = appStrings().ui_Files
-            .sigPressed += func|window = result|(button)
+            .dockStyle = .Left
+            .margin.z  = 8
+            .toolTip   = appStrings().ui_Files
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|window = result|(button)
             {
-                discard button
-                window.toggleFilePanel()
+                window.setFilePanelVisible(button.isChecked)
+                catch g_App.saveState()
             }
         }
 
@@ -339,6 +352,13 @@ impl ViewerWindow
             .setTextAlignment(.Right, .Center)
         }
 
+        with result.loadingSpinner = Spinner.create(result.infoBar, {0, 0, 18, 18})
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
+            .hide()
+        }
+
         with result.infoNameLabel = Label.create(result.infoBar, "")
         {
             .dockStyle = .Center
@@ -352,6 +372,8 @@ impl ViewerWindow
         with result.filePanel = Wnd.create'Wnd(result, {0, 0, ViewerPanelWidth, 0})
         {
             .dockStyle       = .Left
+            .minSize.x       = ViewerPanelWidth
+            .maxSize.x       = ViewerPanelWidth
             .backgroundStyle = .Window
             .padding         = {10, 8, 10, 8}
             .hide()
@@ -371,7 +393,8 @@ impl ViewerWindow
             .dockStyle = .Top
             .margin.w  = 10
             .setSelectionMode(.Single)
-            .updateFlags(.HotTrack)
+            .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.updateFlags(.DisableHorizontal)
             .sigSelectionChanged += func|window = result|(list)
             {
                 window.openListSelection(list, window.recent.toSlice())
@@ -389,7 +412,8 @@ impl ViewerWindow
         {
             .dockStyle = .Center
             .setSelectionMode(.Single)
-            .updateFlags(.HotTrack)
+            .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.updateFlags(.DisableHorizontal)
             .sigSelectionChanged += func|window = result|(list)
             {
                 window.openListSelection(list, window.siblings.toSlice())
@@ -459,6 +483,7 @@ impl ViewerWindow
 
     mtd destroyInstances()
     {
+        .stopLoadingIndicator()
         for &instance in .instances
         {
             instance.commands?.destroy()
@@ -470,6 +495,57 @@ impl ViewerWindow
         .currentView     = null
     }
 
+    // Discards a hidden progressive view before opening another renderer. HTML and Markdown
+    // otherwise keep parsing and laying out a document the reader can no longer see.
+    private mtd retireActiveLoadingChoice(nextIndex: u32)
+    {
+        if .activeChoiceIndex == nextIndex or .activeChoiceIndex >= .instances.count do
+            return
+        let instance = &.instances[.activeChoiceIndex]
+        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+            return
+
+        instance.commands?.destroy()
+        instance.view!.destroy()
+        instance.view        = null
+        instance.commands    = null
+        instance.revealMatch = null
+        instance.isLoading   = null
+        instance.details.clear()
+        .currentView     = null
+        .currentCommands = null
+    }
+
+    mtd stopLoadingIndicator()
+    {
+        if .loadingTimer
+        {
+            .removeTimer(.loadingTimer!)
+            .loadingTimer = null
+        }
+
+        .loadingSpinner.hide()
+    }
+
+    mtd updateLoadingIndicator()
+    {
+        var loading: bool
+        if .activeChoiceIndex < .instances.count
+        {
+            let instance = &.instances[.activeChoiceIndex]
+            loading = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
+        }
+
+        .loadingSpinner.show(loading)
+        if loading and !.loadingTimer do
+            .loadingTimer = .addTimer(50'ms)
+        elif !loading and .loadingTimer
+        {
+            .removeTimer(.loadingTimer!)
+            .loadingTimer = null
+        }
+    }
+
     mtd activateChoice(index: u32)->bool
     {
         if index >= .choices.count do
@@ -479,6 +555,7 @@ impl ViewerWindow
         let instance = &.instances[index]
         if instance.view
         {
+            .retireActiveLoadingChoice(index)
             .currentCommands?.hide()
             .currentView?.hide()
             .currentView     = instance.view
@@ -489,6 +566,7 @@ impl ViewerWindow
             .viewerCombo.setSelectedIndex(index, notify: false)
             .updateFileInfo(choice.name.toString(), instance.details.toString())
             .updateSearchAvailability()
+            .updateLoadingIndicator()
             .applyLayout()
             .invalidate()
             return true
@@ -501,6 +579,7 @@ impl ViewerWindow
             next.view        = basic
             next.commands    = basic.commands
             next.revealMatch = &basicTextRevealMatch
+            next.isLoading   = &basicTextIsLoading
             next.details     = "UTF-8 · streamed"
         }
         else
@@ -516,6 +595,7 @@ impl ViewerWindow
             }
         }
 
+        .retireActiveLoadingChoice(index)
         .currentCommands?.hide()
         .currentView?.hide()
         .currentView            = next.view
@@ -527,10 +607,12 @@ impl ViewerWindow
         instance.view        = .currentView
         instance.commands    = .currentCommands
         instance.revealMatch = next.revealMatch
+        instance.isLoading   = next.isLoading
         instance.details     = #move next.details
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(choice.name.toString(), instance.details.toString())
         .updateSearchAvailability()
+        .updateLoadingIndicator()
         .applyLayout()
         .invalidate()
         return true
@@ -697,7 +779,7 @@ impl ViewerWindow
             .viewerCombo.setSelectedIndex(.activeChoiceIndex, notify: false)
     }
 
-    mtd openFile(fileName: string)
+    mtd openFile(fileName: string, remember = true)
     {
         .stopSearch()
         .searchMatch = Swag.U64.Max
@@ -741,7 +823,8 @@ impl ViewerWindow
         .emptyLabel.hide()
 
         .siblingsDirty = true
-        .rememberRecent(.currentFile.toString())
+        if remember do
+            .rememberRecent(.currentFile.toString())
         if .panelVisible do
             .refreshFileLists()
 
@@ -783,6 +866,7 @@ impl ViewerWindow
     mtd setFilePanelVisible(visible: bool)
     {
         .panelVisible = visible
+        .filesButton.setChecked(visible)
         if visible
         {
             .refreshFileLists()
@@ -863,7 +947,7 @@ impl ViewerWindow
             return
         let fileName = files[index].toString()
         if .currentFile != fileName do
-            .openFile(fileName)
+            .openFile(fileName, remember: list != .recentList)
     }
 
     mtd rebuildSiblings()

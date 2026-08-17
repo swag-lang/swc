@@ -102,7 +102,12 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var utf16: Array'u8
     utf16.add(0xFF)
     utf16.add(0xFE)
-    for c in "Hello, wide world" { utf16.add(cast(u8) c); utf16.add(0) }
+    for c in "Hello, wide world"
+    {
+        utf16.add(cast(u8) c)
+        utf16.add(0)
+    }
+
     let wideFile = writeTempFile("utf16.txt", utf16.toSlice())
     defer discard catch File.delete(wideFile.toString())
 
@@ -128,7 +133,7 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
 #test
 {
     let latin: [11] u8 = ['c', 'a', 'f', 0xE9, ' ', 'n', 'a', 0xEF, 'v', 'e', '\n']
-    let file  = writeTempFile("cp1252.txt", latin)
+    let file           = writeTempFile("cp1252.txt", latin)
     defer discard catch File.delete(file.toString())
 
     @assert(BasicTextView.probe(file.toString()).encoding == .Windows1252)
@@ -188,6 +193,11 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.panelVisible and !window.filePanel.isLocallyVisible())
     window.toggleFilePanel()
     @assert(window.panelVisible and window.filePanel.isLocallyVisible())
+    @assert(window.filesButton.isChecked)
+    @assert(window.filePanel.position.width == ViewerPanelWidth)
+    @assert(window.filePanel.minSize.x == ViewerPanelWidth and window.filePanel.maxSize.x == ViewerPanelWidth)
+    @assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
+    @assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
     @assert(window.folderList.lineCount() == 3)
     @assert(window.recentList.lineCount() == 1)
 
@@ -196,9 +206,14 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.currentFile == names[2])
     @assert(window.recent.count == 2 and window.recent[0] == names[2])
 
-    // Opening the same file again moves it to the head instead of repeating it.
-    window.openFile(names[0].toString())
-    @assert(window.recent.count == 2 and window.recent[0] == names[0])
+    // A recent row keeps the list under the pointer stable while it opens its file.
+    window.recentList.selectLine(1)
+    @assert(window.currentFile == names[0])
+    @assert(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
+
+    window.setFilePanelVisible(false)
+    @assert(!window.filesButton.isChecked)
+    window.setFilePanelVisible(true)
 
     let state = saveViewerState(window)
     window.recent.clear()
@@ -217,7 +232,7 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
     expect Directory.create(folder.toString())
     defer discard catch Directory.delete(folder.toString(), recurse: true)
 
-    let names: [4] string = ["changelog.md", "notes.txt", "report.txt", "sample.json"]
+    let names: [4] string = ["changelog.md", "notes.txt", "report-with-a-name-too-long-for-the-fixed-history-panel.txt", "sample.json"]
     for one in names do
         discard expect File.writeAllBytes(Path.combine(folder.toString(), one).toString(), cast(const [..] u8) "a readable line\n")
 
@@ -401,9 +416,48 @@ private func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.nextButton.isEnabled())
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
+    @assert(window.filesButton.flags.has(.Toggle) and window.filesButton.checkIndicator == .Frame)
+    @assert(!window.filesButton.isChecked and !window.loadingSpinner.isLocallyVisible())
     @assert(window.plugins.first == null)
     @assert(!window.viewerCombo.isLocallyVisible())
     Testing.assertContentFits(window)
+}
+
+// The host shows progressive work and retires a still-loading renderer before switching views,
+// so a hidden HTML document cannot keep parsing while its source view opens.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+
+    let fileName = writeTempFile("html", cast(const [..] u8) "<p>ready</p>")
+    defer discard catch File.delete(fileName.toString())
+
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.currentFile = fileName
+    window.choices.add(ViewerChoice{.BasicText, Swag.U64.Max, "First"})
+    window.choices.add(ViewerChoice{.BasicText, Swag.U64.Max, "Second"})
+    window.viewerCombo.addItem("First")
+    window.viewerCombo.addItem("Second")
+    window.instances.resize(2)
+
+    let loading = Wnd.create'Wnd(window)
+    window.instances[0].view      = loading
+    window.instances[0].details   = "streamed"
+    window.instances[0].isLoading = func(wnd)->bool { discard wnd; return true }
+    window.currentView            = loading
+    window.activeChoiceIndex      = 0
+
+    window.updateLoadingIndicator()
+    @assert(window.loadingSpinner.isLocallyVisible() and window.loadingTimer != null)
+    @assert(window.activateChoice(1))
+    @assert(loading.isPendingDestroy)
+    @assert(window.instances[0].view == null)
+    @assert(window.currentView != null and window.currentView != loading)
+    @assert(window.instances[1].view == window.currentView)
+    @assert(!window.loadingSpinner.isLocallyVisible() and window.loadingTimer == null)
 }
 
 #test

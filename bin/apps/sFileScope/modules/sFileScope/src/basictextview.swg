@@ -60,6 +60,8 @@ func basicTextRevealMatch(wnd: *Wnd, offset: u64, text: string)->bool
     return (cast(*BasicTextView) wnd).revealOffset(offset, text)
 }
 
+func basicTextIsLoading(wnd: *Wnd)->bool => (cast(*BasicTextView) wnd).loadTimer != null
+
 impl BasicTextView
 {
     // Reads the head of a file once and reports how it spells its characters.
@@ -207,8 +209,8 @@ impl BasicTextView
 
         // The window opens on a character boundary. UTF-8 finds it by stepping forward until the
         // bytes decode, and a wide encoding by counting whole units from the first byte of text.
-        let unit      = Text.unitSize(.encoding)
-        var start     = requested > TextRevealContextSize ? requested - TextRevealContextSize : 0
+        let unit  = Text.unitSize(.encoding)
+        var start = requested > TextRevealContextSize ? requested - TextRevealContextSize : 0
         start = Math.max(start, .contentStart)
         start -= (start - .contentStart) % unit
         for adjustment in 4
@@ -269,7 +271,7 @@ impl BasicTextView
             stream.close()
         }
 
-        .contentStart = Text.hasBom(head.toSlice(), encoding) ? Text.bomLength(encoding) : 0
+        .contentStart  = Text.hasBom(head.toSlice(), encoding) ? Text.bomLength(encoding) : 0
         .virtualHeight = 0
         discard .revealOffset(Math.max(.residentStart, .contentStart), "")
     }

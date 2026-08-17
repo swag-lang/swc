@@ -34,10 +34,60 @@ internal enum CodeLanguage
     Shader
     CMake
     Batch
+    Html
+    Assembly
+    Zig
+    Nim
+    Haskell
+    Scala
+    Groovy
+    Elixir
+    Erlang
+    Clojure
+    Julia
+    Fortran
+    Pascal
+    D
+    ObjectiveC
+    Matlab
+    Tcl
+    Awk
+    Vim
+    Latex
+    Protobuf
+    GraphQl
+    Gradle
+    Makefile
+    Dockerfile
+    Nix
+}
+
+private func codeLooksLikeObjectiveC(fileName: string)->bool
+{
+    var stream = catch File.openRead(fileName) as openError
+    if openError != null do
+        return false
+    defer stream.close()
+
+    let head = catch stream.readUtf8Chunk(4 * 1024) as readError
+    if readError != null do
+        return false
+    const Markers: [5] string = ["#import", "@interface", "@implementation", "@protocol", "@property"]
+    for marker in Markers where Utf8.contains(head.toString(), marker) do
+        return true
+    return false
 }
 
 internal func codeLanguage(fileName: string)->CodeLanguage
 {
+    var baseName = String.from(Path.fileName(fileName) orelse "")
+    baseName = baseName.toLower()
+    switch baseName.toString()
+    {
+    case "makefile", "gnumakefile", "bsdmakefile": return .Makefile
+    case "dockerfile", "containerfile":            return .Dockerfile
+    }
+
     let extension = Path.lowercaseExtension(fileName)
     switch extension.toString()
     {
@@ -71,6 +121,32 @@ internal func codeLanguage(fileName: string)->CodeLanguage
     case ".glsl", ".vert", ".frag", ".geom", ".comp", ".hlsl", ".fx":                  return .Shader
     case ".cmake":                                                                     return .CMake
     case ".bat", ".cmd":                                                               return .Batch
+    case ".htm", ".html", ".shtml", ".xht", ".xhtml":                                  return .Html
+    case ".asm", ".s", ".incasm":                                                      return .Assembly
+    case ".zig":                                                                       return .Zig
+    case ".nim", ".nims", ".nimble":                                                   return .Nim
+    case ".hs", ".lhs":                                                                return .Haskell
+    case ".scala", ".sc":                                                              return .Scala
+    case ".groovy", ".gvy", ".gy", ".gsh":                                             return .Groovy
+    case ".ex", ".exs":                                                                return .Elixir
+    case ".erl", ".hrl":                                                               return .Erlang
+    case ".clj", ".cljs", ".cljc", ".edn":                                             return .Clojure
+    case ".jl":                                                                        return .Julia
+    case ".f", ".for", ".f77", ".f90", ".f95", ".f03", ".f08":                         return .Fortran
+    case ".pas", ".pp", ".lpr":                                                        return .Pascal
+    case ".d", ".di":                                                                  return .D
+    case ".mm":                                                                        return .ObjectiveC
+    case ".m":                                                                         return codeLooksLikeObjectiveC(fileName) ? .ObjectiveC : .Matlab
+    case ".tcl", ".tk":                                                                return .Tcl
+    case ".awk":                                                                       return .Awk
+    case ".vim":                                                                       return .Vim
+    case ".tex", ".sty", ".cls", ".bib":                                               return .Latex
+    case ".proto":                                                                     return .Protobuf
+    case ".graphql", ".gql":                                                           return .GraphQl
+    case ".gradle":                                                                    return .Gradle
+    case ".mk", ".mak", ".make":                                                       return .Makefile
+    case ".dockerfile":                                                                return .Dockerfile
+    case ".nix":                                                                       return .Nix
     }
 
     return .C
@@ -110,6 +186,32 @@ internal func codeLanguageName(language: CodeLanguage)->string
     case .Shader:      return "Shader"
     case .CMake:       return "CMake"
     case .Batch:       return "Batch"
+    case .Html:        return "HTML"
+    case .Assembly:    return "Assembly"
+    case .Zig:         return "Zig"
+    case .Nim:         return "Nim"
+    case .Haskell:     return "Haskell"
+    case .Scala:       return "Scala"
+    case .Groovy:      return "Groovy"
+    case .Elixir:      return "Elixir"
+    case .Erlang:      return "Erlang"
+    case .Clojure:     return "Clojure"
+    case .Julia:       return "Julia"
+    case .Fortran:     return "Fortran"
+    case .Pascal:      return "Pascal"
+    case .D:           return "D"
+    case .ObjectiveC:  return "Objective-C"
+    case .Matlab:      return "MATLAB"
+    case .Tcl:         return "Tcl"
+    case .Awk:         return "Awk"
+    case .Vim:         return "Vim script"
+    case .Latex:       return "LaTeX"
+    case .Protobuf:    return "Protocol Buffers"
+    case .GraphQl:     return "GraphQL"
+    case .Gradle:      return "Gradle"
+    case .Makefile:    return "Makefile"
+    case .Dockerfile:  return "Dockerfile"
+    case .Nix:         return "Nix"
     }
 }
 
@@ -172,7 +274,31 @@ private impl GenericCodeLexer
         case .Perl:                       .addWords(["continue", "do", "else", "elsif", "for", "foreach", "given", "goto", "if", "last", "local", "my", "next", "no", "package", "redo", "require", "return", "state", "sub", "unless", "until", "use", "when", "while"])
         case .VisualBasic:                .addWords(["as", "async", "await", "boolean", "byref", "byval", "case", "catch", "class", "const", "continue", "dim", "do", "each", "else", "elseif", "end", "enum", "false", "finally", "for", "function", "get", "handles", "if", "implements", "imports", "in", "inherits", "interface", "module", "new", "nothing", "of", "private", "property", "protected", "public", "return", "select", "set", "shared", "static", "structure", "sub", "then", "throw", "true", "try", "while", "with"])
         case .CMake:                      .addWords(["break", "cmake_minimum_required", "continue", "else", "elseif", "endforeach", "endfunction", "endif", "endmacro", "endwhile", "find_package", "foreach", "function", "if", "include", "macro", "project", "return", "set", "target_compile_definitions", "target_include_directories", "target_link_libraries", "while"])
-        case .Xml:                        return
+        case .Assembly:                   .addWords(["section", "segment", "global", "extern", "align", "bits", "byte", "word", "dword", "qword", "db", "dw", "dd", "dq", "mov", "lea", "push", "pop", "call", "ret", "jmp", "cmp", "test", "add", "sub", "mul", "imul", "div", "idiv", "and", "or", "xor", "not", "shl", "shr", "sal", "sar", "inc", "dec", "nop"])
+        case .Zig:                        .addWords(["addrspace", "align", "allowzero", "and", "anyframe", "anytype", "asm", "async", "await", "break", "callconv", "catch", "comptime", "const", "continue", "defer", "else", "enum", "errdefer", "error", "export", "extern", "false", "fn", "for", "if", "inline", "linksection", "noalias", "nosuspend", "null", "opaque", "or", "orelse", "packed", "pub", "resume", "return", "struct", "suspend", "switch", "test", "threadlocal", "true", "try", "union", "unreachable", "usingnamespace", "var", "volatile", "while"])
+        case .Nim:                        .addWords(["addr", "and", "as", "asm", "bind", "block", "break", "case", "cast", "concept", "const", "continue", "converter", "defer", "discard", "distinct", "div", "do", "elif", "else", "end", "enum", "except", "export", "finally", "for", "from", "func", "if", "import", "in", "include", "interface", "is", "isnot", "iterator", "let", "macro", "method", "mixin", "mod", "nil", "not", "notin", "object", "of", "or", "out", "proc", "ptr", "raise", "ref", "return", "shl", "shr", "static", "template", "try", "tuple", "type", "using", "var", "when", "while", "with", "without", "xor", "yield"])
+        case .Haskell:                    .addWords(["as", "case", "class", "data", "default", "deriving", "do", "else", "family", "foreign", "hiding", "if", "import", "in", "infix", "infixl", "infixr", "instance", "let", "module", "newtype", "of", "pattern", "qualified", "role", "then", "type", "where"])
+        case .Scala:                      .addWords(["abstract", "case", "catch", "class", "def", "do", "else", "enum", "export", "extends", "false", "final", "finally", "for", "forSome", "given", "if", "implicit", "import", "inline", "lazy", "match", "new", "null", "object", "opaque", "open", "override", "package", "private", "protected", "return", "sealed", "super", "then", "this", "throw", "trait", "transparent", "true", "try", "type", "using", "val", "var", "while", "with", "yield"])
+        case .Groovy, .Gradle:            .addWords(["as", "assert", "break", "case", "catch", "class", "const", "continue", "def", "default", "do", "else", "enum", "extends", "false", "finally", "for", "goto", "if", "implements", "import", "in", "instanceof", "interface", "native", "new", "non-sealed", "null", "package", "permits", "private", "protected", "public", "record", "return", "sealed", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "trait", "transient", "true", "try", "var", "void", "volatile", "while"])
+        case .Elixir:                     .addWords(["after", "alias", "and", "case", "catch", "cond", "def", "defdelegate", "defexception", "defguard", "defimpl", "defmacro", "defmodule", "defp", "defprotocol", "defstruct", "do", "else", "end", "false", "fn", "for", "if", "import", "in", "nil", "not", "or", "quote", "raise", "receive", "require", "rescue", "super", "throw", "true", "try", "unless", "unquote", "use", "when", "with"])
+        case .Erlang:                     .addWords(["after", "and", "andalso", "band", "begin", "bnot", "bor", "bsl", "bsr", "bxor", "case", "catch", "cond", "div", "end", "fun", "if", "let", "not", "of", "or", "orelse", "receive", "rem", "try", "when", "xor"])
+        case .Clojure:                    .addWords(["def", "defn", "defmacro", "defmethod", "defmulti", "defonce", "defprotocol", "defrecord", "deftype", "do", "doseq", "dotimes", "fn", "for", "if", "if-let", "if-not", "let", "letfn", "loop", "ns", "quote", "recur", "throw", "try", "var", "when", "when-let", "when-not", "while"])
+        case .Julia:                      .addWords(["baremodule", "begin", "break", "catch", "const", "continue", "do", "else", "elseif", "end", "export", "false", "finally", "for", "function", "global", "if", "import", "let", "local", "macro", "module", "quote", "return", "struct", "true", "try", "using", "while"])
+        case .Fortran:                    .addWords(["allocate", "assign", "associate", "backspace", "block", "call", "case", "class", "close", "common", "contains", "continue", "cycle", "data", "deallocate", "dimension", "do", "else", "elseif", "end", "enddo", "endif", "entry", "equivalence", "exit", "external", "forall", "format", "function", "goto", "if", "implicit", "import", "include", "inquire", "interface", "intrinsic", "module", "namelist", "none", "nullify", "only", "open", "operator", "optional", "parameter", "pause", "pointer", "print", "private", "procedure", "program", "public", "pure", "read", "recursive", "return", "rewind", "save", "select", "stop", "subroutine", "target", "then", "type", "use", "where", "while", "write"])
+        case .Pascal:                     .addWords(["and", "array", "as", "asm", "begin", "case", "class", "const", "constructor", "destructor", "div", "do", "downto", "else", "end", "except", "exports", "file", "finalization", "finally", "for", "function", "goto", "if", "implementation", "in", "inherited", "initialization", "inline", "interface", "is", "label", "library", "mod", "nil", "not", "object", "of", "operator", "or", "out", "packed", "procedure", "program", "property", "raise", "record", "repeat", "resourcestring", "set", "shl", "shr", "then", "threadvar", "to", "try", "type", "unit", "until", "uses", "var", "while", "with", "xor"])
+        case .D:                          .addWords(["abstract", "alias", "align", "asm", "assert", "auto", "body", "bool", "break", "byte", "case", "cast", "catch", "class", "const", "continue", "debug", "default", "delegate", "delete", "deprecated", "do", "else", "enum", "export", "extern", "false", "final", "finally", "for", "foreach", "foreach_reverse", "function", "goto", "if", "immutable", "import", "in", "inout", "interface", "invariant", "is", "lazy", "mixin", "module", "new", "nothrow", "null", "out", "override", "package", "pragma", "private", "protected", "public", "pure", "ref", "return", "scope", "shared", "static", "struct", "super", "switch", "synchronized", "template", "this", "throw", "traits", "true", "try", "typedef", "typeid", "typeof", "union", "unittest", "version", "void", "while", "with"])
+        case .ObjectiveC:                 .addWords(["auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long", "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while", "@autoreleasepool", "@catch", "@class", "@dynamic", "@encode", "@end", "@finally", "@implementation", "@interface", "@optional", "@package", "@private", "@property", "@protected", "@protocol", "@public", "@required", "@selector", "@synchronized", "@synthesize", "@throw", "@try"])
+        case .Matlab:                     .addWords(["break", "case", "catch", "classdef", "continue", "else", "elseif", "end", "enumeration", "events", "for", "function", "global", "if", "methods", "otherwise", "parfor", "persistent", "properties", "return", "spmd", "switch", "try", "while"])
+        case .Tcl:                        .addWords(["after", "append", "apply", "array", "break", "catch", "concat", "continue", "dict", "else", "elseif", "error", "eval", "expr", "for", "foreach", "format", "global", "if", "incr", "info", "lappend", "lassign", "lindex", "linsert", "list", "llength", "lmap", "proc", "rename", "return", "set", "source", "string", "switch", "unset", "upvar", "variable", "while"])
+        case .Awk:                        .addWords(["BEGIN", "END", "break", "continue", "delete", "do", "else", "exit", "for", "function", "getline", "if", "in", "next", "nextfile", "print", "printf", "return", "while"])
+        case .Vim:                        .addWords(["autocmd", "break", "call", "catch", "command", "continue", "else", "elseif", "endfor", "endfunction", "endif", "endtry", "endwhile", "execute", "finish", "for", "function", "if", "let", "return", "set", "silent", "throw", "try", "while"])
+        case .Latex:                      .addWords(["\\begin", "\\chapter", "\\documentclass", "\\else", "\\end", "\\fi", "\\if", "\\include", "\\input", "\\label", "\\newcommand", "\\paragraph", "\\ref", "\\renewcommand", "\\section", "\\subsection", "\\subsubsection", "\\usepackage"])
+        case .Protobuf:                   .addWords(["bool", "bytes", "double", "enum", "extend", "extensions", "fixed32", "fixed64", "float", "group", "import", "int32", "int64", "map", "message", "oneof", "option", "optional", "package", "public", "repeated", "required", "reserved", "returns", "rpc", "service", "sfixed32", "sfixed64", "sint32", "sint64", "stream", "string", "syntax", "to", "uint32", "uint64", "weak"])
+        case .GraphQl:                    .addWords(["directive", "enum", "extend", "fragment", "implements", "input", "interface", "mutation", "null", "on", "query", "repeatable", "scalar", "schema", "subscription", "true", "type", "union"])
+        case .Makefile:                   .addWords(["define", "else", "endef", "endif", "export", "if", "ifdef", "ifeq", "ifndef", "ifneq", "include", "override", "private", "sinclude", "undefine", "unexport", "vpath"])
+        case .Dockerfile:                 .addWords(["add", "arg", "cmd", "copy", "entrypoint", "env", "expose", "from", "healthcheck", "label", "maintainer", "onbuild", "run", "shell", "stopsignal", "user", "volume", "workdir"])
+        case .Nix:                        .addWords(["assert", "else", "false", "if", "in", "inherit", "let", "null", "or", "rec", "then", "true", "with"])
+        case .Xml, .Html:                 return
         }
     }
 
@@ -180,27 +306,31 @@ private impl GenericCodeLexer
     {
         switch .language
         {
-        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Yaml, .Toml, .Config, .CMake: return true
+        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Yaml, .Toml, .Config, .CMake, .Nim, .Elixir, .Julia, .Tcl, .Awk, .GraphQl, .Makefile, .Dockerfile, .Nix: return true
         default: return false
         }
     }
 
-    mtd isDashComment()->bool => .language == .Sql or .language == .Lua
+    mtd isDashComment()->bool      => .language == .Sql or .language == .Lua or .language == .Haskell
+    mtd isSemicolonComment()->bool => .language == .Assembly or .language == .Clojure
+    mtd isPercentComment()->bool   => .language == .Erlang or .language == .Matlab or .language == .Latex
+    mtd isBangComment()->bool      => .language == .Fortran
+    mtd isQuoteComment()->bool     => .language == .Vim
 
     mtd isSlashComment()->bool
     {
         switch .language
         {
-        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Sql, .Lua, .Yaml, .Toml, .Config, .CMake, .Batch, .VisualBasic, .Xml: return false
+        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Sql, .Lua, .Yaml, .Toml, .Config, .CMake, .Batch, .VisualBasic, .Xml, .Html, .Assembly, .Nim, .Haskell, .Elixir, .Erlang, .Clojure, .Julia, .Fortran, .Matlab, .Tcl, .Awk, .Vim, .Latex, .GraphQl, .Makefile, .Dockerfile, .Nix: return false
         default: return true
         }
     }
 
-    mtd isCaseInsensitive()->bool => .language == .Sql or .language == .VisualBasic or .language == .Batch
-    mtd hasBlockComment()->bool   => .isSlashComment() or .language == .Sql or .language == .Css
+    mtd isCaseInsensitive()->bool => .language == .Sql or .language == .VisualBasic or .language == .Batch or .language == .Assembly or .language == .Fortran or .language == .Pascal or .language == .Matlab or .language == .Dockerfile
+    mtd hasBlockComment()->bool   => .isSlashComment() or .language == .Sql or .language == .Css or .language == .Nix
     mtd hasBacktickString()->bool => .language == .JavaScript or .language == .TypeScript or .language == .Shell or .language == .PowerShell
-    mtd hasPreprocessor()->bool   => .language == .C or .language == .Cpp or .language == .CSharp or .language == .Shader
-    mtd hasDataKeys()->bool       => .language == .Json or .language == .Yaml or .language == .Toml or .language == .Config or .language == .Css
+    mtd hasPreprocessor()->bool   => .language == .C or .language == .Cpp or .language == .CSharp or .language == .Shader or .language == .ObjectiveC
+    mtd hasDataKeys()->bool       => .language == .Json or .language == .Yaml or .language == .Toml or .language == .Config or .language == .Css or .language == .GraphQl
 }
 
 private func codePaint(line: *RichEditLine, first, last: u64, style: GenericCodeLexer.Style)
@@ -222,8 +352,8 @@ private func codeMatches(line: *RichEditLine, at: u64, text: string)->bool
     return true
 }
 
-private func codeIdentifierStart(value: rune)->bool => Unicode.isLetter(value) or value == '_' or value == '$' or value == '@'
-private func codeIdentifier(value: rune)->bool => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@'
+private func codeIdentifierStart(value: rune)->bool => Unicode.isLetter(value) or value == '_' or value == '$' or value == '@' or value == '\\'
+private func codeIdentifier(value: rune)->bool => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@' or value == '\\'
 
 internal impl IRichEditLexer for GenericCodeLexer
 {
@@ -272,7 +402,7 @@ internal impl IRichEditLexer for GenericCodeLexer
         var state = linePrev ? cast(GenericCodeState) linePrev!.lexerState() : GenericCodeState.Default
         var seek  = 0'u64
 
-        if .language == .Xml
+        if .language == .Xml or .language == .Html
         {
             while seek < length
             {
@@ -352,7 +482,7 @@ internal impl IRichEditLexer for GenericCodeLexer
                 }
 
                 let value = line.runeAt(seek)
-                if (.isHashComment() and value == '#') or (.isDashComment() and codeMatches(line, seek, "--")) or (.language == .VisualBasic and value == '\'') or (.language == .Batch and codeMatches(line, seek, "rem ")) or (.isSlashComment() and codeMatches(line, seek, "//"))
+                if (.isHashComment() and value == '#') or (.isDashComment() and codeMatches(line, seek, "--")) or (.isSemicolonComment() and value == ';') or (.isPercentComment() and value == '%') or (.isBangComment() and value == '!') or (.isQuoteComment() and value == '"') or (.language == .VisualBasic and value == '\'') or (.language == .Batch and codeMatches(line, seek, "rem ")) or (.isSlashComment() and codeMatches(line, seek, "//"))
                 {
                     codePaint(line, seek, length, .Comment)
                     seek = length

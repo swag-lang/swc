@@ -150,7 +150,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | --- | --- | --- | --- | --- |
 | Plain text | `.txt` `.ini` `.cfg` | full, streamed | — | — |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | the multi-byte pages: Shift-JIS, GBK, EUC | — |
-| Source code | 90 extensions | full, lexer coloring | extensionless names, ~25 languages | T-399, T-400 |
+| Source code | registered extensions and build-file names | full, lexer coloring | content-based detection for unregistered names | T-399 |
 | Markdown | `.md` `.markdown` | full | — | — |
 | HTML | `.html` `.htm` `.xhtml` | full | box model | T-387 |
 | JSON, XML, YAML, TOML | `.json` `.xml` `.yaml` `.toml` | code | folding and value tree | — |
@@ -215,20 +215,11 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-399 — A file without an extension gets no viewer
 
-- Intent: `plugin.index.filescope` matches on extension only, so `Makefile`, `Dockerfile`,
-  `CMakeLists.txt`, `.gitignore`, `.editorconfig`, `LICENSE` and every dotfile fall to the basic
-  text view with no coloring, and a mislabelled file is never recognized.
-- Complete when: a registry line can carry a filename pattern as well as an extension, the code
-  viewer claims the usual extensionless names, and a first-bytes rule catches a shebang.
-
-### T-400 — The code viewer does not know about twenty-five languages
-
-- Intent: `plugin.code` covers 90 extensions and misses assembly, Zig, Nim, Haskell, Scala, Groovy,
-  Elixir, Erlang, Clojure, Julia, Fortran, Pascal, D, Objective-C, MATLAB, Tcl, Awk, Vim script,
-  LaTeX, Protocol Buffers, GraphQL, Gradle, Makefile, Dockerfile and Nix.
-- Complete when: each is claimed by the registry and colored by `codelexer.swg`, with the same
-  keyword-set discipline the Swag lexer already follows.
-- Related: T-399
+- Intent: the registry now claims exact names such as `Makefile` and `Dockerfile`, but it cannot
+  express patterns for `CMakeLists.txt`, `.gitignore`, `.editorconfig`, `LICENSE` and families of
+  dotfiles, and a mislabelled file is never recognized.
+- Complete when: a registry line can carry a filename pattern, the code viewer claims the remaining
+  usual extensionless names, and a first-bytes rule catches a shebang.
 
 ### T-401 — PDF is only identified
 
@@ -365,7 +356,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-416 — apiVersion refuses everything but its exact version
 
-- Intent: `ViewerPluginApiVersion` is at 6 and a plugin returns false on any other value, so every
+- Intent: `ViewerPluginApiVersion` is at 7 and a plugin returns false on any other value, so every
   bump orphans every plugin that is not rebuilt in the same tree. That is correct while all seven
   plugins ship here, and hostile the day one does not.
 - Complete when: the contract states a minimum supported version alongside the current one, the host

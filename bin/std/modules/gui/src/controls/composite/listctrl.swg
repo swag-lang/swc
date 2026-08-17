@@ -22,6 +22,7 @@ enum ListFlags
     ReserveExpandMargin               // Reserves an expansion margin even when no row can expand.
     PreserveSelectionOnEmptyClick     // Keeps selection when empty space is clicked.
     HotTrack                          // Highlights the row under the pointer.
+    Ellipsis                          // Ends overflowing cell text with an ellipsis.
 }
 
 // Says where a drop hovering a list would land.
@@ -858,7 +859,9 @@ private impl ListView
             format.horzAlignment = item.horzAlign
             format.vertAlignment = .Center
             format.flags         = .Clip
-            format.font          = .list.font()
+            if .list.listFlags.has(.Ellipsis) do
+                format.flags.add(.Ellipsis)
+            format.font = .list.font()
 
             var labelPos = rect
 

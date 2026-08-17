@@ -9,10 +9,10 @@ shared libraries and enters the process only when selected.
 ## Viewer registry
 
 `plugins/plugin.index.filescope` is the only plugin registry read at startup. Each line gives a stable id,
-the label shown in the action-bar combo, the DLL, and one or more lowercase extensions:
+the label shown in the action-bar combo, the DLL, and one or more lowercase extensions or exact file names:
 
 ```text
-markdown|Markdown|plugin.markdown.dll|.md;.markdown
+code|Code|plugin.code.dll|.cpp;.html;makefile;dockerfile
 image|Image|plugin.image.dll|.png;.jpg;.gif;.svg
 hex|Hexadecimal|plugin.hex.dll|*
 ```
@@ -32,9 +32,13 @@ hexadecimal alternative instead of guessing an encoding.
 
 - `plugin.code` streams source with syntax coloring for Swag, C, C++, C#, Java, Kotlin,
   JavaScript, TypeScript, Go, Rust, Python, Ruby, shell, PowerShell, PHP, Lua, SQL, JSON, XML,
-  CSS and preprocessors, YAML, TOML, configuration files, Swift, Dart, R, Perl, Visual Basic,
-  shaders, CMake, and batch files. Swag uses the GUI's language lexer; its vocabulary is kept in
-  step with the compiler's current keywords, intrinsics, compiler directives, and modifiers.
+  HTML, CSS and preprocessors, YAML, TOML, configuration files, Swift, Dart, R, Perl, Visual
+  Basic, shaders, CMake, batch, assembly, Zig, Nim, Haskell, Scala, Groovy, Elixir, Erlang,
+  Clojure, Julia, Fortran, Pascal, D, Objective-C, MATLAB, Tcl, Awk, Vim script, LaTeX,
+  Protocol Buffers, GraphQL, Gradle, Makefiles, Dockerfiles, and Nix. Swag uses the GUI's language
+  lexer; its vocabulary is kept in step with the compiler's current keywords, intrinsics,
+  compiler directives, and modifiers. HTML keeps its rendered viewer first and offers Code as
+  the structured, indented source alternative.
 - `plugin.markdown` is a thin sFileScope adapter around the reusable GUI `MarkdownView`. It streams a
   themed reading column with separate typography and spacing for headings, prose, GFM alerts, nested
   lists and tasks, fenced code, aligned tables, rules, metadata, footnotes, references, and a table of
@@ -88,6 +92,10 @@ resident window at the requested file offset, so distant navigation never materi
 byte. Ctrl+F opens the shared search field, Enter or F3 finds the next occurrence by scanning the file
 in asynchronous 256 KiB chunks, and Escape restores the normal action bar.
 
+The file-information band shows a spinner while the active renderer is progressively producing
+visible content. Switching renderers retires a still-loading hidden view, so a large rendered HTML
+document does not keep parsing behind its text or code source.
+
 The host keeps file type, name, size, and plugin-specific basic statistics in a persistent bottom
 bar whose quieter surface is distinct from the document view. Its Dark/Light choice and native
 window state (position, size, and maximized state) are stored in the user's application-data folder.
@@ -99,7 +107,7 @@ extensions declared by specialized plugins. Normal launches never write the regi
 ## Adding a plugin
 
 The contract lives in [shared/pluginapi.swg](shared/pluginapi.swg), which is not a module: the host
-and every plugin `#load` it from their own `module.swg`, so the four declarations it holds are
+and every plugin `#load` it from their own `module.swg`, so the declarations it holds are
 compiled into each of them. A shared declaration set that carries no code does not need a module of
 its own, an entry in the build graph, or an export artifact.
 
@@ -117,8 +125,9 @@ when the view needs no actions. Return a concise format-specific summary through
 the host combines it with the viewer type and file size. Decode errors belong inside the returned
 view so the host stays format-agnostic. A searchable plugin returns a `result.revealMatch` callback
 that materializes and reveals the bounded window containing the supplied byte offset; the host owns
-the asynchronous file scan. Packaged plugin libraries and symbols use the `plugin.<what>` naming
-family.
+the asynchronous file scan. A progressively rendered plugin returns `result.isLoading`; the host
+uses it for the shared loading indicator and to retire work that becomes hidden. Packaged plugin
+libraries and symbols use the `plugin.<what>` naming family.
 
 `swc tools/apps.swgs dm test sFileScope` tests the host and every shipped plugin as an independent
 executable. `swc tools/apps.swgs dm build sFileScope` packages the DLLs, the registry, and the Audio

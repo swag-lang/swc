@@ -1,12 +1,12 @@
 using Core, Core.Errors, Gui
 
-// One viewer plugin associated with a set of lowercase filename extensions.
+// One viewer plugin associated with lowercase extensions or exact file names.
 struct ViewerPluginSpec
 {
     id:          String           // Stable plugin identifier used to reuse a loaded library.
     displayName: String           // Name shown in the viewer selector.
     library:     String           // Library filename relative to the index directory.
-    extensions:  Array'String     // Lowercase extensions, or `*` for a viewer available to every file.
+    extensions:  Array'String     // Lowercase extensions or file names, or `*` for every file.
 }
 
 // Selects whether one available viewer is implemented by the host or a plugin.
@@ -35,8 +35,8 @@ impl ViewerPluginIndex
 {
     // Parses the line-oriented plugin index.
     //
-    // Each non-comment line is `id|display name|library|.ext;.other`. A three-field legacy line
-    // keeps using its id as the display name. `*` makes that viewer available to every file.
+    // Each non-comment line is `id|display name|library|.ext;exact-name`. A three-field legacy
+    // line keeps using its id as the display name. `*` makes that viewer available to every file.
     func parse(text, directory: string)->ViewerPluginIndex fail
     {
         var result: retval
@@ -50,7 +50,7 @@ impl ViewerPluginIndex
 
             let fields = Tokenize.split(line, '|'u8, removeEmpty: false)
             if fields.count != 3 and fields.count != 4 do
-                fail InvalidFormatError{"plugin index line needs an id, display name, library, and extensions"}
+                fail InvalidFormatError{"plugin index line needs an id, display name, library, and file selectors"}
 
             var spec: ViewerPluginSpec
             spec.id = Latin1.trim(fields[0])
@@ -78,7 +78,7 @@ impl ViewerPluginIndex
             }
 
             if spec.extensions.isEmpty() do
-                fail InvalidFormatError{"plugin index entry needs at least one extension"}
+                fail InvalidFormatError{"plugin index entry needs at least one file selector"}
             result.specs.add(#move spec)
         }
 
@@ -95,13 +95,22 @@ impl ViewerPluginIndex
         return parse(content.toString(), directory)
     }
 
-    private mtd const matches(spec: const *ViewerPluginSpec, extension: string, wildcard: bool)->bool
+    private mtd const matches(spec: const *ViewerPluginSpec, baseName, extension: string, wildcard: bool)->bool
     {
         for supported in spec.extensions
         {
             if wildcard and supported[] == "*" do
                 return true
-            if !wildcard and supported[] == extension do
+            if wildcard do
+                continue
+
+            let selector = supported[].toString()
+            if selector[0] == '.'
+            {
+                if selector == extension do
+                    return true
+            }
+            elif selector == baseName do
                 return true
         }
 
@@ -118,27 +127,39 @@ impl ViewerPluginIndex
         var result: retval
         var extension = String.from(Path.extension(fileName) orelse "")
         extension = extension.toLower()
+        var baseName = String.from(Path.fileName(fileName) orelse "")
+        baseName = baseName.toLower()
 
-        for spec, index in .specs where .matches(spec, extension.toString(), wildcard: false) do
+        for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: false) do
             result.add(ViewerChoice{.Plugin, index, spec.displayName})
 
         if BasicTextView.supports(fileName) do
             result.add(ViewerChoice{.BasicText, Swag.U64.Max, appStrings().ui_BasicText})
 
-        for spec, index in .specs where .matches(spec, extension.toString(), wildcard: true) do
+        for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: true) do
             result.add(ViewerChoice{.Plugin, index, spec.displayName})
         return result
     }
 
-    // Reports whether `fileName` has an explicitly registered extension.
+    // Reports whether `fileName` has an explicitly registered extension or exact name.
     mtd const explicitlySupports(fileName: string)->bool
     {
         var extension = String.from(Path.extension(fileName) orelse "")
         extension = extension.toLower()
+        var baseName = String.from(Path.fileName(fileName) orelse "")
+        baseName = baseName.toLower()
         for spec in .specs
         {
-            for supported in spec.extensions where supported[] != "*" and supported[] == extension do
-                return true
+            for supported in spec.extensions
+            {
+                let selector = supported[].toString()
+                if selector == "*" do
+                    continue
+                if selector[0] == '.' and selector == extension.toString() do
+                    return true
+                if selector[0] != '.' and selector == baseName.toString() do
+                    return true
+            }
         }
 
         return false

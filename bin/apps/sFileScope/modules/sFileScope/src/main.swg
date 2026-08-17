@@ -26,7 +26,7 @@ private func registerViewerFileTypes(index: const *ViewerPluginIndex)
         .registerApplication("sFileScope", "sFileScope")
         for spec in index.specs
         {
-            for extension in spec.extensions where extension[] != "*" do
+            for extension in spec.extensions where extension[] != "*" and extension[].toString()[0] == '.' do
                 .associateFileExtension(extension[].toString(), "sFileScope", Env.executablePath())
         }
     }

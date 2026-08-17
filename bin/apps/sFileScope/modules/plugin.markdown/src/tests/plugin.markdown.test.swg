@@ -27,6 +27,7 @@ private func markdownFixturePath()->String
     @assert(wnd != null)
     @assert(result.commands != null)
     @assert(result.revealMatch != null)
+    @assert(result.isLoading != null and result.isLoading!(wnd!))
     @assert(Utf8.contains(result.details.toString(), "Markdown"))
     let commands = result.commands
     commands!.applyLayout()
@@ -83,10 +84,14 @@ private func markdownFixturePath()->String
     view.applyLayout()
     @assert(view.revealFileOffset(offset, query))
 
-    for 64 where view.isLoading() do
+    var found: bool
+    for 4_000 where view.isLoading() and !found
+    {
         host.fireTimers()
+        found = view.findText(query)
+    }
 
-    @assert(view.findText(query))
+    @assert(found)
     @assert(view.isLoading())
     @assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
 }

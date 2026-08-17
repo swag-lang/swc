@@ -136,6 +136,7 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     result.commands       = commandGroup
     result.details        = markdownStrings().ui_Details
     result.revealMatch    = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
+    result.isLoading      = func(wnd)->bool { return (cast(*MarkdownView) wnd).isLoading() }
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {
         discard combo

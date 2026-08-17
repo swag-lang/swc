@@ -625,6 +625,36 @@ impl HtmlLayout
         return String.from(text)
     }
 
+    // Native byte reads can be widened to one machine word. Keep the final bytes in padded
+    // local storage so a text slice ending on a guard-page boundary remains safe to scan.
+    #[Swag.Optimize(false)]
+    private func wordEnd(text: string, start: u64)->u64
+    {
+        let length    = @countof(text)
+        let directEnd = length > 7 ? length - 7 : 0
+        var result    = start
+        while result < directEnd
+        {
+            if Latin1.isSpace(text[result]) do
+                return result
+            result += 1
+        }
+
+        if result >= length do
+            return result
+
+        var tail: [16] u8
+        let tailCount = length - result
+        @memcpy(&tail[0], @dataof(text) + result, tailCount)
+        for index in tailCount
+        {
+            if Latin1.isSpace(tail[index]) do
+                return result + index
+        }
+
+        return length
+    }
+
     // Splits a text node into the items an inline formatting context lays out.
     //
     // White space is where the two rendering modes differ: normal text collapses every run of
@@ -691,9 +721,7 @@ impl HtmlLayout
                 continue
             }
 
-            var end = index
-            while end < @countof(text) and !Latin1.isSpace(text[end]) do
-                end += 1
+            let end = HtmlLayout.wordEnd(text, index)
 
             var item: HtmlInlineItem
             item.kind        = .Text

@@ -3,6 +3,23 @@
 
 using Core, Core.Math
 
+// Controls resources that SVG parsing may resolve outside the document text.
+//
+// Data-image URIs are accepted up to `maxImageBytes`. A non-empty
+// `externalResourceRoot` additionally permits relative raster-image references whose
+// canonical path remains inside that directory; absolute paths and escaping `..`
+// references are rejected. `fontFileName` selects the typeface used by `text` and
+// `tspan`; it may be a file path or a filename from the system font directory.
+struct ParseOptions
+{
+    public
+    {
+        externalResourceRoot: string = ""                   // Canonical containment root for relative image references; empty disables them.
+        fontFileName:         string = "segoeui.ttf"        // Typeface file or installed-font filename used by SVG text.
+        maxImageBytes:        u64    = 16 * 1024 * 1024     // Maximum encoded bytes accepted for each embedded or external image.
+    }
+}
+
 // One filled and/or stroked shape of a parsed [[Svg.Drawing]].
 //
 // The contours are stored in the drawing's user units, already transformed by the
@@ -37,6 +54,8 @@ struct Shape
 
         paintTx, paintTy: f32         // Element transform retained for user-space paint servers.
         paintSx, paintSy: f32 = 1     // Element scale retained for user-space paint servers.
+
+        filterId: String     // Referenced filter definition, if any.
     }
 }
 
@@ -44,10 +63,13 @@ struct Shape
 //
 // [[Pixel.Svg.Drawing.parse]] reads the SVG subset used by standalone artwork and the
 // standard themes: basic shapes and paths, groups, definitions and uses, linear and
-// centered radial gradients, CSS Color 3 solid paints, opacity, path-length-calibrated
-// stroke dashes, `translate`/`scale` transforms, and simple element/class/id style rules. Filters, text, external images,
-// clipping, masks, patterns, markers, and rotations are out of contract. Because nothing
-// is rasterized at parse time, the same drawing renders pixel perfect at every size.
+// centered radial gradients, repeating patterns, text runs, bounded raster images,
+// a Gaussian blur followed by offsets or a standalone drop shadow, CSS Color 3
+// solid paints, opacity,
+// path-length-calibrated stroke dashes, `translate`/`scale` transforms, and simple
+// element/class/id style rules. Clipping, masks, markers, rotations, arbitrary font
+// fallback, and the remaining SVG filter primitives are out of contract. Because vector
+// geometry is not rasterized at parse time, the same drawing renders sharply at any size.
 struct Drawing
 {
     public
@@ -56,8 +78,92 @@ struct Drawing
         height: f32     // View-box height, in user units.
 
         internal
-        shapes: Array'Shape     // Shapes in paint order.
+        shapes:   Array'Shape                       // Parsed vector shapes, including hidden definitions.
+        texts:    Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
+        images:   Array'SvgImage                    // Decoded raster images referenced by the paint-order list.
+        items:    Array'DrawingItem                 // Visible elements in paint order.
+        patterns: HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
+        filters:  HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
     }
+}
+
+private enum DrawingItemKind
+{
+    Shape
+    Text
+    Image
+}
+
+#[Swag.Opaque, Swag.NoDoc]
+struct DrawingItem
+{
+    kind:  DrawingItemKind
+    index: u64
+}
+
+private enum TextAnchor
+{
+    Start
+    Middle
+    End
+}
+
+private struct SvgTextRun
+{
+    text:        String
+    typeFace:    *TypeFace = undefined
+    x, y:        f32
+    dx, dy:      f32
+    fontSize:    f32
+    color:       Color
+    opacity:     f32       = 1
+    anchor:      TextAnchor
+    forceBold:   bool
+    forceItalic: bool
+    hasX, hasY:  bool
+}
+
+#[Swag.Opaque, Swag.NoDoc]
+struct SvgText
+{
+    runs: Array'SvgTextRun
+}
+
+#[Swag.Opaque, Swag.NoDoc]
+struct SvgImage
+{
+    image:   Image
+    rect:    Rectangle
+    opacity: f32 = 1
+}
+
+#[Swag.Opaque, Swag.NoDoc]
+struct Pattern
+{
+    first, count:        u64
+    x, y, width, height: SvgLength
+    userSpace:           bool
+}
+
+private enum FilterPrimitiveKind
+{
+    GaussianBlur
+    Offset
+    DropShadow
+}
+
+private struct FilterPrimitive
+{
+    kind:   FilterPrimitiveKind
+    x, y:   f32
+    radius: f32
+    color:  Color = Color.fromArgb(Argb.Black)
+}
+
+#[Swag.Opaque, Swag.NoDoc]
+struct SvgFilter
+{
+    primitives: Array'FilterPrimitive
 }
 
 // Attribute state inherited through `svg` and `g` elements.
@@ -89,6 +195,12 @@ private struct GroupState
 
     opacity: f32 = 1     // Accumulated group opacity.
     inDefs:  bool        // Whether the element sits inside a `defs` scope.
+
+    fontSize:    f32 = 16
+    textAnchor:  TextAnchor
+    forceBold:   bool
+    forceItalic: bool
+    filterId:    String
 }
 
 private struct Parser
@@ -102,7 +214,11 @@ private struct Parser
     // withheld from painting.
     defs:      HashTable'(String, { first: u64, count: u64 })
     gradients: HashTable'(String, Gradient)
+    patterns:  HashTable'(String, Pattern)
+    filters:   HashTable'(String, SvgFilter)
     styles:    Array'StyleRule
+    options:   ParseOptions
+    typeFace:  #null *TypeFace
     svgDepth:  u32
     inDefs:    bool     // Whether parsing currently sits inside a `defs` element.
 }
@@ -223,6 +339,80 @@ private func parsePaintId(value: string)->String
         end += 1
     if end > 5 do
         result = cast(string) @mkslice(@dataof(trimmed) + 5, end - 5)
+    return result
+}
+
+private func decodeBase64(value: string, maxBytes: u64)->Array'u8 fail
+{
+    var result: retval
+    result.reserve(Math.min((@countof(value) / 4 + 1) * 3, maxBytes))
+    var digits: [4] u8
+    var count   = 0'u32
+    var padding = 0'u32
+    for c in value
+    {
+        var digit = 255'u8
+        if c == '='
+        {
+            digit   = 0
+            padding += 1
+        }
+        elif c >= 'A' and c <= 'Z' do
+            digit = c - 'A'
+        elif c >= 'a' and c <= 'z' do
+            digit = c - 'a' + 26
+        elif c >= '0' and c <= '9' do
+            digit = c - '0' + 52
+        elif c == '+' do
+            digit = 62
+        elif c == '/' do
+            digit = 63
+        elif c == ' ' or c == '\t' or c == '\r' or c == '\n' do
+            continue
+        else do
+            fail Swag.SystemError{"invalid base64 image data"}
+
+        digits[count] = digit
+        count         += 1
+        if count == 4
+        {
+            let emit = 3 - padding
+            if result.count + emit > maxBytes do
+                fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
+            result.add(cast(u8) ((cast(u32) digits[0] << 2) | (cast(u32) digits[1] >> 4)))
+            if emit > 1 do
+                result.add(cast(u8) ((cast(u32) (digits[1] & 15) << 4) | (cast(u32) digits[2] >> 2)))
+            if emit > 2 do
+                result.add(cast(u8) ((cast(u32) (digits[2] & 3) << 6) | digits[3]))
+            count   = 0
+            padding = 0
+        }
+    }
+
+    if count do
+        fail Swag.SystemError{"truncated base64 image data"}
+
+    return result
+}
+
+private func normalizedText(value: string)->String
+{
+    var result: retval
+    var pendingSpace = false
+    for c in value
+    {
+        if c == ' ' or c == '\t' or c == '\r' or c == '\n'
+        {
+            pendingSpace = !result.isEmpty()
+            continue
+        }
+
+        if pendingSpace do
+            result += ' '
+        pendingSpace = false
+        result       += c
+    }
+
     return result
 }
 
@@ -455,6 +645,30 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
 
     case "opacity":
         state.opacity *= Math.saturate(parseLength(value).value)
+
+    case "filter":
+        state.filterId = parsePaintId(value)
+
+    case "font-size":
+        state.fontSize = Math.max(parseLength(value, {state.fontSize, false}).value, 1)
+
+    case "font-weight":
+        let weight = Latin1.trim(value)
+        var pos    = 0'u64
+        let number = scanNumber(weight, &pos)
+        state.forceBold = !Latin1.compare(weight, "bold", ignoreCase: true) or number >= 600
+
+    case "font-style":
+        let style = Latin1.trim(value)
+        state.forceItalic = !Latin1.compare(style, "italic", ignoreCase: true) or !Latin1.compare(style, "oblique", ignoreCase: true)
+
+    case "text-anchor":
+        switch Latin1.trim(value)
+        {
+        case "middle": state.textAnchor = .Middle
+        case "end":    state.textAnchor = .End
+        default:       state.textAnchor = .Start
+        }
 
     case "stroke-width":
         var pos = 0'u64
@@ -1030,7 +1244,8 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
 
 private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupState)
 {
-    let shape = drawing.shapes.emplaceInitAddress()
+    let shapeIndex = drawing.shapes.count
+    let shape      = drawing.shapes.emplaceInitAddress()
     shape.pathList = #move list
     shape.hidden   = state.inDefs
 
@@ -1063,10 +1278,14 @@ private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupSt
         shape.joinStyle = state.joinStyle
     }
 
-    shape.paintTx = state.tx
-    shape.paintTy = state.ty
-    shape.paintSx = state.sx
-    shape.paintSy = state.sy
+    shape.paintTx  = state.tx
+    shape.paintTy  = state.ty
+    shape.paintSx  = state.sx
+    shape.paintSy  = state.sy
+    shape.filterId = state.filterId
+
+    if !shape.hidden do
+        drawing.items.add(DrawingItem{.Shape, shapeIndex})
 }
 
 private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx, ry: f32)
@@ -1290,7 +1509,7 @@ private impl Parser
 
             switch name
             {
-            case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "fx", "fy", "fr", "points", "pathLength", "x1", "y1", "x2", "y2", "viewBox", "id", "class", "href", "xlink:href", "gradientUnits", "gradientTransform", "spreadMethod", "offset", "stop-color", "stop-opacity":
+            case "d", "x", "y", "dx", "dy", "width", "height", "rx", "ry", "cx", "cy", "r", "fx", "fy", "fr", "points", "pathLength", "x1", "y1", "x2", "y2", "viewBox", "id", "class", "href", "xlink:href", "gradientUnits", "gradientTransform", "spreadMethod", "patternUnits", "patternContentUnits", "stdDeviation", "offset", "stop-color", "stop-opacity", "flood-color", "flood-opacity":
                 geo.add(name, value)
 
             case "style":
@@ -1513,6 +1732,259 @@ private impl Parser
             .gradients.add(id.value, #move gradient)
     }
 
+    mtd loadImage(href: string)->Image fail
+    {
+        if Utf8.startsWith(href, "data:image/")
+        {
+            let marker = Utf8.indexOf(href, ";base64,")
+            if marker == Swag.U64.Max do
+                fail Swag.SystemError{"SVG data images must use base64 encoding"}
+
+            let mime     = cast(string) @mkslice(@dataof(href) + 11, marker - 11)
+            var fileName = ""
+            switch mime
+            {
+            case "png":  fileName = "embedded.png"
+            case "jpeg": fileName = "embedded.jpg"
+            case "gif":  fileName = "embedded.gif"
+            case "webp": fileName = "embedded.webp"
+            default:     fail Swag.SystemError{"unsupported SVG data-image media type"}
+            }
+
+            let dataStart = marker + 8
+            let encoded   = cast(string) @mkslice(@dataof(href) + dataStart, @countof(href) - dataStart)
+            let bytes     = try decodeBase64(encoded, .options.maxImageBytes)
+            return try Image.decode(fileName, bytes.toSlice())
+        }
+
+        if @countof(.options.externalResourceRoot) == 0 do
+            fail Swag.SystemError{"external SVG image references are disabled"}
+        if Path.isRooted(href) do
+            fail Swag.SystemError{"absolute SVG image references are not allowed"}
+
+        let combined = Path.combine(.options.externalResourceRoot, href)
+        let fullPath = try Path.absolute(combined.toString())
+        if !Env.isInsideDirectory(.options.externalResourceRoot, fullPath.toString()) do
+            fail Swag.SystemError{"SVG image reference escapes its configured resource root"}
+        let info = try File.info(fullPath.toString())
+        if info.size > .options.maxImageBytes do
+            fail Swag.SystemError{"external SVG image exceeds the configured byte limit"}
+        return try Image.load(fullPath.toString())
+    }
+
+    mtd emitImage(state: *GroupState, geo: *HashTable'(String, String)) fail
+    {
+        if !state.isDisplayed or !state.isVisible do
+            return
+
+        var href = geo.tryFind("href")
+        if !href do
+            href = geo.tryFind("xlink:href")
+        if !href do
+            return
+
+        let width  = .geoNumber(geo, "width")
+        let height = .geoNumber(geo, "height")
+        if width <= 0 or height <= 0 do
+            return
+
+        let index = .drawing.images.count
+        let item  = .drawing.images.emplaceInitAddress()
+        item.image   = try .loadImage(href.value.toString())
+        item.rect    = {mapX(state, .geoNumber(geo, "x")), mapY(state, .geoNumber(geo, "y")), width * state.sx, height * state.sy}
+        item.opacity = state.opacity
+        if !state.inDefs do
+            .drawing.items.add(DrawingItem{.Image, index})
+    }
+
+    mtd addTextRun(text: string, state: *GroupState, geo: *HashTable'(String, String), block: *SvgText, first: bool) fail
+    {
+        let normalized = normalizedText(text)
+        if normalized.isEmpty() or !state.isDisplayed or !state.isVisible or !state.hasFill do
+            return
+
+        if !.typeFace
+        {
+            if @countof(.options.fontFileName) == 0 do
+                fail Swag.SystemError{"SVG text requires a configured font file"}
+            .typeFace = try TypeFace.load(.options.fontFileName)
+        }
+
+        let x   = geo.tryFind("x")
+        let y   = geo.tryFind("y")
+        let dx  = .geoNumber(geo, "dx")
+        let dy  = .geoNumber(geo, "dy")
+        let run = block.runs.emplaceInitAddress()
+        run.text        = #move normalized
+        run.typeFace    = .typeFace!
+        run.hasX        = first or x != null
+        run.hasY        = first or y != null
+        run.x           = mapX(state, x ? .geoNumber(geo, "x") : 0)
+        run.y           = mapY(state, y ? .geoNumber(geo, "y") : 0)
+        run.dx          = dx * state.sx
+        run.dy          = dy * state.sy
+        run.fontSize    = state.fontSize * Math.abs(state.sy)
+        run.color       = state.fillColor
+        run.opacity     = state.fillOpacity * state.opacity
+        run.anchor      = state.textAnchor
+        run.forceBold   = state.forceBold
+        run.forceItalic = state.forceItalic
+    }
+
+    mtd parseText(state: GroupState, geo: *HashTable'(String, String), selfClosed: bool) fail
+    {
+        let index = .drawing.texts.count
+        let block = .drawing.texts.emplaceInitAddress()
+        if selfClosed do
+            return
+
+        let len   = @countof(.text)
+        var first = true
+        while .pos < len
+        {
+            let textStart = .pos
+            .skipUntil('<')
+            if .pos > textStart
+            {
+                let content = cast(string) @mkslice(@dataof(.text) + textStart, .pos - textStart)
+                try .addTextRun(content, &state, geo, block, first)
+                first = false
+            }
+
+            if .pos >= len do
+                break
+            .pos += 1
+            if .pos < len and .text[.pos] == '/'
+            {
+                .skipUntil('>')
+                .pos += 1
+                break
+            }
+
+            let nameStart = .pos
+            while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
+                .pos += 1
+            let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+
+            var childState                = state
+            var childGeo: HashTable'(String, String)
+            let {selfClosed: childClosed} = .scanAttributes(&childState, &childGeo)
+            .applyStyleRules(name, &childGeo, &childState)
+            if name != "tspan"
+            {
+                if !childClosed do
+                    try .parseContent(childState)
+                continue
+            }
+
+            let childStart = .pos
+            .skipUntil('<')
+            let childText = cast(string) @mkslice(@dataof(.text) + childStart, .pos - childStart)
+            try .addTextRun(childText, &childState, &childGeo, block, first)
+            first = false
+            if !childClosed
+            {
+                .skipUntil('>')
+                .pos += 1
+            }
+        }
+
+        if block.runs.count and !state.inDefs do
+            .drawing.items.add(DrawingItem{.Text, index})
+    }
+
+    mtd parsePattern(state: GroupState, geo: *HashTable'(String, String), selfClosed: bool) fail
+    {
+        let first        = .drawing.shapes.count
+        var contentState = state
+        contentState.inDefs = true
+        if !selfClosed do
+            try .parseContent(contentState)
+
+        let id = geo.tryFind("id")
+        if !id do
+            return
+
+        var pattern: Pattern
+        pattern.first  = first
+        pattern.count  = .drawing.shapes.count - first
+        pattern.x      = .geoLength(geo, "x", {})
+        pattern.y      = .geoLength(geo, "y", {})
+        pattern.width  = .geoLength(geo, "width", {})
+        pattern.height = .geoLength(geo, "height", {})
+        let units = geo.tryFind("patternUnits")
+        pattern.userSpace = units != null and units.value.toString() == "userSpaceOnUse"
+        .patterns.add(id.value, #move pattern)
+    }
+
+    mtd parseFilter(geo: *HashTable'(String, String), selfClosed: bool) fail
+    {
+        var filter: SvgFilter
+        if !selfClosed
+        {
+            let len = @countof(.text)
+            while .pos < len
+            {
+                .skipUntil('<')
+                if .pos >= len do
+                    break
+                .pos += 1
+                if .pos < len and .text[.pos] == '/'
+                {
+                    .skipUntil('>')
+                    .pos += 1
+                    break
+                }
+
+                let nameStart = .pos
+                while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
+                    .pos += 1
+                let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+                var state: GroupState
+                var attrs: HashTable'(String, String)
+                let {selfClosed: childClosed} = .scanAttributes(&state, &attrs)
+
+                var primitive: FilterPrimitive
+                var keep = true
+                switch name
+                {
+                case "feGaussianBlur":
+                    primitive.kind   = .GaussianBlur
+                    primitive.radius = Math.max(.geoNumber(&attrs, "stdDeviation"), 0)
+
+                case "feOffset":
+                    primitive.kind = .Offset
+                    primitive.x    = .geoNumber(&attrs, "dx")
+                    primitive.y    = .geoNumber(&attrs, "dy")
+
+                case "feDropShadow":
+                    primitive.kind   = .DropShadow
+                    primitive.x      = .geoNumber(&attrs, "dx")
+                    primitive.y      = .geoNumber(&attrs, "dy")
+                    primitive.radius = Math.max(.geoNumber(&attrs, "stdDeviation"), 0)
+                    let flood = attrs.tryFind("flood-color")
+                    if flood do
+                        primitive.color = parseColor(flood.value.toString()).color
+                    let opacity = attrs.tryFind("flood-opacity")
+                    if opacity do
+                        primitive.color = primitive.color.withAlphaF32(Math.saturate(parseLength(opacity.value.toString()).value))
+
+                default:
+                    keep = false
+                }
+
+                if keep do
+                    filter.primitives.add(primitive)
+                if !childClosed do
+                    try .parseContent(state)
+            }
+        }
+
+        let id = geo.tryFind("id")
+        if id do
+            .filters.add(id.value, #move filter)
+    }
+
     // Parses the elements between the current position and the parent's close tag.
     mtd parseContent(parent: GroupState) fail
     {
@@ -1651,9 +2123,23 @@ private impl Parser
             case "radialGradient":
                 try .parseGradient(.Radial, &geo, selfClosed)
 
+            case "pattern":
+                try .parsePattern(state, &geo, selfClosed)
+
+            case "filter":
+                try .parseFilter(&geo, selfClosed)
+
             case "style":
                 if !selfClosed do
                     .parseStyleSheet()
+
+            case "text":
+                try .parseText(state, &geo, selfClosed)
+
+            case "image":
+                try .emitImage(&state, &geo)
+                if !selfClosed do
+                    try .parseContent(state)
 
             case "use":
                 var href = geo.tryFind("href")
@@ -1812,6 +2298,8 @@ private impl Parser
                         shape.pathList.flatten(.Normal)
                         shape.fillBrush = .gradientBrush(&gradient.value, shape)
                     }
+                    elif .patterns.tryFind(shape.fillPaintId) do
+                        shape.fillBrush = Brush.createSolid(Color.fromArgb(Argb.White))
                     else do
                         shape.hasFill = false
                 }
@@ -1854,6 +2342,7 @@ private impl Parser
             var list:                        LinePathList
             var fillColor, strokeColor:      Color
             var fillPaintId, strokePaintId:  String
+            var filterId:                    String
             var fillOpacity, strokeOpacity:  f32
             var hasFill, hasStroke, evenOdd: bool
             var strokeWidth, strokeOffset:   f32
@@ -1870,6 +2359,7 @@ private impl Parser
                 strokeColor   = src.strokeColor
                 fillPaintId   = src.fillPaintId
                 strokePaintId = src.strokePaintId
+                filterId      = src.filterId
                 fillOpacity   = src.fillOpacity
                 strokeOpacity = src.strokeOpacity
                 hasFill       = src.hasFill
@@ -1921,7 +2411,8 @@ private impl Parser
                 }
             }
 
-            let shape = .drawing.shapes.emplaceInitAddress()
+            let shapeIndex = .drawing.shapes.count
+            let shape      = .drawing.shapes.emplaceInitAddress()
             shape.pathList      = #move list
             shape.fillColor     = fillColor
             shape.fillPaintId   = #move fillPaintId
@@ -1943,6 +2434,9 @@ private impl Parser
             shape.paintSx       = paintSx
             shape.paintSy       = paintSy
             shape.hidden        = state.inDefs
+            shape.filterId      = #move filterId
+            if !shape.hidden do
+                .drawing.items.add(DrawingItem{.Shape, shapeIndex})
         }
     }
 }
@@ -1954,17 +2448,25 @@ impl Drawing
 
     // Parses an SVG document authored in the supported subset.
     //
-    // The result owns its shapes and can be painted concurrently from const
-    // borrows. Unknown elements and attributes are ignored.
-    func parse(text: string)->Drawing fail
+    // The result owns its shapes and decoded images. Text supports one-level `tspan`
+    // runs with `x`, `y`, `dx`, `dy`, size, anchor, weight, style, solid fill, and
+    // opacity. Images stretch into their declared rectangle. Patterns repeat vector
+    // shape tiles in user or object-bounding-box units. Filters support either a
+    // Gaussian blur followed by offsets, or a standalone `feDropShadow`.
+    //
+    // `options` confines external image references and selects the typeface for text;
+    // see [[Pixel.Svg.ParseOptions]]. Unknown elements and attributes are ignored.
+    func parse(text: string, options: ParseOptions = {})->Drawing fail
     {
         var result: retval
 
-        var parser = Parser{text: text, drawing: &result}
+        var parser = Parser{text: text, drawing: &result, options: options}
 
         var root: GroupState
         try parser.parseContent(root)
         parser.resolvePaints()
+        result.patterns = #move parser.patterns
+        result.filters  = #move parser.filters
 
         if result.width <= 0 or result.height <= 0 do
             fail Swag.SystemError{"SVG document has no valid dimensions"}
@@ -1982,6 +2484,208 @@ impl Drawing
         .paintImpl(painter, x, y, scale, false)
     }
 
+    private mtd const paintShapeCore(painter: *Painter, shape: *Shape, compensateAlpha: bool, paintFill = true)
+    {
+        if paintFill and shape.hasFill
+        {
+            var brush = shape.fillBrush
+            if compensateAlpha
+            {
+                brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
+                for &stop in brush.gradientStops do
+                    stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
+            }
+
+            painter.fillPath(&shape.pathList, brush)
+        }
+
+        if shape.hasStroke
+        {
+            var brush = shape.strokeBrush
+            if compensateAlpha
+            {
+                brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
+                for &stop in brush.gradientStops do
+                    stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
+            }
+
+            var pen: Pen
+            pen.brush          = #move brush
+            pen.size           = shape.strokeWidth
+            pen.begCapStyle    = shape.capStyle
+            pen.endCapStyle    = shape.capStyle
+            pen.joinStyle      = shape.joinStyle
+            pen.joinMiterLimit = shape.strokeMiter
+            pen.dashOffset     = shape.strokeOffset
+            if shape.strokePattern.count
+            {
+                pen.pattern = shape.strokePattern
+                if Math.abs(shape.strokeWidth) > 0.000001
+                {
+                    for &value in pen.pattern do
+                        value[] /= Math.abs(shape.strokeWidth)
+                }
+
+                pen.dashStyle = .Pattern
+            }
+
+            painter.drawPath(&shape.pathList, pen, .Separate)
+        }
+    }
+
+    private mtd const paintPattern(painter: *Painter, shape: *Shape, pattern: const *Pattern, compensateAlpha: bool)
+    {
+        shape.pathList.flatten(.Normal)
+        var min = Vector2.Max
+        var max = Vector2.NegMax
+        for path in shape.pathList.paths
+        {
+            min = Vector2.min(min, path.minBounds)
+            max = Vector2.max(max, path.maxBounds)
+        }
+
+        let size       = max - min
+        let tileX      = pattern.userSpace ? pattern.x.value : min.x + pattern.x.value * size.x
+        let tileY      = pattern.userSpace ? pattern.y.value : min.y + pattern.y.value * size.y
+        let tileWidth  = pattern.userSpace ? pattern.width.value : pattern.width.value * size.x
+        let tileHeight = pattern.userSpace ? pattern.height.value : pattern.height.value * size.y
+        if tileWidth <= 0 or tileHeight <= 0 do
+            return
+
+        let rasterScale         = Math.max(painter.contentScale(), 1.0'f32)
+        let pixelWidth          = cast(s32) Math.max(Math.ceil(tileWidth * rasterScale), 1.0'f32)
+        let pixelHeight         = cast(s32) Math.max(Math.ceil(tileHeight * rasterScale), 1.0'f32)
+        var cpu:      RenderCpu
+        let renderer: IRenderer = &cpu
+        cpu.begin(pixelWidth, pixelHeight)
+        var target      = renderer.createRenderTarget(pixelWidth, pixelHeight)
+        var tilePainter = Painter.create(renderer)
+        tilePainter.begin()
+        tilePainter.bindRenderTarget(&target, paintAlpha: false)
+        tilePainter.setColorMaskFull()
+        tilePainter.clear(Color.fromArgb(Argb.Zero))
+        let phaseX = min.x - tileX - Math.floor((min.x - tileX) / tileWidth) * tileWidth
+        let phaseY = min.y - tileY - Math.floor((min.y - tileY) / tileHeight) * tileHeight
+        for copyY in 3
+        {
+            for copyX in 3
+            {
+                let offsetX       = cast(f32) (cast(s32) copyX - 1) * tileWidth
+                let offsetY       = cast(f32) (cast(s32) copyY - 1) * tileHeight
+                var tileTransform = Math.Transform2.createTranslation(-tileX - phaseX + offsetX, -tileY - phaseY + offsetY)
+                tileTransform.multiply(Math.Transform2.createScale(rasterScale, rasterScale, 0, 0))
+                tilePainter.setTransform(tileTransform)
+                for i in pattern.count do
+                    .paintShapeCore(&tilePainter, &.shapes[pattern.first + i], false)
+            }
+        }
+
+        tilePainter.unbindRenderTarget()
+        tilePainter.end()
+        renderer.draw(&tilePainter)
+
+        let tileImage = renderer.readRenderTarget(&target, 0, 0, pixelWidth, pixelHeight)
+        renderer.deleteRenderTarget(&target)
+        renderer.end()
+
+        let texture = painter.renderer().addImage(tileImage)
+        var brush   = Brush.createTiled(texture)
+        if compensateAlpha do
+            brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
+        painter.fillPath(&shape.pathList, brush)
+        painter.releaseTexture(texture)
+    }
+
+    private mtd const paintText(painter: *Painter, text: const *SvgText, compensateAlpha: bool)
+    {
+        var x, baseline: f32
+        for run in text.runs
+        {
+            if run.hasX do
+                x = run.x
+            if run.hasY do
+                baseline = run.y
+            x        += run.dx
+            baseline += run.dy
+
+            let size    = cast(u32) Math.max(Math.round(run.fontSize), 1.0'f32)
+            let font    = painter.renderer().fontCache().createFont(run.typeFace, size, forceBold: run.forceBold, forceItalic: run.forceItalic)
+            let metrics = Painter.measureString(run.text.toString(), font)
+            var drawX   = x
+            if run.anchor == .Middle do
+                drawX -= metrics.width * 0.5
+            elif run.anchor == .End do
+                drawX -= metrics.width
+
+            var color = run.color.withAlphaF32(run.opacity)
+            if compensateAlpha do
+                color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) color.a / 255.0))
+            painter.drawString(drawX, baseline - font.ascent, run.text.toString(), font, color)
+            x += metrics.width
+        }
+    }
+
+    private mtd const paintImage(painter: *Painter, image: const *SvgImage, compensateAlpha: bool)
+    {
+        var alpha = image.opacity
+        if compensateAlpha do
+            alpha = Math.sqrt(alpha)
+        let texture = painter.renderer().addImage(image.image)
+        painter.drawTexture(image.rect, texture, Color.fromArgb(Argb.White).withAlphaF32(alpha))
+        painter.releaseTexture(texture)
+    }
+
+    private mtd const paintFilteredShape(painter: *Painter, shape: *Shape, filter: const *SvgFilter, x, y, scale: f32, outerTransform, drawingTransform: Transform2, compensateAlpha: bool)
+    {
+        var layer: Layer
+        var begin: LayerBeginInfo
+        begin.width      = cast(s32) Math.ceil(.width * scale)
+        begin.height     = cast(s32) Math.ceil(.height * scale)
+        begin.paintAlpha = false
+
+        painter.setTransform(Math.Transform2.createScale(scale, scale, 0, 0))
+        layer.begin(painter, begin)
+        painter.setColorMaskFull()
+        let pattern = .patterns.tryFind(shape.fillPaintId)
+        if pattern
+        {
+            .paintPattern(painter, shape, &pattern.value, compensateAlpha)
+            .paintShapeCore(painter, shape, compensateAlpha, false)
+        }
+        else do
+            .paintShapeCore(painter, shape, compensateAlpha)
+        layer.end()
+
+        var offsetX, offsetY: f32
+        var shadow:           LayerShadowInfo
+        for primitive in filter.primitives
+        {
+            switch primitive.kind
+            {
+            case .GaussianBlur:
+                layer.applyBlur(primitive.radius * scale)
+
+            case .Offset:
+                offsetX += primitive.x * scale
+                offsetY += primitive.y * scale
+
+            case .DropShadow:
+                shadow.enabled = true
+                shadow.radius  = primitive.radius * scale
+                shadow.offsetX = primitive.x * scale
+                shadow.offsetY = primitive.y * scale
+                shadow.color   = primitive.color
+            }
+        }
+
+        painter.setTransform(outerTransform)
+        var draw: LayerDrawInfo
+        draw.dstRect = {x + offsetX, y + offsetY, .width * scale, .height * scale}
+        draw.shadow  = shadow
+        layer.draw(draw)
+        painter.setTransform(drawingTransform)
+    }
+
     // The alpha-preserving resolve of a `paintAlpha` render target squares fragment
     // alpha (GL_MAX with a source-alpha factor; the CPU renderer matches it). Painting
     // with square-rooted shape alphas makes that resolve land back on the authored
@@ -1993,60 +2697,39 @@ impl Drawing
         defer painter.popState()
 
         // Local drawing space: scale then translate, applied before the current transform.
-        var tr = Math.Transform2.createScale(scale, scale, 0, 0)
+        let outerTransform = painter.transform()
+        var tr             = Math.Transform2.createScale(scale, scale, 0, 0)
         tr.multiply(Math.Transform2.createTranslation(x, y))
-        tr.multiply(painter.transform())
+        tr.multiply(outerTransform)
         painter.setTransform(tr)
 
-        for &shape in .shapes
+        for item in .items
         {
-            if shape.hidden do
-                continue
-
-            if shape.hasFill
+            switch item.kind
             {
-                var brush = shape.fillBrush
-                if compensateAlpha
+            case .Shape:
+                let shape  = &.shapes[item.index]
+                let filter = .filters.tryFind(shape.filterId)
+                if filter and filter.value.primitives.count
                 {
-                    brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
-                    for &stop in brush.gradientStops do
-                        stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
+                    .paintFilteredShape(painter, shape, &filter.value, x, y, scale, outerTransform, tr, compensateAlpha)
+                    continue
                 }
 
-                painter.fillPath(&shape.pathList, brush)
-            }
-
-            if shape.hasStroke
-            {
-                var brush = shape.strokeBrush
-                if compensateAlpha
+                let pattern = .patterns.tryFind(shape.fillPaintId)
+                if pattern
                 {
-                    brush.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) brush.color.a / 255.0))
-                    for &stop in brush.gradientStops do
-                        stop.color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) stop.color.a / 255.0))
+                    .paintPattern(painter, shape, &pattern.value, compensateAlpha)
+                    .paintShapeCore(painter, shape, compensateAlpha, false)
                 }
+                else do
+                    .paintShapeCore(painter, shape, compensateAlpha)
 
-                var pen: Pen
-                pen.brush          = #move brush
-                pen.size           = shape.strokeWidth
-                pen.begCapStyle    = shape.capStyle
-                pen.endCapStyle    = shape.capStyle
-                pen.joinStyle      = shape.joinStyle
-                pen.joinMiterLimit = shape.strokeMiter
-                pen.dashOffset     = shape.strokeOffset
-                if shape.strokePattern.count
-                {
-                    pen.pattern = shape.strokePattern
-                    if Math.abs(shape.strokeWidth) > 0.000001
-                    {
-                        for &value in pen.pattern do
-                            value[] /= Math.abs(shape.strokeWidth)
-                    }
+            case .Text:
+                .paintText(painter, &.texts[item.index], compensateAlpha)
 
-                    pen.dashStyle = .Pattern
-                }
-
-                painter.drawPath(&shape.pathList, pen, .Separate)
+            case .Image:
+                .paintImage(painter, &.images[item.index], compensateAlpha)
             }
         }
     }
@@ -2106,11 +2789,13 @@ impl Drawing
         // alpha-preserving replay so the result carries a correct alpha mask.
         var painter = Painter.create(renderer)
         painter.begin()
-        painter.bindRenderTarget(&sampled, paintAlpha: true)
+        let directAlpha = .texts.count or .images.count or .patterns.count or .filters.count
+        painter.bindRenderTarget(&sampled, paintAlpha: !directAlpha)
         painter.setColorMaskFull()
         painter.clear(Color.fromArgb(Argb.Zero))
-        painter.setColorMaskColor()
-        .paintImpl(&painter, 0, 0, cast(f32) bw / .width, true)
+        if !directAlpha do
+            painter.setColorMaskColor()
+        .paintImpl(&painter, 0, 0, cast(f32) bw / .width, !directAlpha)
         painter.unbindRenderTarget()
 
         // Box-filter the samples down with the renderer's own resolve program, the one

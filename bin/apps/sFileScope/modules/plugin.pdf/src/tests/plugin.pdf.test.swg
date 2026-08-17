@@ -37,6 +37,18 @@ private func createPdfFixture()->String
     @assert(view.rasterScale > 2.8)
     view.actualSize()
     @assert(Math.isEqualEpsilon(view.imageView.effectiveZoom(), (96.0'f32 / 72.0) / view.rasterScale, 0.001))
+
+    // Zooming in rasterizes the page again instead of magnifying the pixels already on
+    // screen: the page is vector art, so its sharpness must follow the zoom. The content
+    // still grows by exactly the requested factor, and one raster pixel ends up covering at
+    // most one physical pixel.
+    let coarseScale = view.rasterScale
+    let shownSize   = view.imageView.effectiveZoom() * coarseScale
+    view.imageView.setZoom(view.imageView.effectiveZoom() * 4)
+    @assert(view.rasterScale > coarseScale)
+    @assert(Math.isEqualEpsilon(view.imageView.effectiveZoom() * view.rasterScale, shownSize * 4, 0.01))
+    @assert(view.imageView.effectiveZoom() * view.deviceScale() <= 1.001)
+
     view.imageView.zoomToFit()
     @assert(view.reader.pageCount() == 2)
     @assert(view.imageView.isFitted)

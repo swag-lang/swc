@@ -169,6 +169,11 @@ func isOnCurve(tag: u8)->bool
     return (tag & CURVE_TAG_ON) != 0
 }
 
+func isCubicControl(tag: u8)->bool
+{
+    return (tag & (CURVE_TAG_ON | CURVE_TAG_CUBIC)) == CURVE_TAG_CUBIC
+}
+
 func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
 {
     var commands: Array'OutlineCommand
@@ -213,6 +218,20 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
                 commands.add(OutlineCommand{kind: .LineTo, p0: point})
                 current = point
                 idx     += 1
+                continue
+            }
+
+            // A PostScript outline stores its two cubic controls consecutively, and the
+            // segment ends on the point that follows them — the contour's own start when
+            // the last curve closes the loop.
+            if isCubicControl(tags[idx])
+            {
+                let secondIdx = idx + 1 > contourEnd ? contourStart : idx + 1
+                let endIdx    = idx + 2 > contourEnd ? contourStart : idx + 2
+                let endPoint  = idx + 2 > contourEnd ? startPoint : points[endIdx]
+                commands.add(OutlineCommand{kind: .CubicTo, p0: point, p1: points[secondIdx], p2: endPoint})
+                current = endPoint
+                idx     += 3
                 continue
             }
 

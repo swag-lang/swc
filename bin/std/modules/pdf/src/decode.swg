@@ -25,6 +25,55 @@ private struct GraphicsState
 
     textMatrix: Transform2 = Transform2.Identity
     lineMatrix: Transform2 = Transform2.Identity
+
+    // Region every mark is confined to, in the page's own top-left coordinates.
+    //
+    // A clip is bounded by its enclosing rectangle, which is exact for the axis-aligned
+    // rectangles clip paths and form bounding boxes are almost always written as, and
+    // conservative otherwise: it can leave a mark that a shaped clip would have removed,
+    // and never removes one the page meant to show.
+    clip:    Math.Rectangle
+    hasClip: bool
+}
+
+impl GraphicsState
+{
+    // Narrows the clip to `rect`, which is what nesting a clip inside another means.
+    mtd intersectClip(rect: Math.Rectangle)
+    {
+        if !.hasClip
+        {
+            .clip    = rect
+            .hasClip = true
+            return
+        }
+
+        .clip.intersect(rect)
+    }
+}
+
+// Returns the page-space rectangle enclosing a form's bounding box under `state`.
+private func transformedBounds(state: const *GraphicsState, page: const *Page, x0, y0, x1, y1: f32)->Math.Rectangle
+{
+    let corners: [4] Vector2 = [
+        transformPoint(state, page, x0, y0),
+        transformPoint(state, page, x1, y0),
+        transformPoint(state, page, x1, y1),
+        transformPoint(state, page, x0, y1)]
+
+    var minX = corners[0].x
+    var minY = corners[0].y
+    var maxX = corners[0].x
+    var maxY = corners[0].y
+    for corner in corners
+    {
+        minX = Math.min(minX, corner.x)
+        minY = Math.min(minY, corner.y)
+        maxX = Math.max(maxX, corner.x)
+        maxY = Math.max(maxY, corner.y)
+    }
+
+    return {minX, minY, maxX - minX, maxY - minY}
 }
 
 private func transformPoint(state: const *GraphicsState, page: const *Page, x, y: f32)->Vector2
@@ -72,7 +121,19 @@ private func currentPath(path: *LinePathList, current: *#null *LinePath, start: 
     return result
 }
 
-private func appendPathItem(page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool)
+// Narrows the graphics state to the path a `W` operator marked as the next clip.
+private func applyPendingClip(state: *GraphicsState, path: const *LinePathList, pending: *bool)
+{
+    if !pending[] do
+        return
+    pending[] = false
+    if !path.count() do
+        return
+
+    state.intersectClip(path.controlBounds())
+}
+
+private func appendPathItem(page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, evenOdd = false)
 {
     if !path.count() do
         return
@@ -87,10 +148,13 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
     item.path        = #move path[]
     item.hasFill     = fill
     item.hasStroke   = stroke
+    item.evenOddFill = evenOdd
     item.fillColor   = state.fillColor
     item.strokeColor = state.strokeColor
     item.strokeWidth = state.strokeWidth
     item.strokeStyle = state.strokeStyle
+    item.clip        = state.clip
+    item.hasClip     = state.hasClip
     page.appendItem(#move item)
     @init(path, 1)
 }
@@ -165,6 +229,8 @@ private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32,
         item.fillColor = state.fillColor
         item.fontIndex = index
         item.transform = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
+        item.clip      = state.clip
+        item.hasClip   = state.hasClip
         if font and font.hasStandard do
             item.standardFont = font.standard
         page.appendItem(#move item)
@@ -181,6 +247,8 @@ private func appendImageItem(parser: *PdfParser, page: *Page, state: const *Grap
     let right  = transformPoint(state, page, 1, 1)
     let bottom = transformPoint(state, page, 0, 0)
     item.transform = Transform2{right.x - top.x, right.y - top.y, bottom.x - top.x, bottom.y - top.y, top.x, top.y}
+    item.clip      = state.clip
+    item.hasClip   = state.hasClip
     page.appendItem(#move item)
 }
 
@@ -208,6 +276,20 @@ private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, st
             var matrix = Transform2{nodeNumber(parser, values[0]), nodeNumber(parser, values[1]), nodeNumber(parser, values[2]), nodeNumber(parser, values[3]), nodeNumber(parser, values[4]), nodeNumber(parser, values[5])}
             matrix.multiply(formState.ctm)
             formState.ctm = matrix
+        }
+
+        // A form's bounding box is part of what it means, not a hint: the form paints
+        // nothing outside it, and content built to be trimmed by it would otherwise reach
+        // the page as stray marks.
+        let boxId = parser.dict(id, "BBox")
+        if boxId != InvalidNode and parser.nodes[boxId].kind == .Array and parser.nodes[boxId].values.count >= 4
+        {
+            let box = parser.nodes[boxId].values
+            let x0  = nodeNumber(parser, box[0])
+            let y0  = nodeNumber(parser, box[1])
+            let x1  = nodeNumber(parser, box[2])
+            let y1  = nodeNumber(parser, box[3])
+            formState.intersectClip(transformedBounds(&formState, page, x0, y0, x1, y1))
         }
 
         let ownResources = parser.dict(id, "Resources")
@@ -353,6 +435,10 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
     var stack:    Array'GraphicsState
     var path:     LinePathList
     var current:  #null *LinePath
+
+    // A `W` operator names the path under construction as the next clip, and the painting
+    // operator that ends the path is what puts it into effect.
+    var pendingClip: bool
     var values:   [8] f32
 
     while content.pos < @countof(bytes)
@@ -630,27 +716,41 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 rect.close()
             }
 
+        case "W", "W*":
+
+            // The operator only marks the path as the next clip; the painting operator that
+            // follows is what ends the path and puts the clip into effect.
+            pendingClip = true
+
         case "S":
+            applyPendingClip(&state, &path, &pendingClip)
             appendPathItem(page, &path, &state, false, true, false)
             current = null
 
         case "s":
+            applyPendingClip(&state, &path, &pendingClip)
             appendPathItem(page, &path, &state, false, true, true)
             current = null
 
+        // A star names the alternating rule, under which two overlapping contours cancel
+        // instead of merging; without it a ring drawn as two circles fills solid.
         case "f", "F", "f*":
-            appendPathItem(page, &path, &state, true, false, false)
+            applyPendingClip(&state, &path, &pendingClip)
+            appendPathItem(page, &path, &state, true, false, false, op == "f*")
             current = null
 
         case "B", "B*":
-            appendPathItem(page, &path, &state, true, true, false)
+            applyPendingClip(&state, &path, &pendingClip)
+            appendPathItem(page, &path, &state, true, true, false, op == "B*")
             current = null
 
         case "b", "b*":
-            appendPathItem(page, &path, &state, true, true, true)
+            applyPendingClip(&state, &path, &pendingClip)
+            appendPathItem(page, &path, &state, true, true, true, op == "b*")
             current = null
 
         case "n":
+            applyPendingClip(&state, &path, &pendingClip)
             path.clear()
             current = null
 

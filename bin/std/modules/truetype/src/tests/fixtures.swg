@@ -64,7 +64,9 @@ const CmapVariationFixture: [101] u8 = [
     0x00, 0x00, 0x00, 0x01,
     0x00, 0x00, 0x42, 0x00, 0x2A]
 
-// A twelve-byte header naming a container this module recognizes but cannot read.
+// A twelve-byte OpenType header declaring no table at all. The container is one this
+// module reads, so the failure has to come from the missing tables rather than the
+// signature.
 const OpenTypeCffBytes: [12] u8 = ['O'u8, 'T'u8, 'T'u8, 'O'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 const WoffBytes:        [12] u8 = ['w'u8, 'O'u8, 'F'u8, 'F'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 const Woff2Bytes:       [12] u8 = ['w'u8, 'O'u8, 'F'u8, '2'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]

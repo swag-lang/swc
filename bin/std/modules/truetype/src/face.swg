@@ -51,6 +51,35 @@ public struct Face
     }
 }
 
+// Names the container a font program is wrapped in, from its first bytes alone.
+//
+// A PDF hands over the font program exactly as the document stores it, which for the two
+// PostScript formats is neither an sfnt file nor self-describing beyond this signature.
+private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource, sfnt: bool }
+{
+    var result: retval
+    result.sfnt = true
+    if @countof(bytes) < 4 do
+        return result
+
+    // A bare CFF opens with its format version, followed by a header size of at least four
+    // and an offset size of one to four; no sfnt signature can be mistaken for it.
+    if bytes[0] == 1 and bytes[1] == 0 and bytes[2] >= 4 and bytes[3] >= 1 and bytes[3] <= 4
+    {
+        result.source = .Cff
+        result.sfnt   = false
+        return result
+    }
+
+    if bytes[0] == 0x80 or (bytes[0] == '%' and bytes[1] == '!')
+    {
+        result.source = .Type1
+        result.sfnt   = false
+    }
+
+    return result
+}
+
 private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: #null IAllocator)->#null *Face fail
 {
     if @countof(bytes) == 0 do
@@ -62,7 +91,18 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     faceData.fontData.resize(@countof(bytes))
     let fontData = faceData.fontData.buffer!
     Memory.copy(fontData, @dataof(bytes), @countof(bytes))
-    parseFace(faceData, faceIndex, fallbackFamilyName)
+
+    let detected = detectProgramSource(bytes)
+    if detected.sfnt
+    {
+        parseFace(faceData, faceIndex, fallbackFamilyName)
+        return &faceData.face
+    }
+
+    if faceIndex do
+        fault(0x0F)
+    faceData.outlineSource = detected.source
+    parseProgramFace(faceData, fallbackFamilyName)
     return &faceData.face
 }
 
@@ -129,9 +169,9 @@ public impl Face
     // `allocator` is null, the allocator active at the start of the call owns the
     // face allocation.
     //
-    // `bytes` may be a bare TrueType file or a `ttcf` collection, of which the
-    // first face is taken; use [[TrueType.Face.loadAt]] to reach the others.
-    // OpenType files carrying CFF outlines and WOFF containers are reported as
+    // `bytes` may be a TrueType or OpenType file, a bare CFF or Type 1 font program,
+    // or a `ttcf` collection, of which the first face is taken; use
+    // [[TrueType.Face.loadAt]] to reach the others. WOFF containers are reported as
     // unsupported rather than as an unknown format.
     //
     // ```swag
@@ -146,11 +186,13 @@ public impl Face
 
     // Loads a rendering-only TrueType subset from an in-memory font program.
     //
-    // Document formats such as PDF may legally omit the `name` and `post` tables that an
-    // installable OpenType font requires. `familyName` supplies the missing family identity;
-    // absent style and underline metadata use `Regular` and zero. All outline, location, mapping,
-    // and horizontal-metric tables remain mandatory. Use [[TrueType.Face.load]] for standalone
-    // font files, where missing metadata is an error.
+    // Document formats such as PDF may legally omit the `name`, `post` and `cmap` tables that
+    // an installable OpenType font requires: the document addresses such a font by glyph index
+    // or through its own encoding, never by asking the font what character a glyph stands for.
+    // `familyName` supplies the missing family identity; absent style and underline metadata use
+    // `Regular` and zero, and a face with no character map answers no character lookup. All
+    // outline, location, and horizontal-metric tables remain mandatory. Use
+    // [[TrueType.Face.load]] for standalone font files, where missing metadata is an error.
     //
     // Ownership and cleanup match [[TrueType.Face.load]].
     func loadSubset(bytes: const [..] u8, familyName: string, allocator: #null IAllocator = null)->#null *Face fail
@@ -317,6 +359,53 @@ public impl Face
 
     // Returns whether the selected character map contains a glyph for `charCode`.
     mtd hasChar(charCode: rune)->bool => .glyphIndex(charCode) != 0
+
+    // Resolves a PostScript glyph name to a glyph index.
+    //
+    // A CFF or Type 1 program keys its outlines by name, which is how a document format
+    // addresses them: the encoding of such a font is a table of names, not of characters,
+    // and resolving it through Unicode would go through a mapping the font never declared.
+    // Zero is returned for a face with no name table of its own, which every TrueType face
+    // is, and for a name it does not carry.
+    //
+    // ```swag
+    // let face  = (try TrueType.Face.load(bytes))!
+    // let glyph = face.glyphIndexByName("fi")
+    // ```
+    mtd glyphIndexByName(name: string)->u32
+    {
+        let faceData = cast(*FaceImpl) cast(*void) me
+        return faceData.glyphIndexByName(name)
+    }
+
+    // Resolves a code through the font program's own built-in encoding.
+    //
+    // This is the encoding the font file declares, not a Unicode map: a CFF states one in
+    // its `Encoding` structure and a Type 1 program in its `/Encoding` array. Zero is
+    // returned for a face that declares none, and for an unused code.
+    mtd glyphIndexByCode(code: u32)->u32
+    {
+        let faceData = cast(*FaceImpl) cast(*void) me
+        return faceData.glyphIndexByCode(code)
+    }
+
+    // Resolves a character identifier through a CID-keyed CFF charset.
+    //
+    // Composite document fonts address a CID-keyed program by identifier rather than by
+    // glyph index, and the two coincide only when the font says so. Zero is returned for
+    // any face that is not CID-keyed.
+    mtd glyphIndexByCid(cid: u32)->u32
+    {
+        let faceData = cast(*FaceImpl) cast(*void) me
+        return faceData.glyphIndexByCid(cid)
+    }
+
+    // Returns whether this face stores its outlines as PostScript charstrings.
+    mtd const isPostScript()->bool
+    {
+        let faceData = cast(const *FaceImpl) cast(const *void) me
+        return faceData.outlineSource != .Glyf
+    }
 
     // Resolves a Unicode scalar value qualified by a variation selector.
     //

@@ -63,3 +63,12 @@ func pageText(page: const *Pdf.Page)->String
         result += item.textValue()
     return result
 }
+
+// Returns the path of one real-document fixture.
+//
+// Resolving it from the source location keeps a focused run working from every worktree and
+// current directory.
+func corpusPdfPath(name: string)->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+}

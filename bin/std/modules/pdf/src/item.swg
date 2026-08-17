@@ -64,8 +64,15 @@ struct Item
         strokeStyle:  PathStrokeStyle
         hasFill:      bool
         hasStroke:    bool
+        evenOddFill:  bool
         fontIndex:    u32          = Swag.U32.Max
         standardFont: StandardFont = StandardFont.Helvetica
+
+        // Region this item is confined to, in page coordinates, when the content stream
+        // established one. Marks outside it belong to the page's construction, not to what
+        // it means to show.
+        clip:    Math.Rectangle
+        hasClip: bool
     }
 }
 
@@ -76,6 +83,10 @@ public impl Item
 
     // Returns the transform applied when this item is rendered.
     mtd const itemTransform()->Transform2 => .transform
+
+    // Returns the page-space region this item is confined to, or the whole page when the
+    // content stream established no clip for it.
+    mtd const itemClip()->{ rect: Math.Rectangle, clipped: bool } => {.clip, .hasClip}
 
     // Returns the fill color of text and filled paths.
     mtd const itemFillColor()->Color => .fillColor
@@ -94,6 +105,9 @@ public impl Item
 
     // Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.
     mtd const pathStrokeWidth()->f32 => .kind == .Path and .hasStroke ? .strokeWidth : 0
+
+    // Returns whether a filled path uses the alternating rule rather than the winding count.
+    mtd const pathUsesEvenOddFill()->bool => .kind == .Path and .evenOddFill
 
     // Returns the stroke geometry of a path item, or the default solid style for another kind.
     mtd const pathStrokeStyle()->PathStrokeStyle => .kind == .Path ? .strokeStyle : PathStrokeStyle{}

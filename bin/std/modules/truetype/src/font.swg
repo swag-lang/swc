@@ -15,6 +15,7 @@ const TAG_NAME = imageTag('n'u32, 'a'u32, 'm'u32, 'e'u32)
 const TAG_POST = imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
 const TAG_KERN = imageTag('k'u32, 'e'u32, 'r'u32, 'n'u32)
 const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2'u32)
+const TAG_CFF  = imageTag('C'u32, 'F'u32, 'F'u32, ' 'u32)
 
 // Container signatures found at offset zero of a font file. Only the two bare
 // sfnt spellings carry `glyf` outlines this module can read; the rest name a
@@ -31,6 +32,17 @@ struct TableRecord
     tag:    u32
     offset: u32
     length: u32
+}
+
+// Where a face's glyph outlines come from.
+//
+// The three forms differ only in how a glyph index becomes a set of points; everything
+// downstream — scaling, hinting, rasterization, distance fields — sees the same outline.
+enum OutlineSource
+{
+    Glyf      // TrueType quadratic outlines in a `glyf` table.
+    Cff       // Type 2 charstrings, from an OpenType `CFF ` table or a bare CFF program.
+    Type1     // Type 1 charstrings, from a PFB, PFA, or bare font program.
 }
 
 struct GlyphMetric
@@ -68,6 +80,18 @@ struct FaceImpl
     xHeight:   s16
     capHeight: s16
 
+    // PostScript outlines and the tables that address them. Only the source named by
+    // `outlineSource` is populated.
+    outlineSource: OutlineSource = OutlineSource.Glyf
+    cff:           CffFont
+    type1:         Type1Font
+
+    // Unicode map built from the font's own encoding, for a program that ships no `cmap`.
+    // A bare CFF or Type 1 file is addressed by name or by code, and this is what still
+    // lets it answer a character lookup.
+    syntheticCMap: HashTable'(u32, u32)
+    hasCMap:       bool
+
     outlinePoints:   Array'Vector
     outlineTags:     Array'u8
     outlineContours: Array's16
@@ -99,6 +123,38 @@ impl FaceImpl
         .bitmapPixels.clear()
         .kernPairs.free()
         .gposPairSubtables.clear()
+        .syntheticCMap.free()
+    }
+
+    // Returns the glyph a name selects, or zero when the face cannot be addressed by name.
+    mtd glyphIndexByName(name: string)->u32
+    {
+        let key = String.from(name)
+        switch .outlineSource
+        {
+        case .Cff:   return .cff.nameToGid.getOrDefault(key, 0)
+        case .Type1: return .type1.nameToGid.getOrDefault(key, 0)
+        case .Glyf:  return 0
+        }
+    }
+
+    // Returns the glyph the font's own built-in encoding places at one code.
+    mtd glyphIndexByCode(code: u32)->u32
+    {
+        switch .outlineSource
+        {
+        case .Cff:   return .cff.codeToGid.getOrDefault(code, 0)
+        case .Type1: return .type1.codeToGid.getOrDefault(code, 0)
+        case .Glyf:  return 0
+        }
+    }
+
+    // Returns the character identifier map of a CID-keyed CFF, or nothing for another font.
+    mtd glyphIndexByCid(cid: u32)->u32
+    {
+        if .outlineSource != .Cff or !.cff.isCid do
+            return 0
+        return .cff.cidToGid.getOrDefault(cid, 0)
     }
 }
 

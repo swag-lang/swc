@@ -117,6 +117,31 @@ func msdfFlattenQuadratic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, toleranc
     msdfFlattenQuadratic(segs, x012, y012, x12, y12, x2, y2, tolerance, depth + 1)
 }
 
+func msdfFlattenCubic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, x3, y3, tolerance: f64, depth: u32 = 0)
+{
+    if depth >= 16 or cubicFlatEnough(x0, y0, x1, y1, x2, y2, x3, y3, tolerance)
+    {
+        msdfAddSeg(segs, x0, y0, x3, y3)
+        return
+    }
+
+    let x01   = (x0 + x1) * 0.5
+    let y01   = (y0 + y1) * 0.5
+    let x12   = (x1 + x2) * 0.5
+    let y12   = (y1 + y2) * 0.5
+    let x23   = (x2 + x3) * 0.5
+    let y23   = (y2 + y3) * 0.5
+    let x012  = (x01 + x12) * 0.5
+    let y012  = (y01 + y12) * 0.5
+    let x123  = (x12 + x23) * 0.5
+    let y123  = (y12 + y23) * 0.5
+    let x0123 = (x012 + x123) * 0.5
+    let y0123 = (y012 + y123) * 0.5
+
+    msdfFlattenCubic(segs, x0, y0, x01, y01, x012, y012, x0123, y0123, tolerance, depth + 1)
+    msdfFlattenCubic(segs, x0123, y0123, x123, y123, x23, y23, x3, y3, tolerance, depth + 1)
+}
+
 // msdfgen's "switchColor": deterministically pick the next edge color.
 func msdfSwitchColor(color: *u8, seed: *u64, banned: u8 = MSDF_BLACK)
 {
@@ -266,6 +291,60 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
 
             var e1x = x - cx
             var e1y = y - cy
+            if Math.isZeroEpsilon(cast(f32) e1x) and Math.isZeroEpsilon(cast(f32) e1y)
+            {
+                e1x = x - curX
+                e1y = y - curY
+            }
+
+            let {sdx, sdy} = msdfNormDir(s0x, s0y)
+            let {edx, edy} = msdfNormDir(e1x, e1y)
+            el.sdx0 = sdx
+            el.sdy0 = sdy
+            el.edx1 = edx
+            el.edy1 = edy
+            elements.add(el)
+
+            curX = x
+            curY = y
+
+        case .CubicTo:
+            let c0x = cmd.p0.x / 64.0'f64
+            let c0y = cmd.p0.y / 64.0'f64
+            let c1x = cmd.p1.x / 64.0'f64
+            let c1y = cmd.p1.y / 64.0'f64
+            let x   = cmd.p2.x / 64.0'f64
+            let y   = cmd.p2.y / 64.0'f64
+
+            var el: MsdfElement
+            el.firstSeg = cast(u32) segs.count
+            msdfFlattenCubic(segs, curX, curY, c0x, c0y, c1x, c1y, x, y, tolerance)
+            el.segCount = cast(u32) segs.count - el.firstSeg
+
+            // A control point coincident with its endpoint carries no direction; the
+            // next-best tangent is the one the other control or the chord gives.
+            var s0x = c0x - curX
+            var s0y = c0y - curY
+            if Math.isZeroEpsilon(cast(f32) s0x) and Math.isZeroEpsilon(cast(f32) s0y)
+            {
+                s0x = c1x - curX
+                s0y = c1y - curY
+            }
+
+            if Math.isZeroEpsilon(cast(f32) s0x) and Math.isZeroEpsilon(cast(f32) s0y)
+            {
+                s0x = x - curX
+                s0y = y - curY
+            }
+
+            var e1x = x - c1x
+            var e1y = y - c1y
+            if Math.isZeroEpsilon(cast(f32) e1x) and Math.isZeroEpsilon(cast(f32) e1y)
+            {
+                e1x = x - c0x
+                e1y = y - c0y
+            }
+
             if Math.isZeroEpsilon(cast(f32) e1x) and Math.isZeroEpsilon(cast(f32) e1y)
             {
                 e1x = x - curX

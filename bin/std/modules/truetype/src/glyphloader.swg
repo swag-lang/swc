@@ -1,7 +1,13 @@
 using Swag, Core
 
 const CURVE_TAG_ON = 0x01'u8
-const MAX_RECURSE  = 16'u32
+
+// Marks an off-curve point as one of the two controls of a cubic Bézier. `glyf`
+// outlines never carry it; PostScript outlines — CFF and Type 1 — are cubic
+// throughout, and this is what lets both shapes share one point array.
+const CURVE_TAG_CUBIC = 0x02'u8
+
+const MAX_RECURSE = 16'u32
 
 const CMP_ARG_1_AND_2_ARE_WORDS = 0x0001'u16
 const CMP_ARGS_ARE_XY_VALUES    = 0x0002'u16
@@ -217,6 +223,9 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
     if glyphIndex >= faceData.face.glyphCount do
         fault(0x10)
 
+    if glyphIndex + 1 >= faceData.glyphLocations.count do
+        return
+
     let start = faceData.glyphLocations[glyphIndex]
     let stop  = faceData.glyphLocations[glyphIndex + 1]
     if stop <= start do
@@ -229,6 +238,16 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
         appendSimpleGlyph(faceData, data, xPpem, yPpem)
     else do
         appendCompositeGlyph(faceData, data, xPpem, yPpem, depth)
+}
+
+// Runs the charstring of a PostScript glyph into the face's reusable point arrays.
+func appendCharstringGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32) fail
+{
+    var builder = OutlineBuilder.create(faceData, xPpem, yPpem, faceData.unitsPerEm)
+    if faceData.outlineSource == .Cff do
+        discard runType2Charstring(&faceData.cff, glyphIndex, &builder)
+    else do
+        discard runType1Charstring(&faceData.type1, glyphIndex, &builder)
 }
 
 func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
@@ -246,7 +265,10 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
 
     let xPpem = Math.max(1'u32, face.size.metrics.xPpem)
     let yPpem = Math.max(1'u32, face.size.metrics.yPpem)
-    appendGlyph(faceData, glyphIndex, xPpem, yPpem)
+    if faceData.outlineSource == .Glyf do
+        appendGlyph(faceData, glyphIndex, xPpem, yPpem)
+    else do
+        appendCharstringGlyph(faceData, glyphIndex, xPpem, yPpem)
 
     slot.outline.setView(faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null,
                          faceData.outlineTags.count ? faceData.outlineTags.buffer : null,

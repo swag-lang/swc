@@ -1,9 +1,6 @@
-using Core, Pixel
+#global if #command == Swag.CompilerCommand.Test
 
-private func corpusPdfPath(name: string)->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
-}
+using Core, Pixel
 
 private func createCorpusTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail => try TypeFace.create(name, bytes)
 

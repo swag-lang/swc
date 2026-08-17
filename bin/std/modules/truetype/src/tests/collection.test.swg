@@ -88,14 +88,10 @@ using Swag, Core
     @assert(outOfEnd == null)
 }
 
-// Containers this module recognizes but cannot read are rejected on sight, and
-// counting their faces fails for the same reason loading them does.
+// A WOFF container is rejected on sight, and counting its faces fails for the same
+// reason loading it does.
 #test
 {
-    let cff = catch Face.load(OpenTypeCffBytes) as errCff
-    @assert(errCff != null)
-    @assert(cff == null)
-
     let woff = catch Face.load(WoffBytes) as errWoff
     @assert(errWoff != null)
     @assert(woff == null)
@@ -104,6 +100,18 @@ using Swag, Core
     @assert(errWoff2 != null)
     @assert(woff2 == null)
 
-    discard catch Face.countFaces(OpenTypeCffBytes) as errCount
+    discard catch Face.countFaces(WoffBytes) as errCount
     @assert(errCount != null)
+}
+
+// An OpenType container is read, so an empty one fails on its missing tables rather than
+// on its signature, and still counts as the one face its header declares.
+#test
+{
+    let cff = catch Face.load(OpenTypeCffBytes) as errCff
+    @assert(errCff != null)
+    @assert(cff == null)
+
+    let count = expect Face.countFaces(OpenTypeCffBytes)
+    @assert(count == 1)
 }

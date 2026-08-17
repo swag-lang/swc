@@ -289,6 +289,11 @@ func hasVariationSequence(faceData: *FaceImpl, charCode, selector: u32)->bool fa
 
 func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
 {
+    // A bare CFF or Type 1 program declares no character map; the one derived from its
+    // built-in encoding answers in its place.
+    if !faceData.hasCMap do
+        return faceData.syntheticCMap.getOrDefault(charCode, 0)
+
     let cmap = faceData.chosenCMap
     switch faceData.cmapFormat
     {

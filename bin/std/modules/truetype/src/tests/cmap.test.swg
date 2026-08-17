@@ -39,7 +39,7 @@ using Swag, Core
     faceData.fontData.add(cmap)
     faceData.tables.add({tag: TAG_CMAP, length: @countof(cmap)})
 
-    discard expect parseCMap(&faceData)
+    discard expect parseCMap(&faceData, false)
     @assert(faceData.face.charMap.platformID == 0)
     @assert(faceData.face.charMap.encodingID == 4)
     @assert(faceData.cmapFormat == 12)
@@ -131,7 +131,7 @@ using Swag, Core
     faceData.fontData.add(cmap.toSlice())
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32) cmap.count})
 
-    discard expect parseCMap(&faceData)
+    discard expect parseCMap(&faceData, false)
     @assert(faceData.cmapFormat == 4)
     @assert(faceData.face.charMap.platformID == 1)
 }
@@ -143,7 +143,7 @@ using Swag, Core
     faceData.fontData.add(CmapVariationFixture)
     faceData.tables.add({tag: TAG_CMAP, length: @countof(CmapVariationFixture)})
 
-    discard expect parseCMap(&faceData)
+    discard expect parseCMap(&faceData, false)
     @assert(faceData.cmapFormat == 4)
     @assert(faceData.face.charMap.platformID == 3)
     @assert(faceData.variationCMap != null)

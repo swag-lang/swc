@@ -1,4 +1,17 @@
-using Core, Core.Math
+using Core, Core.Math, Pixel
+
+// Describes how a font descriptor stores the embedded font program.
+//
+// The kind decides how a PDF character code reaches a glyph: a TrueType program is addressed
+// by glyph index, and the two PostScript ones by glyph name.
+#[Swag.NoDoc]
+public enum FontProgramKind
+{
+    None       // The font embeds no program and is drawn with a substitute face.
+    TrueType   // A `FontFile2` program, or a `FontFile3` OpenType wrapper around one.
+    Type1      // A `FontFile` program, in its PFB, PFA, or bare form.
+    Cff        // A `FontFile3` bare CFF program, keyed by name or by character identifier.
+}
 
 // A font a decoded page refers to, with everything needed to lay its text out again.
 //
@@ -11,11 +24,16 @@ public struct FontResource
     name:     String
     baseName: String
     bytes:    Array'u8
+    program:  FontProgramKind
 
     // Code to text, from a `/ToUnicode` CMap, and code to character from the font's simple
     // encoding. The CMap wins when both describe a code.
     unicode:  HashTable'(u32, String)
     encoding: HashTable'(u32, rune)
+
+    // Code to glyph name, from `/Differences`. A PostScript program is keyed by these names,
+    // so this is the only address that reaches the glyph the writer meant.
+    glyphNames: HashTable'(u32, String)
 
     // Advance widths in fractions of the text size, as `/Widths` or `/W` declares them.
     widths: HashTable'(u32, f32)
@@ -25,11 +43,23 @@ public struct FontResource
     glyphIndices:  Array'u32
     identityGlyphs: bool
 
+    // A composite font whose descendant is a CIDFontType0 addresses a CID-keyed CFF through
+    // its charset rather than through a glyph index.
+    cidKeyed: bool
+
     defaultWidth: f32          = 0.5
     codeBytes:    u32          = 1
     standard:     StandardFont = StandardFont.Helvetica
     hasStandard:  bool
     baseEncoding: BaseEncoding = BaseEncoding.WinAnsi
+
+    // Traits the font descriptor declares, used to pick a substitute face that matches the
+    // shape of the one the document asked for.
+    serif:      bool
+    fixedPitch: bool
+    symbolic:   bool
+    italic:     bool
+    bold:       bool
 }
 
 impl FontResource
@@ -58,6 +88,77 @@ impl FontResource
         if code < .glyphIndices.count do
             return {.glyphIndices[code], true}
         return {}
+    }
+
+    // Resolves one PDF character code to a glyph of the embedded font program.
+    //
+    // A PDF addresses an embedded program the way that program is keyed, and the order here
+    // is what the specification prescribes: a composite font by character identifier, and a
+    // simple font by the glyph name its encoding gives the code. Only when neither answers
+    // is the code resolved through a character map, which is how a symbolic TrueType subset
+    // with no usable names is reached.
+    mtd const glyphFor(font: *Font, code: u32)->{index: u32, found: bool}
+    {
+        if .codeBytes > 1
+        {
+            if !.cidKeyed do
+                return .glyphIndex(code)
+            let mapped = font.glyphIndexByCid(code)
+            return mapped ? {mapped, true} : .glyphIndex(code)
+        }
+
+        let named = .glyphNames.tryFind(code)
+        if named
+        {
+            let mapped = font.glyphIndexByName(named.value.toString())
+            if mapped do
+                return {mapped, true}
+        }
+
+        let value = .runeOf(code)
+        if value
+        {
+            let name = runeGlyphName(value)
+            if @countof(name)
+            {
+                let mapped = font.glyphIndexByName(name)
+                if mapped do
+                    return {mapped, true}
+            }
+        }
+
+        let builtIn = font.glyphIndexByCode(code)
+        if builtIn do
+            return {builtIn, true}
+
+        if value
+        {
+            let mapped = font.glyphIndex(value)
+            if mapped do
+                return {mapped, true}
+        }
+
+        // A symbolic TrueType subset maps its codes into the private use area rather than
+        // declaring them as characters, which is the one place a raw code is an address.
+        let symbol = font.glyphIndex(cast(rune) (0xF000 + code))
+        if symbol do
+            return {symbol, true}
+
+        return {}
+    }
+
+    // Returns the text one character code stands for, for drawing with a substitute face.
+    mtd const codeText(code: u32)->String
+    {
+        let mapped = .unicode.tryFind(code)
+        if mapped do
+            return mapped.value
+
+        var result: retval
+        let value = .runeOf(code)
+        if value do
+            result.append(value)
+        return result
     }
 
     // Returns the character a code stands for, or zero when nothing maps it.
@@ -205,6 +306,12 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
                             result.glyphIndices.add(cast(u32) bytes[i * 2] << 8 | bytes[i * 2 + 1])
                     }
                 }
+                else
+                {
+                    // A CIDFontType0 descendant wraps a CID-keyed CFF, whose charset maps
+                    // identifiers to glyphs; the identity of the two is never assumed.
+                    result.cidKeyed = true
+                }
             }
         }
     }
@@ -219,17 +326,8 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
         if missing != InvalidNode do
             result.defaultWidth = cast(f32) parser.number(missing) / 1000.0
 
-        // Only the TrueType-shaped programs can be handed to the rasterizer; the others
-        // leave the resource without bytes and fall back to a substitute face.
-        let file2 = parser.dict(descriptor, "FontFile2")
-        if file2 != InvalidNode do
-            result.bytes = try parser.decodeStream(file2)
-        else
-        {
-            let file3 = parser.dict(descriptor, "FontFile3")
-            if file3 != InvalidNode and parser.name(parser.dict(file3, "Subtype")) == "OpenType" do
-                result.bytes = try parser.decodeStream(file3)
-        }
+        readDescriptorTraits(parser, &result, descriptor)
+        try readFontProgram(parser, &result, descriptor)
     }
 
     let toUnicode = parser.dict(fontId, "ToUnicode")
@@ -240,6 +338,72 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
     }
 
     return result
+}
+
+// Bits of the `/Flags` entry of a font descriptor this module reads.
+private const FlagFixedPitch = 1'u32 << 0
+private const FlagSerif      = 1'u32 << 1
+private const FlagSymbolic   = 1'u32 << 2
+private const FlagItalic     = 1'u32 << 6
+private const FlagForceBold  = 1'u32 << 18
+
+// Reads the traits that decide which substitute face stands in for a font.
+//
+// A document that embeds no program still says what the font looked like, and honouring
+// that is the difference between a serif page rendered as a serif page and one silently
+// reset to the renderer's default face.
+private func readDescriptorTraits(parser: const *PdfParser, font: *FontResource, descriptor: u32)
+{
+    let flags = cast(u32) parser.integer(parser.dict(descriptor, "Flags"), 0)
+    font.fixedPitch = (flags & FlagFixedPitch) != 0
+    font.serif      = (flags & FlagSerif) != 0
+    font.symbolic   = (flags & FlagSymbolic) != 0
+    font.italic     = (flags & FlagItalic) != 0 or parser.number(parser.dict(descriptor, "ItalicAngle"), 0) != 0
+    font.bold       = (flags & FlagForceBold) != 0 or parser.number(parser.dict(descriptor, "StemV"), 0) >= 120
+
+    // The base name is the writer's own description of the face and outranks the flags,
+    // which many producers leave at their defaults.
+    let baseName = font.baseName
+    if baseName.contains(cast(string) "Bold") do
+        font.bold = true
+    if baseName.contains(cast(string) "Italic") or baseName.contains(cast(string) "Oblique") do
+        font.italic = true
+    if baseName.contains(cast(string) "Times") or baseName.contains(cast(string) "Roman") or baseName.contains(cast(string) "Georgia") or baseName.contains(cast(string) "Serif") do
+        font.serif = true
+    if baseName.contains(cast(string) "Courier") or baseName.contains(cast(string) "Mono") do
+        font.fixedPitch = true
+}
+
+// Reads the embedded font program, whichever of the three forms a descriptor stores it in.
+private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor: u32) fail
+{
+    let file2 = parser.dict(descriptor, "FontFile2")
+    if file2 != InvalidNode
+    {
+        font.bytes   = try parser.decodeStream(file2)
+        font.program = .TrueType
+        return
+    }
+
+    let file3 = parser.dict(descriptor, "FontFile3")
+    if file3 != InvalidNode
+    {
+        let subtype = parser.name(parser.dict(file3, "Subtype"))
+        font.bytes = try parser.decodeStream(file3)
+
+        // An OpenType wrapper may carry either outline flavour; the loader tells them
+        // apart from the file itself, so the distinction that matters here is only
+        // whether glyphs are addressed by name.
+        font.program = subtype == "OpenType" ? .TrueType : .Cff
+        return
+    }
+
+    let file1 = parser.dict(descriptor, "FontFile")
+    if file1 != InvalidNode
+    {
+        font.bytes   = try parser.decodeStream(file1)
+        font.program = .Type1
+    }
 }
 
 private func readSimpleWidths(parser: const *PdfParser, font: *FontResource, metricsId: u32)
@@ -324,7 +488,12 @@ private func readEncoding(parser: const *PdfParser, font: *FontResource, encodin
 
         if parser.nodes[id].kind != .Name do
             continue
-        let glyph = glyphNameRune(parser.nodes[id].text.toString())
+
+        // The name is what addresses a PostScript program; the character it stands for is
+        // only what the text extracts as, and may well be unknown.
+        let name  = parser.nodes[id].text.toString()
+        let glyph = glyphNameRune(name)
+        font.glyphNames[code] = String.from(name)
         if glyph do
             font.encoding[code] = glyph
         code += 1

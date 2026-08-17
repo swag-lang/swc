@@ -199,6 +199,53 @@ public impl LinePath
         .endPoint = newEndPoint
     }
 
+    // Returns the rectangle enclosing every point that defines this path.
+    //
+    // A Bézier is contained by its control polygon and an arc by its centre and radii, so
+    // this answers without flattening anything: it works on a path still being built, and
+    // costs one pass over the segments. The result can be wider than the ink the path
+    // finally lays down, and is never narrower — which is what makes it safe to reject
+    // work against, and unsuitable for measuring a drawing.
+    //
+    // ```swag
+    // if !path.controlBounds().intersects(dirtyRect) do
+    //     return
+    // ```
+    mtd const controlBounds()->Math.Rectangle
+    {
+        var min = .startPoint
+        var max = .startPoint
+
+        for element in .elements
+        {
+            if element.type == .Arc
+            {
+                // An arc stores its centre, its angle interval, and its radii, so the
+                // circle around the centre is the bound that holds for every interval.
+                let radius = Vector2{Math.abs(element.p2.x), Math.abs(element.p2.y)}
+                min = Vector2.min(min, element.position - radius)
+                max = Vector2.max(max, element.position + radius)
+                continue
+            }
+
+            min = Vector2.min(min, element.position)
+            max = Vector2.max(max, element.position)
+            if element.type == .Bezier1 or element.type == .Bezier2
+            {
+                min = Vector2.min(min, element.p1)
+                max = Vector2.max(max, element.p1)
+            }
+
+            if element.type == .Bezier2
+            {
+                min = Vector2.min(min, element.p2)
+                max = Vector2.max(max, element.p2)
+            }
+        }
+
+        return {min.x, min.y, max.x - min.x, max.y - min.y}
+    }
+
     // Close the figure
     // Will add a line or a curve to the first point if necessary
     mtd close()

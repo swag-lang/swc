@@ -143,6 +143,18 @@ func glyphNameRune(name: string)->rune
     return 0
 }
 
+// Returns the standard glyph name a character is written with, or an empty name when the
+// character has none.
+//
+// This is what turns a code the encoding describes as a character back into the name an
+// embedded PostScript program keys its outlines by.
+func runeGlyphName(value: rune)->string
+{
+    for entry in GlyphNames where entry.value == cast(u32) value do
+        return entry.name
+    return ""
+}
+
 private func parseGlyphHex(digits: string)->rune
 {
     var result = 0'u32

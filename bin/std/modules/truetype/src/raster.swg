@@ -53,6 +53,44 @@ func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64
     flattenQuadratic(edges, x012, y012, x12, y12, x2, y2, tolerance, depth + 1)
 }
 
+// Flatness of a cubic measured as the larger of the two control-point deviations from
+// the chord, which is the bound de Casteljau subdivision halves at every step.
+func cubicFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y: f64, tolerance: f64)->bool
+{
+    let ax = 3.0 * p1x - 2.0 * p0x - p3x
+    let ay = 3.0 * p1y - 2.0 * p0y - p3y
+    let bx = 3.0 * p2x - p0x - 2.0 * p3x
+    let by = 3.0 * p2y - p0y - 2.0 * p3y
+    let dx = Math.max(ax * ax, bx * bx)
+    let dy = Math.max(ay * ay, by * by)
+    return dx + dy <= 16.0 * tolerance * tolerance
+}
+
+func flattenCubic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, x3, y3, tolerance: f64, depth: u32 = 0)
+{
+    if depth >= 16 or cubicFlatEnough(x0, y0, x1, y1, x2, y2, x3, y3, tolerance)
+    {
+        addEdge(edges, x0, y0, x3, y3)
+        return
+    }
+
+    let x01   = (x0 + x1) * 0.5
+    let y01   = (y0 + y1) * 0.5
+    let x12   = (x1 + x2) * 0.5
+    let y12   = (y1 + y2) * 0.5
+    let x23   = (x2 + x3) * 0.5
+    let y23   = (y2 + y3) * 0.5
+    let x012  = (x01 + x12) * 0.5
+    let y012  = (y01 + y12) * 0.5
+    let x123  = (x12 + x23) * 0.5
+    let y123  = (y12 + y23) * 0.5
+    let x0123 = (x012 + x123) * 0.5
+    let y0123 = (y012 + y123) * 0.5
+
+    flattenCubic(edges, x0, y0, x01, y01, x012, y012, x0123, y0123, tolerance, depth + 1)
+    flattenCubic(edges, x0123, y0123, x123, y123, x23, y23, x3, y3, tolerance, depth + 1)
+}
+
 func buildEdges(outline: const *Outline)->Array'Edge
 {
     var edges: Array'Edge
@@ -90,6 +128,20 @@ func buildEdges(outline: const *Outline)->Array'Edge
                 let x  = cmd.p1.x / 64.0
                 let y  = cmd.p1.y / 64.0
                 flattenQuadratic(&edges, currentX, currentY, cx, cy, x, y, tolerance)
+                currentX = x
+                currentY = y
+            }
+
+        case .CubicTo:
+            if havePos
+            {
+                let c0x = cmd.p0.x / 64.0
+                let c0y = cmd.p0.y / 64.0
+                let c1x = cmd.p1.x / 64.0
+                let c1y = cmd.p1.y / 64.0
+                let x   = cmd.p2.x / 64.0
+                let y   = cmd.p2.y / 64.0
+                flattenCubic(&edges, currentX, currentY, c0x, c0y, c1x, c1y, x, y, tolerance)
                 currentX = x
                 currentY = y
             }

@@ -148,9 +148,23 @@ func parseOS2(faceData: *FaceImpl) fail
     }
 }
 
-func parseCMap(faceData: *FaceImpl) fail
+// Selects the richest character map the face declares.
+//
+// A rendering-only subset may legally omit the table entirely: a document that embeds one
+// addresses its glyphs by index or through its own encoding, and never asks the font what
+// character a glyph stands for. Such a face simply answers no character lookup.
+func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 {
-    let cmapTable = getTableSlice(faceData, TAG_CMAP, 0x92)
+    let record = findTable(faceData, TAG_CMAP)
+    if !record
+    {
+        if allowMissing do
+            return
+        fault(0x92)
+    }
+
+    let table     = record!
+    let cmapTable = getSlice(faceData.fontData.toSlice(), table.offset, table.length)
     let count     = readU16(cmapTable, 2)
 
     var bestSlice: #null const [..] u8
@@ -188,11 +202,16 @@ func parseCMap(faceData: *FaceImpl) fail
         }
     }
 
-    if bestScore < 0 do
+    if bestScore < 0
+    {
+        if allowMissing do
+            return
         fault(0x96)
+    }
 
     faceData.chosenCMap = bestSlice!
     faceData.cmapFormat = bestFmt
+    faceData.hasCMap    = true
 }
 
 func buildGlyphMetrics(faceData: *FaceImpl) fail
@@ -302,11 +321,9 @@ func initFaceRecords(faceData: *FaceImpl)
 func checkSfntVersion(data: #null const [..] u8, offset: u64) fail
 {
     let tag = readU32(data, offset)
-    if tag == TAG_OTTO do
-        fault(0x0D)
     if tag == TAG_WOFF or tag == TAG_WOF2 do
         fault(0x0E)
-    if tag != TAG_SFNT and tag != TAG_TRUE do
+    if tag != TAG_SFNT and tag != TAG_TRUE and tag != TAG_OTTO do
         fault(0x02)
 }
 
@@ -381,6 +398,116 @@ func familyNameIn(data: #null const [..] u8, faceIndex: u32)->String fail
     return familyName
 }
 
+// Fills the per-glyph advances of a PostScript face from its charstrings.
+//
+// A bare CFF or Type 1 program ships no `hmtx`, and the advance of a charstring glyph is
+// stated inside the charstring itself. Resolving it stops at the first stack-clearing
+// operator, so this costs a fraction of interpreting the outline.
+func buildCharstringMetrics(faceData: *FaceImpl) fail
+{
+    let glyphCount = faceData.face.glyphCount
+    faceData.glyphMetrics.resize(glyphCount)
+
+    for gid in glyphCount
+    {
+        var width = 0.0'f64
+        if faceData.outlineSource == .Cff do
+            width = runType2Charstring(&faceData.cff, gid, null)
+        else do
+            width = runType1Charstring(&faceData.type1, gid, null)
+
+        var metric: GlyphMetric
+        metric.advanceWidth       = cast(u16) Math.clamp(Math.round(width), 0.0, cast(f64) Swag.U16.Max)
+        faceData.glyphMetrics[gid] = metric
+    }
+}
+
+// Builds a Unicode map for a font program that ships none of its own.
+//
+// The font's built-in encoding says which glyph each code selects, and StandardEncoding
+// says which character that code stands for; together they answer a character lookup
+// without inventing a mapping the font never declared.
+func buildSyntheticCMap(faceData: *FaceImpl)
+{
+    for code in 256'u32
+    {
+        let gid = faceData.glyphIndexByCode(code)
+        if !gid do
+            continue
+        let value = standardEncodingRune(cast(u8) code)
+        if value and !faceData.syntheticCMap.contains(cast(u32) value) do
+            faceData.syntheticCMap.add(cast(u32) value, gid)
+    }
+
+    // A subset that names its glyphs by code point still resolves, which is the convention
+    // a document writer falls back to when no standard name fits.
+    let names = faceData.outlineSource == .Cff ? &faceData.cff.glyphNames : &faceData.type1.glyphNames
+    for name, gid in names
+    {
+        let value = glyphNameRune(name.toString())
+        if value and !faceData.syntheticCMap.contains(cast(u32) value) do
+            faceData.syntheticCMap.add(cast(u32) value, cast(u32) gid)
+    }
+}
+
+// Builds a face around a font program that carries no sfnt wrapper.
+//
+// PDF hands a bare CFF or Type 1 program straight from the file, so every metric an
+// OpenType face would read from a table has to come from the program's own header.
+func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
+{
+    let data = faceData.fontData.toSlice()
+    var name: String
+    var italic = false
+    var bold   = false
+
+    if faceData.outlineSource == .Cff
+    {
+        faceData.cff = parseCffFont(data)
+        faceData.unitsPerEm = faceData.cff.unitsPerEm
+        faceData.face.setGlyphCount(faceData.cff.charStrings.count())
+        faceData.face.setHeader(faceData.unitsPerEm, faceData.cff.xMin, faceData.cff.yMin, faceData.cff.xMax, faceData.cff.yMax)
+        name   = faceData.cff.fontName
+        italic = faceData.cff.italic
+        bold   = faceData.cff.bold
+    }
+    else
+    {
+        faceData.type1 = parseType1Font(data)
+        faceData.unitsPerEm = faceData.type1.unitsPerEm
+        faceData.face.setGlyphCount(cast(u32) faceData.type1.charstrings.count)
+        faceData.face.setHeader(faceData.unitsPerEm, faceData.type1.xMin, faceData.type1.yMin, faceData.type1.xMax, faceData.type1.yMax)
+        name   = faceData.type1.fontName
+        italic = faceData.type1.italic
+        bold   = faceData.type1.bold
+    }
+
+    if !faceData.face.glyphCount do
+        fault(0xBA)
+
+    // The design bounding box is the only vertical information such a program states, and
+    // it is what a renderer needs a line height for.
+    let ascender  = cast(s16) faceData.face.bbox.yMax
+    let descender = cast(s16) faceData.face.bbox.yMin
+    faceData.face.setHorizontalMetrics(ascender, descender, 0, cast(s16) faceData.face.bbox.xMax)
+
+    if !name.length do
+        name = String.from(@countof(fallbackFamilyName) ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
+    faceData.face.setNames(name, String.from(DEFAULT_STYLE_NAME))
+    faceData.face.setUnderline(cast(s16) -(cast(s32) faceData.unitsPerEm / 10), cast(s16) (faceData.unitsPerEm / 20))
+
+    var style = StyleFlag.None
+    if bold do
+        style |= .Bold
+    if italic do
+        style |= .Italic
+    faceData.face.setStyle(style)
+
+    buildCharstringMetrics(faceData)
+    buildSyntheticCMap(faceData)
+    initFaceRecords(faceData)
+}
+
 func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string = "") fail
 {
     let data       = faceData.fontData.toSlice()
@@ -396,6 +523,10 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
         faceData.tables[@index].offset = readU32(data, base + 8)
         faceData.tables[@index].length = readU32(data, base + 12)
     }
+
+    let cffTable = findTable(faceData, TAG_CFF)
+    if cffTable do
+        faceData.outlineSource = .Cff
 
     let head = getTableSlice(faceData, TAG_HEAD, 0x8E)
     if @countof(head) < 54 do
@@ -423,10 +554,25 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     faceData.face.setGlyphCount(readU16(maxp, 4))
 
     buildGlyphMetrics(faceData)
-    buildGlyphLocations(faceData)
-    parseCMap(faceData)
+
+    // A CFF-flavoured OpenType file keeps its outlines in charstrings, so it has neither
+    // `glyf` nor the `loca` index into it; everything else it declares is unchanged.
+    if faceData.outlineSource == .Cff
+    {
+        let record = cffTable!
+        faceData.cff = parseCffFont(getSlice(data, record.offset, record.length))
+    }
+    else
+    {
+        buildGlyphLocations(faceData)
+    }
+
+    let isSubset = @countof(fallbackFamilyName) != 0
+    parseCMap(faceData, isSubset)
+    if !faceData.hasCMap and faceData.outlineSource == .Cff do
+        buildSyntheticCMap(faceData)
     parseNames(faceData, fallbackFamilyName)
-    parsePost(faceData, @countof(fallbackFamilyName) != 0)
+    parsePost(faceData, isSubset or faceData.outlineSource == .Cff)
     parseKern(faceData)
     parseGpos(faceData)
     parseOS2(faceData)

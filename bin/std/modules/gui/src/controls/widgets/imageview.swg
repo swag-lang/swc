@@ -217,6 +217,41 @@ impl ImageView
         .zoomToFit()
     }
 
+    // Replaces the image with another rendering of the same content, keeping the view.
+    //
+    // A viewer whose content is scalable — a document page, a drawing — does not zoom by
+    // magnifying pixels: it rasterizes again at the resolution it is now being shown at, so
+    // the result stays as sharp as the display allows. What it must not do is lose the
+    // reader's place while doing so. `scaleRatio` is how much larger the new image is than
+    // the one it replaces, which is what lets the zoom follow the content instead of the
+    // pixel count and leaves the visible region exactly where it was.
+    //
+    // ```swag
+    // let sharper = renderPage(pageIndex, newScale)
+    // view.replaceImage(sharper, newScale / oldScale)
+    // ```
+    mtd replaceImage(image: Image, scaleRatio: f32)
+    {
+        if scaleRatio <= 0 or !image.isValid()
+        {
+            .setImage(image)
+            return
+        }
+
+        let fitted = .isFitted
+        let scaled = .zoom / scaleRatio
+        let offset = .panOffset
+
+        .clear()
+        .image           = image
+        .uploadedTexture = .app().renderer.addImage(.image)
+        .isFitted        = fitted
+        .zoom            = Math.clamp(scaled, MinZoom, MaxZoom)
+        .panOffset       = offset
+        .sigZoomChanged.call(me)
+        .invalidate()
+    }
+
     // Loads an animated GIF and fits its first frame to the viewport.
     //
     // Existing content remains unchanged when decoding fails.

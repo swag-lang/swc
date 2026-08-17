@@ -13,6 +13,7 @@ internal struct PdfPluginView
     pageIndex:     u64
     pageSize:      Math.Point
     rasterScale:   f32
+    rasterizing:   bool
     details:       String
     reportFailure: #null ViewerReportFailure
 
@@ -28,18 +29,58 @@ internal struct PdfPluginView
 
 private impl PdfPluginView
 {
+    // Returns the largest rasterization the page-size limit allows.
+    mtd maximumScale()->f32
+    {
+        return cast(f32) (PdfMaxDimension - 1) / Math.max(.pageSize.x, Math.max(.pageSize.y, 1))
+    }
+
     mtd renderScale()->f32
     {
         let client       = .paddedClientRect()
         let fittedScale  = Math.min(client.width / .pageSize.x, client.height / .pageSize.y)
         let logicalScale = Math.max(PdfRenderScale, fittedScale)
-        let maximumScale = cast(f32) (PdfMaxDimension - 1) / Math.max(.pageSize.x, .pageSize.y)
-        return Math.min(logicalScale * .deviceScale(), maximumScale)
+        return Math.min(logicalScale * .deviceScale(), .maximumScale())
     }
 
+    // Rasterizes the current page again at `scale` and keeps the reader looking at the same
+    // place, which is what makes zooming reveal detail instead of magnifying pixels.
+    mtd rasterizeAt(scale: f32) fail
+    {
+        var page  = try .reader.loadPage(.pageIndex)
+        let image = try page.render({scale: scale, maxDimension: PdfMaxDimension})
+        let ratio = scale / .rasterScale
+        .rasterScale = scale
+        .imageView.replaceImage(image, ratio)
+    }
+
+    // Keeps the rasterization at least as fine as the display it is shown on.
+    //
+    // A page is vector art, so its on-screen quality is decided by the scale it was
+    // rasterized at, never by the zoom applied afterwards. A margin keeps an interactive
+    // zoom or resize from re-rendering on every step, and replacing the image cannot
+    // re-enter here because the new raster already matches what is being asked for.
+    mtd syncRasterToZoom()
+    {
+        if .rasterizing or .pageSize.x <= 0 or .rasterScale <= 0 or !@isset(.imageView) do
+            return
+
+        let wanted = .rasterScale * .imageView.effectiveZoom() * .deviceScale()
+        let target = Math.min(wanted, .maximumScale())
+        if target <= .rasterScale * 1.05 do
+            return
+
+        .rasterizing = true
+        defer .rasterizing = false
+        catch .rasterizeAt(target) as renderError
+        if renderError != null and .reportFailure do
+            .reportFailure!(me, Errors.message(renderError))
+    }
+
+    // Shows the page at one hundred percent: one PDF point per ninety-sixth of a logical inch,
+    // whatever resolution it happens to be rasterized at.
     mtd actualSize()
     {
-        .imageView.actualSize()
         .imageView.setZoom(PdfRenderScale / .rasterScale)
     }
 
@@ -140,8 +181,15 @@ private impl PdfPluginView
             }
         }
 
-        result.imageView           = ImageView.create(result)
-        result.imageView.dockStyle = .Center
+        with result.imageView = ImageView.create(result)
+        {
+            .dockStyle       = .Center
+            .sigZoomChanged += func|view = result|(imageView)
+            {
+                discard imageView
+                view.syncRasterToZoom()
+            }
+        }
 
         result.reader = #move reader
         var complete: bool
@@ -199,17 +247,6 @@ private impl IWnd for PdfPluginView
         }
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
-    {
-        discard evt
-        if !@isset(.imageView) or .pageSize.x <= 0 or !.imageView.isFitted do
-            return
-
-        // Keep fitted pages backed by roughly one source pixel per physical display pixel.
-        // A margin avoids rerasterizing for every small step of an interactive resize.
-        if .renderScale() > .rasterScale * 1.2 do
-            .showPageOrReport(.pageIndex)
-    }
 }
 
 private func createPdfPluginView(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, view: *#null *PdfPluginView) fail

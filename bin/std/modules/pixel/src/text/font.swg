@@ -390,6 +390,33 @@ public impl Font
         return .cache.typeFace.face.glyphIndex(c)
     }
 
+    // Returns the glyph index a PostScript glyph name selects, or zero when the typeface
+    // names no glyph so.
+    //
+    // A CFF or Type 1 program keys its outlines by name, which is how a document format
+    // addresses them; a TrueType face names none and always answers zero.
+    mtd glyphIndexByName(name: string)->u32
+    {
+        return .cache.typeFace.face.glyphIndexByName(name)
+    }
+
+    // Returns the glyph index the typeface's own built-in encoding places at one code.
+    //
+    // This is the encoding the font program declares, not a Unicode map. Zero is returned
+    // for a typeface that declares none, and for an unused code.
+    mtd glyphIndexByCode(code: u32)->u32
+    {
+        return .cache.typeFace.face.glyphIndexByCode(code)
+    }
+
+    // Returns the glyph index a character identifier selects in a CID-keyed typeface.
+    //
+    // Zero is returned for any typeface that is not CID-keyed.
+    mtd glyphIndexByCid(cid: u32)->u32
+    {
+        return .cache.typeFace.face.glyphIndexByCid(cid)
+    }
+
     // Returns the horizontal kerning between two glyph indices, in pixels at the drawing size.
     //
     // Returns zero when the typeface carries no kerning for the pair. Pass the indices

@@ -1,5 +1,17 @@
 using Core, Core.Math
 
+// Selects how a path made of several contours decides which regions it encloses.
+//
+// Both rules count how many times the contours wind around a point, and differ only in what
+// they conclude from that count. Neither depends on the direction a contour happens to run,
+// which is what separates them from the convention [[Pixel.Painter.fillPath]] reads without
+// a rule.
+public enum PathFillRule
+{
+    NonZero     // Inside wherever the winding count is not zero.
+    EvenOdd     // Inside wherever the winding count is odd.
+}
+
 private func contourPointCount(polygon: const *Polygon)->u64
 {
     let count = polygon.points.count
@@ -230,6 +242,49 @@ public impl Painter
         }
 
         .fillPreparedPathList(pathList, brush)
+    }
+
+    // Fills a list of paths under an explicitly named fill rule.
+    //
+    // The plain [[Pixel.Painter.fillPath]] reads the winding *direction* of each contour: a
+    // clockwise one adds ink and an anticlockwise one takes it away. That is a convenient
+    // convention for geometry authored for it, but it is not what a vector document format
+    // means. PDF and SVG state a rule over the winding *count*, and under it a glyph drawn
+    // as outlines fills correctly whichever direction its contours happen to run — which is
+    // exactly the case the direction convention gets wrong, filling in the counter of every
+    // letter whose outer contour runs the unexpected way.
+    //
+    // The geometry is normalized under `rule` before it is filled, so the result is the
+    // region the rule defines rather than the one the directions suggest.
+    //
+    // ```swag
+    // painter.fillPath(&glyph, brush, .NonZero)
+    // ```
+    mtd fillPath(pathList: *LinePathList, brush: Brush, rule: PathFillRule)
+    {
+        pathList.flatten(.curState.paintQuality)
+
+        // A single simple contour encloses the same region under either rule, which is the
+        // common case and the one worth keeping allocation-free.
+        if pathList.count() < 2
+        {
+            let paths = pathList.toSlice()
+            if !@countof(paths) or paths[0].polygon.isSimple
+            {
+                .fillPreparedPathList(pathList, brush)
+                return
+            }
+        }
+
+        var cleaned = pathList[]
+        cleaned.clean(rule == .EvenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero)
+        .fillPreparedPathList(&cleaned, brush)
+    }
+
+    // Fills a list of paths under an explicitly named fill rule with a solid color.
+    mtd fillPath(pathList: *LinePathList, color: Color, rule: PathFillRule)
+    {
+        .fillPath(pathList, Brush.createSolid(color), rule)
     }
 
     private mtd fillPreparedPathList(pathList: *LinePathList, brush: Brush)

@@ -1,7 +1,30 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, Pixel
+
+// Pins the shared application glyphs at the two sizes where standard chrome uses them.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(152, 96)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let icons = [ThemeIcons.Appearance, .OpenFile, .ParentFolder]
+    for icon, idx in icons
+    {
+        let x = 8 + cast(f32) idx * 48
+        IconButton.create(&host.root, host.theme.icon(icon, 20), {x, 8, 40, 36})
+        IconButton.create(&host.root, host.theme.icon(icon, 16), {x, 52, 40, 36})
+    }
+
+    host.settleAnimations(&host.root, 4)
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "themeicons.application-actions")
+}
 
 // The standard appearance action occupies the caption slot immediately before native controls
 // and applies both kinds of presentation choice before notifying its owner.

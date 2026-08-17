@@ -180,6 +180,11 @@ hold it. The interface must read as an instrument at arm's length, never as a to
 - **A glyph takes at most half of its cell.** The rest is not spare room to reclaim; it is what
   separates one control from the next. Take it back and the surface immediately needs a border to
   say where a control ends, which is the failure the previous section describes.
+- **One glyph carries one sign.** At toolbar and caption size, combining a sun with a globe or a
+  folder with a status badge makes two unreadable miniatures, not one informative icon. Choose the
+  dominant concept, let the tooltip name the complete action, and keep shared nouns on shared
+  geometry: every folder action starts from the same folder silhouette, every directional action
+  from the same arrow weight. Inspect the actual 16- and 20-pixel raster, not only the vector cell.
 - **Use one size table for the whole family.** These are logical pixels, and they are ceilings.
 
   | Placement | Glyph | Cell |

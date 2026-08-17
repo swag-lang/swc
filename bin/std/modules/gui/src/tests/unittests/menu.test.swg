@@ -181,6 +181,26 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     host.pump()
 }
 
+// A submenu label keeps its complete measured run beside the reserved chevron band.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+
+    let sub = MenuCtrl.createPopup(&host.root)
+    sub.addItem("System language", Menu_Open)
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.updateFlags(.HideShortcuts)
+    let item = popup.addPopup("Language", sub)
+    popup.computeLayoutPopup()
+
+    let metrics     = popup.themeMetrics()
+    let shadowWidth = 2 * metrics.menuPopup_ShadowSize
+    let chromeWidth = 2 * item.size + 2 * metrics.menuPopup_IconTextMargin + metrics.chevron_Size + popup.padding.x + popup.padding.z + shadowWidth
+    @assert(popup.position.width - chromeWidth >= item.name.boundRect.width)
+}
+
 // Headless popup menus can drive nested submenus through hover/timer behavior.
 #test
 {

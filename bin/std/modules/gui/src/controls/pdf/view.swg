@@ -49,6 +49,7 @@ struct PdfView
             texture:     Texture
             rasterScale: f32
             rasterRect:  Math.Rectangle
+            rasterTimer: #null *Timer
 
             isPanning:   bool
             lastPointer: Math.Point
@@ -91,7 +92,7 @@ private impl PdfView
         return result
     }
 
-    mtd applyZoom(value: f32, anchor: #null const *Math.Point = null)
+    mtd applyZoom(value: f32, anchor: #null const *Math.Point = null, deferRaster = false)
     {
         let oldZoom = .effectiveZoom()
         let oldRect = .contentRect()
@@ -107,6 +108,21 @@ private impl PdfView
             let next   = .contentRect()
             .panOffset.x += point.x - (next.x + next.width * ratioX)
             .panOffset.y += point.y - (next.y + next.height * ratioY)
+        }
+
+        if deferRaster and .texture.isValid()
+        {
+            if .rasterTimer do
+                .removeTimer(.rasterTimer!)
+
+            // A wheel gesture delivers several steps in a short burst. The existing raster
+            // follows them immediately; this delay coalesces the expensive sharp replacement.
+            .rasterTimer = .addTimer(120'ms)
+        }
+        elif .rasterTimer
+        {
+            .removeTimer(.rasterTimer!)
+            .rasterTimer = null
         }
 
         .sigZoomChanged.call(me)
@@ -131,6 +147,14 @@ internal impl PdfView
         .rasterRect.clear()
     }
 
+    mtd stopRasterTimer()
+    {
+        if !.rasterTimer do
+            return
+        .removeTimer(.rasterTimer!)
+        .rasterTimer = null
+    }
+
     // Rasterizes what the viewport shows, at the sharpness it is shown at, when the raster on
     // hand no longer provides it. The decoded page is reused as it is: no zoom or pan step
     // decodes the document again.
@@ -144,6 +168,9 @@ internal impl PdfView
         let scale  = .effectiveZoom()
         let wanted = scale * .deviceScale()
         if wanted <= 0 or !Math.isFinite(wanted) do
+            return
+
+        if .rasterTimer and .texture.isValid() do
             return
 
         // The whole page within the pixel budget, the visible region past it.
@@ -185,7 +212,21 @@ impl IWnd for PdfView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        .stopRasterTimer()
         .releaseRaster()
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .rasterTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        .removeTimer(evt.timer)
+        .rasterTimer = null
+        .invalidate()
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
@@ -233,7 +274,7 @@ impl IWnd for PdfView
             {
                 let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
                 let anchor = .surfaceToLocal(evt.surfacePos)
-                .applyZoom(.effectiveZoom() * factor, &anchor)
+                .applyZoom(.effectiveZoom() * factor, &anchor, deferRaster: true)
             }
             else
             {
@@ -355,6 +396,7 @@ impl PdfView
     // Releases the displayed page and its raster while keeping the widget alive.
     mtd close()
     {
+        .stopRasterTimer()
         .releaseRaster()
         @drop(&.page, 1)
         @init(&.page, 1)
@@ -382,6 +424,7 @@ impl PdfView
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
 
         var page = try .reader.loadPage(index)
+        .stopRasterTimer()
         .releaseRaster()
         @drop(&.page, 1)
         @init(&.page, 1)

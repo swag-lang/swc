@@ -153,6 +153,34 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(view.editor.text() != "café naïve\n")
 }
 
+// An unmarked legacy file can keep an ASCII-only head and reveal its first code-page byte after
+// streaming has begun. That late byte changes the tentative encoding; it does not reject the file.
+#test
+{
+    var bytes: Array'u8
+    for 16 * 1024 do
+        bytes.add('a')
+    bytes.add(0xE9)
+    bytes.add('\n')
+
+    let file = writeTempFile("late-cp1252.txt", bytes.toSlice())
+    defer discard catch File.delete(file.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let view     = BasicTextView.create(&host.root, commands, file.toString())
+    view.resize(800, 520)
+    view.applyLayout()
+
+    @assert(view.encoding == .Utf8 and view.loadTimer != null)
+    host.fireTimer(view.loadTimer)
+    @assert(view.encoding == .Windows1252)
+    @assert(Utf8.endsWith(view.editor.text(), "é\n"))
+    @assert(!Utf8.contains(view.editor.text(), appStrings().ui_NotText))
+}
+
 // Deciding an encoding is not accepting the file: code page 1252 gives every byte a meaning, so
 // what keeps a binary out of the text view is the content it decodes to.
 #test
@@ -196,6 +224,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.filesButton.isChecked)
     @assert(window.filePanel.position.width == ViewerPanelWidth)
     @assert(window.filePanel.minSize.x == ViewerPanelWidth and window.filePanel.maxSize.x == ViewerPanelWidth)
+    @assert(window.filePanel.isVertical() and window.filePanel.items.count == 2)
+    @assert(window.filePanel.items[0]!.minimumSize == ViewerPaneMinSize)
     @assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
     @assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
     @assert(window.folderList.lineCount() == 3)
@@ -215,11 +245,60 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.filesButton.isChecked)
     window.setFilePanelVisible(true)
 
+    window.filePanel.setPaneSize(0, 120)
     let state = saveViewerState(window)
     window.recent.clear()
+    window.filePanel.setPaneSize(0, 180)
     window.setFilePanelVisible(false)
     loadViewerState(window, state.toSlice())
     @assert(window.recent.count == 2 and window.panelVisible)
+    @assert(window.recentPaneSize == 120 and window.filePanel.items[0]!.size == 120)
+}
+
+// Rebuilding the lists after a recent-file choice keeps the viewport under the pointer, and the
+// folder pane continues to own file names rather than borrowing document text.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_recent_scroll_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    var names: Array'String
+    for i in ViewerRecentCount
+    {
+        let fileName = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
+        let content  = Format.toString("document text %\n", i)
+        discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8) content.toString())
+        names.add(fileName)
+    }
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(names[0].toString())
+    window.recent.clear()
+    for name in names do
+        window.recent.add(name[])
+    window.setFilePanelVisible(true)
+    window.applyLayout()
+
+    window.recentList.scrollWnd.setScrollPos(0, 80)
+    let before = window.recentList.scrollWnd.scrollPosition()
+    @assert(before.y > 0)
+    window.recentList.selectLine(8)
+    @assert(window.currentFile == names[8])
+    @assert(window.recentList.scrollWnd.scrollPosition() == before)
+
+    for i in window.folderList.lineCount()
+    {
+        let label = window.folderList.lineAt(i)!.itemAt(0).name.raw
+        @assert(Utf8.startsWith(label, "file") and Utf8.endsWith(label, ".txt"))
+        @assert(!Utf8.contains(label, "document text"))
+    }
 }
 
 // The panel opens before any file has been read: there is no folder to name, so the section keeps
@@ -238,7 +317,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.setFilePanelVisible(true)
     @assert(window.panelVisible and window.filePanel.isLocallyVisible())
     @assert(window.folderList.lineCount() == 0 and window.recentList.lineCount() == 0)
-    @assert(!window.recentList.isLocallyVisible())
+    @assert(!window.filePanel.isPaneVisible(0) and !window.recentPane.isLocallyVisible())
     @assert(window.folderLabel.text() == appStrings().ui_Folder)
 }
 
@@ -430,7 +509,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.openButton.position.x < window.searchBox.position.x)
     @assert(window.searchBox.position.x < window.previousButton.position.x)
     @assert(window.previousButton.position.x < window.nextButton.position.x)
-    @assert(window.infoTypeLabel.name.raw == "NO FILE")
+    @assert(window.infoNameLabel.name.raw.isEmpty())
+    @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
     @assert(!window.previousButton.isEnabled())
     @assert(!window.nextButton.isEnabled())
@@ -441,6 +521,15 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.plugins.first == null)
     @assert(!window.viewerCombo.isLocallyVisible())
     Testing.assertContentFits(window)
+
+    // The widest shipped contextual bar (animated images) still starts after the viewer selector
+    // at the declared minimum width.
+    window.resize(ViewerMinWidth, 680)
+    window.viewerCombo.show()
+    let widestCommands = Wnd.create'Wnd(window.commandBar, {0, 0, 590, 36})
+    widestCommands.dockStyle = .Right
+    window.applyLayout()
+    @assert(window.viewerCombo.position.right() <= widestCommands.position.x)
 }
 
 // The framework owns one centered, themed presentation for every plugin decoder reason.

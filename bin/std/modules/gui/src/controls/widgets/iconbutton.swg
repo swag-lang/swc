@@ -257,7 +257,8 @@ impl IWnd for IconButton
         // The form is the shape, so the focus ring follows it and a circular tool is never
         // marked with a box. It is published even for a flat button, which paints no box: the
         // ring is the only edge such a button has, and it stands for the form all the same.
-        .focusRingRadius = subRectBk!.radius
+        let framedRadius = Math.max(rects.btnIcon_RoundSquareBk.radius - 0.5, 0)
+        .focusRingRadius = .isChecked and .checkIndicator == .Frame ? rects.btnIcon_RoundSquareBk.radius : subRectBk!.radius
 
         var paintFlags: PaintItemFlags = .None
         switch
@@ -339,7 +340,7 @@ impl IWnd for IconButton
         {
             var frame = clientRect
             frame.inflate(-0.5)
-            bc.painter.drawRoundRect(frame, subRectBk!.radius, subRectBk!.radius, colorChecked, 1)
+            bc.painter.drawRoundRect(frame, framedRadius, framedRadius, colorChecked, 1)
         }
         elif marked and colors.activeRail.a
         {

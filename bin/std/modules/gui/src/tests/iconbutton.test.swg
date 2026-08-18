@@ -190,7 +190,10 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     btn.setCheckIndicator(.Frame)
     host.finishAnimations()
     var framed = host.render()
-    @assert(iconButtonColorCount(&framed, host.theme.colors.btnIcon_CheckedFrameBorder) > 0)
+    let border = host.theme.colors.btnIcon_CheckedFrameBorder
+    @assert(iconButtonColorCount(&framed, border) > 0)
+    @assert(btn.focusRingRadius == host.theme.rects.btnIcon_RoundSquareBk.radius)
+    @assert(framed.pixelColor(20, 20) != border)
 }
 
 // The two indicator-less placements differ by what they leave the state colors saying: `None`

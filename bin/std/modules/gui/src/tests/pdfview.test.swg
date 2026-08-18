@@ -84,6 +84,46 @@ func pdfViewFixture()->String
     @assert(view.rasterRect.contains(Math.Rectangle{0, 0, view.pageSize().x, view.pageSize().y}))
 }
 
+// A wheel burst scales the raster already on screen and produces one sharp replacement after the
+// gesture settles, instead of rasterizing the PDF once for every wheel event.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450, dpiScale: 1.5)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(fileName.toString())
+    view.resize(640, 420)
+    view.applyLayout()
+    view.ensureRaster()
+    let firstScale = view.rasterScale
+
+    var wheel: MouseEvent
+    wheel.kind       = .Wheel
+    wheel.surfacePos = {320, 210}
+    wheel.delta      = {0, 120}
+    wheel.modifiers  = .Control
+    view.sendEvent(&wheel)
+    @assert(view.rasterTimer != null)
+    view.ensureRaster()
+    @assert(view.rasterScale == firstScale)
+
+    wheel.delta.y = 120
+    view.sendEvent(&wheel)
+    @assert(view.rasterTimer != null)
+    view.ensureRaster()
+    @assert(view.rasterScale == firstScale)
+
+    host.fireTimer(view.rasterTimer)
+    @assert(view.rasterTimer == null)
+    view.ensureRaster()
+    @assert(view.rasterScale > firstScale)
+}
+
 // Page navigation keeps the zoom mode, reports the ends, and close releases the content.
 #test
 {

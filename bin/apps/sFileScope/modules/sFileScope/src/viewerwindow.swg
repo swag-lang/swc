@@ -3,13 +3,15 @@ using Core, Pixel, Gui
 const ViewerBarHeight       = 48.0
 const ViewerInfoHeight      = 36.0
 const ViewerGlyphSize       = 20.0
+const ViewerMinWidth        = 1200
 const ViewerSearchChunkSize = 256 * 1024'u64
 const ViewerErrorTextWidth  = 512.0
 
 // The panel that lists what is beside the current file, and what was read before it.
 const ViewerPanelWidth   = 268.0
 const ViewerPanelLabel   = 26.0
-const ViewerRecentHeight = 152.0
+const ViewerRecentHeight = 188.0
+const ViewerPaneMinSize  = 88.0
 
 // Files the recent list keeps. Long enough to cross a working session, short enough that the list
 // stays something a reader scans rather than searches.
@@ -108,14 +110,15 @@ struct ViewerWindow
         viewerCombo:      *ComboBox
         appearanceButton: *AppearanceButton
         infoBar:          *Wnd
-        infoTypeLabel:    *Label
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
         loadingSpinner:   *Spinner
         emptyLabel:       *Label
-        filePanel:        *Wnd
+        filePanel:        *SplitterCtrl
+        recentPane:       *Wnd
         recentLabel:      *Label
         recentList:       *ListCtrl
+        folderPane:       *Wnd
         folderLabel:      *Label
         folderList:       *ListCtrl
     }
@@ -143,6 +146,7 @@ struct ViewerWindow
     siblingsDirty        = true
     recent:          Array'String
     panelVisible:    bool
+    recentPaneSize       = ViewerRecentHeight
     refreshingLists: bool
     fileDlgState:    FileDlgState
     themeIndex:      u32
@@ -252,14 +256,21 @@ impl IWnd for ViewerWindow
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
+        if !evt.serializer.isReading() and .filePanel.items.count do
+            .recentPaneSize = .filePanel.items[0]!.size
+
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
         catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
+        catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
         if evt.serializer.isReading()
         {
-            .themeIndex = Math.min(.themeIndex, 1)
+            .themeIndex     = Math.min(.themeIndex, 1)
+            .recentPaneSize = Math.max(.recentPaneSize, ViewerPaneMinSize)
+            if .filePanel.items.count do
+                .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > ViewerRecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
         }
@@ -296,7 +307,7 @@ impl ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "sFileScope.main")
         result.surface!.setView(result)
-        result.surface!.minSize = {640, 420}
+        result.surface!.minSize = {ViewerMinWidth, 420}
         result.backgroundStyle  = .View
         result.index            = #move index
         result.language         = Gui.ReferenceLanguage
@@ -414,13 +425,6 @@ impl ViewerWindow
             .padding         = {14, 4, 14, 4}
         }
 
-        with result.infoTypeLabel = Label.create(result.infoBar, "NO FILE", {0, 0, 108, 28}, null, .SecondaryText)
-        {
-            .dockStyle = .Left
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Left, .Center)
-        }
-
         with result.infoStatsLabel = Label.create(result.infoBar, appStrings().ui_Ready, {0, 0, 280, 28}, null, .SecondaryText)
         {
             .dockStyle = .Right
@@ -435,7 +439,7 @@ impl ViewerWindow
             .hide()
         }
 
-        with result.infoNameLabel = Label.create(result.infoBar, "")
+        with result.infoNameLabel = Label.create(result.infoBar, "", {0, 0, 0, 28})
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
@@ -445,29 +449,33 @@ impl ViewerWindow
         // What is beside the current file, and what was read before it. The panel is docked before
         // the document so the two lists take their width off the left edge, and it stays hidden
         // until a reader asks for it: the document keeps the whole surface by default.
-        with result.filePanel = Wnd.create'Wnd(result, {0, 0, ViewerPanelWidth, 0})
+        with result.filePanel = SplitterCtrl.create(result, {0, 0, ViewerPanelWidth, 0}, vertical: true)
         {
             .dockStyle       = .Left
             .minSize.x       = ViewerPanelWidth
             .maxSize.x       = ViewerPanelWidth
             .backgroundStyle = .Window
-            .padding         = {10, 8, 10, 8}
             .hide()
         }
 
         Separator.create(result.filePanel, .Right)
 
-        with result.recentLabel = Label.create(result.filePanel, appStrings().ui_Recent, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        with result.recentPane = Wnd.create'Wnd(result.filePanel)
+        {
+            .backgroundStyle = .Window
+            .padding         = {10, 8, 10, 8}
+        }
+
+        with result.recentLabel = Label.create(result.recentPane, appStrings().ui_Recent, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
-        with result.recentList = ListCtrl.createSimple(result.filePanel, {0, 0, 0, ViewerRecentHeight})
+        with result.recentList = ListCtrl.createSimple(result.recentPane)
         {
-            .dockStyle = .Top
-            .margin.w  = 10
+            .dockStyle = .Center
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.updateFlags(.DisableHorizontal)
@@ -477,14 +485,20 @@ impl ViewerWindow
             }
         }
 
-        with result.folderLabel = Label.create(result.filePanel, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        with result.folderPane = Wnd.create'Wnd(result.filePanel)
+        {
+            .backgroundStyle = .Window
+            .padding         = {10, 8, 10, 8}
+        }
+
+        with result.folderLabel = Label.create(result.folderPane, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
-        with result.folderList = ListCtrl.createSimple(result.filePanel)
+        with result.folderList = ListCtrl.createSimple(result.folderPane)
         {
             .dockStyle = .Center
             .setSelectionMode(.Single)
@@ -495,6 +509,14 @@ impl ViewerWindow
                 window.openListSelection(list, window.siblings.toSlice())
             }
         }
+
+        with let recentItem = result.filePanel.addPane(result.recentPane, ViewerRecentHeight)
+        {
+            .minimumSize  = ViewerPaneMinSize
+            .preserveSize = true
+        }
+
+        result.filePanel.addPane(result.folderPane).minimumSize = ViewerPaneMinSize
 
         with result.emptyLabel = Label.create(result, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {}, null, .WordWrap)
         {
@@ -546,7 +568,6 @@ impl ViewerWindow
         .activeChoiceIndex = Swag.U32.Max
         .siblings.clear()
         .siblingsDirty = true
-        .infoTypeLabel.setText("NO FILE")
         .infoNameLabel.setText("")
         .infoNameLabel.toolTip = ""
         .infoStatsLabel.setText(appStrings().ui_Ready)
@@ -601,7 +622,7 @@ impl ViewerWindow
             .stopLoadingIndicator()
             .currentView     = errorView
             .currentCommands = null
-            .updateFileInfo(.choices[index].name.toString(), "")
+            .updateFileInfo("")
             .updateSearchAvailability()
             .applyLayout()
             .invalidate()
@@ -678,7 +699,7 @@ impl ViewerWindow
             .currentCommands?.show()
             .activeChoiceIndex = index
             .viewerCombo.setSelectedIndex(index, notify: false)
-            .updateFileInfo(choice.name.toString(), instance.details.toString())
+            .updateFileInfo(instance.details.toString())
             .updateSearchAvailability()
             .updateLoadingIndicator()
             .applyLayout()
@@ -739,7 +760,7 @@ impl ViewerWindow
         instance.details       = #move next.details
         instance.failureReason = #move next.failureReason
         .viewerCombo.setSelectedIndex(index, notify: false)
-        .updateFileInfo(choice.name.toString(), instance.details.toString())
+        .updateFileInfo(instance.details.toString())
         .updateSearchAvailability()
         .updateLoadingIndicator()
         .applyLayout()
@@ -854,7 +875,7 @@ impl ViewerWindow
                 let instance = &.instances[.activeChoiceIndex]
                 if instance.revealMatch and instance.view and instance.revealMatch!(instance.view!, .searchMatch, .searchQuery.toString())
                 {
-                    .updateFileInfo(.choices[.activeChoiceIndex].name.toString(), instance.details.toString())
+                    .updateFileInfo(instance.details.toString())
                     return
                 }
             }
@@ -882,7 +903,7 @@ impl ViewerWindow
         .searchTimer = .addTimer(1'ms)
     }
 
-    mtd updateFileInfo(viewerName: string, details: string)
+    mtd updateFileInfo(details: string)
     {
         let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
         var stats    = String.from(details)
@@ -893,7 +914,6 @@ impl ViewerWindow
             stats = stats.isEmpty() ? String.from(size) : Format.toString("%  ·  %", stats, size)
         }
 
-        .infoTypeLabel.setText(viewerName)
         .infoNameLabel.setText(baseName)
         .infoNameLabel.toolTip = .currentFile
         .infoStatsLabel.setText(stats)
@@ -1027,6 +1047,7 @@ impl ViewerWindow
     // Fills one list with file names, selecting the row that names the current file.
     private mtd fillFileList(list: *ListCtrl, files: const [..] String)
     {
+        let scrollPosition = list.scrollWnd.scrollPosition()
         list.clear()
         for one, index in files
         {
@@ -1037,6 +1058,7 @@ impl ViewerWindow
         }
 
         list.computeLayout()
+        list.scrollWnd.setScrollPos(scrollPosition)
     }
 
     // Rebuilds both sections of the panel from what the window already knows.
@@ -1059,8 +1081,7 @@ impl ViewerWindow
         .fillFileList(.folderList, .siblings.toSlice())
 
         let hasRecent = !.recent.isEmpty()
-        .recentLabel.show(hasRecent)
-        .recentList.show(hasRecent)
+        .filePanel.setPaneVisible(0, hasRecent)
         .folderLabel.setText(Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder)
         .filePanel.applyLayout()
     }

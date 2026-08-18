@@ -176,7 +176,22 @@ impl BasicTextView
 
         let oldPosition = .editor.scrollPosition()
         let chunk       = catch .stream.readTextChunk(TextStreamChunkSize, .encoding) as readError
-        if readError != null or Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        if readError != null
+        {
+            // An unmarked legacy file can open with an ASCII-only probe and reveal its first
+            // code-page byte much later. UTF-8 is then only the probe's tentative answer: reread
+            // the resident document as the single-byte fallback instead of rejecting the file.
+            if .encoding == .Utf8 and !.contentStart and readError is Errors.InvalidFormatError
+            {
+                .applyEncoding(.Windows1252)
+                return
+            }
+
+            .showReadError()
+            return
+        }
+
+        if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
         {
             .showReadError()
             return

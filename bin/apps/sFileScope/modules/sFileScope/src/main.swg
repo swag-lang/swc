@@ -62,7 +62,7 @@ private func registerViewerFileTypes(index: const *ViewerPluginIndex)
         g_App.setStatePath(statePath)
     }
 
-    let surface = (try g_App.createSurface(80, 50, 960, 680, SurfaceFlags.StandardWindow, surfaceId: "sFileScope"))!
+    let surface = (try g_App.createSurface(80, 50, ViewerMinWidth, 680, SurfaceFlags.StandardWindow, surfaceId: "sFileScope"))!
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
     surface.setTitle(appStrings().ui_WindowTitle)

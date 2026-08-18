@@ -1,9 +1,10 @@
 #global internal
+#global namespace Markdown
 
 using Core, Pixel
 
 #[Swag.EnumFlags]
-private enum MarkdownInlineFlags
+private enum InlineFlags
 {
     None = 0
     Bold
@@ -20,7 +21,7 @@ private enum MarkdownInlineFlags
     ListChecked
 }
 
-private struct MarkdownInlineAtom
+private struct InlineAtom
 {
     text:       String
     target:     String
@@ -29,7 +30,7 @@ private struct MarkdownInlineAtom
     ascent:     f32
     descent:    f32
     colorIndex: u32
-    flags:      MarkdownInlineFlags
+    flags:      InlineFlags
     isMath:     bool
     isSpace:    bool
     isBreak:    bool
@@ -37,7 +38,7 @@ private struct MarkdownInlineAtom
     searchHit:  bool
 }
 
-private struct MarkdownInlineState
+private struct InlineState
 {
     bold:          u32
     italic:        u32
@@ -54,11 +55,11 @@ private struct MarkdownInlineState
     colorIndex:    u32
 }
 
-private impl MarkdownInlineState
+private impl InlineState
 {
-    mtd const flags()->MarkdownInlineFlags
+    mtd const flags()->InlineFlags
     {
-        var result = MarkdownInlineFlags.None
+        var result = InlineFlags.None
         if .bold do
             result.add(.Bold)
         if .italic do
@@ -88,20 +89,20 @@ private impl MarkdownInlineState
 }
 
 #[Swag.Opaque, Swag.NoDoc]
-public struct MarkdownInlineView
+public struct InlineView
 {
     using wnd: Wnd
 
-    owner:        *MarkdownView = undefined
-    kind:         MarkdownBlockKind
-    atoms:        Array'MarkdownInlineAtom
+    owner:        *View = undefined
+    kind:         BlockKind
+    atoms:        Array'InlineAtom
     layoutWidth:  f32
     layoutHeight: f32
-    hotAtom:      #null *MarkdownInlineAtom
+    hotAtom:      #null *InlineAtom
     horizontalAlignment         = StringHorzAlignment.Left
 }
 
-impl MarkdownInlineView
+impl InlineView
 {
     mtd clearSearchHighlight()
     {
@@ -150,9 +151,9 @@ impl MarkdownInlineView
         return true
     }
 
-    mtd appendTextAtom(text: string, state: MarkdownInlineState, isSpace = false, isBreak = false)
+    mtd appendTextAtom(text: string, state: InlineState, isSpace = false, isBreak = false)
     {
-        var atom: MarkdownInlineAtom
+        var atom: InlineAtom
         atom.text       = text
         atom.flags      = state.flags()
         atom.colorIndex = state.colorIndex
@@ -161,7 +162,7 @@ impl MarkdownInlineView
         .atoms.add(#move atom)
     }
 
-    mtd appendWord(text: string, state: MarkdownInlineState)
+    mtd appendWord(text: string, state: InlineState)
     {
         var start = 0'u64
         var index = 0'u64
@@ -182,7 +183,7 @@ impl MarkdownInlineView
             .appendTextAtom(text[start to], state)
     }
 
-    mtd appendText(text: string, state: MarkdownInlineState)
+    mtd appendText(text: string, state: InlineState)
     {
         var start = 0'u64
         var index = 0'u64
@@ -213,7 +214,7 @@ impl MarkdownInlineView
         }
     }
 
-    mtd appendMath(source: string, state: MarkdownInlineState)
+    mtd appendMath(source: string, state: InlineState)
     {
         let expression = catch MathExpression.parse(source) as parseError
         if parseError != null
@@ -222,7 +223,7 @@ impl MarkdownInlineView
             return
         }
 
-        var atom: MarkdownInlineAtom
+        var atom: InlineAtom
         atom.expression = #move expression
         atom.flags      = state.flags()
         atom.colorIndex = state.colorIndex
@@ -242,7 +243,7 @@ impl MarkdownInlineView
     mtd parse(text: string)
     {
         .atoms.clear()
-        var state: MarkdownInlineState
+        var state: InlineState
         var index     = 0'u64
         var textStart = 0'u64
         var linkStart = Swag.U64.Max
@@ -451,7 +452,7 @@ impl MarkdownInlineView
         }
     }
 
-    mtd fontStyle(flags: MarkdownInlineFlags)->FontFamilyStyle
+    mtd fontStyle(flags: InlineFlags)->FontFamilyStyle
     {
         let bold   = flags.has(.Bold) or .kind >= .Heading1 and .kind <= .Heading6
         let italic = flags.has(.Italic) or .kind == .Quote
@@ -464,7 +465,7 @@ impl MarkdownInlineView
         return .Regular
     }
 
-    mtd font(atom: const *MarkdownInlineAtom)->*Font
+    mtd font(atom: const *InlineAtom)->*Font
     {
         let style = .fontStyle(atom.flags)
         let size  = atom.flags.has(.Subscript) or atom.flags.has(.Superscript) ? Math.max(.fontSize() * 3 / 4, 8) : .fontSize()
@@ -473,7 +474,7 @@ impl MarkdownInlineView
         return .theme().createDefaultFont(size, style)
     }
 
-    mtd measureAtom(atom: *MarkdownInlineAtom)
+    mtd measureAtom(atom: *InlineAtom)
     {
         if atom.isMath
         {
@@ -617,7 +618,7 @@ impl MarkdownInlineView
         return .layoutHeight
     }
 
-    mtd color(atom: const *MarkdownInlineAtom)->Color
+    mtd color(atom: const *InlineAtom)->Color
     {
         let colors = .themeColors()
         if atom.flags.has(.Link) do
@@ -640,7 +641,7 @@ impl MarkdownInlineView
         }
     }
 
-    mtd atomAt(point: Math.Point)->#null *MarkdownInlineAtom
+    mtd atomAt(point: Math.Point)->#null *InlineAtom
     {
         for &atom in .atoms where atom.visible and atom.flags.has(.Link) and atom.position.contains(point) do
             return atom
@@ -649,9 +650,9 @@ impl MarkdownInlineView
 
     mtd preferredHeight(width: f32)->f32 => .layout(width)
 
-    func create(owner: *MarkdownView, parent: *Wnd, source: string, kind: MarkdownBlockKind)->*MarkdownInlineView
+    func create(owner: *View, parent: *Wnd, source: string, kind: BlockKind)->*InlineView
     {
-        let result = Wnd.create'MarkdownInlineView(parent, "gui.markdown.inline")
+        let result = Wnd.create'InlineView(parent, "gui.markdown.inline")
         result.owner           = owner
         result.kind            = kind
         result.backgroundStyle = .View
@@ -662,7 +663,7 @@ impl MarkdownInlineView
     }
 }
 
-impl IWnd for MarkdownInlineView
+impl IWnd for InlineView
 {
     mtd impl onPaint(evt: *PaintEvent)
     {

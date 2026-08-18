@@ -47,8 +47,8 @@ information.
 - Except for the workspace and primary module directories that carry the exact product spelling,
   never put `_` or uppercase letters in an app-owned folder or file name. Concatenate the words of
   one symbol or indivisible concept, and use dots between the named parts of a coherent file
-  family, such as `app.operations.swg`, `winfsp.abi.win32.swg`, and
-  `winfsp.callbacks.test.swg`. Platform and test suffixes use this notation but do not reserve it.
+  family, such as `app.operations.swg`, or `abi.win32.swg` and `callbacks.test.swg` inside a
+  `winfsp/` directory. Platform and test suffixes use this notation but do not reserve it.
   Normalize imported filenames at the module boundary when an upstream package uses underscores,
   and record the upstream name in its notice when provenance would be unclear.
 - Complete a rename in one pass. Migrate persisted filenames, clipboard and IPC names, file

@@ -888,7 +888,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Area: language
 - Found while: fixing F-139, where those two expressions asserted in code generation instead of
   being diagnosed
-- Observation: `blocks.add(MarkdownBlock{kind, #move text})` and
+- Observation: `blocks.add(Block{kind, #move text})` and
   `var value = condition ? String.from("rule") : #move block.text` now report a clear error
   rather than crashing the compiler, but both read like ordinary Swag and the language has no
   short spelling for what they mean. The workaround is to write the move as its own statement

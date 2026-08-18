@@ -1,29 +1,30 @@
 #global internal
+#global namespace Markdown
 
 using Core, Pixel
 
-private enum MarkdownTableAlignment
+private enum TableAlignment
 {
     Left
     Center
     Right
 }
 
-private struct MarkdownTableCell
+private struct TableCell
 {
-    view:   *MarkdownInlineView = undefined
+    view:   *InlineView = undefined
     row:    u32
     column: u32
 }
 
 #[Swag.Opaque, Swag.NoDoc]
-public struct MarkdownTableView
+public struct TableView
 {
     using wnd: Wnd
 
-    owner:        *MarkdownView = undefined
-    cells:        Array'MarkdownTableCell
-    alignments:   Array'MarkdownTableAlignment
+    owner:        *View = undefined
+    cells:        Array'TableCell
+    alignments:   Array'TableAlignment
     rowHeights:   Array'f32
     columnCount:  u32
     rowCount:     u32
@@ -31,7 +32,7 @@ public struct MarkdownTableView
     layoutHeight: f32
 }
 
-private func markdownTableCells(line: string)->Array'String
+private func parseTableCells(line: string)->Array'String
 {
     var result: retval
     let trimmed = Latin1.trim(line)
@@ -69,7 +70,7 @@ private func markdownTableCells(line: string)->Array'String
     return result
 }
 
-impl MarkdownTableView
+impl TableView
 {
     mtd clearSearchHighlight()
     {
@@ -90,14 +91,14 @@ impl MarkdownTableView
         for column in .columnCount
         {
             let source = column < @countof(cells) ? cells[column].toString() : ""
-            let markup = renderMarkdownInline(source)
+            let markup = renderInline(source)
             var content: String
             if header do
                 content += "<b>"
             content += markup
             if header do
                 content += "</b>"
-            let view = MarkdownInlineView.create(.owner, parent, content.toString(), .Paragraph)
+            let view = InlineView.create(.owner, parent, content.toString(), .Paragraph)
             view.backgroundStyle = .Transparent
             switch .alignments[column]
             {
@@ -106,7 +107,7 @@ impl MarkdownTableView
             default:      view.horizontalAlignment = .Left
             }
 
-            .cells.add(MarkdownTableCell{view, row, column})
+            .cells.add(TableCell{view, row, column})
         }
     }
 
@@ -146,24 +147,24 @@ impl MarkdownTableView
 
     mtd preferredHeight(width: f32)->f32 => .layout(width)
 
-    func create(owner: *MarkdownView, parent: *Wnd, source: string)->*MarkdownTableView
+    func create(owner: *View, parent: *Wnd, source: string)->*TableView
     {
-        let result = Wnd.create'MarkdownTableView(parent, "gui.markdown.table")
+        let result = Wnd.create'TableView(parent, "gui.markdown.table")
         result.owner           = owner
         result.backgroundStyle = .View
         let lines = Tokenize.splitLines(source)
         if lines.count < 2 do
             return result
 
-        let headers    = markdownTableCells(lines[0])
-        let separators = markdownTableCells(lines[1])
+        let headers    = parseTableCells(lines[0])
+        let separators = parseTableCells(lines[1])
         result.columnCount = cast(u32) Math.max(headers.count, separators.count)
         for column in result.columnCount
         {
             let separator = column < separators.count ? Latin1.trim(separators[column].toString()) : ""
             let left      = @countof(separator) and separator[0] == ':'
             let right     = @countof(separator) and separator[@countof(separator) - 1] == ':'
-            var alignment = MarkdownTableAlignment.Left
+            var alignment = TableAlignment.Left
             if left and right do
                 alignment = .Center
             elif right do
@@ -177,7 +178,7 @@ impl MarkdownTableView
         {
             if !@countof(Latin1.trim(lines[index])) do
                 continue
-            let row = markdownTableCells(lines[index])
+            let row = parseTableCells(lines[index])
             result.addRow(result, row.toSlice(), result.rowCount, false)
             result.rowCount += 1
         }
@@ -186,7 +187,7 @@ impl MarkdownTableView
     }
 }
 
-impl IWnd for MarkdownTableView
+impl IWnd for TableView
 {
     mtd impl onPaint(evt: *PaintEvent)
     {

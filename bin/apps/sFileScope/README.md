@@ -39,7 +39,7 @@ hexadecimal alternative instead of guessing an encoding.
   lexer; its vocabulary is kept in step with the compiler's current keywords, intrinsics,
   compiler directives, and modifiers. HTML keeps its rendered viewer first and offers Code as
   the structured, indented source alternative.
-- `plugin.markdown` is a thin sFileScope adapter around the reusable GUI `MarkdownView`. It streams a
+- `plugin.markdown` is a thin sFileScope adapter around the reusable GUI `Markdown.View`. It streams a
   themed reading column with separate typography and spacing for headings, prose, GFM alerts, nested
   lists and tasks, fenced code, aligned tables, rules, metadata, footnotes, references, and a table of
   contents. Emphasis, `***bold italic***`, highlight, strikeout, subscript, superscript, autolinks,

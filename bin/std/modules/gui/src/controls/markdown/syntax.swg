@@ -1,8 +1,9 @@
 #global internal
+#global namespace Markdown
 
 using Core
 
-private func markdownClosing(text: string, marker: string, start: u64)->u64
+private func findClosing(text: string, marker: string, start: u64)->u64
 {
     let markerLength = @countof(marker)
     var index        = start
@@ -28,12 +29,12 @@ private func markdownClosing(text: string, marker: string, start: u64)->u64
     return Swag.U64.Max
 }
 
-private func markdownUnderscoreCanOpen(text: string, index: u64)->bool
+private func canOpenUnderscore(text: string, index: u64)->bool
 {
     return index == 0 or !Latin1.isWord(text[index - 1])
 }
 
-private func markdownInlineMathEnd(text: string, start: u64)->u64
+private func findInlineMathEnd(text: string, start: u64)->u64
 {
     if start >= @countof(text) or Latin1.isSpace(text[start]) do
         return Swag.U64.Max
@@ -58,7 +59,7 @@ private func markdownInlineMathEnd(text: string, start: u64)->u64
     return Swag.U64.Max
 }
 
-private func markdownBareUrlEnd(text: string, start: u64)->u64
+private func findBareUrlEnd(text: string, start: u64)->u64
 {
     var end = start
     while end < @countof(text) and !Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>' do
@@ -68,13 +69,13 @@ private func markdownBareUrlEnd(text: string, start: u64)->u64
     return end
 }
 
-struct MarkdownReference
+struct Reference
 {
     name:   String
     target: String
 }
 
-struct MarkdownReferenceInfo
+struct ReferenceInfo
 {
     found:    bool
     footnote: bool
@@ -82,7 +83,7 @@ struct MarkdownReferenceInfo
     value:    string = ""
 }
 
-func markdownReferenceDefinition(line: string)->MarkdownReferenceInfo
+func parseReferenceDefinition(line: string)->ReferenceInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
@@ -99,14 +100,14 @@ func markdownReferenceDefinition(line: string)->MarkdownReferenceInfo
     return result
 }
 
-private func markdownReferenceTarget(references: #null const [..] MarkdownReference, name: string)->string
+private func resolveReferenceTarget(references: #null const [..] Reference, name: string)->string
 {
     for &reference in references where Utf8.compare(reference.name.toString(), name, .Latin1NoCase) == 0 do
         return reference.target.toString()
     return ""
 }
 
-func renderMarkdownInline(text: string, references: #null const [..] MarkdownReference = null)->String
+func renderInline(text: string, references: #null const [..] Reference = null)->String
 {
     var result: retval
     var index = 0'u64
@@ -118,7 +119,7 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
             if end != Swag.U64.Max
             {
                 result += "<m>"
-                result += markdownRichText(text[index + 2 until end])
+                result += richText(text[index + 2 until end])
                 result += "</m>"
                 index  = end + 2
                 continue
@@ -127,7 +128,7 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
 
         if text[index] == '\\' and index + 1 < @countof(text)
         {
-            result += markdownRichText(text[index + 1 until index + 2])
+            result += richText(text[index + 1 until index + 2])
             index  += 2
             continue
         }
@@ -141,9 +142,9 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
                 if urlEnd != Swag.U64.Max
                 {
                     result += "<a><p3>[Image: "
-                    result += markdownRichText(text[index + 2 until labelEnd], true)
+                    result += richText(text[index + 2 until labelEnd], true)
                     result += "]</p></a><t>"
-                    result += markdownRichText(text[labelEnd + 2 until urlEnd])
+                    result += richText(text[labelEnd + 2 until urlEnd])
                     result += "</t>"
                     index  = urlEnd + 1
                     continue
@@ -156,13 +157,13 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
                 if referenceEnd != Swag.U64.Max
                 {
                     let referenceName = referenceEnd == labelEnd + 2 ? text[index + 2 until labelEnd] : text[labelEnd + 2 until referenceEnd]
-                    let target        = markdownReferenceTarget(references, referenceName)
+                    let target        = resolveReferenceTarget(references, referenceName)
                     if @countof(target)
                     {
                         result += "<a><p3>[Image: "
-                        result += markdownRichText(text[index + 2 until labelEnd], true)
+                        result += richText(text[index + 2 until labelEnd], true)
                         result += "]</p></a><t>"
-                        result += markdownRichText(target)
+                        result += richText(target)
                         result += "</t>"
                         index  = referenceEnd + 1
                         continue
@@ -177,7 +178,7 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
             if labelEnd != Swag.U64.Max and index + 2 < labelEnd and text[index + 1] == '^'
             {
                 result += "<sup><p1>"
-                result += markdownRichText(text[index + 2 until labelEnd], true)
+                result += richText(text[index + 2 until labelEnd], true)
                 result += "</p></sup>"
                 index  = labelEnd + 1
                 continue
@@ -189,9 +190,9 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
                 if urlEnd != Swag.U64.Max
                 {
                     result += "<a>"
-                    result += renderMarkdownInline(text[index + 1 until labelEnd], references)
+                    result += renderInline(text[index + 1 until labelEnd], references)
                     result += "</a><t>"
-                    result += markdownRichText(text[labelEnd + 2 until urlEnd])
+                    result += richText(text[labelEnd + 2 until urlEnd])
                     result += "</t>"
                     index  = urlEnd + 1
                     continue
@@ -211,13 +212,13 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
 
                 if referenceEnd != Swag.U64.Max
                 {
-                    let target = markdownReferenceTarget(references, referenceName)
+                    let target = resolveReferenceTarget(references, referenceName)
                     if @countof(target)
                     {
                         result += "<a>"
-                        result += renderMarkdownInline(text[index + 1 until labelEnd], references)
+                        result += renderInline(text[index + 1 until labelEnd], references)
                         result += "</a><t>"
-                        result += markdownRichText(target)
+                        result += richText(target)
                         result += "</t>"
                         index  = referenceEnd + 1
                         continue
@@ -235,9 +236,9 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
                 if Utf8.startsWith(target, "http://") or Utf8.startsWith(target, "https://") or Utf8.startsWith(target, "mailto:")
                 {
                     result += "<a>"
-                    result += markdownRichText(target)
+                    result += richText(target)
                     result += "</a><t>"
-                    result += markdownRichText(target)
+                    result += richText(target)
                     result += "</t>"
                     index  = end + 1
                     continue
@@ -247,14 +248,14 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
 
         if Utf8.startsWith(text[index to], "https://") or Utf8.startsWith(text[index to], "http://")
         {
-            let end = markdownBareUrlEnd(text, index)
+            let end = findBareUrlEnd(text, index)
             if end > index
             {
                 let target = text[index until end]
                 result += "<a>"
-                result += markdownRichText(target)
+                result += richText(target)
                 result += "</a><t>"
-                result += markdownRichText(target)
+                result += richText(target)
                 result += "</t>"
                 index  = end
                 continue
@@ -263,11 +264,11 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
 
         if text[index] == '$'
         {
-            let end = markdownInlineMathEnd(text, index + 1)
+            let end = findInlineMathEnd(text, index + 1)
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<m>"
-                result += markdownRichText(text[index + 1 until end])
+                result += richText(text[index + 1 until end])
                 result += "</m>"
                 index  = end + 1
                 continue
@@ -280,7 +281,7 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
             if end != Swag.U64.Max
             {
                 result += "<s>"
-                result += renderMarkdownInline(text[index + 2 until end], references)
+                result += renderInline(text[index + 2 until end], references)
                 result += "</s>"
                 index  = end + 2
                 continue
@@ -293,49 +294,49 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
             if end != Swag.U64.Max
             {
                 result += "<h>"
-                result += renderMarkdownInline(text[index + 2 until end], references)
+                result += renderInline(text[index + 2 until end], references)
                 result += "</h>"
                 index  = end + 2
                 continue
             }
         }
 
-        if index + 2 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*' and text[index + 2] == '*') or (text[index] == '_' and text[index + 1] == '_' and text[index + 2] == '_' and markdownUnderscoreCanOpen(text, index)))
+        if index + 2 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*' and text[index + 2] == '*') or (text[index] == '_' and text[index + 1] == '_' and text[index + 2] == '_' and canOpenUnderscore(text, index)))
         {
             let marker = text[index until index + 3]
-            let end    = markdownClosing(text, marker, index + 3)
+            let end    = findClosing(text, marker, index + 3)
             if end != Swag.U64.Max and end > index + 3
             {
                 result += "<b><i>"
-                result += renderMarkdownInline(text[index + 3 until end], references)
+                result += renderInline(text[index + 3 until end], references)
                 result += "</i></b>"
                 index  = end + 3
                 continue
             }
         }
 
-        if index + 1 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*') or (text[index] == '_' and text[index + 1] == '_' and markdownUnderscoreCanOpen(text, index)))
+        if index + 1 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*') or (text[index] == '_' and text[index + 1] == '_' and canOpenUnderscore(text, index)))
         {
             let marker = text[index until index + 2]
-            let end    = markdownClosing(text, marker, index + 2)
+            let end    = findClosing(text, marker, index + 2)
             if end != Swag.U64.Max
             {
                 result += "<b>"
-                result += renderMarkdownInline(text[index + 2 until end], references)
+                result += renderInline(text[index + 2 until end], references)
                 result += "</b>"
                 index  = end + 2
                 continue
             }
         }
 
-        if text[index] == '*' or (text[index] == '_' and markdownUnderscoreCanOpen(text, index))
+        if text[index] == '*' or (text[index] == '_' and canOpenUnderscore(text, index))
         {
             let marker = text[index until index + 1]
-            let end    = markdownClosing(text, marker, index + 1)
+            let end    = findClosing(text, marker, index + 1)
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<i>"
-                result += renderMarkdownInline(text[index + 1 until end], references)
+                result += renderInline(text[index + 1 until end], references)
                 result += "</i>"
                 index  = end + 1
                 continue
@@ -348,7 +349,7 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
             if end != Swag.U64.Max
             {
                 result += "<c>"
-                result += markdownRichText(text[index + 1 until end])
+                result += richText(text[index + 1 until end])
                 result += "</c>"
                 index  = end + 1
                 continue
@@ -361,7 +362,7 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<sup>"
-                result += renderMarkdownInline(text[index + 1 until end], references)
+                result += renderInline(text[index + 1 until end], references)
                 result += "</sup>"
                 index  = end + 1
                 continue
@@ -374,7 +375,7 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<sub>"
-                result += renderMarkdownInline(text[index + 1 until end], references)
+                result += renderInline(text[index + 1 until end], references)
                 result += "</sub>"
                 index  = end + 1
                 continue
@@ -383,26 +384,26 @@ func renderMarkdownInline(text: string, references: #null const [..] MarkdownRef
 
         if text[index] == '&'
         {
-            let entity = markdownDecodedEntity(text, index)
+            let entity = decodeEntity(text, index)
             result += entity.value
             index  += entity.eat
             continue
         }
 
-        result += markdownRichText(text[index until index + 1])
+        result += richText(text[index until index + 1])
         index  += 1
     }
 
     return result
 }
 
-struct MarkdownHeadingInfo
+struct HeadingInfo
 {
     level: u32
     text:  string = ""
 }
 
-struct MarkdownListInfo
+struct ListInfo
 {
     found:         bool
     ordered:       bool
@@ -412,14 +413,14 @@ struct MarkdownListInfo
     contentIndent: u32
 }
 
-struct MarkdownFenceInfo
+struct FenceInfo
 {
     found:  bool
     marker: u8
     info:   string = ""
 }
 
-func markdownHeading(line: string)->MarkdownHeadingInfo
+func parseHeading(line: string)->HeadingInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
@@ -438,7 +439,7 @@ func markdownHeading(line: string)->MarkdownHeadingInfo
     return result
 }
 
-func markdownSetextLevel(line: string)->u32
+func setextLevel(line: string)->u32
 {
     let trimmed = Latin1.trim(line)
     if @countof(trimmed) < 3 do
@@ -451,7 +452,7 @@ func markdownSetextLevel(line: string)->u32
     return marker == '=' ? 1 : 2
 }
 
-func markdownRule(line: string)->bool
+func isRule(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
     var marker  = 0'u8
@@ -472,12 +473,12 @@ func markdownRule(line: string)->bool
     return count >= 3
 }
 
-func markdownHardBreak(line: string)->bool
+func hasHardBreak(line: string)->bool
 {
     return @countof(line) >= 2 and line[@countof(line) - 1] == ' ' and line[@countof(line) - 2] == ' '
 }
 
-func markdownListItem(line: string)->MarkdownListInfo
+func parseListItem(line: string)->ListInfo
 {
     var result: retval
     var index = 0'u64
@@ -513,7 +514,7 @@ func markdownListItem(line: string)->MarkdownListInfo
     return result
 }
 
-func markdownTableSeparator(line: string)->bool
+func isTableSeparator(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
     if !Utf8.contains(trimmed, '|'rune) do
@@ -530,7 +531,7 @@ func markdownTableSeparator(line: string)->bool
     return dashCount >= 3
 }
 
-func markdownFence(line: string)->MarkdownFenceInfo
+func parseFence(line: string)->FenceInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)

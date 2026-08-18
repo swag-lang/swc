@@ -56,6 +56,11 @@ it no longer matches upstream.
 - Use `UpperCamelCase` for namespaces, types, interfaces, aliases, attributes,
   enum types, and enum cases. Use `lowerCamelCase` for functions, methods,
   parameters, local values, and fields.
+- Let a namespace carry context shared by a coherent type family instead of repeating the same
+  prefix on every symbol: prefer `Markdown.View`, `Markdown.Style`, and `Markdown.Block` to
+  `MarkdownView`, `MarkdownStyle`, and `MarkdownBlock`. Do not introduce a namespace merely to
+  shorten a lone type or a coincidental lexical prefix; migrate the whole family and its consumers
+  when the namespace represents a real subsystem vocabulary.
 - Give types noun names and operations verb names. Use singular type and enum
   names; use plural names for collections and sequences.
 - Prefix Boolean queries with `is`, `has`, `can`, `should`, or another unambiguous

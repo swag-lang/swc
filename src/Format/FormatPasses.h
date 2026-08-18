@@ -25,8 +25,8 @@ namespace FormatPass
     void caseBlanks(FormatModel& model);          // blank-line-between-cases
     void redundantSemicolons(FormatModel& model); // remove-redundant-semicolons
 
-    void comments(FormatModel& model);    // comment rewriting options
-    void align(FormatModel& model);       // align-* options
+    void comments(FormatModel& model); // comment rewriting options
+    void align(FormatModel& model);    // align-* options
 
     void runAll(FormatModel& model);
 }

@@ -635,7 +635,7 @@ namespace
     Result typeComparesAsBytes(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         outResult = true;
-        typeRef = unwrapAlias(sema.ctx(), typeRef);
+        typeRef   = unwrapAlias(sema.ctx(), typeRef);
         if (typeRef.isInvalid())
             return Result::Continue;
         if (!visiting.insert(typeRef).second)

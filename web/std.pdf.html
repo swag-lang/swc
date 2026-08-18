@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pdf</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container">
+<aside class="left"><nav class="left-page" aria-label="Contents">
+<h2>Pdf documentation</h2>
+<h3>Start here</h3>
+<ul>
+<li><a href="#overview">Overview</a></li>
+</ul>
+<h3>API reference</h3>
+<ul>
+<li><a href="#api-reference">At a glance</a></li>
+<li><a href="#detailed-reference">Detailed reference</a></li>
+</ul>
+<details class="toc-group" open>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">1</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-namespaces">All Namespaces</a></li>
+<li><a href="#namespace_Pdf">Pdf</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Types</span><span class="toc-count">7</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-types">All Types</a></li>
+<li><a href="#Pdf_Document">Pdf.Document</a></li>
+<li><a href="#Pdf_Item">Pdf.Item</a></li>
+<li><a href="#Pdf_Metadata">Pdf.Metadata</a></li>
+<li><a href="#Pdf_Page">Pdf.Page</a></li>
+<li><a href="#Pdf_PathStrokeStyle">Pdf.PathStrokeStyle</a></li>
+<li><a href="#Pdf_Reader">Pdf.Reader</a></li>
+<li><a href="#Pdf_RenderOptions">Pdf.RenderOptions</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Enumerations</span><span class="toc-count">4</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-enumerations">All Enumerations</a></li>
+<li><a href="#Pdf_ItemKind">Pdf.ItemKind</a></li>
+<li><a href="#Pdf_StandardFont">Pdf.StandardFont</a></li>
+<li><a href="#Pdf_StrokeCap">Pdf.StrokeCap</a></li>
+<li><a href="#Pdf_StrokeJoin">Pdf.StrokeJoin</a></li>
+</ul>
+</details>
+<details class="toc-group">
+<summary><span class="toc-label">Functions</span><span class="toc-count">43</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-functions">All Functions</a></li>
+<li><a href="#Pdf_Document_addPage">Document.addPage</a></li>
+<li><a href="#Pdf_Document_create">Document.create</a></li>
+<li><a href="#Pdf_Document_decode">Document.decode</a></li>
+<li><a href="#Pdf_Document_editPage">Document.editPage</a></li>
+<li><a href="#Pdf_Document_encode">Document.encode</a></li>
+<li><a href="#Pdf_Document_load">Document.load</a></li>
+<li><a href="#Pdf_Document_removePage">Document.removePage</a></li>
+<li><a href="#Pdf_Document_save">Document.save</a></li>
+<li><a href="#Pdf_Item_imageValue">Item.imageValue</a></li>
+<li><a href="#Pdf_Item_itemClip">Item.itemClip</a></li>
+<li><a href="#Pdf_Item_itemFillColor">Item.itemFillColor</a></li>
+<li><a href="#Pdf_Item_itemStrokeColor">Item.itemStrokeColor</a></li>
+<li><a href="#Pdf_Item_itemTransform">Item.itemTransform</a></li>
+<li><a href="#Pdf_Item_pathStrokeStyle">Item.pathStrokeStyle</a></li>
+<li><a href="#Pdf_Item_pathStrokeWidth">Item.pathStrokeWidth</a></li>
+<li><a href="#Pdf_Item_pathUsesEvenOddFill">Item.pathUsesEvenOddFill</a></li>
+<li><a href="#Pdf_Item_pathValue">Item.pathValue</a></li>
+<li><a href="#Pdf_Item_textFont">Item.textFont</a></li>
+<li><a href="#Pdf_Item_textSize">Item.textSize</a></li>
+<li><a href="#Pdf_Item_textValue">Item.textValue</a></li>
+<li><a href="#Pdf_Page_addImage">Page.addImage</a></li>
+<li><a href="#Pdf_Page_addPath">Page.addPath</a></li>
+<li><a href="#Pdf_Page_addText">Page.addText</a></li>
+<li><a href="#Pdf_Page_clear">Page.clear</a></li>
+<li><a href="#Pdf_Page_create">Page.create</a></li>
+<li><a href="#Pdf_Page_removeItem">Page.removeItem</a></li>
+<li><a href="#Pdf_Page_render">Page.render</a></li>
+<li><a href="#Pdf_Page_setItemFillColor">Page.setItemFillColor</a></li>
+<li><a href="#Pdf_Page_setItemTransform">Page.setItemTransform</a></li>
+<li><a href="#Pdf_Page_setPathStrokeColor">Page.setPathStrokeColor</a></li>
+<li><a href="#Pdf_Page_setPathStrokeStyle">Page.setPathStrokeStyle</a></li>
+<li><a href="#Pdf_Page_setPathStrokeWidth">Page.setPathStrokeWidth</a></li>
+<li><a href="#Pdf_Page_setText">Page.setText</a></li>
+<li><a href="#Pdf_Page_setTextFont">Page.setTextFont</a></li>
+<li><a href="#Pdf_Page_setTextSize">Page.setTextSize</a></li>
+<li><a href="#Pdf_Reader_loadPage">Reader.loadPage</a></li>
+<li><a href="#Pdf_Reader_metadata">Reader.metadata</a></li>
+<li><a href="#Pdf_Reader_open">Reader.open</a></li>
+<li><a href="#Pdf_Reader_pageCount">Reader.pageCount</a></li>
+<li><a href="#Pdf_StandardFont_baseFontName">StandardFont.baseFontName</a></li>
+<li><a href="#Pdf_StandardFont_fromBaseName">StandardFont.fromBaseName</a></li>
+<li><a href="#Pdf_StandardFont_glyphWidth">StandardFont.glyphWidth</a></li>
+<li><a href="#Pdf_StandardFont_textWidth">StandardFont.textWidth</a></li>
+</ul>
+</details>
+</nav></aside>
+<section class="right"><article class="right-page" id="content">
+<section class="module-overview"><h1 id="overview">Pdf</h1>
+<p>Pdf reads, edits, renders, and writes Portable Document Format documents without calling a platform PDF service or a third-party library.</p>
+<p>The public model uses Pixel's top-left coordinate system. Loading converts PDF page coordinates into that space, and saving converts them back. A document owns its pages, page items, decoded images, and embedded font bytes. Returned images are independent Pixel buffers owned by the caller.</p>
+<h2 id="overview_Create__render__and_save_a_document">Create, render, and save a document</h2>
+<div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Pdf">Pdf</a></span>, <span class="SCst">Pixel</span>
+
+<span class="SKwd">var</span> document = <span class="SCst"><a href="#Pdf_Document">Document</a></span>.<span class="SFct">create</span>()
+<span class="SKwd">var</span> page     = <span class="SCst"><a href="#Pdf_Page">Page</a></span>.<span class="SFct">create</span>(<span class="SNum">595</span>, <span class="SNum">842</span>)
+page.<span class="SFct">addText</span>(<span class="SStr">"Hello PDF"</span>, <span class="SNum">48</span>, <span class="SNum">72</span>, <span class="SNum">24</span>, <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>))
+page.<span class="SFct">addText</span>(<span class="SStr">"Times, bold"</span>, <span class="SNum">48</span>, <span class="SNum">108</span>, <span class="SNum">18</span>, <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), .<span class="SCst"><a href="#Pdf_StandardFont_TimesBold">TimesBold</a></span>)
+document.<span class="SFct">addPage</span>(<span class="SItr">#move</span> page)
+
+<span class="SKwd">var</span> image = <span class="SKwd">try</span> document.pages[<span class="SNum">0</span>].<span class="SFct">render</span>({scale: <span class="SNum">1.5</span>})
+<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"preview.png"</span>)
+<span class="SKwd">try</span> document.<span class="SFct">save</span>(<span class="SStr">"document.pdf"</span>)</span></div>
+<p>Loaded pages are inspected through <span class="code-inline">Document.pages</span>. Call <a href="#Pdf_Document_editPage">Pdf.Document.editPage</a> to borrow a mutable page before replacing text, colors, strokes, or item transforms; the borrow ends before pages are added or removed.</p>
+<p>For a large file that does not need to be edited as one complete document, open <a href="#Pdf_Reader">Pdf.Reader</a> instead. It keeps the encoded file mapped and decodes only the page requested by <a href="#Pdf_Reader_loadPage">Pdf.Reader.loadPage</a>:</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> reader = <span class="SKwd">try</span> <span class="SCst"><a href="#Pdf_Reader">Reader</a></span>.<span class="SFct">open</span>(<span class="SStr">"large.pdf"</span>)
+<span class="SLgc">for</span> index <span class="SLgc">in</span> reader.<span class="SFct">pageCount</span>()
+{
+<span class="SKwd">var</span> page  = <span class="SKwd">try</span> reader.<span class="SFct">loadPage</span>(index)
+<span class="SKwd">var</span> image = <span class="SKwd">try</span> page.<span class="SFct">render</span>({scale: <span class="SNum">1.5</span>})
+<span class="SCmt">// Display or process image; page resources are released at the end of the iteration.</span>
+}</span></div>
+<p>Text is written with the standard faces of <a href="#Pdf_StandardFont">Pdf.StandardFont</a>, which every reader provides, so a written document embeds no font program. The same type measures a run through its built-in metrics, without reading a font from the system.</p>
+<p>Loading and rendering reject malformed input and unsupported encodings through Swag's normal <span class="code-inline">fail</span> mechanism. A streaming reader can therefore open a file whose later page uses an unsupported encoding and reports that error only when that page is requested. Embedded actions, scripts, forms, and external references are never executed.</p>
+<h2 id="overview_What_the_reader_handles">What the reader handles</h2>
+<p>Nothing below is delegated to a platform service or a third-party library; the only decoder that comes from outside the module is Core's Flate and Pixel's JPEG.</p>
+<ul>
+<li>Classic indirect objects, compressed object streams, cross-reference streams, page trees with inherited attributes, and page rotation.</li>
+<li>The Flate, LZW, ASCII hexadecimal, ASCII85, and run-length filters, with the TIFF and PNG predictors at every supported bit depth.</li>
+<li>The text, vector, color space, and inline image operators, including the complete text state and stroked-path cap, join, miter, and dash geometry.</li>
+<li>Simple and composite fonts: <span class="code-inline">/Widths</span> and <span class="code-inline">/W</span> metrics, the standard, WinAnsi and MacRoman encodings, <span class="code-inline">/Differences</span>, <span class="code-inline">/ToUnicode</span> CMaps, and embedded TrueType or OpenType programs.</li>
+<li>Images from one to sixteen bits per component, in the device, calibrated, ICC-based, indexed, Lab, separation, and DeviceN color spaces, with decode arrays, stencil masks, soft masks, and color key masks.</li>
+</ul>
+<p>Encryption, interactive forms, Type1 and CFF font programs, shading patterns, and the CCITT, JBIG2 and JPEG 2000 image codecs are out of scope; a document that needs one of them reports it rather than painting something else.</p>
+</section>
+<section class="api-overview">
+<h2 id="api-reference">API reference</h2>
+<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>
+<h3 id="summary-namespaces">Namespaces</h3>
+<table class="api-summary">
+<thead><tr><th>Namespace</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#namespace_Pdf">Pdf</a></td></tr>
+</tbody>
+</table>
+<h3 id="summary-types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_Document">Pdf.Document</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns an editable PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item">Pdf.Item</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one page item in Pixel's top-left coordinate system.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Metadata">Pdf.Metadata</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores the standard descriptive fields of a PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page">Pdf.Page</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one editable PDF page.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_PathStrokeStyle">Pdf.PathStrokeStyle</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes the geometry of a PDF path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader">Pdf.Reader</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a mapped PDF source and decodes its pages on demand.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_RenderOptions">Pdf.RenderOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls page rasterization.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="summary-enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_ItemKind">Pdf.ItemKind</a></td><td><p>Identifies one page item in paint order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont">Pdf.StandardFont</a></td><td><p>One of the fourteen typefaces every PDF consumer provides without an embedded font file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StrokeCap">Pdf.StrokeCap</a></td><td><p>Selects the shape at the open ends of a stroked PDF path and its dash segments.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StrokeJoin">Pdf.StrokeJoin</a></td><td><p>Selects how consecutive segments of a stroked PDF path meet.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="summary-functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_Document_addPage">Document.addPage</a></td><td><p>Appends a page and transfers its owned content into the document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_create">Document.create</a></td><td><p>Creates an empty PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_decode">Document.decode</a></td><td><p>Decodes one complete PDF byte buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_editPage">Document.editPage</a></td><td><p>Returns a mutable borrowed page for editing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_encode">Document.encode</a></td><td><p>Encodes the complete document as PDF 1.7 bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_load">Document.load</a></td><td><p>Loads and decodes every page of a PDF file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_removePage">Document.removePage</a></td><td><p>Removes the page at <span class="code-inline">index</span> and preserves the order of the remaining pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_save">Document.save</a></td><td><p>Encodes and writes the complete document to <span class="code-inline">fileName</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_imageValue">Item.imageValue</a></td><td><p>Returns a borrowed image for an image item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemClip">Item.itemClip</a></td><td><p>Returns the page-space region this item is confined to, or the whole page when the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemFillColor">Item.itemFillColor</a></td><td><p>Returns the fill color of text and filled paths.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemStrokeColor">Item.itemStrokeColor</a></td><td><p>Returns the stroke color of a stroked path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemTransform">Item.itemTransform</a></td><td><p>Returns the transform applied when this item is rendered.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathStrokeStyle">Item.pathStrokeStyle</a></td><td><p>Returns the stroke geometry of a path item, or the default solid style for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathStrokeWidth">Item.pathStrokeWidth</a></td><td><p>Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathUsesEvenOddFill">Item.pathUsesEvenOddFill</a></td><td><p>Returns whether a filled path uses the alternating rule rather than the winding count.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathValue">Item.pathValue</a></td><td><p>Returns a borrowed path list for a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_textFont">Item.textFont</a></td><td><p>Returns the standard face this text is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_textSize">Item.textSize</a></td><td><p>Returns the text size in PDF points, or zero for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_textValue">Item.textValue</a></td><td><p>Returns the text carried by a text item, or an empty string for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_addImage">Page.addImage</a></td><td><p>Appends one raster image in the requested page rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_addPath">Page.addPath</a></td><td><p>Appends one vector path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_addText">Page.addText</a></td><td><p>Appends one UTF-8 text run.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_clear">Page.clear</a></td><td><p>Removes every page item while preserving the page dimensions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_create">Page.create</a></td><td><p>Creates an empty page with positive dimensions in PDF points.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_removeItem">Page.removeItem</a></td><td><p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_render">Page.render</a></td><td><p>Renders the complete page to an owned Pixel image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setItemFillColor">Page.setItemFillColor</a></td><td><p>Replaces the fill color of a text or path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setItemTransform">Page.setItemTransform</a></td><td><p>Replaces the transform applied to an item during rendering and writing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setPathStrokeColor">Page.setPathStrokeColor</a></td><td><p>Replaces the stroke color of a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setPathStrokeStyle">Page.setPathStrokeStyle</a></td><td><p>Replaces the cap, join, miter, and dash geometry of a path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setPathStrokeWidth">Page.setPathStrokeWidth</a></td><td><p>Replaces the non-negative stroke width of a path item and enables its stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setText">Page.setText</a></td><td><p>Replaces the UTF-8 content of a text item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setTextFont">Page.setTextFont</a></td><td><p>Replaces the standard face a text item is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setTextSize">Page.setTextSize</a></td><td><p>Replaces the point size of a text item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader_loadPage">Reader.loadPage</a></td><td><p>Decodes and returns the page at zero-based <span class="code-inline">index</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader_metadata">Reader.metadata</a></td><td><p>Returns the document's descriptive fields.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader_open">Reader.open</a></td><td><p>Opens a PDF file through a read-only mapping and indexes its pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader_pageCount">Reader.pageCount</a></td><td><p>Returns the number of pages found in the page tree.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_baseFontName">StandardFont.baseFontName</a></td><td><p>Returns the <span class="code-inline">BaseFont</span> name a PDF font dictionary uses for this face.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_fromBaseName">StandardFont.fromBaseName</a></td><td><p>Returns the face a <span class="code-inline">BaseFont</span> name selects, and whether the name was recognized.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_glyphWidth">StandardFont.glyphWidth</a></td><td><p>Returns the advance width of one character, in fractions of the text size.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_textWidth">StandardFont.textWidth</a></td><td><p>Returns the advance width of <span class="code-inline">text</span> when drawn at <span class="code-inline">size</span> PDF points.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h2 id="detailed-reference">Detailed reference</h2>
+<h3 id="namespaces">Namespaces</h3>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Pdf" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Pdf</span> <a class="api-item-permalink" href="#namespace_Pdf" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Pdf</span>.</p>
+<h3 id="namespace_Pdf_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_Document">Pdf.Document</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns an editable PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item">Pdf.Item</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one page item in Pixel's top-left coordinate system.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Metadata">Pdf.Metadata</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores the standard descriptive fields of a PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page">Pdf.Page</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one editable PDF page.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_PathStrokeStyle">Pdf.PathStrokeStyle</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes the geometry of a PDF path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader">Pdf.Reader</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a mapped PDF source and decodes its pages on demand.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_RenderOptions">Pdf.RenderOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls page rasterization.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Pdf_enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_ItemKind">Pdf.ItemKind</a></td><td><p>Identifies one page item in paint order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont">Pdf.StandardFont</a></td><td><p>One of the fourteen typefaces every PDF consumer provides without an embedded font file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StrokeCap">Pdf.StrokeCap</a></td><td><p>Selects the shape at the open ends of a stroked PDF path and its dash segments.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StrokeJoin">Pdf.StrokeJoin</a></td><td><p>Selects how consecutive segments of a stroked PDF path meet.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h3 id="types">Types</h3>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pdf_Document" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Document</span> <a class="api-item-permalink" href="#Pdf_Document" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L21">src</a></div>
+<p>Owns an editable PDF document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pdf_Document">Document</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_Document_metadata" class="code-type">metadata</td><td class="code-type"><a href="#Pdf_Metadata">Pdf.Metadata</a></td><td><p>Descriptive document fields.</p>
+</td></tr>
+<tr><td id="Pdf_Document_pages" class="code-type">pages</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Pdf_Page">Pdf.Page</a>)</td><td><p>Pages in display order.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Pdf_Document_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_Document_addPage">addPage</a></td><td><p>Appends a page and transfers its owned content into the document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_create">create</a></td><td><p>Creates an empty PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_decode">decode</a></td><td><p>Decodes one complete PDF byte buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_editPage">editPage</a></td><td><p>Returns a mutable borrowed page for editing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_encode">encode</a></td><td><p>Encodes the complete document as PDF 1.7 bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_load">load</a></td><td><p>Loads and decodes every page of a PDF file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_removePage">removePage</a></td><td><p>Removes the page at <span class="code-inline">index</span> and preserves the order of the remaining pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Document_save">save</a></td><td><p>Encodes and writes the complete document to <span class="code-inline">fileName</span>.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pdf_Item" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Item</span> <a class="api-item-permalink" href="#Pdf_Item" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L48">src</a></div>
+<p>Describes one page item in Pixel's top-left coordinate system.</p>
+<p>Use the matching <a href="#Pdf_Page_addText">Pdf.Page.addText</a>, <a href="#Pdf_Page_addPath">Pdf.Page.addPath</a>, or <a href="#Pdf_Page_addImage">Pdf.Page.addImage</a> operation to construct an item. Fields unrelated to <span class="code-inline">kind</span> retain their defaults.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pdf_Item">Item</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_Item_kind" class="code-type">kind</td><td class="code-type"><a href="#Pdf_ItemKind">Pdf.ItemKind</a></td><td><p>Active item representation.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Pdf_Item_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_Item_imageValue">imageValue</a></td><td><p>Returns a borrowed image for an image item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemClip">itemClip</a></td><td><p>Returns the page-space region this item is confined to, or the whole page when the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemFillColor">itemFillColor</a></td><td><p>Returns the fill color of text and filled paths.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemStrokeColor">itemStrokeColor</a></td><td><p>Returns the stroke color of a stroked path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_itemTransform">itemTransform</a></td><td><p>Returns the transform applied when this item is rendered.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathStrokeStyle">pathStrokeStyle</a></td><td><p>Returns the stroke geometry of a path item, or the default solid style for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathStrokeWidth">pathStrokeWidth</a></td><td><p>Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathUsesEvenOddFill">pathUsesEvenOddFill</a></td><td><p>Returns whether a filled path uses the alternating rule rather than the winding count.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_pathValue">pathValue</a></td><td><p>Returns a borrowed path list for a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_textFont">textFont</a></td><td><p>Returns the standard face this text is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_textSize">textSize</a></td><td><p>Returns the text size in PDF points, or zero for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Item_textValue">textValue</a></td><td><p>Returns the text carried by a text item, or an empty string for another kind.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pdf_Metadata" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Metadata</span> <a class="api-item-permalink" href="#Pdf_Metadata" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L7">src</a></div>
+<p>Stores the standard descriptive fields of a PDF document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pdf_Metadata">Metadata</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_Metadata_author" class="code-type">author</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Person or organization that created the content.</p>
+</td></tr>
+<tr><td id="Pdf_Metadata_creator" class="code-type">creator</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Application that created the source content.</p>
+</td></tr>
+<tr><td id="Pdf_Metadata_keywords" class="code-type">keywords</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Search terms associated with the document.</p>
+</td></tr>
+<tr><td id="Pdf_Metadata_producer" class="code-type">producer</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Application that wrote the PDF representation.</p>
+</td></tr>
+<tr><td id="Pdf_Metadata_subject" class="code-type">subject</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Short description of the document.</p>
+</td></tr>
+<tr><td id="Pdf_Metadata_title" class="code-type">title</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Document title.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pdf_Page" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Page</span> <a class="api-item-permalink" href="#Pdf_Page" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L45">src</a></div>
+<p>Stores one editable PDF page.</p>
+<p>Dimensions and item coordinates are expressed in PDF points, with an origin at the top-left. Items are painted in array order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pdf_Page">Page</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_Page_height" class="code-type">height</td><td class="code-type">f32</td><td><p>Page height in PDF points.</p>
+</td></tr>
+<tr><td id="Pdf_Page_items" class="code-type">items</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Pdf_Item">Pdf.Item</a>)</td><td><p>Page content in paint order.</p>
+</td></tr>
+<tr><td id="Pdf_Page_width" class="code-type">width</td><td class="code-type">f32</td><td><p>Page width in PDF points.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Pdf_Page_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_Page_addImage">addImage</a></td><td><p>Appends one raster image in the requested page rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_addPath">addPath</a></td><td><p>Appends one vector path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_addText">addText</a></td><td><p>Appends one UTF-8 text run.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_clear">clear</a></td><td><p>Removes every page item while preserving the page dimensions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_create">create</a></td><td><p>Creates an empty page with positive dimensions in PDF points.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_removeItem">removeItem</a></td><td><p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_render">render</a></td><td><p>Renders the complete page to an owned Pixel image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setItemFillColor">setItemFillColor</a></td><td><p>Replaces the fill color of a text or path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setItemTransform">setItemTransform</a></td><td><p>Replaces the transform applied to an item during rendering and writing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setPathStrokeColor">setPathStrokeColor</a></td><td><p>Replaces the stroke color of a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setPathStrokeStyle">setPathStrokeStyle</a></td><td><p>Replaces the cap, join, miter, and dash geometry of a path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setPathStrokeWidth">setPathStrokeWidth</a></td><td><p>Replaces the non-negative stroke width of a path item and enables its stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setText">setText</a></td><td><p>Replaces the UTF-8 content of a text item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setTextFont">setTextFont</a></td><td><p>Replaces the standard face a text item is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Page_setTextSize">setTextSize</a></td><td><p>Replaces the point size of a text item.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pdf_PathStrokeStyle" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.PathStrokeStyle</span> <a class="api-item-permalink" href="#Pdf_PathStrokeStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L31">src</a></div>
+<p>Describes the geometry of a PDF path stroke.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pdf_PathStrokeStyle">PathStrokeStyle</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_PathStrokeStyle_cap" class="code-type">cap</td><td class="code-type"><a href="#Pdf_StrokeCap">Pdf.StrokeCap</a></td><td><p>Shape at open path ends and dash ends.</p>
+</td></tr>
+<tr><td id="Pdf_PathStrokeStyle_dashPattern" class="code-type">dashPattern</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(f32)</td><td><p>Alternating painted and blank lengths in PDF points; empty means solid.</p>
+</td></tr>
+<tr><td id="Pdf_PathStrokeStyle_dashPhase" class="code-type">dashPhase</td><td class="code-type">f32</td><td><p>Signed distance into the repeated dash pattern in PDF points.</p>
+</td></tr>
+<tr><td id="Pdf_PathStrokeStyle_join" class="code-type">join</td><td class="code-type"><a href="#Pdf_StrokeJoin">Pdf.StrokeJoin</a></td><td><p>Shape between consecutive segments.</p>
+</td></tr>
+<tr><td id="Pdf_PathStrokeStyle_miterLimit" class="code-type">miterLimit</td><td class="code-type">f32</td><td><p>Maximum miter length relative to the stroke width; at least one.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pdf_Reader" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Reader</span> <a class="api-item-permalink" href="#Pdf_Reader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/reader.swg#L20">src</a></div>
+<p>Owns a mapped PDF source and decodes its pages on demand.</p>
+<p>Opening indexes the object and page trees but does not decompress page content, images, or fonts. Each call to <a href="#Pdf_Reader_loadPage">Pdf.Reader.loadPage</a> returns an independent owned page; releasing that page releases its decoded resources without affecting this reader.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque, Swag.NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Pdf_Reader">Reader</a></span></span></div>
+</section>
+<h3 id="Pdf_Reader_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_Reader_loadPage">loadPage</a></td><td><p>Decodes and returns the page at zero-based <span class="code-inline">index</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader_metadata">metadata</a></td><td><p>Returns the document's descriptive fields.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader_open">open</a></td><td><p>Opens a PDF file through a read-only mapping and indexes its pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_Reader_pageCount">pageCount</a></td><td><p>Returns the number of pages found in the page tree.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pdf_RenderOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.RenderOptions</span> <a class="api-item-permalink" href="#Pdf_RenderOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/render.swg#L7">src</a></div>
+<p>Controls page rasterization.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pdf_RenderOptions">RenderOptions</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_RenderOptions_background" class="code-type">background</td><td class="code-type"><a href="std.pixel.html#Pixel_Color">Pixel.Color</a></td><td><p>Ground painted before page content.</p>
+</td></tr>
+<tr><td id="Pdf_RenderOptions_fallbackFontFile" class="code-type">fallbackFontFile</td><td class="code-type">string</td><td><p>Optional TrueType font used when a PDF font cannot be decoded or safely addressed.</p>
+</td></tr>
+<tr><td id="Pdf_RenderOptions_maxDimension" class="code-type">maxDimension</td><td class="code-type">s32</td><td><p>Largest accepted output width or height in pixels.</p>
+</td></tr>
+<tr><td id="Pdf_RenderOptions_maxPixels" class="code-type">maxPixels</td><td class="code-type">u64</td><td><p>Largest accepted output pixel count.</p>
+</td></tr>
+<tr><td id="Pdf_RenderOptions_scale" class="code-type">scale</td><td class="code-type">f32</td><td><p>Output pixels per PDF point.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="enumerations">Enumerations</h3>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Pdf_ItemKind" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.ItemKind</span> <a class="api-item-permalink" href="#Pdf_ItemKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L7">src</a></div>
+<p>Identifies one page item in paint order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pdf_ItemKind">ItemKind</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_ItemKind_Image" class="code-type">Image</td><td><p>One decoded raster image.</p>
+</td></tr>
+<tr><td id="Pdf_ItemKind_Path" class="code-type">Path</td><td><p>One filled and/or stroked vector path.</p>
+</td></tr>
+<tr><td id="Pdf_ItemKind_Text" class="code-type">Text</td><td><p>A UTF-8 text run.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Pdf_StandardFont" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.StandardFont</span> <a class="api-item-permalink" href="#Pdf_StandardFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/standardfont.swg#L11">src</a></div>
+<p>One of the fourteen typefaces every PDF consumer provides without an embedded font file.</p>
+<p>The module writes text with these faces only, so a document it produces carries no font program and stays small. Metrics come from the built-in tables in this file, so text can be measured without reading a font from the system.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pdf_StandardFont">StandardFont</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_StandardFont_Courier" class="code-type">Courier</td><td><p>Fixed pitch, regular.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_CourierBold" class="code-type">CourierBold</td><td><p>Fixed pitch, bold.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_CourierBoldOblique" class="code-type">CourierBoldOblique</td><td><p>Fixed pitch, bold and slanted.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_CourierOblique" class="code-type">CourierOblique</td><td><p>Fixed pitch, slanted.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_Helvetica" class="code-type">Helvetica</td><td><p>Sans-serif, regular.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_HelveticaBold" class="code-type">HelveticaBold</td><td><p>Sans-serif, bold.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_HelveticaBoldOblique" class="code-type">HelveticaBoldOblique</td><td><p>Sans-serif, bold and slanted.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_HelveticaOblique" class="code-type">HelveticaOblique</td><td><p>Sans-serif, slanted.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_TimesBold" class="code-type">TimesBold</td><td><p>Serif, bold.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_TimesBoldItalic" class="code-type">TimesBoldItalic</td><td><p>Serif, bold and italic.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_TimesItalic" class="code-type">TimesItalic</td><td><p>Serif, italic.</p>
+</td></tr>
+<tr><td id="Pdf_StandardFont_TimesRoman" class="code-type">TimesRoman</td><td><p>Serif, regular.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Pdf_StandardFont_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_baseFontName">baseFontName</a></td><td><p>Returns the <span class="code-inline">BaseFont</span> name a PDF font dictionary uses for this face.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_fromBaseName">fromBaseName</a></td><td><p>Returns the face a <span class="code-inline">BaseFont</span> name selects, and whether the name was recognized.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_glyphWidth">glyphWidth</a></td><td><p>Returns the advance width of one character, in fractions of the text size.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pdf_StandardFont_textWidth">textWidth</a></td><td><p>Returns the advance width of <span class="code-inline">text</span> when drawn at <span class="code-inline">size</span> PDF points.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Pdf_StrokeCap" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.StrokeCap</span> <a class="api-item-permalink" href="#Pdf_StrokeCap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L15">src</a></div>
+<p>Selects the shape at the open ends of a stroked PDF path and its dash segments.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pdf_StrokeCap">StrokeCap</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_StrokeCap_Butt" class="code-type">Butt</td><td><p>End exactly at the path endpoint.</p>
+</td></tr>
+<tr><td id="Pdf_StrokeCap_Round" class="code-type">Round</td><td><p>Add a semicircular cap.</p>
+</td></tr>
+<tr><td id="Pdf_StrokeCap_Square" class="code-type">Square</td><td><p>Extend by half the stroke width with a square cap.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Pdf_StrokeJoin" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.StrokeJoin</span> <a class="api-item-permalink" href="#Pdf_StrokeJoin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L23">src</a></div>
+<p>Selects how consecutive segments of a stroked PDF path meet.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pdf_StrokeJoin">StrokeJoin</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pdf_StrokeJoin_Bevel" class="code-type">Bevel</td><td><p>Cut the outer corner with a straight edge.</p>
+</td></tr>
+<tr><td id="Pdf_StrokeJoin_Miter" class="code-type">Miter</td><td><p>Extend the outer edges until the miter limit, then bevel the corner.</p>
+</td></tr>
+<tr><td id="Pdf_StrokeJoin_Round" class="code-type">Round</td><td><p>Join the segments with a circular arc.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="functions">Functions</h3>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_addPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.addPage</span> <a class="api-item-permalink" href="#Pdf_Document_addPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L67">src</a></div>
+<p>Appends a page and transfers its owned content into the document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPage</span>(page: <span class="SItr">#move</span> <span class="SCst"><a href="#Pdf_Page">Page</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.create</span> <a class="api-item-permalink" href="#Pdf_Document_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L33">src</a></div>
+<p>Creates an empty PDF document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>()-&gt;<span class="SCst"><a href="#Pdf_Document">Document</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.decode</span> <a class="api-item-permalink" href="#Pdf_Document_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L44">src</a></div>
+<p>Decodes one complete PDF byte buffer.</p>
+<p>The document copies all content it retains. The input may be released after this function returns. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Pdf_Document">Document</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_editPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.editPage</span> <a class="api-item-permalink" href="#Pdf_Document_editPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L83">src</a></div>
+<p>Returns a mutable borrowed page for editing.</p>
+<p>The pointer remains valid until a page is added to or removed from the document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">editPage</span>(index: <span class="STpe">u64</span>)-&gt;*<span class="SCst"><a href="#Pdf_Page">Page</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.encode</span> <a class="api-item-permalink" href="#Pdf_Document_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L94">src</a></div>
+<p>Encodes the complete document as PDF 1.7 bytes.</p>
+<p>The writer emits a deterministic classic cross-reference table and Flate compressed content and image streams. It fails when text cannot be represented by the writer's Windows-1252 Helvetica encoding.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>()-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.load</span> <a class="api-item-permalink" href="#Pdf_Document_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L52">src</a></div>
+<p>Loads and decodes every page of a PDF file.</p>
+<p>Use <a href="#Pdf_Reader_open">Pdf.Reader.open</a> when pages should be decoded on demand.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Pdf_Document">Document</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_removePage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.removePage</span> <a class="api-item-permalink" href="#Pdf_Document_removePage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L74">src</a></div>
+<p>Removes the page at <span class="code-inline">index</span> and preserves the order of the remaining pages.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removePage</span>(index: <span class="STpe">u64</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Document_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.save</span> <a class="api-item-permalink" href="#Pdf_Document_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/document.swg#L100">src</a></div>
+<p>Encodes and writes the complete document to <span class="code-inline">fileName</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_imageValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.imageValue</span> <a class="api-item-permalink" href="#Pdf_Item_imageValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L124">src</a></div>
+<p>Returns a borrowed image for an image item.</p>
+<p>The pointer remains valid until the owning page or its item array is mutated.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">imageValue</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Pdf_ItemKind_Image">Image</a></span> =&gt; .kind == .<span class="SCst"><a href="#Pdf_ItemKind_Image">Image</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_itemClip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemClip</span> <a class="api-item-permalink" href="#Pdf_Item_itemClip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L90">src</a></div>
+<p>Returns the page-space region this item is confined to, or the whole page when the content stream established no clip for it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemClip</span>()-&gt;{ rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, clipped: <span class="STpe">bool</span> } =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_itemFillColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemFillColor</span> <a class="api-item-permalink" href="#Pdf_Item_itemFillColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L93">src</a></div>
+<p>Returns the fill color of text and filled paths.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemFillColor</span>()-&gt;<span class="SCst">Color</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_itemStrokeColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemStrokeColor</span> <a class="api-item-permalink" href="#Pdf_Item_itemStrokeColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L96">src</a></div>
+<p>Returns the stroke color of a stroked path.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemStrokeColor</span>()-&gt;<span class="SCst">Color</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_itemTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemTransform</span> <a class="api-item-permalink" href="#Pdf_Item_itemTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L86">src</a></div>
+<p>Returns the transform applied when this item is rendered.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemTransform</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_pathStrokeStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathStrokeStyle</span> <a class="api-item-permalink" href="#Pdf_Item_pathStrokeStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L114">src</a></div>
+<p>Returns the stroke geometry of a path item, or the default solid style for another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathStrokeStyle</span>()-&gt;<span class="SCst"><a href="#Pdf_PathStrokeStyle">PathStrokeStyle</a></span> =&gt; .kind == .<span class="SCst"><a href="#Pdf_ItemKind_Path">Path</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_pathStrokeWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathStrokeWidth</span> <a class="api-item-permalink" href="#Pdf_Item_pathStrokeWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L108">src</a></div>
+<p>Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathStrokeWidth</span>()-&gt;<span class="STpe">f32</span> =&gt; .kind == .<span class="SCst"><a href="#Pdf_ItemKind_Path">Path</a></span> <span class="SLgc">and</span> .hasStroke</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_pathUsesEvenOddFill" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathUsesEvenOddFill</span> <a class="api-item-permalink" href="#Pdf_Item_pathUsesEvenOddFill" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L111">src</a></div>
+<p>Returns whether a filled path uses the alternating rule rather than the winding count.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathUsesEvenOddFill</span>()-&gt;<span class="STpe">bool</span> =&gt; .kind == .<span class="SCst"><a href="#Pdf_ItemKind_Path">Path</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_pathValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathValue</span> <a class="api-item-permalink" href="#Pdf_Item_pathValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L119">src</a></div>
+<p>Returns a borrowed path list for a path item.</p>
+<p>The pointer remains valid until the owning page or its item array is mutated.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathValue</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="std.pixel.html#Pixel_LinePathList">LinePathList</a></span> =&gt; .kind == .<span class="SCst"><a href="#Pdf_ItemKind_Path">Path</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_textFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.textFont</span> <a class="api-item-permalink" href="#Pdf_Item_textFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L105">src</a></div>
+<p>Returns the standard face this text is written with.</p>
+<p>A decoded page reports the standard face closest to the font the file names, which is the face the writer would use again.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textFont</span>()-&gt;<span class="SCst"><a href="#Pdf_StandardFont">StandardFont</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_textSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.textSize</span> <a class="api-item-permalink" href="#Pdf_Item_textSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L99">src</a></div>
+<p>Returns the text size in PDF points, or zero for another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textSize</span>()-&gt;<span class="STpe">f32</span> =&gt; .kind == .<span class="SCst"><a href="#Pdf_ItemKind_Text">Text</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Item_textValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.textValue</span> <a class="api-item-permalink" href="#Pdf_Item_textValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/item.swg#L83">src</a></div>
+<p>Returns the text carried by a text item, or an empty string for another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textValue</span>()-&gt;<span class="STpe">string</span> =&gt; .kind == .<span class="SCst"><a href="#Pdf_ItemKind_Text">Text</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_addImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addImage</span> <a class="api-item-permalink" href="#Pdf_Page_addImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L112">src</a></div>
+<p>Appends one raster image in the requested page rectangle.</p>
+<p>The image pixels are copied. <span class="code-inline">width</span> and <span class="code-inline">height</span> are expressed in PDF points and must be positive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(image: <span class="SCst"><a href="#Pdf_ItemKind_Image">Image</a></span>, x, y, width, height: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_addPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addPath</span> <a class="api-item-permalink" href="#Pdf_Page_addPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L92">src</a></div>
+<p>Appends one vector path.</p>
+<p><span class="code-inline">fill</span> and <span class="code-inline">stroke</span> independently select the two paint operations. At least one must be enabled. <span class="code-inline">strokeStyle</span> selects the cap, join, miter, and dash geometry when stroking. Path coordinates and dash data are copied into the page.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPath</span>(path: <span class="SCst"><a href="std.pixel.html#Pixel_LinePathList">LinePathList</a></span>, fill = <span class="SKwd">true</span>, fillColor = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), stroke = <span class="SKwd">false</span>, strokeColor = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), strokeWidth = <span class="SNum">1.0</span>, strokeStyle: <span class="SCst"><a href="#Pdf_PathStrokeStyle">PathStrokeStyle</a></span> = {})</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_addText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addText</span> <a class="api-item-permalink" href="#Pdf_Page_addText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L75">src</a></div>
+<p>Appends one UTF-8 text run.</p>
+<p><span class="code-inline">(x, y)</span> is the top-left of the text line box. <span class="code-inline">font</span> selects one of the standard faces every reader provides; the writer accepts the characters Windows-1252 can represent. Use <a href="#Pdf_StandardFont_textWidth">Pdf.StandardFont.textWidth</a> to measure the run before placing it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addText</span>(text: <span class="STpe">string</span>, x, y, size: <span class="STpe">f32</span>, color = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), font = <span class="SCst"><a href="#Pdf_StandardFont">StandardFont</a></span>.<span class="SCst"><a href="#Pdf_StandardFont_Helvetica">Helvetica</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.clear</span> <a class="api-item-permalink" href="#Pdf_Page_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L203">src</a></div>
+<p>Removes every page item while preserving the page dimensions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.create</span> <a class="api-item-permalink" href="#Pdf_Page_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L61">src</a></div>
+<p>Creates an empty page with positive dimensions in PDF points.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Pdf_Page">Page</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_removeItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.removeItem</span> <a class="api-item-permalink" href="#Pdf_Page_removeItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L123">src</a></div>
+<p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeItem</span>(index: <span class="STpe">u64</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_render" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.render</span> <a class="api-item-permalink" href="#Pdf_Page_render" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L210">src</a></div>
+<p>Renders the complete page to an owned Pixel image.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">render</span>(options: <span class="SCst"><a href="#Pdf_RenderOptions">RenderOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pdf_ItemKind_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setItemFillColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setItemFillColor</span> <a class="api-item-permalink" href="#Pdf_Page_setItemFillColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L166">src</a></div>
+<p>Replaces the fill color of a text or path item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setItemFillColor</span>(index: <span class="STpe">u64</span>, color: <span class="SCst">Color</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setItemTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setItemTransform</span> <a class="api-item-permalink" href="#Pdf_Page_setItemTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L158">src</a></div>
+<p>Replaces the transform applied to an item during rendering and writing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setItemTransform</span>(index: <span class="STpe">u64</span>, transform: <span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setPathStrokeColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setPathStrokeColor</span> <a class="api-item-permalink" href="#Pdf_Page_setPathStrokeColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L173">src</a></div>
+<p>Replaces the stroke color of a path item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPathStrokeColor</span>(index: <span class="STpe">u64</span>, color: <span class="SCst">Color</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setPathStrokeStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setPathStrokeStyle</span> <a class="api-item-permalink" href="#Pdf_Page_setPathStrokeStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L194">src</a></div>
+<p>Replaces the cap, join, miter, and dash geometry of a path stroke.</p>
+<p>Dash lengths and phase are expressed in PDF points; the phase may be negative. An odd-length pattern is repeated once, as required by PDF, before its painted and blank intervals alternate.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPathStrokeStyle</span>(index: <span class="STpe">u64</span>, style: <span class="SCst"><a href="#Pdf_PathStrokeStyle">PathStrokeStyle</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setPathStrokeWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setPathStrokeWidth</span> <a class="api-item-permalink" href="#Pdf_Page_setPathStrokeWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L183">src</a></div>
+<p>Replaces the non-negative stroke width of a path item and enables its stroke.</p>
+<p>A zero width is rendered as a device-pixel hairline.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPathStrokeWidth</span>(index: <span class="STpe">u64</span>, width: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setText</span> <a class="api-item-permalink" href="#Pdf_Page_setText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L130">src</a></div>
+<p>Replaces the UTF-8 content of a text item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setText</span>(index: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setTextFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setTextFont</span> <a class="api-item-permalink" href="#Pdf_Page_setTextFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L149">src</a></div>
+<p>Replaces the standard face a text item is written with.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextFont</span>(index: <span class="STpe">u64</span>, font: <span class="SCst"><a href="#Pdf_StandardFont">StandardFont</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Page_setTextSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setTextSize</span> <a class="api-item-permalink" href="#Pdf_Page_setTextSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/page.swg#L139">src</a></div>
+<p>Replaces the point size of a text item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextSize</span>(index: <span class="STpe">u64</span>, size: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Reader_loadPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.loadPage</span> <a class="api-item-permalink" href="#Pdf_Reader_loadPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/reader.swg#L60">src</a></div>
+<p>Decodes and returns the page at zero-based <span class="code-inline">index</span>.</p>
+<p>The returned page owns all content it retains and remains valid after this reader is released. An out-of-range index reports <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadPage</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Pdf_Page">Page</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Reader_metadata" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.metadata</span> <a class="api-item-permalink" href="#Pdf_Reader_metadata" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/reader.swg#L51">src</a></div>
+<p>Returns the document's descriptive fields.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metadata</span>()-&gt;<span class="SCst"><a href="#Pdf_Metadata">Metadata</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Reader_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.open</span> <a class="api-item-permalink" href="#Pdf_Reader_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/reader.swg#L40">src</a></div>
+<p>Opens a PDF file through a read-only mapping and indexes its pages.</p>
+<p>Page streams and resources are decoded only by <a href="#Pdf_Reader_loadPage">Pdf.Reader.loadPage</a>. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Pdf_Reader">Reader</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_Reader_pageCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.pageCount</span> <a class="api-item-permalink" href="#Pdf_Reader_pageCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/reader.swg#L54">src</a></div>
+<p>Returns the number of pages found in the page tree.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pageCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .sources</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_StandardFont_baseFontName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.baseFontName</span> <a class="api-item-permalink" href="#Pdf_StandardFont_baseFontName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/standardfont.swg#L86">src</a></div>
+<p>Returns the <span class="code-inline">BaseFont</span> name a PDF font dictionary uses for this face.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">baseFontName</span>()-&gt;<span class="STpe">string</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_StandardFont_fromBaseName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.fromBaseName</span> <a class="api-item-permalink" href="#Pdf_StandardFont_fromBaseName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/standardfont.swg#L109">src</a></div>
+<p>Returns the face a <span class="code-inline">BaseFont</span> name selects, and whether the name was recognized.</p>
+<p>A subset prefix such as <span class="code-inline">ABCDEF+</span> is ignored, and both the <span class="code-inline">Arial</span> and <span class="code-inline">TimesNewRoman</span> spellings map to the metrically compatible standard face.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromBaseName</span>(name: <span class="STpe">string</span>)-&gt;{ font: <span class="SCst"><a href="#Pdf_StandardFont">StandardFont</a></span>, found: <span class="STpe">bool</span> }</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_StandardFont_glyphWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.glyphWidth</span> <a class="api-item-permalink" href="#Pdf_StandardFont_glyphWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/standardfont.swg#L163">src</a></div>
+<p>Returns the advance width of one character, in fractions of the text size.</p>
+<p>The tables cover the printable ASCII range exactly. A Latin letter carrying an accent has the advance of its base letter in these faces, which is exact as well; any other character outside the tables is measured with a representative width.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">glyphWidth</span>(value: <span class="STpe">rune</span>)-&gt;<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pdf_StandardFont_textWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.textWidth</span> <a class="api-item-permalink" href="#Pdf_StandardFont_textWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pdf/src/standardfont.swg#L187">src</a></div>
+<p>Returns the advance width of <span class="code-inline">text</span> when drawn at <span class="code-inline">size</span> PDF points.</p>
+<p>Character spacing, word spacing, and horizontal scaling are not applied; this is the natural width of the run.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textWidth</span>(text: <span class="STpe">string</span>, size: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+</section>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.152</div>
+</footer>
+</section>
+</main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section",
+        v: "field", k: "case"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            if (left.item.name === right.item.name)
+                return 0;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|Pdf|namespace_Pdf|",
+"s|Pdf.Document|Pdf_Document|Owns an editable PDF document.",
+"v|Pdf.Document.metadata|Pdf_Document_metadata|Descriptive document fields.",
+"v|Pdf.Document.pages|Pdf_Document_pages|Pages in display order.",
+"s|Pdf.Item|Pdf_Item|Describes one page item in Pixel's top-left coordinate system.",
+"v|Pdf.Item.kind|Pdf_Item_kind|Active item representation.",
+"s|Pdf.Metadata|Pdf_Metadata|Stores the standard descriptive fields of a PDF document.",
+"v|Pdf.Metadata.author|Pdf_Metadata_author|Person or organization that created the content.",
+"v|Pdf.Metadata.creator|Pdf_Metadata_creator|Application that created the source content.",
+"v|Pdf.Metadata.keywords|Pdf_Metadata_keywords|Search terms associated with the document.",
+"v|Pdf.Metadata.producer|Pdf_Metadata_producer|Application that wrote the PDF representation.",
+"v|Pdf.Metadata.subject|Pdf_Metadata_subject|Short description of the document.",
+"v|Pdf.Metadata.title|Pdf_Metadata_title|Document title.",
+"s|Pdf.Page|Pdf_Page|Stores one editable PDF page.",
+"v|Pdf.Page.height|Pdf_Page_height|Page height in PDF points.",
+"v|Pdf.Page.items|Pdf_Page_items|Page content in paint order.",
+"v|Pdf.Page.width|Pdf_Page_width|Page width in PDF points.",
+"s|Pdf.PathStrokeStyle|Pdf_PathStrokeStyle|Describes the geometry of a PDF path stroke.",
+"v|Pdf.PathStrokeStyle.cap|Pdf_PathStrokeStyle_cap|Shape at open path ends and dash ends.",
+"v|Pdf.PathStrokeStyle.dashPattern|Pdf_PathStrokeStyle_dashPattern|Alternating painted and blank lengths in PDF points; empty means solid.",
+"v|Pdf.PathStrokeStyle.dashPhase|Pdf_PathStrokeStyle_dashPhase|Signed distance into the repeated dash pattern in PDF points.",
+"v|Pdf.PathStrokeStyle.join|Pdf_PathStrokeStyle_join|Shape between consecutive segments.",
+"v|Pdf.PathStrokeStyle.miterLimit|Pdf_PathStrokeStyle_miterLimit|Maximum miter length relative to the stroke width; at least one.",
+"s|Pdf.Reader|Pdf_Reader|Owns a mapped PDF source and decodes its pages on demand.",
+"s|Pdf.RenderOptions|Pdf_RenderOptions|Controls page rasterization.",
+"v|Pdf.RenderOptions.background|Pdf_RenderOptions_background|Ground painted before page content.",
+"v|Pdf.RenderOptions.fallbackFontFile|Pdf_RenderOptions_fallbackFontFile|Optional TrueType font used when a PDF font cannot be decoded or safely addressed.",
+"v|Pdf.RenderOptions.maxDimension|Pdf_RenderOptions_maxDimension|Largest accepted output width or height in pixels.",
+"v|Pdf.RenderOptions.maxPixels|Pdf_RenderOptions_maxPixels|Largest accepted output pixel count.",
+"v|Pdf.RenderOptions.scale|Pdf_RenderOptions_scale|Output pixels per PDF point.",
+"e|Pdf.ItemKind|Pdf_ItemKind|Identifies one page item in paint order.",
+"k|Pdf.ItemKind.Image|Pdf_ItemKind_Image|One decoded raster image.",
+"k|Pdf.ItemKind.Path|Pdf_ItemKind_Path|One filled and/or stroked vector path.",
+"k|Pdf.ItemKind.Text|Pdf_ItemKind_Text|A UTF-8 text run.",
+"e|Pdf.StandardFont|Pdf_StandardFont|One of the fourteen typefaces every PDF consumer provides without an embedded font file.",
+"k|Pdf.StandardFont.Courier|Pdf_StandardFont_Courier|Fixed pitch, regular.",
+"k|Pdf.StandardFont.CourierBold|Pdf_StandardFont_CourierBold|Fixed pitch, bold.",
+"k|Pdf.StandardFont.CourierBoldOblique|Pdf_StandardFont_CourierBoldOblique|Fixed pitch, bold and slanted.",
+"k|Pdf.StandardFont.CourierOblique|Pdf_StandardFont_CourierOblique|Fixed pitch, slanted.",
+"k|Pdf.StandardFont.Helvetica|Pdf_StandardFont_Helvetica|Sans-serif, regular.",
+"k|Pdf.StandardFont.HelveticaBold|Pdf_StandardFont_HelveticaBold|Sans-serif, bold.",
+"k|Pdf.StandardFont.HelveticaBoldOblique|Pdf_StandardFont_HelveticaBoldOblique|Sans-serif, bold and slanted.",
+"k|Pdf.StandardFont.HelveticaOblique|Pdf_StandardFont_HelveticaOblique|Sans-serif, slanted.",
+"k|Pdf.StandardFont.TimesBold|Pdf_StandardFont_TimesBold|Serif, bold.",
+"k|Pdf.StandardFont.TimesBoldItalic|Pdf_StandardFont_TimesBoldItalic|Serif, bold and italic.",
+"k|Pdf.StandardFont.TimesItalic|Pdf_StandardFont_TimesItalic|Serif, italic.",
+"k|Pdf.StandardFont.TimesRoman|Pdf_StandardFont_TimesRoman|Serif, regular.",
+"e|Pdf.StrokeCap|Pdf_StrokeCap|Selects the shape at the open ends of a stroked PDF path and its dash segments.",
+"k|Pdf.StrokeCap.Butt|Pdf_StrokeCap_Butt|End exactly at the path endpoint.",
+"k|Pdf.StrokeCap.Round|Pdf_StrokeCap_Round|Add a semicircular cap.",
+"k|Pdf.StrokeCap.Square|Pdf_StrokeCap_Square|Extend by half the stroke width with a square cap.",
+"e|Pdf.StrokeJoin|Pdf_StrokeJoin|Selects how consecutive segments of a stroked PDF path meet.",
+"k|Pdf.StrokeJoin.Bevel|Pdf_StrokeJoin_Bevel|Cut the outer corner with a straight edge.",
+"k|Pdf.StrokeJoin.Miter|Pdf_StrokeJoin_Miter|Extend the outer edges until the miter limit, then bevel the corner.",
+"k|Pdf.StrokeJoin.Round|Pdf_StrokeJoin_Round|Join the segments with a circular arc.",
+"f|Pdf.Document.addPage|Pdf_Document_addPage|Appends a page and transfers its owned content into the document.",
+"f|Pdf.Document.create|Pdf_Document_create|Creates an empty PDF document.",
+"f|Pdf.Document.decode|Pdf_Document_decode|Decodes one complete PDF byte buffer.",
+"f|Pdf.Document.editPage|Pdf_Document_editPage|Returns a mutable borrowed page for editing.",
+"f|Pdf.Document.encode|Pdf_Document_encode|Encodes the complete document as PDF 1.7 bytes.",
+"f|Pdf.Document.load|Pdf_Document_load|Loads and decodes every page of a PDF file.",
+"f|Pdf.Document.removePage|Pdf_Document_removePage|Removes the page at index and preserves the order of the remaining pages.",
+"f|Pdf.Document.save|Pdf_Document_save|Encodes and writes the complete document to fileName.",
+"f|Pdf.Item.imageValue|Pdf_Item_imageValue|Returns a borrowed image for an image item.",
+"f|Pdf.Item.itemClip|Pdf_Item_itemClip|Returns the page-space region this item is confined to, or the whole page when the",
+"f|Pdf.Item.itemFillColor|Pdf_Item_itemFillColor|Returns the fill color of text and filled paths.",
+"f|Pdf.Item.itemStrokeColor|Pdf_Item_itemStrokeColor|Returns the stroke color of a stroked path.",
+"f|Pdf.Item.itemTransform|Pdf_Item_itemTransform|Returns the transform applied when this item is rendered.",
+"f|Pdf.Item.pathStrokeStyle|Pdf_Item_pathStrokeStyle|Returns the stroke geometry of a path item, or the default solid style for another kind.",
+"f|Pdf.Item.pathStrokeWidth|Pdf_Item_pathStrokeWidth|Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.",
+"f|Pdf.Item.pathUsesEvenOddFill|Pdf_Item_pathUsesEvenOddFill|Returns whether a filled path uses the alternating rule rather than the winding count.",
+"f|Pdf.Item.pathValue|Pdf_Item_pathValue|Returns a borrowed path list for a path item.",
+"f|Pdf.Item.textFont|Pdf_Item_textFont|Returns the standard face this text is written with.",
+"f|Pdf.Item.textSize|Pdf_Item_textSize|Returns the text size in PDF points, or zero for another kind.",
+"f|Pdf.Item.textValue|Pdf_Item_textValue|Returns the text carried by a text item, or an empty string for another kind.",
+"f|Pdf.Page.addImage|Pdf_Page_addImage|Appends one raster image in the requested page rectangle.",
+"f|Pdf.Page.addPath|Pdf_Page_addPath|Appends one vector path.",
+"f|Pdf.Page.addText|Pdf_Page_addText|Appends one UTF-8 text run.",
+"f|Pdf.Page.clear|Pdf_Page_clear|Removes every page item while preserving the page dimensions.",
+"f|Pdf.Page.create|Pdf_Page_create|Creates an empty page with positive dimensions in PDF points.",
+"f|Pdf.Page.removeItem|Pdf_Page_removeItem|Removes the item at index and preserves the paint order of the rest.",
+"f|Pdf.Page.render|Pdf_Page_render|Renders the complete page to an owned Pixel image.",
+"f|Pdf.Page.setItemFillColor|Pdf_Page_setItemFillColor|Replaces the fill color of a text or path item.",
+"f|Pdf.Page.setItemTransform|Pdf_Page_setItemTransform|Replaces the transform applied to an item during rendering and writing.",
+"f|Pdf.Page.setPathStrokeColor|Pdf_Page_setPathStrokeColor|Replaces the stroke color of a path item.",
+"f|Pdf.Page.setPathStrokeStyle|Pdf_Page_setPathStrokeStyle|Replaces the cap, join, miter, and dash geometry of a path stroke.",
+"f|Pdf.Page.setPathStrokeWidth|Pdf_Page_setPathStrokeWidth|Replaces the non-negative stroke width of a path item and enables its stroke.",
+"f|Pdf.Page.setText|Pdf_Page_setText|Replaces the UTF-8 content of a text item.",
+"f|Pdf.Page.setTextFont|Pdf_Page_setTextFont|Replaces the standard face a text item is written with.",
+"f|Pdf.Page.setTextSize|Pdf_Page_setTextSize|Replaces the point size of a text item.",
+"f|Pdf.Reader.loadPage|Pdf_Reader_loadPage|Decodes and returns the page at zero-based index.",
+"f|Pdf.Reader.metadata|Pdf_Reader_metadata|Returns the document's descriptive fields.",
+"f|Pdf.Reader.open|Pdf_Reader_open|Opens a PDF file through a read-only mapping and indexes its pages.",
+"f|Pdf.Reader.pageCount|Pdf_Reader_pageCount|Returns the number of pages found in the page tree.",
+"f|Pdf.StandardFont.baseFontName|Pdf_StandardFont_baseFontName|Returns the BaseFont name a PDF font dictionary uses for this face.",
+"f|Pdf.StandardFont.fromBaseName|Pdf_StandardFont_fromBaseName|Returns the face a BaseFont name selects, and whether the name was recognized.",
+"f|Pdf.StandardFont.glyphWidth|Pdf_StandardFont_glyphWidth|Returns the advance width of one character, in fractions of the text size.",
+"f|Pdf.StandardFont.textWidth|Pdf_StandardFont_textWidth|Returns the advance width of text when drawn at size PDF points.",
+]);
+</script>
+</body>
+</html>

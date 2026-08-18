@@ -1825,8 +1825,8 @@ Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
     // lvalue place of T, never a value conversion.
     if (hasFlag(AstCastExprFlagsE::DerefPlace))
     {
-        MicroBuilder&      builder      = codeGen.builder();
-        CodeGenNodePayload childPayload = codeGen.payload(nodeExprRef);
+        MicroBuilder&      builder        = codeGen.builder();
+        CodeGenNodePayload childPayload   = codeGen.payload(nodeExprRef);
         TypeRef            operandTypeRef = codeGen.viewType(nodeExprRef).typeRef();
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
 

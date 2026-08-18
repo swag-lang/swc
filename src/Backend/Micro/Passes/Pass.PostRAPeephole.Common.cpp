@@ -168,7 +168,7 @@ namespace PostRaPeephole
         if (!ctx.isPrivateFrameBase(baseReg))
             return false;
 
-        MicroInstrRef  scanRef = ctx.nextRef(storeRef);
+        MicroInstrRef scanRef = ctx.nextRef(storeRef);
         for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanRef.isValid(); ++step, scanRef = ctx.nextRef(scanRef))
         {
             const MicroInstr* scanInst = ctx.instruction(scanRef);
@@ -217,7 +217,7 @@ namespace PostRaPeephole
         if (!ctx.isPrivateFrameBase(baseReg))
             return false;
 
-        MicroInstrRef  scanRef   = ctx.nextRef(storeRef);
+        MicroInstrRef scanRef = ctx.nextRef(storeRef);
         for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanRef.isValid(); ++step, scanRef = ctx.nextRef(scanRef))
         {
             const MicroInstr* scanInst = ctx.instruction(scanRef);
@@ -238,8 +238,8 @@ namespace PostRaPeephole
                 return true;
             }
 
-            const MicroInstrDef& info = MicroInstr::info(scanInst->op);
-            const bool conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
+            const MicroInstrDef& info            = MicroInstr::info(scanInst->op);
+            const bool           conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
                                          info.flags.has(MicroInstrFlagsE::ConditionalJump);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalJump) ||
@@ -302,8 +302,8 @@ namespace PostRaPeephole
                 return true;
             }
 
-            const MicroInstrDef& info = MicroInstr::info(scanInst->op);
-            const bool conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
+            const MicroInstrDef& info            = MicroInstr::info(scanInst->op);
+            const bool           conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
                                          info.flags.has(MicroInstrFlagsE::ConditionalJump);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalJump) ||

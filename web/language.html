@@ -950,7 +950,7 @@ indent-style = spaces</span></div>
 </tbody>
 </table>
 <p><span class="code-inline">internal</span> is the default, for a top-level declaration and for an aggregate member alike. Use <span class="code-inline">public</span> deliberately for the supported module API and <span class="code-inline">private</span> for file-local implementation details.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">const</span> <span class="SCst">VisibilityFileLocal</span> = <span class="SNum">10</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">VisibilityFileLocal</span> = <span class="SNum">10</span>
 <span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst">VisibilityModuleLocal</span> = <span class="SNum">20</span>
 
 <span class="SFct">#test</span>
@@ -971,6 +971,20 @@ indent-style = spaces</span></div>
 <p><span class="code-inline">#global</span> changes the default for the rest of one source file. This reference starts files with '#global private' so examples cannot leak into a generated module API:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span></span></div>
 <p>Both forms set the default for the declarations they cover, and neither reaches inside an aggregate: a member belongs to its type rather than to a file or a block, so it states its own access in the aggregate body. That is why <span class="code-inline">Request</span> above says <span class="code-inline">public</span> twice.</p>
+<p>State a level once at the widest scope that has exactly that level. After '#global public', top-level declarations and unqualified <span class="code-inline">impl</span> blocks need no <span class="code-inline">public</span>. Put an exception on a whole <span class="code-inline">impl</span> rather than repeating it on every method, and split an <span class="code-inline">impl</span> when its method families have different visibility:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">public</span>
+
+<span class="SKwd">struct</span> <span class="SCst">Session</span> {}
+
+<span class="SKwd">impl</span> <span class="SCst">Session</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">close</span>() {}
+}
+
+<span class="SKwd">private</span> <span class="SKwd">impl</span> <span class="SCst">Session</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">releaseHandle</span>() {}
+}</span></div>
 <p>Visibility is independent of namespaces. A symbol can be public and qualified, or private and placed in a namespace for organization.</p>
 <h3 id="_002_009_visibility_and_exports_swg_Member_Access">Member Access</h3>
 <p>The three levels and their default are the same on a member. What changes is who the owner is. A declaration belongs to its file, so <span class="code-inline">private</span> at the top level means "this file". A <b>member belongs to its type</b>, so on a field the same word grants the type: the file that declares the aggregate, and every file that declares an <span class="code-inline">impl</span> of it, inside the module that declares the type. One rule, one reading: <span class="code-inline">private</span> grants the owner, <span class="code-inline">internal</span> grants the module, <span class="code-inline">public</span> grants everyone, and <span class="code-inline">internal</span> is what a member gets when it says nothing — a type publishes its state as deliberately as it publishes its functions.</p>
@@ -989,6 +1003,7 @@ indent-style = spaces</span></div>
 </tbody>
 </table>
 <p>Written alone, <span class="code-inline">readonly</span> rides on the level already in effect, which is <span class="code-inline">internal</span> unless an enclosing access block says otherwise. It always comes last, and 'private readonly' is rejected: <span class="code-inline">private</span> already withholds every write from outside the type.</p>
+<p>The same placement rule keeps aggregate declarations short. Omit <span class="code-inline">internal</span> at the member root, use one access block for adjacent fields of another level, and keep an isolated exception on its declaration. Inside a <span class="code-inline">public</span> block, bare <span class="code-inline">readonly</span> means public read-only; outside it the full spelling is 'public readonly'.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Counter</span>
 {
     <span class="SKwd">public</span> <span class="SKwd">readonly</span>
@@ -9037,7 +9052,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.150</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.152</div>
 </footer>
 </section>
 </main>

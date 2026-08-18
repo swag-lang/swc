@@ -1294,8 +1294,8 @@ namespace
             const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, captureArg.nodeIdentifierRef));
 
-            const bool captureByRef  = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);
-            const bool captureIsVar  = captureArg.hasFlag(AstClosureArgumentFlagsE::Var);
+            const bool captureByRef = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);
+            const bool captureIsVar = captureArg.hasFlag(AstClosureArgumentFlagsE::Var);
             if (captureByRef && sourceVar && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Let))
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_let_by_ref, captureArg.nodeIdentifierRef);

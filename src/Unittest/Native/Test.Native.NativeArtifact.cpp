@@ -1015,11 +1015,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths)
 {
-    static constexpr std::string_view SOURCE = R"(#test { @assert(true) }
+    static constexpr std::string_view SOURCE     = R"(#test { @assert(true) }
 )";
-    const fs::path firstPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterFirst");
-    const fs::path secondPath = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterSecond");
-    const fs::path thirdPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterThird");
+    const fs::path                    firstPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterFirst");
+    const fs::path                    secondPath = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterSecond");
+    const fs::path                    thirdPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterThird");
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;

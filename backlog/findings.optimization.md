@@ -218,7 +218,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: this is [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers) seen
   from a second workload, and the case is small enough to drive the fix — a loop whose whole
   live set fits in registers twice over and is spilled anyway. Same conclusion as
-  [F-029's](#f-029--chacha20-still-processes-one-block-per-dependency-chain) neighbours: the
+  [F-029's](#f-029--chacha20-still-processes-one-block-per-packed-dependency-chain) neighbours: the
   bottleneck is the allocator's policy, local linear scan with furthest-use eviction, and the
   work that addresses it is the global interval allocator, not another peephole.
 

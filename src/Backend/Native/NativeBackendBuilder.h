@@ -245,10 +245,10 @@ private:
     Result      runAfterLink();
 
     TaskContext             ctx_;
-    CompilerInstance*       compiler_      = nullptr;
-    bool                    runArtifact_   = false;
+    CompilerInstance*       compiler_       = nullptr;
+    bool                    runArtifact_    = false;
     bool                    artifactLinked_ = false;
-    DiagnosticId            lastErrorId_   = DiagnosticId::None;
+    DiagnosticId            lastErrorId_    = DiagnosticId::None;
     std::unique_ptr<Linker> deferredLinker_;
     LinkJob                 deferredToolRun_;
 };

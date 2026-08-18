@@ -18,9 +18,21 @@ func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
 }
 
 // Records a hardware exception delivered by the host for the active test thread.
-func __testHardwareException(code: u32)
+func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64, accessAddress: u64)
 {
     @print("\n#test stops on hardware exception ", cast(s64) code, "\n")
+    @print("#test faulting instruction address ", instructionAddress, "\n")
+    let symbol = __symbolize(cast(*void) instructionAddress)
+    if symbol.hasLine do
+        @print("#test faulting symbol ", symbol.name, " (", symbol.file, ":", symbol.line, ")\n")
+    elif symbol.found do
+        @print("#test faulting symbol ", symbol.name, "\n")
+    if code == 0xC0000005 and (accessKind == 0 or accessKind == 1 or accessKind == 8)
+    {
+        let operation = accessKind == 0 ? "read" : accessKind == 1 ? "write" : "execute"
+        @print("#test attempted to ", operation, " address ", accessAddress, "\n")
+    }
+
     g_TestFailed = true
     __hostTestResume()
 }

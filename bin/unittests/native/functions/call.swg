@@ -566,9 +566,7 @@ namespace compiler1788
     }
 
     #init
-    {
-    // @assert(G == 1)
-    }
+    {}
 
     var G: s64
 }

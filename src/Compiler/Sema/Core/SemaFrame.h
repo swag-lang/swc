@@ -184,11 +184,11 @@ public:
     // Innermost enclosing '#scope', named or not. It is not a break or continue target; the
     // frame keeps it so a bare 'break' or a 'continue' that finds no loop can name the
     // construct the reader was aiming at instead of reporting a bare absence.
-    AstNodeRef          currentCompilerScope() const { return compilerScope_; }
-    void                setCurrentCompilerScope(AstNodeRef nodeRef) { compilerScope_ = nodeRef; }
-    AstNodeRef          currentErrorScope() const { return currentErrorScope_; }
-    ErrorContextMode    currentErrorContextMode() const { return currentErrorContextMode_; }
-    void                setCurrentErrorContext(AstNodeRef nodeRef, ErrorContextMode mode)
+    AstNodeRef       currentCompilerScope() const { return compilerScope_; }
+    void             setCurrentCompilerScope(AstNodeRef nodeRef) { compilerScope_ = nodeRef; }
+    AstNodeRef       currentErrorScope() const { return currentErrorScope_; }
+    ErrorContextMode currentErrorContextMode() const { return currentErrorContextMode_; }
+    void             setCurrentErrorContext(AstNodeRef nodeRef, ErrorContextMode mode)
     {
         currentErrorScope_       = nodeRef;
         currentErrorContextMode_ = mode;

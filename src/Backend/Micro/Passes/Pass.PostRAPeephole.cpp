@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -76,15 +76,15 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    Context ctx;
+    Context         ctx;
     const CallConv& conv = CallConv::get(context.callConvKind);
-    ctx.storage         = context.instructions;
-    ctx.operands        = context.operands;
-    ctx.encoder         = context.encoder;
-    ctx.stackPointer    = conv.stackPointer;
-    ctx.framePointer    = conv.framePointer;
-    ctx.localStackBase  = context.debugStackBasePhysReg;
-    ctx.allowForwarding = context.isFirstOptimizationSweep;
+    ctx.storage          = context.instructions;
+    ctx.operands         = context.operands;
+    ctx.encoder          = context.encoder;
+    ctx.stackPointer     = conv.stackPointer;
+    ctx.framePointer     = conv.framePointer;
+    ctx.localStackBase   = context.debugStackBasePhysReg;
+    ctx.allowForwarding  = context.isFirstOptimizationSweep;
 
     runPerInstructionPatterns(ctx);
 

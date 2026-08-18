@@ -5462,7 +5462,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Gui_AppearanceButton" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.AppearanceButton</span> <a class="api-item-permalink" href="#Gui_AppearanceButton" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/appearancebutton.swg#L18">src</a></div>
+<div class="api-item api-item-struct"><span id="Gui_AppearanceButton" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.AppearanceButton</span> <a class="api-item-permalink" href="#Gui_AppearanceButton" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/appearancebutton.swg#L18">src</a></div>
 <p>Hosts the standard theme and language menu in an application title bar.</p>
 <p>An empty <a href="#Gui_Application_language">language</a> follows the user account. A non-empty value is a tag registered through <a href="#Gui_registerLanguage">Gui.registerLanguage</a>. The control applies both choices before emitting their signals, so an application only has to persist them and refresh state derived from the palette.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_AppearanceButton">AppearanceButton</a></span></span></div>
@@ -13148,7 +13148,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Gui_AppearanceTheme" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.AppearanceTheme</span> <a class="api-item-permalink" href="#Gui_AppearanceTheme" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/appearancebutton.swg#L7">src</a></div>
+<div class="api-item api-item-enum"><span id="Gui_AppearanceTheme" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.AppearanceTheme</span> <a class="api-item-permalink" href="#Gui_AppearanceTheme" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/appearancebutton.swg#L7">src</a></div>
 <p>Selects one of the two palettes shipped by standard Swag applications.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_AppearanceTheme">AppearanceTheme</a></span></span></div>
 </section>
@@ -15320,18 +15320,18 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transitionPage</span>(outgoing: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, incoming: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, direction = <span class="SNum">1</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_AppearanceButton_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AppearanceButton.create</span> <a class="api-item-permalink" href="#Gui_AppearanceButton_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/appearancebutton.swg#L60">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_AppearanceButton_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AppearanceButton.create</span> <a class="api-item-permalink" href="#Gui_AppearanceButton_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/appearancebutton.swg#L60">src</a></div>
 <p>Creates the standard application appearance action immediately before the native caption buttons. Register every supported language before calling this function.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(surface: *<span class="SCst"><a href="#Gui_Surface">Surface</a></span>, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_AppearanceButton">AppearanceButton</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_AppearanceButton_setAppearanceLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AppearanceButton.setAppearanceLanguage</span> <a class="api-item-permalink" href="#Gui_AppearanceButton_setAppearanceLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/appearancebutton.swg#L94">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_AppearanceButton_setAppearanceLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AppearanceButton.setAppearanceLanguage</span> <a class="api-item-permalink" href="#Gui_AppearanceButton_setAppearanceLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/appearancebutton.swg#L94">src</a></div>
 <p>Applies a registered language tag, or follows the system when <span class="code-inline">tag</span> is empty, and optionally reports a user-visible choice. The stored choice changes only after resources were applied.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAppearanceLanguage</span>(tag: <span class="STpe">string</span>, notify = <span class="SKwd">false</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_AppearanceButton_setAppearanceTheme" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AppearanceButton.setAppearanceTheme</span> <a class="api-item-permalink" href="#Gui_AppearanceButton_setAppearanceTheme" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/appearancebutton.swg#L80">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_AppearanceButton_setAppearanceTheme" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AppearanceButton.setAppearanceTheme</span> <a class="api-item-permalink" href="#Gui_AppearanceButton_setAppearanceTheme" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/appearancebutton.swg#L80">src</a></div>
 <p>Applies <span class="code-inline">theme</span> and optionally reports a user-visible choice.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAppearanceTheme</span>(theme: <span class="SCst"><a href="#Gui_AppearanceTheme">AppearanceTheme</a></span>, notify = <span class="SKwd">false</span>)</span></div>
 </section>
@@ -20842,7 +20842,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.152</div>
 </footer>
 </section>
 </main>
@@ -21387,12 +21387,6 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "s|Gui.ToolTip.State|Gui_ToolTip_State|The live tool tip of one application.",
 "v|Gui.ToolTip.State.sigLinkActivated|Gui_ToolTip_State_sigLinkActivated|Emitted when the reader activates a link inside the visible tip.",
 "s|Gui.UndoManager|Gui_UndoManager|Owns a linear undo/redo timeline with optional command grouping.",
-"s|Gui.AppearanceButton|Gui_AppearanceButton|Hosts the standard theme and language menu in an application title bar.",
-"v|Gui.AppearanceButton.appearanceTheme|Gui_AppearanceButton_appearanceTheme|Theme currently selected by the control.",
-"v|Gui.AppearanceButton.button|Gui_AppearanceButton_button|Embedded icon-button behavior and presentation.",
-"v|Gui.AppearanceButton.language|Gui_AppearanceButton_language|Registered language tag, or empty to follow the system.",
-"v|Gui.AppearanceButton.sigLanguageChanged|Gui_AppearanceButton_sigLanguageChanged|Emitted after the user changes the language.",
-"v|Gui.AppearanceButton.sigThemeChanged|Gui_AppearanceButton_sigThemeChanged|Emitted after the user changes the theme.",
 "s|Gui.BreadcrumbCtrl|Gui_BreadcrumbCtrl|Displays a horizontal path whose levels can be activated or expanded into child menus.",
 "v|Gui.BreadcrumbCtrl.arrowPad|Gui_BreadcrumbCtrl_arrowPad|Padding on each side of a child-menu arrow.",
 "v|Gui.BreadcrumbCtrl.iconGap|Gui_BreadcrumbCtrl_iconGap|Gap between an icon and its label.",
@@ -21747,6 +21741,12 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.RichEditUndo.styles|Gui_RichEditUndo_styles|Styles associated with this value.",
 "v|Gui.RichEditUndo.type|Gui_RichEditUndo_type|Type associated with this value.",
 "s|Gui.RichEditView|Gui_RichEditView|Paints a Gui.RichEditCtrl document and handles its direct input gestures.",
+"s|Gui.AppearanceButton|Gui_AppearanceButton|Hosts the standard theme and language menu in an application title bar.",
+"v|Gui.AppearanceButton.appearanceTheme|Gui_AppearanceButton_appearanceTheme|Theme currently selected by the control.",
+"v|Gui.AppearanceButton.button|Gui_AppearanceButton_button|Embedded icon-button behavior and presentation.",
+"v|Gui.AppearanceButton.language|Gui_AppearanceButton_language|Registered language tag, or empty to follow the system.",
+"v|Gui.AppearanceButton.sigLanguageChanged|Gui_AppearanceButton_sigLanguageChanged|Emitted after the user changes the language.",
+"v|Gui.AppearanceButton.sigThemeChanged|Gui_AppearanceButton_sigThemeChanged|Emitted after the user changes the theme.",
 "s|Gui.Button|Gui_Button|Provides shared pointer state, command-state integration, icons, and activation signals for buttons.",
 "v|Gui.Button.icon|Gui_Button_icon|Optional icon displayed by the concrete button.",
 "v|Gui.Button.iconHeight|Gui_Button_iconHeight|Explicit icon height, or zero to preserve the icon height.",
@@ -22926,9 +22926,6 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.SysUserEvent.TrayAction.Activate|Gui_SysUserEvent_TrayAction_Activate|The user activated the icon.",
 "k|Gui.SysUserEvent.TrayAction.ContextMenu|Gui_SysUserEvent_TrayAction_ContextMenu|The user requested the icon's context menu.",
 "k|Gui.SysUserEvent.TrayAction.None|Gui_SysUserEvent_TrayAction_None|The host interaction has no portable mapping.",
-"e|Gui.AppearanceTheme|Gui_AppearanceTheme|Selects one of the two palettes shipped by standard Swag applications.",
-"k|Gui.AppearanceTheme.Dark|Gui_AppearanceTheme_Dark|Uses the dark Swag palette.",
-"k|Gui.AppearanceTheme.Light|Gui_AppearanceTheme_Light|Uses the light Swag palette.",
 "e|Gui.ColorPickerFlags|Gui_ColorPickerFlags|Configures the channels available in a color picker control.",
 "k|Gui.ColorPickerFlags.All|Gui_ColorPickerFlags_All|Enables every optional channel.",
 "k|Gui.ColorPickerFlags.AllowAlpha|Gui_ColorPickerFlags_AllowAlpha|Enables alpha editing and ARGB hexadecimal input.",
@@ -23114,6 +23111,9 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.RichEditUndoType.Insert|Gui_RichEditUndoType_Insert|Selects insert.",
 "k|Gui.RichEditUndoType.Selection|Gui_RichEditUndoType_Selection|Selects selection.",
 "k|Gui.RichEditUndoType.Show|Gui_RichEditUndoType_Show|Selects show.",
+"e|Gui.AppearanceTheme|Gui_AppearanceTheme|Selects one of the two palettes shipped by standard Swag applications.",
+"k|Gui.AppearanceTheme.Dark|Gui_AppearanceTheme_Dark|Uses the dark Swag palette.",
+"k|Gui.AppearanceTheme.Light|Gui_AppearanceTheme_Light|Uses the light Swag palette.",
 "e|Gui.CheckButtonFlags|Gui_CheckButtonFlags|Configures check button interaction and marker placement.",
 "k|Gui.CheckButtonFlags.None|Gui_CheckButtonFlags_None|Uses a two-state button with a left-aligned marker.",
 "k|Gui.CheckButtonFlags.RightAligned|Gui_CheckButtonFlags_RightAligned|Places the marker at the right edge.",
@@ -23675,9 +23675,6 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.validateStrings|Gui_validateStrings|Decodes content against the string table type T without touching any live table.",
 "f|Gui.Wnd.exceedsDragThreshold|Gui_Wnd_exceedsDragThreshold|Whether the pointer has travelled far enough from where it was pressed to mean a drag.",
 "f|Gui.Wnd.startDrag|Gui_Wnd_startDrag|Carries data to whatever the pointer is released on, and returns what was done with it.",
-"f|Gui.AppearanceButton.create|Gui_AppearanceButton_create|Creates the standard application appearance action immediately before the native caption",
-"f|Gui.AppearanceButton.setAppearanceLanguage|Gui_AppearanceButton_setAppearanceLanguage|Applies a registered language tag, or follows the system when tag is empty, and optionally",
-"f|Gui.AppearanceButton.setAppearanceTheme|Gui_AppearanceButton_setAppearanceTheme|Applies theme and optionally reports a user-visible choice.",
 "f|Gui.BreadcrumbCtrl.addItem|Gui_BreadcrumbCtrl_addItem|Appends a level and returns its index.",
 "f|Gui.BreadcrumbCtrl.clear|Gui_BreadcrumbCtrl_clear|Removes every level and clears pointer interaction state.",
 "f|Gui.BreadcrumbCtrl.create|Gui_BreadcrumbCtrl_create|Creates an empty breadcrumb control.",
@@ -24002,6 +23999,9 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.RichEditLine.setLexerState|Gui_RichEditLine_setLexerState|Replaces the lexer-defined state and returns whether it changed.",
 "f|Gui.RichEditLine.setStyleAt|Gui_RichEditLine_setStyleAt|Assigns style to the rune at index.",
 "f|Gui.RichEditLine.styleAt|Gui_RichEditLine_styleAt|Returns the syntax style assigned at index.",
+"f|Gui.AppearanceButton.create|Gui_AppearanceButton_create|Creates the standard application appearance action immediately before the native caption",
+"f|Gui.AppearanceButton.setAppearanceLanguage|Gui_AppearanceButton_setAppearanceLanguage|Applies a registered language tag, or follows the system when tag is empty, and optionally",
+"f|Gui.AppearanceButton.setAppearanceTheme|Gui_AppearanceButton_setAppearanceTheme|Applies theme and optionally reports a user-visible choice.",
 "f|Gui.Button.clearIcon|Gui_Button_clearIcon|Removes the displayed icon and repaints the button.",
 "f|Gui.Button.setIcon|Gui_Button_setIcon|Replaces the displayed icon and repaints the button.",
 "f|Gui.Button.setIconSize|Gui_Button_setIconSize|Overrides the icon draw size; zero on either axis preserves that axis from the icon descriptor.",

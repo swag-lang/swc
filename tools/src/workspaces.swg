@@ -16,7 +16,6 @@ public func runStd(context: *Context, options: *Options)->s32 fail
     if !options.module.isEmpty() do
         arguments.add(["--workspace-module", options.module.toString()])
 
-    options.appendWorkspace(&arguments)
     options.appendExtra(&arguments)
 
     let built = try context.runCompiler(arguments)

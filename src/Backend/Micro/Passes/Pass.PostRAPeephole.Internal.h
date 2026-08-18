@@ -26,7 +26,7 @@ namespace PostRaPeephole
 
     struct Context : MicroPeephole::RewriteQueue<Action>
     {
-        const Encoder* encoder = nullptr;
+        const Encoder* encoder        = nullptr;
         MicroReg       stackPointer   = MicroReg::invalid();
         MicroReg       framePointer   = MicroReg::invalid();
         MicroReg       localStackBase = MicroReg::invalid();

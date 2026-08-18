@@ -337,8 +337,8 @@ namespace
     Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef, bool& outBindsValueAddress)
     {
         outBindsValueAddress = false;
-        bool sourceIsConst = false;
-        bool sourceIsEnum  = false;
+        bool sourceIsConst   = false;
+        bool sourceIsEnum    = false;
 
         if (const SymbolEnum* symEnum = enumTypeExprSymbol(sema, exprView))
         {

@@ -452,7 +452,7 @@ private:
     bool                                           deferNativeLink_        = false;
     std::unique_ptr<NativeBackendBuilder>          deferredBuilder_;
     Utf8                                           lastArtifactLabel_;
-    bool                                           nativeArtifactBuilt_          = false;
+    bool                                           nativeArtifactBuilt_ = false;
     WorkspaceBuildLogState                         workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>         workspaceModuleLogState_;
     bool                                           suppressBuildConfigurationLog_ = false;
@@ -521,7 +521,7 @@ private:
     std::once_flag                                                                                               nativeProcessInfosOffsetOnce_;
     uint32_t                                                                                                     nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     uint32_t                                                                                                     nativeProcessInfosOffset_        = UINT32_MAX;
-    bool                                                                                                         processInfosRunArgsReady_ = false;
+    bool                                                                                                         processInfosRunArgsReady_        = false;
     std::vector<SymbolFunction*>                                                                                 nativeCodeSegment_;
     std::unordered_set<SymbolFunction*>                                                                          nativeCodeSegmentSet_;
     std::vector<SymbolFunction*>                                                                                 nativeTestFunctions_;

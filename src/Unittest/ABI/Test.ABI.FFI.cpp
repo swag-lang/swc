@@ -3,6 +3,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -53,6 +54,36 @@ namespace
         return Result::Continue;
     }
 }
+
+// An addressed narrow integer may need a register home slot when another argument travels on the
+// stack. Loading the ABI-sized home must not widen the source memory access past the integer itself.
+SWC_TEST_BEGIN(ABI_AddressedNarrowIntegerHomeUsesNarrowLoad)
+{
+    constexpr MicroReg narrowAddress = MicroReg::virtualIntReg(100);
+    const std::array   args          = {
+        ABICall::PreparedArg{.srcReg = narrowAddress, .isSigned = true, .isAddressed = true, .numBits = 32},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualIntReg(101), .numBits = 64},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualIntReg(102), .numBits = 64},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualIntReg(103), .numBits = 64},
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualIntReg(104), .numBits = 64},
+    };
+
+    MicroBuilder builder(ctx);
+    ABICall::prepareArgs(builder, CallConvKind::Swag, args);
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadSignedExtRegMem)
+            continue;
+
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (ops[1].reg == narrowAddress && ops[2].opBits == MicroOpBits::B64 && ops[3].opBits == MicroOpBits::B32)
+            return Result::Continue;
+    }
+
+    return Result::Error;
+}
+SWC_TEST_END()
 
 namespace
 {

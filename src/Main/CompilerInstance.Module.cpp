@@ -1750,9 +1750,9 @@ struct ModuleSetupInputApplier
     // by both the processImports walk and the collectDependencyClosure walk (and by multiple
     // importers of a shared dependency). Cache the resulting import list keyed by the resolved .dep
     // path so each metadata file is captured at most once per setup.
-    Result      captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
-    Result      collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot);
-    Result      processImports(std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot, bool recordDirectImports);
+    Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
+    Result collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot);
+    Result processImports(std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot, bool recordDirectImports);
 
     CompilerInstance& instance() const
     {
@@ -2415,7 +2415,7 @@ ExitCode CompilerInstance::runWorkspace()
     fs::path       modulesPath   = workspaceModulesDirectory(workspacePath);
     Utf8           because;
 
-    workspaceBuildLogState_ = {};
+    workspaceBuildLogState_  = {};
     const size_t testsBefore = Stats::get().numTests.load(std::memory_order_relaxed);
 
     if (FileSystem::resolveExistingFolder(modulesPath, because) != Result::Continue)

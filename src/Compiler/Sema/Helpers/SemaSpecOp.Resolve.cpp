@@ -990,7 +990,7 @@ namespace
                 // taking its address; the pointer-world receiver binds the same way, so a
                 // non-pointer operand passes its ADDRESS (loading its first bytes as the
                 // receiver pointer would index through the operand's leading field).
-                const SemaNodeView operandView       = sema.viewNodeTypeSymbol(exprRef);
+                const SemaNodeView operandView      = sema.viewNodeTypeSymbol(exprRef);
                 const bool         operandIsPointee = !operandView.type() ||
                                               (!operandView.type()->isReference() && !operandView.type()->isAnyPointer());
                 if (receiverType->isReference())
@@ -1557,8 +1557,7 @@ namespace
         // 'opIndexPtr' calls are never const-evaluated: the returned pointer is an address
         // into runtime storage. They do inline — the call payload then carries the element
         // address computed by the inlined body, and codegen re-tags it like a reference return.
-        const auto tryResolveIndexSet = [&](SmallVector<Symbol*>& set, bool allowConstEval, bool allowInline) -> Result
-        {
+        const auto tryResolveIndexSet = [&](SmallVector<Symbol*>& set, bool allowConstEval, bool allowInline) -> Result {
             if (set.empty() || matched)
                 return Result::Continue;
 

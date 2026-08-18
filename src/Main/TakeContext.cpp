@@ -35,15 +35,15 @@ TaskContext& TaskContext::operator=(const TaskContext& other)
     if (this == &other)
         return *this;
 
-    global_               = other.global_;
-    cmdLine_              = other.cmdLine_;
-    compilerInstance_     = other.compilerInstance_;
-    silentDiagnostic_     = other.silentDiagnostic_;
-    reportToStats_        = other.reportToStats_;
-    muteOutput_           = other.muteOutput_;
-    hasError_             = other.hasError_;
-    hasWarning_           = other.hasWarning_;
-    state_                = other.state_;
+    global_           = other.global_;
+    cmdLine_          = other.cmdLine_;
+    compilerInstance_ = other.compilerInstance_;
+    silentDiagnostic_ = other.silentDiagnostic_;
+    reportToStats_    = other.reportToStats_;
+    muteOutput_       = other.muteOutput_;
+    hasError_         = other.hasError_;
+    hasWarning_       = other.hasWarning_;
+    state_            = other.state_;
     genericNodeRunCache_.reset();
     genericInstanceNodeRunCache_.reset();
     genericImplBlockRunCache_.reset();

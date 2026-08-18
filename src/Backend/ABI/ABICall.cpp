@@ -340,8 +340,16 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 case PreparedArgKind::Direct:
                     if (arg.isAddressed)
                     {
-                        builder.emitLoadRegMem(regTmp, arg.srcReg, 0, argBits);
-                        builder.emitLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
+                        if (arg.isFloat)
+                        {
+                            builder.emitLoadRegMem(regTmp, arg.srcReg, 0, argBits);
+                            builder.emitLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
+                        }
+                        else
+                        {
+                            loadCanonicalIntFromMemToReg(builder, regTmp, arg.srcReg, 0, arg.numBits, arg.isSigned);
+                            builder.emitLoadMemReg(conv.stackPointer, stackOffset, regTmp, MicroOpBits::B64);
+                        }
                     }
                     else
                     {

@@ -99,7 +99,7 @@ public struct InlineView
     layoutWidth:  f32
     layoutHeight: f32
     hotAtom:      #null *InlineAtom
-    horizontalAlignment         = StringHorzAlignment.Left
+    horizontalAlignment = StringHorzAlignment.Left
 }
 
 impl InlineView

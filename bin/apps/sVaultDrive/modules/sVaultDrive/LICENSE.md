@@ -1,13 +1,13 @@
-# Licence de sVaultDrive
+# sVaultDrive License
 
 Copyright (C) 2026 sVaultDrive contributors
 
-sVaultDrive est un logiciel libre : vous pouvez le redistribuer et/ou le modifier selon les termes de
-la GNU General Public License publiée par la Free Software Foundation, soit la version 3 de la
-licence, soit (à votre choix) toute version ultérieure.
+sVaultDrive is free software: you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, either version 3 of the License,
+or (at your option) any later version.
 
-sVaultDrive est distribué dans l’espoir qu’il sera utile, mais SANS AUCUNE GARANTIE ; sans même la
-garantie implicite de QUALITÉ MARCHANDE ou d’ADÉQUATION À UN USAGE PARTICULIER.
+sVaultDrive is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-Le texte complet de la GNU GPL version 3 est inclus dans
-`vendor/winfsp/LICENSE.txt`, après l’exception de licence propre à WinFsp.
+The complete GNU GPL version 3 text is included in `vendor/winfsp/LICENSE.txt`, after WinFsp's own
+license exception.

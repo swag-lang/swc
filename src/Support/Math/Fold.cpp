@@ -111,7 +111,7 @@ namespace Math
 
     FoldStatus foldBinaryInt(ApsInt& outResult, const ApsInt& left, const ApsInt& right, FoldBinaryOp op, const FoldBinaryIntOptions& options)
     {
-        outResult = left;
+        outResult          = left;
         const bool isShift = op == FoldBinaryOp::ShiftLeft || op == FoldBinaryOp::ShiftRight || op == FoldBinaryOp::ShiftArithmeticRight;
         if (!isShift && outResult.isUnsigned() != right.isUnsigned())
             return FoldStatus::Unsupported;

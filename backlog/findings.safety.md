@@ -76,7 +76,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   condition on the receiver only when the negative stays silent. The open question is whether the
   caller's views must be considered at all: the callee cannot see them, so the judgement may belong
   entirely at the call site, where it already works.
-- Related: [F-041](#f-041--a-view-is-judged-by-source-order-not-by-control-flow)
+- Related: [F-041](#f-041--a-read-reached-only-by-a-loops-back-edge-is-missed)
 
 ### F-089 — A borrow rule judged per body is silent inside a macro or an inline expansion
 

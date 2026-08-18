@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Runtime.h"
+#include "Doc/DocApi.h"
 #include "Doc/DocGenerator.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
@@ -458,6 +459,26 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!content.contains("id=\"namespace_Compiler_doc_test_DocApi\"") || !content.contains("Public API declared directly in"))
         return Result::Error;
+
+    // A namespace can be reopened from several files, so its merged symbol has no canonical
+    // declaration site. Rendering it as a runtime item must not expose whichever source happened
+    // to finish sema last.
+    if (compiler.files().empty())
+        return Result::Error;
+    DocApiDocument runtimeNamespaceDocument;
+    DocItem        runtimeNamespaceItem;
+    runtimeNamespaceItem.kind        = DocItemKind::Namespace;
+    runtimeNamespaceItem.fullName    = "Compiler_doc_test.DocApi";
+    runtimeNamespaceItem.displayName = "Compiler_doc_test.DocApi";
+    runtimeNamespaceItem.overloads.push_back({.file = compiler.files().front(), .sourceLine = 1});
+    runtimeNamespaceDocument.items.push_back(std::move(runtimeNamespaceItem));
+    DocApi::renderApiDocument(compilerCtx, runtimeNamespaceDocument, {}, true);
+    const size_t namespaceItemStart = runtimeNamespaceDocument.content.find("<div class=\"api-item api-item-namespace\">");
+    const size_t namespaceItemEnd   = runtimeNamespaceDocument.content.find("</div>", namespaceItemStart);
+    if (namespaceItemStart == std::string_view::npos || namespaceItemEnd == std::string_view::npos ||
+        runtimeNamespaceDocument.content.find("api-item-title-src-ref", namespaceItemStart) < namespaceItemEnd)
+        return Result::Error;
+
     const size_t counterItem    = content.find("id=\"Compiler_doc_test_DocApi_Counter\"");
     const size_t counterSummary = content.find("id=\"Compiler_doc_test_DocApi_Counter_methods\"", counterItem);
     const size_t counterMethod  = content.find("id=\"Compiler_doc_test_DocApi_Counter_increment\"");

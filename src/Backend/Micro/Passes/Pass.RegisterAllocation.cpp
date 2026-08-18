@@ -796,7 +796,7 @@ void MicroRegisterAllocationPass::computeGlobalAccessBenefits(std::vector<uint64
 
     for (uint32_t idx = 0; idx < instructionUseDefs_.size(); ++idx)
     {
-        const uint32_t depth = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
+        const uint32_t depth  = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
         uint64_t       weight = 1;
         for (uint32_t level = 0; level < std::min(depth, K_MAX_WEIGHT_DEPTH); ++level)
             weight *= K_DEPTH_WEIGHT;
@@ -1176,7 +1176,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // is worth it for the values that dominate a hot loop; handing one to every candidate that
     // merely earns something starves the local allocator instead, because a hull holds its
     // register across its holes as well.
-    const auto maxDensityIt = std::ranges::max_element(candidates, {}, &GlobalCandidate::density);
+    const auto     maxDensityIt         = std::ranges::max_element(candidates, {}, &GlobalCandidate::density);
     const uint64_t spanScopedMinDensity = maxDensityIt->density / K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     // The local allocator must keep enough of each class to satisfy the worst
@@ -1223,8 +1223,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         // dedicated register instead of consuming one of the general global
         // carriers while the dedicated register sits idle.
         const MicroReg localStackBaseReg = conv_->preferredLocalStackBaseReg();
-        const bool     isLocalStackBase   = context_->debugStackBaseVirtualReg.isValid() &&
-                                           vreg == context_->debugStackBaseVirtualReg;
+        const bool     isLocalStackBase  = context_->debugStackBaseVirtualReg.isValid() &&
+                                      vreg == context_->debugStackBaseVirtualReg;
         if (isLocalStackBase &&
             localStackBaseReg.isValid() &&
             !isPhysRegForbiddenForVirtual(vreg, localStackBaseReg) &&
@@ -1234,10 +1234,10 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             addGlobalRange(localStackBaseReg, lo, hi, cand.denseIndex);
             appendUniqueReg(context_->globalReservedRegs, localStackBaseReg);
 
-            auto& regState  = states_[cand.denseIndex];
-            regState.pinned = true;
-            regState.mapped = false;
-            regState.phys   = localStackBaseReg;
+            auto& regState                  = states_[cand.denseIndex];
+            regState.pinned                 = true;
+            regState.mapped                 = false;
+            regState.phys                   = localStackBaseReg;
             context_->debugStackBasePhysReg = localStackBaseReg;
             continue;
         }

@@ -23,7 +23,7 @@ Qt makes you build it yourself, and most toolkits never ship one.
 Underneath: a two-pass measure and arrange layout engine, per-monitor DPI awareness with a vector
 theme atlas rasterized per scale, list virtualization through `virtualCount` and
 `onFillVirtualLine`, an action and command system with automatic state updates, an undo manager,
-keyboard traversal of a whole surface in reading order, and a headless test host with fifty-one
+keyboard traversal of a whole surface in reading order, and a headless test host with fifty-nine
 test files and command-stream visual regression goldens.
 
 That is a real toolkit. The gaps below are not about widget count.

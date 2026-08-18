@@ -739,7 +739,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
             {
                 // A read-only capture is repaired in the capture list, not at the declaration the
                 // copy came from, so it gets its own message and points at the capture.
-                const auto* symVar = leftView.sym()->safeCast<SymbolVariable>();
+                const auto* symVar  = leftView.sym()->safeCast<SymbolVariable>();
                 const bool  capture = symVar && symVar->isClosureCapture();
 
                 auto diag = SemaError::report(sema, capture ? DiagnosticId::sema_err_assign_to_capture : DiagnosticId::sema_err_assign_to_let, leftExprRef);

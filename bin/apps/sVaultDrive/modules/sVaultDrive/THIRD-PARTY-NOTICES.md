@@ -1,16 +1,16 @@
-# Composants tiers
+# Third-Party Components
 
 ## WinFsp 2.2.26215 (2026 Beta 4)
 
 WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos
 
-- Projet : <https://github.com/winfsp/winfsp>
-- Site : <https://winfsp.dev/>
-- Licence : GNU GPLv3 avec exception FLOSS, reproduite dans `vendor/winfsp/LICENSE.txt`
-- Paquet officiel inchangé : `winfsp-2.2.26215.msi`
-- SHA-256 : `2ECB5C89405488A95BBD8A01875E02C48534FD37BBDFD84488F7590464D65944`
+- Project: <https://github.com/winfsp/winfsp>
+- Website: <https://winfsp.dev/>
+- License: GNU GPLv3 with the FLOSS exception, reproduced in `vendor/winfsp/LICENSE.txt`
+- Unmodified official package: `winfsp-2.2.26215.msi`
+- SHA-256: `2ECB5C89405488A95BBD8A01875E02C48534FD37BBDFD84488F7590464D65944`
 
-Le paquet est signé par NAVIMATICS LLC. Le pilote x64 qu’il contient est signé par Microsoft
-Windows Hardware Compatibility Publisher. sVaultDrive l’extrait dans le dossier temporaire de
-l’utilisateur, l’enregistre sous une identité side-by-side propre à sVaultDrive pendant le montage,
-puis le désenregistre et supprime les fichiers temporaires lors du démontage normal.
+The package is signed by NAVIMATICS LLC. Its x64 driver is signed by Microsoft Windows Hardware
+Compatibility Publisher. sVaultDrive extracts it to the user's temporary directory, registers it
+under an sVaultDrive-specific side-by-side identity while a volume is mounted, then unregisters it
+and removes the temporary files during a normal unmount.

@@ -11,6 +11,7 @@ private struct BacklogEntry
     observation: bool
     evidence:    bool
     nextStep:    bool
+    elsewhere:   bool
 }
 
 private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
@@ -26,7 +27,7 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
     return {value, pos}
 }
 
-private func reportFindingFields(fileName: string, entry: *BacklogEntry)->u32
+private func reportFindingFields(fileName: string, entry: *BacklogEntry, language: bool)->u32
 {
     var errors: u32
     if !entry.area
@@ -59,10 +60,16 @@ private func reportFindingFields(fileName: string, entry: *BacklogEntry)->u32
         errors += 1
     }
 
+    if language and !entry.elsewhere
+    {
+        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Elsewhere:' field")
+        errors += 1
+    }
+
     return errors
 }
 
-private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'String, maxFinding: *u32, maxTodo: *u32)->u32 fail
+private func auditBacklogFile(fileName: string, findings: bool, language: bool, seen: *HashSet'String, maxFinding: *u32, maxTodo: *u32)->u32 fail
 {
     let content    = try File.readAllText(fileName)
     var errors:   u32
@@ -83,13 +90,14 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
                 entry.observation = entry.observation or Utf8.startsWith(cast(const [..] u8) line, "- Observation:")
                 entry.evidence    = entry.evidence or Utf8.startsWith(cast(const [..] u8) line, "- Evidence:")
                 entry.nextStep    = entry.nextStep or Utf8.startsWith(cast(const [..] u8) line, "- Next step:")
+                entry.elsewhere   = entry.elsewhere or Utf8.startsWith(cast(const [..] u8) line, "- Elsewhere:")
             }
 
             continue
         }
 
         if findings and haveEntry do
-            errors += reportFindingFields(fileName, &entry)
+            errors += reportFindingFields(fileName, &entry, language)
 
         let expected = findings ? "### F-" : "### T-"
         if !Utf8.startsWith(cast(const [..] u8) line, expected)
@@ -137,7 +145,7 @@ private func auditBacklogFile(fileName: string, findings: bool, seen: *HashSet'S
     }
 
     if findings and haveEntry do
-        errors += reportFindingFields(fileName, &entry)
+        errors += reportFindingFields(fileName, &entry, language)
     return errors
 }
 
@@ -149,6 +157,97 @@ private func readCounter(readme: string, kind: u8)->u32
     if start == Swag.U64.Max do
         return 0
     return parseDecimal(readme, start + @countof(prefix)).value
+}
+
+private func markdownHeadingAnchor(line: string)->String
+{
+    var result: retval
+    Utf8.visitRunes(cast(const [..] u8) line[4 until @countof(line)]) #code(c, charIndex, byteIndex)
+    {
+        discard charIndex
+        discard byteIndex
+        if Unicode.isLetterOrDigit(c) do
+            result += Unicode.toLower(c)
+        elif c == '-' or c == '_' do
+            result += c
+        elif c == ' ' do
+            result += '-'
+    }
+
+    return result
+}
+
+private func hasMarkdownHeading(fileName: string, anchor: string)->bool fail
+{
+    let content = try File.readAllText(fileName)
+    for line in Tokenize.splitLines(content.toString())
+    {
+        if Utf8.startsWith(cast(const [..] u8) line, "### ") and markdownHeadingAnchor(line) == anchor do
+            return true
+    }
+
+    return false
+}
+
+private func auditBacklogLink(fileName: string, lineNumber: u64, destination: string)->u32 fail
+{
+    if Utf8.startsWith(cast(const [..] u8) destination, "https://") or Utf8.startsWith(cast(const [..] u8) destination, "http://") or Utf8.startsWith(cast(const [..] u8) destination, "mailto:") do
+        return 0
+
+    let hash = Utf8.indexOf(cast(const [..] u8) destination, "#")
+    let path = hash == Swag.U64.Max ? destination : destination[0 until hash]
+
+    var target = @countof(path) == 0 ? String.from(fileName) : Path.combine(Path.directoryName(fileName) orelse "", path)
+    Path.normalize(&target)
+    if !File.exists(target.toString()) and !Directory.exists(target.toString())
+    {
+        Console.println("error: ", fileName, ":", lineNumber, ": backlog link target '", destination, "' is missing")
+        return 1
+    }
+
+    if hash == Swag.U64.Max do
+        return 0
+
+    var anchor = String.from(destination[hash + 1 until @countof(destination)])
+    anchor = anchor.toLower()
+    let sourceLineAnchor = @countof(anchor.toString()) > 1 and anchor[0] == 'l' and Latin1.isDigit(anchor[1])
+    if anchor.isEmpty() or sourceLineAnchor or (Path.extension(target.toString()) orelse "") != ".md" do
+        return 0
+    if try hasMarkdownHeading(target.toString(), anchor.toString()) do
+        return 0
+
+    Console.println("error: ", fileName, ":", lineNumber, ": backlog link fragment '", anchor.toString(), "' has no matching heading in '", path, "'")
+    return 1
+}
+
+private func auditBacklogLinks(fileName: string)->u32 fail
+{
+    let content    = try File.readAllText(fileName)
+    var errors: u32
+    var lineNumber = 0'u64
+
+    for line in Tokenize.splitLines(content.toString())
+    {
+        lineNumber += 1
+        var offset = 0'u64
+        while offset < @countof(line)
+        {
+            let marker = Utf8.indexOf(cast(const [..] u8) line[offset until @countof(line)], "](")
+            if marker == Swag.U64.Max do
+                break
+
+            let start = offset + marker + 2
+            let close = Utf8.indexOf(cast(const [..] u8) line[start until @countof(line)], ")")
+            if close == Swag.U64.Max do
+                break
+
+            let end = start + close
+            errors += try auditBacklogLink(fileName, lineNumber, line[start until end])
+            offset = end + 1
+        }
+    }
+
+    return errors
 }
 
 // Checks the permanent backlog contract before every repository test campaign.
@@ -169,6 +268,7 @@ public func auditBacklog(context: *Context)->s32 fail
         let name     = Path.fileName(file.fullname.toString()) orelse ""
         let findings = Utf8.startsWith(cast(const [..] u8) name, "findings.")
         let todos    = Utf8.startsWith(cast(const [..] u8) name, "todo.")
+        let language = name == "findings.language.md"
         if !findings and !todos do
             continue
 
@@ -178,7 +278,8 @@ public func auditBacklog(context: *Context)->s32 fail
             errors += 1
         }
 
-        errors += try auditBacklogFile(file.fullname.toString(), findings, &seen, &maxFinding, &maxTodo)
+        errors += try auditBacklogFile(file.fullname.toString(), findings, language, &seen, &maxFinding, &maxTodo)
+        errors += try auditBacklogLinks(file.fullname.toString())
     }
 
     let nextFinding = readCounter(readme.toString(), 'F')

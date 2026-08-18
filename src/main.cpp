@@ -26,7 +26,7 @@ namespace
     void removeOwnDefaultSandboxRoot()
     {
         std::error_code ec;
-        const fs::path root = swc::Os::getTemporaryPath() / "swag-sandbox" / std::format("run-{}", swc::Os::currentProcessId());
+        const fs::path  root = swc::Os::getTemporaryPath() / "swag-sandbox" / std::format("run-{}", swc::Os::currentProcessId());
         fs::remove_all(root, ec);
     }
 

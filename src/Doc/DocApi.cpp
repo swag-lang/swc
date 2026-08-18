@@ -113,7 +113,7 @@ namespace
     std::vector<DocSearchEntry> collectSearchEntries(const DocApiDocument& document)
     {
         std::vector<DocSearchEntry> entries;
-        size_t memberCount = 0;
+        size_t                      memberCount = 0;
         for (const DocItem& item : document.items)
             memberCount += item.members.size();
         entries.reserve(document.items.size() + memberCount + document.namespaceNames.size() + document.guides.size());

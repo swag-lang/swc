@@ -671,9 +671,12 @@ namespace
         if (item.overloads.empty())
             return;
 
-        const DocOverload& first  = item.overloads.front();
-        const Utf8         link   = sourceLink(renderCtx.ctx->compiler(), sourcePaths, first, runtime);
-        const Utf8         anchor = DocMarkdown::makeAnchor(item.fullName);
+        const DocOverload& first = item.overloads.front();
+        // A namespace can be reopened by any number of source files. Its merged symbol does not
+        // have one meaningful declaration site, and parallel sema completion can leave any of
+        // those declarations on the symbol. Do not publish an arbitrary, unstable source link.
+        const Utf8 link   = item.kind == DocItemKind::Namespace ? Utf8{} : sourceLink(renderCtx.ctx->compiler(), sourcePaths, first, runtime);
+        const Utf8 anchor = DocMarkdown::makeAnchor(item.fullName);
 
         content += "<section class=\"api-symbol\">\n";
         content.append(std::format("<div class=\"api-item api-item-{}\">", itemKindClass(item.kind)));

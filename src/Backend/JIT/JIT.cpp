@@ -174,7 +174,7 @@ namespace
         // Constexpr evaluation can enter imported modules from several sema workers at once.
         // Their hooks own process-wide DLL lifecycle state: one worker must finish Init and
         // PreMain before another worker can observe or refresh that state.
-        static std::mutex runtimeHookMutex;
+        static std::mutex      runtimeHookMutex;
         const std::scoped_lock lock(runtimeHookMutex);
 
         const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;

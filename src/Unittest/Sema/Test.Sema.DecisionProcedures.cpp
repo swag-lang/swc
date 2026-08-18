@@ -2,7 +2,6 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -11,6 +10,7 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Compiler/SourceFile.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
@@ -29,10 +29,10 @@ namespace
             SWC_UNUSED(root);
             sourceFile.ast().setRoot(rootRef);
 
-            constexpr SymbolFlags namespaceFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+            constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
             auto*                 module          = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-            const IdentifierRef   namespaceId      = ctx.idMgr().addIdentifierOwned(std::format("SemaDecision_{}", testName));
-            auto*                 moduleNamespace  = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), namespaceId, namespaceFlags);
+            const IdentifierRef   namespaceId     = ctx.idMgr().addIdentifierOwned(std::format("SemaDecision_{}", testName));
+            auto*                 moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), namespaceId, namespaceFlags);
             module->addSingleSymbol(ctx, moduleNamespace);
             sourceFile.setModuleNamespace(*moduleNamespace);
             sourceFile.setFileNamespace(*moduleNamespace);
@@ -200,7 +200,7 @@ SWC_TEST_BEGIN(Sema_GenericDeductionBindingHandlesConflictsAndDefaults)
         }
 
         CastFailure failure;
-        const bool result = SemaGeneric::Internal::bindGenericTypeParam(sema, std::span{&typeParam, 1}, resolvedArgs, typeId, AstNodeRef::invalid(), 2, test.incoming, &failure, test.mode);
+        const bool  result = SemaGeneric::Internal::bindGenericTypeParam(sema, std::span{&typeParam, 1}, resolvedArgs, typeId, AstNodeRef::invalid(), 2, test.incoming, &failure, test.mode);
         if (result != test.expectedResult || resolvedArgs[0].typeRef != test.expectedType || failure.diagId != test.expectedDiagnostic)
             return Result::Error;
         if (!resolvedArgs[0].present)
@@ -244,7 +244,7 @@ SWC_TEST_BEGIN(Sema_GenericDeductionBindingHandlesConflictsAndDefaults)
         }
 
         CastFailure failure;
-        const bool result = SemaGeneric::Internal::bindGenericValueParam(sema, std::span{&valueParam, 1}, resolvedArgs, valueId, AstNodeRef::invalid(), 2, test.incoming, typeMgr.typeS32(), &failure, test.mode);
+        const bool  result = SemaGeneric::Internal::bindGenericValueParam(sema, std::span{&valueParam, 1}, resolvedArgs, valueId, AstNodeRef::invalid(), 2, test.incoming, typeMgr.typeS32(), &failure, test.mode);
         if (result != test.expectedResult || resolvedArgs[0].cstRef != test.expectedValue || failure.diagId != test.expectedDiagnostic)
             return Result::Error;
         if (!resolvedArgs[0].present)

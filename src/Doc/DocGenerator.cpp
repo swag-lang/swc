@@ -233,8 +233,8 @@ namespace
             hasOpenItem = true;
             content.append(std::format("<h{} id=\"{}\">{}</h{}>\n", level + 1, anchor, Utf8Helper::escapeHtml(title), level + 1));
 
-            DocRenderContext fileRenderCtx          = renderCtx;
-            fileRenderCtx.headingAnchorPrefix       = anchor;
+            DocRenderContext fileRenderCtx    = renderCtx;
+            fileRenderCtx.headingAnchorPrefix = anchor;
             if (file->path().extension() == ".md")
                 content += DocMarkdown::renderLines(fileRenderCtx, Utf8Helper::splitLines(file->sourceView()), level + 1);
             else

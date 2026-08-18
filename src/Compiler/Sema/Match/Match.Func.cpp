@@ -1968,14 +1968,14 @@ namespace
 
     int compareCandidatesIgnoringReceiver(const Candidate& a, const Candidate& b)
     {
-        const uint32_t aStart        = a.ufcsUsed ? 1 : 0;
-        const uint32_t bStart        = b.ufcsUsed ? 1 : 0;
-        const auto     na            = static_cast<uint32_t>(a.perArg.size());
-        const auto     nb            = static_cast<uint32_t>(b.perArg.size());
-        const uint32_t aExplicitArgs = na > aStart ? na - aStart : 0;
-        const uint32_t bExplicitArgs = nb > bStart ? nb - bStart : 0;
-        const Match::FunctionCandidateRanking aRanking = {a.perArg.span().subspan(aStart, aExplicitArgs), a.usedDefaults, candidateUsesGenericInstance(a)};
-        const Match::FunctionCandidateRanking bRanking = {b.perArg.span().subspan(bStart, bExplicitArgs), b.usedDefaults, candidateUsesGenericInstance(b)};
+        const uint32_t                        aStart        = a.ufcsUsed ? 1 : 0;
+        const uint32_t                        bStart        = b.ufcsUsed ? 1 : 0;
+        const auto                            na            = static_cast<uint32_t>(a.perArg.size());
+        const auto                            nb            = static_cast<uint32_t>(b.perArg.size());
+        const uint32_t                        aExplicitArgs = na > aStart ? na - aStart : 0;
+        const uint32_t                        bExplicitArgs = nb > bStart ? nb - bStart : 0;
+        const Match::FunctionCandidateRanking aRanking      = {a.perArg.span().subspan(aStart, aExplicitArgs), a.usedDefaults, candidateUsesGenericInstance(a)};
+        const Match::FunctionCandidateRanking bRanking      = {b.perArg.span().subspan(bStart, bExplicitArgs), b.usedDefaults, candidateUsesGenericInstance(b)};
         return Match::compareFunctionCandidateRankings(aRanking, bRanking);
     }
 
@@ -3115,7 +3115,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     SWC_RESULT(sema.waitTyped(selectedFn, sema.node(nodeCallee.nodeRef()).codeRef()));
 
     CallArgMapping mapping;
-    MatchFailure          mappingFail;
+    MatchFailure   mappingFail;
     if (!buildCallArgMapping(sema, *selectedFn, args, appliedUfcsArg, mapping, mappingFail))
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
 

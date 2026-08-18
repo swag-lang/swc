@@ -1094,7 +1094,7 @@ namespace
             if (arg.passUfcsAddressAsPointer && !argPayload.isAddress() && !argPayload.hasMaterializedPointerLikeValue() && argPayload.reg.isValid())
             {
                 const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
-                const TypeRef   pointeeTypeRef  = normalizedType.isAnyPointer() ? normalizedType.payloadTypeRef() : TypeRef::invalid();
+                const TypeRef   pointeeTypeRef = normalizedType.isAnyPointer() ? normalizedType.payloadTypeRef() : TypeRef::invalid();
                 if (pointeeTypeRef.isValid())
                 {
                     const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);

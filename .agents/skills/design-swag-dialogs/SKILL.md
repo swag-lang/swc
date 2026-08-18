@@ -120,7 +120,7 @@ given an inset apiece they line up on none, and the difference between two paddi
 the kind of near-miss a reader sees without being able to name.
 
 The same rule holds inside a stack:
-[`StackLayoutCtrl`](../../../bin/std/modules/gui/src/composite/stacklayoutctrl.swg) centers the
+[`StackLayoutCtrl`](../../../bin/std/modules/gui/src/controls/composite/stacklayoutctrl.swg) centers the
 axis it is named for and leaves the other alone. A heading and a paragraph stacked with
 `VerticalCenter` are centered vertically **as a group** and both start on the stack's left edge —
 centered individually, each hugs its own text and the box reads as set on nothing.

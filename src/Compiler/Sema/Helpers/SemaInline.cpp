@@ -1571,9 +1571,9 @@ namespace
             const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
             if (parentAst)
             {
-                const AstNode& parentNode  = parentAst->node(parentRef);
-                const bool     memberBase  = parentNode.is(AstNodeId::MemberAccessExpr) &&
-                                             parentNode.cast<AstMemberAccessExpr>().nodeLeftRef == nodeRef;
+                const AstNode& parentNode = parentAst->node(parentRef);
+                const bool     memberBase = parentNode.is(AstNodeId::MemberAccessExpr) &&
+                                        parentNode.cast<AstMemberAccessExpr>().nodeLeftRef == nodeRef;
                 if (!memberBase)
                     return true;
             }
@@ -1695,7 +1695,7 @@ namespace
     // gets a call-site home for the address to point into.
     Result makeInlineAddressHome(Sema& sema, AstNodeRef& ioInitRef, TypeRef paramTypeRef, TypeRef sourceTypeRef, bool attachStorage)
     {
-        ioInitRef = Cast::createCastNode(sema, paramTypeRef, ioInitRef);
+        ioInitRef                                                                      = Cast::createCastNode(sema, paramTypeRef, ioInitRef);
         SemaHelpers::ensureCodeGenLoweringPayload(sema, ioInitRef).ufcsReceiverAddress = true;
         if (attachStorage && !sema.isGlobalScope())
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, ioInitRef, sema.node(ioInitRef), sourceTypeRef, "__call_arg_ptr_storage"));
@@ -1790,9 +1790,9 @@ namespace
     // The callee side of an expansion: what every binding is classified against.
     struct InlineBindingContext
     {
-        const SymbolFunction*  fn               = nullptr;
-        const Ast*             sourceAst        = nullptr;
-        const AstFunctionDecl* decl             = nullptr;
+        const SymbolFunction*  fn        = nullptr;
+        const Ast*             sourceAst = nullptr;
+        const AstFunctionDecl* decl      = nullptr;
         InlineBodyIdentifiers  identifiers;
         bool                   isOrdinaryInline = false;
     };

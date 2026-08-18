@@ -3173,12 +3173,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@compiler</span>()-&gt;<span class="SCst">Swag</span>.<span class="SCst"><a href="#Swag_ICompiler">ICompiler</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="_compilererror" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@compilererror</span> <a class="api-item-permalink" href="#_compilererror" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L211">src</a></div>
+<div class="api-item api-item-func"><span id="_compilererror" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@compilererror</span> <a class="api-item-permalink" href="#_compilererror" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L212">src</a></div>
 <p>Raise a compiler error at the given source location</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@compilererror</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="_compilerwarning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@compilerwarning</span> <a class="api-item-permalink" href="#_compilerwarning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L221">src</a></div>
+<div class="api-item api-item-func"><span id="_compilerwarning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@compilerwarning</span> <a class="api-item-permalink" href="#_compilerwarning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L222">src</a></div>
 <p>Raise a compiler warning at the given source location</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@compilerwarning</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
@@ -3321,7 +3321,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@muladd</span>(val1, val2, val3: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="_panic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@panic</span> <a class="api-item-permalink" href="#_panic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L272">src</a></div>
+<div class="api-item api-item-func"><span id="_panic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@panic</span> <a class="api-item-permalink" href="#_panic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L273">src</a></div>
 <p>Stop the execution and panic</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.All, false)]</span>
 <span class="SKwd">func</span> <span class="SItr">@panic</span>(message: <span class="SItr">#null</span> <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
@@ -3370,7 +3370,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@rtflags</span>()   =&gt; <span class="SItr">@getcontext</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="_safetypanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@safetypanic</span> <a class="api-item-permalink" href="#_safetypanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L299">src</a></div>
+<div class="api-item api-item-func"><span id="_safetypanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">@safetypanic</span> <a class="api-item-permalink" href="#_safetypanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L300">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.All, false)]</span>
 <span class="SKwd">func</span> <span class="SItr">@safetypanic</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
@@ -3994,41 +3994,41 @@
 </section>
 <h3 id="other-symbols">Other symbols</h3>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag</span> <a class="api-item-permalink" href="#Swag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L2">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag</span> <a class="api-item-permalink" href="#Swag" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_F32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.F32</span> <a class="api-item-permalink" href="#Swag_F32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L402">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_F32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.F32</span> <a class="api-item-permalink" href="#Swag_F32" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_F64" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.F64</span> <a class="api-item-permalink" href="#Swag_F64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L414">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_F64" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.F64</span> <a class="api-item-permalink" href="#Swag_F64" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_S16" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S16</span> <a class="api-item-permalink" href="#Swag_S16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L360">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_S16" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S16</span> <a class="api-item-permalink" href="#Swag_S16" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_S32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S32</span> <a class="api-item-permalink" href="#Swag_S32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L366">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_S32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S32</span> <a class="api-item-permalink" href="#Swag_S32" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_S64" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S64</span> <a class="api-item-permalink" href="#Swag_S64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L372">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_S64" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S64</span> <a class="api-item-permalink" href="#Swag_S64" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_S8" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S8</span> <a class="api-item-permalink" href="#Swag_S8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L354">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_S8" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.S8</span> <a class="api-item-permalink" href="#Swag_S8" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_U16" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U16</span> <a class="api-item-permalink" href="#Swag_U16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L384">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_U16" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U16</span> <a class="api-item-permalink" href="#Swag_U16" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_U32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U32</span> <a class="api-item-permalink" href="#Swag_U32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L390">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_U32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U32</span> <a class="api-item-permalink" href="#Swag_U32" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_U64" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U64</span> <a class="api-item-permalink" href="#Swag_U64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L396">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_U64" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U64</span> <a class="api-item-permalink" href="#Swag_U64" aria-label="Permalink">#</a></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="Swag_U8" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U8</span> <a class="api-item-permalink" href="#Swag_U8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L378">src</a></div>
+<div class="api-item api-item-namespace"><span id="Swag_U8" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag.U8</span> <a class="api-item-permalink" href="#Swag_U8" aria-label="Permalink">#</a></span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.152</div>
 </footer>
 </section>
 </main>

@@ -43,10 +43,10 @@ namespace Match
     struct FunctionCandidateProbe
     {
         SmallVector<FunctionConversionRank> perArgRanks;
-        SymbolFunction*                    fn              = nullptr;
-        uint32_t                           usedDefaults    = 0;
-        bool                               genericInstance = false;
-        bool                               matched         = false;
+        SymbolFunction*                     fn              = nullptr;
+        uint32_t                            usedDefaults    = 0;
+        bool                                genericInstance = false;
+        bool                                matched         = false;
     };
 
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);

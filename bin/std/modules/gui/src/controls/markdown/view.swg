@@ -71,8 +71,8 @@ struct View
 
         public readonly
         {
-            documentStyle: Style     // Active document typography and reading measure.
-            failureReason: String            // File-loading explanation, or empty while loading remains valid.
+            documentStyle: Style      // Active document typography and reading measure.
+            failureReason: String     // File-loading explanation, or empty while loading remains valid.
         }
 
         internal

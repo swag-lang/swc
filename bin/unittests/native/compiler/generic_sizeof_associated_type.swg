@@ -21,9 +21,8 @@ impl NativeGenericSizeBox
     {
         #assert(#sizeof(NativeGenericSizeEntry'(T)) == #sizeof(NativeGenericSizeEntry's32))
         #assert(#alignof(NativeGenericSizeEntry'(T)) == #alignof(NativeGenericSizeEntry's32))
-        // Still unstable in the native suite: the alias is sometimes seen as a symbol instead of a type.
-        // #assert(#sizeof(NativeGenericSizeEntryAlias'(T)) == #sizeof(NativeGenericSizeEntry's32))
-        // #assert(#alignof(NativeGenericSizeEntryAlias'(T)) == #alignof(NativeGenericSizeEntry's32))
+        #assert(#sizeof(NativeGenericSizeEntryAlias'(T)) == #sizeof(NativeGenericSizeEntry's32))
+        #assert(#alignof(NativeGenericSizeEntryAlias'(T)) == #alignof(NativeGenericSizeEntry's32))
         return count * #sizeof(NativeGenericSizeEntry'(T)) + #alignof(NativeGenericSizeEntry'(T))
     }
 

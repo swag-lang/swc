@@ -684,7 +684,7 @@ SWC_TEST_BEGIN(RegAlloc_UsesDedicatedLocalStackBaseRegister)
     for (const auto callConvKind : testedCallConvs())
     {
         const CallConv& conv                  = CallConv::get(callConvKind);
-        const MicroReg preferredStackBaseReg = conv.preferredLocalStackBaseReg();
+        const MicroReg  preferredStackBaseReg = conv.preferredLocalStackBaseReg();
         if (!preferredStackBaseReg.isValid())
             continue;
 

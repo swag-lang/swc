@@ -858,10 +858,10 @@ SWC_TEST_BEGIN(FormatAlign_WrappedArgumentsFollowTheAlignedHead)
     FormatOptions options;
     options.indentStyle                  = FormatIndentStyle::Spaces;
     options.indentWidth                  = 4;
-    options.alignConsecutiveDeclarations  = FormatAlignMode::Consecutive;
-    options.alignDeclarationInitializers  = true;
-    options.binPackArguments              = FormatBinPackStyle::OnePerLine;
-    options.argumentListLayout            = FormatListLayout::HangingAlign;
+    options.alignConsecutiveDeclarations = FormatAlignMode::Consecutive;
+    options.alignDeclarationInitializers = true;
+    options.binPackArguments             = FormatBinPackStyle::OnePerLine;
+    options.argumentListLayout           = FormatListLayout::HangingAlign;
     return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

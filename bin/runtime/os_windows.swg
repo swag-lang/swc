@@ -330,13 +330,38 @@ func __hostTestCall(fn: *void)
     call()
 }
 
+private struct __HostExceptionRecord
+{
+    code:           u32
+    flags:          u32
+    nested:         #null *void
+    address:        #null *void
+    parameterCount: u32
+    padding:        u32
+    information:    [15] u64
+}
+
+private struct __HostExceptionPointers
+{
+    record:  *__HostExceptionRecord
+    context: *void
+}
+
 private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
 {
     if !g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do
         return 0     // EXCEPTION_CONTINUE_SEARCH
 
-    let record = exceptionPointers[as const *u32]
-    __testHardwareException(record[])
+    let pointers = cast(const *__HostExceptionPointers) exceptionPointers
+    let record   = pointers.record
+    var accessKind, accessAddress: u64
+    if record.parameterCount >= 2
+    {
+        accessKind    = record.information[0]
+        accessAddress = record.information[1]
+    }
+
+    __testHardwareException(record.code, cast(u64) record.address, accessKind, accessAddress)
     return 0
 }
 

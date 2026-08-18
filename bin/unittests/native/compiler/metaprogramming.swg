@@ -246,11 +246,11 @@ namespace compiler239
     func main()
     {
         let a = #run main1()
-        // let b = main1()
-        // let c = main2()
+        let b = main1()
+        let c = main2()
         @assert(a == 77)
-    // @assert(b == 77)
-    // @assert(c == 666)
+        @assert(b == 77)
+        @assert(c == 666)
     }
 
     // #run and direct call return same value
@@ -277,7 +277,6 @@ namespace compiler2407
 // _compiler2447.swg
 namespace compiler2447
 {
-    //#global if false
     func N() => 10
 
     #assert(#typeof(N()) == #typeof(10))
@@ -427,7 +426,6 @@ namespace compiler2979
 // _compiler3029.swg
 namespace compiler3029
 {
-    //#global if false
     func toto(x, y: s32)->{ x: s32, y: s32 }
     {
         var result: retval
@@ -447,8 +445,6 @@ namespace compiler3029
 // _compiler3100.swg
 namespace compiler3100
 {
-    //#global if false
-
     func msg() => "msg"
 
     // #static if false skips #error with #run
@@ -490,7 +486,6 @@ namespace compiler3121
 // _compiler3324.swg
 namespace compiler3324
 {
-    //#global if false
     #test
     {
         let a = #run
@@ -545,7 +540,6 @@ namespace compiler334
     #test
     {
         var a: [2, 2] s32
-        // @assert(#sizeof(a) == 2'u32 * 2'u32 * #sizeof(s32));
         @assert(#sizeof(a) == 16)
         var b: [5, 5] bool
         @assert(#sizeof(b) == 25)

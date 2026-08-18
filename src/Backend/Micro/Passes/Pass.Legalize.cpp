@@ -102,8 +102,8 @@ namespace
         if (instructionIt == instructionRefs.end())
             return true;
 
-        const uint32_t instructionIndex = static_cast<uint32_t>(std::distance(instructionRefs.begin(), instructionIt));
-        std::vector<uint8_t> visited(instructionRefs.size(), 0);
+        const uint32_t        instructionIndex = static_cast<uint32_t>(std::distance(instructionRefs.begin(), instructionIt));
+        std::vector<uint8_t>  visited(instructionRefs.size(), 0);
         SmallVector<uint32_t> pending;
         for (const uint32_t successor : cfg.successors(instructionIndex))
             pending.push_back(successor);

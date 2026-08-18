@@ -157,7 +157,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | T-408 |
 | Log | `.log` | text | level coloring, timestamps, tail | T-409 |
 | Tabular text | `.csv` `.tsv` | text | aligned table, frozen header | T-402 |
-| PDF | `.pdf` | page rendering, editing and writing | lazy pages, Type1/CFF and specialized image filters | T-401 |
+| PDF | `.pdf` | page rendering, editing and writing | encryption, annotations, shadings, Type1/CFF, scanned-image codecs | T-401, [todo.pdf.md](todo.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | T-407 |
 | OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | T-407 |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope, see below | — |
@@ -223,17 +223,17 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Complete when: a registry line can carry a filename pattern, the code viewer claims the remaining
   usual extensionless names, and a first-bytes rule catches a shebang.
 
-### T-401 — PDF coverage still needs lazy pages and specialized fonts and images
+### T-401 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
-- Intent: `std/pdf` and `plugin.pdf` now decode, edit, render and write the common Flate/LZW/
-  TrueType/JPEG/vector path, with the full text state, font metrics and encodings, and every
-  sample representation a raster can use, but an eager document model and the missing Type1, CFF,
-  CCITT, JBIG2 and JPEG 2000 paths still reject or omit valid production files.
-- Complete when: page content is decoded on demand from the mapped document, Type1 and CFF text
-  renders, and the remaining standard image/filter families either render or report a precise
-  per-item limitation without losing the rest of the page.
-- Note: keep interactive forms and encryption out of scope, and never execute an embedded action.
-- Related: T-068
+- Intent: the module's own coverage gaps now live in [todo.pdf.md](todo.pdf.md), which is the
+  roadmap for `std/pdf`. What stays here is the viewer's half: `PdfPluginView` reports whatever
+  `loadPage` or `render` failed with and shows nothing, so a document with one unsupported
+  construct anywhere reads as a broken file rather than as a page with a gap in it.
+- Complete when: the viewer draws the part of a page that decoded, states the construct it could
+  not represent in localized text beside it rather than as a raw module error, and keeps page
+  navigation working across a page it could only partly decode.
+- Note: never execute an embedded action, and keep interactive form filling out of the viewer.
+- Related: T-431, T-441, T-447
 
 ### T-402 — Tabular text has no table view
 

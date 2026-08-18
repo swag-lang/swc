@@ -48,6 +48,15 @@ public struct HtmlInlineItem
     x:           f32
     y:           f32
     visible:     bool
+
+    // A soft hyphen (`&shy;`) followed this run in the source: a line may break here, and the
+    // hyphen is drawn only where a break was taken.
+    softHyphen:    bool
+    hyphenAtBreak: bool
+
+    // The tail of a run the line breaker split mid-word. A later, wider layout merges it back
+    // into its head first, so every layout starts from the same items.
+    continuation: bool
 }
 
 // One laid-out line of an inline formatting context.
@@ -88,6 +97,11 @@ public struct HtmlBox
     children: Array'u32
     items:    Array'HtmlInlineItem
     lines:    Array'HtmlLineBox
+
+    // Whether any child carries a non-zero positioned stacking level. Almost no box does, and
+    // the flag is what lets painting and hit testing walk the children once instead of scanning
+    // them per stacking level.
+    hasStacked: bool
 
     rect:    Math.Rectangle
     content: Math.Rectangle

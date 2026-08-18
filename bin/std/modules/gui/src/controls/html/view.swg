@@ -431,7 +431,9 @@ internal impl HtmlView
             }
             elif chunk.isEmpty()
             {
-                .finishSource("")
+                // The depth cap behaves like the size cap: the reader is told what was cut
+                // rather than shown a silently flattened rendering.
+                .finishSource(.parser.depthCapped ? "<p>This document nests its elements too deeply; the deepest levels were flattened.</p>" : "")
             }
             else
             {
@@ -963,8 +965,13 @@ internal impl IWnd for HtmlCanvas
             let node    = painter.nodeAt(point)
             if node != owner.hovered
             {
+                // Painting only reads the link under the pointer, so crossing plain text keeps
+                // the frame; repainting the whole canvas per pointer move is what made hovering
+                // a long document feel slow.
+                let previousLink = owner.linkElementAt(owner.hovered)
                 owner.hovered = node
-                .invalidate()
+                if owner.linkElementAt(node) != previousLink do
+                    .invalidate()
             }
 
             if @countof(owner.linkAt(node)) do
@@ -973,8 +980,10 @@ internal impl IWnd for HtmlCanvas
         case .Leave:
             if owner.hovered != HtmlNoNode
             {
+                let hadLink = owner.linkElementAt(owner.hovered) != HtmlNoNode
                 owner.hovered = HtmlNoNode
-                .invalidate()
+                if hadLink do
+                    .invalidate()
             }
 
         case .Pressed where evt.button == .Left:

@@ -65,6 +65,15 @@ public enum HtmlTextTransform
     Capitalize
 }
 
+// Where a run may break inside a word.
+#[Swag.NoDoc]
+public enum HtmlWordBreak
+{
+    Normal
+    BreakAll
+    KeepAll
+}
+
 #[Swag.NoDoc]
 public enum HtmlOverflow
 {
@@ -251,6 +260,8 @@ public struct HtmlComputedStyle
     textTransform:           HtmlTextTransform
     textIndent:              HtmlLength
     whiteSpace:              HtmlWhiteSpace
+    overflowWrap:            bool
+    wordBreak:               HtmlWordBreak
     listStyleType:           HtmlListStyleType = .Disc
     listStyleInside:         bool
     visible                                    = true
@@ -363,6 +374,8 @@ impl HtmlComputedStyle
         result.textTransform           = parent.textTransform
         result.textIndent              = parent.textIndent
         result.whiteSpace              = parent.whiteSpace
+        result.overflowWrap            = parent.overflowWrap
+        result.wordBreak               = parent.wordBreak
         result.listStyleType           = parent.listStyleType
         result.listStyleInside         = parent.listStyleInside
         result.visible                 = parent.visible
@@ -451,6 +464,7 @@ public enum HtmlProperty
     WebkitMaskImage
     ClipPath
     Visibility
+    Font
     FontSize
     FontWeight
     FontStyle
@@ -458,6 +472,9 @@ public enum HtmlProperty
     LineHeight
     LetterSpacing
     WordSpacing
+    OverflowWrap
+    WordBreak
+    LineBreak
     TextAlign
     TextTransform
     TextIndent
@@ -567,6 +584,7 @@ func htmlPropertyFromName(name: string)->HtmlProperty
     case "-webkit-mask-image":         return .WebkitMaskImage
     case "clip-path":                  return .ClipPath
     case "visibility":                 return .Visibility
+    case "font":                       return .Font
     case "font-size":                  return .FontSize
     case "font-weight":                return .FontWeight
     case "font-style":                 return .FontStyle
@@ -574,6 +592,9 @@ func htmlPropertyFromName(name: string)->HtmlProperty
     case "line-height":                return .LineHeight
     case "letter-spacing":             return .LetterSpacing
     case "word-spacing":               return .WordSpacing
+    case "overflow-wrap", "word-wrap": return .OverflowWrap
+    case "word-break":                 return .WordBreak
+    case "line-break":                 return .LineBreak
     case "text-align":                 return .TextAlign
     case "text-transform":             return .TextTransform
     case "text-indent":                return .TextIndent
@@ -871,6 +892,103 @@ impl HtmlComputedStyle
         return result
     }
 
+    // Applies the `font` shorthand: `[style weight] size[/line-height] family-list`. A system
+    // keyword (`caption`, `menu`, ...) names a host font and leaves the style untouched, and a
+    // text without a recognizable size is not this grammar at all.
+    private mtd fontShorthand(value: string, context: *HtmlDeclarationContext)
+    {
+        let parts = htmlSplitValue(value)
+
+        // The size is the first part that reads as a length, a size keyword, or a size with an
+        // attached `/line-height`. A bare number is a weight: a font size always carries a unit.
+        var sizeIndex = Swag.U64.Max
+        for index in parts.count
+        {
+            let text   = parts[index].toString()
+            let number = htmlParseNumber(text)
+            if number.eat == @countof(text) do
+                continue
+
+            let parsed = .length(text, context)
+            var isSize = parsed.matched and !parsed.length.isAuto() and !parsed.length.isNone()
+            if !isSize and Utf8.indexOf(text, '/'rune) != Swag.U64.Max do
+                isSize = true
+            if !isSize
+            {
+                switch text
+                {
+                case "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "smaller", "larger":
+                    isSize = true
+                }
+            }
+
+            if !isSize do
+                continue
+            sizeIndex = index
+            break
+        }
+
+        if sizeIndex == Swag.U64.Max do
+            return
+
+        // The shorthand resets every longhand it can set before its parts write over them.
+        .italic     = false
+        .fontWeight = 400
+        .lineHeight = HtmlLength.auto()
+
+        for index in sizeIndex
+        {
+            let text = parts[index].toString()
+            switch text
+            {
+            case "italic", "oblique":
+                .italic = true
+
+            case "bold", "bolder":
+                .fontWeight = 700
+
+            case "lighter":
+                .fontWeight = 300
+
+            default:
+                let number = htmlParseNumber(text)
+                if number.eat == @countof(text) and number.value >= 1 and number.value <= 1000 do
+                    .fontWeight = cast(u32) number.value
+            }
+        }
+
+        let sizeText    = parts[sizeIndex].toString()
+        var familyStart = sizeIndex + 1
+        let slash       = Utf8.indexOf(sizeText, '/'rune)
+        if slash != Swag.U64.Max
+        {
+            .applyDeclaration(.FontSize, Latin1.trim(sizeText[0 until slash]), context)
+            .applyDeclaration(.LineHeight, Latin1.trim(sizeText[slash + 1 to]), context)
+        }
+        else
+        {
+            .applyDeclaration(.FontSize, sizeText, context)
+            if familyStart + 1 < parts.count and parts[familyStart].toString() == "/"
+            {
+                .applyDeclaration(.LineHeight, parts[familyStart + 1].toString(), context)
+                familyStart += 2
+            }
+        }
+
+        if familyStart >= parts.count do
+            return
+
+        var family: String
+        for index in familyStart until parts.count
+        {
+            if !family.isEmpty() do
+                family += " "
+            family += parts[index]
+        }
+
+        .applyDeclaration(.FontFamily, family.toString(), context)
+    }
+
     private mtd flexShorthand(value: string, context: *HtmlDeclarationContext)
     {
         if value == "none"
@@ -1135,6 +1253,27 @@ impl HtmlComputedStyle
         case .WordSpacing:
             let parsed = .length(value, context)
             .wordSpacing = parsed.matched ? parsed.length.resolve(context.pool, context.length) : 0
+
+        case .OverflowWrap:
+            .overflowWrap = value == "break-word" or value == "anywhere"
+
+        case .WordBreak:
+            switch value
+            {
+            case "normal":     .wordBreak = .Normal
+            case "break-all":  .wordBreak = .BreakAll
+            case "keep-all":   .wordBreak = .KeepAll
+            case "break-word": .overflowWrap = true
+            }
+
+        case .LineBreak:
+            // The strictness grades govern CJK punctuation rules this engine does not model;
+            // only the value that changes where a line may break is acted on.
+            if value == "anywhere" do
+                .wordBreak = .BreakAll
+
+        case .Font:
+            .fontShorthand(value, context)
 
         case .TextAlign:
             switch value

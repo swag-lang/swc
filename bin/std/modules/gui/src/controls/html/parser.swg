@@ -2,6 +2,12 @@
 
 using Core
 
+// The deepest element nesting the tree keeps. Styling, box building and painting all recurse
+// per element depth, so an unbounded depth would let a few hundred kilobytes of nothing but
+// `<div>` walk the native stack to overflow; past the bound, new elements are flattened into
+// their deepest kept ancestor and the document stays readable.
+const HtmlMaxElementDepth = 256'u64
+
 // Feeds source bytes into an [[HtmlDocument]], one chunk at a time.
 //
 // The parser is resumable: `feed` consumes every complete token it can see and keeps the
@@ -20,6 +26,7 @@ public struct HtmlParser
     inRawText:   bool
     dropNewline: bool
     done:        bool
+    depthCapped: bool
 }
 
 impl HtmlParser
@@ -35,6 +42,7 @@ impl HtmlParser
         .inRawText   = false
         .dropNewline = false
         .done        = false
+        .depthCapped = false
     }
 
     mtd current()->u32 => .stack.back()
@@ -307,6 +315,15 @@ impl HtmlParser
         let selfClosing = @countof(tag) and tag[@countof(tag) - 1] == '/'
         if HtmlDocument.isVoidTag(interned) or selfClosing do
             return
+
+        // Past the depth bound the element stays in the tree as a leaf and its content lands in
+        // the deepest kept ancestor, so a hostile nesting flattens instead of overflowing the
+        // recursive passes downstream.
+        if .stack.count >= HtmlMaxElementDepth
+        {
+            .depthCapped = true
+            return
+        }
 
         .stack.add(element)
 

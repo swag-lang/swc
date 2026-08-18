@@ -1521,3 +1521,298 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.floats")
 }
+
+// Returns the right edge of the widest visible item of a box, so overflow tests read geometry.
+func maxItemRight(view: *HtmlView, box: u32)->f32
+{
+    var result = 0.0'f32
+    for item in view.layout.constBox(box).items where item.visible do
+        result = Math.max(result, item.x + item.width)
+    return result
+}
+
+func countTextItems(view: *HtmlView, box: u32)->u64
+{
+    var result = 0'u64
+    for item in view.layout.constBox(box).items where item.kind == .Text do
+        result += 1
+    return result
+}
+
+// An unbreakable run wider than its column breaks at a character boundary under
+// `overflow-wrap: break-word`, and a later wider layout re-joins the fragments.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } p { margin: 0; overflow-wrap: break-word }</style>"
+    source += "<p id=\"t\">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</p>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(120, 600)
+    view.applyLayout()
+    view.rebuild()
+
+    let box = view.boxOfNode(view.elementById("t"))
+    @assert(view.layout.constBox(box).lines.count >= 2)
+    @assert(maxItemRight(view, box) <= 120.5)
+    @assert(countTextItems(view, box) >= 2)
+
+    // The split fragments merge back once the measure is wide enough for the whole run.
+    view.resize(800, 600)
+    view.applyLayout()
+    view.placeDocument()
+    @assert(view.layout.constBox(box).lines.count == 1)
+    @assert(countTextItems(view, box) == 1)
+}
+
+// CJK text carries no spaces: every character is a break opportunity, and the paragraph stays
+// inside its column instead of overflowing it as one run.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } p { margin: 0; width: 100px }</style>"
+    source += "<p id=\"c\">法国是一个位于西欧的国家法国是一个位于西欧的国家</p>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let box = view.boxOfNode(view.elementById("c"))
+    @assert(view.layout.constBox(box).lines.count >= 2)
+    @assert(maxItemRight(view, box) <= 100.5)
+
+    // `word-break: keep-all` restores the unbreakable run.
+    let keep = HtmlView.createText(&host.root, "<style>body { margin: 0 } p { margin: 0; width: 100px; word-break: keep-all }</style><p id=\"c\">法国是一个位于西欧的国家法国是一个位于西欧的国家</p>")
+    keep.resize(400, 300)
+    keep.applyLayout()
+    keep.rebuild()
+    @assert(countTextItems(keep, keep.boxOfNode(keep.elementById("c"))) == 1)
+}
+
+// `word-break: break-all` fills each line to its edge, splitting the run mid-word.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } p { margin: 0; width: 120px; word-break: break-all }</style>"
+    source += "<p id=\"t\">alpha bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb tail</p>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let box = view.boxOfNode(view.elementById("t"))
+    @assert(view.layout.constBox(box).lines.count >= 2)
+    @assert(maxItemRight(view, box) <= 120.5)
+}
+
+// `<wbr>` marks a soft break opportunity, and `&shy;` breaks with a visible hyphen only where
+// the break was taken.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } p { margin: 0; width: 140px; font-size: 16px }</style>"
+    source += "<p id=\"w\">aaaaaaaaaa<wbr>bbbbbbbbbb</p>"
+    source += "<p id=\"s\">cccccccccc&shy;dddddddddd</p>"
+    source += "<p id=\"n\">eeeeeeeeee&shy;ff</p>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let broken = view.boxOfNode(view.elementById("w"))
+    let first  = findItemPos(view, broken, "aaaaaaaaaa")
+    let second = findItemPos(view, broken, "bbbbbbbbbb")
+    @assert(first.found and second.found)
+    @assert(second.y > first.y)
+
+    // The soft hyphen leaves the run, breaks it, and the head fragment draws its hyphen.
+    let hyphenated = view.boxOfNode(view.elementById("s"))
+    @assert(view.layout.constBox(hyphenated).lines.count == 2)
+    var sawHyphen: bool
+    for item in view.layout.constBox(hyphenated).items where item.kind == .Text and item.text.toString() == "cccccccccc"
+    {
+        sawHyphen = item.hyphenAtBreak
+        break
+    }
+
+    @assert(sawHyphen)
+
+    // A soft hyphen where no break is needed draws nothing and the line stays whole.
+    let whole = view.boxOfNode(view.elementById("n"))
+    @assert(view.layout.constBox(whole).lines.count == 1)
+    for item in view.layout.constBox(whole).items do
+        @assert(!item.hyphenAtBreak)
+}
+
+// The `font` shorthand expands into its longhands, including the `/line-height` form, and
+// `word-spacing` widens each space of the line.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 400)
+    defer host.shutdown()
+
+    var source: String = "<style>#f { font: italic 700 20px/2 monospace } #ws { word-spacing: 10px }</style>"
+    source += "<p id=\"f\">styled</p>"
+    source += "<p id=\"ws\">a b</p>"
+    source += "<p id=\"nb\">a b</p>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(600, 400)
+    view.applyLayout()
+    view.rebuild()
+
+    let styled = view.layout.styleOfNode(view.elementById("f"))
+    @assert(styled.italic)
+    @assert(styled.fontWeight == 700)
+    @assert(styled.fontSize == 20)
+    @assert(styled.lineHeight.kind == .Percent and styled.lineHeight.value == 2)
+    @assert(styled.fontFamily == .Mono)
+
+    var spaced, plain: f32
+    for item in view.layout.constBox(view.boxOfNode(view.elementById("ws"))).items where item.kind == .Space do
+        spaced = item.width
+    for item in view.layout.constBox(view.boxOfNode(view.elementById("nb"))).items where item.kind == .Space do
+        plain = item.width
+    @assert(plain > 0)
+    @assert(Math.abs(spaced - plain - 10) <= 0.01)
+}
+
+// Reports whether a parsed color lands within a small tolerance of an expected paint, which is
+// what a conversion through another color space can promise.
+func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
+{
+    if !value.matched do
+        return false
+
+    let expected = Pixel.Color.fromArgb(argb)
+    let dr       = Math.abs(cast(s32) value.color.r - cast(s32) expected.r)
+    let dg       = Math.abs(cast(s32) value.color.g - cast(s32) expected.g)
+    let db       = Math.abs(cast(s32) value.color.b - cast(s32) expected.b)
+    let da       = Math.abs(cast(s32) value.color.a - cast(s32) expected.a)
+    return dr <= tolerance and dg <= tolerance and db <= tolerance and da <= tolerance
+}
+
+// The modern color notations convert to sRGB: the OK family, the Lab family, `hwb()`, the
+// `color()` function, and hue units other than degrees.
+#test
+{
+    @assert(closeColor(htmlParseColor("oklch(0.62796 0.25768 29.234)"), 0xFFFF0000))
+    @assert(closeColor(htmlParseColor("oklab(0.62796 0.22486 0.12585)"), 0xFFFF0000))
+    @assert(closeColor(htmlParseColor("oklch(100% 0 0)"), 0xFFFFFFFF))
+    @assert(closeColor(htmlParseColor("lab(54.29 80.805 69.891)"), 0xFFFF0000))
+    @assert(closeColor(htmlParseColor("lch(54.29 106.84 40.858)"), 0xFFFF0000))
+    @assert(closeColor(htmlParseColor("hwb(120 0% 0%)"), 0xFF00FF00))
+    @assert(closeColor(htmlParseColor("hwb(0 100% 0%)"), 0xFFFFFFFF))
+    @assert(closeColor(htmlParseColor("hwb(0 40% 60%)"), 0xFF666666))
+    @assert(closeColor(htmlParseColor("color(srgb 1 0 0)"), 0xFFFF0000))
+    @assert(closeColor(htmlParseColor("color(srgb-linear 1 0 0)"), 0xFFFF0000))
+    @assert(closeColor(htmlParseColor("color(display-p3 1 0 0)"), 0xFFFF0000, 12))
+    @assert(closeColor(htmlParseColor("hsl(0.5turn 100% 50%)"), 0xFF00FFFF))
+    @assert(closeColor(htmlParseColor("hsl(3.14159rad 100% 50%)"), 0xFF00FFFF))
+
+    // Alpha rides behind the slash whatever the notation.
+    let translucent = htmlParseColor("oklch(0.62796 0.25768 29.234 / 50%)")
+    @assert(translucent.matched and Math.abs(cast(s32) translucent.color.a - 128) <= 1)
+
+    // An out-of-gamut color clamps to the gamut edge instead of wrapping.
+    let vivid = htmlParseColor("oklch(0.9 0.37 145)")
+    @assert(vivid.matched and vivid.color.g == 255)
+
+    // An unknown color space is refused, so the cascade keeps its previous value.
+    @assert(!htmlParseColor("color(rec2020 1 0 0)").matched)
+}
+
+// The full `an+b` grammar matches, and the `-of-type` selectors count within their type.
+#test
+{
+    var source: String = "<style>"
+    source += "li { color: #000000 }"
+    source += "li:nth-child(3n) { color: #ff0000 }"
+    source += "li:nth-child(-n+2) { font-weight: 700 }"
+    source += "p:nth-of-type(2) { color: #00ff00 }"
+    source += "span:first-of-type { color: #0000ff }"
+    source += "</style>"
+    source += "<ul><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li><li>6</li></ul>"
+    source += "<div><p>one</p><span>s1</span><p>two</p><span>s2</span></div>"
+
+    var host: Testing.HeadlessHost
+    host.setup(600, 400)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(600, 400)
+    view.applyLayout()
+    view.rebuild()
+
+    let red   = Pixel.Color.fromArgb(0xFFFF0000)
+    let black = Pixel.Color.fromArgb(0xFF000000)
+    for wanted in 6'u32
+    {
+        let item  = findNthTag(&view.document, .Li, wanted + 1)
+        let style = view.layout.styleOfNode(item)
+        @assert(style.color == ((wanted + 1) % 3 == 0 ? red : black))
+        @assert(style.fontWeight == (wanted < 2 ? 700 : 400))
+    }
+
+    @assert(view.layout.styleOfNode(findNthTag(&view.document, .P, 1)).color != Pixel.Color.fromArgb(0xFF00FF00))
+    @assert(view.layout.styleOfNode(findNthTag(&view.document, .P, 2)).color == Pixel.Color.fromArgb(0xFF00FF00))
+    @assert(view.layout.styleOfNode(findNthTag(&view.document, .Span, 1)).color == Pixel.Color.fromArgb(0xFF0000FF))
+    @assert(view.layout.styleOfNode(findNthTag(&view.document, .Span, 2)).color != Pixel.Color.fromArgb(0xFF0000FF))
+}
+
+// A hostile document nested thousands of elements deep flattens at the depth bound instead of
+// walking the recursive passes off the native stack, and its content stays readable.
+#test
+{
+    var source: String
+    for 4000 do
+        source += "<div>"
+    source += "deep text"
+
+    let document = parseDocument(source.toString())
+    @assert(Utf8.contains(document.textContent(0).toString(), "deep text"))
+
+    var deepest = 0'u64
+    for index in document.nodes.count
+    {
+        var depth = 0'u64
+        var walk  = document.constNode(cast(u32) index).parent
+        while walk != HtmlNoNode
+        {
+            depth += 1
+            walk  = document.constNode(walk).parent
+        }
+
+        deepest = Math.max(deepest, depth)
+    }
+
+    @assert(deepest <= HtmlMaxElementDepth + 1)
+
+    // The whole pipeline survives the same document: styling, box building, layout, painting.
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(320, 240)
+    view.applyLayout()
+    view.rebuild()
+    discard host.render(view)
+    @assert(Utf8.contains(view.document.textContent(0).toString(), "deep text"))
+}

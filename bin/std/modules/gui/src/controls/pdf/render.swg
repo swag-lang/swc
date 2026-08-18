@@ -118,7 +118,7 @@ private struct RenderFontCache
     embeddedResolved:   Array'bool
     substitute:         Array'(#null *TypeFace)     // Substitute face per page font index.
     substituteResolved: Array'bool
-    fallback:           #null *TypeFace             // Substitute face for text with no font resource.
+    fallback:           #null *TypeFace     // Substitute face for text with no font resource.
     fallbackResolved:   bool
 }
 

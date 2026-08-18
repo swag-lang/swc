@@ -149,6 +149,7 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
         path.clear()
         return
     }
+
     if close
     {
         let paths = path.toSlice()

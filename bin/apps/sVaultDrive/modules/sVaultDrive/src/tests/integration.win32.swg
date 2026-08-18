@@ -435,13 +435,16 @@ namespace Integration
 
         Console.println("Creating encrypted fixed-size container...")
         trace("STAGE: create container")
-        var created = try Volume.create(box.container, password(), ContainerSize)
+        var created      = try Volume.create(box.container, password(), ContainerSize)
+        let physicalSize = created.physicalSize
+        try verify(created.containerSize == ContainerSize, "the container must keep its requested logical capacity")
+        try verify(physicalSize > ContainerSize, "the container must camouflage its logical capacity on disk")
         created.close()
         try verify(File.exists(box.container), "the encrypted container must be created")
         var raw     = try File.open(box.container, .Open, .ReadWrite, .Read)
         let rawSize = try raw.size()
         raw.close()
-        try verify(rawSize == ContainerSize, "the container must keep its fixed requested size")
+        try verify(rawSize == physicalSize, "the container file must keep its authenticated physical size")
 
         Console.println("Mounting and exercising live Windows file I/O...")
         trace("STAGE: first mount")

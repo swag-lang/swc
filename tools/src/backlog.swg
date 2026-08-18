@@ -162,7 +162,14 @@ private func readCounter(readme: string, kind: u8)->u32
 private func markdownHeadingAnchor(line: string)->String
 {
     var result: retval
-    Utf8.visitRunes(cast(const [..] u8) line[4 until @countof(line)]) #code(c, charIndex, byteIndex)
+    var start:  u64
+    while start < @countof(line) and start < 6 and line[start] == '#' do
+        start += 1
+    if start == 0 or start >= @countof(line) or line[start] != ' ' do
+        return result
+
+    start += 1
+    Utf8.visitRunes(cast(const [..] u8) line[start until @countof(line)]) #code(c, charIndex, byteIndex)
     {
         discard charIndex
         discard byteIndex
@@ -182,7 +189,7 @@ private func hasMarkdownHeading(fileName: string, anchor: string)->bool fail
     let content = try File.readAllText(fileName)
     for line in Tokenize.splitLines(content.toString())
     {
-        if Utf8.startsWith(cast(const [..] u8) line, "### ") and markdownHeadingAnchor(line) == anchor do
+        if markdownHeadingAnchor(line) == anchor do
             return true
     }
 

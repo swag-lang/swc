@@ -282,6 +282,12 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(specializeGenericStructInitializerTarget(sema, nodeWhatRef));
 
+    // 'Foo{...}' can only initialize a type. A namespace, or any other untyped symbol,
+    // reaches here without a type, and the cast below would then match against an
+    // invalid TypeRef; diagnose the spelling instead.
+    if (sema.viewType(nodeWhatRef).typeRef().isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeWhatRef);
+
     SmallVector<AstNodeRef> children;
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);
 
@@ -289,8 +295,7 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
     SemaNodeView initView = sema.curViewNodeTypeConstant();
     SWC_RESULT(SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, initView));
 
-    const SemaNodeView nodeWhatView = sema.viewType(nodeWhatRef);
-    SWC_RESULT(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
+    SWC_RESULT(Cast::cast(sema, initView, sema.viewType(nodeWhatRef).typeRef(), CastKind::Initialization));
 
     return Result::Continue;
 }

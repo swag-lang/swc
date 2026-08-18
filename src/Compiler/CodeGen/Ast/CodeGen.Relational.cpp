@@ -430,7 +430,7 @@ namespace
             return Result::Continue;
         }
 
-        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), relationalPayload.calledFn);
     }
 
     CodeGenNodePayload& materializeSpecialResultPayload(CodeGen& codeGen, TypeRef resultTypeRef, MicroOpBits opBits)
@@ -817,7 +817,6 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         const TypeRef resultTypeRef = codeGen.viewType(codeGen.curNodeRef()).typeRef();
         SWC_ASSERT(resultTypeRef.isValid());
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), relationalPayload->calledFn);
         const auto& calledFn = *relationalPayload->calledFn;
         if (calledFn.specOpKind() == SpecOpKind::OpEquals || calledFn.specOpKind() == SpecOpKind::OpCompare)
             return emitSpecialRelational(codeGen, tok.id, calledFn, resultTypeRef, *relationalPayload);

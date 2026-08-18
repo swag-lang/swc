@@ -710,8 +710,7 @@ namespace
         receiverArg.typeRef                      = receiverPayload.typeRef;
         receiverArg.storageKind                  = receiverPayload.storageKind;
 
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), &calledFn);
-        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), &calledFn);
     }
 }
 

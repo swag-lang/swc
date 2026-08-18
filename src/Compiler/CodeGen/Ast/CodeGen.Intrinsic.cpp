@@ -474,10 +474,7 @@ namespace
     {
         const auto* countPayload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(codeGen.curNodeRef());
         if (countPayload && countPayload->calledFn != nullptr)
-        {
-            codeGen.sema().setSymbol(codeGen.curNodeRef(), countPayload->calledFn);
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
-        }
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), countPayload->calledFn);
 
         MicroBuilder&      builder       = codeGen.builder();
         const SemaNodeView exprView      = countOfExprView(codeGen, exprRef);

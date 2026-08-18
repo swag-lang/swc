@@ -1122,10 +1122,7 @@ namespace
     {
         const auto* dataPayload = codeGen.sema().semaPayload<DataOfSpecOpPayload>(codeGen.curNodeRef());
         if (dataPayload && dataPayload->calledFn != nullptr)
-        {
-            codeGen.sema().setSymbol(codeGen.curNodeRef(), dataPayload->calledFn);
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
-        }
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), dataPayload->calledFn);
 
         SmallVector<AstNodeRef> children;
         codeGen.ast().appendNodes(children, node.spanChildrenRef);

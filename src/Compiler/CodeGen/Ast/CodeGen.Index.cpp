@@ -570,15 +570,8 @@ namespace
         TypeRef semanticTypeRef = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type).typeRef();
         if (semanticTypeRef.isInvalid())
             semanticTypeRef = codeGen.curViewType().typeRef();
-        const bool wasLValue = codeGen.sema().isLValue(codeGen.curNodeRef());
 
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), &calledFn);
-        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
-        codeGen.sema().setType(codeGen.curNodeRef(), semanticTypeRef);
-        if (wasLValue)
-            codeGen.sema().setIsLValue(codeGen.curNodeRef());
-        else
-            codeGen.sema().unsetIsLValue(codeGen.curNodeRef());
+        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), &calledFn));
 
         // A reference-returning 'opIndex' and a pointer-returning 'opIndexPtr' both hand back
         // the element's address: the call result register IS the address of the semantic value.

@@ -514,6 +514,35 @@ void CodeGenMemoryHelpers::emitGlobalVariableAddress(CodeGen& codeGen, MicroReg 
     SWC_UNUSED(callSent);
 }
 
+void CodeGenMemoryHelpers::emitConvertFloatToInt(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType)
+{
+    MicroBuilder&     builder = codeGen.builder();
+    const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+    const MicroOpBits dstBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+
+    // The conversion instruction names ONE width for both of its sides: it selects the
+    // source float width and the destination integer width together. A 32-bit conversion
+    // therefore truncates the result to 32 bits, so a destination that needs the full
+    // 64-bit range must convert at 64 bits and take an 'f32' source widened to 'f64'
+    // first. That widening is exact, so the truncated value is unchanged. This mirrors
+    // the reverse direction, where ConvertIntToFloat widens its integer source instead.
+    const uint32_t dstNumBits = getNumBits(dstBits);
+    const bool     needs64    = dstNumBits == 64 || (dstNumBits == 32 && dstType.isIntLikeUnsigned());
+
+    MicroOpBits convertBits = srcBits;
+    if (needs64 && srcBits != MicroOpBits::B64)
+    {
+        const MicroReg widenedReg = codeGen.nextVirtualFloatRegister();
+        builder.emitClearReg(widenedReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(widenedReg, srcReg, MicroOp::ConvertFloatToFloat, srcBits);
+        srcReg      = widenedReg;
+        convertBits = MicroOpBits::B64;
+    }
+
+    builder.emitClearReg(dstReg, dstBits);
+    builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToInt, convertBits);
+}
+
 void CodeGenMemoryHelpers::loadOperandToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)
 {
     outReg                = codeGen.nextVirtualRegisterForType(regTypeRef);
@@ -634,8 +663,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
         }
 
         const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
-        builder.emitClearReg(dstReg, dstOpBits);
-        builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
+        emitConvertFloatToInt(codeGen, dstReg, srcReg, srcType, dstType);
         return dstReg;
     }
 

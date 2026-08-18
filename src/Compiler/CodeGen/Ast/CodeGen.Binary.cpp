@@ -358,8 +358,7 @@ namespace
         if (srcType.isFloat() && dstType.isNumericIntLike())
         {
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
-            builder.emitClearReg(dstReg, dstBits);
-            builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToInt, srcBits);
+            CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstReg, outReg, srcType, dstType);
             outReg = dstReg;
             return;
         }
@@ -577,9 +576,8 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto* binaryPayload = codeGen.sema().semaPayload<BinarySpecOpPayload>(codeGen.curNodeRef());
     if (binaryPayload && binaryPayload->calledFn != nullptr)
     {
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), binaryPayload->calledFn);
         if (binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinary || binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinaryRight)
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), binaryPayload->calledFn);
     }
 
     const SemaNodeView specialOpView = codeGen.curViewSymbol();

@@ -330,3 +330,39 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `Polygon.cleanedPaths`, which is the first thing to look at for a strip whose four corners are
   nearly collinear.
 
+### F-155 — Building the property grid faults inside `appendSimpleGlyph` since the CFF commit
+
+- Area: gui
+- Found while: running `swc tools/std.swgs dm test gui` as part of a compiler-change campaign.
+- Observation: `properties.test.swg:950` ("Dynamic strings are compared and propagated by
+  content") dies with `EXCEPTION_ACCESS_VIOLATION` (`#test stops on hardware exception
+  3221225477`). It reproduces at `HEAD` (02f3e7192) with an unmodified compiler and a full
+  `bin/std` rebuild, so it is not a compiler regression. At the parent commit 24630c76c the
+  same test passes; the four failures there are `assertPropertyPresentationGolden` mismatches
+  that 02f3e7192 fixed by re-recording the goldens.
+- Evidence: `__symbolize` on the faulting `Context.Rip` names
+  `TrueType.appendSimpleGlyph` ([glyphloader.swg](../bin/std/modules/truetype/src/glyphloader.swg)).
+  Narrowed with `@print` probes down to the statement: the row for the `tint` field
+  (`Pixel.Color`, built through the editor registry) reaches `Properties.addItem`, and the fault
+  happens inside `Label.create(line, dispName, ...)` while laying out the text "Tint".
+  The face and the glyph are sound: family Segoe UI, `glyf` 609 276 bytes, 5 345 `loca` entries,
+  gid 55 spanning 9 830..9 994 — one contour, 8 points, 126 instruction bytes, which fits the
+  164-byte record exactly. The *same* gid renders successfully hundreds of times in the 462
+  preceding tests of the same binary, and `truetype` (40 tests) and `pixel` (375 tests) are both
+  green, so the parse itself is not at fault: the heap is already damaged when this glyph is
+  loaded, and the load is only where the damage is first read. Adding probes moves nothing about
+  which test dies, but does move the reported instruction inside the function.
+  Removing the `t0.name`/`t1.name` assignments does not help, and neither does moving the
+  preceding test's stack `PropertiesItem` onto the heap. Reverting `bin/std/modules/pixel` to
+  24630c76c does not help; reverting `bin/std/modules/truetype` alone does not build
+  (`gui`/`pixel` already use `CURVE_TAG_CUBIC`).
+- Next step: bisect *inside* 02f3e7192 rather than by module — the candidates that run for a
+  plain `glyf` face are the new `FaceImpl` members (`cff`, `type1`, `syntheticCMap`, whose
+  `opDrop` frees only the last of the three), `checkSfntVersion` now accepting `TAG_OTTO`, and
+  `parseCMap`/`parsePost` gaining their `allowMissing` argument. Confirm the class first by
+  reading `ExceptionInformation[0..1]` out of the `EXCEPTION_RECORD` in
+  `__hostTestUnhandledFilter` ([os_windows.swg](../bin/runtime/os_windows.swg)): a faulting
+  address far from the `glyf` slice confirms a corrupted allocator rather than an overrun, and
+  points the search at the new face members' lifetime instead of at the glyph parser.
+  A run under `-bc debug` needs the 300-second `swc test` timeout raised; it currently times out
+  before reaching this test.

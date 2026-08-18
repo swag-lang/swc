@@ -1,4 +1,5 @@
 #global public
+#global namespace Pdf
 
 using Core, Core.Math, Pixel
 

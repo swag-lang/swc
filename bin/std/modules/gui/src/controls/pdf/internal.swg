@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core
 
 const InvalidNode = Swag.U32.Max

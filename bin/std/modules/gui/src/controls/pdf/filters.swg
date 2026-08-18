@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core, Core.Errors
 
 // Stream filters that PDF defines itself, decoded here rather than delegated.

@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Core, Pixel
+using Core, Pixel, Pdf
 
 private func createCorpusTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail => try TypeFace.create(name, bytes)
 

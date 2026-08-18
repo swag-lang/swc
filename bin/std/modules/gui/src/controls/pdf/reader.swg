@@ -1,4 +1,5 @@
 #global public
+#global namespace Pdf
 
 using Core
 
@@ -7,6 +8,7 @@ internal struct PageSource
     objectId:    u32
     resourcesId: u32
     mediaBoxId:  u32
+    cropBoxId:   u32
     rotate:      s64
 }
 
@@ -61,6 +63,6 @@ impl Reader
         if index >= .sources.count do
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
         let source = .sources[index]
-        return try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.rotate)
+        return try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
     }
 }

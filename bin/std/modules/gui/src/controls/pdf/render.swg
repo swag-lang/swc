@@ -1,4 +1,5 @@
 #global public
+#global namespace Pdf
 
 using Core, Pixel
 
@@ -12,6 +13,11 @@ struct RenderOptions
         maxDimension:     s32    = 16_384                         // Largest accepted output width or height in pixels.
         maxPixels:        u64    = 67_108_864                     // Largest accepted output pixel count.
         fallbackFontFile: string = ""                             // Optional TrueType font used when a PDF font cannot be decoded or safely addressed.
+
+        // Page region to rasterize, in PDF points from the page's top-left corner. An empty
+        // rectangle renders the complete page. A viewer zooming into one part of a page renders
+        // that part alone, so the cost of a deep zoom is the visible region, never the page.
+        sourceRect: Math.Rectangle
     }
 }
 
@@ -100,6 +106,76 @@ private func substituteTypeface(options: RenderOptions, resource: #null const *F
 private const MinSubstituteCondense = 0.5'f32
 private const MaxSubstituteCondense = 2.0'f32
 
+// Typefaces resolved once per render rather than once per text item.
+//
+// Resolving an embedded face hashes the complete font program to key the process-wide
+// typeface cache, so a page with thousands of runs must not pay it per run: at one hash per
+// item, re-rendering a dense page reads hundreds of megabytes of font bytes before it draws
+// a single glyph, which is what a viewer experiences as a freeze on every zoom step.
+private struct RenderFontCache
+{
+    embedded:           Array'(#null *TypeFace)     // Per page font index, once resolution was attempted.
+    embeddedResolved:   Array'bool
+    substitute:         Array'(#null *TypeFace)     // Substitute face per page font index.
+    substituteResolved: Array'bool
+    fallback:           #null *TypeFace             // Substitute face for text with no font resource.
+    fallbackResolved:   bool
+}
+
+private impl RenderFontCache
+{
+    mtd prepare(count: u64)
+    {
+        .embedded.resize(count)
+        .embeddedResolved.resize(count)
+        .substitute.resize(count)
+        .substituteResolved.resize(count)
+    }
+
+    // Returns the face built from an embedded font program, or nothing when it cannot be read.
+    mtd embeddedFace(index: u32, resource: const *FontResource)->#null *TypeFace
+    {
+        if index >= .embedded.count do
+            return null
+        if !.embeddedResolved[index]
+        {
+            .embeddedResolved[index] = true
+            if !resource.bytes.isEmpty()
+            {
+                let key    = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(resource.bytes.toSlice()))
+                let result = catch createTypeface(key.toString(), resource.bytes.toSlice()) as loadError
+                if loadError == null do
+                    .embedded[index] = result
+            }
+        }
+
+        return .embedded[index]
+    }
+
+    // Returns the face standing in for a font whose program cannot be drawn.
+    mtd substituteFace(options: RenderOptions, index: u32, resource: #null const *FontResource)->*TypeFace fail
+    {
+        if !resource or index >= .substitute.count
+        {
+            if !.fallbackResolved
+            {
+                .fallback         = try substituteTypeface(options, null)
+                .fallbackResolved = true
+            }
+
+            return .fallback!
+        }
+
+        if !.substituteResolved[index]
+        {
+            .substitute[index]         = try substituteTypeface(options, resource)
+            .substituteResolved[index] = true
+        }
+
+        return .substitute[index]!
+    }
+}
+
 // One PDF character code and the glyphs a substitute face spells it with.
 private struct SubstitutedGroup
 {
@@ -119,17 +195,6 @@ private struct SubstitutedGroup
 private func baselineOffset(item: const *Item, font: *Font)->f32
 {
     return item.fontSize - font.ascent
-}
-
-// Returns the face built from an embedded font program, or nothing when it cannot be read.
-private func embeddedTypeface(resource: const *FontResource)->#null *TypeFace
-{
-    if resource.bytes.isEmpty() do
-        return null
-
-    let key    = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(resource.bytes.toSlice()))
-    let result = catch createTypeface(key.toString(), resource.bytes.toSlice()) as loadError
-    return loadError == null ? result : null
 }
 
 // Draws a run through the embedded font program, addressed the way the document keys it.
@@ -174,7 +239,7 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
 // advance the PDF declared for it instead: one character usually, several when the code
 // stands for a ligature the substitute spells out, and their widths are scaled to fill
 // exactly that advance.
-private func drawSubstitutedRun(painter: *Painter, item: const *Item, resource: #null const *FontResource, font: *Font)
+private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: #null const *FontResource, font: *Font)
 {
     let info = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
     if !resource or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
@@ -255,21 +320,21 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, resource: 
     }
 
     var transform = Transform2.createScale(condense, 1, 0, 0)
-    transform.multiply(item.transform)
+    transform.multiply(base)
     painter.setTransform(transform)
     painter.drawShapedRun(0, baselineOffset(item, font), &shaped, font, Brush.createSolid(item.fillColor))
-    painter.setTransform(item.transform)
+    painter.setTransform(base)
 }
 
 // Draws one text item, preferring the embedded program and falling back to a matching face.
-private func drawTextItem(painter: *Painter, cache: *FontCache, page: const *Page, item: const *Item, options: RenderOptions) fail
+private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *FontCache, page: const *Page, item: const *Item, base: Transform2, options: RenderOptions) fail
 {
     let fontSize = cast(u32) Math.max(1, Math.round(item.fontSize))
     let resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
 
     if resource
     {
-        let embedded = embeddedTypeface(resource!)
+        let embedded = fonts.embeddedFace(item.fontIndex, resource!)
         if embedded
         {
             let font = cache.createFont(embedded!, fontSize)
@@ -278,8 +343,8 @@ private func drawTextItem(painter: *Painter, cache: *FontCache, page: const *Pag
         }
     }
 
-    let substitute = try substituteTypeface(options, resource)
-    drawSubstitutedRun(painter, item, resource, cache.createFont(substitute, fontSize))
+    let substitute = try fonts.substituteFace(options, item.fontIndex, resource)
+    drawSubstitutedRun(painter, item, base, resource, cache.createFont(substitute, fontSize))
 }
 
 private func pathPen(item: const *Item, scale: f32)->Pen
@@ -334,8 +399,16 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
     if options.maxDimension <= 0 or !options.maxPixels do
         fail Errors.BadParameterError{}
 
-    let scaledWidth  = Math.ceil(page.width * options.scale)
-    let scaledHeight = Math.ceil(page.height * options.scale)
+    var region = Math.Rectangle{0, 0, page.width, page.height}
+    if options.sourceRect.width > 0 and options.sourceRect.height > 0
+    {
+        if !Math.isFinite(options.sourceRect.x) or !Math.isFinite(options.sourceRect.y) or !Math.isFinite(options.sourceRect.width) or !Math.isFinite(options.sourceRect.height) do
+            fail Errors.BadParameterError{}
+        region = options.sourceRect
+    }
+
+    let scaledWidth  = Math.ceil(region.width * options.scale)
+    let scaledHeight = Math.ceil(region.height * options.scale)
     if !Math.isFinite(scaledWidth) or !Math.isFinite(scaledHeight) or scaledWidth > cast(f32) options.maxDimension or scaledHeight > cast(f32) options.maxDimension do
         fail Errors.UnsupportedFormatError{"rendered PDF page exceeds the configured dimension limit"}
     let width  = cast(s32) Math.max(1, scaledWidth)
@@ -355,8 +428,32 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
     textures.reserve(page.items.count)
     for item in page.items
     {
-        if item.kind == .Image do
+        if item.kind != .Image do
+            continue
+
+        // A region render leaves the textures of the images it cannot show on the CPU side.
+        let corners: [4] Vector2 = [
+            item.transform.transformPoint({0, 0}),
+            item.transform.transformPoint({1, 0}),
+            item.transform.transformPoint({1, 1}),
+            item.transform.transformPoint({0, 1})]
+        var minX = corners[0].x
+        var minY = corners[0].y
+        var maxX = corners[0].x
+        var maxY = corners[0].y
+        for corner in corners
+        {
+            minX = Math.min(minX, corner.x)
+            minY = Math.min(minY, corner.y)
+            maxX = Math.max(maxX, corner.x)
+            maxY = Math.max(maxY, corner.y)
+        }
+
+        let bounds = Math.Rectangle{minX, minY, maxX - minX, maxY - minY}
+        if bounds.intersects(region) do
             textures.add(renderer.addImage(item.image))
+        else do
+            textures.add(Texture{})
     }
 
     renderer.end()
@@ -369,15 +466,29 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
     painter.clear(options.background)
     painter.setColorMaskColor()
 
+    var fonts: RenderFontCache
+    fonts.prepare(page.fonts.count)
+
+    // A region render shifts every mark by the region origin; the whole page is the identity
+    // region, so the same path serves both.
+    let toRegion = Transform2.createTranslation(-region.x, -region.y)
+
     var textureIndex = 0'u64
     for item in page.items
     {
-        painter.setTransform(item.transform)
+        var placed = item.transform
+        placed.multiply(toRegion)
+        painter.setTransform(placed)
 
         // The clip is stated in page coordinates, so it must not pick up the item's own
         // transform on the way to the painter.
-        if item.hasClip do
-            painter.pushClippingSurfaceRect(item.clip)
+        if item.hasClip
+        {
+            var clip = item.clip
+            clip.offset(-region.x, -region.y)
+            painter.pushClippingSurfaceRect(clip)
+        }
+
         defer if item.hasClip do
             painter.popClippingRect()
 
@@ -386,7 +497,7 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
         case .Text:
             if item.text.isEmpty() and item.textCodes.isEmpty() do
                 continue
-            try drawTextItem(&painter, renderer.fontCache(), page, item, options)
+            try drawTextItem(&painter, &fonts, renderer.fontCache(), page, item, placed, options)
 
         case .Path:
             var paths = item.path
@@ -399,7 +510,8 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
                 painter.drawPath(&paths, pathPen(item, options.scale), .Separate)
 
         case .Image:
-            painter.drawTexture(0, 0, 1, 1, textures[textureIndex])
+            if textures[textureIndex].isValid() do
+                painter.drawTexture(0, 0, 1, 1, textures[textureIndex])
             textureIndex += 1
         }
     }
@@ -413,7 +525,7 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
     {
         painter.setBlendingMode(.Copy)
         painter.setColorMaskAlpha()
-        painter.fillRect({0, 0, page.width, page.height}, options.background)
+        painter.fillRect({0, 0, region.width, region.height}, options.background)
         painter.setColorMaskColor()
         painter.setBlendingMode(.Alpha)
     }

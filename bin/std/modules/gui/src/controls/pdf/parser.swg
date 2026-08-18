@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core, Core.Errors
 
 impl PdfParser
@@ -437,8 +439,28 @@ impl PdfParser
 
     mtd scanObjects() fail
     {
-        if @countof(.bytes) < 8 or !.startsWith("%PDF-") do
+        // The header is located within a bounded prefix rather than required at byte zero: a
+        // file recovered from a mail body or a sloppy concatenation carries a preamble, and
+        // every offset in the file is relative to the header, not to the container around it.
+        const HeaderSearchLimit = 1024'u64
+        var headerPos = Swag.U64.Max
+        if @countof(.bytes) >= 8
+        {
+            let last = Math.min(@countof(.bytes) - 5, HeaderSearchLimit)
+            for i in 0 to last
+            {
+                if !Memory.compare(@dataof(.bytes) + i, @dataof("%PDF-"), 5)
+                {
+                    headerPos = i
+                    break
+                }
+            }
+        }
+
+        if headerPos == Swag.U64.Max do
             fail InvalidFormatError{"input has no PDF header"}
+        if headerPos do
+            .bytes = @mkslice(@dataof(.bytes) + headerPos, @countof(.bytes) - headerPos)
         while .pos < @countof(.bytes)
         {
             let start        = .pos

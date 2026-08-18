@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core, Core.Math, Pixel
 
 // Describes how a font descriptor stores the embedded font program.

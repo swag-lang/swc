@@ -165,24 +165,6 @@ and add the `edit_*` keys the labels need to [[Gui.Strings]].
 
 - Related: T-388, T-419
 
-### T-462 — The HTML and Markdown engines are inside the toolkit that does not use them
-
-- Intent: `src/controls/html` and `src/controls/markdown` hold 12 889 lines, of which 10 028 sit
-  below the widget layer — a tokenizer, a CSS cascade, a layout engine and a painter that talk to
-  `Painter` and nothing else. The whole headless part depends on exactly one toolkit type, a
-  `*Theme` pointer taken by `HtmlLayout.build`. Nothing inside `gui` uses either control, and their
-  only consumers are `plugin.html` and `plugin.markdown` — the same shape as `plugin.pdf`, whose
-  engine is a module of its own. So roughly 1.4 Mo of the 7.9 Mo `gui.dll` is a pair of document
-  engines shipped to every application that opens a window, for formats only an sFileScope plugin
-  ever reads. The split between what lives here and what lives in `std/pdf` is history, not a rule.
-- Complete when: the boundary is decided and written down — either the two engines move below the
-  toolkit with `HtmlView` and `MarkdownView` staying here as their widget shells and the `*Theme`
-  dependency inverted into a plain style-defaults value, or the reason they stay is recorded so the
-  question stops being reopened.
-- Note: deciding it also decides where a headless HTML-to-image or HTML-to-PDF path could live,
-  which is what [T-054](todo.pixel.md#t-054--no-vector-output) will need.
-- Related: T-387, T-419
-
 ### T-042 — Focused controls are not scrolled into view
 
 Tab can focus a descendant of `ScrollWnd` without revealing it. Add `Wnd.ensureVisible`, walking

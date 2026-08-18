@@ -275,9 +275,9 @@ private func packageFileScopePlugins(context: *Context, options: *Options, modul
             try copyBeside(pdbPath.toString(), outputDir.toString(), outputPdb.toString())
     }
 
-    // The host does not import these modules itself, so publishing the application cannot infer
-    // the runtimes needed by the lazily loaded sound and PDF plugins. Package them explicitly.
-    for dependency in ["audio", "pdf"]
+    // The host does not import this module itself, so publishing the application cannot infer
+    // the runtime needed by the lazily loaded sound plugin. Package it explicitly.
+    for dependency in ["audio"]
     {
         let paths = context.artifactPaths(Format.toString("std/%", dependency).toString(), "shared-library", options.buildCfg.toString())
         let dll   = Format.toString("%.dll", dependency)

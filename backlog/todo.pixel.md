@@ -225,6 +225,9 @@ Define HDR surface formats, transfer functions, luminance metadata, and tone-map
 Add PDF output that preserves text and paths as vectors and embeds raster content at source
 resolution. This is the vector target needed by printing.
 
+- Note: the repository's PDF writer lives in `std/gui` (`gui/src/controls/pdf/encode.swg`), above
+  this module. Taking this entry up means either moving that writer below both consumers or
+  growing a painter-native one here; do not duplicate it silently.
 - Related: T-201, T-202, T-238, T-047
 
 ### T-201 — No SVG output

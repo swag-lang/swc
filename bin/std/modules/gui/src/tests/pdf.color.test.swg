@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Core, Pixel
+using Core, Pixel, Pdf
 
 // Paints one filled rectangle per content fragment and returns the color each one carries.
 private func filledColors(resources: string, content: string, extra: const [..] u8)->Array'Color
@@ -65,11 +65,31 @@ private func filledColors(resources: string, content: string, extra: const [..] 
     @assert(colors[1].g == 255 and colors[1].r == 0)
 }
 
-// An unknown space name leaves the page decodable rather than failing the document.
+// A space that cannot be reduced to a color — an unknown name, or a pattern — leaves the
+// page decodable, and the marks filled with it paint nothing rather than a color the stream
+// never named. A gradient-filled chart region must not become an opaque black rectangle.
 #test
 {
-    let colors = filledColors("", "/Missing cs 0 0 5 5 re f", "")
+    @assert(filledColors("", "/Missing cs 0 0 5 5 re f", "").count == 0)
+    @assert(filledColors("", "/Pattern cs /P0 scn 0 0 5 5 re f", "").count == 0)
+}
+
+// A stroke whose own space is sound survives the loss of the fill beside it.
+#test
+{
+    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) "/Pattern cs 1 0 0 RG 0 0 5 5 re B", "").toSlice())
+    let item     = onlyItem(document.pages[0], .Path)
+    @assert(!item.hasFill)
+    @assert(item.pathStrokeWidth() == 1)
+    @assert(item.itemStrokeColor().r == 255)
+}
+
+// Selecting a real space again ends the unsupported state.
+#test
+{
+    let colors = filledColors("", "/Pattern cs 0 0 5 5 re f /DeviceRGB cs 0 1 0 scn 0 0 5 5 re f", "")
     @assert(colors.count == 1)
+    @assert(colors[0].g == 255 and colors[0].r == 0)
 }
 
 // `gs` carries the line width an ExtGState sets.

@@ -1,13 +1,15 @@
-using Core, Pdf, Pixel, Gui, Gui.Testing
+#global if #command == Swag.CompilerCommand.Test
+
+using Core, Pixel, Gui, Gui.Testing
 
 private func createPdfFixture()->String
 {
     let fileName = Gui.Testing.tempFilePath("filescope-pdf-", ".pdf")
-    var document = Document.create()
-    var first    = Page.create(320, 220)
+    var document = Pdf.Document.create()
+    var first    = Pdf.Page.create(320, 220)
     first.addText("PDF viewer", 32, 28, 24, Color.fromArgb(Argb.Black))
     document.addPage(#move first)
-    var second = Page.create(320, 220)
+    var second = Pdf.Page.create(320, 220)
     second.addText("Second page", 32, 28, 24, Color.fromArgb(Argb.Black))
     document.addPage(#move second)
     expect document.save(fileName)
@@ -34,27 +36,24 @@ private func createPdfFixture()->String
     let view = cast(*PdfPluginView) result.view!
     view.resize(640, 420)
     view.applyLayout()
-    @assert(view.rasterScale > 2.8)
-    view.actualSize()
-    @assert(Math.isEqualEpsilon(view.imageView.effectiveZoom(), (96.0'f32 / 72.0) / view.rasterScale, 0.001))
 
-    // Zooming in rasterizes the page again instead of magnifying the pixels already on
-    // screen: the page is vector art, so its sharpness must follow the zoom. The content
-    // still grows by exactly the requested factor, and one raster pixel ends up covering at
-    // most one physical pixel.
-    let coarseScale = view.rasterScale
-    let shownSize   = view.imageView.effectiveZoom() * coarseScale
-    view.imageView.setZoom(view.imageView.effectiveZoom() * 4)
-    @assert(view.rasterScale > coarseScale)
-    @assert(Math.isEqualEpsilon(view.imageView.effectiveZoom() * view.rasterScale, shownSize * 4, 0.01))
-    @assert(view.imageView.effectiveZoom() * view.deviceScale() <= 1.001)
+    let pdf = view.pdfView
+    @assert(pdf.pageCount() == 2 and pdf.pageIndex == 0)
+    @assert(pdf.isFitted)
 
-    view.imageView.zoomToFit()
-    @assert(view.reader.pageCount() == 2)
-    @assert(view.imageView.isFitted)
+    // Actual size shows one PDF point per 1/96 logical inch; an explicit zoom multiplies the
+    // shown size exactly, with the rasterization following the widget internally.
+    pdf.actualSize()
+    @assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    let shown = pdf.effectiveZoom()
+    pdf.setZoom(shown * 4)
+    @assert(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
+
+    pdf.zoomToFit()
+    @assert(pdf.isFitted)
     @assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())
-    expect view.showPage(1)
-    @assert(view.pageIndex == 1)
+    expect pdf.showPage(1)
+    @assert(pdf.pageIndex == 1)
     @assert(view.previousButton.isEnabled() and !view.nextButton.isEnabled())
     Testing.assertContentFits(view)
 }

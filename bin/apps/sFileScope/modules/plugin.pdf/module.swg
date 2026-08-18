@@ -1,5 +1,4 @@
 #import("gui", location: "swag@std")
-#import("pdf", location: "swag@std")
 #load("../../shared/pluginapi.swg")
 
 #run

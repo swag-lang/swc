@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core, Core.Errors, Core.Math, Pixel
 
 // Decoding of image XObjects and inline images.
@@ -27,6 +29,11 @@ struct ImageSpace
     palette:        Array'u8
     hival:          u32
     range:          [4] f32        = [-100, 100, -100, 100]
+
+    // The space could not be reduced to a color — a pattern, or an unresolvable name. A mark
+    // painted with it is dropped rather than painted in a color the stream never asked for:
+    // a gradient-filled chart region must not become an opaque black rectangle.
+    unsupported: bool
 }
 
 // One decoded raster, in top-left-first row order, before it becomes a Pixel image.

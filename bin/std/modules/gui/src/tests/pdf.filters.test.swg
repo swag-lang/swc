@@ -1,4 +1,6 @@
-using Core
+#global if #command == Swag.CompilerCommand.Test
+
+using Core, Pdf
 
 // The LZW example of the PDF specification, which exercises the clear code, the
 // output-before-definition case, and the end-of-data code in nine bytes.

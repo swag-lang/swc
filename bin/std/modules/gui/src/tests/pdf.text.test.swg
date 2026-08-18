@@ -1,4 +1,6 @@
-using Core, Core.Math
+#global if #command == Swag.CompilerCommand.Test
+
+using Core, Core.Math, Pdf
 
 // Standard metrics are read from the built-in tables, so a run can be measured without any
 // font file on the machine.

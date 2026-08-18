@@ -101,6 +101,8 @@ namespace PostRaPeephole
                 const MicroInstr* inst = ctx.instruction(cur);
                 if (!inst)
                     return false;
+                if (ctx.isClaimed(cur))
+                    return false;
 
                 const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, ctx.encoder);
 

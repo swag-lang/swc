@@ -42,29 +42,30 @@ draw.
 
 ## Why this is its own module
 
-The question is worth answering once, because the module looks at first like `HtmlView` and
-`MarkdownView`, which live inside `std/gui`.
+The obvious objection is that `HtmlView` and `MarkdownView` live inside `std/gui`, and that a
+PDF view could just as well be a widget there too. The usual answer — that those are widgets and
+this is not — does not survive being checked. Of the 12 889 lines behind the two document controls
+in `gui`, 10 028 sit below the widget layer, the whole engine's only dependency on the toolkit is
+one `*Theme` pointer in `layout.swg`, nothing inside `gui` uses either control, and their only
+consumers are `plugin.html` and `plugin.markdown` — the same shape as `plugin.pdf`. Those two are
+document engines with a widget on top, exactly like this module, and they are inside `gui` by
+history. That question is recorded as [T-462](todo.gui.md#t-462--the-html-and-markdown-engines-are-inside-the-toolkit-that-does-not-use-them).
 
-It is not the same shape. `HtmlView` and `MarkdownView` are widgets: their parse output is a
-window tree, they consume gui's layout, painting, theming and event model, and they cannot be used
-without a surface. `std/pdf` depends on `core` and `pixel` and on nothing else; it produces a
-`Pixel.Image` and a byte buffer. A report generator, a command-line tool, or a server-side
-rasterizer can use all of it without ever opening a window, and folding it into gui would take
-that away for no gain — the module is already *smaller* than the HTML control that lives there
-(4.6k lines against 9.9k).
+What does hold, and is genuinely asymmetric, is that this module **writes**. `Document.save` has
+no reading as a widget at all, and [T-054](todo.pixel.md#t-054--no-vector-output) asks `pixel` for
+PDF output from the painter. `pixel` sits *below* `gui`, so a PDF writer living in `gui` would
+mean `pixel` needing the window toolkit to produce a file. Nothing in this tree writes HTML, so
+nothing pins HTML the same way.
 
-Nor does it belong in `pixel`. The rule that puts SVG in `pixel` and PDF outside it is: `pixel`
-owns the formats the toolkit itself consumes to draw its own interface — the theme atlas is SVG,
-so SVG is not optional. No part of the toolkit reads a PDF. It is a user document format, in the
-same position as `video`, and its only consumer today is `plugin.pdf`, a shared library sFileScope
-loads when a `.pdf` is opened. Merging it into `gui` or `pixel` would make every application that
-links either one carry a PDF decoder, its filter chain, its font substitution tables and its
-standard-face metrics, whether or not it will ever open a document. The plugin boundary exists for
-exactly this reason.
+Second, and smaller: an HTML layout is a function of the width of whatever contains it, so a
+headless HTML engine still needs a host to drive it — litehtml's container interface is precisely
+that inversion, not its removal. A PDF page is 595 by 842 points whatever the window, so
+rasterizing it is a pure function of the document and a scale, and the engine needs no host at
+all.
 
-The one entry that crosses this line is
-[T-054](todo.pixel.md#t-054--no-vector-output), which asks `pixel` for PDF *output* from the
-painter. That work should call into this module rather than grow a second writer.
+So the consistent resolution is not to move this module into `gui`. It is that `gui` should not be
+carrying two document engines it never uses either: about 1.4 Mo of the 7.9 Mo `gui.dll` is
+shipped to every application that opens a window, for formats only an sFileScope plugin reads.
 
 ---
 

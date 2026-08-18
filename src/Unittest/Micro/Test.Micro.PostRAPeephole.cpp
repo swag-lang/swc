@@ -102,6 +102,31 @@ SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_CopyForward_DoesNotCrossClaimedStoreReload)
+{
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg rax   = MicroReg::intReg(0);
+    constexpr MicroReg rcx   = MicroReg::intReg(2);
+    constexpr MicroReg r14   = MicroReg::intReg(14);
+    constexpr MicroReg r15   = MicroReg::intReg(15);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadMemReg(stack, 24, r14, MicroOpBits::B64);
+    builder.emitLoadRegReg(rax, r15, MicroOpBits::B64);
+    builder.emitLoadRegMem(rcx, stack, 24, MicroOpBits::B64);
+    builder.emitLoadRegReg(r14, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (!hasLoadRegReg(builder, rcx, r14))
+        return Result::Error;
+    if (!hasLoadRegReg(builder, r14, rax))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ErasesStoreOverwrittenBeforeMemoryAccess)
 {
     const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;

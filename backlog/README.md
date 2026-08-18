@@ -32,6 +32,7 @@ allowed to stop.
 | [todo.portability.md](todo.portability.md) | Cross-platform boundaries in `bin/`, the runtime host ABI, and preparation for Linux |
 | [todo.core.md](todo.core.md) | `std/core` |
 | [todo.gui.md](todo.gui.md) | `std/gui` |
+| [todo.html.md](todo.html.md) | The HTML engine behind `Gui.HtmlView`: parser, cascade, layout, paint, and the view |
 | [todo.pixel.md](todo.pixel.md) | `std/pixel` |
 | [todo.audio.md](todo.audio.md) | `std/audio` |
 | [todo.video.md](todo.video.md) | `std/video` |
@@ -78,7 +79,7 @@ another backlog entry, in a code comment. A title gets rewritten, a position mov
 changes file; the identifier does not.
 
 Next identifier: F-156
-Next identifier: T-462
+Next identifier: T-491
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

@@ -39,6 +39,59 @@ func findClass(document: const *HtmlDocument, name: string)->u32
     return HtmlNoNode
 }
 
+// Returns the position of the first laid-out text item matching `text` inside a box.
+func findItemPos(view: *HtmlView, box: u32, text: string)->{ x: f32, y: f32, found: bool }
+{
+    var result: retval
+    for item in view.layout.constBox(box).items
+    {
+        if item.kind != .Text or item.text.toString() != text do
+            continue
+        result.x     = item.x
+        result.y     = item.y
+        result.found = true
+        return result
+    }
+
+    return result
+}
+
+// Returns the nth element carrying a tag, so a test can address repeated fixture structure.
+func findNthTag(document: const *HtmlDocument, tag: HtmlTag, wanted: u32)->u32
+{
+    var seen = 0'u32
+    for index in document.nodes.count where document.constNode(cast(u32) index).tag == tag
+    {
+        seen += 1
+        if seen == wanted do
+            return cast(u32) index
+    }
+
+    return HtmlNoNode
+}
+
+// Writes `bytes` to a temporary file, loads it whole through a view, and returns its text.
+func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, tag: string)->String
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_html_charset_%_%.html", tag, Guid64.random()).toString())
+    discard expect File.writeAllBytes(fileName, bytes)
+    defer discard catch File.delete(fileName)
+
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(640, 480)
+    view.applyLayout()
+
+    var steps = 0'u32
+    while view.isLoading() and steps < 100
+    {
+        view.streamStep()
+        steps += 1
+    }
+
+    @assert(!view.isLoading())
+    return view.document.textContent(0)
+}
+
 struct HtmlLinkHit
 {
     point: Math.Point
@@ -989,4 +1042,476 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let view = HtmlView.createFile(&host.root, path)
     @assert(!view.failureReason.isEmpty())
     @assert(!view.isLoading())
+}
+
+// A `>` inside a quoted attribute value belongs to the value, not to the tag.
+#test
+{
+    let document = parseDocument("<p><a href=\"#x\" title=\"a > b\" data-note='1 > 0'>link</a> tail</p><p>second</p>")
+    let anchor   = findTag(&document, .A)
+    @assert(anchor != HtmlNoNode)
+    @assert(document.attribute(anchor, "title") == "a > b")
+    @assert(document.attribute(anchor, "data-note") == "1 > 0")
+    @assert(document.textContent(anchor).toString() == "link")
+
+    var paragraphs = 0'u32
+    for index in document.nodes.count where document.constNode(cast(u32) index).tag == .P do
+        paragraphs += 1
+    @assert(paragraphs == 2)
+
+    // A stray quote outside any value still lets the tag end at its `>`.
+    let strays = parseDocument("<p foo\"bar>text</p>")
+    let para   = findTag(&strays, .P)
+    @assert(para != HtmlNoNode)
+    @assert(strays.textContent(para).toString() == "text")
+}
+
+// The newline that immediately follows a `<pre>` or `<textarea>` start tag is not content, and
+// only that one is dropped.
+#test
+{
+    let document = parseDocument("<pre>\nkeep</pre><pre>\n\ntwo</pre><textarea>\nvalue</textarea>")
+    @assert(document.textContent(findNthTag(&document, .Pre, 1)).toString() == "keep")
+    @assert(document.textContent(findNthTag(&document, .Pre, 2)).toString() == "\ntwo")
+    @assert(document.textContent(findTag(&document, .TextArea)).toString() == "value")
+
+    // A tag between the two keeps the newline: the rule only ever applies to the very next token.
+    let nested = parseDocument("<pre><code>\nkept</code></pre>")
+    @assert(nested.textContent(findTag(&nested, .Code)).toString() == "\nkept")
+}
+
+// Both fixes hold when the source arrives in chunks that cut a quoted value and a dropped
+// newline at every awkward position.
+#test
+{
+    let source = "<p><a href=\"#x\" title=\"a > b\">link</a> tail</p><pre>\n    indented</pre>"
+
+    var streamed = HtmlDocument.create()
+    var parser: HtmlParser
+    parser.start(&streamed)
+
+    var offset = 0'u64
+    while offset < @countof(source)
+    {
+        let end = Math.min(offset + 3, @countof(source))
+        parser.feed(source[offset until end])
+        offset = end
+    }
+
+    parser.finish()
+
+    let anchor = findTag(&streamed, .A)
+    @assert(streamed.attribute(anchor, "title") == "a > b")
+    @assert(streamed.textContent(findTag(&streamed, .Pre)).toString() == "    indented")
+}
+
+// Preserved white space keeps the indentation a code line starts with; collapsed white space
+// still drops it. This is the shape of every `.code-block` the generated documentation draws.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } div { font-family: monospace }"
+    source += ".keep { white-space: pre }"
+    source += ".fold { white-space: pre-line }"
+    source += "</style>"
+    source += "<div class=\"keep\" id=\"k\">zero\n    four</div>"
+    source += "<div class=\"fold\" id=\"f\">zero\n    four</div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let kept = view.boxOfNode(view.elementById("k"))
+    let keptZero = findItemPos(view, kept, "zero")
+    let keptFour = findItemPos(view, kept, "four")
+    @assert(keptZero.found and keptFour.found)
+    @assert(keptFour.y > keptZero.y)
+
+    // The second line starts four monospace spaces in, not at the margin.
+    @assert(keptFour.x > keptZero.x + 1)
+
+    let folded = view.boxOfNode(view.elementById("f"))
+    let foldedZero = findItemPos(view, folded, "zero")
+    let foldedFour = findItemPos(view, folded, "four")
+    @assert(foldedZero.found and foldedFour.found)
+    @assert(foldedFour.y > foldedZero.y)
+    @assert(Math.abs(foldedFour.x - foldedZero.x) < 0.5)
+}
+
+// `repeat()` expands to its full track list, alone and mixed with plain tracks.
+#test
+{
+    var source: String = "<style>body { margin: 0 }"
+    source += ".grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }"
+    source += ".mix { display: grid; grid-template-columns: repeat(2, 100px 1fr) }"
+    source += ".cell { height: 20px }"
+    source += "</style>"
+    source += "<div class=\"grid\"><div class=\"cell\" id=\"a\"></div><div class=\"cell\" id=\"b\"></div><div class=\"cell\" id=\"c\"></div><div class=\"cell\" id=\"d\"></div></div>"
+    source += "<div class=\"mix\"><div class=\"cell\" id=\"m1\"></div><div class=\"cell\" id=\"m2\"></div><div class=\"cell\" id=\"m3\"></div><div class=\"cell\" id=\"m4\"></div></div>"
+
+    var host: Testing.HeadlessHost
+    host.setup(620, 400)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(620, 400)
+    view.applyLayout()
+    view.rebuild()
+
+    let width = view.scroll.paddedClientRect().width
+    let track = (width - 20) / 3
+    let a = view.layout.constBox(view.boxOfNode(view.elementById("a")))
+    let b = view.layout.constBox(view.boxOfNode(view.elementById("b")))
+    let c = view.layout.constBox(view.boxOfNode(view.elementById("c")))
+    let d = view.layout.constBox(view.boxOfNode(view.elementById("d")))
+
+    // Three columns share the row; the fourth item wraps to the next one.
+    @assert(a.rect.y == b.rect.y and b.rect.y == c.rect.y)
+    @assert(d.rect.y > a.rect.y)
+    @assert(Math.abs(a.rect.width - track) <= 0.75)
+    @assert(Math.abs(b.rect.x - a.rect.right() - 10) <= 0.75)
+    @assert(Math.abs(c.rect.right() - width) <= 0.75)
+
+    let flexible = (width - 200) / 2
+    let m1 = view.layout.constBox(view.boxOfNode(view.elementById("m1")))
+    let m2 = view.layout.constBox(view.boxOfNode(view.elementById("m2")))
+    let m3 = view.layout.constBox(view.boxOfNode(view.elementById("m3")))
+    let m4 = view.layout.constBox(view.boxOfNode(view.elementById("m4")))
+    @assert(m1.rect.y == m4.rect.y)
+    @assert(Math.abs(m1.rect.width - 100) <= 0.75)
+    @assert(Math.abs(m2.rect.width - flexible) <= 0.75)
+    @assert(Math.abs(m3.rect.width - 100) <= 0.75)
+    @assert(Math.abs(m3.rect.x - m2.rect.right()) <= 0.75)
+}
+
+// Preserved white space draws the indentation of a code block line by line — the shape every
+// `.code-block` region of the generated documentation relies on.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 220)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0; background: #ffffff }"
+    source += ".code { margin: 12px; padding: 10px; background: #eef2f6; border: 1px solid #90a0b0; font-family: monospace; font-size: 14px; white-space: pre; color: #102030 }"
+    source += "</style>"
+    source += "<div class=\"code\">func demo()\n{\n    if ready\n        run(1)\n}</div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(360, 220)
+    view.applyLayout()
+    view.rebuild()
+
+    host.settleAnimations(view, 4)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "htmlview.preserved-whitespace")
+}
+
+// The tables fixture renders through the production view, so a column-sizing or cell-alignment
+// regression lands in this image before any reader sees it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, guiFixturePath("html.tables.html"))
+    view.resize(960, 680)
+    view.applyLayout()
+    view.rebuild()
+
+    var steps: u64
+    while view.isLoading() and steps < 4_000
+    {
+        view.streamStep()
+        steps += 1
+    }
+
+    @assert(!view.isLoading())
+    host.settleAnimations(view, 4)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "htmlview.tables")
+}
+
+// An image embedded in the document as a `data:` URI decodes like a file image, so a
+// self-contained export shows its figures. The payload is the pixel module's own fixture.
+#test
+{
+    const Embedded = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
+
+    var host: Testing.HeadlessHost
+    host.setup(200, 150)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 }</style><img id=\"i\" src=\"data:image/png;base64,"
+    source += Embedded
+    source += "\">"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(200, 150)
+    view.applyLayout()
+    view.rebuild()
+
+    // The embedded picture provides its natural size, so the box is no broken-image placeholder.
+    let box = view.layout.constBox(view.boxOfNode(view.elementById("i")))
+    @assert(box.content.width == 32 and box.content.height == 32)
+    @assert(view.images.entries.count == 1 and view.images.entries[0].loaded)
+    discard host.render(view)
+}
+
+// A document's bytes decide its decoding: a `charset=` declaration, a byte-order mark, or the
+// content itself. Assuming UTF-8 used to refuse every legacy page outright.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    // Windows-1252 declared by its meta tag, with the first accent far beyond the probe: only
+    // the declaration can answer, because everything the heuristic sees is plain ASCII.
+    var declared: String = "<html><head><meta charset=\"windows-1252\"></head><body>"
+    for 200 do
+        declared += "<p>ascii filler paragraph</p>"
+    declared += "<p>caf"
+    declared.append(0xE9'u8)
+    declared += "</p></body></html>"
+    let declaredText = loadTemporaryDocument(&host, @mkslice(cast(const [*] u8) declared.buffer!, declared.length), "declared")
+    @assert(Utf8.contains(declaredText.toString(), "café"))
+
+    // No declaration: the byte pattern itself says code page 1252.
+    var plain: String = "<html><body><p>tr"
+    plain.append(0xE8'u8)
+    plain += "s vite</p></body></html>"
+    let plainText = loadTemporaryDocument(&host, @mkslice(cast(const [*] u8) plain.buffer!, plain.length), "plain")
+    @assert(Utf8.contains(plainText.toString(), "très vite"))
+
+    // UTF-16 LE behind its byte-order mark, which is content in no encoding.
+    var wide: Array'u8
+    wide.add(0xFF)
+    wide.add(0xFE)
+    for value in "<html><body><p>wide text</p></body></html>"
+    {
+        wide.add(value)
+        wide.add(0)
+    }
+
+    let wideText = loadTemporaryDocument(&host, wide.toSlice(), "wide")
+    @assert(Utf8.contains(wideText.toString(), "wide text"))
+    @assert(!Utf8.contains(wideText.toString(), "ÿþ"))
+}
+
+// The flex and grid fixture renders through the production view, pinning wrap, alignment, and
+// track sizing as pixels rather than as a handful of sampled rectangles.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 540)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, guiFixturePath("html.flex-grid.html"))
+    view.resize(960, 540)
+    view.applyLayout()
+    view.rebuild()
+
+    var steps: u64
+    while view.isLoading() and steps < 4_000
+    {
+        view.streamStep()
+        steps += 1
+    }
+
+    @assert(!view.isLoading())
+    host.settleAnimations(view, 4)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "htmlview.flex-grid")
+}
+
+// Misnested formatting keeps its formatting: the close that pops an inline ancestor reopens the
+// formatting elements it swallowed, the way every browser recovers `<b>one <i>two</b> three</i>`.
+#test
+{
+    let document = parseDocument("<p><b>one <i class=\"x\">two</b> three</i> four</p>")
+    let bold     = findTag(&document, .B)
+    @assert(bold != HtmlNoNode)
+    @assert(document.textContent(bold).toString() == "one two")
+
+    // Two italic elements exist: the original inside the bold, the reopened one after it, and
+    // the clone carries the original's attributes.
+    let first  = findNthTag(&document, .I, 1)
+    let second = findNthTag(&document, .I, 2)
+    @assert(first != HtmlNoNode and second != HtmlNoNode)
+    @assert(document.constNode(first).parent == bold)
+    @assert(document.constNode(second).parent == document.constNode(bold).parent)
+    @assert(document.textContent(second).toString() == " three")
+    @assert(document.hasClass(second, "x"))
+
+    let para = findTag(&document, .P)
+    @assert(document.textContent(para).toString() == "one two three four")
+}
+
+// Content written inside the table structure but outside any cell renders before the table,
+// where browsers foster-parent it, and the grid keeps only its rows.
+#test
+{
+    let document = parseDocument("<div><table>stray <b>bold</b><tr><td>cell</td></tr></table></div>")
+    let host     = findTag(&document, .Div)
+    let table    = findTag(&document, .Table)
+    let bold     = findTag(&document, .B)
+    @assert(document.constNode(bold).parent == host)
+
+    // Order under the host: the fostered text, the fostered bold run, then the table.
+    let children = &document.constNode(host).children
+    @assert(children.count == 3)
+    @assert(document.constNode(children[0]).kind == .Text)
+    @assert(document.constNode(children[0]).text.toString() == "stray ")
+    @assert(children[1] == bold)
+    @assert(children[2] == table)
+
+    let cell = findTag(&document, .Td)
+    @assert(document.textContent(cell).toString() == "cell")
+    @assert(document.textContent(table).toString() == "cell")
+}
+
+// A block interrupts a paragraph even through its open inline children: the paragraph closes,
+// and the block is its sibling rather than its grandchild.
+#test
+{
+    let document = parseDocument("<p>lead <b>bold<div>block</div>")
+    let para     = findTag(&document, .P)
+    let block    = findTag(&document, .Div)
+    @assert(document.constNode(block).parent == document.constNode(para).parent)
+    @assert(document.textContent(para).toString() == "lead bold")
+    @assert(document.textContent(block).toString() == "block")
+}
+
+// The recoveries hold when the source arrives in chunks that cut every token.
+#test
+{
+    let source = "<div><table>stray<tr><td>cell</td></tr></table></div><p><b>one <i>two</b> three</i></p>"
+
+    var streamed = HtmlDocument.create()
+    var parser: HtmlParser
+    parser.start(&streamed)
+
+    var offset = 0'u64
+    while offset < @countof(source)
+    {
+        let end = Math.min(offset + 3, @countof(source))
+        parser.feed(source[offset until end])
+        offset = end
+    }
+
+    parser.finish()
+
+    let host  = findTag(&streamed, .Div)
+    let table = findTag(&streamed, .Table)
+    @assert(streamed.constNode(host).children.count == 2)
+    @assert(streamed.constNode(streamed.constNode(host).children[0]).text.toString() == "stray")
+    @assert(streamed.constNode(host).children[1] == table)
+    @assert(streamed.textContent(table).toString() == "cell")
+
+    let second = findNthTag(&streamed, .I, 2)
+    @assert(second != HtmlNoNode)
+    @assert(streamed.textContent(second).toString() == " three")
+}
+
+// A left float leaves the stack: the lines beside it shorten, the flow returns to the margin
+// below it, and `clear` starts below the floats it names.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } p { margin: 0; font-size: 16px; line-height: 20px }"
+    source += ".fig { float: left; width: 120px; height: 40px }"
+    source += "</style>"
+    source += "<div class=\"fig\" id=\"f\"></div>"
+    source += "<p id=\"t\">first alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega<br>last</p>"
+    source += "<div id=\"c\" style=\"clear: left; height: 10px\"></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    // The float sits at the top left, and the paragraph's own box still starts at the same top.
+    let fig = view.layout.constBox(view.boxOfNode(view.elementById("f")))
+    @assert(fig.rect.x == 0 and fig.rect.y == 0)
+    @assert(fig.rect.width == 120 and fig.rect.height == 40)
+
+    let para = view.boxOfNode(view.elementById("t"))
+    @assert(view.layout.constBox(para).rect.y == 0)
+
+    // Lines beside the float start at its right edge; the forced last line, well past the
+    // float's bottom, returns to the margin.
+    let beside = findItemPos(view, para, "first")
+    @assert(beside.found and beside.x >= 120)
+    @assert(beside.y < 40)
+    let below = findItemPos(view, para, "last")
+    @assert(below.found and below.x < 1)
+    @assert(below.y >= 38)
+
+    // The cleared box starts below the float's bottom rather than at the flow position.
+    let cleared = view.layout.constBox(view.boxOfNode(view.elementById("c")))
+    @assert(cleared.rect.y >= 40)
+}
+
+// A right float hugs the right edge, and the text keeps the left one.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 } p { margin: 0; font-size: 16px; line-height: 20px }"
+    source += ".fig { float: right; width: 120px; height: 40px }"
+    source += "</style>"
+    source += "<div class=\"fig\" id=\"f\"></div>"
+    source += "<p id=\"t\">first words wrap on the narrowed measure beside the floated box</p>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let fig = view.layout.constBox(view.boxOfNode(view.elementById("f")))
+    @assert(fig.rect.y == 0)
+    @assert(Math.abs(fig.rect.right() - 400) <= 0.5)
+    @assert(fig.rect.width == 120)
+
+    let first = findItemPos(view, view.boxOfNode(view.elementById("t")), "first")
+    @assert(first.found and first.x < 1 and first.y < 40)
+}
+
+// The classic article arrangement as pixels: a floated figure, the text wrapping beside it and
+// returning to the full measure below, and a cleared footer starting under the float.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 240)
+    defer host.shutdown()
+
+    var source: String = "<html><head><style>body { margin: 0; background: #ffffff; color: #102030; font-size: 14px; height: 240px }"
+    source += "p { margin: 6px }"
+    source += ".fig { float: left; width: 110px; height: 70px; margin: 6px; background: #4a7fb5 }"
+    source += ".end { clear: left; background: #dbe6f1 }"
+    source += "</style></head><body>"
+    source += "<div class=\"fig\"></div>"
+    source += "<p>The paragraph wraps beside the floated figure and keeps every line inside the narrowed measure, then returns to the full column width once the flow has passed below the figure's bottom edge.</p>"
+    source += "<p class=\"end\">A cleared footer starts below the float.</p>"
+    source += "</body></html>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(360, 240)
+    view.applyLayout()
+    view.rebuild()
+
+    host.settleAnimations(view, 4)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "htmlview.floats")
 }

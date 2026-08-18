@@ -15,6 +15,63 @@ private const HtmlFirstRefreshSize = 192 * 1024'u64
 // rather than shown a rendering that silently drops content.
 private const HtmlMaxDocumentSize = 48 * 1024 * 1024'u64
 
+// Source bytes inspected before the first parse to decide how the file spells its characters.
+private const HtmlCharsetProbeSize = 4 * 1024'u64
+
+// Returns the encoding a `charset=` declaration within the probe names, when it names one this
+// engine reads.
+//
+// This is the prescan every browser runs on the head of a file: the head of a legacy page is
+// pure ASCII, so the content heuristic cannot see past it, and the declaration is the only
+// truth available. The label set maps the way the HTML standard maps it — the Latin-1 family
+// is code page 1252, and a UTF-16 label on bytes readable as ASCII means UTF-8.
+private func htmlDeclaredEncoding(probe: string)->{ encoding: Text.Encoding, matched: bool }
+{
+    var result: retval
+    var scan    = 0'u64
+    while true
+    {
+        let found = Utf8.indexOf(probe, "charset", scan, .Latin1NoCase)
+        if found == Swag.U64.Max do
+            return result
+
+        var index = found + @countof("charset")
+        while index < @countof(probe) and Latin1.isSpace(probe[index]) do
+            index += 1
+        if index >= @countof(probe) or probe[index] != '='
+        {
+            scan = index
+            continue
+        }
+
+        index += 1
+        while index < @countof(probe) and Latin1.isSpace(probe[index]) do
+            index += 1
+        if index < @countof(probe) and (probe[index] == '"' or probe[index] == '\'') do
+            index += 1
+
+        let labelStart = index
+        while index < @countof(probe) and (Latin1.isLetterOrDigit(probe[index]) or probe[index] == '-') do
+            index += 1
+
+        let label = String.from(probe[labelStart until index]).toLower()
+        switch label.toString()
+        {
+        case "utf-8", "utf8", "utf-16", "utf-16le", "utf-16be":
+            result.encoding = .Utf8
+            result.matched  = true
+            return result
+
+        case "windows-1252", "iso-8859-1", "iso8859-1", "latin1", "l1", "cp1252", "ascii", "us-ascii":
+            result.encoding = .Windows1252
+            result.matched  = true
+            return result
+        }
+
+        scan = index
+    }
+}
+
 // Controls the typography an [[Gui.HtmlView]] starts from.
 //
 // These are the values a document inherits before its own CSS has a say — what a browser calls
@@ -106,6 +163,7 @@ struct HtmlView
 
         stream:      File.FileStream
         fileName:    String
+        encoding:    Text.Encoding
         bytesRead:   u64
         sourceDone:  bool
         loadTimer:   #null *Timer
@@ -326,12 +384,46 @@ internal impl HtmlView
         .canvas.invalidate()
     }
 
+    // Decides how the open stream spells its characters and leaves it at the first content byte.
+    //
+    // A byte-order mark answers on its own and is not content; a `charset=` declaration within
+    // the probe answers next; what remains is decided by the bytes through
+    // [[Core.Text.detectEncoding]].
+    mtd detectDocumentEncoding()->Text.Encoding
+    {
+        var probe: Array'u8
+        probe.resize(HtmlCharsetProbeSize)
+        let count = catch .stream.read(probe.toSlice()) as readError
+        probe.resize(readError == null ? count : 0)
+
+        var result       = Text.detectEncoding(probe.toSlice())
+        var contentStart = 0'u64
+        if Text.hasBom(probe.toSlice(), result)
+        {
+            contentStart = Text.bomLength(result)
+        }
+        else
+        {
+            let declared = htmlDeclaredEncoding(cast(string) probe.toSlice())
+            if declared.matched do
+                result = declared.encoding
+        }
+
+        // A stream that cannot rewind cannot stream the document; the next read reports that
+        // through the existing failure path, and the encoding answer no longer matters.
+        catch .stream.seek(.Begin, contentStart) as seekError
+        if seekError != null do
+            return .Utf8
+
+        return result
+    }
+
     // Feeds one bounded batch of source into the parser.
     mtd streamStep()
     {
         if !.sourceDone
         {
-            let chunk = catch .stream.readUtf8Chunk(HtmlStreamChunkSize) as readError
+            let chunk = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as readError
             if readError != null
             {
                 .reportLoadFailure(Errors.message(readError))
@@ -774,6 +866,7 @@ internal impl HtmlView
             return
         }
 
+        .encoding = .detectDocumentEncoding()
         .streamStep()
     }
 
@@ -789,8 +882,10 @@ internal impl HtmlView
         return result
     }
 
-    // Creates a view and progressively loads a UTF-8 HTML file.
+    // Creates a view and progressively loads an HTML file.
     //
+    // The encoding is decided from the file itself — its byte-order mark, its `<meta charset>`,
+    // or its bytes — so a legacy code page 1252 page reads as the accented text it means.
     // File-open and decoding failures remain visible in the document and are also exposed through
     // [[Gui.HtmlView.failureReason]] and [[Gui.HtmlView.sigLoadFailed]].
     public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView

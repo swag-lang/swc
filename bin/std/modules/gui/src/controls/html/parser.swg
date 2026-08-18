@@ -13,12 +13,13 @@ public struct HtmlParser
     #[Swag.Late]
     document: *HtmlDocument
 
-    stack:      Array'u32
-    carry:      String
-    baseOffset: u64
-    rawTag:     HtmlTag
-    inRawText:  bool
-    done:       bool
+    stack:       Array'u32
+    carry:       String
+    baseOffset:  u64
+    rawTag:      HtmlTag
+    inRawText:   bool
+    dropNewline: bool
+    done:        bool
 }
 
 impl HtmlParser
@@ -30,9 +31,10 @@ impl HtmlParser
         .stack.clear()
         .stack.add(0)
         .carry.clear()
-        .baseOffset = 0
-        .inRawText  = false
-        .done       = false
+        .baseOffset  = 0
+        .inRawText   = false
+        .dropNewline = false
+        .done        = false
     }
 
     mtd current()->u32 => .stack.back()
@@ -56,33 +58,68 @@ impl HtmlParser
         }
     }
 
-    // Closes the elements an HTML author is allowed to leave open before `tag` starts.
+    // Reports whether an implicitly closable element ends where `tag` starts.
     //
     // A paragraph ends where the next block begins, a list item ends where the next one begins,
     // and a table cell ends at the next cell or row. Without this an unbalanced page nests every
     // following block one level deeper until the document is one long staircase.
+    func impliedCloses(open, tag: HtmlTag)->bool
+    {
+        switch open
+        {
+        case .P:                     return HtmlParser.startsBlock(tag)
+        case .Li:                    return tag == .Li
+        case .Dt, .Dd:               return tag == .Dt or tag == .Dd
+        case .Option:                return tag == .Option or tag == .OptGroup
+        case .Td, .Th:               return tag == .Td or tag == .Th or tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
+        case .Tr:                    return tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
+        case .TBody, .THead, .TFoot: return tag == .TBody or tag == .THead or tag == .TFoot
+        case .Head:                  return tag == .Body
+        case .A:                     return tag == .A
+        }
+
+        return false
+    }
+
+    // Reports whether an open element lets an implied close look past it. Phrasing content never
+    // keeps a paragraph or a list item alive on its own; a block or a form control does.
+    func looksThroughImpliedClose(tag: HtmlTag)->bool
+    {
+        switch tag
+        {
+        case .A, .Abbr, .B, .Cite, .Code, .Del, .Dfn, .Em, .I, .Ins, .Kbd, .Label, .Mark, .Output, .Q,
+             .Rp, .Rt, .Ruby, .S, .Samp, .Small, .Span, .Strong, .Sub, .Sup, .Time, .U, .Var: return true
+        }
+
+        return false
+    }
+
+    // Closes the elements an HTML author is allowed to leave open before `tag` starts.
     mtd closeImplied(tag: HtmlTag)
     {
         while .stack.count > 1
         {
-            let open = .document.constNode(.stack.back()).tag
-            var close: bool
-            switch open
+            // The element this start tag closes is not always on top: a paragraph interrupted
+            // while an inline element is open still ends, and its open inlines end with it.
+            var depth = .stack.count
+            var found = 0'u64
+            while depth > 1
             {
-            case .P:                     close = HtmlParser.startsBlock(tag)
-            case .Li:                    close = tag == .Li
-            case .Dt, .Dd:               close = tag == .Dt or tag == .Dd
-            case .Option:                close = tag == .Option or tag == .OptGroup
-            case .Td, .Th:               close = tag == .Td or tag == .Th or tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
-            case .Tr:                    close = tag == .Tr or tag == .TBody or tag == .THead or tag == .TFoot
-            case .TBody, .THead, .TFoot: close = tag == .TBody or tag == .THead or tag == .TFoot
-            case .Head:                  close = tag == .Body
-            case .A:                     close = tag == .A
+                let open = .document.constNode(.stack[depth - 1]).tag
+                if HtmlParser.impliedCloses(open, tag)
+                {
+                    found = depth - 1
+                    break
+                }
+
+                if !HtmlParser.looksThroughImpliedClose(open) do
+                    return
+                depth -= 1
             }
 
-            if !close do
+            if !found do
                 return
-            .stack.removeBack()
+            .stack.resize(found)
         }
     }
 
@@ -99,6 +136,19 @@ impl HtmlParser
         return false
     }
 
+    // Returns how many bytes to skip when the HTML rules discard the newline that immediately
+    // follows a `<pre>` or `<textarea>` start tag. The pending drop is consumed whatever the
+    // first content turns out to be, because the rule only ever applies to the very next token.
+    mtd eatDroppedNewline(text: string)->u64
+    {
+        if !.dropNewline do
+            return 0
+        .dropNewline = false
+        if text[0] == '\r' do
+            return @countof(text) > 1 and text[1] == '\n' ? 2 : 1
+        return text[0] == '\n' ? 1 : 0
+    }
+
     // Appends decoded text, ignoring a run that is only whitespace outside any element.
     //
     // Text arriving in several pieces joins the node the previous piece produced, so a document
@@ -107,9 +157,27 @@ impl HtmlParser
     {
         if !@countof(text) do
             return
-        if .stack.count == 1 and !@countof(Latin1.trim(text)) do
+
+        let eat     = .eatDroppedNewline(text)
+        let content = text[eat to]
+        if !@countof(content) do
             return
-        .document.appendText(.current(), htmlDecodeText(text).toString(), offset)
+        if .stack.count == 1 and !@countof(Latin1.trim(content)) do
+            return
+
+        // Only genuine content is fostered out of the table structure. The whitespace between
+        // rows stays where the source put it — unless a fostered run already sits in front of
+        // the table, where a chunk edge may have isolated one of the run's own spaces.
+        var anchor = .fosterAnchor()
+        if anchor != HtmlNoNode and !@countof(Latin1.trim(content)) and !.document.precededByText(anchor) do
+            anchor = HtmlNoNode
+        if anchor != HtmlNoNode
+        {
+            .document.insertTextBefore(anchor, htmlDecodeText(content).toString(), offset + eat)
+            return
+        }
+
+        .document.appendText(.current(), htmlDecodeText(content).toString(), offset + eat)
     }
 
     // Emits raw element content verbatim, because a script or a stylesheet carries no markup.
@@ -117,7 +185,12 @@ impl HtmlParser
     {
         if !@countof(text) do
             return
-        .document.appendText(.current(), text, offset)
+
+        let eat     = .eatDroppedNewline(text)
+        let content = text[eat to]
+        if !@countof(content) do
+            return
+        .document.appendText(.current(), content, offset + eat)
     }
 
     // Reads the attributes of a start tag, whose text spans from just after the element name to
@@ -181,12 +254,53 @@ impl HtmlParser
         }
     }
 
+    // Reports whether the table structure takes this child where it stands. Anything else is
+    // foster-parented in front of the table, which is where browsers put it.
+    func tableAccepts(tag: HtmlTag)->bool
+    {
+        switch tag
+        {
+        case .Caption, .ColGroup, .Col, .TBody, .THead, .TFoot, .Tr, .Td, .Th, .Script, .Style, .Template, .Form: return true
+        }
+
+        return false
+    }
+
+    // Returns the table to insert in front of when the insertion point sits in the table
+    // structure between cells, `HtmlNoNode` when content belongs where it is.
+    mtd const fosterAnchor()->u32
+    {
+        let parent = .document.constNode(.stack.back()).tag
+        let inTableStructure = parent == .Table or parent == .TBody or parent == .THead or parent == .TFoot or parent == .Tr
+        if !inTableStructure do
+            return HtmlNoNode
+
+        var depth = .stack.count
+        while depth > 1
+        {
+            let element = .stack[depth - 1]
+            if .document.constNode(element).tag == .Table do
+                return element
+            depth -= 1
+        }
+
+        return HtmlNoNode
+    }
+
     mtd openElement(name: string, tag: string, offset: u64)
     {
         let interned = HtmlDocument.tagFromName(name)
         .closeImplied(interned)
 
-        let element = .document.addElement(.current(), name, offset)
+        // Content the table structure does not accept renders in front of the table, not
+        // inside the grid.
+        var element: u32
+        let anchor = HtmlParser.tableAccepts(interned) ? HtmlNoNode : .fosterAnchor()
+        if anchor != HtmlNoNode do
+            element = .document.insertElementBefore(anchor, name, offset)
+        else do
+            element = .document.addElement(.current(), name, offset)
+
         let nameEnd = Math.min(@countof(name), @countof(tag))
         .readAttributes(element, tag[nameEnd to])
 
@@ -195,6 +309,12 @@ impl HtmlParser
             return
 
         .stack.add(element)
+
+        // The newline immediately following the start tag of these two elements is not content,
+        // which is what lets an author put the tag on a line of its own.
+        if interned == .Pre or interned == .TextArea do
+            .dropNewline = true
+
         if HtmlDocument.isRawTextTag(interned)
         {
             .inRawText = true
@@ -202,7 +322,19 @@ impl HtmlParser
         }
     }
 
-    mtd closeElement(name: string)
+    // The elements whose formatting survives misnesting, per the HTML standard's list of
+    // formatting elements this engine knows.
+    func isFormattingTag(tag: HtmlTag)->bool
+    {
+        switch tag
+        {
+        case .A, .B, .Code, .Em, .I, .S, .Small, .Strong, .U: return true
+        }
+
+        return false
+    }
+
+    mtd closeElement(name: string, offset: u64)
     {
         let interned = HtmlDocument.tagFromName(name)
         if HtmlDocument.isVoidTag(interned) do
@@ -220,7 +352,84 @@ impl HtmlParser
 
         if !.isOpen(interned) do
             return
+
+        // Misnested formatting keeps its formatting: the formatting elements this close pops
+        // along with its target reopen as fresh elements, which is the visible result of the
+        // adoption agency the standard specifies. A cell, a caption, and a template bound the
+        // formatting scope and reopen nothing.
+        var reopen: Array'u32
+        if interned != .Td and interned != .Th and interned != .Caption and interned != .Template
+        {
+            var depth = .stack.count
+            while depth > 1 and .document.constNode(.stack[depth - 1]).tag != interned
+            {
+                reopen.add(.stack[depth - 1])
+                depth -= 1
+            }
+
+            for element in reopen where !HtmlParser.isFormattingTag(.document.constNode(element).tag)
+            {
+                reopen.clear()
+                break
+            }
+        }
+
         .popTo(interned)
+
+        // Reopened bottom-up, so the clones nest in their original order. The names and
+        // attributes are copied out first: adding an element may reallocate the node storage.
+        while reopen.count
+        {
+            let source = reopen.back()
+            reopen.removeBack()
+
+            var cloneName:       String              = .document.constNode(source).name
+            var cloneAttributes: Array'HtmlAttribute = .document.constNode(source).attributes
+            let clone = .document.addElement(.current(), cloneName.toString(), offset)
+            for attribute in cloneAttributes do
+                .document.addAttribute(clone, attribute.name.toString(), attribute.value.toString())
+            .stack.add(clone)
+        }
+    }
+
+    // Finds the `>` that ends a tag, skipping the ones inside quoted attribute values, which is
+    // where a title or a data attribute legitimately carries the character. A quote only opens a
+    // value after `=`, so a stray one in a malformed tag cannot swallow the document.
+    func findTagEnd(source: string, start: u64)->u64
+    {
+        var scan   = start
+        var quote  = 0'u8
+        var equals = false
+        while scan < @countof(source)
+        {
+            let character = source[scan]
+            if quote
+            {
+                if character == quote do
+                    quote = 0
+            }
+            elif (character == '"' or character == '\'') and equals
+            {
+                quote  = character
+                equals = false
+            }
+            elif character == '>'
+            {
+                return scan
+            }
+            elif character == '='
+            {
+                equals = true
+            }
+            elif !Latin1.isSpace(character)
+            {
+                equals = false
+            }
+
+            scan += 1
+        }
+
+        return Swag.U64.Max
     }
 
     // Consumes `<`-introduced markup at `index`, returning the position just after it.
@@ -229,6 +438,10 @@ impl HtmlParser
     // wait for more source.
     mtd readMarkup(source: string, index: u64)->u64
     {
+        // Whatever this markup turns out to be, it is the token that follows the previous one,
+        // so a pending newline drop expires here.
+        .dropNewline = false
+
         let remaining = source[index to]
         if Utf8.startsWith(remaining, "<!--")
         {
@@ -243,7 +456,7 @@ impl HtmlParser
             return end == Swag.U64.Max ? Swag.U64.Max : end + 1
         }
 
-        let close = Utf8.indexOf(source, '>'rune, index + 1)
+        let close = HtmlParser.findTagEnd(source, index + 1)
         if close == Swag.U64.Max do
             return Swag.U64.Max
 
@@ -256,7 +469,7 @@ impl HtmlParser
             var nameEnd = 1'u64
             while nameEnd < @countof(tag) and !Latin1.isSpace(tag[nameEnd]) do
                 nameEnd += 1
-            .closeElement(String.from(tag[1 until nameEnd]).toLower().toString())
+            .closeElement(String.from(tag[1 until nameEnd]).toLower().toString(), .baseOffset + index)
             return close + 1
         }
 

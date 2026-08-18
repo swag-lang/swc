@@ -342,59 +342,6 @@ private func parsePaintId(value: string)->String
     return result
 }
 
-private func decodeBase64(value: string, maxBytes: u64)->Array'u8 fail
-{
-    var result: retval
-    result.reserve(Math.min((@countof(value) / 4 + 1) * 3, maxBytes))
-    var digits: [4] u8
-    var count   = 0'u32
-    var padding = 0'u32
-    for c in value
-    {
-        var digit = 255'u8
-        if c == '='
-        {
-            digit   = 0
-            padding += 1
-        }
-        elif c >= 'A' and c <= 'Z' do
-            digit = c - 'A'
-        elif c >= 'a' and c <= 'z' do
-            digit = c - 'a' + 26
-        elif c >= '0' and c <= '9' do
-            digit = c - '0' + 52
-        elif c == '+' do
-            digit = 62
-        elif c == '/' do
-            digit = 63
-        elif c == ' ' or c == '\t' or c == '\r' or c == '\n' do
-            continue
-        else do
-            fail Swag.SystemError{"invalid base64 image data"}
-
-        digits[count] = digit
-        count         += 1
-        if count == 4
-        {
-            let emit = 3 - padding
-            if result.count + emit > maxBytes do
-                fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
-            result.add(cast(u8) ((cast(u32) digits[0] << 2) | (cast(u32) digits[1] >> 4)))
-            if emit > 1 do
-                result.add(cast(u8) ((cast(u32) (digits[1] & 15) << 4) | (cast(u32) digits[2] >> 2)))
-            if emit > 2 do
-                result.add(cast(u8) ((cast(u32) (digits[2] & 3) << 6) | digits[3]))
-            count   = 0
-            padding = 0
-        }
-    }
-
-    if count do
-        fail Swag.SystemError{"truncated base64 image data"}
-
-    return result
-}
-
 private func normalizedText(value: string)->String
 {
     var result: retval
@@ -1734,27 +1681,13 @@ private impl Parser
 
     mtd loadImage(href: string)->Image fail
     {
-        if Utf8.startsWith(href, "data:image/")
+        if Utf8.startsWith(href, "data:")
         {
-            let marker = Utf8.indexOf(href, ";base64,")
-            if marker == Swag.U64.Max do
-                fail Swag.SystemError{"SVG data images must use base64 encoding"}
-
-            let mime     = cast(string) @mkslice(@dataof(href) + 11, marker - 11)
-            var fileName = ""
-            switch mime
-            {
-            case "png":  fileName = "embedded.png"
-            case "jpeg": fileName = "embedded.jpg"
-            case "gif":  fileName = "embedded.gif"
-            case "webp": fileName = "embedded.webp"
-            default:     fail Swag.SystemError{"unsupported SVG data-image media type"}
-            }
-
-            let dataStart = marker + 8
-            let encoded   = cast(string) @mkslice(@dataof(href) + dataStart, @countof(href) - dataStart)
-            let bytes     = try decodeBase64(encoded, .options.maxImageBytes)
-            return try Image.decode(fileName, bytes.toSlice())
+            // The decoded size is bounded by the encoded length, so the byte budget is enforced
+            // before anything is allocated.
+            if (@countof(href) / 4) * 3 > .options.maxImageBytes do
+                fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
+            return try Image.fromDataUri(href)
         }
 
         if @countof(.options.externalResourceRoot) == 0 do

@@ -929,9 +929,38 @@ impl HtmlComputedStyle
         if parts.isEmpty() do
             return
 
+        // `repeat()` is unrolled here so the rest of the engine only ever sees plain tracks. An
+        // `auto-fill` or `auto-fit` count depends on the width layout discovers, so it keeps the
+        // single flexible track the unexpanded form already produces.
+        var tracks: Array'String
+        for part in parts
+        {
+            let call = htmlFunctionArguments(part.toString(), "repeat")
+            if call.matched and call.arguments.count == 2
+            {
+                let countText = Latin1.trim(call.arguments[0].toString())
+                let count     = htmlParseNumber(countText)
+                if count.eat == @countof(countText) and count.value >= 1
+                {
+                    // A count large enough to hit this bound is hostile input, not a layout.
+                    let times = cast(u32) Math.min(count.value, 1024)
+                    let inner = htmlSplitValue(call.arguments[1].toString())
+                    for times
+                    {
+                        for track in inner do
+                            tracks.add(String.from(track.toString()))
+                    }
+
+                    continue
+                }
+            }
+
+            tracks.add(String.from(part.toString()))
+        }
+
         // The tracks are stored as `Value` nodes, where the fraction count rides in `percent`
         // because a flexible track is never a percentage of anything.
-        for part in parts
+        for part in tracks
         {
             var text  = part.toString()
             let range = htmlFunctionArguments(text, "minmax")

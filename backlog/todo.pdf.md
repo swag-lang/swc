@@ -1,20 +1,21 @@
 # Pdf Roadmap
 
-This file is the roadmap for `std/pdf`, measured against the PDF engines it competes with: PDFium,
-MuPDF, Poppler and pdf.js on the reading side, PDFBox and iText on the document side, and
-QuestPDF, ReportLab and wkhtmltopdf on the writing side.
+This file is the roadmap for the PDF family inside `std/gui` — the `Pdf` engine namespace under
+`gui/src/controls/pdf` and the `PdfView` widget beside it — measured against the PDF engines it
+competes with: PDFium, MuPDF, Poppler and pdf.js on the reading side, PDFBox and iText on the
+document side, and QuestPDF, ReportLab and wkhtmltopdf on the writing side.
 
 It is not the repository's discovery backlog. Defects and leads belong in the `findings.*` files,
 which hold evidence; compiler and language intent belongs in [todo.compiler.md](todo.compiler.md)
-and [todo.language.md](todo.language.md). This file holds intent about `bin/std/modules/pdf`.
-[README.md](README.md) has the whole layout.
+and [todo.language.md](todo.language.md). This file holds intent about
+`bin/std/modules/gui/src/controls/pdf`. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
 
 ## Where the module already stands
 
-Four and a half thousand lines of source, and they cover the path a normal office or academic
+The engine covers the path a normal office or academic
 document takes end to end: classic indirect objects, compressed object streams, page trees with
 inherited attributes, page rotation, the Flate, LZW, ASCII hexadecimal, ASCII85 and run-length
 filters with the TIFF and PNG predictors at every supported depth, the complete text state, the
@@ -34,37 +35,29 @@ Three things stand out.
   document declared, per character code. Most readers let the substitute's own metrics drive the
   line, which is what turns a justified paragraph into one that misses its margin.
 - **The corpus is real.** 354 pages from eleven LLVM and Polly documents produced by several
-  generations of writers, plus five PDFBox fixtures, all decoded lazily through `Reader`.
+  generations of writers, plus five PDFBox fixtures, all decoded lazily through `Pdf.Reader`.
+- **The widget renders what the host shows.** `PdfView` keeps the decoded page, rasterizes at the
+  displayed scale — zoom and monitor scale included — and past a fixed pixel budget rasterizes
+  the visible region alone, so a deep zoom costs the viewport rather than the page.
 
 The gaps are of three kinds: documents that will not open at all, pages that open and then render
 as something other than what they mean, and a writer that can only express what it can itself
 draw.
 
-## Why this is its own module
+## Where this family lives, and why
 
-The question is worth answering once, because the module looks at first like `HtmlView` and
-`MarkdownView`, which live inside `std/gui`.
+This engine began as the standalone `std/pdf` module, and the question of whether that separation
+was justified was examined and then decided the other way: a document viewer's rendering is
+host-driven — the zoom, the monitor scale, and the visible region all belong to the widget showing
+the page — so the engine lives beside its widget, exactly as the HTML and Markdown engines live
+beside `HtmlView` and `MarkdownView`. `PdfView` owns the decoded page and rasterizes the region
+the viewport shows at the scale it is shown at; a fixed rasterization handed to a generic image
+widget was the wrong architecture, and was what made zooming freeze.
 
-It is not the same shape. `HtmlView` and `MarkdownView` are widgets: their parse output is a
-window tree, they consume gui's layout, painting, theming and event model, and they cannot be used
-without a surface. `std/pdf` depends on `core` and `pixel` and on nothing else; it produces a
-`Pixel.Image` and a byte buffer. A report generator, a command-line tool, or a server-side
-rasterizer can use all of it without ever opening a window, and folding it into gui would take
-that away for no gain — the module is already *smaller* than the HTML control that lives there
-(4.6k lines against 9.9k).
-
-Nor does it belong in `pixel`. The rule that puts SVG in `pixel` and PDF outside it is: `pixel`
-owns the formats the toolkit itself consumes to draw its own interface — the theme atlas is SVG,
-so SVG is not optional. No part of the toolkit reads a PDF. It is a user document format, in the
-same position as `video`, and its only consumer today is `plugin.pdf`, a shared library sFileScope
-loads when a `.pdf` is opened. Merging it into `gui` or `pixel` would make every application that
-links either one carry a PDF decoder, its filter chain, its font substitution tables and its
-standard-face metrics, whether or not it will ever open a document. The plugin boundary exists for
-exactly this reason.
-
-The one entry that crosses this line is
-[T-054](todo.pixel.md#t-054--no-vector-output), which asks `pixel` for PDF *output* from the
-painter. That work should call into this module rather than grow a second writer.
+One consequence is recorded rather than hidden: the writer (`Pdf.Document.encode`) now lives above
+`pixel`, so [T-054](todo.pixel.md#t-054--no-vector-output) — PDF output from the painter — can no
+longer be satisfied by calling into it from `pixel`. When that entry is taken up, either the
+writer moves below both consumers or `pixel` grows its own, and that choice belongs to T-054.
 
 ---
 
@@ -102,33 +95,11 @@ painter. That work should call into this module rather than grow a second writer
   free entries are honoured, the full scan remains as the fallback for a file whose index is
   damaged, an object is parsed on first use rather than at open, and opening a large document
   costs the trailer chain rather than the file.
-- Related: T-427, T-457, T-461
-
-### T-429 — A file whose header is not at byte zero is rejected
-
-- Intent: `scanObjects` requires `%PDF-` at offset zero. The specification allows the header
-  within the first bytes of the file, and every mainstream reader tolerates a preamble in front of
-  it, which is what a file recovered from a mail body or a badly concatenated download looks like.
-- Complete when: the header is located within a bounded prefix, every offset is taken relative to
-  it, and a file with no header anywhere still reports `InvalidFormatError`.
+- Related: T-427, T-461
 
 ---
 
 ## Tier B — Pages that do not render what they mean
-
-### T-430 — A pattern color space paints solid black
-
-- Intent: the module states that an unsupported construct is reported rather than painted as
-  something else. The `cs` and `CS` handlers break that promise: `resolveNamedColorSpace` fails on
-  `/Pattern`, the error is caught, the space silently stays `DeviceGray`, and the following `scn`
-  carries a name rather than numbers so the color is never replaced. Every pattern-filled region —
-  which in practice means every gradient in every chart — is painted opaque black over whatever it
-  covers. That is worse than not painting it at all, and it is the cheapest correctness gap on
-  this list to close.
-- Complete when: a pattern fill either paints the pattern or paints nothing and records the
-  limitation, and no failed color space resolution can leave the state at a color the content
-  stream never asked for.
-- Related: T-431, T-435, T-436
 
 ### T-431 — One unsupported construct loses the whole page
 
@@ -143,7 +114,7 @@ painter. That work should call into this module rather than grow a second writer
   be parsed at all.
 - Note: the messages reach a user through sFileScope's failure reporting, so they are user-facing
   English and must read as such.
-- Related: T-430, T-442, T-443, T-444, T-445
+- Related: T-442, T-443, T-444, T-445
 
 ### T-432 — Annotation appearance streams are never drawn
 
@@ -158,16 +129,6 @@ painter. That work should call into this module rather than grow a second writer
 - Note: draw appearances only. Never execute an `/AA`, an `/A` action, or embedded JavaScript.
 - Related: T-448
 
-### T-433 — The CropBox is ignored
-
-- Intent: `decodePage` sizes the page from the `/MediaBox` alone. Most typeset documents declare a
-  smaller `/CropBox`, and every reader displays that. A page rendered here is therefore larger than
-  the same page anywhere else, with margins the author trimmed, and the difference shows on most
-  of the academic corpus.
-- Complete when: the page is sized and offset by the intersection of the crop box with the media
-  box when one is present, the box is inherited through the page tree like the media box, and the
-  other boxes remain unread by choice rather than by omission.
-
 ### T-434 — Constant alpha and blend modes are ignored
 
 - Intent: `applyExtGState` reads `/LW` and `/Font` and nothing else. `/ca` and `/CA` are dropped,
@@ -181,12 +142,12 @@ painter. That work should call into this module rather than grow a second writer
 ### T-435 — Axial and radial shadings are not painted
 
 - Intent: the `sh` operator falls through the content switch and paints nothing, and a shading
-  pattern used as a fill hits T-430. Type 2 and type 3 shadings with sampled, exponential and
+  pattern used as a fill paints nothing. Type 2 and type 3 shadings with sampled, exponential and
   stitching functions cover the overwhelming majority of gradients in real documents.
 - Complete when: `sh` paints an axial or radial shading through the current clip, a shading
   pattern selected by `scn` fills a path with the same code, the `/Function` types needed by those
   two are evaluated, and the remaining shading types are reported per item.
-- Related: T-430, T-436
+- Related: T-436
 
 ### T-436 — Tiling patterns are not painted
 
@@ -195,7 +156,7 @@ painter. That work should call into this module rather than grow a second writer
 - Complete when: a tiling pattern's cell is decoded once through the existing content parser,
   tiled over the filled region under the pattern matrix, and both paint types are handled, with
   the uncolored form taking its color from the `scn` operands.
-- Related: T-430, T-435
+- Related: T-435
 
 ### T-437 — A soft mask named by an ExtGState is ignored
 
@@ -423,29 +384,26 @@ painter. That work should call into this module rather than grow a second writer
 
 ## Tier D — Cost
 
-### T-456 — A font program is hashed once per text item drawn
+### T-456 — Typefaces built for a document are never released
 
-- Intent: `drawTextItem` calls `embeddedTypeface` for every text item, which computes a CRC32 over
-  the *entire* embedded font program to build a cache key, formats that key into a string, and
-  then takes a global lock inside `TypeFace.create`. A page with two thousand runs and a
-  four-hundred-kilobyte embedded font hashes eight hundred megabytes to draw one page, and does it
-  again on every re-render. The typefaces it registers are also never released, so the global
-  table grows for the process lifetime as documents are opened.
-- Complete when: a page resolves each font resource to a typeface once per render at most, the key
-  does not require reading the font bytes, and typefaces created for a document are released with
-  it.
-- Related: T-457
+- Intent: a render now resolves each font resource once through a per-render cache, but the key
+  is still a CRC32 over the complete font program — one hash per font per render, where one per
+  document would do — and the typefaces registered in the process-wide `TypeFace` table are never
+  released, so the table grows for the process lifetime as documents are opened and closed.
+- Complete when: a font program is hashed at most once per open document, and the typefaces a
+  document created are released with it.
+- Related: T-457, T-458
 
-### T-457 — A page cannot be re-rendered without being decoded again, and no region can be rendered alone
+### T-457 — Each render rebuilds its renderer and re-uploads its textures
 
-- Intent: `renderPage` builds a fresh `RenderCpu`, initializes it, and uploads every image texture
-  on each call, and `RenderOptions` can only ask for the whole page at one scale. sFileScope's
-  viewer therefore calls `loadPage` again on every zoom step — re-decoding the content stream, the
-  images and the font programs — and caps at 8192 pixels, which limits zoom on an A4 page to about
-  thirteen times regardless of what the user asks for.
-- Complete when: rendering the same `Page` twice reuses its decoded resources and its textures, a
-  render can be restricted to a page-space rectangle at an arbitrary scale, and a deep zoom costs
-  the visible region rather than the whole page.
+- Intent: `PdfView` now keeps the decoded page across zoom and pan steps and rasterizes only the
+  visible region past a pixel budget, but every `renderPage` call still builds a fresh
+  `RenderCpu`, initializes it, and uploads the textures of the in-region images again. On an
+  image-heavy page each zoom step re-uploads the same pixels; nothing carries over from one
+  render of the same `Page` to the next.
+- Complete when: consecutive renders of one page share a render context and the textures of
+  unchanged images, and a zoom step on an image-heavy corpus page measurably stops re-paying the
+  uploads.
 - Related: T-428, T-456, T-459
 
 ### T-458 — An embedded font program is copied once per page that uses it

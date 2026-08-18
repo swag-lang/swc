@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core
 
 // The single-byte encodings a simple font can name, and the glyph names a `/Differences`

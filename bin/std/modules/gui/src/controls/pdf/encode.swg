@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core, Core.Errors, Core.Math, Pixel
 
 private struct PageObjects

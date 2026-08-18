@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Core, Core.Math, Pixel
+using Core, Core.Math, Pixel, Pdf
 
 private func strokedPath(y: f32)->LinePathList
 {

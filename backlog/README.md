@@ -36,7 +36,7 @@ allowed to stop.
 | [todo.audio.md](todo.audio.md) | `std/audio` |
 | [todo.video.md](todo.video.md) | `std/video` |
 | [todo.truetype.md](todo.truetype.md) | `std/truetype` |
-| [todo.pdf.md](todo.pdf.md) | `std/pdf` |
+| [todo.pdf.md](todo.pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
 | [todo.filescope.md](todo.filescope.md) | The sFileScope application |
 | [todo.snapforge.md](todo.snapforge.md) | The sSnapForge application |
 | [todo.vaultdrive.md](todo.vaultdrive.md) | The sVaultDrive application |
@@ -77,8 +77,8 @@ The identifier is how an entry is named everywhere else — in conversation, in 
 another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
 changes file; the identifier does not.
 
-Next identifier: F-156
-Next identifier: T-462
+Next identifier: F-157
+Next identifier: T-463
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

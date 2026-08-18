@@ -14,14 +14,14 @@ module's own writer.
 | `pdfbox-form-xobject.pdf` | [`pdfbox/src/test/resources/input/rendering/tiger-as-form-xobject.pdf`](https://github.com/apache/pdfbox/blob/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/rendering/tiger-as-form-xobject.pdf) | Nested Form XObject and vector paths | `ab356726b3d0bc0e48d0312a4369aa45d21e68d8db2ac2f61f71d99d52eec68f` |
 
 The files are distributed under the Apache License 2.0; see
-`LICENSE.apache-2.0.txt`.
+`pdf-fixture-license-apache-2.0.txt`.
 
 ## LLVM and Polly compatibility corpus
 
 These files are unmodified copies from the LLVM tree at Swag repository commit
 [`7328b93084641fe1a86577aefc98c093b26133e5`](https://github.com/swag-lang/swag/tree/7328b93084641fe1a86577aefc98c093b26133e5/llvm).
 Together they add 354 real-world pages produced by several generations of PDF tools. They are
-distributed under the LLVM Apache 2.0 license with exceptions; see `LLVM-LICENSE.txt`.
+distributed under the LLVM Apache 2.0 license with exceptions; see `pdf-fixture-license-llvm.txt`.
 
 | Local file | Upstream file | Pages | SHA-256 |
 | --- | --- | ---: | --- |

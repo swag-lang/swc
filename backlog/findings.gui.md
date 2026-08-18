@@ -329,3 +329,24 @@ Entries are sorted by identifier, ascending; position carries no priority.
   with `fillRect`. `fillPolygon` routes a shape its convexity test rejects through
   `Polygon.cleanedPaths`, which is the first thing to look at for a strip whose four corners are
   nearly collinear.
+
+### F-156 — sFileScope sizes its viewer layout in physical pixels, so every viewer overflows at non-100% DPI
+
+- Area: bin/std
+- Found while: migrating the PDF engine into `std/gui` and verifying the new `PdfView` inside the
+  running sFileScope on a 150% monitor.
+- Observation: the host hands each viewer plugin a content window sized straight from the
+  surface's physical pixel size, while gui lays out and paints in logical units times
+  `deviceScale`. At 150% the plugin content area measured 1161x730 logical units inside a window
+  whose client is only about 978x598 logical, so the viewer — any viewer, this predates the PDF
+  rework — is 1.5x wider and taller than the window: a fitted page centres itself in the
+  oversized widget and shows up right-shifted and cut. At 100% DPI physical equals logical and
+  nothing is visible, which is how it went unnoticed.
+- Evidence: an instrumented `PdfView.onPaint` on both monitors of a 150% setup reported
+  `position=0,0,1161x730, deviceScale=1.5, fitted zoom=0.867, content centred at x=322` — the
+  widget math is exact, the size it was given is not. The sidebar and toolbar paint at their
+  layout size times 1.5, matching the screenshots.
+- Next step: find where the sFileScope host computes the content and command areas from the
+  surface size and divide by `deviceScale` there; then check the same path in every host that
+  sizes children from a `Surface` rectangle, since the surface contract is physical pixels.
+  Verify with the HTML viewer at 150%, which should show the same overflow today.

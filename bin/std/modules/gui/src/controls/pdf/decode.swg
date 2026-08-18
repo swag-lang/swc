@@ -1,3 +1,5 @@
+#global namespace Pdf
+
 using Core, Core.Errors, Core.Math, Pixel
 
 // Everything a content stream can set before it paints.
@@ -137,6 +139,16 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
 {
     if !path.count() do
         return
+
+    // A paint operation whose color space could not be reduced paints nothing rather than a
+    // color of this module's own choosing.
+    let paintFill   = fill and !state.fillSpace.unsupported
+    let paintStroke = stroke and !state.strokeSpace.unsupported
+    if !paintFill and !paintStroke
+    {
+        path.clear()
+        return
+    }
     if close
     {
         let paths = path.toSlice()
@@ -146,8 +158,8 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
 
     var item = Item.createPath()
     item.path        = #move path[]
-    item.hasFill     = fill
-    item.hasStroke   = stroke
+    item.hasFill     = paintFill
+    item.hasStroke   = paintStroke
     item.evenOddFill = evenOdd
     item.fillColor   = state.fillColor
     item.strokeColor = state.strokeColor
@@ -625,6 +637,8 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 let space  = catch resolveNamedColorSpace(parser, content.name(operands.back()), resourcesId, 0) as spaceError
                 if spaceError == null do
                     picked = space
+                else do
+                    picked.unsupported = true
                 if op == "cs"
                 {
                     state.fillColor = initialSpaceColor(&picked)
@@ -888,19 +902,43 @@ private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
     }
 }
 
-internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox: u32, rotate: s64)->Page fail
+// Returns a page box array as a normalized rectangle in PDF coordinates.
+private func boxRectangle(parser: const *PdfParser, boxId: u32)->Math.Rectangle
+{
+    let values = parser.nodes[boxId].values
+    let x0     = nodeNumber(parser, values[0])
+    let y0     = nodeNumber(parser, values[1])
+    let x1     = nodeNumber(parser, values[2])
+    let y1     = nodeNumber(parser, values[3])
+    return {Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)}
+}
+
+internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox, inheritedCropBox: u32, rotate: s64)->Page fail
 {
     let mediaId = parser.dict(pageId, "MediaBox")
     let media   = mediaId != InvalidNode ? mediaId : inheritedMediaBox
     if media == InvalidNode or parser.nodes[media].kind != .Array or parser.nodes[media].values.count < 4 do
         fail InvalidFormatError{"PDF page has no valid MediaBox"}
-    let values      = parser.nodes[media].values
-    let x0          = nodeNumber(parser, values[0])
-    let y0          = nodeNumber(parser, values[1])
-    let x1          = nodeNumber(parser, values[2])
-    let y1          = nodeNumber(parser, values[3])
-    let mediaWidth  = Math.abs(x1 - x0)
-    let mediaHeight = Math.abs(y1 - y0)
+    var box = boxRectangle(parser, media)
+
+    // The MediaBox bounds the medium; the CropBox, when present, is the region a reader
+    // displays. The page is their intersection, so the margins an author trimmed away stay
+    // trimmed here the same way the file shows everywhere else. A malformed crop is ignored
+    // rather than costing the page.
+    let cropId = parser.dict(pageId, "CropBox")
+    let crop   = cropId != InvalidNode ? cropId : inheritedCropBox
+    if crop != InvalidNode and parser.nodes[crop].kind == .Array and parser.nodes[crop].values.count >= 4
+    {
+        var cropped = boxRectangle(parser, crop)
+        cropped.intersect(box)
+        if cropped.width > 0 and cropped.height > 0 and Math.isFinite(cropped.width) and Math.isFinite(cropped.height) do
+            box = cropped
+    }
+
+    let x0          = box.x
+    let y0          = box.y
+    let mediaWidth  = box.width
+    let mediaHeight = box.height
     if mediaWidth <= 0 or mediaHeight <= 0 or !Math.isFinite(mediaWidth) or !Math.isFinite(mediaHeight) do
         fail InvalidFormatError{"PDF page has invalid dimensions"}
     let normalizedRotate = ((rotate % 360) + 360) % 360
@@ -948,7 +986,7 @@ internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inherit
     return result
 }
 
-private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, inheritedResources, inheritedMediaBox: u32, inheritedRotate: s64, depth: u32) fail
+private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, inheritedResources, inheritedMediaBox, inheritedCropBox: u32, inheritedRotate: s64, depth: u32) fail
 {
     if depth >= 64 do
         fail UnsupportedFormatError{"PDF page tree nesting exceeds the supported depth"}
@@ -957,13 +995,15 @@ private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, 
         return
     let resources     = parser.dict(id, "Resources")
     let mediaBox      = parser.dict(id, "MediaBox")
+    let cropBox       = parser.dict(id, "CropBox")
     let rotateId      = parser.dict(id, "Rotate")
     let nextResources = resources != InvalidNode ? resources : inheritedResources
     let nextMediaBox  = mediaBox != InvalidNode ? mediaBox : inheritedMediaBox
+    let nextCropBox   = cropBox != InvalidNode ? cropBox : inheritedCropBox
     let nextRotate    = rotateId != InvalidNode ? parser.integer(rotateId) : inheritedRotate
     if parser.name(parser.dict(id, "Type")) == "Page"
     {
-        pages.add(PageSource{id, nextResources, nextMediaBox, nextRotate})
+        pages.add(PageSource{id, nextResources, nextMediaBox, nextCropBox, nextRotate})
         return
     }
 
@@ -971,7 +1011,7 @@ private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, 
     if kids == InvalidNode or parser.nodes[kids].kind != .Array do
         return
     for child in parser.nodes[kids].values do
-        try collectPages(parser, pages, child, nextResources, nextMediaBox, nextRotate, depth + 1)
+        try collectPages(parser, pages, child, nextResources, nextMediaBox, nextCropBox, nextRotate, depth + 1)
 }
 
 private func metadataString(parser: const *PdfParser, dictId: u32, key: string)->String
@@ -1029,7 +1069,7 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
     let pageTree = parser.dict(catalog, "Pages")
     if pageTree == InvalidNode do
         fail InvalidFormatError{"PDF page tree is missing"}
-    try collectPages(parser, pages, pageTree, InvalidNode, InvalidNode, 0, 0)
+    try collectPages(parser, pages, pageTree, InvalidNode, InvalidNode, InvalidNode, 0, 0)
     if !pages.count do
         fail InvalidFormatError{"PDF document has no pages"}
 }
@@ -1042,7 +1082,7 @@ func decodeDocument(bytes: const [..] u8)->Document fail
     try indexDocument(&parser, &result.metadata, &sources)
     for source in sources
     {
-        var page = try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.rotate)
+        var page = try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
         result.addPage(#move page)
     }
 

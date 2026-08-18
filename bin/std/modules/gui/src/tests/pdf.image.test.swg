@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Core, Core.Math, Pixel
+using Core, Core.Math, Pixel, Pdf
 
 // Builds a page holding a single image XObject, drawn over the unit square.
 private func imageDocument(dictionary: string, samples: const [..] u8)->Document

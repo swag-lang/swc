@@ -1,4 +1,6 @@
-using Core, Pixel
+#global if #command == Swag.CompilerCommand.Test
+
+using Core, Pixel, Pdf
 
 private func pdfFixturePath(name: string)->String
 {
@@ -222,4 +224,97 @@ private func sampleDocument()->Document
     let document = expect Document.decode(bytes.toSlice())
     @assert(document.pages.count == 1)
     @assert(document.pages[0].items.count == 0)
+}
+
+// A CropBox trims the page to the region a reader displays: the page takes the crop's
+// dimensions, and content is placed relative to the crop origin.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    addObject(&bytes, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
+    addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /CropBox [10 20 110 70] /Resources << >> /Contents 4 0 R >>")
+    addStreamObject(&bytes, 4, "", cast(const [..] u8) "10 20 5 5 re f")
+    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+
+    let document = expect Document.decode(bytes.toSlice())
+    let page     = document.pages[0]
+    @assert(page.width == 100 and page.height == 50)
+
+    // The rectangle sits at the crop origin, so it lands at the page's bottom-left corner.
+    let item   = onlyItem(page, .Path)
+    let bounds = item.pathValue()!.controlBounds()
+    @assert(Math.isEqualEpsilon(bounds.x, 0, 0.01) and Math.isEqualEpsilon(bounds.bottom(), 50, 0.01))
+}
+
+// A CropBox reaching outside the MediaBox is bounded by it, and a malformed one is ignored.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>")
+    addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /CropBox [-50 -50 100 200] /Resources << >> /Contents 4 0 R >>")
+    addStreamObject(&bytes, 4, "", cast(const [..] u8) "")
+    addObject(&bytes, 5, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /CropBox [300 300 400 400] /Resources << >> /Contents 6 0 R >>")
+    addStreamObject(&bytes, 6, "", cast(const [..] u8) "")
+    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+
+    let document = expect Document.decode(bytes.toSlice())
+    @assert(document.pages[0].width == 100 and document.pages[0].height == 100)
+    @assert(document.pages[1].width == 200 and document.pages[1].height == 100)
+}
+
+// A preamble before the header does not cost the document: every reader accepts a file whose
+// `%PDF-` marker sits within the first bytes rather than at byte zero.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8) "Content-Type: application/pdf; some mail preamble\n\n")
+    bytes.add(singlePagePdf("", cast(const [..] u8) "0 0 5 5 re f", "").toSlice())
+    let document = expect Document.decode(bytes.toSlice())
+    @assert(document.pages.count == 1)
+    discard onlyItem(document.pages[0], .Path)
+}
+
+// A render restricted to a source region rasterizes that region alone: the output image is the
+// region's size, and a mark outside it contributes nothing.
+#test
+{
+    var page = Page.create(200, 100)
+    var left: LinePathList
+    with let leftPath = left.newPath()
+    {
+        .start(0, 0)
+        .lineTo(100, 0)
+        .lineTo(100, 100)
+        .lineTo(0, 100)
+        .close()
+    }
+
+    page.addPath(left, fillColor: Color.fromRgb(255, 0, 0))
+    var right: LinePathList
+    with let rightPath = right.newPath()
+    {
+        .start(100, 0)
+        .lineTo(200, 0)
+        .lineTo(200, 100)
+        .lineTo(100, 100)
+        .close()
+    }
+
+    page.addPath(right, fillColor: Color.fromRgb(0, 255, 0))
+
+    let whole = expect page.render({scale: 1})
+    @assert(whole.width == 200 and whole.height == 100)
+
+    let region = expect page.render({scale: 1, sourceRect: {100, 0, 100, 100}})
+    @assert(region.width == 100 and region.height == 100)
+    @assert(region.pixelColor(50, 50).g == 255 and region.pixelColor(50, 50).r == 0)
+
+    // The same region at twice the scale is the zoomed view: same content, more pixels.
+    let zoomed = expect page.render({scale: 2, sourceRect: {100, 0, 100, 100}})
+    @assert(zoomed.width == 200 and zoomed.height == 200)
+    @assert(zoomed.pixelColor(100, 100).g == 255)
 }

@@ -12,59 +12,6 @@ public enum PathFillRule
     EvenOdd     // Inside wherever the winding count is odd.
 }
 
-private func contourPointCount(polygon: const *Polygon)->u64
-{
-    let count = polygon.points.count
-    if count > 1 and polygon.points[0].isEqualEpsilon(polygon.points[count - 1]) do
-        return count - 1
-    return count
-}
-
-private func contoursIntersect(a, b: const *Polygon)->bool
-{
-    if a.maxBounds.x < b.minBounds.x or b.maxBounds.x < a.minBounds.x or a.maxBounds.y < b.minBounds.y or b.maxBounds.y < a.minBounds.y do
-        return false
-
-    let countA = contourPointCount(a)
-    let countB = contourPointCount(b)
-    if countA < 2 or countB < 2 do
-        return false
-
-    for i in countA
-    {
-        let a0 = a.points[i]
-        let a1 = a.points[(i + 1) % countA]
-        for j in countB
-        {
-            let b0 = b.points[j]
-            let b1 = b.points[(j + 1) % countB]
-            if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects do
-                return true
-        }
-    }
-
-    return false
-}
-
-private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
-{
-    for p in pathList.paths where !p.polygon.isSimple do
-        return true
-
-    for i in pathList.paths.count
-    {
-        var j = i + 1
-        while j < pathList.paths.count
-        {
-            defer j += 1
-            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon) do
-                return true
-        }
-    }
-
-    return false
-}
-
 public impl Painter
 {
     // Emit a connected, mitered antialiasing fringe ring around a closed polygon
@@ -144,7 +91,7 @@ public impl Painter
 
     mtd fillPath(path: *LinePath, brush: Brush)
     {
-        path.flatten(.curState.paintQuality)
+        path.flatten(.curState.paintQuality, .curFlattenScale)
         if Math.isZeroEpsilon(path.polygon.perimeter) do
             return
 
@@ -228,20 +175,13 @@ public impl Painter
     mtd fillPath(pathList: *LinePathList, brush: Brush)
     {
         // Flatten all paths
-        pathList.flatten(.curState.paintQuality)
+        pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
         // Poly2Tri expects simple, non-intersecting contours. Individual simplicity is not
-        // enough: holes can cross or meet the outer ring or one another. Keep the common case
-        // allocation-free and normalize the whole fill only when one of those conditions occurs.
-        if pathListNeedsCleaning(pathList)
-        {
-            var cleaned = pathList[]
-            cleaned.clean()
-            .fillPreparedPathList(&cleaned, brush)
-            return
-        }
-
-        .fillPreparedPathList(pathList, brush)
+        // enough: holes can cross or meet the outer ring or one another. The list caches both
+        // the verdict and the normalized copy, so an unchanged list — a document painted once
+        // per frame — decides and normalizes once, not once per fill.
+        .fillPreparedPathList(pathList.normalizedFill(.NonZero, byDirection: true), brush)
     }
 
     // Fills a list of paths under an explicitly named fill rule.
@@ -262,23 +202,13 @@ public impl Painter
     // ```
     mtd fillPath(pathList: *LinePathList, brush: Brush, rule: PathFillRule)
     {
-        pathList.flatten(.curState.paintQuality)
+        pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
-        // A single simple contour encloses the same region under either rule, which is the
-        // common case and the one worth keeping allocation-free.
-        if pathList.count() < 2
-        {
-            let paths = pathList.toSlice()
-            if !@countof(paths) or paths[0].polygon.isSimple
-            {
-                .fillPreparedPathList(pathList, brush)
-                return
-            }
-        }
-
-        var cleaned = pathList[]
-        cleaned.clean(rule == .EvenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero)
-        .fillPreparedPathList(&cleaned, brush)
+        // A single simple contour encloses the same region under either rule; anything else is
+        // normalized under the rule. The list caches the normalized copy against its contours'
+        // revisions, so a glyph-like path with holes pays the boolean solver once, not once per
+        // fill, and the copy keeps its tessellation from one frame to the next.
+        .fillPreparedPathList(pathList.normalizedFill(rule == .EvenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero, byDirection: false), brush)
     }
 
     // Fills a list of paths under an explicitly named fill rule with a solid color.
@@ -358,7 +288,7 @@ public impl Painter
         if .isInvisible(brush) do
             return
 
-        path.flatten(.curState.paintQuality)
+        path.flatten(.curState.paintQuality, .curFlattenScale)
         if path.polygon.isConvex
         {
             .fillPath(path, brush)

@@ -590,6 +590,26 @@ namespace
         return Result::Continue;
     }
 
+    // An aggregate element keeps the type its literal had, while the destination decides the
+    // memory layout it is written into, so the element must go through the same implicit
+    // conversion its assignment was checked under: an integer literal placed in a float field
+    // lands as that float, never as its integer bytes.
+    ConstantRef castAggregateElementConstant(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef)
+    {
+        if (cstRef.isInvalid())
+            return cstRef;
+
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
+        if (cst.isUndefined() || cst.typeRef() == dstTypeRef)
+            return cstRef;
+
+        CastRequest castRequest{CastKind::Implicit};
+        castRequest.setConstantFoldingSrc(cstRef);
+        ConstantRef castedCstRef = ConstantRef::invalid();
+        SWC_INTERNAL_CHECK(Cast::castConstant(sema, castedCstRef, castRequest, cstRef, dstTypeRef) == Result::Continue);
+        return castedCstRef.isValid() ? castedCstRef : cstRef;
+    }
+
     Result lowerAggregateArrayToBytesInternal(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
         TaskContext&    ctx         = sema.ctx();
@@ -607,17 +627,7 @@ namespace
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
         {
-            ConstantRef elemCstRef = values[i];
-            if (elemCstRef.isValid() && sema.cstMgr().get(elemCstRef).typeRef() != elemTypeRef)
-            {
-                CastRequest castRequest{CastKind::Implicit};
-                castRequest.setConstantFoldingSrc(elemCstRef);
-                ConstantRef castedElemCstRef = ConstantRef::invalid();
-                SWC_INTERNAL_CHECK(Cast::castConstant(sema, castedElemCstRef, castRequest, elemCstRef, elemTypeRef) == Result::Continue);
-                if (castedElemCstRef.isValid())
-                    elemCstRef = castedElemCstRef;
-            }
-
+            const ConstantRef elemCstRef = castAggregateElementConstant(sema, values[i], elemTypeRef);
             SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, i * elemSize, elemSize), elemTypeRef, elemCstRef));
         }
 
@@ -645,7 +655,10 @@ namespace
             assertByteRange(offset, elemSize, dstBytes.size());
 
             if (index < values.size())
-                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, offset, elemSize), elemTypeRef, values[index]));
+            {
+                const ConstantRef elemCstRef = castAggregateElementConstant(sema, values[index], elemTypeRef);
+                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, offset, elemSize), elemTypeRef, elemCstRef));
+            }
 
             offset += elemSize;
             ++index;
@@ -731,6 +744,7 @@ namespace
             ConstantRef valueRef = valuesByField[fieldIdx];
             if (valueRef.isInvalid())
                 valueRef = field->defaultValueRef();
+            valueRef = castAggregateElementConstant(sema, valueRef, fieldTypeRef);
 
             if (valueRef.isValid())
                 SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, fieldOffset, fieldSize), fieldTypeRef, valueRef));

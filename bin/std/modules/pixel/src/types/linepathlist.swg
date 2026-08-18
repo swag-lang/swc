@@ -15,6 +15,72 @@ struct LinePathList
         minBounds: Vector2     // Minimum combined bound after flattening.
         maxBounds: Vector2     // Maximum combined bound after flattening.
     }
+
+    // Fill-normalization cache (see [[Pixel.LinePathList.normalizedFill]]): the verdict and,
+    // when normalizing was needed, the owned normalized copy. Keyed by the revision of every
+    // contour, so any geometry change rebuilds it and an unchanged list never normalizes twice.
+    internal
+    {
+        fillCache:            #null *LinePathList     // Owned normalized copy, when one was needed.
+        fillCacheStamps:      Array'u64                // Contour revisions the cache was built from.
+        fillCacheRule:        Clipper.PolyFillType = NonZero
+        fillCacheDirect:      bool                     // The source can be filled as it is.
+        fillCacheByDirection: bool                     // The cache serves the winding-direction fill.
+        fillCacheValid:       bool
+    }
+}
+
+private func contourPointCount(polygon: const *Polygon)->u64
+{
+    let count = polygon.points.count
+    if count > 1 and polygon.points[0].isEqualEpsilon(polygon.points[count - 1]) do
+        return count - 1
+    return count
+}
+
+private func contoursIntersect(a, b: const *Polygon)->bool
+{
+    if a.maxBounds.x < b.minBounds.x or b.maxBounds.x < a.minBounds.x or a.maxBounds.y < b.minBounds.y or b.maxBounds.y < a.minBounds.y do
+        return false
+
+    let countA = contourPointCount(a)
+    let countB = contourPointCount(b)
+    if countA < 2 or countB < 2 do
+        return false
+
+    for i in countA
+    {
+        let a0 = a.points[i]
+        let a1 = a.points[(i + 1) % countA]
+        for j in countB
+        {
+            let b0 = b.points[j]
+            let b1 = b.points[(j + 1) % countB]
+            if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects do
+                return true
+        }
+    }
+
+    return false
+}
+
+private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
+{
+    for p in pathList.paths where !p.polygon.isSimple do
+        return true
+
+    for i in pathList.paths.count
+    {
+        var j = i + 1
+        while j < pathList.paths.count
+        {
+            defer j += 1
+            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon) do
+                return true
+        }
+    }
+
+    return false
 }
 
 impl LinePathList
@@ -36,6 +102,9 @@ impl LinePathList
     }
 
     // Deep-copies every owned path after copying the list.
+    //
+    // The fill cache stays with the source: its pointer was copied raw, so it is detached
+    // here rather than dropped, and the copy rebuilds its own on first use.
     mtd opPostCopy()
     {
         for p, i in .paths
@@ -44,6 +113,23 @@ impl LinePathList
             ptr[]     = p[]
             .paths[i] = ptr
         }
+
+        .fillCache = null
+        .fillCacheStamps.clear()
+        .fillCacheValid = false
+    }
+
+    // Drops the cached fill normalization; the next fill rebuilds it.
+    private mtd invalidateFillCache()
+    {
+        if .fillCache
+        {
+            Memory.delete(.fillCache!)
+            .fillCache = null
+        }
+
+        .fillCacheStamps.clear()
+        .fillCacheValid = false
     }
 
     // Returns the number of owned paths.
@@ -79,6 +165,7 @@ impl LinePathList
     // Releases and removes all owned paths.
     mtd clear()
     {
+        .invalidateFillCache()
         for p in .paths do
             Memory.delete(p)
         .paths.clear()
@@ -94,7 +181,10 @@ impl LinePathList
     }
 
     // Flattens all paths at `quality` and recomputes combined bounds.
-    mtd flatten(quality: PaintQuality = .Normal)
+    //
+    // `scale` is the number of device pixels one path unit covers when the result is drawn;
+    // see [[Pixel.LinePath.flatten]].
+    mtd flatten(quality: PaintQuality = .Normal, scale = 1.0'f32)
     {
         if .paths.isEmpty()
         {
@@ -106,7 +196,7 @@ impl LinePathList
         .maxBounds = Vector2.NegMax
         for p in .paths
         {
-            p.flatten(quality)
+            p.flatten(quality, scale)
             .minBounds = Vector2.min(.minBounds, p.minBounds)
             .maxBounds = Vector2.max(.maxBounds, p.maxBounds)
         }
@@ -122,6 +212,7 @@ impl LinePathList
         {
             let v = p.polygon.isClockwise ? value : -value
             p.polygon.offset(v)
+            p.touchContour()
             p.minBounds = p.polygon.minBounds
             p.maxBounds = p.polygon.maxBounds
             if i == 0 do
@@ -299,5 +390,62 @@ impl LinePathList
         }
 
         .setBounds(minimum, maximum)
+    }
+
+    // Reports whether the fill cache still describes the current contours.
+    private mtd const fillCacheMatches(rule: Clipper.PolyFillType, byDirection: bool)->bool
+    {
+        if !.fillCacheValid or .fillCacheRule != rule or .fillCacheByDirection != byDirection do
+            return false
+        if .fillCacheStamps.count != .paths.count do
+            return false
+        for p, i in .paths where .fillCacheStamps[i] != p.revision do
+            return false
+        return true
+    }
+
+    // Returns the geometry a fill can triangulate directly under `rule`, normalizing at most
+    // once per geometry change.
+    //
+    // Deciding whether a list needs normalizing walks every contour pair, and normalizing
+    // deep-copies the list through a boolean solver — both far too expensive to repeat for a
+    // list that has not changed, which is every frame of a viewer painting a static document.
+    // The verdict and the normalized copy are therefore cached against the revision of every
+    // contour: an unchanged list answers immediately, and the copy keeps its own fill
+    // tessellations alive from one fill to the next.
+    //
+    // `byDirection` selects the winding-direction convention of the plain fill, where a list
+    // whose simple contours already express outers and holes is filled as it is; otherwise the
+    // region is defined by `rule` over the winding count, and only a single simple contour
+    // skips normalization. The list must be flattened first.
+    internal mtd normalizedFill(rule: Clipper.PolyFillType, byDirection: bool)->*LinePathList
+    {
+        if .fillCacheMatches(rule, byDirection) do
+            return .fillCacheDirect ? me : .fillCache!
+
+        .invalidateFillCache()
+
+        var direct = false
+        if byDirection do
+            direct = !pathListNeedsCleaning(me)
+        else do
+            direct = .paths.count < 2 and (.paths.isEmpty() or .paths[0].polygon.isSimple)
+
+        if !direct
+        {
+            let cache = Memory.new'LinePathList()
+            cache[] = me[]
+            cache.clean(rule)
+            .fillCache = cache
+        }
+
+        .fillCacheStamps.reserve(.paths.count)
+        for p in .paths do
+            .fillCacheStamps.add(p.revision)
+        .fillCacheRule        = rule
+        .fillCacheDirect      = direct
+        .fillCacheByDirection = byDirection
+        .fillCacheValid       = true
+        return direct ? me : .fillCache!
     }
 }

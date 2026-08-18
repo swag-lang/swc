@@ -426,6 +426,12 @@ private func pathPen(item: const *Item, scale: f32)->Pen
 // page again cheap. The caller owns the painter's transform state and restores it afterwards.
 internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Transform2, devicePerPoint: f32, fonts: *RenderFontCache, fallbackFontFile: string, textures: const [..] Texture) fail
 {
+    // Curves are flattened in page units, so the zoom has to reach the tolerance for a
+    // magnified page to stay smooth; the painter buckets it so the caches re-key rarely.
+    let previousFlattenScale = painter.flattenScale()
+    painter.setFlattenScale(devicePerPoint)
+    defer painter.setFlattenScale(previousFlattenScale)
+
     let fontCache    = painter.renderer().fontCache()
     var textureIndex = 0'u64
     for &item in page.items

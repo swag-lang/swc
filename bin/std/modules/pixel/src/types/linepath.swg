@@ -51,18 +51,28 @@ public struct LinePath
     // Call 'flatten' and read the result through the accessors; the cache is not an input.
     internal
     {
-        isDirty:        bool                // Whether cached flattened geometry is stale.
-        serial:         s32                 // Group identifier used by path-list boolean operations.
-        flattenQuality: PaintQuality        // Quality used to build the current flattened cache.
-        isPolyOnly:     bool                // Whether every segment is already polygonal.
-        isFlatten:      bool                // Whether flattened geometry is available.
-        minBounds:      Vector2             // Minimum cached path bound.
-        maxBounds:      Vector2             // Maximum cached path bound.
-        endPosBuffer:   Vector2             // Reusable endpoint workspace for flattening.
-        polygon:        Polygon             // Cached flattened contour.
-        triangles:      Poly2Tri.Result     // Cached fill tessellation.
+        isDirty:          bool                // Whether cached flattened geometry is stale.
+        serial:           s32                 // Group identifier used by path-list boolean operations.
+        flattenTolerance: f32                 // Tolerance used to build the current flattened cache, in path units.
+        isPolyOnly:       bool                // Whether every segment is already polygonal.
+        isFlatten:        bool                // Whether flattened geometry is available.
+        revision:         u64                 // Advances whenever the flattened contour changes; keys derived caches.
+        minBounds:        Vector2             // Minimum cached path bound.
+        maxBounds:        Vector2             // Maximum cached path bound.
+        endPosBuffer:     Vector2             // Reusable endpoint workspace for flattening.
+        polygon:          Polygon             // Cached flattened contour.
+        triangles:        Poly2Tri.Result     // Cached fill tessellation.
     }
 }
+
+// Source of contour revisions, shared by every path of the process.
+//
+// A revision identifies one state of one flattened contour, so a cache keyed by it can never
+// read a stale entry: the counter only moves forward, and a rebuilt contour always takes a
+// value no contour has carried before — a path cleared and rebuilt identically included.
+private var g_ContourRevision: u64
+
+private func nextContourRevision()->u64 => @atomadd(&g_ContourRevision, 1) + 1
 
 public impl LinePath
 {
@@ -85,6 +95,7 @@ public impl LinePath
         .polygon.clear()
         .isFlatten = false
         .isDirty   = true
+        .revision  = nextContourRevision()
     }
 
     // Releases all path geometry and restores an empty value.
@@ -274,6 +285,13 @@ public impl LinePath
         .isDirty  = true
     }
 
+    // Records that the flattened contour was modified in place, so caches keyed on its
+    // revision rebuild without the cost of a full recompute.
+    internal mtd touchContour()
+    {
+        .revision = nextContourRevision()
+    }
+
     // Adopts the already-populated polygon cache as the complete path geometry.
     internal mtd adoptGeneratedPolygon()
     {
@@ -281,6 +299,7 @@ public impl LinePath
         .assumeClosed()
         .isDirty   = false
         .isFlatten = true
+        .revision  = nextContourRevision()
         .minBounds = .polygon.minBounds
         .maxBounds = .polygon.maxBounds
 
@@ -453,21 +472,29 @@ public impl LinePath
         .minBounds = .polygon.minBounds
         .maxBounds = .polygon.maxBounds
         .triangles.clear()
+        .revision = nextContourRevision()
     }
 
     // Convert the path to a list of points
-    mtd flatten(quality = PaintQuality.Normal)
+    //
+    // `scale` is the number of device pixels one path unit covers when the result is drawn:
+    // the flattening tolerance is expressed in path units, so a curve zoomed by a transform
+    // needs proportionally more segments to look as smooth on screen as it does at scale one.
+    // The cache keeps the finest flattening produced so far, whichever combination of quality
+    // and scale asked for it.
+    mtd flatten(quality = PaintQuality.Normal, scale = 1.0'f32)
     {
         // Already done ?
         if .isPolyOnly do
             return
-        if !.isDirty and .isFlatten and cast(u32) .flattenQuality >= cast(u32) quality do
+        let tolerance = getFlattenDistance(quality) / Math.max(scale, 1.0)
+        if !.isDirty and .isFlatten and .flattenTolerance <= tolerance do
             return
 
         .clearCache()
         .isDirty               = false
         .isFlatten             = true
-        .flattenQuality        = quality
+        .flattenTolerance      = tolerance
         .minBounds, .maxBounds = .startPoint
 
         if !.elements.count do
@@ -483,10 +510,10 @@ public impl LinePath
             switch #complete elem.type
             {
             case .Line:    .flattenLine(pos)
-            case .Bezier1: .flattenBezier(pos, elem.p1, quality)
-            case .Bezier2: .flattenBezier(pos, elem.p1, elem.p2, quality)
-            case .Curve:   .flattenCurve(pos, i, quality)
-            case .Arc:     .flattenArc(pos, elem.p1, elem.p2, quality)
+            case .Bezier1: .flattenBezier(pos, elem.p1, tolerance)
+            case .Bezier2: .flattenBezier(pos, elem.p1, elem.p2, tolerance)
+            case .Curve:   .flattenCurve(pos, i, tolerance)
+            case .Arc:     .flattenArc(pos, elem.p1, elem.p2, tolerance)
             }
         }
 
@@ -523,7 +550,7 @@ impl LinePath
         .endPosBuffer = pos
     }
 
-    mtd flattenCurve(pos: Math.Vector2, i: u64, quality: PaintQuality)
+    mtd flattenCurve(pos: Math.Vector2, i: u64, tolerance: f32)
     {
         var p0, p1, p2, p3: Vector2 = undefined
         let lastElem                = .elements.count - 1
@@ -570,17 +597,16 @@ impl LinePath
         let sb = -3.0 * (p1 - p2) - m1 - m1 - m2
         let sc = m1
         let sd = p1
-        .flattenCurve(sa, sb, sc, sd, quality)
+        .flattenCurve(sa, sb, sc, sd, tolerance)
     }
 
-    mtd flattenCurve(p0, p1, p2, p3: Vector2, quality: PaintQuality)
+    mtd flattenCurve(p0, p1, p2, p3: Vector2, tolerance: f32)
     {
-        let minDist = getFlattenDistance(quality)
         let startPt = .endPosBuffer
         let endPt   = p0 + p1 + p2 + p3     // Point at t=1
 
         // Calculate optimal number of segments analytically
-        let numSegments = calculateCubicPolynomialSegments(p0, p1, p2, p3, startPt, endPt, minDist)
+        let numSegments = calculateCubicPolynomialSegments(p0, p1, p2, p3, startPt, endPt, tolerance)
 
         if numSegments <= 1
         {
@@ -637,13 +663,12 @@ impl LinePath
 
     ///////////////////////////////
 
-    mtd flattenBezier(pos, p1: Vector2, quality: PaintQuality)
+    mtd flattenBezier(pos, p1: Vector2, tolerance: f32)
     {
         let startPt = .endPosBuffer
-        let minDist = getFlattenDistance(quality)
 
         // Calculate optimal number of segments analytically
-        let numSegments = calculateQuadraticBezierSegments(startPt, p1, pos, minDist)
+        let numSegments = calculateQuadraticBezierSegments(startPt, p1, pos, tolerance)
 
         if numSegments <= 1
         {
@@ -683,13 +708,12 @@ impl LinePath
 
     ///////////////////////////////
 
-    mtd flattenBezier(pos, p1, p2: Vector2, quality: PaintQuality)
+    mtd flattenBezier(pos, p1, p2: Vector2, tolerance: f32)
     {
         let startPt = .endPosBuffer
-        let minDist = getFlattenDistance(quality)
 
         // Calculate optimal number of segments analytically
-        let numSegments = calculateBezierSegments(startPt, p1, p2, pos, minDist)
+        let numSegments = calculateBezierSegments(startPt, p1, p2, pos, tolerance)
 
         if numSegments <= 1
         {
@@ -746,13 +770,13 @@ impl LinePath
 
     ///////////////////////////////
 
-    mtd flattenArc(pos, p1, p2: Vector2, quality: PaintQuality)
+    mtd flattenArc(pos, p1, p2: Vector2, tolerance: f32)
     {
         let angleSpan = p1.y - p1.x
         let radius    = Math.max(p2.x, p2.y)     // Use the larger radius component
 
         // Calculate required number of segments analytically
-        let numSegments = calculateFlattenArcSegments(angleSpan, radius, quality)
+        let numSegments = calculateFlattenArcSegments(angleSpan, radius, tolerance)
 
         if numSegments <= 1
         {
@@ -774,17 +798,14 @@ impl LinePath
     }
 
     // Calculate optimal number of segments based on arc properties
-    func calculateFlattenArcSegments(angleSpan: f32, radius: f32, quality: PaintQuality)->u32
+    func calculateFlattenArcSegments(angleSpan: f32, radius: f32, tolerance: f32)->u32
     {
         if radius < 0.1 do
             return 1
 
-        let minDist = getFlattenDistance(quality)
-
         // Use the sagitta formula: segments = ceil(angle / (2 * acos(1 - tolerance/radius)))
         // This gives us the minimum segments needed to stay within tolerance
-        let tolerance          = minDist
-        var maxAnglePerSegment = 2.0 * Math.acos(1.0 - tolerance / radius)
+        var maxAnglePerSegment = 2.0 * Math.acos(1.0 - Math.min(tolerance / radius, 1.0))
 
         // Clamp to reasonable bounds
         maxAnglePerSegment = Math.max(maxAnglePerSegment, 0.01)                // Minimum angle

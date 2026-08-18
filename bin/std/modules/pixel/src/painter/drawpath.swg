@@ -253,7 +253,9 @@ impl Painter
         endPos.x   = center.x + (Math.cos(angle1) * radius)
         endPos.y   = center.y + (Math.sin(angle1) * radius)
 
-        let minDist = LinePath.getFlattenDistance(.curState.paintQuality)
+        // Cap and join arcs follow the flattening scale like every other curve, so a zoomed
+        // stroke keeps round ends round.
+        let minDist = LinePath.getFlattenDistance(.curState.paintQuality) / .curFlattenScale
 
         // We divide a segment by half until the computed point on the curve is
         // close to the corresponding segment
@@ -876,7 +878,7 @@ public impl Painter
 
     mtd drawPath(path: *LinePath, pen: Pen)
     {
-        path.flatten(.curState.paintQuality)
+        path.flatten(.curState.paintQuality, .curFlattenScale)
         if Math.isZeroEpsilon(path.polygon.perimeter) do
             return
 
@@ -910,7 +912,7 @@ public impl Painter
             return
         }
 
-        pathList.flatten(.curState.paintQuality)
+        pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
         var bvMin = pathList.minBounds
         var bvMax = pathList.maxBounds

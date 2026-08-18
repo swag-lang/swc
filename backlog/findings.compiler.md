@@ -146,18 +146,3 @@ Entries are sorted by identifier, ascending; position carries no priority.
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
-
-### F-160 — A contextual integer-to-float conversion asserts while lowering an aggregate constant
-
-- Area: compiler
-- Found while: adding the `PdfView` wheel-coalescing regression to
-  `bin/std/modules/gui/src/tests/pdfview.test.swg`.
-- Observation: a local `MouseEvent` initializer with nested `Math.Point` values written as integer
-  literals passes semantic analysis, then `ConstantLower` asserts that one of those constants is
-  already a float. Assigning the same contextually typed fields in separate statements compiles.
-- Evidence: `var wheel = MouseEvent{kind: .Wheel, surfacePos: {320, 210}, delta: {0, 120},
-  modifiers: .Control}` under `swc tools/std.swgs dm test gui --test-file pdfview.test.swg`
-  asserts at `src/Compiler/Sema/Constant/ConstantLower.cpp:856` in `lowerConstantToBytes`, with
-  `cst.isFloat()` false while generating the test function.
-- Next step: reduce the initializer to a standalone `bin/unittests/native` source, then preserve
-  contextual numeric conversion when nested aggregate elements are materialized as constants.

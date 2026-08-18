@@ -227,6 +227,18 @@ private func auditBacklogLink(fileName: string, lineNumber: u64, destination: st
     return 1
 }
 
+// Reports whether the byte at `index` sits inside an inline code span of `line`.
+//
+// A backlog entry quotes Markdown syntax in backticks — `![alt](url)` — and quoted syntax is
+// prose being discussed, not a link whose target must exist.
+private func isInsideCodeSpan(line: string, index: u64)->bool
+{
+    var ticks = 0'u64
+    for i in index where line[i] == '`' do
+        ticks += 1
+    return (ticks & 1) == 1
+}
+
 private func auditBacklogLinks(fileName: string)->u32 fail
 {
     let content    = try File.readAllText(fileName)
@@ -244,6 +256,12 @@ private func auditBacklogLinks(fileName: string)->u32 fail
                 break
 
             let start = offset + marker + 2
+            if isInsideCodeSpan(line, offset + marker)
+            {
+                offset = start
+                continue
+            }
+
             let close = Utf8.indexOf(cast(const [..] u8) line[start until @countof(line)], ")")
             if close == Swag.U64.Max do
                 break

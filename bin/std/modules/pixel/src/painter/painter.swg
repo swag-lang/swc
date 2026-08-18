@@ -343,6 +343,12 @@ struct Painter
             // logical units; the painter itself only consults it for antialiasing fringes,
             // text resolution, and device-grid snapping.
             curContentScale: f32 = 1     // Device pixels per logical unit for this stream.
+
+            // Device pixels one path-space unit covers for the purpose of curve flattening,
+            // quantized by [[Pixel.Painter.setFlattenScale]]. Kept apart from the content
+            // scale: flattening tolerances were calibrated against it, and folding it in
+            // would re-flatten every cached path of every consumer on a scaled display.
+            curFlattenScale: f32 = 1     // Flattening scale for subsequent path draws.
         }
     }
 }
@@ -387,6 +393,28 @@ impl Painter
     // Returns the number of physical device pixels per painter path-space unit.
     #[Swag.Inline]
     mtd const contentScale() => .curContentScale
+
+    // Sets how many device pixels one path-space unit covers for curve flattening.
+    //
+    // Flattening tolerances are expressed in path units, so a consumer that zooms vector
+    // geometry through its transform — a document viewer scaling a page — declares the zoom
+    // here and curves stay as smooth on screen as they are at scale one. The value is
+    // quantized to the power of two below it and never drops under one, so the flattening
+    // caches re-key on zoom *buckets* rather than on every wheel step. `1`, the default,
+    // keeps the calibrated path-space tolerances untouched. Set it per pass and restore it,
+    // the way [[Pixel.Painter.setContentScale]] is managed.
+    mtd setFlattenScale(scale: f32)
+    {
+        Debug.assert(scale > 0)
+        var bucket = 1.0'f32
+        while bucket * 2 <= scale and bucket < 64 do
+            bucket *= 2
+        .curFlattenScale = bucket
+    }
+
+    // Returns the quantized flattening scale of subsequent path draws.
+    #[Swag.Inline]
+    mtd const flattenScale() => .curFlattenScale
 
     // Rounds a horizontal path-space position to the physical device-pixel grid.
     //

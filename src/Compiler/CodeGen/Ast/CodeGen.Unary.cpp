@@ -191,9 +191,8 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto* unaryPayload = codeGen.sema().semaPayload<UnarySpecOpPayload>(codeGen.curNodeRef());
     if (unaryPayload && unaryPayload->calledFn != nullptr)
     {
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), unaryPayload->calledFn);
         if (unaryPayload->calledFn->specOpKind() == SpecOpKind::OpUnary)
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), unaryPayload->calledFn);
     }
 
     const SemaNodeView specialOpView = codeGen.curViewSymbol();

@@ -649,8 +649,7 @@ Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen)
 
         const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload && payload->visitFn);
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), payload->visitFn);
-        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), payload->visitFn);
     }
 
     const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());

@@ -636,13 +636,12 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     const auto* assignPayload = codeGen.sema().semaPayload<AssignSpecOpPayload>(codeGen.curNodeRef());
     if (assignPayload && assignPayload->calledFn != nullptr)
     {
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), assignPayload->calledFn);
         if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpSet ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpSetLiteral ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpAssign ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpIndexSet ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpIndexAssign)
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), assignPayload->calledFn);
     }
 
     const Token&              tok               = codeGen.token(codeRef());

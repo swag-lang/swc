@@ -106,9 +106,19 @@ namespace
         return tryResolveVariableSymbolPayload(codeGen, *symVar);
     }
 
-    Result resolveSelectedCallFunction(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction*& outCalledFunction)
+    Result resolveSelectedCallFunction(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction* selectedFunction, SymbolFunction*& outCalledFunction)
     {
         outCalledFunction = nullptr;
+
+        // A special-operation lowering already knows which function it selected and hands it
+        // over directly. It must NOT publish it on the node instead: writing a payload on a
+        // node sema has substituted replaces the substitution record, and the node then stops
+        // resolving to its replacement for the rest of code generation.
+        if (selectedFunction)
+        {
+            outCalledFunction = selectedFunction;
+            return Result::Continue;
+        }
 
         // Prefer the active view, but keep stored/resolved fallbacks. Inlining,
         // auto-members and substitutions can move the selected symbol away from the
@@ -1726,12 +1736,12 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const
 
     return Result::Continue;
 }
-Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
+Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction* selectedFunction)
 {
     MicroBuilder&      builder         = codeGen.builder();
     const SemaNodeView currentTypeView = codeGen.curViewType();
     SymbolFunction*    calledFunction  = nullptr;
-    SWC_RESULT(resolveSelectedCallFunction(codeGen, calleeRef, calledFunction));
+    SWC_RESULT(resolveSelectedCallFunction(codeGen, calleeRef, selectedFunction, calledFunction));
     SWC_ASSERT(calledFunction != nullptr);
     const CallConvKind callConvKind = calledFunction->callConvKind();
     const CallConv&    callConv     = CallConv::get(callConvKind);

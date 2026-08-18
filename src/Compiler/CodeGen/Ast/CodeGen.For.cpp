@@ -182,9 +182,8 @@ namespace
         {
             codeGen.clearNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
             codeGen.sema().setResolvedCallArguments(codeGen.curNodeRef(), loopPayload->countResolvedArgs);
-            codeGen.sema().setSymbol(codeGen.curNodeRef(), loopPayload->countFn);
             codeGen.sema().setIsValue(codeGen.curNodeRef());
-            SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+            SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), loopPayload->countFn));
             const CodeGenNodePayload countPayload = codeGen.payload(codeGen.curNodeRef());
             codeGen.clearNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
 

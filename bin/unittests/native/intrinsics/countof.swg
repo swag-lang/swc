@@ -364,3 +364,26 @@ func loopSignedRef(value: *s32)->s32
     @assert(@countof(countedRef[]) == 11)
     @assert(countSpecOpRef(countedRef) == 11)
 }
+
+// A '@countof' that resolves 'opCount' lowers to a call, and a truthiness context wraps
+// that node in an implicit cast. Code generation must keep resolving the wrapped node to
+// its cast: losing the link left the enclosing 'if' with no condition to branch on.
+#[Swag.NoInline]
+func countedRuntimeIsNotEmpty(value: CountedRuntime)->s32
+{
+    var result = 0's32
+    if @countof(value) do
+        result = 1
+    return result
+}
+
+#test
+{
+    var filled: CountedRuntime
+    filled.count = 7
+    var empty: CountedRuntime
+    empty.count = 0
+
+    @assert(countedRuntimeIsNotEmpty(filled) == 1)
+    @assert(countedRuntimeIsNotEmpty(empty) == 0)
+}

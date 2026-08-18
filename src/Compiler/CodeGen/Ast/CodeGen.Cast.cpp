@@ -527,8 +527,7 @@ namespace
 
         dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
         SWC_RESULT(CodeGenSafety::emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, readType, dstType));
-        builder.emitClearReg(dstPayload.reg, dstOpBits);
-        builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
+        CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstPayload.reg, srcReg, readType, dstType);
         return Result::Continue;
     }
 
@@ -1236,8 +1235,7 @@ namespace
         if (receiverSym && receiverSym->isVariable())
             codeGen.setVariablePayload(receiverSym->cast<SymbolVariable>(), receiverArg);
 
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), setPayload.calledFn);
-        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), setPayload.calledFn));
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, dstTypeRef);
         return Result::Continue;
     }
@@ -1245,8 +1243,7 @@ namespace
     Result emitStructOpCast(CodeGen& codeGen, const CastSpecOpPayload& castPayload)
     {
         SWC_ASSERT(castPayload.calledFn != nullptr);
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), castPayload.calledFn);
-        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), castPayload.calledFn);
     }
 
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
@@ -1803,8 +1800,7 @@ namespace
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
         SWC_RESULT(CodeGenSafety::emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, resolvedSrcType, resolvedDstType));
-        builder.emitClearReg(dstPayload.reg, dstOpBits);
-        builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
+        CodeGenMemoryHelpers::emitConvertFloatToInt(codeGen, dstPayload.reg, srcReg, resolvedSrcType, resolvedDstType);
 
         return Result::Continue;
     }

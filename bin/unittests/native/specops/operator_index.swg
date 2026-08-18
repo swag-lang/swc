@@ -306,3 +306,22 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var index = RuntimeWideIndexedSlot.Mid
     @assert(holder.readWideSlot(index))
 }
+
+// An 'opIndex' call in a truthiness context is wrapped in an implicit cast, and code
+// generation must keep resolving the wrapped node to that cast: losing the link left the
+// enclosing 'if' with no condition to branch on.
+#[Swag.NoInline]
+func runtimeValueIndexIsNotEmpty(first: s32)->s32
+{
+    var box    = RuntimeValueIndexBox{first: first, second: 9}
+    var result = 0's32
+    if box[0] do
+        result = 1
+    return result
+}
+
+#test
+{
+    @assert(runtimeValueIndexIsNotEmpty(7) == 1)
+    @assert(runtimeValueIndexIsNotEmpty(0) == 0)
+}

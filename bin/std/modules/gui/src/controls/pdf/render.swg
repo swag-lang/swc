@@ -50,10 +50,10 @@ private const SubstituteMono: [4] [4] string = [
     ["courbi.ttf", "consolaz.ttf", "DejaVuSansMono-BoldOblique.ttf", "LiberationMono-BoldItalic.ttf"]]
 
 // Returns the face standing in for a font whose program cannot be drawn.
-private func substituteTypeface(options: RenderOptions, resource: #null const *FontResource)->*TypeFace fail
+private func substituteTypeface(fallbackFontFile: string, resource: #null const *FontResource)->*TypeFace fail
 {
-    if @countof(options.fallbackFontFile) do
-        return try TypeFace.load(options.fallbackFontFile)
+    if @countof(fallbackFontFile) do
+        return try TypeFace.load(fallbackFontFile)
 
     var serif      = false
     var fixedPitch = false
@@ -106,13 +106,18 @@ private func substituteTypeface(options: RenderOptions, resource: #null const *F
 private const MinSubstituteCondense = 0.5'f32
 private const MaxSubstituteCondense = 2.0'f32
 
-// Typefaces resolved once per render rather than once per text item.
+// Typefaces resolved once per page rather than once per text item.
 //
 // Resolving an embedded face hashes the complete font program to key the process-wide
 // typeface cache, so a page with thousands of runs must not pay it per run: at one hash per
 // item, re-rendering a dense page reads hundreds of megabytes of font bytes before it draws
-// a single glyph, which is what a viewer experiences as a freeze on every zoom step.
-private struct RenderFontCache
+// a single glyph, which is what a viewer experiences as a freeze on every zoom step. An
+// offline render owns one for its lifetime; [[Gui.PdfView]] keeps one per displayed page, so
+// no paint resolves a face the previous paint already resolved.
+//
+// Dependency-visible backing type required by the concrete [[Gui.PdfView]] layout.
+#[Swag.Opaque, Swag.NoDoc]
+struct RenderFontCache
 {
     embedded:           Array'(#null *TypeFace)     // Per page font index, once resolution was attempted.
     embeddedResolved:   Array'bool
@@ -122,7 +127,7 @@ private struct RenderFontCache
     fallbackResolved:   bool
 }
 
-private impl RenderFontCache
+internal impl RenderFontCache
 {
     mtd prepare(count: u64)
     {
@@ -130,6 +135,21 @@ private impl RenderFontCache
         .embeddedResolved.resize(count)
         .substitute.resize(count)
         .substituteResolved.resize(count)
+    }
+
+    // Forgets every resolution, then sizes the cache for a page's font table.
+    //
+    // The typefaces themselves live in the process-wide table and are not owned here, so
+    // dropping the views is enough when the displayed page changes.
+    mtd reset(count: u64)
+    {
+        .embedded.clear()
+        .embeddedResolved.clear()
+        .substitute.clear()
+        .substituteResolved.clear()
+        .fallback         = null
+        .fallbackResolved = false
+        .prepare(count)
     }
 
     // Returns the face built from an embedded font program, or nothing when it cannot be read.
@@ -153,13 +173,13 @@ private impl RenderFontCache
     }
 
     // Returns the face standing in for a font whose program cannot be drawn.
-    mtd substituteFace(options: RenderOptions, index: u32, resource: #null const *FontResource)->*TypeFace fail
+    mtd substituteFace(fallbackFontFile: string, index: u32, resource: #null const *FontResource)->*TypeFace fail
     {
         if !resource or index >= .substitute.count
         {
             if !.fallbackResolved
             {
-                .fallback         = try substituteTypeface(options, null)
+                .fallback         = try substituteTypeface(fallbackFontFile, null)
                 .fallbackResolved = true
             }
 
@@ -168,7 +188,7 @@ private impl RenderFontCache
 
         if !.substituteResolved[index]
         {
-            .substitute[index]         = try substituteTypeface(options, resource)
+            .substitute[index]         = try substituteTypeface(fallbackFontFile, resource)
             .substituteResolved[index] = true
         }
 
@@ -327,7 +347,7 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
 }
 
 // Draws one text item, preferring the embedded program and falling back to a matching face.
-private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *FontCache, page: const *Page, item: const *Item, base: Transform2, options: RenderOptions) fail
+private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *FontCache, page: const *Page, item: const *Item, base: Transform2, fallbackFontFile: string) fail
 {
     let fontSize = cast(u32) Math.max(1, Math.round(item.fontSize))
     let resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
@@ -343,7 +363,7 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
         }
     }
 
-    let substitute = try fonts.substituteFace(options, item.fontIndex, resource)
+    let substitute = try fonts.substituteFace(fallbackFontFile, item.fontIndex, resource)
     drawSubstitutedRun(painter, item, base, resource, cache.createFont(substitute, fontSize))
 }
 
@@ -392,7 +412,67 @@ private func pathPen(item: const *Item, scale: f32)->Pen
     return result
 }
 
-internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
+// Draws the decoded items of a page through a painter, in paint order.
+//
+// This is the one drawing path: [[Pdf.Page.render]] runs it against an offline CPU target,
+// and [[Gui.PdfView]] runs it against the frame being painted, so a page looks the same on
+// both. `pageToSurface` maps page points to the painter's surface space and must only scale
+// and translate, because item clips are axis-aligned page rectangles. `devicePerPoint` is
+// how many device pixels one PDF point covers on the target; it sizes hairline strokes,
+// never the geometry. `textures` carries one entry per image item in paint order, and an
+// invalid entry skips its image.
+//
+// Fills cache their tessellation inside the page items, which is what makes drawing the same
+// page again cheap. The caller owns the painter's transform state and restores it afterwards.
+internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Transform2, devicePerPoint: f32, fonts: *RenderFontCache, fallbackFontFile: string, textures: const [..] Texture) fail
+{
+    let fontCache    = painter.renderer().fontCache()
+    var textureIndex = 0'u64
+    for &item in page.items
+    {
+        var placed = item.transform
+        placed.multiply(pageToSurface)
+        painter.setTransform(placed)
+
+        // The clip is stated in page coordinates, so it maps through the page transform
+        // rather than through the item's own.
+        if item.hasClip
+        {
+            var clip = item.clip
+            clip.x      = clip.x * pageToSurface.m11 + pageToSurface.tx
+            clip.y      = clip.y * pageToSurface.m22 + pageToSurface.ty
+            clip.width  *= pageToSurface.m11
+            clip.height *= pageToSurface.m22
+            painter.pushClippingSurfaceRect(clip)
+        }
+
+        defer if item.hasClip do
+            painter.popClippingRect()
+
+        switch item.kind
+        {
+        case .Text:
+            if item.text.isEmpty() and item.textCodes.isEmpty() do
+                continue
+            try drawTextItem(painter, fonts, fontCache, page, item, placed, fallbackFontFile)
+
+        case .Path:
+            // A page states its fill rule over the winding count, so the fill has to be
+            // named rather than left to the winding direction of whatever the writer emitted.
+            if item.hasFill do
+                painter.fillPath(&item.path, item.fillColor, item.evenOddFill ? PathFillRule.EvenOdd : PathFillRule.NonZero)
+            if item.hasStroke do
+                painter.drawPath(&item.path, pathPen(item, devicePerPoint), .Separate)
+
+        case .Image:
+            if textures[textureIndex].isValid() do
+                painter.drawTexture(0, 0, 1, 1, textures[textureIndex])
+            textureIndex += 1
+        }
+    }
+}
+
+internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 {
     if options.scale <= 0 or !Math.isFinite(options.scale) do
         fail Errors.BadParameterError{}
@@ -471,50 +551,7 @@ internal func renderPage(page: const *Page, options: RenderOptions)->Image fail
 
     // A region render shifts every mark by the region origin; the whole page is the identity
     // region, so the same path serves both.
-    let toRegion = Transform2.createTranslation(-region.x, -region.y)
-
-    var textureIndex = 0'u64
-    for item in page.items
-    {
-        var placed = item.transform
-        placed.multiply(toRegion)
-        painter.setTransform(placed)
-
-        // The clip is stated in page coordinates, so it must not pick up the item's own
-        // transform on the way to the painter.
-        if item.hasClip
-        {
-            var clip = item.clip
-            clip.offset(-region.x, -region.y)
-            painter.pushClippingSurfaceRect(clip)
-        }
-
-        defer if item.hasClip do
-            painter.popClippingRect()
-
-        switch item.kind
-        {
-        case .Text:
-            if item.text.isEmpty() and item.textCodes.isEmpty() do
-                continue
-            try drawTextItem(&painter, &fonts, renderer.fontCache(), page, item, placed, options)
-
-        case .Path:
-            var paths = item.path
-
-            // A page states its fill rule over the winding count, so the fill has to be
-            // named rather than left to the winding direction of whatever the writer emitted.
-            if item.hasFill do
-                painter.fillPath(&paths, item.fillColor, item.evenOddFill ? PathFillRule.EvenOdd : PathFillRule.NonZero)
-            if item.hasStroke do
-                painter.drawPath(&paths, pathPen(item, options.scale), .Separate)
-
-        case .Image:
-            if textures[textureIndex].isValid() do
-                painter.drawTexture(0, 0, 1, 1, textures[textureIndex])
-            textureIndex += 1
-        }
-    }
+    try drawPageItems(&painter, page, Transform2.createTranslation(-region.x, -region.y), options.scale, &fonts, options.fallbackFontFile, textures.toSlice())
 
     painter.resetTransform()
 

@@ -826,6 +826,12 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(bar != HtmlNoNode)
     let decoration = view.layout.constBox(bar)
     @assert(decoration.rect.width == 32 and decoration.rect.height == 4)
+    @assert(decoration.rect.x == heading.rect.x and decoration.rect.y == heading.rect.y)
+    @assert(heading.content.y == decoration.rect.y + 14)
+    var textBox = HtmlNoNode
+    for child in heading.children where view.layout.constBox(child).items.count do
+        textBox = child
+    @assert(textBox != HtmlNoNode and view.layout.constBox(textBox).lines.front().top == heading.content.y)
     var image = host.render(view)
     @assert(image.pixelColor(cast(u32) decoration.rect.horzCenter(), cast(u32) decoration.rect.vertCenter()).argb == 0xFFFF8080)
 }

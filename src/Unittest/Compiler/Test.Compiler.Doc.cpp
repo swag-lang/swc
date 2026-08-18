@@ -5,6 +5,7 @@
 #include "Backend/Runtime.h"
 #include "Doc/DocApi.h"
 #include "Doc/DocGenerator.h"
+#include "Doc/DocMarkdown.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
@@ -135,6 +136,40 @@ plain payload
 
     // An empty fenced block carries nothing, so it never reaches the page.
     if (html.contains("<span class=\"SCde\"></span>"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_DocBlockCommentsPreserveCodeIndentation)
+{
+    static constexpr std::string_view SOURCE = R"(/*
+    Summary.
+
+    ```
+    zero
+        four
+    ```
+    */)";
+
+    std::vector<Utf8> lines;
+    DocApi::appendNormalizedComment(lines, SOURCE);
+
+    DocRenderContext renderCtx = {.ctx = &ctx};
+    const Utf8       html      = DocMarkdown::renderLines(renderCtx, lines);
+    if (!html.contains("<div class=\"code-block\"><span class=\"SCde\">zero\n    four</span></div>"))
+        return Result::Error;
+
+    static constexpr std::string_view STAR_SOURCE = R"(/**
+ * ```
+ * zero
+ *     four
+ * ```
+ */)";
+
+    lines.clear();
+    DocApi::appendNormalizedComment(lines, STAR_SOURCE);
+    const Utf8 starHtml = DocMarkdown::renderLines(renderCtx, lines);
+    if (!starHtml.contains("<div class=\"code-block\"><span class=\"SCde\">zero\n    four</span></div>"))
         return Result::Error;
 }
 SWC_TEST_END()

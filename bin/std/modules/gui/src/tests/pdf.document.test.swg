@@ -95,7 +95,7 @@ private func sampleDocument()->Document
     @assert(imageTransform.m21 == 0 and imageTransform.m22 == 64)
     @assert(imageTransform.tx == 144 and imageTransform.ty == 40)
 
-    let rendered = expect decoded.pages[0].render({scale: 2, maxDimension: 1024})
+    let rendered = expect decoded.editPage(0).render({scale: 2, maxDimension: 1024})
     @assert(rendered.width == 480 and rendered.height == 320)
     @assert(rendered.isValid())
 

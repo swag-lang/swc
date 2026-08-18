@@ -371,3 +371,43 @@ Entries are sorted by identifier, ascending; position carries no priority.
   content arrives outside them, route head content into a synthesized `head` — so a fragment and
   a full document build the same tree; the `closeImplied` `.Head -> .Body` case already expects
   those elements to exist.
+
+### F-158 — A multi-contour path is rule-normalized again on every fill
+
+- Area: bin/std
+- Found while: moving `PdfView` to direct painting and measuring the per-frame cost of a dense
+  corpus page.
+- Observation: `Painter.fillPath(pathList, brush, rule)` bypasses normalization only for a
+  single simple contour; every other list is deep-copied and Clipper-cleaned on every call, and
+  the unruled `fillPath(pathList, brush)` walks `pathListNeedsCleaning` — pairwise
+  `contoursIntersect`, quadratic in segments for every overlapping pair — per call even when the
+  answer never changes. Fill triangulations are cached inside each `LinePath` and keyed by its
+  `serial`, but the normalization that produces the list being triangulated is recomputed each
+  time. Now that the PDF viewer paints vectors on every frame, a glyph-like path with holes pays
+  the copy and the clean per frame for the lifetime of the page.
+- Evidence: with tessellation caching already effective, a warm `PdfView` frame of
+  `llvm-polly-grosser-diploma-thesis.pdf` page 20 at 1200x800 still costs ~45 ms on the CPU
+  backend (temporary probe, 2026-08-18); `fillpath.swg` shows the per-call copy in the ruled
+  overload and the per-call `pathListNeedsCleaning` walk in the unruled one.
+- Next step: cache the normalized path list and the needs-cleaning verdict inside
+  `LinePathList`, invalidated by the same serial/flatten machinery that guards the
+  triangulations, so a static list normalizes once; re-run the probe and attribute what remains.
+
+### F-159 — Bezier flattening ignores the transform scale, so a deep zoom keeps scale-1 facets
+
+- Area: bin/std
+- Found while: the same `PdfView` rework, reviewing what a 64x zoom now asks of the painter.
+- Observation: `LinePath.flatten(paintQuality)` flattens curves with a tolerance expressed in
+  path-space units and caches the polygonization; the transform is applied afterwards. Under a
+  zooming transform — `PdfView` composes the page scale into the model transform, up to 64x — a
+  deviation acceptable at scale 1 becomes tens of device pixels, and the cache freezes the
+  polygonization at whatever scale painted first. The offline renderer behaves the same through
+  `contentScale`, which the flatten tolerance never read either, so this is not a regression of
+  the direct-painting change — only more reachable now that deep zoom is free.
+- Evidence: code reading: every `fillPath`/`drawPath` overload calls
+  `flatten(.curState.paintQuality)` with no scale input, while `aaHalfPathSpace` and the pen
+  cull both read the transform; the flatten tolerance is the one scale-blind stage left.
+- Next step: fold the effective device scale (transform times content scale) into the flatten
+  tolerance, bucketed — powers of two — so the cached flattening and triangulation are re-keyed
+  only when the bucket changes; then compare a corpus page with large curved diagrams at 8x
+  before and after.

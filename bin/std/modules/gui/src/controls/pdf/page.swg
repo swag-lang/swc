@@ -207,7 +207,10 @@ impl Page
     }
 
     // Renders the complete page to an owned Pixel image.
-    mtd const render(options: RenderOptions = {})->Image fail
+    //
+    // Rendering caches each path's tessellation inside the page, so drawing the same page
+    // again — another scale, another region — does not pay that preparation twice.
+    mtd render(options: RenderOptions = {})->Image fail
     {
         return try renderPage(me, options)
     }

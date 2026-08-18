@@ -5,11 +5,12 @@ using Core, Pixel
 // Displays a PDF document with viewer-oriented zooming, panning, and page navigation.
 //
 // The view opens a document through [[Gui.Pdf.Reader]], so pages are decoded on demand and the
-// displayed page stays decoded between paints. A page is vector art: the view rasterizes it at
-// the exact scale it is shown at — zoom and monitor scale included — so sharpness follows the
-// display rather than the scale the page happened to be rendered at first. Past a fixed pixel
-// budget only the visible region is rasterized, which is what keeps a deep zoom costing the
-// viewport rather than the page.
+// displayed page stays decoded between paints. A page is vector art, and it is painted as such:
+// every paint draws the decoded items straight through the widget's painter — the application
+// renderer, not an offline rasterization — at the exact scale the page is shown at, zoom and
+// monitor scale included. A zoom or pan step is therefore a transform change, not a raster: the
+// page's images are uploaded to the renderer once per page, its typefaces are resolved once per
+// page, and path tessellations are cached inside the decoded page itself.
 //
 // The mouse wheel scrolls, `Ctrl` and the wheel zoom around the pointer, dragging pans, a double
 // click toggles between fitted and actual size, and the arrow, page, `Home` and `End` keys turn
@@ -28,7 +29,7 @@ struct PdfView
 
         sigPageChanged: SigArray'func||(*PdfView)             // Emitted after the displayed page changes.
         sigZoomChanged: SigArray'func||(*PdfView)             // Emitted after the effective zoom changes.
-        sigRenderError: SigArray'func||(*PdfView, string)     // Emitted when a page cannot be decoded or rasterized.
+        sigRenderError: SigArray'func||(*PdfView, string)     // Emitted when a page cannot be decoded or painted.
 
         public readonly
         {
@@ -44,12 +45,16 @@ struct PdfView
             page:    Pdf.Page
             hasPage: bool
 
-            // The current rasterization: which page region it covers, and at how many raster
-            // pixels per PDF point it was produced.
-            texture:     Texture
-            rasterScale: f32
-            rasterRect:  Math.Rectangle
-            rasterTimer: #null *Timer
+            // Textures of the page's image items, uploaded to the application renderer once
+            // per page and reused by every subsequent paint, in item order.
+            imageTextures: Array'Texture
+            hasTextures:   bool
+
+            // Typefaces resolved once per page rather than once per paint.
+            fonts: Pdf.RenderFontCache
+
+            // One failing paint reports through `sigRenderError` once, not once per frame.
+            reportedPaintError: bool
 
             isPanning:   bool
             lastPointer: Math.Point
@@ -62,18 +67,6 @@ private impl PdfView
     // One PDF point shown at actual size covers 96/72 logical units: a point is 1/72 inch and
     // a logical unit is 1/96 inch.
     const ActualSizeZoom = 96.0'f32 / 72.0
-
-    // Raster budget above which only the visible region is rasterized. A whole A4 page stays
-    // whole up to roughly a 4x zoom on a standard display; past that the raster follows the
-    // viewport, whose size bounds the cost of every further zoom step.
-    const MaxFullRasterPixels = 16_777_216.0'f32
-
-    // Page-space margin kept rasterized around the viewport, in raster pixels, so a small pan
-    // does not rasterize on every pointer move.
-    const RasterMarginPixels = 256.0'f32
-
-    // Scale drift tolerated before the page is rasterized again.
-    const RasterScaleTolerance = 0.02'f32
 
     // Returns the widget-space rectangle the complete page occupies.
     mtd const contentRect()->Math.Rectangle
@@ -92,7 +85,7 @@ private impl PdfView
         return result
     }
 
-    mtd applyZoom(value: f32, anchor: #null const *Math.Point = null, deferRaster = false)
+    mtd applyZoom(value: f32, anchor: #null const *Math.Point = null)
     {
         let oldZoom = .effectiveZoom()
         let oldRect = .contentRect()
@@ -110,21 +103,6 @@ private impl PdfView
             .panOffset.y += point.y - (next.y + next.height * ratioY)
         }
 
-        if deferRaster and .texture.isValid()
-        {
-            if .rasterTimer do
-                .removeTimer(.rasterTimer!)
-
-            // A wheel gesture delivers several steps in a short burst. The existing raster
-            // follows them immediately; this delay coalesces the expensive sharp replacement.
-            .rasterTimer = .addTimer(120'ms)
-        }
-        elif .rasterTimer
-        {
-            .removeTimer(.rasterTimer!)
-            .rasterTimer = null
-        }
-
         .sigZoomChanged.call(me)
         .invalidate()
     }
@@ -139,72 +117,31 @@ private impl PdfView
 
 internal impl PdfView
 {
-    mtd releaseRaster()
+    // Uploads the page's images to the application renderer, once per page.
+    //
+    // The decoded page keeps the pixels; the textures are the renderer-side copies every
+    // subsequent paint reuses, whatever the zoom.
+    mtd ensureTextures()
     {
-        if .texture.isValid() do
-            .app().renderer.removeTexture(&.texture)
-        .rasterScale = 0
-        .rasterRect.clear()
+        if .hasTextures do
+            return
+        let renderer = .app().renderer
+        for item in .page.items where item.kind == .Image do
+            .imageTextures.add(renderer.addImage(item.image))
+        .hasTextures = true
     }
 
-    mtd stopRasterTimer()
+    mtd releaseTextures()
     {
-        if !.rasterTimer do
-            return
-        .removeTimer(.rasterTimer!)
-        .rasterTimer = null
-    }
-
-    // Rasterizes what the viewport shows, at the sharpness it is shown at, when the raster on
-    // hand no longer provides it. The decoded page is reused as it is: no zoom or pan step
-    // decodes the document again.
-    mtd ensureRaster()
-    {
-        if !.hasPage do
-            return
-        let client = .paddedClientRect()
-        if client.width <= 0 or client.height <= 0 do
-            return
-        let scale  = .effectiveZoom()
-        let wanted = scale * .deviceScale()
-        if wanted <= 0 or !Math.isFinite(wanted) do
-            return
-
-        if .rasterTimer and .texture.isValid() do
-            return
-
-        // The whole page within the pixel budget, the visible region past it.
-        let pageRect  = Math.Rectangle{0, 0, .page.width, .page.height}
-        var region    = pageRect
-        var needed    = pageRect
-        let wholePage = .page.width * wanted * .page.height * wanted <= MaxFullRasterPixels
-        if !wholePage
+        if .hasTextures
         {
-            let content = .contentRect()
-            var visible = Math.Rectangle{(client.x - content.x) / scale, (client.y - content.y) / scale, client.width / scale, client.height / scale}
-            visible.intersect(pageRect)
-            if visible.width <= 0 or visible.height <= 0 do
-                visible = {0, 0, Math.min(.page.width, 1'f32), Math.min(.page.height, 1'f32)}
-            needed = visible
-            visible.inflate(RasterMarginPixels / wanted)
-            visible.intersect(pageRect)
-            region = visible
+            let renderer = .app().renderer
+            for &texture in .imageTextures do
+                renderer.removeTexture(texture)
         }
 
-        if .texture.isValid() and Math.abs(.rasterScale - wanted) <= wanted * RasterScaleTolerance and .rasterRect.contains(needed) do
-            return
-
-        let image = catch .page.render({scale: wanted, sourceRect: wholePage ? Math.Rectangle{} : region}) as renderError
-        if renderError != null
-        {
-            .sigRenderError.call(me, Errors.message(renderError))
-            return
-        }
-
-        .releaseRaster()
-        .texture     = .app().renderer.addImage(image)
-        .rasterScale = wanted
-        .rasterRect  = region
+        .imageTextures.clear()
+        .hasTextures = false
     }
 }
 
@@ -212,21 +149,7 @@ impl IWnd for PdfView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        .stopRasterTimer()
-        .releaseRaster()
-    }
-
-    mtd impl onTimerEvent(evt: *TimerEvent)
-    {
-        if evt.timer != .rasterTimer
-        {
-            evt.accepted = false
-            return
-        }
-
-        .removeTimer(evt.timer)
-        .rasterTimer = null
-        .invalidate()
+        .releaseTextures()
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
@@ -242,19 +165,30 @@ impl IWnd for PdfView
         if !.hasPage do
             return
 
-        .ensureRaster()
-        if !.texture.isValid() do
-            return
+        .ensureTextures()
 
-        // The raster covers `rasterRect` of the page; place exactly that region.
         let content = .contentRect()
         let scale   = .effectiveZoom()
-        var destination: Math.Rectangle
-        destination.x      = content.x + .rasterRect.x * scale
-        destination.y      = content.y + .rasterRect.y * scale
-        destination.width  = .rasterRect.width * scale
-        destination.height = .rasterRect.height * scale
-        painter.drawTexture(destination, .texture)
+        if content.width <= 0 or content.height <= 0 or scale <= 0 do
+            return
+
+        // The page is drawn as the vector art it is, clipped to the view so a zoomed page
+        // never paints over a neighbour. The widget's base transform only translates, so
+        // composing the page scale under it keeps item clips axis-aligned.
+        let base = painter.transform()
+        painter.pushClippingRect(.clientRect())
+        painter.fillRect(content, Color.fromArgb(Argb.White))
+
+        let pageToSurface = Math.Transform2{scale, 0, 0, scale, base.tx + content.x, base.ty + content.y}
+        catch Pdf.drawPageItems(painter, &.page, pageToSurface, scale * .deviceScale(), &.fonts, "", .imageTextures.toSlice()) as paintError
+        painter.setTransform(base)
+        painter.popClippingRect()
+
+        if paintError != null and !.reportedPaintError
+        {
+            .reportedPaintError = true
+            .sigRenderError.call(me, Errors.message(paintError))
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -274,7 +208,7 @@ impl IWnd for PdfView
             {
                 let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
                 let anchor = .surfaceToLocal(evt.surfacePos)
-                .applyZoom(.effectiveZoom() * factor, &anchor, deferRaster: true)
+                .applyZoom(.effectiveZoom() * factor, &anchor)
             }
             else
             {
@@ -393,18 +327,19 @@ impl PdfView
         try .showPage(0)
     }
 
-    // Releases the displayed page and its raster while keeping the widget alive.
+    // Releases the displayed page, its textures, and its typefaces while keeping the widget alive.
     mtd close()
     {
-        .stopRasterTimer()
-        .releaseRaster()
+        .releaseTextures()
         @drop(&.page, 1)
         @init(&.page, 1)
-        .hasPage   = false
-        .pageIndex = 0
-        .zoom      = 1
-        .isFitted  = true
-        .panOffset = {}
+        .fonts.reset(0)
+        .hasPage            = false
+        .pageIndex          = 0
+        .zoom               = 1
+        .isFitted           = true
+        .panOffset          = {}
+        .reportedPaintError = false
         .invalidate()
     }
 
@@ -424,14 +359,15 @@ impl PdfView
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
 
         var page = try .reader.loadPage(index)
-        .stopRasterTimer()
-        .releaseRaster()
+        .releaseTextures()
         @drop(&.page, 1)
         @init(&.page, 1)
         .page      = #move page
         .hasPage   = true
         .pageIndex = index
         .panOffset = {}
+        .fonts.reset(.page.fonts.count)
+        .reportedPaintError = false
         .sigPageChanged.call(me)
         if .isFitted do
             .sigZoomChanged.call(me)

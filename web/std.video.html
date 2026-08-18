@@ -161,7 +161,7 @@
 <span class="SKwd">var</span> reader = <span class="SKwd">try</span> <span class="SCst"><a href="#Video_Reader">Reader</a></span>.<span class="SFct">open</span>(<span class="SStr">"preview.y4m"</span>)
 <span class="SKwd">var</span> picture: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>
 <span class="SLgc">for</span> index <span class="SLgc">in</span> reader.<span class="SFct">frameCount</span>() <span class="SLgc">do</span>
-<span class="SKwd">try</span> reader.<span class="SFct">decodeFrameInto</span>(&amp;picture, index)</span></div>
+    <span class="SKwd">try</span> reader.<span class="SFct">decodeFrameInto</span>(&amp;picture, index)</span></div>
 <p>A format is a codec registered against <a href="#Video_IDecoder">Video.IDecoder</a> and <a href="#Video_IEncoder">Video.IEncoder</a>, selected by filename extension; both read and write through <a href="#Video_Source">Video.Source</a> and <a href="#Video_Sink">Video.Sink</a>, which are what make a codec independent of files and memory alike. Two codecs ship in the box:</p>
 <ul>
 <li>YUV4MPEG2 (<span class="code-inline">.y4m</span>) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 YCbCr frames and writes 4:4:4 ones. It does not compress, so it favors a small implementation over the size of what it produces.</li>
@@ -1251,7 +1251,7 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.152</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.153</div>
 </footer>
 </section>
 </main>

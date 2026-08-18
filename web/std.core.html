@@ -42,11 +42,12 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group">
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">45</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">46</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Core">Core</a></li>
 <li><a href="#namespace_Core_Atomic">Core.Atomic</a></li>
+<li><a href="#namespace_Core_Base64">Core.Base64</a></li>
 <li><a href="#namespace_Core_CommandLine">Core.CommandLine</a></li>
 <li><a href="#namespace_Core_Compress">Core.Compress</a></li>
 <li><a href="#namespace_Core_Console">Core.Console</a></li>
@@ -431,7 +432,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1628</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1630</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -512,6 +513,8 @@
 <li><a href="#Core_Atomic_logicAnd">Atomic.logicAnd</a></li>
 <li><a href="#Core_Atomic_logicOr">Atomic.logicOr</a></li>
 <li><a href="#Core_Atomic_logicXor">Atomic.logicXor</a></li>
+<li><a href="#Core_Base64_decode">Base64.decode</a></li>
+<li><a href="#Core_Base64_encode">Base64.encode</a></li>
 <li><a href="#Core_BitArray_andWith">BitArray.andWith</a></li>
 <li><a href="#Core_BitArray_get">BitArray.get</a></li>
 <li><a href="#Core_BitArray_invert">BitArray.invert</a></li>
@@ -2076,7 +2079,7 @@
 
 <span class="SKwd">var</span> lines: <span class="SFct">Array</span>'<span class="SCst"><a href="#Core_String">String</a></span>
 <span class="SLgc">for</span> line <span class="SLgc">in</span> text.<span class="SFct">splitLines</span>() <span class="SLgc">do</span>
-lines.<span class="SFct">add</span>(line)</span></div>
+    lines.<span class="SFct">add</span>(line)</span></div>
 <p>Owned containers release their storage automatically. Slices and string views borrow storage instead; keep their source alive and do not retain them across an operation that can reallocate that source.</p>
 <h2 id="overview_Derive_short-lived_key_material">Derive short-lived key material</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
@@ -2306,6 +2309,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tbody>
 <tr><td class="code-type"><a href="#namespace_Core">Core</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Atomic">Core.Atomic</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Base64">Core.Base64</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_CommandLine">Core.CommandLine</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Compress">Core.Compress</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Console">Core.Console</a></td></tr>
@@ -3166,6 +3170,10 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Atomic_logicOr">Atomic.logicOr</a></td><td><p>Performs the logic or operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Atomic_logicXor">Atomic.logicXor</a></td><td><p>Performs the logic xor operation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Base64_decode">Base64.decode</a></td><td><p>Decodes base64 text into the bytes it spells.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Base64_encode">Base64.encode</a></td><td><p>Encodes bytes as standard base64 text, with <span class="code-inline">=</span> padding and no line breaks.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_BitArray_andWith">BitArray.andWith</a></td><td><p>Performs a bitwise AND operation between this array and another.</p>
 </td></tr>
@@ -6252,6 +6260,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <thead><tr><th>Namespace</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#namespace_Core_Atomic">Core.Atomic</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Base64">Core.Base64</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_CommandLine">Core.CommandLine</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Compress">Core.Compress</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Console">Core.Console</a></td></tr>
@@ -6431,6 +6440,20 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Atomic_logicOr">Atomic.logicOr</a></td><td><p>Performs the logic or operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Atomic_logicXor">Atomic.logicXor</a></td><td><p>Performs the logic xor operation.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Core_Base64" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Core.Base64</span> <a class="api-item-permalink" href="#namespace_Core_Base64" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Core.Base64</span>.</p>
+<h3 id="namespace_Core_Base64_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Base64_decode">Base64.decode</a></td><td><p>Decodes base64 text into the bytes it spells.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Base64_encode">Base64.encode</a></td><td><p>Encodes bytes as standard base64 text, with <span class="code-inline">=</span> padding and no line breaks.</p>
 </td></tr>
 </tbody>
 </table>
@@ -16926,6 +16949,17 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">logicXor</span>(addr: *<span class="STpe">u64</span>, value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Base64_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Base64.decode</span> <a class="api-item-permalink" href="#Core_Base64_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/base64.swg#L69">src</a></div>
+<p>Decodes base64 text into the bytes it spells.</p>
+<p>Both the standard and the URL-safe alphabets are accepted, embedded ASCII white space is skipped, and the trailing <span class="code-inline">=</span> padding is optional. A character outside those sets, data after the padding, or a final group of a single digit reports <a href="#Core_Errors_InvalidFormatError">Core.Errors.InvalidFormatError</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(text: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Base64_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Base64.encode</span> <a class="api-item-permalink" href="#Core_Base64_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/base64.swg#L24">src</a></div>
+<p>Encodes bytes as standard base64 text, with <span class="code-inline">=</span> padding and no line breaks.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encode</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_BitArray_andWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.andWith</span> <a class="api-item-permalink" href="#Core_BitArray_andWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L260">src</a></div>
 <p>Performs a bitwise AND operation between this array and another. The current array is modified to store the result. Asserts that arrays are of the same size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">andWith</span>(other: <span class="SCst"><a href="#Core_BitArray">BitArray</a></span>)</span></div>
@@ -25601,7 +25635,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.152</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.153</div>
 </footer>
 </section>
 </main>
@@ -25859,6 +25893,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 ([
 "n|Core|namespace_Core|",
 "n|Core.Atomic|namespace_Core_Atomic|",
+"n|Core.Base64|namespace_Core_Base64|",
 "n|Core.CommandLine|namespace_Core_CommandLine|",
 "n|Core.Compress|namespace_Core_Compress|",
 "n|Core.Console|namespace_Core_Console|",
@@ -28379,6 +28414,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.set|Core_set|Replaces a flag set with value.",
 "f|Core.System.pushContext|Core_System_pushContext|Push a new execution context for the given block of code",
 "f|Core.toggle|Core_toggle|Toggles value in a flag set.",
+"f|Core.Base64.decode|Core_Base64_decode|Decodes base64 text into the bytes it spells.",
+"f|Core.Base64.encode|Core_Base64_encode|Encodes bytes as standard base64 text, with = padding and no line breaks.",
 "f|Core.Format.append|Core_Format_append|Format a string and put the result in a ConcatBuffer.",
 "f|Core.Format.byteSize|Core_Format_byteSize|Formats a byte count as a compact human-readable size, such as \"312 B\", \"4.10 KB\" or \"13.4 MB\".",
 "f|Core.Format.checkFormat|Core_Format_checkFormat|Check if this is a valid 'fmt/values' pair, coherent with 'format' specification",

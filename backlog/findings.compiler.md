@@ -147,7 +147,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
 
-### F-157 — A contextual integer-to-float conversion asserts while lowering an aggregate constant
+### F-160 — A contextual integer-to-float conversion asserts while lowering an aggregate constant
 
 - Area: compiler
 - Found while: adding the `PdfView` wheel-coalescing regression to

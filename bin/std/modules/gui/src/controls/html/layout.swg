@@ -1356,12 +1356,14 @@ impl HtmlLayout
         return Math.max(result, 0)
     }
 
-    // Places a box that left the normal flow, against the box it is positioned in.
+    // Places a box that left the normal flow against its container's padding box.
     private mtd layoutAbsolute(box: u32, container: u32, containing: HtmlContainingBlock)
     {
-        let styleIndex = .boxes[box].style
-        let style      = &.styles[styleIndex]
-        let frame      = .boxes[container].content
+        let styleIndex     = .boxes[box].style
+        let style          = &.styles[styleIndex]
+        let containerStyle = &.styles[.boxes[container].style]
+        let containerRect  = .boxes[container].rect
+        let frame          = Math.Rectangle{containerRect.x + containerStyle.borderLeft.width, containerRect.y + containerStyle.borderTop.width, Math.max(containerRect.width - containerStyle.borderWidthX(), 0), Math.max(containerRect.height - containerStyle.borderWidthY(), 0)}
 
         var inner: HtmlContainingBlock
         inner.width     = frame.width

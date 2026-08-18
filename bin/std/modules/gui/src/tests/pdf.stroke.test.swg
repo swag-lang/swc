@@ -29,12 +29,12 @@ private func strokedPath(y: f32)->LinePathList
     let bytes   = expect document.encode()
     let encoded = cast(string) bytes.toSlice()
     @assert(Utf8.indexOf(encoded, "0 J\n2 j\n4 M\n[10 10] 0 d") != Swag.U64.Max)
-    let roundTrip = expect Document.decode(bytes.toSlice())
+    var roundTrip = expect Document.decode(bytes.toSlice())
     let final     = onlyItem(roundTrip.pages[0], .Path).pathStrokeStyle()
     @assert(final.cap == .Butt and final.join == .Bevel and final.miterLimit == 4)
     @assert(final.dashPattern.count == 2 and final.dashPattern[0] == 10 and final.dashPattern[1] == 10)
 
-    let image = expect roundTrip.pages[0].render({background: Color.fromArgb(Argb.White)})
+    let image = expect roundTrip.editPage(0).render({background: Color.fromArgb(Argb.White)})
     @assert(image.pixelColor(25, 15).r < 32)
     @assert(image.pixelColor(35, 15).r > 223)
     @assert(image.pixelColor(45, 15).r < 32)
@@ -62,7 +62,7 @@ private func strokedPath(y: f32)->LinePathList
     page.addPath(strokedPath(35), fill: false, stroke: true, strokeWidth: 10, strokeStyle: {cap: .Square})
     document.addPage(#move page)
 
-    let image = expect document.pages[0].render({background: Color.fromArgb(Argb.White)})
+    let image = expect document.editPage(0).render({background: Color.fromArgb(Argb.White)})
     @assert(image.pixelColor(16, 15).r > 223)
     @assert(image.pixelColor(16, 35).r < 32)
 }
@@ -75,7 +75,7 @@ private func strokedPath(y: f32)->LinePathList
     page.addPath(strokedPath(25), fill: false, stroke: true, strokeWidth: 0)
     document.addPage(#move page)
 
-    let image       = expect document.pages[0].render({scale: 2, background: Color.fromArgb(Argb.White)})
+    let image       = expect document.editPage(0).render({scale: 2, background: Color.fromArgb(Argb.White)})
     var hasHairline = false
     for y in 48 to 52
     {

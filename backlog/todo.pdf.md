@@ -36,9 +36,11 @@ Three things stand out.
   line, which is what turns a justified paragraph into one that misses its margin.
 - **The corpus is real.** 354 pages from eleven LLVM and Polly documents produced by several
   generations of writers, plus five PDFBox fixtures, all decoded lazily through `Pdf.Reader`.
-- **The widget renders what the host shows.** `PdfView` keeps the decoded page, rasterizes at the
-  displayed scale — zoom and monitor scale included — and past a fixed pixel budget rasterizes
-  the visible region alone, so a deep zoom costs the viewport rather than the page.
+- **The widget paints vectors, not rasters.** `PdfView` keeps the decoded page and draws its
+  items straight through the frame's painter — the application renderer — so a zoom or pan step
+  is a transform change: images upload once per page, typefaces resolve once per page, path
+  tessellations cache inside the decoded page, and no offline rasterization, readback, or
+  texture re-upload sits between the page and the screen.
 
 The gaps are of three kinds: documents that will not open at all, pages that open and then render
 as something other than what they mean, and a writer that can only express what it can itself
@@ -50,9 +52,11 @@ This engine began as the standalone `std/pdf` module, and the question of whethe
 was justified was examined and then decided the other way: a document viewer's rendering is
 host-driven — the zoom, the monitor scale, and the visible region all belong to the widget showing
 the page — so the engine lives beside its widget, exactly as the HTML and Markdown engines live
-beside `HtmlView` and `MarkdownView`. `PdfView` owns the decoded page and rasterizes the region
-the viewport shows at the scale it is shown at; a fixed rasterization handed to a generic image
-widget was the wrong architecture, and was what made zooming freeze.
+beside `HtmlView` and `MarkdownView`. `PdfView` owns the decoded page and paints its items
+directly through the frame being drawn, the way `HtmlView` paints its layout; a fixed
+rasterization handed to a generic image widget was the wrong architecture, and was what made
+zooming freeze. The offline rasterization (`Page.render` over a CPU renderer) remains as the
+headless boundary: tests, thumbnails, and export.
 
 One consequence is recorded rather than hidden: the writer (`Pdf.Document.encode`) now lives above
 `pixel`, so [T-054](todo.pixel.md#t-054--no-vector-output) — PDF output from the painter — can no
@@ -386,25 +390,14 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ### T-456 — Typefaces built for a document are never released
 
-- Intent: a render now resolves each font resource once through a per-render cache, but the key
-  is still a CRC32 over the complete font program — one hash per font per render, where one per
-  document would do — and the typefaces registered in the process-wide `TypeFace` table are never
-  released, so the table grows for the process lifetime as documents are opened and closed.
+- Intent: the viewer now resolves each font resource once per displayed page and an offline
+  render once per call, but the key is still a CRC32 over the complete font program — one hash
+  per font per page shown, where one per document would do — and the typefaces registered in the
+  process-wide `TypeFace` table are never released, so the table grows for the process lifetime
+  as documents are opened and closed.
 - Complete when: a font program is hashed at most once per open document, and the typefaces a
   document created are released with it.
-- Related: T-457, T-458
-
-### T-457 — Each render rebuilds its renderer and re-uploads its textures
-
-- Intent: `PdfView` now keeps the decoded page across zoom and pan steps and rasterizes only the
-  visible region past a pixel budget, but every `renderPage` call still builds a fresh
-  `RenderCpu`, initializes it, and uploads the textures of the in-region images again. On an
-  image-heavy page each zoom step re-uploads the same pixels; nothing carries over from one
-  render of the same `Page` to the next.
-- Complete when: consecutive renders of one page share a render context and the textures of
-  unchanged images, and a zoom step on an image-heavy corpus page measurably stops re-paying the
-  uploads.
-- Related: T-428, T-456, T-459
+- Related: T-458
 
 ### T-458 — An embedded font program is copied once per page that uses it
 
@@ -418,11 +411,11 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 ### T-459 — A render cannot be cancelled or bounded in time
 
 - Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
-  with a pathological number of paths can take arbitrarily long, and the caller — a GUI thread in
-  the only consumer that exists — has no way to abandon it when the user turns the page.
+  with a pathological number of paths can take arbitrarily long. The interactive viewer no
+  longer runs offline renders, so this now concerns the headless callers — a batch export, a
+  thumbnailer, a test — which still have no way to abandon a render.
 - Complete when: a render accepts a cancellation signal and an optional work budget, and reports
   an interrupted render distinctly from a failed one.
-- Related: T-457
 
 ---
 

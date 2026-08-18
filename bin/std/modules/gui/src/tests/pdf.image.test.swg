@@ -185,7 +185,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let bytes = expect document.encode()
     @assert(Utf8.indexOf(cast(string) bytes.toSlice(), "/SMask") != Swag.U64.Max)
 
-    let decoded = expect Document.decode(bytes.toSlice())
+    var decoded = expect Document.decode(bytes.toSlice())
     let image   = onlyItem(decoded.pages[0], .Image).imageValue()!
     @assert(image.pixelFormat == .RGBA8)
 
@@ -194,6 +194,6 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     @assert(image.pixelColor(0, 1).a == 255 and image.pixelColor(1, 1).a == 128)
 
     // A partly transparent picture also reaches the rasterizer.
-    let rendered = expect decoded.pages[0].render({scale: 1})
+    let rendered = expect decoded.editPage(0).render({scale: 1})
     @assert(rendered.isValid() and rendered.width == 200)
 }

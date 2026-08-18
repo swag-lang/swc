@@ -183,12 +183,28 @@ void DocApi::appendNormalizedComment(std::vector<Utf8>& outLines, std::string_vi
     if (text.ends_with("*/"))
         text.remove_suffix(2);
 
+    // Remove the source margin once, so Markdown indentation inside the comment remains intact.
+    // The extra star that opens a documentation comment is a boundary, not a zero-width margin.
     std::vector<Utf8> lines = Utf8Helper::splitLines(text);
+    size_t            commonIndent = std::numeric_limits<size_t>::max();
+    for (const Utf8& line : lines)
+    {
+        const std::string_view view = line;
+        if (Utf8Helper::trim(view) == "*")
+            continue;
+        size_t indent = 0;
+        while (indent < view.size() && (view[indent] == ' ' || view[indent] == '\t'))
+            indent++;
+        if (indent != view.size())
+            commonIndent = std::min(commonIndent, indent);
+    }
+    if (commonIndent == std::numeric_limits<size_t>::max())
+        commonIndent = 0;
+
     for (Utf8& line : lines)
     {
         std::string_view view = line;
-        while (!view.empty() && (view.front() == ' ' || view.front() == '\t'))
-            view.remove_prefix(1);
+        view.remove_prefix(std::min(commonIndent, view.size()));
         if (!view.empty() && view.front() == '*')
         {
             view.remove_prefix(1);

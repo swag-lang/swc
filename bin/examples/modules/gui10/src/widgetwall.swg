@@ -398,7 +398,7 @@ private func buildDocuments(flow: *Flow)
 {
     flow.section("Markdown document")
     let host     = flow.host(flow.width, 360)
-    let markdown = MarkdownView.createText(host, "# Themed Markdown\n\nA reusable reading surface with **strong text**, `code`, and inline math $x^2$.\n\n> [!NOTE]\n> Notice colors follow the active palette.\n\n| Part | Result |\n|:---|---:|\n| Table | Aligned |\n\n$$\\frac{a}{b}$$", MarkdownStyle.theme())
+    let markdown = Markdown.View.createText(host, "# Themed Markdown\n\nA reusable reading surface with **strong text**, `code`, and inline math $x^2$.\n\n> [!NOTE]\n> Notice colors follow the active palette.\n\n| Part | Result |\n|:---|---:|\n| Table | Aligned |\n\n$$\\frac{a}{b}$$", Markdown.Style.theme())
     markdown.dockStyle = .Center
 }
 

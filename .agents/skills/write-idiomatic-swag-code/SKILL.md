@@ -58,6 +58,26 @@ its element type, its options, its result shape — belong in the same file.
   `app.operations.swg`, and `image.filter.grayscale.test.swg`. Platform, test, initialization,
   backend, role, and feature parts all use the same notation; `.test`, `.init`, and `.win32` are
   common parts, not the only valid ones. Follow the surrounding family when it is more specific.
+- Let the immediate directory carry its own context. Do not repeat its name as the prefix of a
+  file that already has a meaningful local name: write `markdown/syntax.swg` and
+  `markdown/inlineview.swg`, not `markdown/markdown.syntax.swg` or
+  `markdown/markdowninlineview.swg`. An exact eponymous file may remain when it is the primary
+  type or concern and removing the directory name would leave no useful filename.
+
+## Use Namespaces to Carry Shared Context
+
+When several related symbols repeat the same domain prefix, prefer a dedicated namespace that
+states the context once. Inside a `Markdown` family, use `Markdown.View`, `Markdown.Style`, and
+`Markdown.Block`, not `MarkdownView`, `MarkdownStyle`, and `MarkdownBlock`.
+
+- Introduce a namespace for a coherent subsystem whose symbols are normally discovered and used
+  together. Do not create one merely to shorten a lone type or a coincidental lexical prefix.
+- Remove the absorbed prefix from every symbol in that family, including private helpers; do not
+  leave two competing naming schemes inside the namespace.
+- Keep the namespace, source directory, and file vocabulary aligned. A `Markdown.View` belongs in
+  `markdown/view.swg`, while a `Markdown.InlineView` belongs in `markdown/inlineview.swg`.
+- Treat moving a public symbol into a namespace as an API rename: migrate declarations,
+  consumers, tests, examples, documentation, and string-based references together.
 
 ## State Access Once at the Widest Exact Scope
 

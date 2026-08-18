@@ -13,7 +13,7 @@ func markdownFixturePath()->String
 #test
 {
     let source = expect File.readAllText(markdownFixturePath())
-    let blocks = parseMarkdownBlocks(source.toString())
+    let blocks = Markdown.parseBlocks(source.toString())
 
     @assert(blocks.count >= 10)
     @assert(blocks[0].kind == .Metadata)
@@ -33,10 +33,10 @@ func markdownFixturePath()->String
 // Three-star delimiters distinguish thematic breaks from bold-italic spans.
 #test
 {
-    @assert(renderMarkdownInline("***important***") == "<b><i>important</i></b>")
-    @assert(renderMarkdownInline("___important___") == "<b><i>important</i></b>")
+    @assert(Markdown.renderInline("***important***") == "<b><i>important</i></b>")
+    @assert(Markdown.renderInline("___important___") == "<b><i>important</i></b>")
 
-    let rules = parseMarkdownBlocks("***\n\n* * *\n\n___")
+    let rules = Markdown.parseBlocks("***\n\n* * *\n\n___")
     @assert(rules.count == 3)
     for &rule in rules do
         @assert(rule.kind == .Rule)
@@ -45,10 +45,10 @@ func markdownFixturePath()->String
 // Nested emphasis consumes the complete delimiter run, including inside block quotes.
 #test
 {
-    @assert(renderMarkdownInline("**bold and *italic***") == "<b>bold and <i>italic</i></b>")
-    @assert(renderMarkdownInline("*italic and **bold***") == "<i>italic and <b>bold</b></i>")
+    @assert(Markdown.renderInline("**bold and *italic***") == "<b>bold and <i>italic</i></b>")
+    @assert(Markdown.renderInline("*italic and **bold***") == "<i>italic and <b>bold</b></i>")
 
-    let blocks = parseMarkdownBlocks("> **bold and *italic***\n> *italic and **bold***")
+    let blocks = Markdown.parseBlocks("> **bold and *italic***\n> *italic and **bold***")
     @assert(blocks.count == 1)
     @assert(blocks[0].kind == .Quote)
     @assert(blocks[0].text == "<b>bold and <i>italic</i></b>\n<i>italic and <b>bold</b></i>")
@@ -58,7 +58,7 @@ func markdownFixturePath()->String
 #test
 {
     let source = "---\ntitle: Quality\n---\n\n# Heading\n\n[TOC]\n\n> [!WARNING]\n> Check **this**.\n\nA [reference][guide], a footnote[^one], H~2~O and x^2^.\n\n[guide]: https://example.com/guide\n[^one]: Footnote text.\n\n\\[\n\\frac{a}{b}\n\\]\n"
-    let blocks = parseMarkdownBlocks(source)
+    let blocks = Markdown.parseBlocks(source)
 
     @assert(blocks.count == 7)
     @assert(blocks[0].kind == .Metadata)
@@ -78,7 +78,7 @@ func markdownFixturePath()->String
 #test
 {
     let source = "- Found while: a condition was evaluated over a\n  Core.String.\n- Evidence: the failure was observed at\n  src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74.\n\n  ```swag\n  if @countof(box) do\n      return 1\n  ```\n\n  A following paragraph still belongs beneath the evidence.\n- Next step: trace the condition."
-    let blocks = parseMarkdownBlocks(source)
+    let blocks = Markdown.parseBlocks(source)
 
     @assert(blocks.count == 4)
     @assert(blocks[0].kind == .List)
@@ -88,7 +88,7 @@ func markdownFixturePath()->String
     @assert(blocks[2].kind == .Paragraph)
     @assert(blocks[3].kind == .List)
 
-    let tasks = parseMarkdownBlocks("- [x] Complete\n- [ ] Pending")
+    let tasks = Markdown.parseBlocks("- [x] Complete\n- [ ] Pending")
     @assert(tasks.count == 1)
     @assert(Utf8.contains(tasks[0].text.toString(), "<lc>*</lc>"))
     @assert(Utf8.contains(tasks[0].text.toString(), "<lu>*</lu>"))
@@ -101,7 +101,7 @@ func markdownFixturePath()->String
     host.setup(640, 320)
     defer host.shutdown()
 
-    let view = MarkdownView.createText(&host.root, "Inline $\\frac{x}{2}$ mathematics.")
+    let view = Markdown.View.createText(&host.root, "Inline $\\frac{x}{2}$ mathematics.")
     view.resize(640, 320)
     view.applyLayout()
     view.layoutDocument()
@@ -122,7 +122,7 @@ func markdownFixturePath()->String
     host.setup(640, 240)
     defer host.shutdown()
 
-    let view = MarkdownView.createText(&host.root, "Before **split search** result.")
+    let view = Markdown.View.createText(&host.root, "Before **split search** result.")
     view.resize(640, 240)
     view.applyLayout()
     view.layoutDocument()
@@ -151,7 +151,7 @@ func markdownFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(720, 360)
     defer host.shutdown()
-    let view = MarkdownView.createFile(&host.root, fileName)
+    let view = Markdown.View.createFile(&host.root, fileName)
     @assert(view.loadTimer != null)
     view.resize(720, 360)
     view.applyLayout()
@@ -229,7 +229,7 @@ func markdownFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(720, 360)
     defer host.shutdown()
-    let view = MarkdownView.createFile(&host.root, fileName)
+    let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 360)
     view.applyLayout()
 
@@ -286,7 +286,7 @@ func markdownFixturePath()->String
     defer host.shutdown()
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_markdown_%.md", Guid64.random()).toString())
-    let view = MarkdownView.createFile(&host.root, path)
+    let view = Markdown.View.createFile(&host.root, path)
     @assert(!view.failureReason.isEmpty())
     for 64 where view.isLoading() do
         host.fireTimers()
@@ -306,7 +306,7 @@ func markdownFixturePath()->String
     defer host.shutdown()
 
     var reported: String
-    let view = MarkdownView.createFile(&host.root, path)
+    let view = Markdown.View.createFile(&host.root, path)
     view.sigLoadFailed += func|&reported|(markdown, reason)
     {
         discard markdown

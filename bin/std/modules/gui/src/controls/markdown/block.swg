@@ -1,9 +1,10 @@
 #global public
+#global namespace Markdown
 
 using Core
 
 #[Swag.NoDoc]
-enum MarkdownBlockKind
+enum BlockKind
 {
     Paragraph
     Heading1
@@ -29,13 +30,13 @@ enum MarkdownBlockKind
 }
 
 #[Swag.NoDoc]
-struct MarkdownBlock
+struct Block
 {
-    kind: MarkdownBlockKind
+    kind: BlockKind
     text: String
 }
 
-private func markdownVisualHeading(level: u32)->MarkdownBlockKind
+private func visualHeadingKind(level: u32)->BlockKind
 {
     switch level
     {
@@ -48,17 +49,17 @@ private func markdownVisualHeading(level: u32)->MarkdownBlockKind
     }
 }
 
-private func appendMarkdownBlock(blocks: *Array'MarkdownBlock, kind: MarkdownBlockKind, text: String)
+private func appendBlock(blocks: *Array'Block, kind: BlockKind, text: String)
 {
     if text.isEmpty() do
         return
-    var block: MarkdownBlock
+    var block: Block
     block.kind = kind
     block.text = #move text
     blocks.add(#move block)
 }
 
-private func markdownAlertKind(name: string)->MarkdownBlockKind
+private func alertKind(name: string)->BlockKind
 {
     if Utf8.compare(name, "NOTE", .Latin1NoCase) == 0 do
         return .AlertNote
@@ -73,7 +74,7 @@ private func markdownAlertKind(name: string)->MarkdownBlockKind
     return .Quote
 }
 
-private func markdownAlertTitle(kind: MarkdownBlockKind)->string
+private func alertTitle(kind: BlockKind)->string
 {
     switch kind
     {
@@ -86,19 +87,19 @@ private func markdownAlertTitle(kind: MarkdownBlockKind)->string
     }
 }
 
-internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
+internal func parseBlocks(source: string)->Array'Block
 {
     var result:     retval
     let lines = Tokenize.splitLines(source)
     var index = 0'u64
-    var references: Array'MarkdownReference
+    var references: Array'Reference
 
     for line in lines
     {
-        let definition = markdownReferenceDefinition(line)
+        let definition = parseReferenceDefinition(line)
         if definition.found and !definition.footnote
         {
-            var reference: MarkdownReference
+            var reference: Reference
             reference.name   = definition.name
             reference.target = definition.value
             references.add(#move reference)
@@ -118,7 +119,7 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
 
         if index < lines.count do
             index += 1
-        appendMarkdownBlock(&result, .Metadata, #move metadata)
+        appendBlock(&result, .Metadata, #move metadata)
     }
 
     while index < lines.count
@@ -131,14 +132,14 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
             continue
         }
 
-        let definition = markdownReferenceDefinition(raw)
+        let definition = parseReferenceDefinition(raw)
         if definition.found
         {
             if definition.footnote
             {
-                var footnote = Format.toString("<p3>%.</p> ", markdownRichText(definition.name, true))
-                footnote += renderMarkdownInline(definition.value, references.toSlice())
-                appendMarkdownBlock(&result, .Footnote, #move footnote)
+                var footnote = Format.toString("<p3>%.</p> ", richText(definition.name, true))
+                footnote += renderInline(definition.value, references.toSlice())
+                appendBlock(&result, .Footnote, #move footnote)
             }
 
             index += 1
@@ -150,42 +151,42 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
             var contents: String
             for line in lines
             {
-                let entry = markdownHeading(line)
+                let entry = parseHeading(line)
                 if !entry.level do
                     continue
                 for entry.level - 1 do
                     contents += "  "
-                contents += renderMarkdownInline(entry.text, references.toSlice())
+                contents += renderInline(entry.text, references.toSlice())
                 contents += "\n"
             }
 
-            appendMarkdownBlock(&result, .TableOfContents, #move contents)
+            appendBlock(&result, .TableOfContents, #move contents)
             index += 1
             continue
         }
 
-        let fence = markdownFence(raw)
+        let fence = parseFence(raw)
         if fence.found
         {
             var code: String
             if @countof(fence.info) do
-                code += Format.toString("<p3>%</p>\n", markdownRichText(String.from(fence.info).toUpper().toString()))
+                code += Format.toString("<p3>%</p>\n", richText(String.from(fence.info).toUpper().toString()))
             index += 1
             while index < lines.count
             {
-                let close = markdownFence(lines[index])
+                let close = parseFence(lines[index])
                 if close.found and close.marker == fence.marker
                 {
                     index += 1
                     break
                 }
 
-                code  += markdownRichText(lines[index])
+                code  += richText(lines[index])
                 code  += "\n"
                 index += 1
             }
 
-            appendMarkdownBlock(&result, .Code, #move code)
+            appendBlock(&result, .Code, #move code)
             continue
         }
 
@@ -215,7 +216,7 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                     index += 1
             }
 
-            appendMarkdownBlock(&result, .Math, #move math)
+            appendBlock(&result, .Math, #move math)
             continue
         }
 
@@ -245,29 +246,29 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                     index += 1
             }
 
-            appendMarkdownBlock(&result, .Math, #move math)
+            appendBlock(&result, .Math, #move math)
             continue
         }
 
-        let heading = markdownHeading(raw)
+        let heading = parseHeading(raw)
         if heading.level
         {
-            appendMarkdownBlock(&result, markdownVisualHeading(heading.level), renderMarkdownInline(heading.text, references.toSlice()))
+            appendBlock(&result, visualHeadingKind(heading.level), renderInline(heading.text, references.toSlice()))
             index += 1
             continue
         }
 
         if index + 1 < lines.count
         {
-            let setext = markdownSetextLevel(lines[index + 1])
+            let setext = setextLevel(lines[index + 1])
             if setext
             {
-                appendMarkdownBlock(&result, markdownVisualHeading(setext), renderMarkdownInline(trimmed, references.toSlice()))
+                appendBlock(&result, visualHeadingKind(setext), renderInline(trimmed, references.toSlice()))
                 index += 2
                 continue
             }
 
-            if Utf8.contains(raw, '|'rune) and markdownTableSeparator(lines[index + 1])
+            if Utf8.contains(raw, '|'rune) and isTableSeparator(lines[index + 1])
             {
                 var table = String.from(raw)
                 table += "\n"
@@ -280,25 +281,25 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                     index += 1
                 }
 
-                appendMarkdownBlock(&result, .Table, #move table)
+                appendBlock(&result, .Table, #move table)
                 continue
             }
         }
 
-        if markdownRule(raw)
+        if isRule(raw)
         {
-            result.add(MarkdownBlock{.Rule, ""})
+            result.add(Block{.Rule, ""})
             index += 1
             continue
         }
 
-        let item = markdownListItem(raw)
+        let item = parseListItem(raw)
         if item.found
         {
             var list: String
             while index < lines.count
             {
-                let current = markdownListItem(lines[index])
+                let current = parseListItem(lines[index])
                 if !current.found do
                     break
 
@@ -307,12 +308,12 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 index += 1
                 while index < lines.count
                 {
-                    let continuation = markdownListItem(lines[index])
+                    let continuation = parseListItem(lines[index])
                     let next         = Latin1.trim(lines[index])
-                    if !@countof(next) or continuation.found or continuation.indent < current.contentIndent or markdownFence(lines[index]).found do
+                    if !@countof(next) or continuation.found or continuation.indent < current.contentIndent or parseFence(lines[index]).found do
                         break
 
-                    content  += markdownHardBreak(previous) ? "\n" : " "
+                    content  += hasHardBreak(previous) ? "\n" : " "
                     content  += next
                     previous = lines[index]
                     index    += 1
@@ -338,18 +339,18 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 else do
                     list += "<p1><lb>*</lb></p> "
 
-                list += renderMarkdownInline(content.toString(), references.toSlice())
+                list += renderInline(content.toString(), references.toSlice())
                 list += "\n"
             }
 
-            appendMarkdownBlock(&result, .List, #move list)
+            appendBlock(&result, .List, #move list)
             continue
         }
 
         if Utf8.startsWith(trimmed, ">")
         {
             var quote: String
-            var quoteKind = MarkdownBlockKind.Quote
+            var quoteKind = BlockKind.Quote
             while index < lines.count and Utf8.startsWith(Latin1.trim(lines[index]), ">")
             {
                 var content = Latin1.trim(Latin1.trim(lines[index])[1 to])
@@ -358,10 +359,10 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                     let close = Utf8.indexOf(content, ']'rune, 2)
                     if close != Swag.U64.Max
                     {
-                        quoteKind = markdownAlertKind(content[2 until close])
+                        quoteKind = alertKind(content[2 until close])
                         if quoteKind != .Quote
                         {
-                            quote   += Format.toString("<b><p1>%</p></b>", markdownAlertTitle(quoteKind))
+                            quote   += Format.toString("<b><p1>%</p></b>", alertTitle(quoteKind))
                             content = Latin1.trim(content[close + 1 to])
                         }
                     }
@@ -371,13 +372,13 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 {
                     if !quote.isEmpty() do
                         quote += "\n"
-                    quote += renderMarkdownInline(content, references.toSlice())
+                    quote += renderInline(content, references.toSlice())
                 }
 
                 index += 1
             }
 
-            appendMarkdownBlock(&result, quoteKind, #move quote)
+            appendBlock(&result, quoteKind, #move quote)
             continue
         }
 
@@ -386,17 +387,17 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
         while index < lines.count
         {
             let next           = Latin1.trim(lines[index])
-            let nextDefinition = markdownReferenceDefinition(lines[index])
-            if !@countof(next) or markdownHeading(lines[index]).level or markdownRule(lines[index]) or markdownListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or markdownFence(lines[index]).found do
+            let nextDefinition = parseReferenceDefinition(lines[index])
+            if !@countof(next) or parseHeading(lines[index]).level or isRule(lines[index]) or parseListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or parseFence(lines[index]).found do
                 break
-            if index + 1 < lines.count and markdownSetextLevel(lines[index + 1]) do
+            if index + 1 < lines.count and setextLevel(lines[index + 1]) do
                 break
-            paragraph += markdownHardBreak(lines[index - 1]) ? "\n" : " "
+            paragraph += hasHardBreak(lines[index - 1]) ? "\n" : " "
             paragraph += next
             index     += 1
         }
 
-        appendMarkdownBlock(&result, .Paragraph, renderMarkdownInline(paragraph.toString(), references.toSlice()))
+        appendBlock(&result, .Paragraph, renderInline(paragraph.toString(), references.toSlice()))
     }
 
     return result

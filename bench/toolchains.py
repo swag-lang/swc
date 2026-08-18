@@ -258,9 +258,9 @@ def make_hello_runs(t, swc):
     hello = os.path.join(SRC, "hello")
     return {
         "swc-jit-release":    [swc, "sema", "--build-cfg", "release", "-f",
-                               os.path.join(hello, "hellorun.swg")],
+                               os.path.join(hello, "run.swg")],
         "swc-jit-fast-debug": [swc, "sema", "--build-cfg", "fast-debug", "-f",
-                               os.path.join(hello, "hellorun.swg")],
+                               os.path.join(hello, "run.swg")],
         "node20":             [t["node"], os.path.join(hello, "hello.js")],
         "luajit2.1":          [t["luajit"], os.path.join(hello, "hello.lua")],
         "lua5.4":             [t["lua"], os.path.join(hello, "hello.lua")],

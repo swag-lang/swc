@@ -21,7 +21,7 @@ This is the strongest module in the tree, and several parts of it are ahead of t
   stb offers and more than most graphics libraries carry at all.
 - **Computational geometry**: `poly/` has boolean path operations, path offsetting, and Delaunay
   triangulation. Skia exposes far less of this and Cairo none.
-- **Math typesetting**: `math/mathexpression.swg` and `math/mathlayout.swg` implement TeX-style
+- **Math typesetting**: `math/expression.swg` and `math/layout.swg` implement TeX-style
   formula layout with display, text, script and script-script styles. No competing 2D library has
   this. It is a real differentiator and nothing on this list should put it at risk.
 - **Distance-field text** through the `truetype` MSDF path, which is what GPU text actually wants.

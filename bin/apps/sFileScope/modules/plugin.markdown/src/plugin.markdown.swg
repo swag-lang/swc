@@ -2,9 +2,9 @@
 
 using Core, Gui
 
-internal func markdownViewerStyle(themeIndex, widthIndex: u32)->MarkdownStyle
+internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
 {
-    var result = MarkdownStyle.theme()
+    var result = Markdown.Style.theme()
     switch themeIndex
     {
     case 2:
@@ -93,7 +93,7 @@ internal func markdownViewerColors(themeIndex: u32)->string
     }
 }
 
-internal func applyMarkdownViewerStyle(view: *MarkdownView, themeIndex, widthIndex: u32)
+internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32)
 {
     view.setDocumentThemeColors(markdownViewerColors(themeIndex))
     view.setDocumentStyle(markdownViewerStyle(themeIndex, widthIndex))
@@ -130,7 +130,7 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     themeCombo.addItem("Whitey")
     themeCombo.setSelectedIndex(0, notify: false)
 
-    let view = MarkdownView.createFile(request.contentParent, request.fileName, MarkdownStyle.theme())
+    let view = Markdown.View.createFile(request.contentParent, request.fileName, Markdown.Style.theme())
     if !view.failureReason.isEmpty()
     {
         result.failureReason = view.failureReason.toString()
@@ -149,8 +149,8 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     result.view           = view
     result.commands       = commandGroup
     result.details        = markdownStrings().ui_Details
-    result.revealMatch    = func(wnd, offset, text)->bool { return (cast(*MarkdownView) wnd).revealFileOffset(offset, text) }
-    result.isLoading      = func(wnd)->bool { return (cast(*MarkdownView) wnd).isLoading() }
+    result.revealMatch    = func(wnd, offset, text)->bool { return (cast(*Markdown.View) wnd).revealFileOffset(offset, text) }
+    result.isLoading      = func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {
         discard combo

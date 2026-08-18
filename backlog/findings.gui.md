@@ -104,7 +104,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Area: std/gui
 - Found while: fixing the same defect in `ListView`, which is what a file box opens the keyboard on.
 - Observation: `RichEditView.onKeyEvent` marks every pressed key handled
-  ([richeditview.swg:133](../bin/std/modules/gui/src/richedit/richeditview.swg#L133)) and declines
+  ([view.swg:133](../bin/std/modules/gui/src/controls/richedit/view.swg#L133)) and declines
   Escape and Enter only when the editor carries `RichEditFlags.AutoLoseFocus`. An editor without
   that flag therefore eats Escape, Tab, and Shift+Tab, so a box built around one can be neither
   dismissed nor traversed without the pointer.
@@ -320,7 +320,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the polygon path to boxes smaller than the viewport made every artefact disappear, and the same
   sides drawn as rectangles are correct at any size.
 - Evidence: `paintDecorations` in
-  [htmlpaint.swg](../bin/std/modules/gui/src/controls/html/htmlpaint.swg) now takes the polygon
+  [paint.swg](../bin/std/modules/gui/src/controls/html/paint.swg) now takes the polygon
   path only for a box smaller than the visible band whose sides differ in colour, and the
   rectangle path otherwise; the comment there records why. Reproduce by removing that condition
   and rendering `web/std.pixel.html` at 1400x1000 through `Testing.HeadlessHost`.

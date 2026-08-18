@@ -1,23 +1,24 @@
 #global public
+#global namespace Markdown
 
 using Core, Pixel
 
-internal struct MarkdownMathView
+internal struct MathView
 {
     using wnd:  Wnd
     expression: MathExpression
-    owner:      *MarkdownView = undefined
+    owner:      *View = undefined
 }
 
-internal impl MarkdownMathView
+internal impl MathView
 {
-    func create(owner: *MarkdownView, parent: *Wnd, source: string)->#null *MarkdownMathView
+    func create(owner: *View, parent: *Wnd, source: string)->#null *MathView
     {
         let expression = catch MathExpression.parse(source) as parseError
         if parseError != null do
             return null
 
-        let result = Wnd.create'MarkdownMathView(parent, "gui.markdown.math")
+        let result = Wnd.create'MathView(parent, "gui.markdown.math")
         result.backgroundStyle = .View
         result.expression      = #move expression
         result.owner           = owner
@@ -31,7 +32,7 @@ internal impl MarkdownMathView
     }
 }
 
-internal impl IWnd for MarkdownMathView
+internal impl IWnd for MathView
 {
     mtd impl onPaint(evt: *PaintEvent)
     {

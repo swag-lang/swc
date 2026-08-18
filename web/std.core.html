@@ -42,7 +42,7 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group">
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">44</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">45</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Core">Core</a></li>
@@ -83,6 +83,7 @@
 <li><a href="#namespace_Core_StrConv_Dtoa">Core.StrConv.Dtoa</a></li>
 <li><a href="#namespace_Core_Sync">Core.Sync</a></li>
 <li><a href="#namespace_Core_System">Core.System</a></li>
+<li><a href="#namespace_Core_Text">Core.Text</a></li>
 <li><a href="#namespace_Core_Threading">Core.Threading</a></li>
 <li><a href="#namespace_Core_Time">Core.Time</a></li>
 <li><a href="#namespace_Core_Tokenize">Core.Tokenize</a></li>
@@ -279,7 +280,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Enumerations</span><span class="toc-count">47</span></summary>
+<summary><span class="toc-label">Enumerations</span><span class="toc-count">48</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Core_Console_Color">Console.Color</a></li>
@@ -321,6 +322,7 @@
 <li><a href="#Core_Scc_MetadataKind">Scc.MetadataKind</a></li>
 <li><a href="#Core_Serialization_DecoderFlags">Serialization.DecoderFlags</a></li>
 <li><a href="#Core_Serialization_SectionKind">Serialization.SectionKind</a></li>
+<li><a href="#Core_Text_Encoding">Text.Encoding</a></li>
 <li><a href="#Core_Threading_ThreadPriority">Threading.ThreadPriority</a></li>
 <li><a href="#Core_Time_DateTimeFormat">Time.DateTimeFormat</a></li>
 <li><a href="#Core_Time_DayOfWeek">Time.DayOfWeek</a></li>
@@ -429,7 +431,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1620</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1628</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -842,6 +844,7 @@
 <li><a href="#Core_File_FileStream_readExact">FileStream.readExact</a></li>
 <li><a href="#Core_File_FileStream_readExactAt">FileStream.readExactAt</a></li>
 <li><a href="#Core_File_FileStream_readNative">FileStream.readNative</a></li>
+<li><a href="#Core_File_FileStream_readTextChunk">FileStream.readTextChunk</a></li>
 <li><a href="#Core_File_FileStream_readUtf8Chunk">FileStream.readUtf8Chunk</a></li>
 <li><a href="#Core_File_FileStream_readValue">FileStream.readValue</a></li>
 <li><a href="#Core_File_FileStream_resize">FileStream.resize</a></li>
@@ -1745,6 +1748,13 @@
 <li><a href="#Core_Serialization_Read_TagBin_version">TagBin.version</a></li>
 <li><a href="#Core_Serialization_Write_TagBin_writeNative">TagBin.writeNative</a></li>
 <li><a href="#Core_Serialization_Write_TagBin_writeVarint">TagBin.writeVarint</a></li>
+<li><a href="#Core_Text_bomLength">Text.bomLength</a></li>
+<li><a href="#Core_Text_decode">Text.decode</a></li>
+<li><a href="#Core_Text_detectEncoding">Text.detectEncoding</a></li>
+<li><a href="#Core_Text_hasBom">Text.hasBom</a></li>
+<li><a href="#Core_Text_looksLikeText">Text.looksLikeText</a></li>
+<li><a href="#Core_Text_unitSize">Text.unitSize</a></li>
+<li><a href="#Core_Text_windows1252Rune">Text.windows1252Rune</a></li>
 <li><a href="#Core_File_TextReader_close">TextReader.close</a></li>
 <li><a href="#Core_File_TextReader_open">TextReader.open</a></li>
 <li><a href="#Core_File_TextReader_readLine">TextReader.readLine</a></li>
@@ -2332,6 +2342,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#namespace_Core_StrConv_Dtoa">Core.StrConv.Dtoa</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Sync">Core.Sync</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_System">Core.System</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Text">Core.Text</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Threading">Core.Threading</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Time">Core.Time</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Tokenize">Core.Tokenize</a></td></tr>
@@ -2789,6 +2800,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Serialization_DecoderFlags">Serialization.DecoderFlags</a></td><td><p>Selects decoder flags.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_SectionKind">Serialization.SectionKind</a></td><td><p>Selects section kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_Encoding">Text.Encoding</a></td><td><p>How the bytes of a text file spell their characters.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Threading_ThreadPriority">Threading.ThreadPriority</a></td><td><p>Selects thread priority.</p>
 </td></tr>
@@ -3805,6 +3818,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readExactAt">FileStream.readExactAt</a></td><td><p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readNative">FileStream.readNative</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readTextChunk">FileStream.readTextChunk</a></td><td><p>Reads the next bounded segment of text and returns it as UTF-8, whatever <span class="code-inline">encoding</span> the file</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readUtf8Chunk">FileStream.readUtf8Chunk</a></td><td><p>Reads the next bounded UTF-8 segment without splitting an encoded rune.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readValue">FileStream.readValue</a></td><td><p>Reads one native value and returns whether all of its bytes were available.</p>
@@ -5596,6 +5611,20 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Write_TagBin_writeVarint">TagBin.writeVarint</a></td><td><p>Writes an unsigned value as LEB128, the framing encoding of a version 2 stream.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Text_bomLength">Text.bomLength</a></td><td><p>Bytes the encoding writes in front of the content to announce itself, if any.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_decode">Text.decode</a></td><td><p>Converts <span class="code-inline">bytes</span> to UTF-8, reading them as <span class="code-inline">encoding</span> spells characters.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_detectEncoding">Text.detectEncoding</a></td><td><p>Decides how <span class="code-inline">probe</span> spells its characters.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_hasBom">Text.hasBom</a></td><td><p>Reports whether <span class="code-inline">bytes</span> opens with the byte-order mark of <span class="code-inline">encoding</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_looksLikeText">Text.looksLikeText</a></td><td><p>Reports whether <span class="code-inline">probe</span>, read as <span class="code-inline">encoding</span>, is text a reader should be shown.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_unitSize">Text.unitSize</a></td><td><p>Bytes one character occupies, or the size a chunk boundary must be a multiple of.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_windows1252Rune">Text.windows1252Rune</a></td><td><p>Returns the character one code page 1252 byte spells.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_TextReader_close">TextReader.close</a></td><td><p>Closes the reader and the associated stream</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_TextReader_open">TextReader.open</a></td><td><p>Opens the reader with the specified text encoding (default is UTF-8)</p>
@@ -6254,6 +6283,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#namespace_Core_StrConv">Core.StrConv</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Sync">Core.Sync</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_System">Core.System</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Text">Core.Text</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Threading">Core.Threading</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Time">Core.Time</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Tokenize">Core.Tokenize</a></td></tr>
@@ -8219,6 +8249,38 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Core_System_pushContext">System.pushContext</a></td><td><p>Push a new execution context for the given block of code</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Core_Text" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Core.Text</span> <a class="api-item-permalink" href="#namespace_Core_Text" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Core.Text</span>.</p>
+<h3 id="namespace_Core_Text_enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Text_Encoding">Text.Encoding</a></td><td><p>How the bytes of a text file spell their characters.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Core_Text_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Text_bomLength">Text.bomLength</a></td><td><p>Bytes the encoding writes in front of the content to announce itself, if any.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_decode">Text.decode</a></td><td><p>Converts <span class="code-inline">bytes</span> to UTF-8, reading them as <span class="code-inline">encoding</span> spells characters.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_detectEncoding">Text.detectEncoding</a></td><td><p>Decides how <span class="code-inline">probe</span> spells its characters.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_hasBom">Text.hasBom</a></td><td><p>Reports whether <span class="code-inline">bytes</span> opens with the byte-order mark of <span class="code-inline">encoding</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_looksLikeText">Text.looksLikeText</a></td><td><p>Reports whether <span class="code-inline">probe</span>, read as <span class="code-inline">encoding</span>, is text a reader should be shown.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_unitSize">Text.unitSize</a></td><td><p>Bytes one character occupies, or the size a chunk boundary must be a multiple of.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Text_windows1252Rune">Text.windows1252Rune</a></td><td><p>Returns the character one code page 1252 byte spells.</p>
 </td></tr>
 </tbody>
 </table>
@@ -10662,6 +10724,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tr><td class="code-type"><a href="#Core_File_FileStream_readExactAt">readExactAt</a></td><td><p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readNative">readNative</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readTextChunk">readTextChunk</a></td><td><p>Reads the next bounded segment of text and returns it as UTF-8, whatever <span class="code-inline">encoding</span> the file</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readUtf8Chunk">readUtf8Chunk</a></td><td><p>Reads the next bounded UTF-8 segment without splitting an encoded rune.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readValue">readValue</a></td><td><p>Reads one native value and returns whether all of its bytes were available.</p>
@@ -15460,6 +15524,30 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Core_Text_Encoding" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Text.Encoding</span> <a class="api-item-permalink" href="#Core_Text_Encoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L14">src</a></div>
+<p>How the bytes of a text file spell their characters.</p>
+<p>A reader meets these five families and nothing else in practice: UTF-8 everywhere, UTF-16 from Windows APIs and exports, UTF-32 from a few Unix pipelines, and one single-byte page for everything written before any of them. <span class="code-inline">Windows1252</span> stands for that page: it is a superset of Latin-1 that differs only in <span class="code-inline">0x80</span>-<span class="code-inline">0x9F</span>, where Latin-1 has unused controls and Windows put the quotation marks and dashes an actual document uses.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Text_Encoding_Utf16Be" class="code-type">Utf16Be</td><td><p>Two bytes per unit, most significant first.</p>
+</td></tr>
+<tr><td id="Core_Text_Encoding_Utf16Le" class="code-type">Utf16Le</td><td><p>Two bytes per unit, least significant first, surrogate pairs above the BMP.</p>
+</td></tr>
+<tr><td id="Core_Text_Encoding_Utf32Be" class="code-type">Utf32Be</td><td><p>Four bytes per character, most significant first.</p>
+</td></tr>
+<tr><td id="Core_Text_Encoding_Utf32Le" class="code-type">Utf32Le</td><td><p>Four bytes per character, least significant first.</p>
+</td></tr>
+<tr><td id="Core_Text_Encoding_Utf8" class="code-type">Utf8</td><td><p>Variable width, one to four bytes per character.</p>
+</td></tr>
+<tr><td id="Core_Text_Encoding_Windows1252" class="code-type">Windows1252</td><td><p>One byte per character, code page 1252.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Threading_ThreadPriority" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Threading.ThreadPriority</span> <a class="api-item-permalink" href="#Core_Threading_ThreadPriority" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L9">src</a></div>
 <p>Selects thread priority.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span></span></div>
@@ -18687,18 +18775,25 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_readExact" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExact</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExact" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L218">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readExact" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExact</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExact" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L272">src</a></div>
 <p>Reads the complete <span class="code-inline">buffer</span> and returns false only when the stream ends first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExact</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_readExactAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExactAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExactAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L225">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readExactAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExactAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExactAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L279">src</a></div>
 <p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first. The resulting stream position follows the bytes read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExactAt</span>(offset: <span class="STpe">u64</span>, buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_FileStream_readNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readNative</span> <a class="api-item-permalink" href="#Core_File_FileStream_readNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L10">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readNative</span>(buffer: *<span class="STpe">void</span>, length: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readTextChunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readTextChunk</span> <a class="api-item-permalink" href="#Core_File_FileStream_readTextChunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L223">src</a></div>
+<p>Reads the next bounded segment of text and returns it as UTF-8, whatever <span class="code-inline">encoding</span> the file spells its characters in.</p>
+<p>The stream position advances by the bytes consumed, which is what the caller counts in: a segment of UTF-16 returns roughly half as many UTF-8 bytes as it consumed, so the returned length is never an offset. <span class="code-inline">maxBytes</span> needs at least four bytes so every character can make progress. An empty result means end of file.</p>
+<p>No character is ever split across two calls: a UTF-8 sequence, a surrogate pair, or a wide unit cut by <span class="code-inline">maxBytes</span> is left for the next one. A malformed sequence is decoded to the replacement character rather than reported, except under <a href="#Core_Text_Encoding_Utf8">Core.Text.Encoding.Utf8</a> where <a href="#Core_File_FileStream_readUtf8Chunk">Core.FileStream.readUtf8Chunk</a> answers and keeps its stricter contract.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readTextChunk</span>(maxBytes: <span class="STpe">u64</span>, encoding: <span class="SCst"><a href="#namespace_Core_Text">Text</a></span>.<span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_FileStream_readUtf8Chunk" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readUtf8Chunk</span> <a class="api-item-permalink" href="#Core_File_FileStream_readUtf8Chunk" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L175">src</a></div>
@@ -18751,12 +18846,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAll</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L232">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAll</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L286">src</a></div>
 <p>Writes the complete <span class="code-inline">buffer</span> or fails if the stream stops accepting bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAll</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAllAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAllAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAllAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L240">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAllAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAllAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAllAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L294">src</a></div>
 <p>Moves to <span class="code-inline">offset</span> and writes the complete <span class="code-inline">buffer</span>. The resulting stream position follows the bytes written.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAllAt</span>(offset: <span class="STpe">u64</span>, buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -23805,6 +23900,48 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeVarint</span>(value: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Text_bomLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.bomLength</span> <a class="api-item-permalink" href="#Core_Text_bomLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L28">src</a></div>
+<p>Bytes the encoding writes in front of the content to announce itself, if any.</p>
+<p>A byte-order mark is part of the file but not part of the text, so a reader skips exactly this many bytes at offset zero and never inside.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bomLength</span>(encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Text_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.decode</span> <a class="api-item-permalink" href="#Core_Text_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L178">src</a></div>
+<p>Converts <span class="code-inline">bytes</span> to UTF-8, reading them as <span class="code-inline">encoding</span> spells characters.</p>
+<p><span class="code-inline">bytes</span> must start and end on a character boundary; <a href="#Core_File_FileStream_readTextChunk">Core.FileStream.readTextChunk</a> is what guarantees that while streaming. A byte-order mark at the head is content here and is not removed: the caller knows whether it is reading offset zero.</p>
+<p>Nothing fails. A malformed sequence becomes the replacement character, because a viewer that refuses a whole file over one bad byte in the middle is less useful than one that shows the bad byte where it is.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Text_detectEncoding" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.detectEncoding</span> <a class="api-item-permalink" href="#Core_Text_detectEncoding" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L118">src</a></div>
+<p>Decides how <span class="code-inline">probe</span> spells its characters.</p>
+<p>A byte-order mark answers on its own. Without one the content decides, in the order a wrong answer costs the most: valid UTF-8 stays UTF-8, since ASCII is valid UTF-8 and that is the overwhelming case; the zero-byte pattern of Latin text in UTF-16 is unmistakable; and what is left is read through code page 1252, which accepts every byte and therefore never fails.</p>
+<p>Pass the beginning of the file, a few kilobytes at most: a longer probe answers no better and a shorter one can miss the first non-ASCII character. Deciding is not the same as accepting — a binary file also gets an answer here, so ask <a href="#Core_Text_looksLikeText">Core.Text.looksLikeText</a> before showing it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">detectEncoding</span>(probe: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Text_hasBom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.hasBom</span> <a class="api-item-permalink" href="#Core_Text_hasBom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L54">src</a></div>
+<p>Reports whether <span class="code-inline">bytes</span> opens with the byte-order mark of <span class="code-inline">encoding</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasBom</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Text_looksLikeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.looksLikeText</span> <a class="api-item-permalink" href="#Core_Text_looksLikeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L252">src</a></div>
+<p>Reports whether <span class="code-inline">probe</span>, read as <span class="code-inline">encoding</span>, is text a reader should be shown.</p>
+<p>Every byte means something under code page 1252 and half of them mean something under UTF-16, so a decoder alone never says no — an executable decodes into thousands of characters. What separates text from a binary that happens to decode is the control characters: a document uses tab, newline and carriage return and nothing else below <span class="code-inline">0x20</span>, and it never contains a null character at all.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">looksLikeText</span>(probe: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Text_unitSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.unitSize</span> <a class="api-item-permalink" href="#Core_Text_unitSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L43">src</a></div>
+<p>Bytes one character occupies, or the size a chunk boundary must be a multiple of.</p>
+<p>UTF-8 and code page 1252 return one because a boundary is decided by the content rather than by arithmetic: the first cuts on a lead byte, the second cuts anywhere.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">unitSize</span>(encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Text_windows1252Rune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.windows1252Rune</span> <a class="api-item-permalink" href="#Core_Text_windows1252Rune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L150">src</a></div>
+<p>Returns the character one code page 1252 byte spells.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">windows1252Rune</span>(value: <span class="STpe">u8</span>)-&gt;<span class="STpe">rune</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_TextReader_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TextReader.close</span> <a class="api-item-permalink" href="#Core_File_TextReader_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/textreader.swg#L74">src</a></div>
 <p>Closes the reader and the associated stream</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
@@ -25758,6 +25895,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "n|Core.StrConv.Dtoa|namespace_Core_StrConv_Dtoa|",
 "n|Core.Sync|namespace_Core_Sync|",
 "n|Core.System|namespace_Core_System|",
+"n|Core.Text|namespace_Core_Text|",
 "n|Core.Threading|namespace_Core_Threading|",
 "n|Core.Time|namespace_Core_Time|",
 "n|Core.Tokenize|namespace_Core_Tokenize|",
@@ -26784,6 +26922,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "k|Core.Latin1.CharAttribute.Upper|Core_Latin1_CharAttribute_Upper|Selects upper.",
 "k|Core.Latin1.CharAttribute.UpperUtf8|Core_Latin1_CharAttribute_UpperUtf8|Selects upper utf8.",
 "k|Core.Latin1.CharAttribute.Zero|Core_Latin1_CharAttribute_Zero|No flags are enabled.",
+"e|Core.Text.Encoding|Core_Text_Encoding|How the bytes of a text file spell their characters.",
+"k|Core.Text.Encoding.Utf16Be|Core_Text_Encoding_Utf16Be|Two bytes per unit, most significant first.",
+"k|Core.Text.Encoding.Utf16Le|Core_Text_Encoding_Utf16Le|Two bytes per unit, least significant first, surrogate pairs above the BMP.",
+"k|Core.Text.Encoding.Utf32Be|Core_Text_Encoding_Utf32Be|Four bytes per character, most significant first.",
+"k|Core.Text.Encoding.Utf32Le|Core_Text_Encoding_Utf32Le|Four bytes per character, least significant first.",
+"k|Core.Text.Encoding.Utf8|Core_Text_Encoding_Utf8|Variable width, one to four bytes per character.",
+"k|Core.Text.Encoding.Windows1252|Core_Text_Encoding_Windows1252|One byte per character, code page 1252.",
 "e|Core.Utf8.ComparisonType|Core_Utf8_ComparisonType|Selects comparison type.",
 "k|Core.Utf8.ComparisonType.Latin1|Core_Utf8_ComparisonType_Latin1|Selects latin1.",
 "k|Core.Utf8.ComparisonType.Latin1NoCase|Core_Utf8_ComparisonType_Latin1NoCase|Selects latin1 no case.",
@@ -27331,6 +27476,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.File.FileStream.readExact|Core_File_FileStream_readExact|Reads the complete buffer and returns false only when the stream ends first.",
 "f|Core.File.FileStream.readExactAt|Core_File_FileStream_readExactAt|Moves to offset, reads the complete buffer, and returns false only when the stream ends first.",
 "f|Core.File.FileStream.readNative|Core_File_FileStream_readNative|",
+"f|Core.File.FileStream.readTextChunk|Core_File_FileStream_readTextChunk|Reads the next bounded segment of text and returns it as UTF-8, whatever encoding the file",
 "f|Core.File.FileStream.readUtf8Chunk|Core_File_FileStream_readUtf8Chunk|Reads the next bounded UTF-8 segment without splitting an encoded rune.",
 "f|Core.File.FileStream.readValue|Core_File_FileStream_readValue|Reads one native value and returns whether all of its bytes were available.",
 "f|Core.File.FileStream.resize|Core_File_FileStream_resize|Changes the file length and preserves the current position while it remains in range.",
@@ -28379,6 +28525,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.String.trimEnd|Core_String_trimEnd|Remove whitespaces at the end of the String",
 "f|Core.String.trimStart|Core_String_trimStart|Remove whitespaces at the start of the String",
 "f|Core.StringRunes.opVisit|Core_StringRunes_opVisit|",
+"f|Core.Text.bomLength|Core_Text_bomLength|Bytes the encoding writes in front of the content to announce itself, if any.",
+"f|Core.Text.decode|Core_Text_decode|Converts bytes to UTF-8, reading them as encoding spells characters.",
+"f|Core.Text.detectEncoding|Core_Text_detectEncoding|Decides how probe spells its characters.",
+"f|Core.Text.hasBom|Core_Text_hasBom|Reports whether bytes opens with the byte-order mark of encoding.",
+"f|Core.Text.looksLikeText|Core_Text_looksLikeText|Reports whether probe, read as encoding, is text a reader should be shown.",
+"f|Core.Text.unitSize|Core_Text_unitSize|Bytes one character occupies, or the size a chunk boundary must be a multiple of.",
+"f|Core.Text.windows1252Rune|Core_Text_windows1252Rune|Returns the character one code page 1252 byte spells.",
 "f|Core.Tokenize.alphanumericPrefix|Core_Tokenize_alphanumericPrefix|Returns the leading Latin-1 alphanumeric characters.",
 "f|Core.Tokenize.eatCount|Core_Tokenize_eatCount|Eats 'count' bytes from the beginning of the string and returns the remaining string",
 "f|Core.Tokenize.eatQuotes|Core_Tokenize_eatQuotes|Removes surrounding double quotes from the string, if present",

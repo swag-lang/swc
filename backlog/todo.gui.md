@@ -145,7 +145,7 @@ applications that would prove it.
 
 ### T-419 — Rendered document views cannot select or copy text
 
-[[Gui.MarkdownView]] and [[Gui.HtmlView]] render a document and let none of it out: there is no
+[[Gui.Markdown.View]] and [[Gui.HtmlView]] render a document and let none of it out: there is no
 selection, no select-all, and no clipboard path. Every application that hosts them inherits the
 gap — a reader can see a code block or a table and has no way to take it. Selection has to survive
 the streamed layout both views use, so it is expressed over document positions rather than over

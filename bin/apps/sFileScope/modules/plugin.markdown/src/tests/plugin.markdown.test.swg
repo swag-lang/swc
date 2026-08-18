@@ -56,13 +56,13 @@ private func markdownWhiteyFixturePath()->String
     // popup closes, leaving navigation keys attached to the document.
     let widthCombo = cast(*ComboBox) commands!.children[0]
     let themeCombo = cast(*ComboBox) commands!.children[1]
-    @assert((cast(*MarkdownView) wnd!).hasFocus())
+    @assert((cast(*Markdown.View) wnd!).hasFocus())
     var comboPoint = widthCombo.surfaceRect().center()
     widthCombo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
     @assert(widthCombo.hasFocus() and !widthCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    @assert((cast(*MarkdownView) wnd!).hasFocus())
+    @assert((cast(*Markdown.View) wnd!).hasFocus())
     host.mouseUp(comboPoint)
 
     comboPoint = themeCombo.surfaceRect().center()
@@ -70,7 +70,7 @@ private func markdownWhiteyFixturePath()->String
     host.mouseDown(comboPoint)
     @assert(themeCombo.hasFocus() and !themeCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    @assert((cast(*MarkdownView) wnd!).hasFocus())
+    @assert((cast(*Markdown.View) wnd!).hasFocus())
     host.mouseUp(comboPoint)
 }
 
@@ -99,7 +99,7 @@ private func markdownWhiteyFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let view = MarkdownView.createFile(&host.root, fileName)
+    let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(960, 680)
     view.applyLayout()
     @assert(view.revealFileOffset(offset, query))
@@ -126,7 +126,7 @@ private func markdownWhiteyFixturePath()->String
 
     let source = expect File.readAllText(markdownFixturePath())
     let style  = markdownViewerStyle(0, 1)
-    let view   = MarkdownView.createText(&host.root, source.toString(), style)
+    let view   = Markdown.View.createText(&host.root, source.toString(), style)
     applyMarkdownViewerStyle(view, 0, 1)
     view.resize(960, 680)
     view.applyLayout()
@@ -159,7 +159,7 @@ private func markdownWhiteyFixturePath()->String
 
     for themeIndex in @countof(backgrounds)
     {
-        let view = MarkdownView.createText(&host.root, source.toString())
+        let view = Markdown.View.createText(&host.root, source.toString())
         view.resize(960, 680)
         applyMarkdownViewerStyle(view, themeIndex, 1)
         view.applyLayout()
@@ -186,7 +186,7 @@ private func markdownWhiteyFixturePath()->String
     host.notify(.ThemeChanged)
 
     let source = expect File.readAllText(markdownWhiteyFixturePath())
-    let view   = MarkdownView.createText(&host.root, source.toString())
+    let view   = Markdown.View.createText(&host.root, source.toString())
     view.resize(960, 900)
     applyMarkdownViewerStyle(view, 5, 1)
     view.applyLayout()

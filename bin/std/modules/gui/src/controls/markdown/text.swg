@@ -1,8 +1,9 @@
 #global internal
+#global namespace Markdown
 
 using Core
 
-func markdownDecodedEntity(source: string, start: u64)->{ value: String, eat: u64 }
+func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
 {
     var result: retval
     result.value = "&"
@@ -96,7 +97,7 @@ func markdownDecodedEntity(source: string, start: u64)->{ value: String, eat: u6
     return result
 }
 
-func markdownRichText(text: string, decodeEntities = false)->String
+func richText(text: string, decodeEntities = false)->String
 {
     var result: retval
     var index = 0'u64
@@ -104,7 +105,7 @@ func markdownRichText(text: string, decodeEntities = false)->String
     {
         if decodeEntities and text[index] == '&'
         {
-            let entity = markdownDecodedEntity(text, index)
+            let entity = decodeEntity(text, index)
             result += entity.value
             index  += entity.eat
             continue

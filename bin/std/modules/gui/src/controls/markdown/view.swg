@@ -1,22 +1,23 @@
 #global public
+#global namespace Markdown
 
 using Core, Pixel
 
-private const MarkdownStreamChunkSize = 8 * 1024'u64
-private const MarkdownStreamCarryLimit = 16 * 1024'u64
-private const MarkdownRevealContextSize = 64 * 1024'u64
-private const MarkdownReverseContextSize = MarkdownStreamChunkSize
-private const MarkdownRevealChunkSize = MarkdownRevealContextSize + MarkdownStreamChunkSize
-private const MarkdownStreamLookAhead = 2.0
-private const MarkdownStreamFrameBudget = 3_000'u64
-private const MarkdownStreamBlockBudget = 8'u32
+private const StreamChunkSize = 8 * 1024'u64
+private const StreamCarryLimit = 16 * 1024'u64
+private const RevealContextSize = 64 * 1024'u64
+private const ReverseContextSize = StreamChunkSize
+private const RevealChunkSize = RevealContextSize + StreamChunkSize
+private const StreamLookAhead = 2.0
+private const StreamFrameBudget = 3_000'u64
+private const StreamBlockBudget = 8'u32
 
-// Controls the reading measure and typography of a [[Gui.MarkdownView]].
+// Controls the reading measure and typography of a [[Gui.Markdown.View]].
 //
 // Colors and font faces resolve from the window's active [[Gui.Theme]], including local
 // theme-sheet overrides, so a document can follow either an application palette or a document
 // theme.
-struct MarkdownStyle
+struct Style
 {
     public
     {
@@ -38,39 +39,39 @@ struct MarkdownStyle
     }
 }
 
-impl MarkdownStyle
+impl Style
 {
     // Returns the document style that follows the active GUI theme.
-    func theme()->MarkdownStyle => {}
+    func theme()->Style => {}
 }
 
 #[Swag.NoDoc]
-struct MarkdownVisualBlock
+struct VisualBlock
 {
     wnd:        *Wnd = undefined
-    inline:     #null *MarkdownInlineView
-    table:      #null *MarkdownTableView
-    kind:       MarkdownBlockKind
+    inline:     #null *InlineView
+    table:      #null *TableView
+    kind:       BlockKind
     searchText: String
 }
 
 // Displays Markdown as a themed, read-only document with progressive UTF-8 file loading.
 //
-// [[Gui.MarkdownView.createText]] renders in-memory source, while
-// [[Gui.MarkdownView.createFile]] streams a file without tying the renderer to an application.
+// [[Gui.Markdown.View.createText]] renders in-memory source, while
+// [[Gui.Markdown.View.createFile]] streams a file without tying the renderer to an application.
 // Block and inline mathematics use [[Pixel.MathExpression]] and the active theme font.
-struct MarkdownView
+struct View
 {
     public
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*MarkdownView, string)     // Emitted when a rendered link is activated.
-        sigLoadFailed:    SigArray'func||(*MarkdownView, string)     // Emitted with the exact reason when progressive file loading stops.
+        sigLinkActivated: SigArray'func||(*View, string)     // Emitted when a rendered link is activated.
+        sigLoadFailed:    SigArray'func||(*View, string)     // Emitted with the exact reason when progressive file loading stops.
 
         public readonly
         {
-            documentStyle: MarkdownStyle     // Active document typography and reading measure.
+            documentStyle: Style     // Active document typography and reading measure.
             failureReason: String            // File-loading explanation, or empty while loading remains valid.
         }
 
@@ -94,7 +95,7 @@ struct MarkdownView
             pendingSeekOffset:   u64
             sourceCarry:         String
             sourceDone:          bool
-            pendingBlocks:       Array'MarkdownBlock
+            pendingBlocks:       Array'Block
             pendingIndex:        u64
             loadTimer:           #null *Timer
             contentHeight:       f32
@@ -104,19 +105,19 @@ struct MarkdownView
             pendingTargetOffset: u64 = Swag.U64.Max
             searchBlockIndex:    u64 = Swag.U64.Max
             documentThemeColors: String
-            blocks:              Array'MarkdownVisualBlock
+            blocks:              Array'VisualBlock
         }
     }
 }
 
-private func applyMarkdownThemeColors(wnd: *Wnd, colors: string)
+private func applyThemeColors(wnd: *Wnd, colors: string)
 {
     wnd.style.setStyleSheetColors(colors)
     for child in wnd.children do
-        applyMarkdownThemeColors(child, colors)
+        applyThemeColors(child, colors)
 }
 
-private func markdownBlockGap(kind: MarkdownBlockKind)->f32
+private func blockGap(kind: BlockKind)->f32
 {
     switch kind
     {
@@ -134,7 +135,7 @@ private func markdownBlockGap(kind: MarkdownBlockKind)->f32
     }
 }
 
-private func markdownStreamBoundary(source: string)->u64
+private func streamBoundary(source: string)->u64
 {
     var result      = 0'u64
     var lineStart   = 0'u64
@@ -146,7 +147,7 @@ private func markdownStreamBoundary(source: string)->u64
     {
         let line    = source[lineStart until index]
         let trimmed = Latin1.trim(line)
-        let fence   = markdownFence(line)
+        let fence   = parseFence(line)
         if fence.found and (!fenceMarker or fence.marker == fenceMarker)
         {
             fenceMarker = fenceMarker ? 0 : fence.marker
@@ -170,13 +171,13 @@ private func markdownStreamBoundary(source: string)->u64
     return result
 }
 
-private func takeMarkdownStreamSource(source: *String, sourceDone: bool)->String
+private func takeStreamSource(source: *String, sourceDone: bool)->String
 {
     if source.isEmpty() do
         return {}
 
-    var boundary = sourceDone ? source.length : markdownStreamBoundary(source.toString())
-    if !boundary and source.length >= MarkdownStreamCarryLimit
+    var boundary = sourceDone ? source.length : streamBoundary(source.toString())
+    if !boundary and source.length >= StreamCarryLimit
     {
         for value, index in source.toString() where value == '\n' do
             boundary = index + 1
@@ -193,7 +194,7 @@ private func takeMarkdownStreamSource(source: *String, sourceDone: bool)->String
     return result
 }
 
-private impl MarkdownView
+private impl View
 {
     mtd documentGeometry()->{ x: f32, width: f32 }
     {
@@ -224,17 +225,17 @@ private impl MarkdownView
         .scroll.setScrollPos(position)
     }
 
-    mtd placeBlock(block: *MarkdownVisualBlock, x, width: f32, y: *f32)
+    mtd placeBlock(block: *VisualBlock, x, width: f32, y: *f32)
     {
         block.wnd.setPosition({x, y[], width, 0})
         if block.kind == .Math do
-            block.wnd.resize(width, (cast(*MarkdownMathView) block.wnd).preferredHeight())
+            block.wnd.resize(width, (cast(*MathView) block.wnd).preferredHeight())
         elif block.kind == .Table do
             block.wnd.resize(width, block.table!.preferredHeight(width))
         else do
             block.wnd.resize(width, block.inline!.preferredHeight(width))
 
-        y[] += block.wnd.position.height + markdownBlockGap(block.kind)
+        y[] += block.wnd.position.height + blockGap(block.kind)
     }
 
     mtd layoutDocument()
@@ -251,19 +252,19 @@ private impl MarkdownView
         .updateDocumentSize()
     }
 
-    mtd appendBlock(block: MarkdownBlock)
+    mtd appendBlock(block: Block)
     {
-        var visual: MarkdownVisualBlock
+        var visual: VisualBlock
         visual.kind       = block.kind
         visual.searchText = block.text
         if block.kind == .Math
         {
-            let math = MarkdownMathView.create(me, .body, block.text.toString())
+            let math = MathView.create(me, .body, block.text.toString())
             if math
             {
                 visual.wnd = math!
                 if !.documentThemeColors.isEmpty() do
-                    applyMarkdownThemeColors(visual.wnd, .documentThemeColors.toString())
+                    applyThemeColors(visual.wnd, .documentThemeColors.toString())
                 .blocks.add(visual)
                 let geometry = .documentGeometry()
                 .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
@@ -273,11 +274,11 @@ private impl MarkdownView
         }
         elif block.kind == .Table
         {
-            let table = MarkdownTableView.create(me, .body, block.text.toString())
+            let table = TableView.create(me, .body, block.text.toString())
             visual.wnd   = table
             visual.table = table
             if !.documentThemeColors.isEmpty() do
-                applyMarkdownThemeColors(visual.wnd, .documentThemeColors.toString())
+                applyThemeColors(visual.wnd, .documentThemeColors.toString())
             .blocks.add(visual)
             let geometry = .documentGeometry()
             .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
@@ -285,11 +286,11 @@ private impl MarkdownView
             return
         }
 
-        let inline = MarkdownInlineView.create(me, .body, block.text.toString(), block.kind)
+        let inline = InlineView.create(me, .body, block.text.toString(), block.kind)
         visual.wnd    = inline
         visual.inline = inline
         if !.documentThemeColors.isEmpty() do
-            applyMarkdownThemeColors(visual.wnd, .documentThemeColors.toString())
+            applyThemeColors(visual.wnd, .documentThemeColors.toString())
         .blocks.add(visual)
 
         let geometry = .documentGeometry()
@@ -306,7 +307,7 @@ private impl MarkdownView
         if .jumpToEnd or .hasPendingTarget do
             return true
         let viewport = .scroll.paddedClientRect()
-        return .scroll.scrollPosition().y + viewport.height * MarkdownStreamLookAhead >= .contentHeight
+        return .scroll.scrollPosition().y + viewport.height * StreamLookAhead >= .contentHeight
     }
 
     mtd scheduleMore()
@@ -321,7 +322,7 @@ private impl MarkdownView
         if .sourceDone do
             return
 
-        let chunk = catch .stream.readUtf8Chunk(MarkdownStreamChunkSize) as readError
+        let chunk = catch .stream.readUtf8Chunk(StreamChunkSize) as readError
         if readError != null
         {
             .reportLoadFailure(Errors.message(readError))
@@ -367,17 +368,17 @@ private impl MarkdownView
 
         .pendingBlocks.clear()
         .pendingIndex = 0
-        var source = takeMarkdownStreamSource(&.sourceCarry, .sourceDone)
+        var source = takeStreamSource(&.sourceCarry, .sourceDone)
         if source.isEmpty()
         {
             .readSource()
-            source = takeMarkdownStreamSource(&.sourceCarry, .sourceDone)
+            source = takeStreamSource(&.sourceCarry, .sourceDone)
         }
 
         if source.isEmpty() do
             return false
 
-        .pendingBlocks = parseMarkdownBlocks(source.toString())
+        .pendingBlocks = parseBlocks(source.toString())
         return !.pendingBlocks.isEmpty()
     }
 
@@ -386,20 +387,20 @@ private impl MarkdownView
         var stopwatch: Time.Stopwatch
         stopwatch.start()
         var blockCount = 0'u32
-        while .needsMore() and blockCount < MarkdownStreamBlockBudget
+        while .needsMore() and blockCount < StreamBlockBudget
         {
             if !.preparePending() do
                 break
             .appendBlock(#move .pendingBlocks[.pendingIndex])
             .pendingIndex += 1
             blockCount    += 1
-            if stopwatch.elapsedMicroseconds() >= MarkdownStreamFrameBudget do
+            if stopwatch.elapsedMicroseconds() >= StreamFrameBudget do
                 break
         }
 
         if .sourceDone and .sourceCarry.isEmpty() and .pendingIndex >= .pendingBlocks.count and .blocks.isEmpty()
         {
-            var empty: MarkdownBlock
+            var empty: Block
             empty.kind = .Paragraph
             empty.text = "This Markdown document is empty."
             .appendBlock(#move empty)
@@ -477,7 +478,7 @@ private impl MarkdownView
             .hasPendingTarget = false
             if .fileSize and (.residentStart + (.bytesRead - .residentStart) < .fileSize)
             {
-                let start = .fileSize > MarkdownStreamCarryLimit ? .fileSize - MarkdownStreamCarryLimit : 0
+                let start = .fileSize > StreamCarryLimit ? .fileSize - StreamCarryLimit : 0
                 .jumpToEnd = true
                 discard .revealFileOffset(start, "")
             }
@@ -534,13 +535,13 @@ private impl MarkdownView
     }
 }
 
-impl MarkdownView
+impl View
 {
     // Creates an empty Markdown document view.
     #[Swag.Discardable]
-    func create(contentParent: *Wnd, documentStyle: MarkdownStyle = {})->*MarkdownView
+    func create(contentParent: *Wnd, documentStyle: Style = {})->*View
     {
-        let result = Wnd.create'MarkdownView(contentParent, "gui.markdown")
+        let result = Wnd.create'View(contentParent, "gui.markdown")
         result.backgroundStyle = .View
         result.focusPolicy     = .Tab
         result.wndFlags        |= .NoFocusRing
@@ -560,7 +561,7 @@ impl MarkdownView
                 return
             let viewport                 = view.scroll.paddedClientRect()
             let beforeResident           = newPosition.y + viewport.height < view.virtualOrigin
-            let approachingResidentStart = view.residentStart and newPosition.y < oldPosition.y and newPosition.y < view.virtualOrigin + viewport.height * MarkdownStreamLookAhead
+            let approachingResidentStart = view.residentStart and newPosition.y < oldPosition.y and newPosition.y < view.virtualOrigin + viewport.height * StreamLookAhead
             if view.virtualHeight > 0 and !view.blocks.isEmpty() and view.pendingSearch.isEmpty() and !view.hasPendingTarget and (beforeResident or approachingResidentStart or newPosition.y > view.contentHeight)
             {
                 let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
@@ -591,17 +592,17 @@ impl MarkdownView
     }
 
     // Creates a view and renders the complete Markdown source.
-    func createText(contentParent: *Wnd, source: string, documentStyle: MarkdownStyle = {})->*MarkdownView
+    func createText(contentParent: *Wnd, source: string, documentStyle: Style = {})->*View
     {
         let result = .create(contentParent, documentStyle)
         result.sourceDone = true
-        let parsed = parseMarkdownBlocks(source)
+        let parsed = parseBlocks(source)
         for &block in parsed do
             result.appendBlock(#move block[])
 
         if result.blocks.isEmpty()
         {
-            var empty: MarkdownBlock
+            var empty: Block
             empty.kind = .Paragraph
             empty.text = "This Markdown document is empty."
             result.appendBlock(#move empty)
@@ -613,8 +614,8 @@ impl MarkdownView
     // Creates a view and progressively loads a UTF-8 Markdown file.
     //
     // File-open and decoding failures remain visible in the document and are also exposed through
-    // [[Gui.MarkdownView.failureReason]] and [[Gui.MarkdownView.sigLoadFailed]].
-    func createFile(contentParent: *Wnd, fileName: string, documentStyle: MarkdownStyle = {})->*MarkdownView
+    // [[Gui.Markdown.View.failureReason]] and [[Gui.Markdown.View.sigLoadFailed]].
+    func createFile(contentParent: *Wnd, fileName: string, documentStyle: Style = {})->*View
     {
         let result = .create(contentParent, documentStyle)
         result.fileName = fileName
@@ -637,7 +638,7 @@ impl MarkdownView
     }
 
     // Replaces the document metrics while keeping colors and font faces bound to the active theme.
-    mtd setDocumentStyle(documentStyle: MarkdownStyle)
+    mtd setDocumentStyle(documentStyle: Style)
     {
         .documentStyle = documentStyle
         .applyDocumentStyle()
@@ -648,7 +649,7 @@ impl MarkdownView
     mtd setDocumentThemeColors(styleSheetColors: string)
     {
         .documentThemeColors = styleSheetColors
-        applyMarkdownThemeColors(me, styleSheetColors)
+        applyThemeColors(me, styleSheetColors)
     }
 
     // Reports whether source remains to be parsed or displayed.
@@ -715,7 +716,7 @@ impl MarkdownView
         .pendingSearch    = text
 
         let requested = Math.min(offset, .fileSize)
-        let start     = requested > MarkdownRevealContextSize ? requested - MarkdownRevealContextSize : 0
+        let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
         for adjustment in 4
         {
             .stream = catch File.openRead(.fileName.toString()) as openError
@@ -723,7 +724,7 @@ impl MarkdownView
                 return false
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            var chunk = catch .stream.readUtf8Chunk(MarkdownRevealChunkSize) as readError
+            var chunk = catch .stream.readUtf8Chunk(RevealChunkSize) as readError
             if readError != null
             {
                 .stream.close()
@@ -735,10 +736,10 @@ impl MarkdownView
             // Start on a complete block near the beginning of the context window, not on the
             // last block before the target. Keeping that leading source resident is what lets a
             // reader move upward without immediately leaving every materialized block behind.
-            let probeEnd = localTarget > MarkdownReverseContextSize ? localTarget - MarkdownReverseContextSize : Math.min(localTarget, MarkdownStreamChunkSize)
-            var boundary = markdownStreamBoundary(chunk.toString()[0 until probeEnd])
+            let probeEnd = localTarget > ReverseContextSize ? localTarget - ReverseContextSize : Math.min(localTarget, StreamChunkSize)
+            var boundary = streamBoundary(chunk.toString()[0 until probeEnd])
             if !boundary and localTarget > probeEnd do
-                boundary = markdownStreamBoundary(chunk.toString()[0 until localTarget])
+                boundary = streamBoundary(chunk.toString()[0 until localTarget])
 
             let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
             .residentStart       = actual + boundary
@@ -762,7 +763,7 @@ impl MarkdownView
     }
 }
 
-internal impl IWnd for MarkdownView
+internal impl IWnd for View
 {
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {

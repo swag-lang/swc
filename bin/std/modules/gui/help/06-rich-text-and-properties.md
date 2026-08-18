@@ -23,15 +23,15 @@ partially converted value.
 
 ## Markdown documents
 
-[[Gui.MarkdownView]] is the reusable, read-only Markdown document widget. Use
-[[Gui.MarkdownView.createText]] for an in-memory document and
-[[Gui.MarkdownView.createFile]] to stream UTF-8 source without blocking the
-application on the whole file. Both forms use [[Gui.MarkdownStyle]] for reading
-measure, insets, and type sizes; [[Gui.MarkdownStyle.theme]] is the standard
+[[Gui.Markdown.View]] is the reusable, read-only Markdown document widget. Use
+[[Gui.Markdown.View.createText]] for an in-memory document and
+[[Gui.Markdown.View.createFile]] to stream UTF-8 source without blocking the
+application on the whole file. Both forms use [[Gui.Markdown.Style]] for reading
+measure, insets, and type sizes; [[Gui.Markdown.Style.theme]] is the standard
 theme-following style.
 
 ```swag
-let markdown = MarkdownView.createFile(parent, fileName, MarkdownStyle.theme())
+let markdown = Markdown.View.createFile(parent, fileName, Markdown.Style.theme())
 markdown.sigLinkActivated += func(view, url)
 {
     discard view

@@ -138,10 +138,14 @@ it.
 
 ## Verify
 
-1. `swc tools/std.swgs dm test gui` — the charter and layout tests.
+1. `swc tools/std.swgs dm test gui --test-file dialogs.charter.test.swg --test-file dialogs.layout.test.swg`
+   — the charter and layout tests. Add the exact dialog test file when its behavior changed.
 2. `swc tools/examples.swgs run gui9` — the instrument. It opens every predefined box and the
    file browser composite beside them. **Look at each one**: an assertion cannot see a caption
    band with nothing in it, a bar wider than its content, or two left edges that nearly agree.
 3. Look at a box holding two sentences, not only at one holding four words, and at a display
    scale other than 100 percent. Both are where a fitted box fails, and neither shows up in the
    case a change is usually tried on.
+
+Use [validate-swag-changes](../validate-swag-changes/SKILL.md) for any additional configuration,
+consumer, or golden coverage; do not run unrelated GUI tests.

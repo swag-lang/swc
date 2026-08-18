@@ -26,7 +26,8 @@ The reference lives in `bin/reference/modules/language/src/` and is COMPILED AND
 - Add or adjust a `#test` that exercises the new form so the doc proves itself.
 - Follow [../write-swag-compiler-messages/SKILL.md](../write-swag-compiler-messages/SKILL.md)
   for any prose, and [../modify-swag-codebase/SKILL.md](../modify-swag-codebase/SKILL.md)
-  for validation (`swc tools/reference.swgs dm test` must stay green).
+  plus [../validate-swag-changes/SKILL.md](../validate-swag-changes/SKILL.md) for validation
+  (`swc tools/reference.swgs dm test` must stay green).
 
 ## 2. Update The VSCode Extension
 

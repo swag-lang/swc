@@ -9,6 +9,11 @@ Before compiling `swc` or `swc_devmode`, or running any project test, read and f
 agent-to-agent build and test serialization rules in that skill, including when working from a
 different worktree. IDE and manually launched user commands do not occupy the agent slot.
 
+Before selecting or running builds, tests, configurations, consumers, smokes, or golden checks,
+also read and follow
+[validate-swag-changes](.agents/skills/validate-swag-changes/SKILL.md). Validation is chosen from
+the behavior changed; `tools/tests.swgs` no longer derives a campaign from the working tree.
+
 Before adding or changing any Swag source (`.swg` or `.swgs`), including tests,
 examples, scripts, and documentation code samples, also read and follow
 [write-idiomatic-swag-code](.agents/skills/write-idiomatic-swag-code/SKILL.md).

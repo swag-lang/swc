@@ -83,6 +83,7 @@ private func testStdModule(context: *Context, options: *Options, name: string, m
     if options.buildCfg != "release" do
         arguments.add(["--no-test-jit"])
 
+    options.appendTest(&arguments)
     options.appendExtra(&arguments)
     options.appendRunArguments(&arguments)
     return try context.runCompiler(arguments)
@@ -103,6 +104,8 @@ public func runExamples(context: *Context, options: *Options)->s32 fail
 
     options.appendWorkspace(&arguments)
     options.appendRunArguments(&arguments)
+    if command == "test" do
+        options.appendTest(&arguments)
     options.appendExtra(&arguments)
     return try context.runCompiler(arguments)
 }
@@ -157,6 +160,9 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
         options.appendWorkspace(&arguments)
         options.appendRunArguments(&arguments)
     }
+
+    if command == "test" do
+        options.appendTest(&arguments)
 
     options.appendExtra(&arguments)
 
@@ -320,8 +326,11 @@ public func runReference(context: *Context, options: *Options)->s32 fail
     // programs once in their shipped native form.
     if options.command == "build" do
         arguments.add(["--no-test-jit", "--no-output"])
-    else do
+    else
+    {
         arguments.add(["--no-test-jit"])
+        options.appendTest(&arguments)
+    }
 
     options.appendExtra(&arguments)
     return try context.runCompiler(arguments)

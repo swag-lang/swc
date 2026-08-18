@@ -9,28 +9,19 @@ public func printUsage(name: string)->s32
     {
     case "tests":
         Console.print("""
-Runs the repository test set, whole or scoped to what changed.
+Runs the complete repository test set.
 
-  swc tools/tests.swgs [dm] [changed|plan] [<path>] [options...]
+  swc tools/tests.swgs [dm] [options...]
 
   dm                 use the DevMode compiler
-  changed            run only what the working-tree change requires
-  plan               print that selection, and run nothing
-  <path>             answer for that one file instead of the working tree,
-                     which is how the map is asked before a change is made
   -bc <config>       release, debug, or fast-debug (default fast-debug)
-  --all-cfg          repeat the selected set in all three configurations
+  --all-cfg          repeat the complete set in all three configurations
 
 Five rungs, cheapest and most specific first: the frontend suites, the code
 generation suites, the standard library, the applications and the reference,
 then the programs that only prove they start. Each rung runs in every requested
 configuration before the next one begins, so a fault only one configuration can
 produce reports without waiting for the others to finish.
-
-'changed' maps each changed path to a surface, adds whatever imports a selected
-standard library module, and climbs the same ladder carrying only that. A path
-matching no surface selects everything, so an unmapped file costs time instead
-of coverage.
 """)
 
     case "unittests":
@@ -69,6 +60,7 @@ Builds or tests the standard library.
   dm                 use the DevMode compiler
   <module>           one of bin/std/modules, for instance core or pixel
   -bc <config>       release, debug, or fast-debug (default fast-debug)
+  --test-file <text> run only #test functions from matching source paths; repeatable
   --run-arg <value>  pass a run argument to the tested module
 
 Testing always builds the workspace first. Modules without a unit test are skipped.
@@ -83,6 +75,7 @@ Builds, runs, tests, or smokes the examples workspace.
   dm                 use the DevMode compiler
   <module>           one of bin/examples/modules, for instance gui2 or pixel4
   -bc <config>       release, debug, or fast-debug (default fast-debug)
+  --test-file <text> run only #test functions from matching source paths; repeatable
   --frames <count>   bound a run or a smoke to that many frames
   --run-timeout <s>  fail a run or a smoke that outlives that many seconds
 
@@ -102,6 +95,7 @@ Builds, runs, tests, or smokes one or every application workspace.
   dm                 use the DevMode compiler
   <application>      a workspace under bin/apps, for instance sVaultDrive or sSnapForge
   -bc <config>       release, debug, or fast-debug (default fast-debug)
+  --test-file <text> run only #test functions from matching source paths; repeatable
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
 
@@ -123,6 +117,7 @@ Builds or tests the executable language reference.
   build              compile every page without running its samples
   test               compile and run them (default)
   -bc <config>       release, debug, or fast-debug (default fast-debug)
+  --test-file <text> run only #test functions from matching source paths; repeatable
 """)
 
     case "scripts":

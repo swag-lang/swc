@@ -51,6 +51,18 @@ private func dispatch(name: string, root: string, tokens: const [..] string)->s3
     if options.wantHelp do
         return printUsage(name)
 
+    if options.test.count() != 0
+    {
+        let moduleTool  = name == "std" or name == "examples" or name == "apps" or name == "reference"
+        let testCommand = options.command == "test" or (name == "reference" and options.command.isEmpty())
+        if !moduleTool or !testCommand
+        {
+            Console.println("error: '--test-file' is available only with a module tool's 'test' command")
+            Console.println("Use '--file-filter' for a standalone compiler suite.")
+            return 1
+        }
+    }
+
     var context = try Context.create(root, options)
 
     switch name
@@ -135,10 +147,6 @@ private func acceptedCommands(name: string)->Array'(string)
     case "scripts":
         result.add("run")
         result.add("smoke")
-
-    case "tests":
-        result.add("changed")
-        result.add("plan")
     }
 
     return result

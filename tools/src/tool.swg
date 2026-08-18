@@ -9,7 +9,6 @@
 #load("context.swg")
 #load("backlog.swg")
 #load("portability.swg")
-#load("scope.swg")
 #load("suites.swg")
 #load("workspaces.swg")
 #load("campaign.swg")

@@ -160,8 +160,8 @@ For every reviewed family:
 4. Update examples to use the preferred path and remove obsolete workarounds.
 5. Document the exact contract according to `write-swag-public-api-docs`.
 6. Search the entire repository for old spellings and implicit consumers.
-7. Build and run the narrowest relevant validation, then complete the validation
-   required by `modify-swag-codebase` for the final combined change.
+7. Build and run the smallest sufficient validation selected by
+   [validate-swag-changes](../validate-swag-changes/SKILL.md) for the final combined behavior.
 
 A module-wide review is complete only when every public family has a recorded
 decision, generated documentation passes its audit, all consumers use the chosen

@@ -283,7 +283,8 @@ the theme, and the parts they do not use are exactly the ones a change breaks si
 
 After changing `apply`, a palette, or a widget's color choice:
 
-1. `swc tools/std.swgs test gui` — the palette tests pin the shipped Swag values, assert every
+1. `swc tools/std.swgs dm test gui --test-file theme.colors.test.swg --test-file theme.sheet.test.swg --test-file themestyle.test.swg`
+   — the palette tests pin the shipped Swag values, assert every
    mark reads on every ground of its own palette, assert the dark and light palettes do not agree
    on more than a handful of colors once the identity tones are set aside, and cover the sheet
    layers.
@@ -292,7 +293,10 @@ After changing `apply`, a palette, or a widget's color choice:
    diverged from; `swc tools/goldens.swgs` accepts them in bulk. Review the diff — a golden that
    changed for a part you did not touch is a finding.
 3. The applications keep goldens of their own, and a palette change reaches them:
-   `swc tools/apps.swgs test sSnapForge` is the one that shows a whole surface. Look at the
+   `swc tools/apps.swgs dm test sSnapForge` is the one that shows a whole surface. Look at the
    `.actual` image before accepting it; that picture is the change.
-4. `swc tools/examples.swgs smoke gui10` walks every page of every palette.
+4. `swc tools/examples.swgs dm smoke gui10` walks every page of every palette.
 5. Look at the four palettes in gui10 before saying the change is done.
+
+Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to add only the widget golden files
+and application consumers whose rendering path changed.

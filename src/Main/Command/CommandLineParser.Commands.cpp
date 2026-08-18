@@ -222,6 +222,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Testing, "test", "--test-jit", "-tj",
         &cmdLine_->testJit,
         "Run #test functions through the JIT during testing");
+    add(HelpOptionGroup::Testing, "test", "--test-file", nullptr,
+        &cmdLine_->testFileFilter,
+        "Run #test functions whose source path contains this substring; repeat the option to accept more files");
     add(HelpOptionGroup::Testing, "test", "--lex-only", nullptr,
         &cmdLine_->lexOnly,
         "Stop test inputs after lexing; excludes --syntax-only and --sema-only");

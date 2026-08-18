@@ -106,6 +106,29 @@ namespace
         return !requireRoot || isNativeRootFunction(symbol);
     }
 
+    bool matchesTestFileFilter(const CompilerInstance& compiler, const SymbolFunction& symbol)
+    {
+        const auto& filters = compiler.cmdLine().testFileFilter;
+        if (filters.empty())
+            return true;
+
+        const SourceFile* sourceFile = compiler.ownerSourceFile(symbol.srcViewRef());
+        if (!sourceFile)
+            sourceFile = compiler.sourceViewFile(symbol);
+        if (!sourceFile)
+            return false;
+
+        const Utf8 sourcePath = Utf8Helper::normalizePathForCompare(sourceFile->path());
+        for (const Utf8& filter : filters)
+        {
+            const Utf8 normalizedFilter = Utf8Helper::normalizePathForCompare(fs::path(filter.c_str()));
+            if (sourcePath.view().contains(normalizedFilter.view()))
+                return true;
+        }
+
+        return false;
+    }
+
     bool canRegisterNativeGlobalVariable(const CompilerInstance& compiler, const SymbolVariable& symbol)
     {
         if (isImportedApiSource(compiler, symbol))
@@ -739,6 +762,8 @@ void CompilerInstance::registerNativeCompilerFunction(TokenId funcTokenId, Symbo
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!canRegisterNativeFunction(*this, *symbol, false))
+        return;
+    if (funcTokenId == TokenId::CompilerFuncTest && !matchesTestFileFilter(*this, *symbol))
         return;
 
     std::vector<SymbolFunction*>*        bucket    = nullptr;

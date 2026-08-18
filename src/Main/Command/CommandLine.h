@@ -230,6 +230,7 @@ struct CommandLine
     Utf8              verboseVerifyFilter;
     Utf8              docCss;
     std::set<Utf8>    fileFilter;
+    std::set<Utf8>    testFileFilter;
     std::vector<Utf8> tags;
     std::vector<Utf8> runArgs;
 
@@ -305,10 +306,15 @@ constexpr std::string_view commandName(const CommandKind command)
 // compiles `#test` bodies in, answers `#command` with `Test` so the source can
 // select different constants, and forces debug info and exceptions on. Without a
 // distinct name the two overwrite each other's executable, PDB, and object files,
-// and `run` happily launches whichever was built last.
+// and `run` happily launches whichever was built last. A focused test gets a third
+// name because its executable deliberately omits the unselected test entry points.
 inline std::string_view artifactModeSuffix(const CommandLine& cmdLine)
 {
-    return cmdLine.sourceDrivenTest ? ".test" : "";
+    if (!cmdLine.sourceDrivenTest)
+        return "";
+    if (!cmdLine.testFileFilter.empty())
+        return ".test.focused";
+    return ".test";
 }
 
 inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cmdLine)

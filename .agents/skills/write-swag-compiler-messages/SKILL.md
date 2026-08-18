@@ -192,7 +192,8 @@ Add cases under `bin/unittests/errors` for meaningful source-diagnostic variants
 1. Compare old and new messages for identifiers, severities, placeholders, constraints, values, side effects, provenance, and recovery paths.
 2. Exercise representative diagnostics and inspect labels, ordering, underlines, notes, help, wrapping, and generated-source frames.
 3. Inspect affected command and configuration help directly.
-4. Complete the validation required by `modify-swag-codebase`.
+4. Complete the smallest sufficient validation selected by
+   [validate-swag-changes](../validate-swag-changes/SKILL.md).
 5. Report any intentional information-contract change explicitly.
 
 Do not finish while a user-facing surface remains unreviewed or a required validation is red.

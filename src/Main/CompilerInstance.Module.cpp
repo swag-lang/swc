@@ -1359,7 +1359,13 @@ namespace
             return false;
 
         if (cmdLine.command == CommandKind::Test)
+        {
+            // A focused executable contains only the selected #test entry points. It must neither
+            // reuse an unfiltered test artifact nor stand in for one on the next invocation.
+            if (!cmdLine.testFileFilter.empty())
+                return false;
             return !cmdLine.testJit && cmdLine.testNative && cmdLine.output;
+        }
 
         return cmdLine.command != CommandKind::Doc;
     }
@@ -1382,6 +1388,11 @@ namespace
             return false;
         if (cmdLine.command != CommandKind::Test)
             return true;
+
+        // Focused artifacts have their own mode suffix and are never reused. Leaving no manifest
+        // keeps every distinct filter set honest without turning the filter into a cache key.
+        if (!cmdLine.testFileFilter.empty())
+            return false;
 
         // A cached test has no AST against which source-driven expectations can be checked.
         // Keep compiling those inputs so every Verify directive is evaluated on every run.
@@ -2405,6 +2416,7 @@ ExitCode CompilerInstance::runWorkspace()
     Utf8           because;
 
     workspaceBuildLogState_ = {};
+    const size_t testsBefore = Stats::get().numTests.load(std::memory_order_relaxed);
 
     if (FileSystem::resolveExistingFolder(modulesPath, because) != Result::Continue)
     {
@@ -2726,6 +2738,13 @@ ExitCode CompilerInstance::runWorkspace()
 
     if (joinPendingLink() != Result::Continue)
         return ExitCode::CompileError;
+
+    if (cmdLine().command == CommandKind::Test && !cmdLine().testFileFilter.empty() && Stats::get().numTests.load(std::memory_order_relaxed) == testsBefore)
+    {
+        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_file_filter_no_match);
+        diag.report(ctx);
+        return ExitCode::CompileError;
+    }
 
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }

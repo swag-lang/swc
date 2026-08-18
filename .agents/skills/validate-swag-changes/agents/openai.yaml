@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate Swag Changes"
+  short_description: "Select the smallest sufficient Swag validation"
+  default_prompt: "Use $validate-swag-changes to select and run the smallest sufficient validation for this Swag change."

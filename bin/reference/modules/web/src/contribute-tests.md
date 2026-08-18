@@ -39,6 +39,11 @@ Keep the file focused and deterministic. `#assert` proves compile-time facts;
 }
 ```
 
+During iteration, `--test-file <substring>` keeps the whole module available but executes only
+the `#test` functions declared in matching source paths. Repeat the option to select several test
+files. Do not use `--file-filter` for a module test: it removes non-matching implementation files
+from the compiler input.
+
 The default `test` command runs `#test` functions through both the JIT and
 native backend. A layer runner narrows those paths when the layer itself is the
 subject.

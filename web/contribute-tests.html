@@ -56,6 +56,7 @@
     <span class="SCmp">#assert</span>(<span class="SCst">Expected</span> == <span class="SNum">42</span>)
     <span class="SItr">@assert</span>(value == <span class="SCst">Expected</span>)
 }</span></div>
+<p>During iteration, <span class="code-inline">--test-file &lt;substring&gt;</span> keeps the whole module available but executes only the <span class="code-inline">#test</span> functions declared in matching source paths. Repeat the option to select several test files. Do not use <span class="code-inline">--file-filter</span> for a module test: it removes non-matching implementation files from the compiler input.</p>
 <p>The default <span class="code-inline">test</span> command runs <span class="code-inline">#test</span> functions through both the JIT and native backend. A layer runner narrows those paths when the layer itself is the subject.</p>
 <h2 id="Match_an_expected_diagnostic">Match an expected diagnostic</h2>
 <p>Put rejected programs under the matching <span class="code-inline">bin/unittests/errors</span> stage. Match the stable diagnostic identifier at the source location that proves the error:</p>
@@ -82,7 +83,7 @@ swc tools\tests.swgs dm --all-cfg</span></div>
 <p>The executable <a href="language.html">language reference</a> is also a regression suite, but it should teach supported behavior. Put edge cases and rejected forms in <span class="code-inline">bin/unittests</span> unless they materially improve the explanation.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.149</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.150</div>
 </footer>
 </section>
 </main>

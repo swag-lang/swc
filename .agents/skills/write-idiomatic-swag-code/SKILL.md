@@ -21,7 +21,7 @@ silently teach a workaround as the idiom.
 2. Search the repository for the preferred idiom and for every consumer of a changed API.
 3. Distinguish deliberate compiler-test syntax from incidental support code. Preserve the exact
    construct when it is the behavior under test; modernize its surrounding harness.
-4. Apply `modify-swag-codebase` for repository validation and `design-swag-bin-modules` plus
+4. Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) for repository validation and `design-swag-bin-modules` plus
    `write-swag-public-api-docs` when a public declaration under `bin/` changes.
 
 ## Organize Source Files Around Types
@@ -133,7 +133,7 @@ try verify(scanned, "directory scans must return every created file")
 
 Never hand-align a continuation line, a declaration column, or a trailing comment. Run
 `swc format` and let it place them; manual padding is what drifts when a neighbouring line
-changes. Follow `modify-swag-codebase` for the formatting and validation workflow.
+changes. Follow [validate-swag-changes](../validate-swag-changes/SKILL.md) for the formatting and validation workflow.
 
 ## Return Values Directly
 
@@ -302,7 +302,8 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 
 1. Search again for the obsolete spelling or pattern across the entire repository.
 2. Compile early after representative migrations; do not assume a conversion or lifetime rule.
-3. Run the narrowest relevant tests for each family, then the combined validation required by the
-   repository skills.
+3. Run the smallest sufficient validation selected by
+   [validate-swag-changes](../validate-swag-changes/SKILL.md) for the final
+   combined behavior.
 4. Capture newly proven idioms or pitfalls in this skill. Keep rules concise and backed by code
    that the current compiler accepts.

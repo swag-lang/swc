@@ -23,6 +23,7 @@ public struct Options
     wantHelp:     bool             // Whether the tool was asked to print its usage.
     targetArch:   String           // The architecture every output path is keyed on.
     workspace:    Arguments        // Flags only a run or a smoke understands.
+    test:         Arguments        // Flags only a test command understands.
     extra:        Arguments        // Everything else, forwarded to the compiler.
     runArguments: Array'String     // The '--run-arg' values, without the flag.
 }
@@ -69,6 +70,15 @@ public impl Options
         arguments.addAll(.workspace)
     }
 
+    // Appends flags that select which #test functions a test command executes.
+    //
+    // They are kept away from prerequisite build commands, which compile the same module but do
+    // not accept test-only options.
+    mtd const appendTest(arguments: *Arguments)
+    {
+        arguments.addAll(.test)
+    }
+
     // Returns the configurations this invocation asks for.
     mtd const configurations()->Array'String
     {
@@ -107,6 +117,7 @@ private struct Grammar
     frames:     String           // Bound a run or a smoke to that many frames.
     runTimeout: String           // Fail a run or a smoke that outlives that many seconds.
     runArg:     Array'String     // One argument for the launched program, repeatable.
+    testFile:   Array'String     // Source-path substrings whose #test functions should run.
 }
 
 // Parses the shared grammar, given the commands this tool accepts.
@@ -185,6 +196,8 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
         result.workspace.add(["--frames", grammar.frames.toString()])
     if parsed.isSet.runTimeout do
         result.workspace.add(["--run-timeout", grammar.runTimeout.toString()])
+    for value in grammar.testFile do
+        result.test.add(["--test-file", value.toString()])
 
     for token in parsed.unknown do
         result.extra.add([token.toString()])

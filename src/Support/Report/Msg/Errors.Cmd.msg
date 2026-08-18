@@ -90,6 +90,7 @@ SWC_DIAG_DEF(cmd_err_native_artifact_exit_code_failed, Error, "cannot get exit c
 SWC_DIAG_DEF(cmd_err_native_artifact_failed, Error, "generated executable exited with code {value}")
 SWC_DIAG_DEF(cmd_err_native_tests_failed, Error, "generated executable '#test' result: {count} did not pass")
 SWC_DIAG_DEF(cmd_err_test_command_failed, Error, "test command did not complete")
+SWC_DIAG_DEF(cmd_err_test_file_filter_no_match, Error, "no '#test' function matches the test file filters")
 SWC_DIAG_DEF(cmd_err_jit_test_count_mismatch, Error, "JIT '#test' execution count is {value}, but the test plan count is {count}")
 SWC_DIAG_DEF(cmd_note_jit_test_did_not_pass, Note, "JIT '#test' at {value} did not pass")
 SWC_DIAG_DEF(cmd_err_native_test_count_mismatch, Error, "generated executable '#test' execution count is {value}, but the test plan count is {count}")

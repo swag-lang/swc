@@ -1,6 +1,6 @@
 ---
 name: modify-swag-codebase
-description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, agent-to-agent build and test serialization, and scoped validation workflows.
+description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and agent-to-agent build and test serialization.
 ---
 
 # Modify The Swag Codebase
@@ -226,100 +226,17 @@ This is also what makes validation cheaper over time. As long as a class of regr
 caught by running thirty-one examples for seven minutes, that is what every campaign has to keep
 doing; once the suites hold it, twenty seconds answer the same question.
 
-## Validate What The Change Touches
+## Select Validation From Behavior
 
-Ask the tooling which surfaces a change reaches instead of running everything by reflex:
+Before choosing or running any build, test, program configuration, consumer, smoke, or golden
+check, read and follow
+[validate-swag-changes](../validate-swag-changes/SKILL.md). It owns the validation matrix and the
+stopping rule.
 
-```
-swc tools/tests.swgs plan          what the working tree selects, without running it
-swc tools/tests.swgs changed       run exactly that
-```
-
-The selection maps each changed path to a surface, adds whatever imports a selected `bin/std`
-module, and runs the union. Naming a path answers the same question about a file *before* touching
-it — `swc tools/tests.swgs plan bin/std/modules/gui/src/widgets/tab.swg` — which is how the cost of a
-change is known in advance.
-
-A path matching no surface selects the whole set, so an unmapped file costs time rather than
-coverage. When that happens, add the surface to [tools/src/scope.swg](../../../tools/src/scope.swg)
-rather than leaving the next change to pay for it again.
-
-### Keep validation proportionate and know when to stop
-
-Validation is evidence, not a loop that restarts after every edit. Plan it once, use focused tests
-while iterating, and reserve the selected aggregate campaign for the end.
-
-- Run the affected focused suite while developing. Do not rerun an aggregate campaign after a
-  comment, fixture move, diagnostic print removal, formatting pass, or another mechanical change
-  that cannot alter the behavior it already validated.
-- Launch at most one final aggregate campaign after the focused suite is green. If that campaign
-  fails late and a targeted correction follows, rerun the failing surface and configuration; keep
-  the successful earlier surfaces as valid evidence instead of restarting the entire campaign.
-- Escalate from a focused test to a module, importer, configuration, or repository-wide campaign
-  only when the change can plausibly affect that broader boundary. More elapsed time is not more
-  confidence when the additional tests exercise unchanged behavior.
-- Stop when the affected behavior has a regression test, the relevant focused suite is green, any
-  required broader campaign has either passed or supplied still-valid partial evidence, and the
-  final diff introduces no new unvalidated behavior. Report any unrun remainder explicitly.
-- Keep individual regression tests bounded. A large real-world fixture may exercise progressive
-  loading through a representative sequence of frames without parsing or rendering the entire
-  file in every configuration.
-
-## Validate C++ Changes
-
-Sema, code generation, the micro backend, the JIT, the runtime support and the driver sit under
-every compiled program, so a change to any of them selects the whole set — `tests.swgs plan` says
-so, and this sequence is what running it means. Fix every failure before continuing to the next
-step.
-
-1. Compile a DevMode build.
-2. Run `swc tools/tests.swgs dm`.
-3. Run `swc tools/tests.swgs dm --all-cfg`.
-4. Compile the Release build, including `swc.exe`.
-5. Run `swc tools/tests.swgs`.
-
-Do not run `tests.swgs --all-cfg` in Release mode as part of the default workflow.
-
-The compiler areas that do *not* sit under every program have their own narrower workflow:
-`src/Doc` and `src/Format` below, `src/Unittest` in the C++ suite alone, and `src/Backend/Linker`
-and `src/Backend/Debug` in the suites that emit a real image plus the applications and the
-reference. Run `swc tools/tests.swgs changed` and it picks the right one.
-
-## Validate Documentation-Only Changes
-
-When a compiler change affects only the `doc` command, including refactoring shared helpers
-for its implementation:
-
-1. Compile a DevMode build.
-2. Regenerate the repository documentation with `swc tools/web.swgs dm`.
-3. Inspect the generated HTML and its diff for correctness.
-
-Do not run `tests.swgs`, `tests.swgs --all-cfg`, or the Release validation workflow for a
-documentation-only change. `tests.swgs changed` reports the regeneration as a step to take rather
-than taking it: a test command must never rewrite a tracked file.
-
-## Validate Formatter-Only Changes
-
-When a compiler change affects only the `format` command:
-
-1. Compile a DevMode build.
-2. Run the C++ formatter suite with `swc tools/unittests.swgs dm cpp`.
-3. Format the repository with `swc tools/format.swgs dm`.
-4. Inspect the resulting diff for correctness.
-
-Do not run `tests.swgs`, `tests.swgs --all-cfg`, or the Release validation workflow for a
-formatter-only change. `tests.swgs changed` runs step 2 and reports step 3, for the same reason:
-`format.swgs` rewrites tracked sources, so it is a maintenance step and never a test.
-
-## Validate Swag-Only Changes
-
-After changing sources under `bin/` without changing C++, `swc tools/tests.swgs changed --all-cfg` is
-the whole workflow: it runs the changed example, script or application, the `bin/std` module and
-everything that imports it, and nothing else.
-
-Reach for one tool directly only to iterate on a single failure. An example declares no `#test`,
-so it is smoked rather than tested — `swc tools/examples.swgs dm smoke <example> -bc <config>` — while
-a `bin/std` module and an application carry both.
+`tools/tests.swgs` is a deliberate full campaign. It does not inspect the working tree. Use the
+focused repository tools and their `--file-filter` or `--test-file` controls for change validation,
+and reserve the full campaign for a genuinely cross-cutting change or an explicitly requested
+periodic pass.
 
 ## Launch Every Executable Through Its Tool
 

@@ -637,6 +637,14 @@ namespace
 
     bool finishTestCommand(CompilerInstance& compiler)
     {
+        if (!compiler.cmdLine().testFileFilter.empty() && compiler.cmdLine().workspacePath.empty() && compiler.nativeTestFunctions().empty())
+        {
+            TaskContext ctx(compiler);
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_file_filter_no_match);
+            diag.report(ctx);
+            return false;
+        }
+
         if (compiler.cmdLine().testJit && !runJitTests(compiler))
             return false;
 

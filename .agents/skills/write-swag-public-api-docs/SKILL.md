@@ -118,6 +118,9 @@ requested.
 
 ## Validate
 
+Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to choose whether one generated
+module page or the complete site is the sufficient boundary.
+
 1. Run the narrowest relevant `swc doc` command and inspect the generated page.
 2. Run `scripts/audit_api_html.py <generated.html> --source-root <repository-root>` from this skill. On Windows use `py -3`; on other systems use the available Python 3 executable. Use `--require-complete` when completing a full-module documentation pass.
    - With `--source-root`, the audit also checks that multi-line symbol comments separate their one-line table summary from the long description with an empty `//` line.

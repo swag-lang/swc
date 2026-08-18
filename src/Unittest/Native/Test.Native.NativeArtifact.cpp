@@ -1013,6 +1013,56 @@ impl Buffer
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths)
+{
+    static constexpr std::string_view SOURCE = R"(#test { @assert(true) }
+)";
+    const fs::path firstPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterFirst");
+    const fs::path secondPath = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterSecond");
+    const fs::path thirdPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterThird");
+
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
+    cmdLine.name        = "test_file_filter";
+    cmdLine.files.insert(firstPath);
+    cmdLine.files.insert(secondPath);
+    cmdLine.files.insert(thirdPath);
+    cmdLine.testFileFilter.insert("TestFileFilterFirst.swg");
+    cmdLine.testFileFilter.insert("NativeArtifact.TestFileFilterThird");
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, firstPath, SOURCE);
+    Unittest::registerTestSource(compiler, secondPath, SOURCE);
+    Unittest::registerTestSource(compiler, thirdPath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "errors after sema");
+    if (compiler.nativeTestFunctions().size() != 2)
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "selected test count is not two");
+
+    bool foundFirst = false;
+    bool foundThird = false;
+    for (const SymbolFunction* function : compiler.nativeTestFunctions())
+    {
+        const SourceFile* sourceFile = compiler.ownerSourceFile(function->srcViewRef());
+        if (!sourceFile)
+            sourceFile = compiler.sourceViewFile(*function);
+        if (!sourceFile)
+            return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "selected test has no source file");
+
+        foundFirst |= sourceFile->path() == firstPath;
+        foundThird |= sourceFile->path() == thirdPath;
+    }
+
+    if (!foundFirst || !foundThird)
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "selected tests do not come from the requested source files");
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_TestProgressProtocolIsStrict)
 {
     NativeBackendBuilder::NativeTestProgressEvent event;

@@ -16,7 +16,9 @@ swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 
 Common options: `-bc <config>` selects `release`, `debug`, or `fast-debug` (default
 `fast-debug`), `--all-cfg` repeats an aggregate tool in all three, `--run-arg <value>` passes
-an argument to what gets launched. Anything else is forwarded to the compiler.
+an argument to what gets launched, and repeated `--test-file <substring>` values select a union
+of `#test` source files without removing the implementation sources they exercise. Anything else
+is forwarded to the compiler.
 
 ## How a tool is built
 
@@ -42,6 +44,7 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `swc tools\apps.swgs run sVaultDrive` | Launch one application |
 | `swc tools\scripts.swgs snake` | Launch one standalone script |
 | `swc tools\std.swgs dm test core` | Test one standard-library module |
+| `swc tools\std.swgs dm test gui --test-file htmlview.test.swg` | Test one file's `#test` functions |
 | `swc tools\unittests.swgs dm sema` | Run one compiler suite |
 
 ## Tests and builds
@@ -71,6 +74,10 @@ test campaign.
 `test` runs a module's `#test` functions and never its `#main`. `smoke` runs the real program
 for a bounded number of frames, isolated from the machine, to prove it starts and keeps going.
 A program without `#test` is smoked: testing it would report zero tests and prove nothing.
+`--test-file` filters only the `#test` functions that execute; the whole owning module still
+compiles. Repeat it to select several files. `--file-filter` is different: it filters compiler
+input files and is suitable for standalone compiler suites, not module tests that need the rest
+of their implementation.
 
 ## Maintenance
 

@@ -117,6 +117,7 @@ namespace
         addPathSet(entries, "Import API directories", cmdLine.importApiDirs);
         addPathSet(entries, "Import API files", cmdLine.importApiFiles);
         addUtf8Set(entries, "File filters", cmdLine.fileFilter);
+        addUtf8Set(entries, "Test file filters", cmdLine.testFileFilter);
         Logger::printFieldGroup(ctx, "Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 

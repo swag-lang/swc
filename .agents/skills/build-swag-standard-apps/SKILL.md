@@ -337,18 +337,21 @@ Three things this gets wrong if they are not said:
 
 ## Prove The Application
 
-For each changed app:
+Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed behavior:
 
-1. Build it with `swc tools/apps.swgs dm build sName`.
-2. Run its tests with `swc tools/apps.swgs dm test sName`.
-3. Run its bounded startup with `swc tools/apps.swgs dm smoke sName`.
-4. Run any dedicated integration script. Keep tests that need UAC, drivers, hardware, or visible
-   interaction in an explicit `tools/test-<name>-integration.swgs`; do not surprise the ordinary
-   aggregate suite with a privilege prompt.
-5. Inspect packaged output for the executable, runtime dependencies, icon, licenses, and absence
-   of installer or test debris.
-6. Run the combined repository validation required by `modify-swag-codebase` for every other
-   workspace touched by the change.
+1. During iteration, run the owning test file with
+   `swc tools/apps.swgs dm test sName --test-file <name>.test.swg`.
+2. Run the whole application's tests only when shared application state or several test families
+   changed.
+3. Build with `swc tools/apps.swgs dm build sName` when module setup, linking, resources,
+   packaging, or shipped output changed.
+4. Run `swc tools/apps.swgs dm smoke sName` when startup, the main loop, plugin loading, or packaged
+   runtime behavior changed.
+5. Run any affected dedicated integration script. Keep tests that need UAC, drivers, hardware, or
+   visible interaction in an explicit `tools/test-<name>-integration.swgs`; do not surprise the
+   ordinary aggregate suite with a privilege prompt.
+6. Inspect packaged output for the executable, runtime dependencies, icon, licenses, and absence
+   of installer or test debris when packaging changed.
 
 Finish by searching for obsolete names and absolute paths, inspecting ignored `.output` folders
 under test trees, and reducing `git status` to intentional source and asset changes.

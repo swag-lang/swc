@@ -329,3 +329,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
   with `fillRect`. `fillPolygon` routes a shape its convexity test rejects through
   `Polygon.cleanedPaths`, which is the first thing to look at for a strip whose four corners are
   nearly collinear.
+
+
+### F-157 — A body-less fragment leaves every `body {}` author rule inert
+
+- Area: std/gui
+- Found while: recording the `htmlview.floats` golden, whose page styling silently fell back to
+  the theme's dark ground because the source was a fragment
+- Observation: the parser never synthesizes the implied `<html>`, `<head>` and `<body>` elements,
+  so a fragment fed to `HtmlView.createText` that opens directly with `<style>` or content has no
+  body element at all. Every `body { ... }` author rule then matches nothing and is dropped
+  whole — margins, background, color, font-size — while rules on classes and elements that do
+  exist apply normally, which makes the failure look like a cascade defect rather than a missing
+  element. Several existing inline-source tests carry a placebo `body { margin: 0 }` that has
+  never applied; they pass because a missing body also has no default 8px margin to remove.
+- Evidence: the `htmlview.floats` golden test in
+  [htmlview.test.swg](../bin/std/modules/gui/src/tests/htmlview.test.swg) had to wrap its source
+  in explicit `<html><body>` for its page background and text color to take; the same source
+  without the wrapper renders on the theme ground with theme text.
+- Next step: synthesize the implied elements the way browsers do — open `html` and `body` when
+  content arrives outside them, route head content into a synthesized `head` — so a fragment and
+  a full document build the same tree; the `closeImplied` `.Head -> .Body` case already expects
+  those elements to exist.

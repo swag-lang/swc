@@ -30,6 +30,11 @@ public struct HtmlLayout
     documentHeight: f32
     deviceScale:    f32 = 1
     widthCache:     HashTable'(u64, f32)
+
+    // The floats currently narrowing the flow, in document coordinates. A box that establishes
+    // its own formatting context truncates the list back on exit, so a float never reaches
+    // outside the context that owns it.
+    floats: Array'HtmlFloatBand
 }
 
 // The size a box resolves its percentages against.
@@ -47,6 +52,14 @@ public struct HtmlIntrinsicWidths
 {
     min: f32
     max: f32
+}
+
+// The margin box one float occupies, and the side it is tucked against.
+#[Swag.NoDoc]
+public struct HtmlFloatBand
+{
+    left: bool
+    rect: Math.Rectangle
 }
 
 impl HtmlLayout
@@ -255,6 +268,16 @@ impl HtmlLayout
             .flushInline(parentBox, pending, false)
             let item = .buildBox(parentBox, node)
             .boxes[parentBox].children.add(item)
+            return
+        }
+
+        // A floated element is block-level whatever display it asked for, and the block flow is
+        // what takes it out of the stack.
+        if style.floatLeft or style.floatRight
+        {
+            .flushInline(parentBox, pending, false)
+            let box = .buildBox(parentBox, node)
+            .boxes[parentBox].children.add(box)
             return
         }
 
@@ -1059,8 +1082,17 @@ impl HtmlLayout
 
         .boxes[.root].rect    = {0, 0, .viewport.x, 0}
         .boxes[.root].content = {0, 0, .viewport.x, 0}
+        .floats.clear()
 
-        let contentHeight = .layoutBlockChildren(.root, 0, 0, .viewport.x, containing)
+        // A document whose root carries only inline content — bare text, or a lone image — has
+        // its items on the root box itself, with no block child to lay them out through.
+        var contentHeight = .boxes[.root].items.count ? .layoutInline(.root, 0, 0, .viewport.x) : .layoutBlockChildren(.root, 0, 0, .viewport.x, containing)
+
+        // The document is the root formatting context, so it closes past its own floats.
+        for band in .floats do
+            contentHeight = Math.max(contentHeight, band.rect.bottom())
+        .floats.clear()
+
         .boxes[.root].rect.height    = contentHeight
         .boxes[.root].content.height = contentHeight
         let paintBounds = .computePaintBounds(.root)
@@ -1115,10 +1147,25 @@ impl HtmlLayout
                 continue
             }
 
+            // A float leaves the stack: it is placed beside the flow position and the position
+            // does not advance past it.
+            let childStyle = &.styles[.boxes[child].style]
+            if childStyle.floatLeft or childStyle.floatRight
+            {
+                .placeFloat(child, contentX, y, contentWidth, inner)
+                continue
+            }
+
             let childTop = .collapsedTop(child, contentWidth)
             let gap      = first ? (sealsTop ? childTop : 0) : Math.max(previousEdge, childTop)
 
-            .layoutBlockBox(child, contentX, y + gap, contentWidth, inner)
+            // Clearance puts the box below the floats its `clear` names, whatever the margin
+            // collapsing would have produced.
+            var top = y + gap
+            if childStyle.clearLeft or childStyle.clearRight do
+                top = Math.max(top, .clearY(top, childStyle.clearLeft, childStyle.clearRight))
+
+            .layoutBlockBox(child, contentX, top, contentWidth, inner)
             y            = .boxes[child].rect.bottom()
             previousEdge = .collapsedBottom(child, contentWidth)
             first        = false
@@ -1189,6 +1236,12 @@ impl HtmlLayout
         var inner: HtmlContainingBlock
         inner.width = contentWidth
 
+        // A box that establishes its own block formatting context owns its floats: they never
+        // narrow a line outside it, and its height closes past them. This is also what makes
+        // `overflow: hidden` the classic float container.
+        let ownFormattingContext = .boxes[box].kind != .Block or style.display == .InlineBlock or style.overflowX != .Visible or style.overflowY != .Visible or style.position == .Absolute or style.position == .Fixed or style.floatLeft or style.floatRight
+        let floatMark            = .floats.count
+
         var contentHeight: f32
         switch .boxes[box].kind
         {
@@ -1219,6 +1272,15 @@ impl HtmlLayout
                 contentHeight = .layoutInline(box, contentX, contentY, contentWidth)
             else do
                 contentHeight = .layoutBlockChildren(box, contentX, contentY, contentWidth, inner)
+        }
+
+        if ownFormattingContext
+        {
+            while .floats.count > floatMark
+            {
+                contentHeight = Math.max(contentHeight, .floats.back().rect.bottom() - contentY)
+                .floats.removeBack()
+            }
         }
 
         var usedHeight = contentHeight
@@ -1333,6 +1395,101 @@ impl HtmlLayout
             let bottom = .resolveLength(style.inset.bottom, styleIndex, frame.height)
             .translate(box, 0, frame.bottom() - bottom - .boxes[box].rect.bottom())
         }
+    }
+
+    // Returns the horizontal room the active floats leave over a vertical range.
+    private mtd const floatBandRange(contentX, contentWidth, top, bottom: f32)->{ left: f32, right: f32 }
+    {
+        var result: retval
+        result.left  = contentX
+        result.right = contentX + contentWidth
+        for band in .floats
+        {
+            if band.rect.bottom() <= top or band.rect.y >= bottom do
+                continue
+            if band.left do
+                result.left = Math.max(result.left, band.rect.right())
+            else do
+                result.right = Math.min(result.right, band.rect.x)
+        }
+
+        return result
+    }
+
+    // Returns the room a line box starting at `y` has between the floats.
+    private mtd const lineBand(contentX, contentWidth, y: f32)->{ left: f32, right: f32 }
+    {
+        return .floatBandRange(contentX, contentWidth, y, y + 1)
+    }
+
+    // Returns the position just below the floats a `clear` names.
+    private mtd const clearY(y: f32, clearLeft, clearRight: bool)->f32
+    {
+        var result = y
+        for band in .floats where (band.left and clearLeft) or (!band.left and clearRight) do
+            result = Math.max(result, band.rect.bottom())
+        return result
+    }
+
+    // Returns the nearest float bottom below `y`, where the flow next widens, or `y` itself
+    // when no float reaches below it.
+    private mtd const nextFloatBottom(y: f32)->f32
+    {
+        var result = Swag.F32.Max
+        for band in .floats where band.rect.bottom() > y + 0.5 do
+            result = Math.min(result, band.rect.bottom())
+        return result == Swag.F32.Max ? y : result
+    }
+
+    // Takes a floated child out of the stack: it is laid out at shrink-to-fit width, tucked
+    // against the edge its float names among the floats already there, and registered so the
+    // following lines shorten around it.
+    private mtd placeFloat(child: u32, contentX, flowY, contentWidth: f32, containing: HtmlContainingBlock)
+    {
+        let styleIndex = .boxes[child].style
+        let style      = &.styles[styleIndex]
+
+        let intrinsic = .intrinsicWidths(child)
+        let target    = style.width.isAuto() or style.width.isNone() ? Math.clamp(intrinsic.max, 0, contentWidth) : contentWidth
+        .layoutBlockBox(child, 0, 0, target, containing)
+
+        // The band is the margin box: what it occupies is what nothing else may use.
+        let marginLeft   = style.margin.left.isAuto() ? 0 : .resolveLength(style.margin.left, styleIndex, contentWidth)
+        let marginRight  = style.margin.right.isAuto() ? 0 : .resolveLength(style.margin.right, styleIndex, contentWidth)
+        let marginTop    = .resolveLength(style.margin.top, styleIndex, contentWidth)
+        let marginBottom = .resolveLength(style.margin.bottom, styleIndex, contentWidth)
+        let bandWidth    = .boxes[child].rect.width + marginLeft + marginRight
+        let bandHeight   = .boxes[child].rect.height + marginTop + marginBottom
+
+        // The float clears its own way first, then slides down until a band is wide enough —
+        // or until no float narrows the flow any more, where overflow is the only option left.
+        var y = .clearY(flowY, style.clearLeft, style.clearRight)
+        var x = contentX
+        while true
+        {
+            let band = .floatBandRange(contentX, contentWidth, y, y + Math.max(bandHeight, 1))
+            if bandWidth <= band.right - band.left + 0.5 or (band.left <= contentX and band.right >= contentX + contentWidth)
+            {
+                x = style.floatRight ? band.right - bandWidth : band.left
+                break
+            }
+
+            let drop = .nextFloatBottom(y)
+            if drop <= y
+            {
+                x = style.floatRight ? contentX + contentWidth - bandWidth : contentX
+                break
+            }
+
+            y = drop
+        }
+
+        .translate(child, x + marginLeft - .boxes[child].rect.x, y + marginTop - .boxes[child].rect.y)
+
+        var band: HtmlFloatBand
+        band.left = style.floatLeft
+        band.rect = {x, y, bandWidth, bandHeight}
+        .floats.add(#move band)
     }
 }
 
@@ -1502,9 +1659,13 @@ private impl HtmlLayout
         var y         = contentY
         var lineStart = 0'u64
 
+        // Each line lives between the floats that overlap it, so its left edge and its width
+        // are the band's rather than the box's.
+        var band = .lineBand(contentX, contentWidth, y)
+
         // The first line starts further in when the block is indented; the room it loses is the
         // indent itself, so the break test needs no separate limit.
-        var pen = contentX + indent
+        var pen = band.left + indent
 
         let count = .boxes[box].items.count
         for index in count
@@ -1513,9 +1674,10 @@ private impl HtmlLayout
             let kind = .boxes[box].items[index].kind
             if kind == .Break
             {
-                y         += .finishLine(box, lineStart, index, y, contentX, contentWidth)
+                y         += .finishLine(box, lineStart, index, y, band.left, band.right - band.left)
                 lineStart = index + 1
-                pen       = contentX
+                band      = .lineBand(contentX, contentWidth, y)
+                pen       = band.left
                 continue
             }
 
@@ -1533,18 +1695,36 @@ private impl HtmlLayout
             let breakable  = itemStyle.whiteSpace != .NoWrap and itemStyle.whiteSpace != .Pre
             let atLineHead = index == lineStart
 
-            // A space that opens a line is collapsed away rather than indenting it.
-            if kind == .Space and atLineHead
+            // A collapsible space that opens a line is dropped rather than indenting it. A
+            // preserved one stays: it is the indentation every line of a code block starts with.
+            let keepsHeadSpace = itemStyle.whiteSpace == .Pre or itemStyle.whiteSpace == .PreWrap
+            if kind == .Space and atLineHead and !keepsHeadSpace
             {
                 lineStart = index + 1
                 continue
             }
 
-            if breakable and kind != .Space and !atLineHead and pen + width > contentX + contentWidth + 0.5
+            if breakable and kind != .Space and !atLineHead and pen + width > band.right + 0.5
             {
-                y         += .finishLine(box, lineStart, index, y, contentX, contentWidth)
+                y         += .finishLine(box, lineStart, index, y, band.left, band.right - band.left)
                 lineStart = index
-                pen       = contentX
+                band      = .lineBand(contentX, contentWidth, y)
+                pen       = band.left
+            }
+
+            // A line head that cannot fit beside the floats narrowing it slides below them; a
+            // head too wide for the full box overflows there like it always has.
+            if kind != .Space and index == lineStart and pen + width > band.right + 0.5
+            {
+                while pen + width > band.right + 0.5 and (band.left > contentX + 0.5 or band.right < contentX + contentWidth - 0.5)
+                {
+                    let drop = .nextFloatBottom(y)
+                    if drop <= y do
+                        break
+                    y    = drop
+                    band = .lineBand(contentX, contentWidth, y)
+                    pen  = band.left
+                }
             }
 
             .boxes[box].items[index].x       = pen
@@ -1553,7 +1733,7 @@ private impl HtmlLayout
         }
 
         if .hasLineContent(box, lineStart, count) do
-            y += .finishLine(box, lineStart, count, y, contentX, contentWidth)
+            y += .finishLine(box, lineStart, count, y, band.left, band.right - band.left)
         return Math.max(y - contentY, 0)
     }
 }

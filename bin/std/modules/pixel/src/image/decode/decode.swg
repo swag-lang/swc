@@ -115,6 +115,40 @@ public impl Image
         var bytes = File.readAllBytes(fileName)
         return decode(fileName, bytes.toSlice(), options)
     }
+
+    // Decodes an image carried inline in a `data:` URI.
+    //
+    // This is how HTML and SVG documents embed a picture in their own source. Only the base64
+    // form is read: `data:image/png;base64,...`. The media type selects the decoder the same way
+    // a file extension does, and the payload is decoded with [[Core.Base64.decode]]. A reference
+    // that is not an image data URI or names a media type with no decoder reports
+    // `UnsupportedFormatError`; a malformed payload reports the codec's own failure.
+    func fromDataUri(uri: string, options: DecodeOptions = {})->Image fail
+    {
+        if !Utf8.startsWith(uri, "data:image/") do
+            fail UnsupportedFormatError{"not an image data URI"}
+
+        let marker = Utf8.indexOf(uri, ";base64,")
+        if marker == Swag.U64.Max do
+            fail UnsupportedFormatError{"data URI images must use base64 encoding"}
+
+        // The media type can carry parameters of its own; only its subtype names the format.
+        var mediaType = uri[11 until marker]
+        let semicolon = Utf8.indexOf(mediaType, ';'rune)
+        if semicolon != Swag.U64.Max do
+            mediaType = mediaType[0 until semicolon]
+
+        var extension = String.from(mediaType).toLower()
+        switch extension.toString()
+        {
+        case "jpeg":                        extension = "jpg"
+        case "x-icon", "vnd.microsoft.icon": extension = "ico"
+        }
+
+        let fileName = Format.toString("embedded.%", extension.toString())
+        let bytes    = try Base64.decode(uri[marker + 8 to])
+        return decode(fileName.toString(), bytes.toSlice(), options)
+    }
 }
 
 // Initialize predefined decoders

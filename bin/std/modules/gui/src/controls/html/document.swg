@@ -394,6 +394,75 @@ impl HtmlDocument
         .nodes[parent].children.add(index)
     }
 
+    // Returns the position of `child` in `parent`'s children array.
+    mtd const childPosition(parent, child: u32)->u64
+    {
+        var position = 0'u64
+        while position < .nodes[parent].children.count and .nodes[parent].children[position] != child do
+            position += 1
+        return position
+    }
+
+    // Reports whether the node just before `sibling` under its parent is a text node.
+    mtd const precededByText(sibling: u32)->bool
+    {
+        let parent = .nodes[sibling].parent
+        if parent == HtmlNoNode do
+            return false
+
+        let position = .childPosition(parent, sibling)
+        if !position do
+            return false
+        return .nodes[.nodes[parent].children[position - 1]].kind == .Text
+    }
+
+    // Inserts an element under `sibling`'s parent, placed just before it, and returns its index.
+    //
+    // This is the foster-parenting insertion the table recovery relies on. Node indices stop
+    // following document order here, which nothing reads: the children arrays carry the order.
+    mtd insertElementBefore(sibling: u32, name: string, sourceOffset: u64)->u32
+    {
+        let parent = .nodes[sibling].parent
+        var node: HtmlNode
+        node.kind         = .Element
+        node.name         = name
+        node.tag          = HtmlDocument.tagFromName(name)
+        node.parent       = parent
+        node.sourceOffset = sourceOffset
+
+        let index = cast(u32) .nodes.count
+        .nodes.add(#move node)
+        .nodes[parent].children.insertAt(.childPosition(parent, sibling), index)
+        return index
+    }
+
+    // Inserts text just before `sibling`, joining the text node already sitting there when one
+    // does, so a fostered run fed in several pieces stays one node.
+    mtd insertTextBefore(sibling: u32, text: string, sourceOffset: u64)
+    {
+        let parent   = .nodes[sibling].parent
+        let position = .childPosition(parent, sibling)
+        if position
+        {
+            let previous = .nodes[parent].children[position - 1]
+            if .nodes[previous].kind == .Text
+            {
+                .nodes[previous].text += text
+                return
+            }
+        }
+
+        var node: HtmlNode
+        node.kind         = .Text
+        node.text         = text
+        node.parent       = parent
+        node.sourceOffset = sourceOffset
+
+        let index = cast(u32) .nodes.count
+        .nodes.add(#move node)
+        .nodes[parent].children.insertAt(position, index)
+    }
+
     // Records one attribute on an element, keeping `id` and `class` in their indexed form.
     mtd addAttribute(element: u32, name: string, value: string)
     {

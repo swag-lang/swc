@@ -7,8 +7,8 @@ Ultralight — with a browser as the reference for what a page means, while stay
 them are: an offline, script-free, network-free document viewer.
 
 It is not the repository's discovery backlog. Defects and leads belong in the `findings.*`
-files; whether the engine should live below the toolkit at all is
-[T-462](todo.gui.md#t-462--the-html-and-markdown-engines-are-inside-the-toolkit-that-does-not-use-them);
+files; where a document engine lives is decided — beside its widget, inside `gui`, as
+[todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family;
 selection and copy are shared with `MarkdownView` and stay in
 [T-419](todo.gui.md#t-419--rendered-document-views-cannot-select-or-copy-text). This file holds
 intent about the HTML engine itself. [README.md](README.md) has the whole layout.
@@ -22,15 +22,18 @@ About 8 700 lines across thirteen files, and the shape is a real engine, not a t
 translator. The parser is resumable and streams: a document fed in 48 KB chunks produces exactly
 the tree the whole file would, partial renderings appear at growing intervals, a 48 MB cap ends
 the load with a visible notice, and every node keeps its source byte offset — which is what lets
-sFileScope reveal a raw-file search hit on the exact line that draws it. The cascade is the real
+sFileScope reveal a raw-file search hit on the exact line that draws it. The tree builder
+carries the recoveries browsers standardized: misnested formatting reopens across the
+misnesting, content a table cannot hold is fostered in front of it, and an interrupted
+paragraph closes through its open inline children. The cascade is the real
 one: specificity, `!important`, source order, media queries including `prefers-color-scheme`
 answered from the host theme, custom properties with proper scope and `var()` fallbacks,
 `calc()`/`min()`/`max()`/`clamp()`, `color-mix()`, `::before`/`::after` generated boxes, and
 rules bucketed by subject so a thousand-rule sheet costs a handful of comparisons per element.
 Layout covers block flow with margin collapsing, a full inline formatting context with
-justification and vertical alignment, row and column flex, a declared-columns grid, tables sized
-from cell content, sticky positioning, and independently scrolled `overflow` regions with themed
-scrollbars. Painting prunes by subtree bounds, orders positioned siblings by stacking level, and
+justification and vertical alignment, left and right floats with line boxes shortening around
+them and `clear`, row and column flex, a declared-columns grid, tables sized from cell content,
+sticky positioning, and independently scrolled `overflow` regions with themed scrollbars. Painting prunes by subtree bounds, orders positioned siblings by stacking level, and
 answers hover on links without restyling — a documented stance: a state pseudo-class that would
 need a per-frame restyle matches never, and the viewer lights the link while painting instead.
 
@@ -38,65 +41,15 @@ Two boundaries are deliberate and permanent: nothing the document carries is eve
 the engine never opens a network connection. A document is displayed from its own bytes and its
 own folder, whatever it links to.
 
-The gaps are of four kinds: source that decodes into the wrong tree, pages that lay out or paint
-as something other than what they mean, CSS surface that is read and silently dropped, and an
-engine whose output no test ever compares to a rendered reference.
-
----
-
-## Tier A — Source that reads wrong
-
-### T-463 — A document that is not UTF-8 is drawn as mojibake
-
-- Intent: `HtmlView` reads files through `readUtf8Chunk` and nothing ever asks what encoding the
-  bytes are in. `<meta charset>` is parsed as an element and ignored, a byte-order mark is not
-  looked for, and a windows-1252 or ISO-8859-1 file — which is what most HTML saved before 2010
-  and a large share of generated reports still are — renders every accented character as garbage.
-  Every competing engine sniffs at least the BOM and the meta declaration.
-- Complete when: the BOM and a `<meta charset>` within the first kilobytes select the decoding,
-  windows-1252 and ISO-8859-1 are transcoded to UTF-8 as they stream, an undeclared document
-  falls back to windows-1252 when its bytes are not valid UTF-8, and a fixture in each encoding
-  renders its accents.
-
-### T-464 — A `>` inside a quoted attribute value ends the tag early
-
-- Intent: `HtmlParser.readMarkup` finds the end of a tag with `Utf8.indexOf(source, '>')`,
-  blind to quotes. `<a title="a > b">` closes the tag at the first `>`, the rest of the value
-  becomes document text, and every element after it parses from the wrong position. Arrows in
-  tooltips and comparison operators in data attributes are ordinary content on real pages.
-- Complete when: the tag scanner honours single and double quotes while looking for `>`, an
-  unterminated quote still terminates at some bounded point rather than eating the document, and
-  the streaming carry logic still resumes correctly when the quoted tag is cut by a chunk edge.
-
-### T-465 — The recoveries browsers standardized are missing
-
-- Intent: the tree builder handles implied end tags well (`closeImplied`), but not the two
-  recoveries the HTML standard made mandatory because the web depends on them. Misnested
-  formatting — `<b>one <i>two</b> three</i>` — pops the inline stack flat, so `three` loses its
-  italic where every browser reconstructs it (the adoption agency algorithm). And content written
-  directly inside `<table>` but outside any cell stays there, where browsers foster-parent it in
-  front of the table; here it lands inside the table structure and renders inside the grid.
-  A `<p>` interrupted while an inline element is open is not closed at all — `closeImplied`
-  stops at the first non-closable element — so an unbalanced page still builds a staircase.
-- Complete when: misnested formatting elements keep their formatting across the misnesting,
-  non-table content inside a table renders before it, an interrupted paragraph closes through
-  its open inline children, and the parser tests assert those tree shapes against what a browser
-  builds for the same source.
+The suite behind the engine is structural and visual both: trees, cascade results, hit tests and
+region scrolling on one side, and PNG goldens on the other — the comprehensive, tables and
+flex-grid fixtures, a preserved-whitespace code block, and the generated Pixel API page rendered
+whole. The gaps are of two kinds: pages that lay out or paint as something other than what they
+mean, and CSS surface that is read and silently dropped.
 
 ---
 
 ## Tier B — Pages that lay out other than they mean
-
-### T-387 — `float` and `clear` lay out as ordinary blocks
-
-- Intent: `float: left` and `float: right` are parsed into the computed style and then
-  `HtmlLayout.buildChild` stacks the box like any other block, so a floated figure takes a whole
-  line and nothing wraps around it. `clear` guards against floats that never float. This is the
-  single most visible difference between this engine and a browser on a classic article page,
-  and it was first in line when this list lived in `todo.gui.md`.
-- Complete when: a left or right float is taken out of the stack, line boxes of the following
-  content shorten around it, `clear` moves a block below the floats it names, and the
-  comprehensive fixture's floated figure matches the browser's arrangement.
 
 ### T-466 — An unbreakable run never breaks
 
@@ -152,12 +105,12 @@ engine whose output no test ever compares to a rendered reference.
 - Intent: `layoutGrid` fills declared columns left to right, row by row. `grid-column` and
   `grid-row` are parsed as bare integers and then never read by layout; spans, negative lines,
   named lines and areas, `grid-template-rows`, `auto-fill`/`auto-fit` and implicit tracks are
-  not modelled. Worse, `repeat()` is not recognized by `gridTemplate` at all: `repeat(3, 1fr)`
-  — the most common template on the web — parses as a single flexible track, so a three-column
-  gallery renders as one column.
-- Complete when: `repeat()` expands to its track list, `grid-column`/`grid-row` with spans place
-  items in an occupancy grid with implicit rows, `grid-template-rows` sizes declared rows, and
-  `html.flex-grid.html` gains placed-and-spanned cases checked against a browser.
+  not modelled. A numeric `repeat()` now unrolls in `gridTemplate`; the two automatic counts
+  still collapse to a single flexible track because they depend on the width layout discovers.
+- Complete when: `grid-column`/`grid-row` with spans place items in an occupancy grid with
+  implicit rows, `auto-fill` and `auto-fit` derive their count from the available width,
+  `grid-template-rows` sizes declared rows, and `html.flex-grid.html` gains placed-and-spanned
+  cases checked against a browser.
 
 ### T-471 — Flex containers ignore half of their alignment surface
 
@@ -213,28 +166,17 @@ engine whose output no test ever compares to a rendered reference.
 
 ## Tier B — Pages that paint other than they mean
 
-### T-475 — An image embedded in the document never draws
-
-- Intent: `HtmlImageCache.fetch` refuses `data:` URIs along with the network schemes. A `data:`
-  image is not a network fetch — the bytes are already in the file — and the self-contained
-  export every tool produces (notebooks, saved pages, generated reports) inlines every figure
-  exactly this way. Such a document renders as a grid of placeholder rectangles.
-- Complete when: a `data:` URI with a base64 or URL-encoded payload of any format `pixel`
-  decodes is drawn like a file image, a malformed payload degrades to the placeholder, and the
-  refusal of genuinely remote schemes is untouched.
-- Related: T-476
-
 ### T-476 — SVG never draws, in a toolkit that rasterizes SVG for its own theme
 
 - Intent: two halves. Inline `<svg>` is on the `isSkippedTag` list, so a page's diagrams and
   icons vanish silently. And `<img src="figure.svg">` fails because `Pixel.Image.load` has no
   SVG codec — while the same `pixel` module parses and rasterizes SVG for the theme atlas every
-  application ships. The capability exists one layer down and is not wired to either path.
+  application ships. The capability exists one layer down and is not wired to either path. A
+  `data:image/svg+xml` reference degrades to the placeholder for the same missing-codec reason.
 - Complete when: an `<img>` referencing a local `.svg` rasterizes at its laid-out size through
   the existing SVG engine, an inline `<svg>` subtree renders through the same code with its
   width and height honoured, and an SVG feature the rasterizer lacks degrades to the placeholder
   rather than to nothing.
-- Related: T-475
 
 ### T-477 — A gradient is read as no background at all
 
@@ -394,21 +336,6 @@ engine whose output no test ever compares to a rendered reference.
   cap, the recursive passes survive the bound by construction, and a malformed corpus covers
   deep nesting, truncated tags at chunk edges and pathological stylesheets with the expected
   outcome for each.
-
----
-
-## Tier E — Proof
-
-### T-490 — No rendered document is compared against a golden
-
-- Intent: `htmlview.test.swg` is a real structural suite — trees, cascade results, hit tests,
-  fragment navigation, region scrolling — and not one test compares rendered output. Every
-  layout and paint entry above would pass today's suite while drawing the wrong page, and the
-  repository already has command-stream visual goldens in `pixel` and `gui` for exactly this
-  job. The engine's largest consumer, the generated documentation, is not a fixture either.
-- Complete when: the comprehensive, tables and flex-grid fixtures render under the existing
-  visual-regression harness with goldens, one generated-documentation page joins them, and a
-  layout entry shipping above must update a golden to land.
 
 ---
 

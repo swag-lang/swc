@@ -60,8 +60,9 @@ impl HtmlImageCache
 
     // Returns the decoded image for a source reference, or null when there is none to draw.
     //
-    // Only a local reference is followed. The engine never opens a network connection for a
-    // document it is asked to display, which is what makes viewing an untrusted file safe.
+    // A `data:` reference carries its bytes in the document and decodes in place. Otherwise only
+    // a local reference is followed: the engine never opens a network connection for a document
+    // it is asked to display, which is what makes viewing an untrusted file safe.
     mtd fetch(source: string)->#null *HtmlImageEntry
     {
         if !@countof(source) do
@@ -77,7 +78,17 @@ impl HtmlImageCache
         .entries.add(#move entry)
         .index.add(String.from(source), slot)
 
-        if Utf8.contains(source, "://") or Utf8.startsWith(source, "//") or Utf8.startsWith(source, "data:") do
+        if Utf8.startsWith(source, "data:")
+        {
+            let embedded = catch Image.fromDataUri(source) as decodeError
+            if decodeError != null do
+                return null
+            .entries[slot].image  = embedded
+            .entries[slot].loaded = true
+            return &.entries[slot]
+        }
+
+        if Utf8.contains(source, "://") or Utf8.startsWith(source, "//") do
             return null
 
         let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(.basePath.toString(), source)

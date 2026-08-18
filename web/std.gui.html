@@ -43,18 +43,19 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group" open>
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">5</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">6</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Gui">Gui</a></li>
 <li><a href="#namespace_Gui_Clipboard">Gui.Clipboard</a></li>
 <li><a href="#namespace_Gui_Markdown">Gui.Markdown</a></li>
+<li><a href="#namespace_Gui_Pdf">Gui.Pdf</a></li>
 <li><a href="#namespace_Gui_Testing">Gui.Testing</a></li>
 <li><a href="#namespace_Gui_ToolTip">Gui.ToolTip</a></li>
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">174</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">182</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Gui_Clipboard_ValueFormat">Clipboard.ValueFormat</a></li>
@@ -164,6 +165,7 @@
 <li><a href="#Gui_PaintImage">Gui.PaintImage</a></li>
 <li><a href="#Gui_PalettePicker">Gui.PalettePicker</a></li>
 <li><a href="#Gui_PasswordEdit">Gui.PasswordEdit</a></li>
+<li><a href="#Gui_PdfView">Gui.PdfView</a></li>
 <li><a href="#Gui_PopupListCtrl">Gui.PopupListCtrl</a></li>
 <li><a href="#Gui_PopupListCtrlItem">Gui.PopupListCtrlItem</a></li>
 <li><a href="#Gui_PopupMenuItem">Gui.PopupMenuItem</a></li>
@@ -227,6 +229,13 @@
 <li><a href="#Gui_WrapLayoutCtrl">Gui.WrapLayoutCtrl</a></li>
 <li><a href="#Gui_Markdown_Style">Markdown.Style</a></li>
 <li><a href="#Gui_Markdown_View">Markdown.View</a></li>
+<li><a href="#Gui_Pdf_Document">Pdf.Document</a></li>
+<li><a href="#Gui_Pdf_Item">Pdf.Item</a></li>
+<li><a href="#Gui_Pdf_Metadata">Pdf.Metadata</a></li>
+<li><a href="#Gui_Pdf_Page">Pdf.Page</a></li>
+<li><a href="#Gui_Pdf_PathStrokeStyle">Pdf.PathStrokeStyle</a></li>
+<li><a href="#Gui_Pdf_Reader">Pdf.Reader</a></li>
+<li><a href="#Gui_Pdf_RenderOptions">Pdf.RenderOptions</a></li>
 <li><a href="#Gui_Testing_AutoEdit">Testing.AutoEdit</a></li>
 <li><a href="#Gui_Testing_AutoStage">Testing.AutoStage</a></li>
 <li><a href="#Gui_Testing_HeadlessHost">Testing.HeadlessHost</a></li>
@@ -234,7 +243,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Enumerations</span><span class="toc-count">97</span></summary>
+<summary><span class="toc-label">Enumerations</span><span class="toc-count">101</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Gui_CommandStateEvent_Kind">CommandStateEvent.Kind</a></li>
@@ -328,6 +337,10 @@
 <li><a href="#Gui_MouseEvent_Kind">MouseEvent.Kind</a></li>
 <li><a href="#Gui_NotifyEvent_Kind">NotifyEvent.Kind</a></li>
 <li><a href="#Gui_PaintEvent_Kind">PaintEvent.Kind</a></li>
+<li><a href="#Gui_Pdf_ItemKind">Pdf.ItemKind</a></li>
+<li><a href="#Gui_Pdf_StandardFont">Pdf.StandardFont</a></li>
+<li><a href="#Gui_Pdf_StrokeCap">Pdf.StrokeCap</a></li>
+<li><a href="#Gui_Pdf_StrokeJoin">Pdf.StrokeJoin</a></li>
 <li><a href="#Gui_RichEditLexerSwag_Style">RichEditLexerSwag.Style</a></li>
 <li><a href="#Gui_StateEvent_Kind">StateEvent.Kind</a></li>
 <li><a href="#Gui_SysCommandEvent_Kind">SysCommandEvent.Kind</a></li>
@@ -337,7 +350,7 @@
 </ul>
 </details>
 <details class="toc-group" open>
-<summary><span class="toc-label">Constants</span><span class="toc-count">10</span></summary>
+<summary><span class="toc-label">Constants</span><span class="toc-count">13</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#Gui_Arc">Gui.Arc</a></li>
@@ -350,10 +363,13 @@
 <li><a href="#Gui_ImageView_MaxZoom">ImageView.MaxZoom</a></li>
 <li><a href="#Gui_ImageView_MinZoom">ImageView.MinZoom</a></li>
 <li><a href="#Gui_PasswordEdit_MaximumByteLength">PasswordEdit.MaximumByteLength</a></li>
+<li><a href="#Gui_PdfView_MaxZoom">PdfView.MaxZoom</a></li>
+<li><a href="#Gui_PdfView_MinZoom">PdfView.MinZoom</a></li>
+<li><a href="#Gui_PdfView_WheelScrollStep">PdfView.WheelScrollStep</a></li>
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1063</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1121</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_AboutDlg_create">AboutDlg.create</a></li>
@@ -515,6 +531,14 @@
 <li><a href="#Gui_Dialog_doModal">Dialog.doModal</a></li>
 <li><a href="#Gui_Dialog_keyboardEntry">Dialog.keyboardEntry</a></li>
 <li><a href="#Gui_Dialog_view">Dialog.view</a></li>
+<li><a href="#Gui_Pdf_Document_addPage">Document.addPage</a></li>
+<li><a href="#Gui_Pdf_Document_create">Document.create</a></li>
+<li><a href="#Gui_Pdf_Document_decode">Document.decode</a></li>
+<li><a href="#Gui_Pdf_Document_editPage">Document.editPage</a></li>
+<li><a href="#Gui_Pdf_Document_encode">Document.encode</a></li>
+<li><a href="#Gui_Pdf_Document_load">Document.load</a></li>
+<li><a href="#Gui_Pdf_Document_removePage">Document.removePage</a></li>
+<li><a href="#Gui_Pdf_Document_save">Document.save</a></li>
 <li><a href="#Gui_DragContent_data">DragContent.data</a></li>
 <li><a href="#Gui_DragContent_isReady">DragContent.isReady</a></li>
 <li><a href="#Gui_DragData_addContent">DragData.addContent</a></li>
@@ -796,6 +820,18 @@
 <li><a href="#Gui_IRichEditLexer_insertRune">IRichEditLexer.insertRune</a></li>
 <li><a href="#Gui_IRichEditLexer_setup">IRichEditLexer.setup</a></li>
 <li><a href="#Gui_IRichEditLexer_setupTheme">IRichEditLexer.setupTheme</a></li>
+<li><a href="#Gui_Pdf_Item_imageValue">Item.imageValue</a></li>
+<li><a href="#Gui_Pdf_Item_itemClip">Item.itemClip</a></li>
+<li><a href="#Gui_Pdf_Item_itemFillColor">Item.itemFillColor</a></li>
+<li><a href="#Gui_Pdf_Item_itemStrokeColor">Item.itemStrokeColor</a></li>
+<li><a href="#Gui_Pdf_Item_itemTransform">Item.itemTransform</a></li>
+<li><a href="#Gui_Pdf_Item_pathStrokeStyle">Item.pathStrokeStyle</a></li>
+<li><a href="#Gui_Pdf_Item_pathStrokeWidth">Item.pathStrokeWidth</a></li>
+<li><a href="#Gui_Pdf_Item_pathUsesEvenOddFill">Item.pathUsesEvenOddFill</a></li>
+<li><a href="#Gui_Pdf_Item_pathValue">Item.pathValue</a></li>
+<li><a href="#Gui_Pdf_Item_textFont">Item.textFont</a></li>
+<li><a href="#Gui_Pdf_Item_textSize">Item.textSize</a></li>
+<li><a href="#Gui_Pdf_Item_textValue">Item.textValue</a></li>
 <li><a href="#Gui_IUndoCommand_redo">IUndoCommand.redo</a></li>
 <li><a href="#Gui_IUndoCommand_undo">IUndoCommand.undo</a></li>
 <li><a href="#Gui_IWnd_measureContent">IWnd.measureContent</a></li>
@@ -928,6 +964,21 @@
 <li><a href="#Gui_NavigationHistory_goBack">NavigationHistory.goBack</a></li>
 <li><a href="#Gui_NavigationHistory_goForward">NavigationHistory.goForward</a></li>
 <li><a href="#Gui_NavigationHistory_push">NavigationHistory.push</a></li>
+<li><a href="#Gui_Pdf_Page_addImage">Page.addImage</a></li>
+<li><a href="#Gui_Pdf_Page_addPath">Page.addPath</a></li>
+<li><a href="#Gui_Pdf_Page_addText">Page.addText</a></li>
+<li><a href="#Gui_Pdf_Page_clear">Page.clear</a></li>
+<li><a href="#Gui_Pdf_Page_create">Page.create</a></li>
+<li><a href="#Gui_Pdf_Page_removeItem">Page.removeItem</a></li>
+<li><a href="#Gui_Pdf_Page_render">Page.render</a></li>
+<li><a href="#Gui_Pdf_Page_setItemFillColor">Page.setItemFillColor</a></li>
+<li><a href="#Gui_Pdf_Page_setItemTransform">Page.setItemTransform</a></li>
+<li><a href="#Gui_Pdf_Page_setPathStrokeColor">Page.setPathStrokeColor</a></li>
+<li><a href="#Gui_Pdf_Page_setPathStrokeStyle">Page.setPathStrokeStyle</a></li>
+<li><a href="#Gui_Pdf_Page_setPathStrokeWidth">Page.setPathStrokeWidth</a></li>
+<li><a href="#Gui_Pdf_Page_setText">Page.setText</a></li>
+<li><a href="#Gui_Pdf_Page_setTextFont">Page.setTextFont</a></li>
+<li><a href="#Gui_Pdf_Page_setTextSize">Page.setTextSize</a></li>
 <li><a href="#Gui_PaintImage_draw">PaintImage.draw</a></li>
 <li><a href="#Gui_PaintImage_init">PaintImage.init</a></li>
 <li><a href="#Gui_PaintImage_opDrop">PaintImage.opDrop</a></li>
@@ -949,6 +1000,21 @@
 <li><a href="#Gui_PasswordEdit_setForm">PasswordEdit.setForm</a></li>
 <li><a href="#Gui_PasswordEdit_setIcon">PasswordEdit.setIcon</a></li>
 <li><a href="#Gui_PasswordEdit_setPlaceholder">PasswordEdit.setPlaceholder</a></li>
+<li><a href="#Gui_PdfView_actualSize">PdfView.actualSize</a></li>
+<li><a href="#Gui_PdfView_close">PdfView.close</a></li>
+<li><a href="#Gui_PdfView_create">PdfView.create</a></li>
+<li><a href="#Gui_PdfView_effectiveZoom">PdfView.effectiveZoom</a></li>
+<li><a href="#Gui_PdfView_metadata">PdfView.metadata</a></li>
+<li><a href="#Gui_PdfView_nextPage">PdfView.nextPage</a></li>
+<li><a href="#Gui_PdfView_open">PdfView.open</a></li>
+<li><a href="#Gui_PdfView_pageCount">PdfView.pageCount</a></li>
+<li><a href="#Gui_PdfView_pageSize">PdfView.pageSize</a></li>
+<li><a href="#Gui_PdfView_previousPage">PdfView.previousPage</a></li>
+<li><a href="#Gui_PdfView_setZoom">PdfView.setZoom</a></li>
+<li><a href="#Gui_PdfView_showPage">PdfView.showPage</a></li>
+<li><a href="#Gui_PdfView_zoomIn">PdfView.zoomIn</a></li>
+<li><a href="#Gui_PdfView_zoomOut">PdfView.zoomOut</a></li>
+<li><a href="#Gui_PdfView_zoomToFit">PdfView.zoomToFit</a></li>
 <li><a href="#Gui_PopupListCtrl_addItem">PopupListCtrl.addItem</a></li>
 <li><a href="#Gui_PopupListCtrl_addSeparator">PopupListCtrl.addSeparator</a></li>
 <li><a href="#Gui_PopupListCtrl_cancel">PopupListCtrl.cancel</a></li>
@@ -1033,6 +1099,10 @@
 <li><a href="#Gui_RadioButton_setChecked">RadioButton.setChecked</a></li>
 <li><a href="#Gui_RadioButton_uncheckGroupSiblings">RadioButton.uncheckGroupSiblings</a></li>
 <li><a href="#Gui_RadioButton_updateFlags">RadioButton.updateFlags</a></li>
+<li><a href="#Gui_Pdf_Reader_loadPage">Reader.loadPage</a></li>
+<li><a href="#Gui_Pdf_Reader_metadata">Reader.metadata</a></li>
+<li><a href="#Gui_Pdf_Reader_open">Reader.open</a></li>
+<li><a href="#Gui_Pdf_Reader_pageCount">Reader.pageCount</a></li>
 <li><a href="#Gui_RichEditCtrl_addMapping">RichEditCtrl.addMapping</a></li>
 <li><a href="#Gui_RichEditCtrl_addText">RichEditCtrl.addText</a></li>
 <li><a href="#Gui_RichEditCtrl_advanceRuneX">RichEditCtrl.advanceRuneX</a></li>
@@ -1183,6 +1253,10 @@
 <li><a href="#Gui_StackLayoutCtrl_applyLayout">StackLayoutCtrl.applyLayout</a></li>
 <li><a href="#Gui_StackLayoutCtrl_computeLayout">StackLayoutCtrl.computeLayout</a></li>
 <li><a href="#Gui_StackLayoutCtrl_create">StackLayoutCtrl.create</a></li>
+<li><a href="#Gui_Pdf_StandardFont_baseFontName">StandardFont.baseFontName</a></li>
+<li><a href="#Gui_Pdf_StandardFont_fromBaseName">StandardFont.fromBaseName</a></li>
+<li><a href="#Gui_Pdf_StandardFont_glyphWidth">StandardFont.glyphWidth</a></li>
+<li><a href="#Gui_Pdf_StandardFont_textWidth">StandardFont.textWidth</a></li>
 <li><a href="#Gui_ToolTip_State_contains">State.contains</a></li>
 <li><a href="#Gui_ToolTip_State_hide">State.hide</a></li>
 <li><a href="#Gui_ToolTip_State_show">State.show</a></li>
@@ -1532,7 +1606,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDragDropEvent</span>(evt: *<span class="SCst"><a href="#Gui_DragDropEvent">DragDropEvent</a></span>)
 {
     <span class="SKwd">let</span> path = evt.data.<span class="SFct">singleFile</span>()
-    <span class="SLgc">if</span> !path <span class="SLgc">or</span> !<span class="SCst"><a href="std.core.html#namespace_Core_Path">Path</a></span>.<span class="SFct">hasExtension</span>(path!, <span class="SStr">".scrypt"</span>)
+    <span class="SLgc">if</span> !path <span class="SLgc">or</span> !<span class="SCst"><a href="#Gui_Pdf_ItemKind_Path">Path</a></span>.<span class="SFct">hasExtension</span>(path!, <span class="SStr">".scrypt"</span>)
     {
         evt.accepted = <span class="SKwd">false</span>
         <span class="SLgc">return</span>
@@ -1792,6 +1866,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#namespace_Gui">Gui</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Gui_Clipboard">Gui.Clipboard</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Gui_Markdown">Gui.Markdown</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Gui_Pdf">Gui.Pdf</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Gui_Testing">Gui.Testing</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Gui_ToolTip">Gui.ToolTip</a></td></tr>
 </tbody>
@@ -2014,6 +2089,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PasswordEdit">Gui.PasswordEdit</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Edits a password without storing its plaintext in a regular text backing store.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView">Gui.PdfView</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a PDF document with viewer-oriented zooming, panning, and page navigation.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrl">Gui.PopupListCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a temporary list that commits one highlighted item or reports cancellation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrlItem">Gui.PopupListCtrlItem</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one selectable item or separator in a popup list.</p>
@@ -2139,6 +2216,20 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_Markdown_Style">Markdown.Style</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls the reading measure and typography of a <a href="#Gui_Markdown_View">Gui.Markdown.View</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Markdown_View">Markdown.View</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays Markdown as a themed, read-only document with progressive UTF-8 file loading.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document">Pdf.Document</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns an editable PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item">Pdf.Item</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one page item in Pixel's top-left coordinate system.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Metadata">Pdf.Metadata</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores the standard descriptive fields of a PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page">Pdf.Page</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one editable PDF page.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_PathStrokeStyle">Pdf.PathStrokeStyle</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes the geometry of a PDF path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader">Pdf.Reader</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a mapped PDF source and decodes its pages on demand.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_RenderOptions">Pdf.RenderOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls page rasterization.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Testing_AutoEdit">Testing.AutoEdit</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One labelled edit box of a modal to fill before accepting it.</p>
 </td></tr>
@@ -2336,6 +2427,14 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PaintEvent_Kind">PaintEvent.Kind</a></td><td><p>Identifies the phase of window painting.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_ItemKind">Pdf.ItemKind</a></td><td><p>Identifies one page item in paint order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont">Pdf.StandardFont</a></td><td><p>One of the fourteen typefaces every PDF consumer provides without an embedded font file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StrokeCap">Pdf.StrokeCap</a></td><td><p>Selects the shape at the open ends of a stroked PDF path and its dash segments.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StrokeJoin">Pdf.StrokeJoin</a></td><td><p>Selects how consecutive segments of a stroked PDF path meet.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_RichEditLexerSwag_Style">RichEditLexerSwag.Style</a></td><td><p>Identifies a syntax style emitted by the Swag lexer.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_StateEvent_Kind">StateEvent.Kind</a></td><td><p>Identifies the window-state transition.</p>
@@ -2372,6 +2471,12 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_ImageView_MinZoom">ImageView.MinZoom</a></td><td><p>Smallest supported scale.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PasswordEdit_MaximumByteLength">PasswordEdit.MaximumByteLength</a></td><td><p>Maximum number of UTF-8 plaintext bytes held by one password edit.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_MaxZoom">PdfView.MaxZoom</a></td><td><p>Largest supported scale, in logical units per PDF point.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_MinZoom">PdfView.MinZoom</a></td><td><p>Smallest supported scale, in logical units per PDF point.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_WheelScrollStep">PdfView.WheelScrollStep</a></td><td><p>Logical units scrolled per wheel notch.</p>
 </td></tr>
 </tbody>
 </table>
@@ -2696,6 +2801,22 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_Dialog_keyboardEntry">Dialog.keyboardEntry</a></td><td><p>Returns the control the box opens the keyboard on, or null to take the reading order.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Dialog_view">Dialog.view</a></td><td><p>Returns the content view above the action bar.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_addPage">Document.addPage</a></td><td><p>Appends a page and transfers its owned content into the document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_create">Document.create</a></td><td><p>Creates an empty PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_decode">Document.decode</a></td><td><p>Decodes one complete PDF byte buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_editPage">Document.editPage</a></td><td><p>Returns a mutable borrowed page for editing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_encode">Document.encode</a></td><td><p>Encodes the complete document as PDF 1.7 bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_load">Document.load</a></td><td><p>Loads and decodes every page of a PDF file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_removePage">Document.removePage</a></td><td><p>Removes the page at <span class="code-inline">index</span> and preserves the order of the remaining pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_save">Document.save</a></td><td><p>Encodes and writes the complete document to <span class="code-inline">fileName</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_DragContent_data">DragContent.data</a></td><td><p>Returns the content of the file, producing it on the first call.</p>
 </td></tr>
@@ -3258,6 +3379,30 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_IRichEditLexer_setupTheme">IRichEditLexer.setupTheme</a></td><td><p>Reapplies lexer-specific colors after the editor theme changes.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_imageValue">Item.imageValue</a></td><td><p>Returns a borrowed image for an image item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemClip">Item.itemClip</a></td><td><p>Returns the page-space region this item is confined to, or the whole page when the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemFillColor">Item.itemFillColor</a></td><td><p>Returns the fill color of text and filled paths.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemStrokeColor">Item.itemStrokeColor</a></td><td><p>Returns the stroke color of a stroked path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemTransform">Item.itemTransform</a></td><td><p>Returns the transform applied when this item is rendered.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathStrokeStyle">Item.pathStrokeStyle</a></td><td><p>Returns the stroke geometry of a path item, or the default solid style for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathStrokeWidth">Item.pathStrokeWidth</a></td><td><p>Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathUsesEvenOddFill">Item.pathUsesEvenOddFill</a></td><td><p>Returns whether a filled path uses the alternating rule rather than the winding count.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathValue">Item.pathValue</a></td><td><p>Returns a borrowed path list for a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_textFont">Item.textFont</a></td><td><p>Returns the standard face this text is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_textSize">Item.textSize</a></td><td><p>Returns the text size in PDF points, or zero for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_textValue">Item.textValue</a></td><td><p>Returns the text carried by a text item, or an empty string for another kind.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_IUndoCommand_redo">IUndoCommand.redo</a></td><td><p>Applies or reapplies the change.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_IUndoCommand_undo">IUndoCommand.undo</a></td><td><p>Reverts the change.</p>
@@ -3522,6 +3667,36 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_NavigationHistory_push">NavigationHistory.push</a></td><td><p>Appends <span class="code-inline">path</span>, discarding any forward branch after the current position.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_addImage">Page.addImage</a></td><td><p>Appends one raster image in the requested page rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_addPath">Page.addPath</a></td><td><p>Appends one vector path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_addText">Page.addText</a></td><td><p>Appends one UTF-8 text run.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_clear">Page.clear</a></td><td><p>Removes every page item while preserving the page dimensions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_create">Page.create</a></td><td><p>Creates an empty page with positive dimensions in PDF points.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_removeItem">Page.removeItem</a></td><td><p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_render">Page.render</a></td><td><p>Renders the complete page to an owned Pixel image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setItemFillColor">Page.setItemFillColor</a></td><td><p>Replaces the fill color of a text or path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setItemTransform">Page.setItemTransform</a></td><td><p>Replaces the transform applied to an item during rendering and writing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setPathStrokeColor">Page.setPathStrokeColor</a></td><td><p>Replaces the stroke color of a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setPathStrokeStyle">Page.setPathStrokeStyle</a></td><td><p>Replaces the cap, join, miter, and dash geometry of a path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setPathStrokeWidth">Page.setPathStrokeWidth</a></td><td><p>Replaces the non-negative stroke width of a path item and enables its stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setText">Page.setText</a></td><td><p>Replaces the UTF-8 content of a text item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setTextFont">Page.setTextFont</a></td><td><p>Replaces the standard face a text item is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setTextSize">Page.setTextSize</a></td><td><p>Replaces the point size of a text item.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_PaintImage_draw">PaintImage.draw</a></td><td><p>Renders one callback and returns the resulting image.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PaintImage_init">PaintImage.init</a></td><td><p>Initializes an offscreen target of <span class="code-inline">w</span> by <span class="code-inline">h</span> pixels.</p>
@@ -3563,6 +3738,36 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_PasswordEdit_setIcon">PasswordEdit.setIcon</a></td><td><p>Changes the leading icon.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PasswordEdit_setPlaceholder">PasswordEdit.setPlaceholder</a></td><td><p>Changes the placeholder displayed while the password is empty.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_actualSize">PdfView.actualSize</a></td><td><p>Shows the page at actual size: one PDF point per 1/96 of a logical inch.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_close">PdfView.close</a></td><td><p>Releases the displayed page and its raster while keeping the widget alive.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_create">PdfView.create</a></td><td><p>Creates an empty PDF viewer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_effectiveZoom">PdfView.effectiveZoom</a></td><td><p>Returns the scale the page is currently shown at, in logical units per PDF point.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_metadata">PdfView.metadata</a></td><td><p>Returns the document's descriptive fields.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_nextPage">PdfView.nextPage</a></td><td><p>Shows the next page when one exists.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_open">PdfView.open</a></td><td><p>Opens a PDF file and shows its first page fitted to the viewport.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_pageCount">PdfView.pageCount</a></td><td><p>Returns the number of pages of the open document, or zero when none is open.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_pageSize">PdfView.pageSize</a></td><td><p>Returns the displayed page's dimensions in PDF points.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_previousPage">PdfView.previousPage</a></td><td><p>Shows the previous page when one exists.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_setZoom">PdfView.setZoom</a></td><td><p>Sets an explicit page scale and leaves fitted mode.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_showPage">PdfView.showPage</a></td><td><p>Decodes and shows the page at zero-based <span class="code-inline">index</span>, preserving the zoom mode.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_zoomIn">PdfView.zoomIn</a></td><td><p>Increases the page scale by one viewer step.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_zoomOut">PdfView.zoomOut</a></td><td><p>Decreases the page scale by one viewer step.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_zoomToFit">PdfView.zoomToFit</a></td><td><p>Fits the complete page inside the viewport and recentres it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrl_addItem">PopupListCtrl.addItem</a></td><td><p>Appends a selectable item and returns its stable heap object.</p>
 </td></tr>
@@ -3731,6 +3936,14 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_RadioButton_uncheckGroupSiblings">RadioButton.uncheckGroupSiblings</a></td><td><p>Clears selected sibling radios from the same non-null group.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_RadioButton_updateFlags">RadioButton.updateFlags</a></td><td><p>Adds and removes marker placement options, then repaints the button.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_loadPage">Reader.loadPage</a></td><td><p>Decodes and returns the page at zero-based <span class="code-inline">index</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_metadata">Reader.metadata</a></td><td><p>Returns the document's descriptive fields.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_open">Reader.open</a></td><td><p>Opens a PDF file through a read-only mapping and indexes its pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_pageCount">Reader.pageCount</a></td><td><p>Returns the number of pages found in the page tree.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_RichEditCtrl_addMapping">RichEditCtrl.addMapping</a></td><td><p>Binds <span class="code-inline">key</span> and <span class="code-inline">modifiers</span> to <span class="code-inline">cmd</span>; existing entries are retained.</p>
 </td></tr>
@@ -4030,6 +4243,14 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_StackLayoutCtrl_computeLayout">StackLayoutCtrl.computeLayout</a></td><td><p>Recomputes the arrangement of all visible children.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_StackLayoutCtrl_create">StackLayoutCtrl.create</a></td><td><p>Creates an empty stack using <span class="code-inline">mode</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_baseFontName">StandardFont.baseFontName</a></td><td><p>Returns the <span class="code-inline">BaseFont</span> name a PDF font dictionary uses for this face.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_fromBaseName">StandardFont.fromBaseName</a></td><td><p>Returns the face a <span class="code-inline">BaseFont</span> name selects, and whether the name was recognized.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_glyphWidth">StandardFont.glyphWidth</a></td><td><p>Returns the advance width of one character, in fractions of the text size.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_textWidth">StandardFont.textWidth</a></td><td><p>Returns the advance width of <span class="code-inline">text</span> when drawn at <span class="code-inline">size</span> PDF points.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ToolTip_State_contains">State.contains</a></td><td><p>Whether <span class="code-inline">wnd</span> is the visible tip or part of it.</p>
 </td></tr>
@@ -4517,6 +4738,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tbody>
 <tr><td class="code-type"><a href="#namespace_Gui_Clipboard">Gui.Clipboard</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Gui_Markdown">Gui.Markdown</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Gui_Pdf">Gui.Pdf</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Gui_Testing">Gui.Testing</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Gui_ToolTip">Gui.ToolTip</a></td></tr>
 </tbody>
@@ -4736,6 +4958,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_PalettePicker">Gui.PalettePicker</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a wrapping palette and lets the user select one color.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PasswordEdit">Gui.PasswordEdit</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Edits a password without storing its plaintext in a regular text backing store.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView">Gui.PdfView</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a PDF document with viewer-oriented zooming, panning, and page navigation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrl">Gui.PopupListCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a temporary list that commits one highlighted item or reports cancellation.</p>
 </td></tr>
@@ -5143,6 +5367,44 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_Markdown_Style">Markdown.Style</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls the reading measure and typography of a <a href="#Gui_Markdown_View">Gui.Markdown.View</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Markdown_View">Markdown.View</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays Markdown as a themed, read-only document with progressive UTF-8 file loading.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Gui_Pdf" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Gui.Pdf</span> <a class="api-item-permalink" href="#namespace_Gui_Pdf" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Gui.Pdf</span>.</p>
+<h3 id="namespace_Gui_Pdf_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document">Pdf.Document</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns an editable PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item">Pdf.Item</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one page item in Pixel's top-left coordinate system.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Metadata">Pdf.Metadata</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores the standard descriptive fields of a PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page">Pdf.Page</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one editable PDF page.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_PathStrokeStyle">Pdf.PathStrokeStyle</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes the geometry of a PDF path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader">Pdf.Reader</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a mapped PDF source and decodes its pages on demand.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_RenderOptions">Pdf.RenderOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls page rasterization.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Gui_Pdf_enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_Pdf_ItemKind">Pdf.ItemKind</a></td><td><p>Identifies one page item in paint order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont">Pdf.StandardFont</a></td><td><p>One of the fourteen typefaces every PDF consumer provides without an embedded font file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StrokeCap">Pdf.StrokeCap</a></td><td><p>Selects the shape at the open ends of a stroked PDF path and its dash segments.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StrokeJoin">Pdf.StrokeJoin</a></td><td><p>Selects how consecutive segments of a stroked PDF path meet.</p>
 </td></tr>
 </tbody>
 </table>
@@ -7817,7 +8079,7 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Gui_Item" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Item</span> <a class="api-item-permalink" href="#Gui_Item" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/item.swg#L7">src</a></div>
 <p>Common label, icon, command, and caller-data payload used by item controls.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Item">Item</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Item</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -8829,6 +9091,86 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <tr><td class="code-type"><a href="#Gui_PasswordEdit_setIcon">setIcon</a></td><td><p>Changes the leading icon.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PasswordEdit_setPlaceholder">setPlaceholder</a></td><td><p>Changes the placeholder displayed while the password is empty.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_PdfView" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PdfView</span> <a class="api-item-permalink" href="#Gui_PdfView" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L24">src</a></div>
+<p>Displays a PDF document with viewer-oriented zooming, panning, and page navigation.</p>
+<p>The view opens a document through <a href="#Gui_Pdf_Reader">Gui.Pdf.Reader</a>, so pages are decoded on demand and the displayed page stays decoded between paints. A page is vector art: the view rasterizes it at the exact scale it is shown at — zoom and monitor scale included — so sharpness follows the display rather than the scale the page happened to be rendered at first. Past a fixed pixel budget only the visible region is rasterized, which is what keeps a deep zoom costing the viewport rather than the page.</p>
+<p>The mouse wheel scrolls, <span class="code-inline">Ctrl</span> and the wheel zoom around the pointer, dragging pans, a double click toggles between fitted and actual size, and the arrow, page, <span class="code-inline">Home</span> and <span class="code-inline">End</span> keys turn pages. Embedded actions, scripts, and forms are never executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> view = <span class="SCst"><a href="#Gui_PdfView">PdfView</a></span>.<span class="SFct">create</span>(parent)
+<span class="SKwd">try</span> view.<span class="SFct">open</span>(<span class="SStr">"document.pdf"</span>)
+view.<span class="SFct">setZoom</span>(<span class="SNum">2.0</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_PdfView">PdfView</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_PdfView_isFitted" class="code-type">isFitted</td><td class="code-type">bool</td><td><p>Whether the page is scaled to the available viewport.</p>
+</td></tr>
+<tr><td id="Gui_PdfView_pageIndex" class="code-type">pageIndex</td><td class="code-type">u64</td><td><p>Zero-based index of the displayed page.</p>
+</td></tr>
+<tr><td id="Gui_PdfView_panOffset" class="code-type">panOffset</td><td class="code-type"><a href="std.core.html#Core_Math_Point">Core.Math.Point</a></td><td><p>Page-centre offset from the viewport centre, in logical units.</p>
+</td></tr>
+<tr><td id="Gui_PdfView_sigPageChanged" class="code-type">sigPageChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PdfView">Gui.PdfView</a>))</td><td><p>Emitted after the displayed page changes.</p>
+</td></tr>
+<tr><td id="Gui_PdfView_sigRenderError" class="code-type">sigRenderError</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PdfView">Gui.PdfView</a>, string))</td><td><p>Emitted when a page cannot be decoded or rasterized.</p>
+</td></tr>
+<tr><td id="Gui_PdfView_sigZoomChanged" class="code-type">sigZoomChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PdfView">Gui.PdfView</a>))</td><td><p>Emitted after the effective zoom changes.</p>
+</td></tr>
+<tr><td id="Gui_PdfView_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
+</td></tr>
+<tr><td id="Gui_PdfView_zoom" class="code-type">zoom</td><td class="code-type">f32</td><td><p>Requested logical units per PDF point outside fitted mode.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_PdfView_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_PdfView_MaxZoom">MaxZoom</a></td><td><p>Largest supported scale, in logical units per PDF point.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_MinZoom">MinZoom</a></td><td><p>Smallest supported scale, in logical units per PDF point.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_WheelScrollStep">WheelScrollStep</a></td><td><p>Logical units scrolled per wheel notch.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_PdfView_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_PdfView_actualSize">actualSize</a></td><td><p>Shows the page at actual size: one PDF point per 1/96 of a logical inch.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_close">close</a></td><td><p>Releases the displayed page and its raster while keeping the widget alive.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_create">create</a></td><td><p>Creates an empty PDF viewer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_effectiveZoom">effectiveZoom</a></td><td><p>Returns the scale the page is currently shown at, in logical units per PDF point.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_metadata">metadata</a></td><td><p>Returns the document's descriptive fields.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_nextPage">nextPage</a></td><td><p>Shows the next page when one exists.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_open">open</a></td><td><p>Opens a PDF file and shows its first page fitted to the viewport.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_pageCount">pageCount</a></td><td><p>Returns the number of pages of the open document, or zero when none is open.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_pageSize">pageSize</a></td><td><p>Returns the displayed page's dimensions in PDF points.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_previousPage">previousPage</a></td><td><p>Shows the previous page when one exists.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_setZoom">setZoom</a></td><td><p>Sets an explicit page scale and leaves fitted mode.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_showPage">showPage</a></td><td><p>Decodes and shows the page at zero-based <span class="code-inline">index</span>, preserving the zoom mode.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_zoomIn">zoomIn</a></td><td><p>Increases the page scale by one viewer step.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_zoomOut">zoomOut</a></td><td><p>Decreases the page scale by one viewer step.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PdfView_zoomToFit">zoomToFit</a></td><td><p>Fits the complete page inside the viewport and recentres it.</p>
 </td></tr>
 </tbody>
 </table>
@@ -12719,6 +13061,235 @@ busy.<span class="SFct">hide</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_Pdf_Document" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Document</span> <a class="api-item-permalink" href="#Gui_Pdf_Document" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L22">src</a></div>
+<p>Owns an editable PDF document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Pdf_Document">Document</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_Document_metadata" class="code-type">metadata</td><td class="code-type"><a href="#Gui_Pdf_Metadata">Gui.Pdf.Metadata</a></td><td><p>Descriptive document fields.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Document_pages" class="code-type">pages</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Gui_Pdf_Page">Gui.Pdf.Page</a>)</td><td><p>Pages in display order.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_Pdf_Document_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_addPage">addPage</a></td><td><p>Appends a page and transfers its owned content into the document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_create">create</a></td><td><p>Creates an empty PDF document.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_decode">decode</a></td><td><p>Decodes one complete PDF byte buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_editPage">editPage</a></td><td><p>Returns a mutable borrowed page for editing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_encode">encode</a></td><td><p>Encodes the complete document as PDF 1.7 bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_load">load</a></td><td><p>Loads and decodes every page of a PDF file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_removePage">removePage</a></td><td><p>Removes the page at <span class="code-inline">index</span> and preserves the order of the remaining pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Document_save">save</a></td><td><p>Encodes and writes the complete document to <span class="code-inline">fileName</span>.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_Pdf_Item" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Item</span> <a class="api-item-permalink" href="#Gui_Pdf_Item" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L49">src</a></div>
+<p>Describes one page item in Pixel's top-left coordinate system.</p>
+<p>Use the matching [[Pdf.Page.addText]], [[Pdf.Page.addPath]], or [[Pdf.Page.addImage]] operation to construct an item. Fields unrelated to <span class="code-inline">kind</span> retain their defaults.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Item</span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_Item_kind" class="code-type">kind</td><td class="code-type"><a href="#Gui_Pdf_ItemKind">Gui.Pdf.ItemKind</a></td><td><p>Active item representation.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_Pdf_Item_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_imageValue">imageValue</a></td><td><p>Returns a borrowed image for an image item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemClip">itemClip</a></td><td><p>Returns the page-space region this item is confined to, or the whole page when the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemFillColor">itemFillColor</a></td><td><p>Returns the fill color of text and filled paths.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemStrokeColor">itemStrokeColor</a></td><td><p>Returns the stroke color of a stroked path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_itemTransform">itemTransform</a></td><td><p>Returns the transform applied when this item is rendered.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathStrokeStyle">pathStrokeStyle</a></td><td><p>Returns the stroke geometry of a path item, or the default solid style for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathStrokeWidth">pathStrokeWidth</a></td><td><p>Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathUsesEvenOddFill">pathUsesEvenOddFill</a></td><td><p>Returns whether a filled path uses the alternating rule rather than the winding count.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_pathValue">pathValue</a></td><td><p>Returns a borrowed path list for a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_textFont">textFont</a></td><td><p>Returns the standard face this text is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_textSize">textSize</a></td><td><p>Returns the text size in PDF points, or zero for another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Item_textValue">textValue</a></td><td><p>Returns the text carried by a text item, or an empty string for another kind.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_Pdf_Metadata" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Metadata</span> <a class="api-item-permalink" href="#Gui_Pdf_Metadata" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L8">src</a></div>
+<p>Stores the standard descriptive fields of a PDF document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Pdf_Metadata">Metadata</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_Metadata_author" class="code-type">author</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Person or organization that created the content.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Metadata_creator" class="code-type">creator</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Application that created the source content.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Metadata_keywords" class="code-type">keywords</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Search terms associated with the document.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Metadata_producer" class="code-type">producer</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Application that wrote the PDF representation.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Metadata_subject" class="code-type">subject</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Short description of the document.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Metadata_title" class="code-type">title</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Document title.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_Pdf_Page" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Page</span> <a class="api-item-permalink" href="#Gui_Pdf_Page" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L46">src</a></div>
+<p>Stores one editable PDF page.</p>
+<p>Dimensions and item coordinates are expressed in PDF points, with an origin at the top-left. Items are painted in array order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Pdf_Page">Page</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_Page_height" class="code-type">height</td><td class="code-type">f32</td><td><p>Page height in PDF points.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Page_items" class="code-type">items</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Gui_Pdf_Item">Gui.Pdf.Item</a>)</td><td><p>Page content in paint order.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_Page_width" class="code-type">width</td><td class="code-type">f32</td><td><p>Page width in PDF points.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_Pdf_Page_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_addImage">addImage</a></td><td><p>Appends one raster image in the requested page rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_addPath">addPath</a></td><td><p>Appends one vector path.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_addText">addText</a></td><td><p>Appends one UTF-8 text run.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_clear">clear</a></td><td><p>Removes every page item while preserving the page dimensions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_create">create</a></td><td><p>Creates an empty page with positive dimensions in PDF points.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_removeItem">removeItem</a></td><td><p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_render">render</a></td><td><p>Renders the complete page to an owned Pixel image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setItemFillColor">setItemFillColor</a></td><td><p>Replaces the fill color of a text or path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setItemTransform">setItemTransform</a></td><td><p>Replaces the transform applied to an item during rendering and writing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setPathStrokeColor">setPathStrokeColor</a></td><td><p>Replaces the stroke color of a path item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setPathStrokeStyle">setPathStrokeStyle</a></td><td><p>Replaces the cap, join, miter, and dash geometry of a path stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setPathStrokeWidth">setPathStrokeWidth</a></td><td><p>Replaces the non-negative stroke width of a path item and enables its stroke.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setText">setText</a></td><td><p>Replaces the UTF-8 content of a text item.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setTextFont">setTextFont</a></td><td><p>Replaces the standard face a text item is written with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_setTextSize">setTextSize</a></td><td><p>Replaces the point size of a text item.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_Pdf_PathStrokeStyle" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.PathStrokeStyle</span> <a class="api-item-permalink" href="#Gui_Pdf_PathStrokeStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L32">src</a></div>
+<p>Describes the geometry of a PDF path stroke.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Pdf_PathStrokeStyle">PathStrokeStyle</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_PathStrokeStyle_cap" class="code-type">cap</td><td class="code-type"><a href="#Gui_Pdf_StrokeCap">Gui.Pdf.StrokeCap</a></td><td><p>Shape at open path ends and dash ends.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_PathStrokeStyle_dashPattern" class="code-type">dashPattern</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(f32)</td><td><p>Alternating painted and blank lengths in PDF points; empty means solid.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_PathStrokeStyle_dashPhase" class="code-type">dashPhase</td><td class="code-type">f32</td><td><p>Signed distance into the repeated dash pattern in PDF points.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_PathStrokeStyle_join" class="code-type">join</td><td class="code-type"><a href="#Gui_Pdf_StrokeJoin">Gui.Pdf.StrokeJoin</a></td><td><p>Shape between consecutive segments.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_PathStrokeStyle_miterLimit" class="code-type">miterLimit</td><td class="code-type">f32</td><td><p>Maximum miter length relative to the stroke width; at least one.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_Pdf_Reader" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Reader</span> <a class="api-item-permalink" href="#Gui_Pdf_Reader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/reader.swg#L22">src</a></div>
+<p>Owns a mapped PDF source and decodes its pages on demand.</p>
+<p>Opening indexes the object and page trees but does not decompress page content, images, or fonts. Each call to [[Pdf.Reader.loadPage]] returns an independent owned page; releasing that page releases its decoded resources without affecting this reader.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque, Swag.NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Pdf_Reader">Reader</a></span></span></div>
+</section>
+<h3 id="Gui_Pdf_Reader_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_loadPage">loadPage</a></td><td><p>Decodes and returns the page at zero-based <span class="code-inline">index</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_metadata">metadata</a></td><td><p>Returns the document's descriptive fields.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_open">open</a></td><td><p>Opens a PDF file through a read-only mapping and indexes its pages.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Reader_pageCount">pageCount</a></td><td><p>Returns the number of pages found in the page tree.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_Pdf_RenderOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.RenderOptions</span> <a class="api-item-permalink" href="#Gui_Pdf_RenderOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/render.swg#L8">src</a></div>
+<p>Controls page rasterization.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Pdf_RenderOptions">RenderOptions</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_RenderOptions_background" class="code-type">background</td><td class="code-type"><a href="std.pixel.html#Pixel_Color">Pixel.Color</a></td><td><p>Ground painted before page content.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_RenderOptions_fallbackFontFile" class="code-type">fallbackFontFile</td><td class="code-type">string</td><td><p>Optional TrueType font used when a PDF font cannot be decoded or safely addressed.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_RenderOptions_maxDimension" class="code-type">maxDimension</td><td class="code-type">s32</td><td><p>Largest accepted output width or height in pixels.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_RenderOptions_maxPixels" class="code-type">maxPixels</td><td class="code-type">u64</td><td><p>Largest accepted output pixel count.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_RenderOptions_scale" class="code-type">scale</td><td class="code-type">f32</td><td><p>Output pixels per PDF point.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_RenderOptions_sourceRect">sourceRect</a></td><td class="code-type"><a href="std.core.html#Core_Math_Rectangle">Core.Math.Rectangle</a></td><td><p>Page region to rasterize, in PDF points from the page's top-left corner. An empty</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_Pdf_RenderOptions_member-details">Field details</h3>
+<div class="api-member-details">
+<section class="api-member-detail"><h4 id="Gui_Pdf_RenderOptions_sourceRect"><span class="api-member-name">sourceRect</span><a class="api-member-permalink" href="#Gui_Pdf_RenderOptions_sourceRect" aria-label="Permalink">#</a></h4>
+<p>Page region to rasterize, in PDF points from the page's top-left corner. An empty rectangle renders the complete page. A viewer zooming into one part of a page renders that part alone, so the cost of a deep zoom is the visible region, never the page.</p>
+</section>
+</div>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Gui_Testing_AutoEdit" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Testing.AutoEdit</span> <a class="api-item-permalink" href="#Gui_Testing_AutoEdit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/headless.swg#L8">src</a></div>
 <p>One labelled edit box of a modal to fill before accepting it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Testing_AutoEdit">AutoEdit</a></span></span></div>
@@ -15016,6 +15587,107 @@ busy.<span class="SFct">hide</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Gui_Pdf_ItemKind" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.ItemKind</span> <a class="api-item-permalink" href="#Gui_Pdf_ItemKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L8">src</a></div>
+<p>Identifies one page item in paint order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_Pdf_ItemKind">ItemKind</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_ItemKind_Image" class="code-type">Image</td><td><p>One decoded raster image.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_ItemKind_Path" class="code-type">Path</td><td><p>One filled and/or stroked vector path.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_ItemKind_Text" class="code-type">Text</td><td><p>A UTF-8 text run.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Gui_Pdf_StandardFont" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.StandardFont</span> <a class="api-item-permalink" href="#Gui_Pdf_StandardFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/standardfont.swg#L12">src</a></div>
+<p>One of the fourteen typefaces every PDF consumer provides without an embedded font file.</p>
+<p>The module writes text with these faces only, so a document it produces carries no font program and stays small. Metrics come from the built-in tables in this file, so text can be measured without reading a font from the system.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_Pdf_StandardFont">StandardFont</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_StandardFont_Courier" class="code-type">Courier</td><td><p>Fixed pitch, regular.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_CourierBold" class="code-type">CourierBold</td><td><p>Fixed pitch, bold.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_CourierBoldOblique" class="code-type">CourierBoldOblique</td><td><p>Fixed pitch, bold and slanted.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_CourierOblique" class="code-type">CourierOblique</td><td><p>Fixed pitch, slanted.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_Helvetica" class="code-type">Helvetica</td><td><p>Sans-serif, regular.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_HelveticaBold" class="code-type">HelveticaBold</td><td><p>Sans-serif, bold.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_HelveticaBoldOblique" class="code-type">HelveticaBoldOblique</td><td><p>Sans-serif, bold and slanted.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_HelveticaOblique" class="code-type">HelveticaOblique</td><td><p>Sans-serif, slanted.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_TimesBold" class="code-type">TimesBold</td><td><p>Serif, bold.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_TimesBoldItalic" class="code-type">TimesBoldItalic</td><td><p>Serif, bold and italic.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_TimesItalic" class="code-type">TimesItalic</td><td><p>Serif, italic.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StandardFont_TimesRoman" class="code-type">TimesRoman</td><td><p>Serif, regular.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_Pdf_StandardFont_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_baseFontName">baseFontName</a></td><td><p>Returns the <span class="code-inline">BaseFont</span> name a PDF font dictionary uses for this face.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_fromBaseName">fromBaseName</a></td><td><p>Returns the face a <span class="code-inline">BaseFont</span> name selects, and whether the name was recognized.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_glyphWidth">glyphWidth</a></td><td><p>Returns the advance width of one character, in fractions of the text size.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_StandardFont_textWidth">textWidth</a></td><td><p>Returns the advance width of <span class="code-inline">text</span> when drawn at <span class="code-inline">size</span> PDF points.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Gui_Pdf_StrokeCap" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.StrokeCap</span> <a class="api-item-permalink" href="#Gui_Pdf_StrokeCap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L16">src</a></div>
+<p>Selects the shape at the open ends of a stroked PDF path and its dash segments.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_Pdf_StrokeCap">StrokeCap</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_StrokeCap_Butt" class="code-type">Butt</td><td><p>End exactly at the path endpoint.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StrokeCap_Round" class="code-type">Round</td><td><p>Add a semicircular cap.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StrokeCap_Square" class="code-type">Square</td><td><p>Extend by half the stroke width with a square cap.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Gui_Pdf_StrokeJoin" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pdf.StrokeJoin</span> <a class="api-item-permalink" href="#Gui_Pdf_StrokeJoin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L24">src</a></div>
+<p>Selects how consecutive segments of a stroked PDF path meet.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_Pdf_StrokeJoin">StrokeJoin</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_Pdf_StrokeJoin_Bevel" class="code-type">Bevel</td><td><p>Cut the outer corner with a straight edge.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StrokeJoin_Miter" class="code-type">Miter</td><td><p>Extend the outer edges until the miter limit, then bevel the corner.</p>
+</td></tr>
+<tr><td id="Gui_Pdf_StrokeJoin_Round" class="code-type">Round</td><td><p>Join the segments with a circular arc.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Gui_RichEditLexerSwag_Style" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">RichEditLexerSwag.Style</span> <a class="api-item-permalink" href="#Gui_RichEditLexerSwag_Style" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/richedit/lexerswag.swg#L13">src</a></div>
 <p>Identifies a syntax style emitted by the Swag lexer.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Incomplete]</span>
@@ -15185,17 +15857,32 @@ busy.<span class="SFct">hide</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gui_ImageView_MaxZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">ImageView.MaxZoom</span> <a class="api-item-permalink" href="#Gui_ImageView_MaxZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L186">src</a></div>
 <p>Largest supported scale.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_ImageView_MaxZoom">MaxZoom</a></span> = <span class="SNum">64.0</span>'<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MaxZoom</span> = <span class="SNum">64.0</span>'<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gui_ImageView_MinZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">ImageView.MinZoom</span> <a class="api-item-permalink" href="#Gui_ImageView_MinZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L185">src</a></div>
 <p>Smallest supported scale.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_ImageView_MinZoom">MinZoom</a></span> = <span class="SNum">0.02</span>'<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MinZoom</span> = <span class="SNum">0.02</span>'<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gui_PasswordEdit_MaximumByteLength" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PasswordEdit.MaximumByteLength</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_MaximumByteLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/passwordedit.swg#L298">src</a></div>
 <p>Maximum number of UTF-8 plaintext bytes held by one password edit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_PasswordEdit_MaximumByteLength">MaximumByteLength</a></span> = <span class="SNum">1024</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Gui_PdfView_MaxZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.MaxZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_MaxZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L326">src</a></div>
+<p>Largest supported scale, in logical units per PDF point.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MaxZoom</span>         = <span class="SNum">64.0</span>'<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Gui_PdfView_MinZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.MinZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_MinZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L325">src</a></div>
+<p>Smallest supported scale, in logical units per PDF point.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MinZoom</span>         = <span class="SNum">0.05</span>'<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Gui_PdfView_WheelScrollStep" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.WheelScrollStep</span> <a class="api-item-permalink" href="#Gui_PdfView_WheelScrollStep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L327">src</a></div>
+<p>Logical units scrolled per wheel notch.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_PdfView_WheelScrollStep">WheelScrollStep</a></span> = <span class="SNum">60.0</span>'<span class="STpe">f32</span></span></div>
 </section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
@@ -15498,7 +16185,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="api-item api-item-func"><span id="Gui_Application_setAppIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setAppIcon</span> <a class="api-item-permalink" href="#Gui_Application_setAppIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1014">src</a></div>
 <p>Selects the application icon before the first surface is created.</p>
 <p>The image becomes the native window icon — taskbar, task switcher, native caption — and the mark a drawn caption shows beside its title. A surface that wants another one there overrides it with <a href="#Gui_Surface_setIcon">Gui.Surface.setIcon</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAppIcon</span>(img: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAppIcon</span>(img: <span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Application_setFrameCursor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setFrameCursor</span> <a class="api-item-permalink" href="#Gui_Application_setFrameCursor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1472">src</a></div>
@@ -15752,7 +16439,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Clipboard_addImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.addImage</span> <a class="api-item-permalink" href="#Gui_Clipboard_addImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L144">src</a></div>
 <p>Replaces the clipboard contents with <span class="code-inline">image</span> in native bitmap and PNG formats.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addImage</span>(image: <span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addImage</span>(image: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Clipboard_addString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.addString</span> <a class="api-item-permalink" href="#Gui_Clipboard_addString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L273">src</a></div>
@@ -15777,7 +16464,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Clipboard_getImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.getImage</span> <a class="api-item-permalink" href="#Gui_Clipboard_getImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L210">src</a></div>
 <p>Returns a decoded copy of the clipboard image, or an invalid image when unavailable.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getImage</span>()-&gt;<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getImage</span>()-&gt;<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Clipboard_getString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.getString</span> <a class="api-item-permalink" href="#Gui_Clipboard_getString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L309">src</a></div>
@@ -16042,6 +16729,50 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">view</span>()-&gt;*<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_addPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.addPage</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_addPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L68">src</a></div>
+<p>Appends a page and transfers its owned content into the document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPage</span>(page: <span class="SItr">#move</span> <span class="SCst"><a href="#Gui_Pdf_Page">Page</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.create</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L34">src</a></div>
+<p>Creates an empty PDF document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>()-&gt;<span class="SCst"><a href="#Gui_Pdf_Document">Document</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.decode</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L45">src</a></div>
+<p>Decodes one complete PDF byte buffer.</p>
+<p>The document copies all content it retains. The input may be released after this function returns. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Document">Document</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_editPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.editPage</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_editPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L84">src</a></div>
+<p>Returns a mutable borrowed page for editing.</p>
+<p>The pointer remains valid until a page is added to or removed from the document.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">editPage</span>(index: <span class="STpe">u64</span>)-&gt;*<span class="SCst"><a href="#Gui_Pdf_Page">Page</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.encode</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L95">src</a></div>
+<p>Encodes the complete document as PDF 1.7 bytes.</p>
+<p>The writer emits a deterministic classic cross-reference table and Flate compressed content and image streams. It fails when text cannot be represented by the writer's Windows-1252 Helvetica encoding.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>()-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.load</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L53">src</a></div>
+<p>Loads and decodes every page of a PDF file.</p>
+<p>Use [[Pdf.Reader.open]] when pages should be decoded on demand.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Document">Document</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_removePage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.removePage</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_removePage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L75">src</a></div>
+<p>Removes the page at <span class="code-inline">index</span> and preserves the order of the remaining pages.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removePage</span>(index: <span class="STpe">u64</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Document_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.save</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L101">src</a></div>
+<p>Encodes and writes the complete document to <span class="code-inline">fileName</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_DragContent_data" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DragContent.data</span> <a class="api-item-permalink" href="#Gui_DragContent_data" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dragdrop.swg#L69">src</a></div>
 <p>Returns the content of the file, producing it on the first call.</p>
 <p>Every later call answers the same bytes. A producer that cannot make them answers an empty slice from then on, which is what a target reads as a file it was offered and cannot have.</p>
@@ -16100,7 +16831,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="api-item api-item-func"><span id="Gui_DragData_image" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DragData.image</span> <a class="api-item-permalink" href="#Gui_DragData_image" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dragdrop.swg#L160">src</a></div>
 <p>Returns the decoded image offered by the source, or <span class="code-inline">null</span> when it offers none.</p>
 <p>The first call decodes and every later one returns the same value. A payload that fails to decode answers <span class="code-inline">null</span> from then on. The image belongs to this payload and dies with it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">image</span>()-&gt;<span class="SItr">#null</span> *<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">image</span>()-&gt;<span class="SItr">#null</span> *<span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_DragData_setImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DragData.setImage</span> <a class="api-item-permalink" href="#Gui_DragData_setImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dragdrop.swg#L221">src</a></div>
@@ -16109,7 +16840,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(name: <span class="STpe">string</span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
 <p>Replaces the image of the payload with a picture, encoded when a target asks for it.</p>
 <p>Nothing is compressed here: a gesture that ends over a folder never asks for the encoded form, and one that ends over nothing asks for nothing at all. The picture itself is what the platform layer derives the bitmap forms from, so those cost nothing either.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(image: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(image: <span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_DragData_setText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DragData.setText</span> <a class="api-item-permalink" href="#Gui_DragData_setText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dragdrop.swg#L212">src</a></div>
@@ -16940,10 +17671,10 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="api-item api-item-func"><span id="Gui_Testing_HeadlessHost_render" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HeadlessHost.render</span> <a class="api-item-permalink" href="#Gui_Testing_HeadlessHost_render" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/headless.swg#L497">src</a></div>
 <p>Paints the complete hosted tree with the software renderer and returns owned BGRA pixels.</p>
 <p>Pending events are drained first so layout and widget state match the image. The returned image has the requested host dimensions; callers own it and may compare, encode, or inspect it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">render</span>()-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span> =&gt; .render</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">render</span>()-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span> =&gt; .render</span></div>
 <p>Paints one window of the host instead of the root view it created.</p>
 <p>A window installed through <a href="#Gui_Surface_setView">Gui.Surface.setView</a> replaces that root, so an application whose main window owns the surface renders itself through this.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">render</span>(wnd: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">render</span>(wnd: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Testing_HeadlessHost_runFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HeadlessHost.runFrames</span> <a class="api-item-permalink" href="#Gui_Testing_HeadlessHost_runFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/headless.swg#L462">src</a></div>
@@ -17336,7 +18067,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ImageRect_setImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageRect.setImage</span> <a class="api-item-permalink" href="#Gui_ImageRect_setImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imagerect.swg#L124">src</a></div>
 <p>Uploads and displays an owned copy of an image.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(image: <span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(image: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ImageRect_setImageList" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageRect.setImageList</span> <a class="api-item-permalink" href="#Gui_ImageRect_setImageList" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imagerect.swg#L104">src</a></div>
@@ -17397,7 +18128,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <p>A viewer whose content is scalable — a document page, a drawing — does not zoom by magnifying pixels: it rasterizes again at the resolution it is now being shown at, so the result stays as sharp as the display allows. What it must not do is lose the reader's place while doing so. <span class="code-inline">scaleRatio</span> is how much larger the new image is than the one it replaces, which is what lets the zoom follow the content instead of the pixel count and leaves the visible region exactly where it was.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> sharper = <span class="SFct">renderPage</span>(pageIndex, newScale)
 view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">replaceImage</span>(image: <span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, scaleRatio: <span class="STpe">f32</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">replaceImage</span>(image: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>, scaleRatio: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ImageView_rotateClockwise" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.rotateClockwise</span> <a class="api-item-permalink" href="#Gui_ImageView_rotateClockwise" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L325">src</a></div>
@@ -17413,7 +18144,7 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ImageView_setImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setImage</span> <a class="api-item-permalink" href="#Gui_ImageView_setImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L213">src</a></div>
 <p>Displays an owned copy of <span class="code-inline">image</span> and fits it to the viewport.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(image: <span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(image: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ImageView_setPaused" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setPaused</span> <a class="api-item-permalink" href="#Gui_ImageView_setPaused" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L340">src</a></div>
@@ -17541,6 +18272,69 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="api-item api-item-func"><span id="Gui_IRichEditLexer_setupTheme" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.setupTheme</span> <a class="api-item-permalink" href="#Gui_IRichEditLexer_setupTheme" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/richedit/lexer.swg#L9">src</a></div>
 <p>Reapplies lexer-specific colors after the editor theme changes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setupTheme</span>(ed: *<span class="SCst"><a href="#Gui_RichEditCtrl">RichEditCtrl</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_imageValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.imageValue</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_imageValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L125">src</a></div>
+<p>Returns a borrowed image for an image item.</p>
+<p>The pointer remains valid until the owning page or its item array is mutated.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">imageValue</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span> =&gt; .kind == .<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_itemClip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemClip</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_itemClip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L91">src</a></div>
+<p>Returns the page-space region this item is confined to, or the whole page when the content stream established no clip for it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemClip</span>()-&gt;{ rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, clipped: <span class="STpe">bool</span> } =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_itemFillColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemFillColor</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_itemFillColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L94">src</a></div>
+<p>Returns the fill color of text and filled paths.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemFillColor</span>()-&gt;<span class="SCst">Color</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_itemStrokeColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemStrokeColor</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_itemStrokeColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L97">src</a></div>
+<p>Returns the stroke color of a stroked path.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemStrokeColor</span>()-&gt;<span class="SCst">Color</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_itemTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.itemTransform</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_itemTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L87">src</a></div>
+<p>Returns the transform applied when this item is rendered.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemTransform</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_pathStrokeStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathStrokeStyle</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_pathStrokeStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L115">src</a></div>
+<p>Returns the stroke geometry of a path item, or the default solid style for another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathStrokeStyle</span>()-&gt;<span class="SCst"><a href="#Gui_Pdf_PathStrokeStyle">PathStrokeStyle</a></span> =&gt; .kind == .<span class="SCst"><a href="#Gui_Pdf_ItemKind_Path">Path</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_pathStrokeWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathStrokeWidth</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_pathStrokeWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L109">src</a></div>
+<p>Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathStrokeWidth</span>()-&gt;<span class="STpe">f32</span> =&gt; .kind == .<span class="SCst"><a href="#Gui_Pdf_ItemKind_Path">Path</a></span> <span class="SLgc">and</span> .hasStroke</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_pathUsesEvenOddFill" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathUsesEvenOddFill</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_pathUsesEvenOddFill" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L112">src</a></div>
+<p>Returns whether a filled path uses the alternating rule rather than the winding count.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathUsesEvenOddFill</span>()-&gt;<span class="STpe">bool</span> =&gt; .kind == .<span class="SCst"><a href="#Gui_Pdf_ItemKind_Path">Path</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_pathValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.pathValue</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_pathValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L120">src</a></div>
+<p>Returns a borrowed path list for a path item.</p>
+<p>The pointer remains valid until the owning page or its item array is mutated.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pathValue</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="std.pixel.html#Pixel_LinePathList">LinePathList</a></span> =&gt; .kind == .<span class="SCst"><a href="#Gui_Pdf_ItemKind_Path">Path</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_textFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.textFont</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_textFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L106">src</a></div>
+<p>Returns the standard face this text is written with.</p>
+<p>A decoded page reports the standard face closest to the font the file names, which is the face the writer would use again.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textFont</span>()-&gt;<span class="SCst"><a href="#Gui_Pdf_StandardFont">StandardFont</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_textSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.textSize</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_textSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L100">src</a></div>
+<p>Returns the text size in PDF points, or zero for another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textSize</span>()-&gt;<span class="STpe">f32</span> =&gt; .kind == .<span class="SCst"><a href="std.core.html#namespace_Core_Text">Text</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Item_textValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Item.textValue</span> <a class="api-item-permalink" href="#Gui_Pdf_Item_textValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L84">src</a></div>
+<p>Returns the text carried by a text item, or an empty string for another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textValue</span>()-&gt;<span class="STpe">string</span> =&gt; .kind == .<span class="SCst"><a href="std.core.html#namespace_Core_Text">Text</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_IUndoCommand_redo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IUndoCommand.redo</span> <a class="api-item-permalink" href="#Gui_IUndoCommand_redo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/undomgr.swg#L25">src</a></div>
@@ -18244,11 +19038,91 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">push</span>(path: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_addImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addImage</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_addImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L113">src</a></div>
+<p>Appends one raster image in the requested page rectangle.</p>
+<p>The image pixels are copied. <span class="code-inline">width</span> and <span class="code-inline">height</span> are expressed in PDF points and must be positive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(image: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>, x, y, width, height: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_addPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addPath</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_addPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L93">src</a></div>
+<p>Appends one vector path.</p>
+<p><span class="code-inline">fill</span> and <span class="code-inline">stroke</span> independently select the two paint operations. At least one must be enabled. <span class="code-inline">strokeStyle</span> selects the cap, join, miter, and dash geometry when stroking. Path coordinates and dash data are copied into the page.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPath</span>(path: <span class="SCst"><a href="std.pixel.html#Pixel_LinePathList">LinePathList</a></span>, fill = <span class="SKwd">true</span>, fillColor = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), stroke = <span class="SKwd">false</span>, strokeColor = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), strokeWidth = <span class="SNum">1.0</span>, strokeStyle: <span class="SCst"><a href="#Gui_Pdf_PathStrokeStyle">PathStrokeStyle</a></span> = {})</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_addText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addText</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_addText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L76">src</a></div>
+<p>Appends one UTF-8 text run.</p>
+<p><span class="code-inline">(x, y)</span> is the top-left of the text line box. <span class="code-inline">font</span> selects one of the standard faces every reader provides; the writer accepts the characters Windows-1252 can represent. Use [[Pdf.StandardFont.textWidth]] to measure the run before placing it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addText</span>(text: <span class="STpe">string</span>, x, y, size: <span class="STpe">f32</span>, color = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), font = <span class="SCst"><a href="#Gui_Pdf_StandardFont">StandardFont</a></span>.<span class="SCst"><a href="#Gui_Pdf_StandardFont_Helvetica">Helvetica</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.clear</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L204">src</a></div>
+<p>Removes every page item while preserving the page dimensions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.create</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L62">src</a></div>
+<p>Creates an empty page with positive dimensions in PDF points.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Page">Page</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_removeItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.removeItem</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_removeItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L124">src</a></div>
+<p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeItem</span>(index: <span class="STpe">u64</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_render" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.render</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_render" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L211">src</a></div>
+<p>Renders the complete page to an owned Pixel image.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">render</span>(options: <span class="SCst"><a href="#Gui_Pdf_RenderOptions">RenderOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setItemFillColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setItemFillColor</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setItemFillColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L167">src</a></div>
+<p>Replaces the fill color of a text or path item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setItemFillColor</span>(index: <span class="STpe">u64</span>, color: <span class="SCst">Color</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setItemTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setItemTransform</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setItemTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L159">src</a></div>
+<p>Replaces the transform applied to an item during rendering and writing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setItemTransform</span>(index: <span class="STpe">u64</span>, transform: <span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setPathStrokeColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setPathStrokeColor</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setPathStrokeColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L174">src</a></div>
+<p>Replaces the stroke color of a path item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPathStrokeColor</span>(index: <span class="STpe">u64</span>, color: <span class="SCst">Color</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setPathStrokeStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setPathStrokeStyle</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setPathStrokeStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L195">src</a></div>
+<p>Replaces the cap, join, miter, and dash geometry of a path stroke.</p>
+<p>Dash lengths and phase are expressed in PDF points; the phase may be negative. An odd-length pattern is repeated once, as required by PDF, before its painted and blank intervals alternate.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPathStrokeStyle</span>(index: <span class="STpe">u64</span>, style: <span class="SCst"><a href="#Gui_Pdf_PathStrokeStyle">PathStrokeStyle</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setPathStrokeWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setPathStrokeWidth</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setPathStrokeWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L184">src</a></div>
+<p>Replaces the non-negative stroke width of a path item and enables its stroke.</p>
+<p>A zero width is rendered as a device-pixel hairline.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPathStrokeWidth</span>(index: <span class="STpe">u64</span>, width: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setText</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L131">src</a></div>
+<p>Replaces the UTF-8 content of a text item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setText</span>(index: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setTextFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setTextFont</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setTextFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L150">src</a></div>
+<p>Replaces the standard face a text item is written with.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextFont</span>(index: <span class="STpe">u64</span>, font: <span class="SCst"><a href="#Gui_Pdf_StandardFont">StandardFont</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_setTextSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.setTextSize</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_setTextSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L140">src</a></div>
+<p>Replaces the point size of a text item.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTextSize</span>(index: <span class="STpe">u64</span>, size: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_PaintImage_draw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PaintImage.draw</span> <a class="api-item-permalink" href="#Gui_PaintImage_draw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/image.swg#L71">src</a></div>
 <p>Renders one callback and returns the resulting image.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">draw</span>(call: <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Gui_Application">Application</a></span>, *<span class="SCst"><a href="std.pixel.html#Pixel_Painter">Painter</a></span>))-&gt;<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">draw</span>(call: <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Gui_Application">Application</a></span>, *<span class="SCst"><a href="std.pixel.html#Pixel_Painter">Painter</a></span>))-&gt;<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span></span></div>
 <p>Initializes, renders, and returns an image in one call.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">draw</span>(w, h: <span class="STpe">s32</span>, call: <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Gui_Application">Application</a></span>, *<span class="SCst"><a href="std.pixel.html#Pixel_Painter">Painter</a></span>))-&gt;<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">draw</span>(w, h: <span class="STpe">s32</span>, call: <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Gui_Application">Application</a></span>, *<span class="SCst"><a href="std.pixel.html#Pixel_Painter">Painter</a></span>))-&gt;<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_PaintImage_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PaintImage.init</span> <a class="api-item-permalink" href="#Gui_PaintImage_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/image.swg#L61">src</a></div>
@@ -18352,6 +19226,83 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="api-item api-item-func"><span id="Gui_PasswordEdit_setPlaceholder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.setPlaceholder</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_setPlaceholder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/passwordedit.swg#L361">src</a></div>
 <p>Changes the placeholder displayed while the password is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPlaceholder</span>(placeholder: <span class="SItr">#null</span> <span class="STpe">string</span>) =&gt; .edit.setPlaceholder</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_actualSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.actualSize</span> <a class="api-item-permalink" href="#Gui_PdfView_actualSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L455">src</a></div>
+<p>Shows the page at actual size: one PDF point per 1/96 of a logical inch.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">actualSize</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.close</span> <a class="api-item-permalink" href="#Gui_PdfView_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L357">src</a></div>
+<p>Releases the displayed page and its raster while keeping the widget alive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.create</span> <a class="api-item-permalink" href="#Gui_PdfView_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L331">src</a></div>
+<p>Creates an empty PDF viewer.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_PdfView">PdfView</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_effectiveZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.effectiveZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_effectiveZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L414">src</a></div>
+<p>Returns the scale the page is currently shown at, in logical units per PDF point.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">effectiveZoom</span>()-&gt;<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_metadata" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.metadata</span> <a class="api-item-permalink" href="#Gui_PdfView_metadata" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L371">src</a></div>
+<p>Returns the document's descriptive fields.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metadata</span>()-&gt;<span class="SCst"><a href="#namespace_Gui_Pdf">Pdf</a></span>.<span class="SCst"><a href="#Gui_Pdf_Metadata">Metadata</a></span> =&gt; .reader.metadata</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_nextPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.nextPage</span> <a class="api-item-permalink" href="#Gui_PdfView_nextPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L400">src</a></div>
+<p>Shows the next page when one exists.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nextPage</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.open</span> <a class="api-item-permalink" href="#Gui_PdfView_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L343">src</a></div>
+<p>Opens a PDF file and shows its first page fitted to the viewport.</p>
+<p>The previous document, if any, is released. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">open</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_pageCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.pageCount</span> <a class="api-item-permalink" href="#Gui_PdfView_pageCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L374">src</a></div>
+<p>Returns the number of pages of the open document, or zero when none is open.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pageCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .hasPage</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_pageSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.pageSize</span> <a class="api-item-permalink" href="#Gui_PdfView_pageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L377">src</a></div>
+<p>Returns the displayed page's dimensions in PDF points.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pageSize</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span> =&gt; .hasPage</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_previousPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.previousPage</span> <a class="api-item-permalink" href="#Gui_PdfView_previousPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L407">src</a></div>
+<p>Shows the previous page when one exists.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">previousPage</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_setZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.setZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_setZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L428">src</a></div>
+<p>Sets an explicit page scale and leaves fitted mode.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setZoom</span>(value: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_showPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.showPage</span> <a class="api-item-permalink" href="#Gui_PdfView_showPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L380">src</a></div>
+<p>Decodes and shows the page at zero-based <span class="code-inline">index</span>, preserving the zoom mode.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showPage</span>(index: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_zoomIn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomIn</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomIn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L434">src</a></div>
+<p>Increases the page scale by one viewer step.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomIn</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_zoomOut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomOut</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomOut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L440">src</a></div>
+<p>Decreases the page scale by one viewer step.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomOut</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PdfView_zoomToFit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomToFit</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomToFit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L446">src</a></div>
+<p>Fits the complete page inside the viewport and recentres it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomToFit</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_PopupListCtrl_addItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.addItem</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_addItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L411">src</a></div>
@@ -18799,6 +19750,28 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="api-item api-item-func"><span id="Gui_RadioButton_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RadioButton.updateFlags</span> <a class="api-item-permalink" href="#Gui_RadioButton_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/radiobutton.swg#L220">src</a></div>
 <p>Adds and removes marker placement options, then repaints the button.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateFlags</span>(add: <span class="SCst"><a href="#Gui_RadioButtonFlags">RadioButtonFlags</a></span> = .<span class="SCst">None</span>, remove = <span class="SCst"><a href="#Gui_RadioButtonFlags">RadioButtonFlags</a></span>.<span class="SCst">None</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Reader_loadPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.loadPage</span> <a class="api-item-permalink" href="#Gui_Pdf_Reader_loadPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/reader.swg#L62">src</a></div>
+<p>Decodes and returns the page at zero-based <span class="code-inline">index</span>.</p>
+<p>The returned page owns all content it retains and remains valid after this reader is released. An out-of-range index reports <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadPage</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Page">Page</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Reader_metadata" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.metadata</span> <a class="api-item-permalink" href="#Gui_Pdf_Reader_metadata" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/reader.swg#L53">src</a></div>
+<p>Returns the document's descriptive fields.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metadata</span>()-&gt;<span class="SCst"><a href="#Gui_Pdf_Metadata">Metadata</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Reader_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.open</span> <a class="api-item-permalink" href="#Gui_Pdf_Reader_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/reader.swg#L42">src</a></div>
+<p>Opens a PDF file through a read-only mapping and indexes its pages.</p>
+<p>Page streams and resources are decoded only by [[Pdf.Reader.loadPage]]. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Reader">Reader</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Reader_pageCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.pageCount</span> <a class="api-item-permalink" href="#Gui_Pdf_Reader_pageCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/reader.swg#L56">src</a></div>
+<p>Returns the number of pages found in the page tree.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pageCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .sources</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_RichEditCtrl_addMapping" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RichEditCtrl.addMapping</span> <a class="api-item-permalink" href="#Gui_RichEditCtrl_addMapping" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/richedit/cmd.swg#L72">src</a></div>
@@ -19574,6 +20547,29 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, mode: <span class="SCst"><a href="#Gui_StackLayoutMode">StackLayoutMode</a></span> = .<span class="SCst">Top</span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {})-&gt;*<span class="SCst"><a href="#Gui_StackLayoutCtrl">StackLayoutCtrl</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_StandardFont_baseFontName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.baseFontName</span> <a class="api-item-permalink" href="#Gui_Pdf_StandardFont_baseFontName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/standardfont.swg#L87">src</a></div>
+<p>Returns the <span class="code-inline">BaseFont</span> name a PDF font dictionary uses for this face.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">baseFontName</span>()-&gt;<span class="STpe">string</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_StandardFont_fromBaseName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.fromBaseName</span> <a class="api-item-permalink" href="#Gui_Pdf_StandardFont_fromBaseName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/standardfont.swg#L110">src</a></div>
+<p>Returns the face a <span class="code-inline">BaseFont</span> name selects, and whether the name was recognized.</p>
+<p>A subset prefix such as <span class="code-inline">ABCDEF+</span> is ignored, and both the <span class="code-inline">Arial</span> and <span class="code-inline">TimesNewRoman</span> spellings map to the metrically compatible standard face.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromBaseName</span>(name: <span class="STpe">string</span>)-&gt;{ font: <span class="SCst"><a href="#Gui_Pdf_StandardFont">StandardFont</a></span>, found: <span class="STpe">bool</span> }</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_StandardFont_glyphWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.glyphWidth</span> <a class="api-item-permalink" href="#Gui_Pdf_StandardFont_glyphWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/standardfont.swg#L164">src</a></div>
+<p>Returns the advance width of one character, in fractions of the text size.</p>
+<p>The tables cover the printable ASCII range exactly. A Latin letter carrying an accent has the advance of its base letter in these faces, which is exact as well; any other character outside the tables is measured with a representative width.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">glyphWidth</span>(value: <span class="STpe">rune</span>)-&gt;<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_StandardFont_textWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StandardFont.textWidth</span> <a class="api-item-permalink" href="#Gui_Pdf_StandardFont_textWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/standardfont.swg#L188">src</a></div>
+<p>Returns the advance width of <span class="code-inline">text</span> when drawn at <span class="code-inline">size</span> PDF points.</p>
+<p>Character spacing, word spacing, and horizontal scaling are not applied; this is the natural width of the run.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textWidth</span>(text: <span class="STpe">string</span>, size: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ToolTip_State_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">State.contains</span> <a class="api-item-permalink" href="#Gui_ToolTip_State_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/tooltip.swg#L93">src</a></div>
 <p>Whether <span class="code-inline">wnd</span> is the visible tip or part of it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">contains</span>(wnd: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -19716,7 +20712,7 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="api-item api-item-func"><span id="Gui_Surface_setTrayIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setTrayIcon</span> <a class="api-item-permalink" href="#Gui_Surface_setTrayIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L510">src</a></div>
 <p>Show <span class="code-inline">icon</span> for this surface in the notification area (system tray), with an optional tooltip. Portable <a href="#Gui_SysUserEvent_TrayAction">Gui.SysUserEvent.TrayAction</a> values report icon activation and context-menu requests. The icon is removed automatically when the surface is destroyed.</p>
 <p>This uses the legacy (version 0) NOTIFYICON behaviour on purpose: the callback carries the mouse message directly in <span class="code-inline">lParam</span>, which is what the window proc forwards as <span class="code-inline">param1</span>. NIM_SETVERSION/NOTIFYICON_VERSION_4 would change that layout and is intentionally not used.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTrayIcon</span>(icon: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, tip: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTrayIcon</span>(icon: <span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>, tip: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Surface_setView" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setView</span> <a class="api-item-permalink" href="#Gui_Surface_setView" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.swg#L807">src</a></div>
@@ -19879,12 +20875,12 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Testing_countNonZeroBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.countNonZeroBytes</span> <a class="api-item-permalink" href="#Gui_Testing_countNonZeroBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L107">src</a></div>
 <p>Number of non-zero bytes in the image pixels (cheap "something was painted" probe).</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countNonZeroBytes</span>(img: <span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>)-&gt;<span class="STpe">u64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countNonZeroBytes</span>(img: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Testing_indexedImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.indexedImage</span> <a class="api-item-permalink" href="#Gui_Testing_indexedImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L92">src</a></div>
 <p>Deterministic BGRA test image: every pixel derives from its coordinates, so a save/load round-trip can be verified byte-for-byte.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexedImage</span>(w, h: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexedImage</span>(w, h: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Testing_tempFilePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.tempFilePath</span> <a class="api-item-permalink" href="#Gui_Testing_tempFilePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L63">src</a></div>
@@ -20773,7 +21769,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <p><span class="code-inline">picture</span> is what the desktop draws under the pointer for the length of the gesture, and defaults to the picture the payload already carries. A drag with nothing under the cursor but an arrow reads as a lesser gesture than the same drag out of a file manager, so a source that carries no image of its own is worth handing one.</p>
 <p>One thing follows from the desktop running the loop: the button that started the drag comes back up inside it, so a control tracking a press has to forget it here rather than waiting for a release event that has already been consumed. The application keeps drawing, from the feedback callback the same loop makes.</p>
 <p>Answers <span class="code-inline">None</span> immediately with no native window, which is what a headless test gets.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">startDrag</span>(data: *<span class="SCst"><a href="#Gui_DragData">DragData</a></span>, allowed = <span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>.<span class="SCst">Copy</span>, picture: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">startDrag</span>(data: *<span class="SCst"><a href="#Gui_DragData">DragData</a></span>, allowed = <span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span>.<span class="SCst">Copy</span>, picture: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_DropEffect">DropEffect</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Wnd_surfaceRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.surfaceRect</span> <a class="api-item-permalink" href="#Gui_Wnd_surfaceRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L1408">src</a></div>
@@ -21101,6 +22097,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "n|Gui|namespace_Gui|",
 "n|Gui.Clipboard|namespace_Gui_Clipboard|",
 "n|Gui.Markdown|namespace_Gui_Markdown|",
+"n|Gui.Pdf|namespace_Gui_Pdf|",
 "n|Gui.Testing|namespace_Gui_Testing|",
 "n|Gui.ToolTip|namespace_Gui_ToolTip|",
 "s|Gui.ActionContext|Gui_ActionContext|Identifies the window and command currently evaluated by an action.",
@@ -21659,6 +22656,45 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.Markdown.View.sigLinkActivated|Gui_Markdown_View_sigLinkActivated|Emitted when a rendered link is activated.",
 "v|Gui.Markdown.View.sigLoadFailed|Gui_Markdown_View_sigLoadFailed|Emitted with the exact reason when progressive file loading stops.",
 "v|Gui.Markdown.View.wnd|Gui_Markdown_View_wnd|Embedded window behavior and presentation.",
+"s|Gui.Pdf.Document|Gui_Pdf_Document|Owns an editable PDF document.",
+"v|Gui.Pdf.Document.metadata|Gui_Pdf_Document_metadata|Descriptive document fields.",
+"v|Gui.Pdf.Document.pages|Gui_Pdf_Document_pages|Pages in display order.",
+"s|Gui.Pdf.Item|Gui_Pdf_Item|Describes one page item in Pixel's top-left coordinate system.",
+"v|Gui.Pdf.Item.kind|Gui_Pdf_Item_kind|Active item representation.",
+"s|Gui.Pdf.Metadata|Gui_Pdf_Metadata|Stores the standard descriptive fields of a PDF document.",
+"v|Gui.Pdf.Metadata.author|Gui_Pdf_Metadata_author|Person or organization that created the content.",
+"v|Gui.Pdf.Metadata.creator|Gui_Pdf_Metadata_creator|Application that created the source content.",
+"v|Gui.Pdf.Metadata.keywords|Gui_Pdf_Metadata_keywords|Search terms associated with the document.",
+"v|Gui.Pdf.Metadata.producer|Gui_Pdf_Metadata_producer|Application that wrote the PDF representation.",
+"v|Gui.Pdf.Metadata.subject|Gui_Pdf_Metadata_subject|Short description of the document.",
+"v|Gui.Pdf.Metadata.title|Gui_Pdf_Metadata_title|Document title.",
+"s|Gui.Pdf.Page|Gui_Pdf_Page|Stores one editable PDF page.",
+"v|Gui.Pdf.Page.height|Gui_Pdf_Page_height|Page height in PDF points.",
+"v|Gui.Pdf.Page.items|Gui_Pdf_Page_items|Page content in paint order.",
+"v|Gui.Pdf.Page.width|Gui_Pdf_Page_width|Page width in PDF points.",
+"s|Gui.Pdf.PathStrokeStyle|Gui_Pdf_PathStrokeStyle|Describes the geometry of a PDF path stroke.",
+"v|Gui.Pdf.PathStrokeStyle.cap|Gui_Pdf_PathStrokeStyle_cap|Shape at open path ends and dash ends.",
+"v|Gui.Pdf.PathStrokeStyle.dashPattern|Gui_Pdf_PathStrokeStyle_dashPattern|Alternating painted and blank lengths in PDF points; empty means solid.",
+"v|Gui.Pdf.PathStrokeStyle.dashPhase|Gui_Pdf_PathStrokeStyle_dashPhase|Signed distance into the repeated dash pattern in PDF points.",
+"v|Gui.Pdf.PathStrokeStyle.join|Gui_Pdf_PathStrokeStyle_join|Shape between consecutive segments.",
+"v|Gui.Pdf.PathStrokeStyle.miterLimit|Gui_Pdf_PathStrokeStyle_miterLimit|Maximum miter length relative to the stroke width; at least one.",
+"s|Gui.Pdf.Reader|Gui_Pdf_Reader|Owns a mapped PDF source and decodes its pages on demand.",
+"s|Gui.Pdf.RenderOptions|Gui_Pdf_RenderOptions|Controls page rasterization.",
+"v|Gui.Pdf.RenderOptions.background|Gui_Pdf_RenderOptions_background|Ground painted before page content.",
+"v|Gui.Pdf.RenderOptions.fallbackFontFile|Gui_Pdf_RenderOptions_fallbackFontFile|Optional TrueType font used when a PDF font cannot be decoded or safely addressed.",
+"v|Gui.Pdf.RenderOptions.maxDimension|Gui_Pdf_RenderOptions_maxDimension|Largest accepted output width or height in pixels.",
+"v|Gui.Pdf.RenderOptions.maxPixels|Gui_Pdf_RenderOptions_maxPixels|Largest accepted output pixel count.",
+"v|Gui.Pdf.RenderOptions.scale|Gui_Pdf_RenderOptions_scale|Output pixels per PDF point.",
+"v|Gui.Pdf.RenderOptions.sourceRect|Gui_Pdf_RenderOptions_sourceRect|Page region to rasterize, in PDF points from the page's top-left corner. An empty",
+"s|Gui.PdfView|Gui_PdfView|Displays a PDF document with viewer-oriented zooming, panning, and page navigation.",
+"v|Gui.PdfView.isFitted|Gui_PdfView_isFitted|Whether the page is scaled to the available viewport.",
+"v|Gui.PdfView.pageIndex|Gui_PdfView_pageIndex|Zero-based index of the displayed page.",
+"v|Gui.PdfView.panOffset|Gui_PdfView_panOffset|Page-centre offset from the viewport centre, in logical units.",
+"v|Gui.PdfView.sigPageChanged|Gui_PdfView_sigPageChanged|Emitted after the displayed page changes.",
+"v|Gui.PdfView.sigRenderError|Gui_PdfView_sigRenderError|Emitted when a page cannot be decoded or rasterized.",
+"v|Gui.PdfView.sigZoomChanged|Gui_PdfView_sigZoomChanged|Emitted after the effective zoom changes.",
+"v|Gui.PdfView.wnd|Gui_PdfView_wnd|Embedded window behavior and presentation.",
+"v|Gui.PdfView.zoom|Gui_PdfView_zoom|Requested logical units per PDF point outside fitted mode.",
 "s|Gui.Properties|Gui_Properties|Builds and edits reflected structure fields with validation, filtering, defaults, and undo support.",
 "v|Gui.Properties.editorWidth|Gui_Properties_editorWidth|Preferred maximum width of value editors.",
 "v|Gui.Properties.frameWnd|Gui_Properties_frameWnd|Embedded frame wnd state.",
@@ -22998,6 +24034,31 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.StackLayoutMode.Top|Gui_StackLayoutMode_Top|Stacks vertically from top to bottom.",
 "k|Gui.StackLayoutMode.VerticalCenter|Gui_StackLayoutMode_VerticalCenter|Centers a top-to-bottom stack vertically.",
 "k|Gui.StackLayoutMode.VerticalFit|Gui_StackLayoutMode_VerticalFit|Divides vertical space evenly between children.",
+"e|Gui.Pdf.ItemKind|Gui_Pdf_ItemKind|Identifies one page item in paint order.",
+"k|Gui.Pdf.ItemKind.Image|Gui_Pdf_ItemKind_Image|One decoded raster image.",
+"k|Gui.Pdf.ItemKind.Path|Gui_Pdf_ItemKind_Path|One filled and/or stroked vector path.",
+"k|Gui.Pdf.ItemKind.Text|Gui_Pdf_ItemKind_Text|A UTF-8 text run.",
+"e|Gui.Pdf.StandardFont|Gui_Pdf_StandardFont|One of the fourteen typefaces every PDF consumer provides without an embedded font file.",
+"k|Gui.Pdf.StandardFont.Courier|Gui_Pdf_StandardFont_Courier|Fixed pitch, regular.",
+"k|Gui.Pdf.StandardFont.CourierBold|Gui_Pdf_StandardFont_CourierBold|Fixed pitch, bold.",
+"k|Gui.Pdf.StandardFont.CourierBoldOblique|Gui_Pdf_StandardFont_CourierBoldOblique|Fixed pitch, bold and slanted.",
+"k|Gui.Pdf.StandardFont.CourierOblique|Gui_Pdf_StandardFont_CourierOblique|Fixed pitch, slanted.",
+"k|Gui.Pdf.StandardFont.Helvetica|Gui_Pdf_StandardFont_Helvetica|Sans-serif, regular.",
+"k|Gui.Pdf.StandardFont.HelveticaBold|Gui_Pdf_StandardFont_HelveticaBold|Sans-serif, bold.",
+"k|Gui.Pdf.StandardFont.HelveticaBoldOblique|Gui_Pdf_StandardFont_HelveticaBoldOblique|Sans-serif, bold and slanted.",
+"k|Gui.Pdf.StandardFont.HelveticaOblique|Gui_Pdf_StandardFont_HelveticaOblique|Sans-serif, slanted.",
+"k|Gui.Pdf.StandardFont.TimesBold|Gui_Pdf_StandardFont_TimesBold|Serif, bold.",
+"k|Gui.Pdf.StandardFont.TimesBoldItalic|Gui_Pdf_StandardFont_TimesBoldItalic|Serif, bold and italic.",
+"k|Gui.Pdf.StandardFont.TimesItalic|Gui_Pdf_StandardFont_TimesItalic|Serif, italic.",
+"k|Gui.Pdf.StandardFont.TimesRoman|Gui_Pdf_StandardFont_TimesRoman|Serif, regular.",
+"e|Gui.Pdf.StrokeCap|Gui_Pdf_StrokeCap|Selects the shape at the open ends of a stroked PDF path and its dash segments.",
+"k|Gui.Pdf.StrokeCap.Butt|Gui_Pdf_StrokeCap_Butt|End exactly at the path endpoint.",
+"k|Gui.Pdf.StrokeCap.Round|Gui_Pdf_StrokeCap_Round|Add a semicircular cap.",
+"k|Gui.Pdf.StrokeCap.Square|Gui_Pdf_StrokeCap_Square|Extend by half the stroke width with a square cap.",
+"e|Gui.Pdf.StrokeJoin|Gui_Pdf_StrokeJoin|Selects how consecutive segments of a stroked PDF path meet.",
+"k|Gui.Pdf.StrokeJoin.Bevel|Gui_Pdf_StrokeJoin_Bevel|Cut the outer corner with a straight edge.",
+"k|Gui.Pdf.StrokeJoin.Miter|Gui_Pdf_StrokeJoin_Miter|Extend the outer edges until the miter limit, then bevel the corner.",
+"k|Gui.Pdf.StrokeJoin.Round|Gui_Pdf_StrokeJoin_Round|Join the segments with a circular arc.",
 "e|Gui.PropDefaultState|Gui_PropDefaultState|Result of IPropertyNotify.isItemAtDefault. Auto lets the grid run its built-in comparison.",
 "k|Gui.PropDefaultState.AtDefault|Gui_PropDefaultState_AtDefault|Selects at default.",
 "k|Gui.PropDefaultState.Auto|Gui_PropDefaultState_Auto|Selects auto.",
@@ -23441,6 +24502,9 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "c|Gui.MarkInk|Gui_MarkInk|The two colors every Swag product mark is cut from, one glyph over one ground.",
 "c|Gui.MarkVoltage|Gui_MarkVoltage|",
 "c|Gui.ReferenceLanguage|Gui_ReferenceLanguage|Tag of the reference wording declared by the string tables.",
+"c|Gui.PdfView.MaxZoom|Gui_PdfView_MaxZoom|Largest supported scale, in logical units per PDF point.",
+"c|Gui.PdfView.MinZoom|Gui_PdfView_MinZoom|Smallest supported scale, in logical units per PDF point.",
+"c|Gui.PdfView.WheelScrollStep|Gui_PdfView_WheelScrollStep|Logical units scrolled per wheel notch.",
 "c|Gui.ImageView.MaxZoom|Gui_ImageView_MaxZoom|Largest supported scale.",
 "c|Gui.ImageView.MinZoom|Gui_ImageView_MinZoom|Smallest supported scale.",
 "c|Gui.PasswordEdit.MaximumByteLength|Gui_PasswordEdit_MaximumByteLength|Maximum number of UTF-8 plaintext bytes held by one password edit.",
@@ -23856,6 +24920,64 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.Markdown.View.revealFileOffset|Gui_Markdown_View_revealFileOffset|Repositions the streamed document at a byte offset and reveals text as soon as its block",
 "f|Gui.Markdown.View.setDocumentStyle|Gui_Markdown_View_setDocumentStyle|Replaces the document metrics while keeping colors and font faces bound to the active theme.",
 "f|Gui.Markdown.View.setDocumentThemeColors|Gui_Markdown_View_setDocumentThemeColors|Applies document-local theme colors to the complete view, including blocks created later",
+"f|Gui.Pdf.Document.addPage|Gui_Pdf_Document_addPage|Appends a page and transfers its owned content into the document.",
+"f|Gui.Pdf.Document.create|Gui_Pdf_Document_create|Creates an empty PDF document.",
+"f|Gui.Pdf.Document.decode|Gui_Pdf_Document_decode|Decodes one complete PDF byte buffer.",
+"f|Gui.Pdf.Document.editPage|Gui_Pdf_Document_editPage|Returns a mutable borrowed page for editing.",
+"f|Gui.Pdf.Document.encode|Gui_Pdf_Document_encode|Encodes the complete document as PDF 1.7 bytes.",
+"f|Gui.Pdf.Document.load|Gui_Pdf_Document_load|Loads and decodes every page of a PDF file.",
+"f|Gui.Pdf.Document.removePage|Gui_Pdf_Document_removePage|Removes the page at index and preserves the order of the remaining pages.",
+"f|Gui.Pdf.Document.save|Gui_Pdf_Document_save|Encodes and writes the complete document to fileName.",
+"f|Gui.Pdf.Item.imageValue|Gui_Pdf_Item_imageValue|Returns a borrowed image for an image item.",
+"f|Gui.Pdf.Item.itemClip|Gui_Pdf_Item_itemClip|Returns the page-space region this item is confined to, or the whole page when the",
+"f|Gui.Pdf.Item.itemFillColor|Gui_Pdf_Item_itemFillColor|Returns the fill color of text and filled paths.",
+"f|Gui.Pdf.Item.itemStrokeColor|Gui_Pdf_Item_itemStrokeColor|Returns the stroke color of a stroked path.",
+"f|Gui.Pdf.Item.itemTransform|Gui_Pdf_Item_itemTransform|Returns the transform applied when this item is rendered.",
+"f|Gui.Pdf.Item.pathStrokeStyle|Gui_Pdf_Item_pathStrokeStyle|Returns the stroke geometry of a path item, or the default solid style for another kind.",
+"f|Gui.Pdf.Item.pathStrokeWidth|Gui_Pdf_Item_pathStrokeWidth|Returns the stroke width in PDF points, or zero for a hairline or an item with no stroke.",
+"f|Gui.Pdf.Item.pathUsesEvenOddFill|Gui_Pdf_Item_pathUsesEvenOddFill|Returns whether a filled path uses the alternating rule rather than the winding count.",
+"f|Gui.Pdf.Item.pathValue|Gui_Pdf_Item_pathValue|Returns a borrowed path list for a path item.",
+"f|Gui.Pdf.Item.textFont|Gui_Pdf_Item_textFont|Returns the standard face this text is written with.",
+"f|Gui.Pdf.Item.textSize|Gui_Pdf_Item_textSize|Returns the text size in PDF points, or zero for another kind.",
+"f|Gui.Pdf.Item.textValue|Gui_Pdf_Item_textValue|Returns the text carried by a text item, or an empty string for another kind.",
+"f|Gui.Pdf.Page.addImage|Gui_Pdf_Page_addImage|Appends one raster image in the requested page rectangle.",
+"f|Gui.Pdf.Page.addPath|Gui_Pdf_Page_addPath|Appends one vector path.",
+"f|Gui.Pdf.Page.addText|Gui_Pdf_Page_addText|Appends one UTF-8 text run.",
+"f|Gui.Pdf.Page.clear|Gui_Pdf_Page_clear|Removes every page item while preserving the page dimensions.",
+"f|Gui.Pdf.Page.create|Gui_Pdf_Page_create|Creates an empty page with positive dimensions in PDF points.",
+"f|Gui.Pdf.Page.removeItem|Gui_Pdf_Page_removeItem|Removes the item at index and preserves the paint order of the rest.",
+"f|Gui.Pdf.Page.render|Gui_Pdf_Page_render|Renders the complete page to an owned Pixel image.",
+"f|Gui.Pdf.Page.setItemFillColor|Gui_Pdf_Page_setItemFillColor|Replaces the fill color of a text or path item.",
+"f|Gui.Pdf.Page.setItemTransform|Gui_Pdf_Page_setItemTransform|Replaces the transform applied to an item during rendering and writing.",
+"f|Gui.Pdf.Page.setPathStrokeColor|Gui_Pdf_Page_setPathStrokeColor|Replaces the stroke color of a path item.",
+"f|Gui.Pdf.Page.setPathStrokeStyle|Gui_Pdf_Page_setPathStrokeStyle|Replaces the cap, join, miter, and dash geometry of a path stroke.",
+"f|Gui.Pdf.Page.setPathStrokeWidth|Gui_Pdf_Page_setPathStrokeWidth|Replaces the non-negative stroke width of a path item and enables its stroke.",
+"f|Gui.Pdf.Page.setText|Gui_Pdf_Page_setText|Replaces the UTF-8 content of a text item.",
+"f|Gui.Pdf.Page.setTextFont|Gui_Pdf_Page_setTextFont|Replaces the standard face a text item is written with.",
+"f|Gui.Pdf.Page.setTextSize|Gui_Pdf_Page_setTextSize|Replaces the point size of a text item.",
+"f|Gui.Pdf.Reader.loadPage|Gui_Pdf_Reader_loadPage|Decodes and returns the page at zero-based index.",
+"f|Gui.Pdf.Reader.metadata|Gui_Pdf_Reader_metadata|Returns the document's descriptive fields.",
+"f|Gui.Pdf.Reader.open|Gui_Pdf_Reader_open|Opens a PDF file through a read-only mapping and indexes its pages.",
+"f|Gui.Pdf.Reader.pageCount|Gui_Pdf_Reader_pageCount|Returns the number of pages found in the page tree.",
+"f|Gui.Pdf.StandardFont.baseFontName|Gui_Pdf_StandardFont_baseFontName|Returns the BaseFont name a PDF font dictionary uses for this face.",
+"f|Gui.Pdf.StandardFont.fromBaseName|Gui_Pdf_StandardFont_fromBaseName|Returns the face a BaseFont name selects, and whether the name was recognized.",
+"f|Gui.Pdf.StandardFont.glyphWidth|Gui_Pdf_StandardFont_glyphWidth|Returns the advance width of one character, in fractions of the text size.",
+"f|Gui.Pdf.StandardFont.textWidth|Gui_Pdf_StandardFont_textWidth|Returns the advance width of text when drawn at size PDF points.",
+"f|Gui.PdfView.actualSize|Gui_PdfView_actualSize|Shows the page at actual size: one PDF point per 1/96 of a logical inch.",
+"f|Gui.PdfView.close|Gui_PdfView_close|Releases the displayed page and its raster while keeping the widget alive.",
+"f|Gui.PdfView.create|Gui_PdfView_create|Creates an empty PDF viewer.",
+"f|Gui.PdfView.effectiveZoom|Gui_PdfView_effectiveZoom|Returns the scale the page is currently shown at, in logical units per PDF point.",
+"f|Gui.PdfView.metadata|Gui_PdfView_metadata|Returns the document's descriptive fields.",
+"f|Gui.PdfView.nextPage|Gui_PdfView_nextPage|Shows the next page when one exists.",
+"f|Gui.PdfView.open|Gui_PdfView_open|Opens a PDF file and shows its first page fitted to the viewport.",
+"f|Gui.PdfView.pageCount|Gui_PdfView_pageCount|Returns the number of pages of the open document, or zero when none is open.",
+"f|Gui.PdfView.pageSize|Gui_PdfView_pageSize|Returns the displayed page's dimensions in PDF points.",
+"f|Gui.PdfView.previousPage|Gui_PdfView_previousPage|Shows the previous page when one exists.",
+"f|Gui.PdfView.setZoom|Gui_PdfView_setZoom|Sets an explicit page scale and leaves fitted mode.",
+"f|Gui.PdfView.showPage|Gui_PdfView_showPage|Decodes and shows the page at zero-based index, preserving the zoom mode.",
+"f|Gui.PdfView.zoomIn|Gui_PdfView_zoomIn|Increases the page scale by one viewer step.",
+"f|Gui.PdfView.zoomOut|Gui_PdfView_zoomOut|Decreases the page scale by one viewer step.",
+"f|Gui.PdfView.zoomToFit|Gui_PdfView_zoomToFit|Fits the complete page inside the viewport and recentres it.",
 "f|Gui.IPropertyEditor.canEdit|Gui_IPropertyEditor_canEdit|Return true if this editor should handle a field of type 'type'.",
 "f|Gui.IPropertyEditor.construct|Gui_IPropertyEditor_construct|Build the editor row(s) for 'value' (the field at 'data') under 'parent' and return the",
 "f|Gui.IPropertyNotify.fillPopupMenu|Gui_IPropertyNotify_fillPopupMenu|Called when the user right-clicks a row: add custom menu items (each with a unique",

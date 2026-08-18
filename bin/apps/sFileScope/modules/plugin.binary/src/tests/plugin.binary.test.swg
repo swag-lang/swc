@@ -4,37 +4,37 @@
 using Core, Pixel, Gui
 
 // Returns the path of one immutable fixture of this test suite.
-private func binaryFixturePath(name: string)->String
+func binaryFixturePath(name: string)->String
 {
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 }
 
 // Total size of the synthesized image. Two sections of one file-alignment unit each, behind a
 // header block of the same size.
-private const FixtureSize = 0x800'u64
+const FixtureSize = 0x800'u64
 
 // Where the synthesized image puts each of its parts. A fixture whose offsets are named is a
 // fixture whose assertions can name them too.
-private const FixturePeAt = 0x80'u64
-private const FixtureTextAt = 0x400'u64
-private const FixtureDataAt = 0x600'u64
+const FixturePeAt   = 0x80'u64
+const FixtureTextAt = 0x400'u64
+const FixtureDataAt = 0x600'u64
 
 // Writes `value` as `size` little-endian bytes at `at`.
-private func poke(bytes: *Array'u8, at, value, size: u64)
+func poke(bytes: *Array'u8, at, value, size: u64)
 {
     for index in size do
         bytes[at + index] = cast(u8) ((value >> (index * 8)) & 0xFF)
 }
 
 // Writes `value` as `size` big-endian bytes at `at`, for the formats written that way round.
-private func pokeBig(bytes: *Array'u8, at, value, size: u64)
+func pokeBig(bytes: *Array'u8, at, value, size: u64)
 {
     for index in size do
         bytes[at + index] = cast(u8) ((value >> ((size - 1 - index) * 8)) & 0xFF)
 }
 
 // Writes `text` at `at`, leaving the byte after it as the zero the buffer already holds.
-private func pokeText(bytes: *Array'u8, at: u64, text: string)
+func pokeText(bytes: *Array'u8, at: u64, text: string)
 {
     for index in @countof(text) do
         bytes[at + index] = text[index]
@@ -45,7 +45,7 @@ private func pokeText(bytes: *Array'u8, at: u64, text: string)
 // A checked-in binary would say nothing about which byte an assertion is reading, and could not be
 // changed to probe one field. Every offset here is computed from the same constants the reader
 // walks, so a mistake in either shows up as a failing assertion rather than as a silent skip.
-private func buildPeFixture()->Array'u8
+func buildPeFixture()->Array'u8
 {
     var bytes: retval
     bytes.resize(FixtureSize)
@@ -149,7 +149,7 @@ private func buildPeFixture()->Array'u8
 }
 
 // Writes `bytes` to a uniquely named temporary file and returns its path.
-private func writeFixture(name: string, bytes: const [..] u8)->String
+func writeFixture(name: string, bytes: const [..] u8)->String
 {
     let directory = Env.getSpecialDirectory(.Temp)
     let unique    = Format.toString("plugin_binary_%_%.bin", name, Guid64.random())
@@ -159,26 +159,26 @@ private func writeFixture(name: string, bytes: const [..] u8)->String
 }
 
 // Returns the first row carrying `label`, or `null` when the report never wrote one.
-private func findRow(report: const *BinaryReport, label: string)->#null const *BinaryRow
+func findRow(report: const *BinaryReport, label: string)->#null const *BinaryRow
 {
     for row in report.rows where row.label == label do
         return row
     return null
 }
 
-private func rowValue(report: const *BinaryReport, label: string)->string
+func rowValue(report: const *BinaryReport, label: string)->string
 {
     let row = findRow(report, label)
     return row ? row.value.toString() : ""
 }
 
-private func rowDetail(report: const *BinaryReport, label: string)->string
+func rowDetail(report: const *BinaryReport, label: string)->string
 {
     let row = findRow(report, label)
     return row ? row.detail.toString() : ""
 }
 
-private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
+func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
 // A synthesized library is taken apart down to the symbol it imports and the one it exports.
 #test
@@ -692,7 +692,7 @@ private func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     @assert(!result.failureReason.isEmpty())
 }
 
-private func createPluginView(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryPluginView
+func createPluginView(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryPluginView
 {
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 124, 36})
     let view     = BinaryPluginView.create(&host.root, commands, fileName)

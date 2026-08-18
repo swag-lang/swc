@@ -54,7 +54,7 @@ struct Page
     internal fonts: Array'FontResource
 }
 
-public impl Page
+impl Page
 {
     // Creates an empty page with positive dimensions in PDF points.
     func create(width, height: f32)->Page
@@ -212,9 +212,9 @@ public impl Page
     }
 }
 
-impl Page
+internal impl Page
 {
-    internal mtd appendItem(item: #move Item)
+    mtd appendItem(item: #move Item)
     {
         .items.add(#move item)
     }

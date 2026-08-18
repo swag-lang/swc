@@ -1,6 +1,6 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Replaces the color of every fully transparent pixel with `color`, leaving alpha alone.
     //
@@ -12,7 +12,7 @@ impl Image
     // the image actually shows is untouched.
     //
     // A format without an alpha channel has no fully transparent pixel and is left as is.
-    public mtd setTransparentColor(color: Color)
+    mtd setTransparentColor(color: Color)
     {
         if .pixelFormat != .BGRA8 and .pixelFormat != .RGBA8 do
             return

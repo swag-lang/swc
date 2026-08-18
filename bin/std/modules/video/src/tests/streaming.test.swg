@@ -8,32 +8,32 @@ using Core, Core.Errors, Pixel
 // It is 400 frames of eight scrolling colour bars, with a corner block whose luma identifies the
 // frame it belongs to. That block is what makes a decoded frame provable: a seek that landed on
 // the wrong frame, or a stream walked from the wrong offset, cannot produce the right value.
-private const BarsFixture = "bars-scroll-c420.y4m"
-private const BarsWidth = 128's32
-private const BarsHeight = 72's32
-private const BarsFrameCount = 400'u64
-private const BarsBlockSize = 16's32
-private const BarsBarWidth = 16's32
-private const BarsTimecodePeriod = 220'u64
+const BarsFixture        = "bars-scroll-c420.y4m"
+const BarsWidth          = 128's32
+const BarsHeight         = 72's32
+const BarsFrameCount     = 400'u64
+const BarsBlockSize      = 16's32
+const BarsBarWidth       = 16's32
+const BarsTimecodePeriod = 220'u64
 
 // One bar of the fixture, in the channel order the assertions read.
-private struct BarColor
+struct BarColor
 {
     r, g, b: u8
 }
 
 // The eight bars, in the order the fixture scrolls them through.
-private const BarColors: [8] BarColor = [{255, 255, 255}, {255, 255, 0}, {0, 255, 255}, {0, 255, 0}, {255, 0, 255}, {255, 0, 0}, {0, 0, 255}, {0, 0, 0}]
+const BarColors: [8] BarColor = [{255, 255, 255}, {255, 255, 0}, {0, 255, 255}, {0, 255, 0}, {255, 0, 255}, {255, 0, 0}, {0, 0, 255}, {0, 0, 0}]
 
 // Returns the neutral value the corner block of frame `index` decodes to.
-private func barsTimecodeGray(index: u64)->s32
+func barsTimecodeGray(index: u64)->s32
 {
     return videoLumaToGray(cast(u8) (16 + index % BarsTimecodePeriod))
 }
 
 // Asserts that a pixel taken at column `x`, below the corner block, holds the bar frame `index`
 // scrolled to that column.
-private func barsAssertBar(actual: Color, x: s32, index: u64)
+func barsAssertBar(actual: Color, x: s32, index: u64)
 {
     let bar = BarColors[(cast(u64) (x / BarsBarWidth) + index) % @countof(BarColors)]
     videoAssertColor(actual, bar.r, bar.g, bar.b)
@@ -41,7 +41,7 @@ private func barsAssertBar(actual: Color, x: s32, index: u64)
 
 // Asserts that `frame` is frame `index` of the fixture, by its corner block and by two of its
 // bars, taken below the block so the two patterns never overlap.
-private func barsAssertFrame(frame: Image, index: u64)
+func barsAssertFrame(frame: Image, index: u64)
 {
     videoAssertGray(frame.pixelColor(BarsBlockSize / 2, BarsBlockSize / 2), barsTimecodeGray(index))
     barsAssertBar(frame.pixelColor(4, BarsHeight - 8), 4, index)
@@ -113,9 +113,9 @@ private func barsAssertFrame(frame: Image, index: u64)
 
 // Geometry of the stream the writer test produces. One frame is far larger than the write
 // window, and the whole stream is far larger than anything the module holds at once.
-private const WrittenWidth = 160's32
-private const WrittenHeight = 120's32
-private const WrittenFrameCount = 300'u64
+const WrittenWidth      = 160's32
+const WrittenHeight     = 120's32
+const WrittenFrameCount = 300'u64
 
 // Encoding is streamed too: three hundred frames are written one at a time, and the result is
 // read back the same way.
@@ -158,9 +158,9 @@ private const WrittenFrameCount = 300'u64
 
 // Geometry of the stream with a hole. Sixty-nine megabytes is far more than any buffer of this
 // module holds, and one frame payload alone is larger than the read window.
-private const HoleWidth = 320's32
-private const HoleHeight = 240's32
-private const HoleFrameCount = 600'u64
+const HoleWidth      = 320's32
+const HoleHeight     = 240's32
+const HoleFrameCount = 600'u64
 
 // Opening a stream reads its header and one marker, and seeking computes an offset. That is the
 // property that lets a video of any size open at once, and this is how it is proven: everything

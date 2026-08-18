@@ -3,12 +3,12 @@
 
 using Core, Pixel, Gui, TrueType
 
-private func fontFixturePath()->String
+func fontFixturePath()->String
 {
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "segoeui.ttf")
 }
 
-private func containsCharacter(characters: const [..] rune, expected: rune)->bool
+func containsCharacter(characters: const [..] rune, expected: rune)->bool
 {
     for character in characters where character == expected do
         return true

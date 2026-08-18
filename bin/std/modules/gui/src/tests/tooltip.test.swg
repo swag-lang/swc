@@ -4,7 +4,7 @@
 using Swag, Core, Pixel
 
 // Collects the whole tip tree, so a test can state what a tip may never contain.
-private func collectTree(wnd: *Wnd, result: *Array'(*Wnd))
+func collectTree(wnd: *Wnd, result: *Array'(*Wnd))
 {
     result.add(wnd)
     for child in wnd.children do
@@ -16,7 +16,7 @@ private func collectTree(wnd: *Wnd, result: *Array'(*Wnd))
 // The two go together. A tip that scrolls hides part of what it was asked to say, and the box
 // that grew a scroll bar is exactly the one whose text stopped fitting — so a test that checks
 // only one of them passes while the other is broken.
-private func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
+func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 {
     var tree: Array'(*Wnd)
     collectTree(tip, &tree)
@@ -45,7 +45,7 @@ private func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 }
 
 // Shows a tip immediately and returns the label it built.
-private func showTip(owner: *Wnd, text: string)->*Label
+func showTip(owner: *Wnd, text: string)->*Label
 {
     ToolTip.show(owner, {40, 40}, text, 0's)
     return cast(*Label) owner.app().toolTip.current!.view
@@ -133,8 +133,8 @@ private func showTip(owner: *Wnd, text: string)->*Label
     assertPassiveAndFits(host.app.toolTip.current!, lbl)
 }
 
-private var g_LinkOwner: #null *Wnd
-private var g_LinkText: String
+var g_LinkOwner: #null *Wnd
+var g_LinkText:  String
 
 // A tip carrying a link is reachable, keeps its markup colors, and says which owner it came from.
 #test

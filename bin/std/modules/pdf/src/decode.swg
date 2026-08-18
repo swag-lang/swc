@@ -219,12 +219,13 @@ private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32,
         let baselineY = page.height - baseline.y
 
         var item = Item.createText()
-        item.text      = #move text
+        item.text = #move text
         if font
         {
             item.textCodes    = font.decodeCodes(bytes)
             item.textAdvances = font.codeAdvances(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
         }
+
         item.fontSize  = state.fontSize
         item.fillColor = state.fillColor
         item.fontIndex = index
@@ -439,7 +440,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
     // A `W` operator names the path under construction as the next clip, and the painting
     // operator that ends the path is what puts it into effect.
     var pendingClip: bool
-    var values:   [8] f32
+    var values:      [8] f32
 
     while content.pos < @countof(bytes)
     {
@@ -504,9 +505,9 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                     fail InvalidFormatError{"PDF line cap needs an integer from 0 to 2"}
                 switch content.nodes[valueId].integer
                 {
-                case 0: state.strokeStyle.cap = .Butt
-                case 1: state.strokeStyle.cap = .Round
-                case 2: state.strokeStyle.cap = .Square
+                case 0:  state.strokeStyle.cap = .Butt
+                case 1:  state.strokeStyle.cap = .Round
+                case 2:  state.strokeStyle.cap = .Square
                 default: fail InvalidFormatError{"PDF line cap accepts values from 0 to 2"}
                 }
             }
@@ -519,9 +520,9 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                     fail InvalidFormatError{"PDF line join needs an integer from 0 to 2"}
                 switch content.nodes[valueId].integer
                 {
-                case 0: state.strokeStyle.join = .Miter
-                case 1: state.strokeStyle.join = .Round
-                case 2: state.strokeStyle.join = .Bevel
+                case 0:  state.strokeStyle.join = .Miter
+                case 1:  state.strokeStyle.join = .Round
+                case 2:  state.strokeStyle.join = .Bevel
                 default: fail InvalidFormatError{"PDF line join accepts values from 0 to 2"}
                 }
             }
@@ -1035,14 +1036,15 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
 
 func decodeDocument(bytes: const [..] u8)->Document fail
 {
-    var parser = PdfParser{bytes: bytes}
+    var parser          = PdfParser{bytes: bytes}
     var sources: Array'PageSource
-    var result: retval = Document.create()
+    var result:  retval = Document.create()
     try indexDocument(&parser, &result.metadata, &sources)
     for source in sources
     {
         var page = try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.rotate)
         result.addPage(#move page)
     }
+
     return result
 }

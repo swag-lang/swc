@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Audio
 
-private const TinyWav: [48] u8 = [
+const TinyWav: [48] u8 = [
     0x52, 0x49, 0x46, 0x46, 0x28, 0x00, 0x00, 0x00,
     0x57, 0x41, 0x56, 0x45, 0x66, 0x6D, 0x74, 0x20,
     0x10, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
@@ -14,7 +14,7 @@ private const TinyWav: [48] u8 = [
 // Builds a 16-bit mono WAV whose loudness moves the way real material does, so the picture the
 // plot is judged on shows what the plot is for: bursts that decay, a transient above the body of
 // each one, and silences between them.
-private func previewWav()->Array'u8
+func previewWav()->Array'u8
 {
     const SampleRate  = 11_025'u64
     const FrameCount  = SampleRate * 2 + SampleRate / 2
@@ -54,18 +54,18 @@ private func previewWav()->Array'u8
     return result
 }
 
-private func waveformFixturePath()->String
+func waveformFixturePath()->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/waveform.samples.txt")
 }
 
-private func writeU16(bytes: *Array'u8, offset: u64, value: u16)
+func writeU16(bytes: *Array'u8, offset: u64, value: u16)
 {
     bytes[offset]     = cast(u8) (value & 0xFF)
     bytes[offset + 1] = cast(u8) (value >> 8)
 }
 
-private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
+func writeU32(bytes: *Array'u8, offset: u64, value: u32)
 {
     bytes[offset]     = cast(u8) (value & 0xFF)
     bytes[offset + 1] = cast(u8) ((value >> 8) & 0xFF)
@@ -73,7 +73,7 @@ private func writeU32(bytes: *Array'u8, offset: u64, value: u32)
     bytes[offset + 3] = cast(u8) ((value >> 24) & 0xFF)
 }
 
-private func finishWaveform(view: *SoundPluginView)
+func finishWaveform(view: *SoundPluginView)
 {
     if view.waveformThread.isValid() do
         view.waveformThread.wait()

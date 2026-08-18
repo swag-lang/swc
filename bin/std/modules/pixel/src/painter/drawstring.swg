@@ -35,7 +35,7 @@ enum UnderlineStyle
 // resolved draw font uses MSDF; bitmap rendering ignores them. Distances are in
 // distance-field units, where `0.5` spans approximately the atlas spread, so widths
 // scale with the text size.
-public struct TextEffect
+struct TextEffect
 {
     public
     {
@@ -67,7 +67,7 @@ public struct TextEffect
     }
 }
 
-public impl TextEffect
+impl TextEffect
 {
     // True if #null any single-pass face effect (outline/glow/bevel/dilate/softness) is on.
     mtd const hasFaceEffects()->bool
@@ -175,7 +175,7 @@ struct ShapedRun
 }
 
 // Contains resolved font and scaling choices for one text draw.
-public struct TextDrawInfo
+struct TextDrawInfo
 {
     public
     {

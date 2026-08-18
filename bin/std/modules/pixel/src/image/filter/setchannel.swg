@@ -1,6 +1,6 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Bit mask selecting destination channels for [[Image.setChannel]].
     #[Swag.EnumFlags]
@@ -25,7 +25,7 @@ impl Image
     }
 
     // Change the alpha channel
-    public mtd setAlpha(value: u8 = 0)
+    mtd setAlpha(value: u8 = 0)
     {
         if .pixelFormat != .BGRA8 do
             return
@@ -33,7 +33,7 @@ impl Image
     }
 
     // Change specified color channels
-    public mtd setChannel(mode: ChannelMode, value: ChannelValueMode, color: u8 = 0)
+    mtd setChannel(mode: ChannelMode, value: ChannelValueMode, color: u8 = 0)
     {
         if .pixelFormat != .BGR8 and .pixelFormat != .BGRA8 do
             return

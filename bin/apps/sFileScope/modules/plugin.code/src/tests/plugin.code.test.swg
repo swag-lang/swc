@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui
 
-private func codeFixturePath(name: string)->String
+func codeFixturePath(name: string)->String
 {
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 }
@@ -14,7 +14,7 @@ private func codeFixturePath(name: string)->String
 // collects every '.swg' below 'src' with no exception for a test folder, so a file keeping the
 // extension the lexer is selected by would be compiled into the plugin and would publish its
 // declarations as part of it.
-private func swagSampleSource()->String
+func swagSampleSource()->String
 {
     var result: retval
     result += "#global public\n"
@@ -32,7 +32,7 @@ private func swagSampleSource()->String
     return result
 }
 
-private struct CodeLanguageSample
+struct CodeLanguageSample
 {
     language: CodeLanguage
     source:   string

@@ -72,39 +72,39 @@ internal struct StreamOnlySource
     inner:  #null *DragDataObject      // Object the blocks are produced by.
 }
 
-private var g_StreamOnlyVtbl: IDataObjectVtbl = undefined
+var g_StreamOnlyVtbl: IDataObjectVtbl = undefined
 
-impl StreamOnlySource
+internal impl StreamOnlySource
 {
-    internal mtd setup(inner: *DragDataObject)
+    mtd setup(inner: *DragDataObject)
     {
         .lpVtbl = &g_StreamOnlyVtbl
         .inner  = inner
     }
 }
 
-private func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamOnlySource) itf
+func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamOnlySource) itf
 
-private func streamOnlyQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
+func streamOnlyQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     discard riid
     ppv[] = cast([*] void) itf
     return S_OK
 }
 
-private func streamOnlyAddRef(itf: *IDataObject)->ULONG
+func streamOnlyAddRef(itf: *IDataObject)->ULONG
 {
     discard itf
     return 1
 }
 
-private func streamOnlyRelease(itf: *IDataObject)->ULONG
+func streamOnlyRelease(itf: *IDataObject)->ULONG
 {
     discard itf
     return 1
 }
 
-private func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
+func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 {
     if !(fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
@@ -115,7 +115,7 @@ private func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->H
     return inner.lpVtbl.QueryGetData(inner, &ask)
 }
 
-private func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
+func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
     if !(fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
@@ -141,7 +141,7 @@ private func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *S
     return S_OK
 }
 
-private func streamOnlyNotImpl(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
+func streamOnlyNotImpl(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
     discard itf
     discard fmt
@@ -149,7 +149,7 @@ private func streamOnlyNotImpl(itf: *IDataObject, fmt: const *FORMATETC, med: *S
     return E_NOTIMPL
 }
 
-private func streamOnlyCanonical(itf: *IDataObject, fmtIn: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
+func streamOnlyCanonical(itf: *IDataObject, fmtIn: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
 {
     discard itf
     discard fmtIn
@@ -157,7 +157,7 @@ private func streamOnlyCanonical(itf: *IDataObject, fmtIn: const *FORMATETC, fmt
     return DATA_S_SAMEFORMATETC
 }
 
-private func streamOnlySetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM, release: BOOL)->HRESULT
+func streamOnlySetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM, release: BOOL)->HRESULT
 {
     discard itf
     discard fmt
@@ -166,7 +166,7 @@ private func streamOnlySetData(itf: *IDataObject, fmt: const *FORMATETC, med: *S
     return E_NOTIMPL
 }
 
-private func streamOnlyEnum(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESULT
+func streamOnlyEnum(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESULT
 {
     discard itf
     discard direction
@@ -174,7 +174,7 @@ private func streamOnlyEnum(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID
     return E_NOTIMPL
 }
 
-private func streamOnlyAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: #null *void, conn: *DWORD)->HRESULT
+func streamOnlyAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: #null *void, conn: *DWORD)->HRESULT
 {
     discard itf
     discard fmt
@@ -184,14 +184,14 @@ private func streamOnlyAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: D
     return OLE_E_ADVISENOTSUPPORTED
 }
 
-private func streamOnlyUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
+func streamOnlyUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
 {
     discard itf
     discard conn
     return OLE_E_ADVISENOTSUPPORTED
 }
 
-private func streamOnlyEnumAdvise(itf: *IDataObject, ppenum: *LPVOID)->HRESULT
+func streamOnlyEnumAdvise(itf: *IDataObject, ppenum: *LPVOID)->HRESULT
 {
     discard itf
     ppenum[] = null

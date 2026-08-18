@@ -22,7 +22,7 @@ public impl PixelMode
 
 impl Bitmap
 {
-    internal mtd reset()
+    mtd reset()
     {
         .rows      = 0
         .width     = 0
@@ -32,7 +32,7 @@ impl Bitmap
         .grayCount = 256
     }
 
-    internal mtd set(rows, width: u32, pitch: s32, buffer: #null [*] u8, pixelMode: PixelMode)
+    mtd set(rows, width: u32, pitch: s32, buffer: #null [*] u8, pixelMode: PixelMode)
     {
         .rows      = rows
         .width     = width

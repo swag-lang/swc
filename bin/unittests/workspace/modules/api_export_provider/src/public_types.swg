@@ -57,11 +57,7 @@ impl DepShortCallOwner
 struct DepPublicWithPrivateField
 {
     public publicValue: s32
-
-    internal
-    {
-        hiddenValue: s32
-    }
+    hiddenValue: s32
 }
 
 // A member that says nothing is internal, exactly like a top-level declaration that says
@@ -75,14 +71,10 @@ struct DepDefaultAccessField
 struct DepPublicWithPrivateInlineUnion
 {
     public publicValue: s32
-
-    internal
+    using bounds: union
     {
-        using bounds: union
-        {
-            signed:   { min: s32, max: s32 } = {0, 0}
-            floating: { min: f32, max: f32 } = {0, 0}
-        }
+        signed:   { min: s32, max: s32 } = {0, 0}
+        floating: { min: f32, max: f32 } = {0, 0}
     }
 }
 
@@ -123,7 +115,7 @@ struct DepOpaque
 #[Swag.Opaque]
 struct DepOpaqueGenericBox
 {
-    internal seed: s32
+    seed: s32
 }
 
 impl DepOpaqueGenericBox

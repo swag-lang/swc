@@ -85,7 +85,7 @@ public struct MarkdownInlineView
     horizontalAlignment         = StringHorzAlignment.Left
 }
 
-internal impl MarkdownInlineView
+impl MarkdownInlineView
 {
     mtd clearSearchHighlight()
     {
@@ -576,7 +576,7 @@ internal impl MarkdownInlineView
     }
 }
 
-internal impl IWnd for MarkdownInlineView
+impl IWnd for MarkdownInlineView
 {
     mtd impl onPaint(evt: *PaintEvent)
     {

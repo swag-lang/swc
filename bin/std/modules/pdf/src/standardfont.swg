@@ -79,7 +79,7 @@ private const TimesBoldItalicWidths: [95] u16 = [
     333, 500, 500, 444, 500, 444, 333, 500, 556, 278, 278, 500, 278, 778, 556, 500,
     500, 500, 389, 389, 278, 556, 444, 667, 500, 444, 389, 348, 220, 348, 570]
 
-public impl StandardFont
+impl StandardFont
 {
     // Returns the `BaseFont` name a PDF font dictionary uses for this face.
     mtd const baseFontName()->string

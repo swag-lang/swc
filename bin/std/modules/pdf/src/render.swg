@@ -194,9 +194,9 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, resource: 
     var naturalTotal  = 0.0'f32
     for code, index in item.textCodes
     {
-        let text  = resource!.codeText(code)
+        let text = resource!.codeText(code)
         var group: SubstitutedGroup
-        group.first   = shaped.glyphs.count
+        group.first    = shaped.glyphs.count
         group.declared = item.textAdvances[index] / info.scale
 
         Utf8.visitRunes(text.toString())
@@ -284,7 +284,7 @@ private func drawTextItem(painter: *Painter, cache: *FontCache, page: const *Pag
 
 private func pathPen(item: const *Item, scale: f32)->Pen
 {
-    let strokeWidth   = item.strokeWidth ? item.strokeWidth : 1 / scale
+    let strokeWidth    = item.strokeWidth ? item.strokeWidth : 1 / scale
     var result: retval = Pen.createSolid(item.strokeColor, strokeWidth)
     switch item.strokeStyle.cap
     {
@@ -313,6 +313,7 @@ private func pathPen(item: const *Item, scale: f32)->Pen
     case .Round: result.joinStyle = .Round
     case .Bevel: result.joinStyle = .Bevel
     }
+
     result.joinMiterLimit = item.strokeStyle.miterLimit
     result.dashOffset     = item.strokeStyle.dashPhase
     if item.strokeStyle.dashPattern.count

@@ -1,9 +1,9 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Invert colors
-    public mtd invert()
+    mtd invert()
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

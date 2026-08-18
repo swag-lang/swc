@@ -21,10 +21,10 @@ struct RenderTarget
     }
 }
 
-impl RenderTarget
+internal impl RenderTarget
 {
     // Establishes a descriptor for resources created by a renderer.
-    internal mtd attach(handle: RenderTargetHandle, textureHandle: TextureHandle, pixelFormat: PixelFormat, width, height: s32, depthStencil = InvalidRenderTargetSurfaceHandle)
+    mtd attach(handle: RenderTargetHandle, textureHandle: TextureHandle, pixelFormat: PixelFormat, width, height: s32, depthStencil = InvalidRenderTargetSurfaceHandle)
     {
         .handle       = handle
         .depthStencil = depthStencil
@@ -32,7 +32,7 @@ impl RenderTarget
     }
 
     // Invalidates a descriptor after its renderer has released the resources.
-    internal mtd clear()
+    mtd clear()
     {
         @init(me, 1)
     }

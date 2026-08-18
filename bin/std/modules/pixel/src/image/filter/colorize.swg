@@ -1,10 +1,10 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Colorize the image by setting the hue and saturation.
     #[Swag.Safety(.All, false)]
-    public mtd colorize(hue, saturation: f32, strength = 1.0)
+    mtd colorize(hue, saturation: f32, strength = 1.0)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

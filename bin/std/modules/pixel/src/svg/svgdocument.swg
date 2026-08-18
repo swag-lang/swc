@@ -4,7 +4,7 @@
 using Core, Core.Errors, Core.Math
 
 // Decides which points a set of contours encloses.
-public enum FillRule
+enum FillRule
 {
     NonZero     // Inside where the signed crossing count differs from zero; overlapping contours merge.
     EvenOdd     // Inside where the crossing count is odd; overlapping contours punch holes.

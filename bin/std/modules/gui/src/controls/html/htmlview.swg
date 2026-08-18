@@ -20,7 +20,7 @@ private const HtmlMaxDocumentSize = 48 * 1024 * 1024'u64
 // These are the values a document inherits before its own CSS has a say — what a browser calls
 // its default font settings. A document that specifies nothing is drawn with them, and one that
 // specifies everything is unaffected by them.
-public struct HtmlStyle
+struct HtmlStyle
 {
     public
     {
@@ -31,7 +31,7 @@ public struct HtmlStyle
     }
 }
 
-public impl HtmlStyle
+impl HtmlStyle
 {
     // Returns the document defaults that follow the active GUI theme.
     func theme()->HtmlStyle => {}
@@ -72,7 +72,7 @@ private struct HtmlRegionScrollState
 //     Console.println(url)
 // }
 // ```
-public struct HtmlView
+struct HtmlView
 {
     public
     {

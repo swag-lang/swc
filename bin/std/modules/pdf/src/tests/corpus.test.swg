@@ -31,11 +31,11 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
 #test
 {
     const fixtures: [5] CorpusPdf = [
-        {"llvm-polly-passes-only.pdf", 1},
-        {"llvm-polly-passes-late.pdf", 1},
+        {"llvm-polly-passes-only.pdf",  1},
+        {"llvm-polly-passes-late.pdf",  1},
         {"llvm-polly-passes-early.pdf", 1},
-        {"llvm-polly-passes-all.pdf", 1},
-        {"llvm-openmp-reference.pdf", 67}]
+        {"llvm-polly-passes-all.pdf",   1},
+        {"llvm-openmp-reference.pdf",   67}]
     renderCorpus(fixtures)
 }
 

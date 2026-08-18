@@ -212,15 +212,15 @@ func readCffIndex(block: #null const [..] u8, offset: u64)->CffIndex fail
 func readCffReal(data: #null const [..] u8, offset: u64)->{ value: f64, next: u64 } fail
 {
     var result: retval
-    var mantissa  = 0.0'f64
-    var fraction  = 0.1'f64
-    var exponent  = 0
-    var negative  = false
+    var mantissa    = 0.0'f64
+    var fraction    = 0.1'f64
+    var exponent    = 0
+    var negative    = false
     var expNegative = false
     var inFraction  = false
     var inExponent  = false
-    var done      = false
-    var pos       = offset
+    var done        = false
+    var pos         = offset
 
     while !done
     {
@@ -283,7 +283,7 @@ func readCffReal(data: #null const [..] u8, offset: u64)->{ value: f64, next: u6
 
 func parseCffDict(data: #null const [..] u8)->CffDict fail
 {
-    var result: retval
+    var result:  retval
     var pending: Array'f64
     var pos = 0'u64
 
@@ -545,7 +545,7 @@ private func readCffFdArray(font: *CffFont, offset: u64) fail
     let fdArray = readCffIndex(font.block, offset)
     for index in fdArray.count()
     {
-        let dict    = parseCffDict(fdArray.item(font.block, index))
+        let dict        = parseCffDict(fdArray.item(font.block, index))
         let privateData = readCffPrivate(font, &dict)
         font.fdLocalSubrs.add(privateData.subrs)
         font.fdDefaultWidth.add(privateData.defaultWidth)

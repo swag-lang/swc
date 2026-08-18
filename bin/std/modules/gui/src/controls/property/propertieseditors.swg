@@ -13,7 +13,7 @@ using Core, Pixel
 // registered from the outside. Because canEdit receives the type, one editor can claim a whole
 // FAMILY of types (every enum, every type carrying a given attribute, a set of related structs),
 // not just a single one — something a type-keyed map cannot express.
-public interface IPropertyEditor
+interface IPropertyEditor
 {
     // Return true if this editor should handle a field of type 'type'.
     mtd canEdit(type: #null typeinfo)->bool
@@ -34,7 +34,7 @@ public interface IPropertyEditor
 // plus a null-pointer interface used only for the canEdit capability query. Same shape as
 // ImageDecoder / ImageEncoder.
 #[Swag.NoDoc]
-public struct PropertyEditorReg
+struct PropertyEditorReg
 {
     public
     {

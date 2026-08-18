@@ -378,7 +378,7 @@ private func validateManifest(manifest: const *Manifest, chunks: const [..] Chun
     }
 }
 
-public impl Writer
+impl Writer
 {
     // Initializes this writer as an empty container for `containerKind`.
     mtd initialize(containerKind: Guid128)
@@ -515,7 +515,7 @@ public impl Writer
     }
 }
 
-public impl Reader
+impl Reader
 {
     // Initializes this reader and reads only the SCC prefix and header.
     mtd initialize(fileName: string, limits: ReadLimits = {}) fail

@@ -6,7 +6,7 @@ struct Account
 {
     public id: s32 = 1
     public readonly balance: s32 = 100
-    internal ledger: s32 = 7
+    ledger: s32 = 7
     private secret: s32 = 42
     opened: bool = true
 }
@@ -63,8 +63,8 @@ impl Account
     @assert(a.balance == 100)
 }
 
-// An access modifier also applies as a block, and to a multi-name declaration. Written alone,
-// 'readonly' rides on the level already in effect.
+// An access modifier applies to a block and to a multi-name declaration. A single field keeps
+// the modifier on its declaration, and 'readonly' rides on the level already in effect.
 struct Grouped
 {
     private
@@ -75,10 +75,7 @@ struct Grouped
 
     readonly d: s32 = 5
 
-    public
-    {
-        readonly e: s32 = 6
-    }
+    public readonly e: s32 = 6
 }
 
 impl Grouped

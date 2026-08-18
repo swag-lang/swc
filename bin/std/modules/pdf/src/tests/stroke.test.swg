@@ -14,7 +14,7 @@ private func strokedPath(y: f32)->LinePathList
 // Stroke geometry survives decode, editing, encode, decode, and rasterization.
 #test
 {
-    let content = "2 J 1 j 7 M [10 5 3] 2 d 8 w 20 35 m 80 35 l S"
+    let content  = "2 J 1 j 7 M [10 5 3] 2 d 8 w 20 35 m 80 35 l S"
     var document = expect Document.decode(singlePagePdf("", cast(const [..] u8) content, "", "[0 0 100 50]").toSlice())
     let decoded  = onlyItem(document.pages[0], .Path)
     let style    = decoded.pathStrokeStyle()
@@ -26,8 +26,8 @@ private func strokedPath(y: f32)->LinePathList
     editedStyle.dashPattern.add(10)
     editedStyle.dashPattern.add(10)
     document.editPage(0).setPathStrokeStyle(0, editedStyle)
-    let bytes     = expect document.encode()
-    let encoded   = cast(string) bytes.toSlice()
+    let bytes   = expect document.encode()
+    let encoded = cast(string) bytes.toSlice()
     @assert(Utf8.indexOf(encoded, "0 J\n2 j\n4 M\n[10 10] 0 d") != Swag.U64.Max)
     let roundTrip = expect Document.decode(bytes.toSlice())
     let final     = onlyItem(roundTrip.pages[0], .Path).pathStrokeStyle()
@@ -75,7 +75,7 @@ private func strokedPath(y: f32)->LinePathList
     page.addPath(strokedPath(25), fill: false, stroke: true, strokeWidth: 0)
     document.addPage(#move page)
 
-    let image = expect document.pages[0].render({scale: 2, background: Color.fromArgb(Argb.White)})
+    let image       = expect document.pages[0].render({scale: 2, background: Color.fromArgb(Argb.White)})
     var hasHairline = false
     for y in 48 to 52
     {

@@ -5,10 +5,10 @@ struct FillGradient4Context
     topLeft, topRight, bottomLeft, bottomRight: Color
 }
 
-impl Image
+public impl Image
 {
     // Fill with an horizontal gradient from 'color0' to 'color1'
-    public mtd fillGradient(color0, color1: Color)
+    mtd fillGradient(color0, color1: Color)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
@@ -48,7 +48,7 @@ impl Image
     }
 
     // Fill with a gradient with a different color at each corner
-    public mtd fillGradient(topLeft, topRight, bottomLeft, bottomRight: Color)
+    mtd fillGradient(topLeft, topRight, bottomLeft, bottomRight: Color)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

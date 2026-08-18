@@ -68,13 +68,13 @@ private func markdownBareUrlEnd(text: string, start: u64)->u64
     return end
 }
 
-internal struct MarkdownReference
+struct MarkdownReference
 {
     name:   String
     target: String
 }
 
-internal struct MarkdownReferenceInfo
+struct MarkdownReferenceInfo
 {
     found:    bool
     footnote: bool
@@ -82,7 +82,7 @@ internal struct MarkdownReferenceInfo
     value:    string = ""
 }
 
-internal func markdownReferenceDefinition(line: string)->MarkdownReferenceInfo
+func markdownReferenceDefinition(line: string)->MarkdownReferenceInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
@@ -106,7 +106,7 @@ private func markdownReferenceTarget(references: #null const [..] MarkdownRefere
     return ""
 }
 
-internal func renderMarkdownInline(text: string, references: #null const [..] MarkdownReference = null)->String
+func renderMarkdownInline(text: string, references: #null const [..] MarkdownReference = null)->String
 {
     var result: retval
     var index = 0'u64
@@ -396,13 +396,13 @@ internal func renderMarkdownInline(text: string, references: #null const [..] Ma
     return result
 }
 
-internal struct MarkdownHeadingInfo
+struct MarkdownHeadingInfo
 {
     level: u32
     text:  string = ""
 }
 
-internal struct MarkdownListInfo
+struct MarkdownListInfo
 {
     found:   bool
     ordered: bool
@@ -411,14 +411,14 @@ internal struct MarkdownListInfo
     indent:  u32
 }
 
-internal struct MarkdownFenceInfo
+struct MarkdownFenceInfo
 {
     found:  bool
     marker: u8
     info:   string = ""
 }
 
-internal func markdownHeading(line: string)->MarkdownHeadingInfo
+func markdownHeading(line: string)->MarkdownHeadingInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
@@ -437,7 +437,7 @@ internal func markdownHeading(line: string)->MarkdownHeadingInfo
     return result
 }
 
-internal func markdownSetextLevel(line: string)->u32
+func markdownSetextLevel(line: string)->u32
 {
     let trimmed = Latin1.trim(line)
     if @countof(trimmed) < 3 do
@@ -450,7 +450,7 @@ internal func markdownSetextLevel(line: string)->u32
     return marker == '=' ? 1 : 2
 }
 
-internal func markdownRule(line: string)->bool
+func markdownRule(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
     var marker  = 0'u8
@@ -471,12 +471,12 @@ internal func markdownRule(line: string)->bool
     return count >= 3
 }
 
-internal func markdownHardBreak(line: string)->bool
+func markdownHardBreak(line: string)->bool
 {
     return @countof(line) >= 2 and line[@countof(line) - 1] == ' ' and line[@countof(line) - 2] == ' '
 }
 
-internal func markdownListItem(line: string)->MarkdownListInfo
+func markdownListItem(line: string)->MarkdownListInfo
 {
     var result: retval
     var index = 0'u64
@@ -510,7 +510,7 @@ internal func markdownListItem(line: string)->MarkdownListInfo
     return result
 }
 
-internal func markdownTableSeparator(line: string)->bool
+func markdownTableSeparator(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
     if !Utf8.contains(trimmed, '|'rune) do
@@ -527,7 +527,7 @@ internal func markdownTableSeparator(line: string)->bool
     return dashCount >= 3
 }
 
-internal func markdownFence(line: string)->MarkdownFenceInfo
+func markdownFence(line: string)->MarkdownFenceInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)

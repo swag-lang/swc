@@ -147,6 +147,7 @@ private func appendStrokeStyle(result: *String, item: const *Item)
     case .Round:  cap = 1
     case .Square: cap = 2
     }
+
     var join: u32
     switch item.strokeStyle.join
     {

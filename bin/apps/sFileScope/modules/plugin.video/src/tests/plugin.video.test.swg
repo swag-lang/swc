@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Video
 
-private func videoPreviewFile(name: string)->String fail
+func videoPreviewFile(name: string)->String fail
 {
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
     let rate     = try FrameRate.create(4, 1)

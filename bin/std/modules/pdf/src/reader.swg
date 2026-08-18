@@ -29,7 +29,7 @@ struct Reader
     }
 }
 
-public impl Reader
+impl Reader
 {
     // Opens a PDF file through a read-only mapping and indexes its pages.
     //

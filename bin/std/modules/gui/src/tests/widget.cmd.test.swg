@@ -16,7 +16,7 @@ using Swag, Core, Pixel
 // come down to -- a disabled button draws the very same geometry as an enabled one -- so leaving
 // them out would make those goldens indistinguishable. Texture coordinates are left out because
 // they depend on where a glyph sits in its atlas.
-private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerlocation)
+func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerlocation)
 {
     var painter: Painter
     var bc:      PaintContext

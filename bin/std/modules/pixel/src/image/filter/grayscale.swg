@@ -1,9 +1,9 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Transform image to grayscale, with a given factor
-    public mtd grayscale(factor: f32 = 1)
+    mtd grayscale(factor: f32 = 1)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

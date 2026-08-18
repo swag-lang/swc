@@ -1,6 +1,6 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Selects the HSL or RGB gradient written by [[Image.fillHsl]].
     public enum FillHslType
@@ -24,7 +24,7 @@ impl Image
     // `color` supplies channels held constant by the selected gradient. The operation
     // supports 8-bit RGB/BGR images with or without alpha; unsupported formats are
     // left unchanged. Existing alpha is replaced with full opacity.
-    public mtd fillHsl(fillType: FillHslType, color: Color = Color.fromArgb(Argb.White))
+    mtd fillHsl(fillType: FillHslType, color: Color = Color.fromArgb(Argb.White))
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

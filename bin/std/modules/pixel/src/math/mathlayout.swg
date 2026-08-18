@@ -903,7 +903,7 @@ private func mathDrawNode(painter: *Painter, node: *MathNode, x, baseline: f32, 
     }
 }
 
-public impl MathExpression
+impl MathExpression
 {
     // Measures the expression without drawing it.
     //
@@ -917,7 +917,7 @@ public impl MathExpression
     }
 }
 
-public impl Painter
+impl Painter
 {
     // Draw a parsed expression with its top-left at (left, top), returning the same
     // metrics as MathExpression.measure.

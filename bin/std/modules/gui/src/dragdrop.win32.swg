@@ -1173,7 +1173,7 @@ private func attachDragImage(dataObj: *IDataObject, image: const *Image)
 internal impl DragSession
 {
     // Wires both interfaces onto `data`, which has to outlive the gesture.
-    internal mtd setup(data: *DragData, app: #null *Application = null)
+    mtd setup(data: *DragData, app: #null *Application = null)
     {
         .dataObj.lpVtbl   = &g_DataObjectVtbl
         .dataObj.refCount = 1
@@ -1258,7 +1258,7 @@ internal impl Surface
     //
     // Every surface is registered as it is created: a window that ignores drops answers `None`
     // through the regular event path, which is what shows the user the pointer refusing them.
-    internal mtd registerDropTarget()
+    mtd registerDropTarget()
     {
         // The interface is wired whether or not a window backs it, so the COM entry points can
         // be driven directly by a test that has no desktop to drag over.
@@ -1278,7 +1278,7 @@ internal impl Surface
     }
 
     // Stops the surface from receiving drags and releases the reference OLE holds.
-    internal mtd revokeDropTarget()
+    mtd revokeDropTarget()
     {
         if !.dropTargetActive do
             return

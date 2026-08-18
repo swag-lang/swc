@@ -303,13 +303,13 @@ impl IDecoder for Decoder
     }
 }
 
-impl Decoder
+private impl Decoder
 {
     // Reads one frame marker and returns the number of bytes it occupies.
     //
     // A marker may carry per-frame parameters after `FRAME`. They change nothing in the payload
     // that follows, but they do change where it starts, which is why the size is returned.
-    private mtd readMarker(source: *Source)->u64 fail
+    mtd readMarker(source: *Source)->u64 fail
     {
         var marker: [ShortMarkerSize] u8 = undefined
         source.readExact(marker)
@@ -336,7 +336,7 @@ impl Decoder
     //
     // The position of `source` is left wherever the probe stopped; the caller seeks back to the
     // first frame either way.
-    private mtd probeLastFrame(source: *Source, frameCount: u64)->bool
+    mtd probeLastFrame(source: *Source, frameCount: u64)->bool
     {
         if !frameCount do
             return false
@@ -346,7 +346,7 @@ impl Decoder
     }
 
     // Fails unless a complete frame of the constant size starts at `offset`.
-    private mtd checkFrameAt(source: *Source, offset: u64) fail
+    mtd checkFrameAt(source: *Source, offset: u64) fail
     {
         source.seek(offset)
         if .readMarker(source) != .markerSize do

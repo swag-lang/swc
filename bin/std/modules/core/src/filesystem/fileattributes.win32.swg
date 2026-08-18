@@ -4,9 +4,9 @@
 
 using Win32
 
-impl FileAttributes
+private impl FileAttributes
 {
-    private func fromDWORD(attributes: DWORD)->FileAttributes
+    func fromDWORD(attributes: DWORD)->FileAttributes
     {
         using FileAttributes
         if attributes == 0xFFFFFFFF do

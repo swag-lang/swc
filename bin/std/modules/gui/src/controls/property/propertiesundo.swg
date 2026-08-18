@@ -20,7 +20,7 @@ using Core, Pixel
 // it was recorded against: undo commands stay valid across a grid rebuild (clear +
 // addStruct), as long as the edited instances themselves are still alive.
 #[Swag.NoDoc]
-public struct PropFieldValue
+struct PropFieldValue
 {
     public
     {
@@ -153,7 +153,7 @@ internal impl PropFieldValue
 // the grid content it was built against, so a command replayed after a rebuild silently
 // skips the row refresh (the values still land at the right addresses).
 #[Swag.NoDoc]
-public struct PropUndoCommand
+struct PropUndoCommand
 {
     public
     {
@@ -284,7 +284,7 @@ internal impl Properties
 }
 
 // Public undo/redo entry points for hosts (menus, toolbars, shortcuts).
-public impl Properties
+impl Properties
 {
     // Record the grid's undo commands into an external UndoManager instead of the grid's own
     // one, so property edits and the host's other commands share a single undo timeline. The

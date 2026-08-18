@@ -3,7 +3,7 @@
 using Core
 
 // Identifies an editor action that can be bound to a keyboard shortcut.
-public enum RichEditCommand
+enum RichEditCommand
 {
     None                // No option is selected.
     CursorLeft          // Moves the caret one rune left.

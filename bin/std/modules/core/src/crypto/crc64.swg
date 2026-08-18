@@ -21,10 +21,10 @@ public enum Crc64Kind
     IsoXz       // CRC-64/XZ.
 }
 
-impl Crc64
+public impl Crc64
 {
     // Resets the checksum and selects the algorithm used by subsequent updates.
-    public mtd reset(kind = Crc64Kind.Ecma182)
+    mtd reset(kind = Crc64Kind.Ecma182)
     {
         @init(me, 1)
         switch #complete .kind
@@ -35,7 +35,7 @@ impl Crc64
 
     // Includes `data` in the running checksum.
     #[ConstExpr, Swag.Safety(.All, false)]
-    public mtd update(data: #null const [..] u8)
+    mtd update(data: #null const [..] u8)
     {
         let length = @countof(data)
         if length == 0 do
@@ -105,11 +105,11 @@ impl Crc64
     }
 
     // Returns the checksum accumulated since construction or the latest [[reset]].
-    public mtd value() => .currentValue
+    mtd value() => .currentValue
 
     // Computes a CRC-64 checksum in one operation.
     #[Swag.ConstExpr]
-    public func compute(buffer: const [..] u8, kind = Crc64Kind.Ecma182)->u64
+    func compute(buffer: const [..] u8, kind = Crc64Kind.Ecma182)->u64
     {
         var v: Crc64
         v.reset(kind)

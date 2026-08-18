@@ -379,10 +379,10 @@ impl IDecoder for Decoder
     }
 }
 
-impl Decoder
+private impl Decoder
 {
     // Turns the bitmap header of the video stream into everything decoding a frame needs.
-    private mtd describeFrames(layout: const *Layout) fail
+    mtd describeFrames(layout: const *Layout) fail
     {
         let width  = layout.format.biWidth
         let height = Math.abs(layout.format.biHeight)
@@ -417,7 +417,7 @@ impl Decoder
     }
 
     // Records where every frame of the video stream lies.
-    private mtd buildFrameTable(source: *Source, layout: const *Layout) fail
+    mtd buildFrameTable(source: *Source, layout: const *Layout) fail
     {
         if layout.streamIndex > MaxStreamIndex do
             fail UnsupportedFormatError{"AVI file declares more streams than the container can name"}
@@ -434,7 +434,7 @@ impl Decoder
     //
     // An index that does not describe the frames it claims to is not a reason to refuse the file:
     // the frame list itself always holds the answer, so a rejected index falls back to a walk.
-    private mtd readIndex(source: *Source, layout: const *Layout, dataId, compressedId: u32)->bool
+    mtd readIndex(source: *Source, layout: const *Layout, dataId, compressedId: u32)->bool
     {
         if !layout.indexSize do
             return false
@@ -448,7 +448,7 @@ impl Decoder
     }
 
     // Reads the entries of the `idx1` chunk that belong to the video stream.
-    private mtd readIndexEntries(source: *Source, layout: const *Layout, dataId, compressedId: u32) fail
+    mtd readIndexEntries(source: *Source, layout: const *Layout, dataId, compressedId: u32) fail
     {
         var base = Swag.U64.Max
         for entry in layout.indexSize / IndexEntrySize
@@ -480,7 +480,7 @@ impl Decoder
     //
     // Only chunk headers are read, so the cost is one small read per chunk rather than a pass
     // over the frames themselves, and no picture is decoded to reach the end of the list.
-    private mtd walkFrames(source: *Source, layout: const *Layout, dataId, compressedId: u32) fail
+    mtd walkFrames(source: *Source, layout: const *Layout, dataId, compressedId: u32) fail
     {
         var position = layout.frameList + FourCcSize
         while position + ChunkHeaderSize <= layout.frameEnd
@@ -508,7 +508,7 @@ impl Decoder
     // container carries a stream that pauses at a constant frame rate. Walking back to the last
     // frame that has a payload answers such a frame without holding a decoded picture between
     // two calls, and without depending on the order frames are asked for.
-    private mtd const resolveFrame(index: u64)->u64 fail
+    mtd const resolveFrame(index: u64)->u64 fail
     {
         var found = index
         while !.frames[found].size
@@ -522,7 +522,7 @@ impl Decoder
     }
 
     // Decodes one Motion JPEG frame, which is a complete JPEG image.
-    private mtd decodeJpegFrame(target: *Image) fail
+    mtd decodeJpegFrame(target: *Image) fail
     {
         var decoded = Image.decode(JpegName, .payload.toSlice())
         if decoded.width != .info.width or decoded.height != .info.height do
@@ -534,7 +534,7 @@ impl Decoder
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.
-    private mtd decodeBitmapFrame(target: *Image) fail
+    mtd decodeBitmapFrame(target: *Image) fail
     {
         if .rowBytes * cast(u64) .info.height > .payload.count do
             fail InvalidFormatError{"AVI frame payload is smaller than the picture it declares"}
@@ -561,7 +561,7 @@ impl Decoder
     // Reuses the frame the caller already has, and creates one only when it cannot hold this one.
     //
     // This is what keeps decoding a whole stream at the memory cost of a single frame.
-    private mtd const prepareTarget(target: *Image)
+    mtd const prepareTarget(target: *Image)
     {
         if target.width != .info.width or target.height != .info.height or target.pixelFormat != .RGB8 do
             target[] = Image.create(.info.width, .info.height, .RGB8)

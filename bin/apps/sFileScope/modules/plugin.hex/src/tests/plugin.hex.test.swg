@@ -5,11 +5,11 @@ using Core, Pixel, Gui
 
 // Payload every streaming test reads. It is larger than one resident window, so a test that walks
 // to its end proves the window moved instead of proving the file was small.
-private const StreamedFileSize = HexWindowSize * 3 + 1234'u64
+const StreamedFileSize = HexWindowSize * 3 + 1234'u64
 
 // Writes readable content at exact offsets. A checked-in fixture would carry whatever line endings
 // the checkout gave it, which moves every offset an assertion names.
-private func writeSampleFile()->String
+func writeSampleFile()->String
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
     let fileName      = Path.combine(tempDirectory.toString(), Format.toString("plugin_hex_sample_%.bin", Guid64.random()).toString())
@@ -20,7 +20,7 @@ private func writeSampleFile()->String
 
 // Writes a deterministic file whose byte at `offset` is that offset truncated to eight bits, so an
 // assertion about a distant byte states an exact expected value.
-private func writeStreamedFile(size: u64)->String
+func writeStreamedFile(size: u64)->String
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
     let fileName      = Path.combine(tempDirectory.toString(), Format.toString("plugin_hex_stream_%.bin", Guid64.random()).toString())
@@ -35,7 +35,7 @@ private func writeStreamedFile(size: u64)->String
 
 // Content the picture is judged on: a readable header, a run of zeros, high bytes, and a line of
 // text. Each of those is drawn differently, and the golden is what says they still are.
-private func writePreviewFile()->String
+func writePreviewFile()->String
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
     let fileName      = Path.combine(tempDirectory.toString(), "plugin.hex.preview.bin")
@@ -58,7 +58,7 @@ private func writePreviewFile()->String
     return fileName
 }
 
-private func createPluginView(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*HexPluginView
+func createPluginView(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*HexPluginView
 {
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 388, 36})
     let view     = HexPluginView.create(&host.root, commands, fileName)

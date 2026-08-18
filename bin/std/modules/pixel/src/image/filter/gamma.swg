@@ -1,9 +1,9 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Change the gamma.
-    public mtd gamma(level: f32 = 2.2)
+    mtd gamma(level: f32 = 2.2)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

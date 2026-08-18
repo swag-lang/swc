@@ -103,11 +103,11 @@ impl OutlineBuilder
 // Everything one run of a Type 2 charstring carries between its operators.
 struct Type2State
 {
-    font:      *CffFont        = undefined
+    font:      *CffFont                 = undefined
     builder:   #null *OutlineBuilder
-    subrs:     const *CffIndex = undefined
+    subrs:     const *CffIndex          = undefined
     stack:     [MaxCharstringStack] f64 = undefined
-    transient: [32] f64        = undefined
+    transient: [32] f64                 = undefined
     depth:     u32
     x:         f64
     y:         f64
@@ -127,9 +127,9 @@ struct Type2State
     seacAdy:    f64
 }
 
-impl Type2State
+private impl Type2State
 {
-    private mtd push(value: f64)
+    mtd push(value: f64)
     {
         if .depth < MaxCharstringStack
         {
@@ -140,7 +140,7 @@ impl Type2State
 
     // Consumes the optional width that may precede the first stack-clearing operator, and
     // returns the index the operator's own arguments start at.
-    private mtd takeWidth(expected: u32)->u32
+    mtd takeWidth(expected: u32)->u32
     {
         if .haveWidth do
             return 0
@@ -152,7 +152,7 @@ impl Type2State
     }
 
     // Stem operators take pairs, so an odd argument count is what reveals a leading width.
-    private mtd takeStemWidth()
+    mtd takeStemWidth()
     {
         if !.haveWidth
         {
@@ -165,7 +165,7 @@ impl Type2State
         .depth = 0
     }
 
-    private mtd moveTo(x, y: f64)
+    mtd moveTo(x, y: f64)
     {
         .x = x
         .y = y
@@ -173,7 +173,7 @@ impl Type2State
             .builder!.moveTo(x, y)
     }
 
-    private mtd lineTo(x, y: f64)
+    mtd lineTo(x, y: f64)
     {
         .x = x
         .y = y
@@ -181,7 +181,7 @@ impl Type2State
             .builder!.lineTo(x, y)
     }
 
-    private mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
+    mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
     {
         .x = x
         .y = y
@@ -551,21 +551,21 @@ private func execType2Escape(state: *Type2State, op: u8)
         if state.depth >= 2
         {
             state.stack[state.depth - 2] += state.stack[state.depth - 1]
-            state.depth                  -= 1
+            state.depth -= 1
         }
 
     case 11:
         if state.depth >= 2
         {
             state.stack[state.depth - 2] -= state.stack[state.depth - 1]
-            state.depth                  -= 1
+            state.depth -= 1
         }
 
     case 12:
         if state.depth >= 2 and state.stack[state.depth - 1] != 0
         {
             state.stack[state.depth - 2] /= state.stack[state.depth - 1]
-            state.depth                  -= 1
+            state.depth -= 1
         }
 
     case 14:
@@ -580,7 +580,7 @@ private func execType2Escape(state: *Type2State, op: u8)
         if state.depth >= 2
         {
             state.stack[state.depth - 2] *= state.stack[state.depth - 1]
-            state.depth                  -= 1
+            state.depth -= 1
         }
 
     case 26:
@@ -687,22 +687,22 @@ func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 // Everything one run of a Type 1 charstring carries between its operators.
 struct Type1State
 {
-    font:      *Type1Font = undefined
-    builder:   #null *OutlineBuilder
-    stack:     [MaxCharstringStack] f64 = undefined
-    depth:     u32
+    font:    *Type1Font               = undefined
+    builder: #null *OutlineBuilder
+    stack:   [MaxCharstringStack] f64 = undefined
+    depth:   u32
 
     // Values the interpreter hands back to the charstring through `pop`, which is how the
     // format returns a result from the callable subroutines the language reserves.
-    results:      [32] f64 = undefined
-    resultDepth:  u32
+    results:     [32] f64 = undefined
+    resultDepth: u32
 
-    x:         f64
-    y:         f64
+    x:            f64
+    y:            f64
     sideBearingX: f64
-    width:     f64
-    widthOnly: bool
-    finished:  bool
+    width:        f64
+    widthOnly:    bool
+    finished:     bool
 
     // A flex is written as seven moves bracketed by two reserved subroutine calls; the
     // moves are collected here instead of being drawn, then replayed as two curves.
@@ -718,9 +718,9 @@ struct Type1State
     seacAsb:    f64
 }
 
-impl Type1State
+private impl Type1State
 {
-    private mtd push(value: f64)
+    mtd push(value: f64)
     {
         if .depth < MaxCharstringStack
         {
@@ -729,7 +729,7 @@ impl Type1State
         }
     }
 
-    private mtd pushResult(value: f64)
+    mtd pushResult(value: f64)
     {
         if .resultDepth < 32
         {
@@ -738,7 +738,7 @@ impl Type1State
         }
     }
 
-    private mtd moveTo(x, y: f64)
+    mtd moveTo(x, y: f64)
     {
         .x = x
         .y = y
@@ -759,7 +759,7 @@ impl Type1State
             .builder!.moveTo(x, y)
     }
 
-    private mtd lineTo(x, y: f64)
+    mtd lineTo(x, y: f64)
     {
         .x = x
         .y = y
@@ -767,7 +767,7 @@ impl Type1State
             .builder!.lineTo(x, y)
     }
 
-    private mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
+    mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
     {
         .x = x
         .y = y
@@ -780,7 +780,7 @@ impl Type1State
     // The first collected move is a reference point the format uses to decide whether the
     // flex is shallow enough to draw as a straight line; the outline itself is the six
     // that follow.
-    private mtd emitFlex()
+    mtd emitFlex()
     {
         .flexing = false
         if .flexCount < 7 or !.builder do
@@ -987,7 +987,7 @@ private func execType1Escape(state: *Type1State, op: u8) fail
         if state.depth >= 2 and state.stack[state.depth - 1] != 0
         {
             state.stack[state.depth - 2] /= state.stack[state.depth - 1]
-            state.depth                  -= 1
+            state.depth -= 1
         }
 
     case 16:
@@ -1054,6 +1054,7 @@ private func execType1OtherSubr(state: *Type1State)
         state.pushResult(state.x)
 
     default:
+
         // Every other reserved subroutine is an identity: hint replacement passes the
         // number of the subroutine to call straight back through `pop`.
         for i in count do

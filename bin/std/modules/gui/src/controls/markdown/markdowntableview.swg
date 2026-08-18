@@ -69,7 +69,7 @@ private func markdownTableCells(line: string)->Array'String
     return result
 }
 
-internal impl MarkdownTableView
+impl MarkdownTableView
 {
     mtd clearSearchHighlight()
     {
@@ -186,7 +186,7 @@ internal impl MarkdownTableView
     }
 }
 
-internal impl IWnd for MarkdownTableView
+impl IWnd for MarkdownTableView
 {
     mtd impl onPaint(evt: *PaintEvent)
     {

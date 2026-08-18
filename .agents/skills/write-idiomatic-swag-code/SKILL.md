@@ -59,6 +59,51 @@ its element type, its options, its result shape — belong in the same file.
   backend, role, and feature parts all use the same notation; `.test`, `.init`, and `.win32` are
   common parts, not the only valid ones. Follow the surrounding family when it is more specific.
 
+## State Access Once at the Widest Exact Scope
+
+`internal` is the language default for both top-level declarations and aggregate members. Put an
+access modifier on the widest scope whose declarations all share it, and never repeat the level
+inside that scope.
+
+- Start a uniformly public, private, or internal file with the matching `#global` directive. Use
+  `#global export` for a documented module API file. Do not repeat that level on its top-level
+  functions, types, or `impl` blocks.
+- Put a shared level on an `impl`, not on every method. Split mixed method families into separate
+  `impl` blocks by visibility; an unqualified `impl` inherits the file level.
+- A named aggregate starts its members at `internal` regardless of the file, the aggregate's own
+  visibility, or an enclosing top-level access block. Omit `internal` at that member root. Use one
+  access block for adjacent fields that share another level, and a modifier on the declaration for
+  an isolated exception.
+- `readonly` is a write restriction layered on the current member level, not a fourth visibility.
+  Write `readonly` inside a `public` block, `public readonly` outside one, or a corresponding block
+  for several fields. Never write `internal readonly` at the member root: bare `readonly` already
+  means that. `private readonly` is invalid because `private` already restricts writes to the type.
+
+```swag
+#global public
+
+struct Result
+{
+    public
+    {
+        value: s32
+        readonly checksum: u32
+    }
+
+    scratch: u64
+}
+
+impl Result
+{
+    mtd valueOrZero()->s32 => .value
+}
+
+private impl Result
+{
+    mtd resetScratch() { .scratch = 0 }
+}
+```
+
 ## Lay Out Statements Without a Column Budget
 
 The canonical Swag style has no maximum line width: `column-limit` is 0. `swc format` normalizes

@@ -1,9 +1,9 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Fill image with 'color'
-    public mtd fill(color: Color)
+    mtd fill(color: Color)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

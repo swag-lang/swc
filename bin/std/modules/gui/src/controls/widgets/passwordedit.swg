@@ -291,7 +291,7 @@ impl IWnd for PasswordEdit
     }
 }
 
-public impl PasswordEdit
+impl PasswordEdit
 {
     // Maximum number of UTF-8 plaintext bytes held by one password edit.
     const MaximumByteLength = 1024

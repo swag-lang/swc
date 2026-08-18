@@ -1204,7 +1204,7 @@ private impl MathParser
     }
 }
 
-public impl MathExpression
+impl MathExpression
 {
     // Releases the parsed expression tree and its cached layout data.
     mtd opDrop()

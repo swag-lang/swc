@@ -134,9 +134,9 @@ struct AppStrings
     msg_ErrAccessDenied:      string = "Access to the container was refused."                       // The entry exists and refuses the operation.
     msg_ErrReadOnly:          string = "The vault is mounted read only."                            // The container refuses every change.
     msg_ErrSparse:            string = "The container is sparse. Convert it to a fully allocated file before opening it."
-    msg_ErrDiskFull:          string = "There is no room left in the container."                    // No room is left for blocks, metadata, or key slots.
-    msg_ErrIo:                string = "The container could not be read or written."                // The underlying file could not be reached.
-    msg_ErrInvalidRequest:    string = "The container cannot answer that request."                  // The operation asked for something the container refuses outright.
+    msg_ErrDiskFull:          string = "There is no room left in the container."         // No room is left for blocks, metadata, or key slots.
+    msg_ErrIo:                string = "The container could not be read or written."     // The underlying file could not be reached.
+    msg_ErrInvalidRequest:    string = "The container cannot answer that request."       // The operation asked for something the container refuses outright.
 }
 
 private const FrenchStringsName = "lang/fr/vaultdrive.tweak"

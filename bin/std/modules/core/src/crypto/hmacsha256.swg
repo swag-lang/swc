@@ -33,7 +33,7 @@ private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest
     return result
 }
 
-public impl HmacSha256
+impl HmacSha256
 {
     // Creates an initialized HMAC-SHA-256 sequence for `key`.
     func create(key: const [..] u8)->HmacSha256

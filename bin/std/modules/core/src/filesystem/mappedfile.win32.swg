@@ -4,9 +4,9 @@
 
 using Win32
 
-impl MappedRegion
+internal impl MappedRegion
 {
-    internal mtd mapNative(sourceHandle: FileHandle, offset, length: u64, access: MapAccess) fail
+    mtd mapNative(sourceHandle: FileHandle, offset, length: u64, access: MapAccess) fail
     {
         var protect:       DWORD
         var desiredAccess: DWORD
@@ -54,7 +54,7 @@ impl MappedRegion
         .view       = cast([*] u8) nativeView! + prefix
     }
 
-    internal mtd closeNative()
+    mtd closeNative()
     {
         if .nativeView
         {
@@ -80,7 +80,7 @@ impl MappedRegion
         .valid  = false
     }
 
-    internal mtd flushNative() fail
+    mtd flushNative() fail
     {
         FlushViewOfFile(.view, .length)
         catch FlushFileBuffers(cast(HANDLE) .fileHandle) as err

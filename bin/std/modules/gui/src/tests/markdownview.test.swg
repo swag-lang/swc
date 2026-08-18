@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-private func markdownFixturePath()->String
+func markdownFixturePath()->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.comprehensive.md")
 }

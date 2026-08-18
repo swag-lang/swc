@@ -1,6 +1,6 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Turns the flat `ground` of a two-color mark into transparency, keeping the glyph.
     //
@@ -16,7 +16,7 @@ impl Image
     // an operation with two colors to go on can honestly say.
     //
     // A format without an alpha channel has nowhere to put the result and is left as is.
-    public mtd keyOutGround(ground, foreground: Color)
+    mtd keyOutGround(ground, foreground: Color)
     {
         if .pixelFormat != .BGRA8 and .pixelFormat != .RGBA8 do
             return

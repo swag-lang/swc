@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui
 
-private func saveViewerState(window: *ViewerWindow)->String
+func saveViewerState(window: *ViewerWindow)->String
 {
     var result:     ConcatBuffer
     var encoder:    Serialization.Encoder'Serialization.Write.TagBin
@@ -16,7 +16,7 @@ private func saveViewerState(window: *ViewerWindow)->String
     return result.toString()
 }
 
-private func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
+func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 {
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var serializer: Serialization.Serializer
@@ -27,7 +27,7 @@ private func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     expect serializer.end()
 }
 
-private func viewerFixturePath()->String
+func viewerFixturePath()->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
 }
@@ -87,7 +87,7 @@ private func viewerFixturePath()->String
     @assert(view.editor.scrollPosition().y > beforeEnd.y)
 }
 
-private func writeTempFile(suffix: string, bytes: const [..] u8)->String
+func writeTempFile(suffix: string, bytes: const [..] u8)->String
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
     let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_%_%", Guid64.random(), suffix).toString())

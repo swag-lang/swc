@@ -3,17 +3,17 @@
 
 using Core, Pixel
 
-private func guiFixturePath(name: string)->String
+func guiFixturePath(name: string)->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
 }
 
-private func htmlFixturePath()->String
+func htmlFixturePath()->String
 {
     return guiFixturePath("html.comprehensive.html")
 }
 
-private func parseDocument(source: string)->HtmlDocument
+func parseDocument(source: string)->HtmlDocument
 {
     var result = HtmlDocument.create()
     var parser: HtmlParser
@@ -24,7 +24,7 @@ private func parseDocument(source: string)->HtmlDocument
 }
 
 // Returns the first element of a document carrying a tag, so a test can name what it inspects.
-private func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
+func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
 {
     for index in document.nodes.count where document.constNode(cast(u32) index).tag == tag do
         return cast(u32) index
@@ -32,21 +32,21 @@ private func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
 }
 
 // Returns the first element carrying a class used to name fixture structure.
-private func findClass(document: const *HtmlDocument, name: string)->u32
+func findClass(document: const *HtmlDocument, name: string)->u32
 {
     for index in document.nodes.count where document.hasClass(cast(u32) index, name) do
         return cast(u32) index
     return HtmlNoNode
 }
 
-private struct HtmlLinkHit
+struct HtmlLinkHit
 {
     point: Math.Point
     found: bool
 }
 
 // Finds a visible point inside a link after sticky and independently scrolled offsets apply.
-private func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
+func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     let viewport = view.scroll.paddedClientRect()
     let painter  = view.painter()

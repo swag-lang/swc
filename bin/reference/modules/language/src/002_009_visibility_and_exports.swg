@@ -16,7 +16,7 @@ alike. Use 'public' deliberately for the supported module API and 'private' for
 file-local implementation details.
 */
 
-private const VisibilityFileLocal = 10
+const VisibilityFileLocal = 10
 internal const VisibilityModuleLocal = 20
 
 #test
@@ -54,6 +54,27 @@ inside an aggregate: a member belongs to its type rather than to a file or a
 block, so it states its own access in the aggregate body. That is why 'Request'
 above says 'public' twice.
 
+State a level once at the widest scope that has exactly that level. After
+'#global public', top-level declarations and unqualified 'impl' blocks need no
+'public'. Put an exception on a whole 'impl' rather than repeating it on every
+method, and split an 'impl' when its method families have different visibility:
+
+```swag
+#global public
+
+struct Session {}
+
+impl Session
+{
+    mtd close() {}
+}
+
+private impl Session
+{
+    mtd releaseHandle() {}
+}
+```
+
 Visibility is independent of namespaces. A symbol can be public and qualified,
 or private and placed in a namespace for organization.
 
@@ -87,6 +108,11 @@ the writes to the declaring type.
 Written alone, 'readonly' rides on the level already in effect, which is 'internal' unless
 an enclosing access block says otherwise. It always comes last, and 'private readonly' is
 rejected: 'private' already withholds every write from outside the type.
+
+The same placement rule keeps aggregate declarations short. Omit 'internal' at the member
+root, use one access block for adjacent fields of another level, and keep an isolated
+exception on its declaration. Inside a 'public' block, bare 'readonly' means public read-only;
+outside it the full spelling is 'public readonly'.
 */
 
 struct Counter

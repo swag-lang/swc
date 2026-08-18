@@ -1,9 +1,9 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Change the lightness. 'factor' is [-1, 1]
-    public mtd lightness(factor: f32 = 0.5)
+    mtd lightness(factor: f32 = 0.5)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

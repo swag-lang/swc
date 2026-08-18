@@ -120,6 +120,10 @@ private const NativeDeclarationApprovals = [
     "public func keyToVirtualKey(key: Key)->VirtualKey",
     "bin/std/modules/core/src/input/keyboard.win32.swg",
     "public func virtualKeyToKey(vkey: VirtualKey)->Key",
+    "bin/std/modules/core/src/system/environment.win32.swg",
+    "mtd acquireWin32DeviceContext()->HDC",
+    "bin/std/modules/core/src/system/environment.win32.swg",
+    "mtd releaseWin32DeviceContext(deviceContext: HDC)",
     "bin/std/modules/core/src/tests/input/key.test.swg",
     "var virtualKey: Input.VirtualKey = 42",
     "bin/std/modules/gui/src/surface.win32.swg",
@@ -142,6 +146,8 @@ private struct PortabilityParseState
     globalPublic:   bool
     pendingOpaque:  bool
     pendingPrivate: bool
+    pendingScope:   bool
+    pendingPublic:  bool
     privateDepth:   s32
     publicDepth:    s32
     publicStruct:   bool
@@ -316,6 +322,22 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
     let opens  = countByte(line, '{')
     let closes = countByte(line, '}')
 
+    if state.pendingScope and opens > closes
+    {
+        if state.pendingPublic
+        {
+            state.publicDepth  = cast(s32) opens - cast(s32) closes
+            state.publicStruct = false
+            state.publicOpaque = false
+        }
+        else do
+            state.privateDepth = cast(s32) opens - cast(s32) closes
+
+        state.pendingScope  = false
+        state.pendingPublic = false
+        return
+    }
+
     if state.privateDepth != 0
     {
         state.privateDepth += cast(s32) opens - cast(s32) closes
@@ -364,11 +386,30 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
     let publicLine = startsWithAccess(line, "public") or state.globalPublic and !privateLine
     let isStruct   = declarationStartsWith(line, "struct")
     let isImpl     = declarationStartsWith(line, "impl")
-    if publicLine and (isStruct or isImpl) and opens > closes
+    if (publicLine or privateLine) and isImpl
+    {
+        if opens > closes
+        {
+            if publicLine
+            {
+                state.publicDepth  = cast(s32) opens - cast(s32) closes
+                state.publicStruct = isStruct
+                state.publicOpaque = isStruct and state.pendingOpaque
+            }
+            else do
+                state.privateDepth = cast(s32) opens - cast(s32) closes
+        }
+        else
+        {
+            state.pendingScope  = true
+            state.pendingPublic = publicLine
+        }
+    }
+    elif publicLine and isStruct and opens > closes
     {
         state.publicDepth  = cast(s32) opens - cast(s32) closes
-        state.publicStruct = isStruct
-        state.publicOpaque = isStruct and state.pendingOpaque
+        state.publicStruct = true
+        state.publicOpaque = state.pendingOpaque
     }
 
     if !Utf8.startsWith(cast(const [..] u8) line, "#[") do

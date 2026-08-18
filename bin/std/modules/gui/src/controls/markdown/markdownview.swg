@@ -534,7 +534,7 @@ private impl MarkdownView
     }
 }
 
-public impl MarkdownView
+impl MarkdownView
 {
     // Creates an empty Markdown document view.
     #[Swag.Discardable]

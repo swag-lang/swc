@@ -24,7 +24,7 @@ public struct GlyphMetrics
 
 impl GlyphMetrics
 {
-    internal mtd clearBounds()
+    mtd clearBounds()
     {
         .width              = 0
         .height             = 0
@@ -32,7 +32,7 @@ impl GlyphMetrics
         .horizontalBearingY = 0
     }
 
-    internal mtd setBounds(minX, minY, maxX, maxY: s32)
+    mtd setBounds(minX, minY, maxX, maxY: s32)
     {
         .width              = maxX - minX
         .height             = maxY - minY
@@ -40,7 +40,7 @@ impl GlyphMetrics
         .horizontalBearingY = maxY
     }
 
-    internal mtd setHorizontalAdvance(value: s32)
+    mtd setHorizontalAdvance(value: s32)
     {
         .horizontalAdvance = value
     }

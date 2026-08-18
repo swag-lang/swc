@@ -162,7 +162,7 @@ impl IEncoder for Encoder
     }
 }
 
-impl Encoder
+private impl Encoder
 {
     // Offset of the size field of the file, which is the first total to be rewritten.
     private const RiffSizeOffset = 4'u64
@@ -171,7 +171,7 @@ impl Encoder
     //
     // Every size in the container is a 32-bit field, so a stream that would run past four
     // gigabytes is refused while it is still correct rather than written with a size that wraps.
-    private mtd const reserve(sink: *Sink, size: u64) fail
+    mtd const reserve(sink: *Sink, size: u64) fail
     {
         let projected = sink.position() + ChunkHeaderSize + size + 1 + ChunkHeaderSize + (.index.count + 1) * IndexEntrySize
         if projected > MaxStreamSize do
@@ -179,7 +179,7 @@ impl Encoder
     }
 
     // Returns the header of the file, with the totals it cannot know yet left at zero.
-    private mtd const createMainHeader()->MainHeader
+    mtd const createMainHeader()->MainHeader
     {
         var result: retval
         result.microSecPerFrame = cast(u32) (1_000_000'u64 * cast(u64) .info.frameRate.denominator() / cast(u64) .info.frameRate.numerator())
@@ -191,7 +191,7 @@ impl Encoder
     }
 
     // Returns the header of the video stream, with its length left at zero.
-    private mtd const createStreamHeader()->StreamHeader
+    mtd const createStreamHeader()->StreamHeader
     {
         var result: retval
         result.kind        = VideoStreamId
@@ -205,7 +205,7 @@ impl Encoder
     }
 
     // Returns the bitmap header describing the frames of the video stream.
-    private mtd const createFormatHeader()->Bmp.Header
+    mtd const createFormatHeader()->Bmp.Header
     {
         var result: retval
         result.biSize        = cast(u32) #sizeof(Bmp.Header)
@@ -219,7 +219,7 @@ impl Encoder
     }
 
     // Rewrites the header fields only the finished stream knows.
-    private mtd const patchTotals(sink: *Sink, frameEnd: u64) fail
+    mtd const patchTotals(sink: *Sink, frameEnd: u64) fail
     {
         let frames = cast(u32) .index.count
 
@@ -239,7 +239,7 @@ impl Encoder
     }
 
     // Returns the average data rate of the finished stream, in bytes per second.
-    private mtd const bytesPerSecond(frameEnd: u64)->u32
+    mtd const bytesPerSecond(frameEnd: u64)->u32
     {
         let seconds = cast(f64) .index.count * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
         if seconds <= 0 do

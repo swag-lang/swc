@@ -404,7 +404,7 @@ struct PropHeadlessColorData
     @assert(prop.scrollWnd.scrollPosition().y != y1)
 }
 
-private func findIconButton(w: *Wnd)->#null *IconButton
+func findIconButton(w: *Wnd)->#null *IconButton
 {
     for c in w.children
     {
@@ -728,7 +728,7 @@ struct MultiTile
     pos:    Math.Point  = {0, 0}
 }
 
-private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
+func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
 {
     for it in prop.items
     {
@@ -859,7 +859,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     @assert(t0.count == 8)
 }
 
-private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
+func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 {
     for c in w.children
     {

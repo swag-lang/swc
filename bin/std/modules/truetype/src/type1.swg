@@ -5,7 +5,7 @@ private const EexecC1 = 52845'u32
 private const EexecC2 = 22719'u32
 
 // Key the private section is encrypted with, and the one every charstring uses.
-private const EexecPrivateKey  = 55665'u16
+private const EexecPrivateKey = 55665'u16
 private const EexecCharstringKey = 4330'u16
 
 // Bytes of random padding the private section prefixes its plaintext with.
@@ -103,7 +103,7 @@ private func skipPostScriptSpaces(data: #null const [..] u8, from: u64)->u64
 // Reads the next whitespace-delimited token, without its leading delimiter.
 private func readPostScriptToken(data: #null const [..] u8, from: u64)->{ text: string, next: u64 }
 {
-    var pos = skipPostScriptSpaces(data, from)
+    var pos   = skipPostScriptSpaces(data, from)
     let start = pos
     while pos < @countof(data) and !isPostScriptDelimiter(data![pos]) do
         pos += 1
@@ -182,8 +182,8 @@ private func unwrapPfb(bytes: #null const [..] u8)->Array'u8 fail
 private func decodeEexecHex(data: #null const [..] u8)->Array'u8
 {
     var result: retval
-    var high  = 0'u8
-    var have  = false
+    var high = 0'u8
+    var have = false
     for c in data
     {
         var value = 0'u8
@@ -342,7 +342,7 @@ private func parseType1CharStrings(font: *Type1Font, data: #null const [..] u8, 
         if owned == NotDefName
         {
             font.charstrings[0] = entry.bytes
-            pos = entry.next
+            pos                 = entry.next
             continue
         }
 
@@ -392,7 +392,7 @@ private func parseType1Encoding(font: *Type1Font, clear: #null const [..] u8) fa
         if stop < dup do
             return
 
-        let code = readPostScriptNumber(clear, dup + 3)
+        let code    = readPostScriptNumber(clear, dup + 3)
         var namePos = skipPostScriptSpaces(clear, code.next)
         if namePos >= @countof(clear) or clear![namePos] != '/'
         {

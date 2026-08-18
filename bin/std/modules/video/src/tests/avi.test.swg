@@ -7,7 +7,7 @@ using Core, Core.Errors, Pixel
 //
 // Every expected value in this file comes from decoding the same fixture with ffmpeg, so a
 // change in this module cannot move the expectation with it.
-private struct AviProbe
+struct AviProbe
 {
     frame:   u64
     x, y:    s32
@@ -15,7 +15,7 @@ private struct AviProbe
 }
 
 // Reads `fileName` and asserts that every probe holds.
-private func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s32)
+func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s32)
 {
     var reader = expect Reader.open(videoFixturePath(fileName))
     var frame: Image
@@ -290,7 +290,7 @@ private func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tole
 }
 
 // Returns the little-endian 32-bit value the container stores at `offset`.
-private func aviReadU32(bytes: const [..] u8, offset: u64)->u32
+func aviReadU32(bytes: const [..] u8, offset: u64)->u32
 {
     var result = 0'u32
     for shift in 4 do
@@ -299,7 +299,7 @@ private func aviReadU32(bytes: const [..] u8, offset: u64)->u32
 }
 
 // Reports whether the four characters of `id` sit at `offset`.
-private func aviHasId(bytes: const [..] u8, offset: u64, id: string)->bool
+func aviHasId(bytes: const [..] u8, offset: u64, id: string)->bool
 {
     for index in 4 where bytes[offset + cast(u64) index] != id[index] do
         return false

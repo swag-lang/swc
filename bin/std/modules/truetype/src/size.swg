@@ -23,7 +23,7 @@ public struct SizeMetrics
 
 impl SizeMetrics
 {
-    internal mtd set(face: const *Face, pixelWidth, pixelHeight: u32)
+    mtd set(face: const *Face, pixelWidth, pixelHeight: u32)
     {
         .xPpem      = cast(u16) pixelWidth
         .yPpem      = cast(u16) pixelHeight
@@ -51,12 +51,12 @@ public struct Size
 
 impl Size
 {
-    internal mtd initialize(face: *Face)
+    mtd initialize(face: *Face)
     {
         .face = face
     }
 
-    internal mtd setPixelMetrics(pixelWidth, pixelHeight: u32)
+    mtd setPixelMetrics(pixelWidth, pixelHeight: u32)
     {
         .metrics.set(.face, pixelWidth, pixelHeight)
     }

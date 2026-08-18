@@ -88,7 +88,7 @@ func decodeBestName(nameTable: #null const [..] u8, nameID: u16)->String fail
 func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 {
     let defaultStyle = String.from(DEFAULT_STYLE_NAME)
-    let rec = findTable(faceData, TAG_NAME)
+    let rec          = findTable(faceData, TAG_NAME)
     if !rec
     {
         if !@countof(fallbackFamilyName) do
@@ -417,7 +417,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
             width = runType1Charstring(&faceData.type1, gid, null)
 
         var metric: GlyphMetric
-        metric.advanceWidth       = cast(u16) Math.clamp(Math.round(width), 0.0, cast(f64) Swag.U16.Max)
+        metric.advanceWidth        = cast(u16) Math.clamp(Math.round(width), 0.0, cast(f64) Swag.U16.Max)
         faceData.glyphMetrics[gid] = metric
     }
 }
@@ -456,14 +456,14 @@ func buildSyntheticCMap(faceData: *FaceImpl)
 // OpenType face would read from a table has to come from the program's own header.
 func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
 {
-    let data = faceData.fontData.toSlice()
+    let data   = faceData.fontData.toSlice()
     var name: String
     var italic = false
     var bold   = false
 
     if faceData.outlineSource == .Cff
     {
-        faceData.cff = parseCffFont(data)
+        faceData.cff        = parseCffFont(data)
         faceData.unitsPerEm = faceData.cff.unitsPerEm
         faceData.face.setGlyphCount(faceData.cff.charStrings.count())
         faceData.face.setHeader(faceData.unitsPerEm, faceData.cff.xMin, faceData.cff.yMin, faceData.cff.xMax, faceData.cff.yMax)
@@ -473,7 +473,7 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     }
     else
     {
-        faceData.type1 = parseType1Font(data)
+        faceData.type1      = parseType1Font(data)
         faceData.unitsPerEm = faceData.type1.unitsPerEm
         faceData.face.setGlyphCount(cast(u32) faceData.type1.charstrings.count)
         faceData.face.setHeader(faceData.unitsPerEm, faceData.type1.xMin, faceData.type1.yMin, faceData.type1.xMax, faceData.type1.yMax)

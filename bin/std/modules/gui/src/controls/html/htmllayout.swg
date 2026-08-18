@@ -602,10 +602,10 @@ impl HtmlLayout
 }
 
 // Inline item generation.
-impl HtmlLayout
+private impl HtmlLayout
 {
     // Applies `text-transform` to one word.
-    private func transform(text: string, kind: HtmlTextTransform)->String
+    func transform(text: string, kind: HtmlTextTransform)->String
     {
         switch kind
         {
@@ -628,7 +628,7 @@ impl HtmlLayout
     // Native byte reads can be widened to one machine word. Keep the final bytes in padded
     // local storage so a text slice ending on a guard-page boundary remains safe to scan.
     #[Swag.Optimize(false)]
-    private func wordEnd(text: string, start: u64)->u64
+    func wordEnd(text: string, start: u64)->u64
     {
         let length    = @countof(text)
         let directEnd = length > 7 ? length - 7 : 0
@@ -660,7 +660,7 @@ impl HtmlLayout
     // White space is where the two rendering modes differ: normal text collapses every run of
     // spaces into one break opportunity, while preformatted text keeps what the source wrote and
     // turns each newline into a forced break.
-    private mtd appendText(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, text: string)
+    mtd appendText(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, text: string)
     {
         let style      = &.styles[styleIndex]
         let font       = .font(styleIndex)
@@ -739,7 +739,7 @@ impl HtmlLayout
     }
 
     // Adds one collapsible space, unless the previous item already opened one.
-    private mtd appendSpace(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, font: *Font, collapse: bool, sourceStart, sourceEnd: u64)
+    mtd appendSpace(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, font: *Font, collapse: bool, sourceStart, sourceEnd: u64)
     {
         if collapse and pending.count
         {
@@ -1337,10 +1337,10 @@ impl HtmlLayout
 }
 
 // Inline formatting.
-impl HtmlLayout
+private impl HtmlLayout
 {
     // Returns how far above and below its baseline one item reaches, leading included.
-    private mtd const itemExtent(box: u32, index: u64)->{ ascent: f32, descent: f32 }
+    mtd const itemExtent(box: u32, index: u64)->{ ascent: f32, descent: f32 }
     {
         var result: retval
         let item = &.boxes[box].items[index]
@@ -1361,7 +1361,7 @@ impl HtmlLayout
     }
 
     // Places one finished line and returns the height it took.
-    private mtd finishLine(box: u32, first, last: u64, top, left, available: f32)->f32
+    mtd finishLine(box: u32, first, last: u64, top, left, available: f32)->f32
     {
         let styleIndex  = .boxes[box].style
         let blockStyle  = &.styles[styleIndex]
@@ -1469,7 +1469,7 @@ impl HtmlLayout
     }
 
     // Breaks the inline items of a block into lines and returns the height they took.
-    private mtd const hasLineContent(box: u32, first, end: u64)->bool
+    mtd const hasLineContent(box: u32, first, end: u64)->bool
     {
         for index in first until end
         {
@@ -1488,7 +1488,7 @@ impl HtmlLayout
         return false
     }
 
-    private mtd layoutInline(box: u32, contentX, contentY, contentWidth: f32)->f32
+    mtd layoutInline(box: u32, contentX, contentY, contentWidth: f32)->f32
     {
         .boxes[box].lines.clear()
 
@@ -1559,10 +1559,10 @@ impl HtmlLayout
 }
 
 // Flexible box, grid, and table layout.
-impl HtmlLayout
+private impl HtmlLayout
 {
     // Returns the children that take part in a container's own layout.
-    private mtd flowChildren(box: u32)->Array'u32
+    mtd flowChildren(box: u32)->Array'u32
     {
         var result: retval
         for child in .boxes[box].children where !.styles[.boxes[child].style].isOutOfFlow() do
@@ -1571,7 +1571,7 @@ impl HtmlLayout
     }
 
     // Lays a flex container out, one line at a time.
-    private mtd layoutFlex(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
+    mtd layoutFlex(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
     {
         let styleIndex = .boxes[box].style
         let style      = &.styles[styleIndex]
@@ -1627,7 +1627,7 @@ impl HtmlLayout
 
     // Expands the cross axis of a non-wrapping row flex container after min/explicit height has
     // settled the content box. Multi-line and column containers distribute that room differently.
-    private mtd expandSingleFlexLine(box: u32, extra, contentWidth: f32)
+    mtd expandSingleFlexLine(box: u32, extra, contentWidth: f32)
     {
         if extra <= 0 do
             return
@@ -1658,7 +1658,7 @@ impl HtmlLayout
     }
 
     // Sizes and places one flex line, then aligns it on both axes.
-    private mtd layoutFlexLine(box: u32, items: const [..] u32, bases: const [..] f32, contentX, lineTop, contentWidth, total, gap: f32, containing: HtmlContainingBlock)->f32
+    mtd layoutFlexLine(box: u32, items: const [..] u32, bases: const [..] f32, contentX, lineTop, contentWidth, total, gap: f32, containing: HtmlContainingBlock)->f32
     {
         let style     = &.styles[.boxes[box].style]
         let itemCount = @countof(items)
@@ -1782,7 +1782,7 @@ impl HtmlLayout
     }
 
     // Stacks the children of a column flex container and aligns them across the container.
-    private mtd layoutFlexColumn(box: u32, items: const [..] u32, contentX, contentY, contentWidth, gap: f32, containing: HtmlContainingBlock)->f32
+    mtd layoutFlexColumn(box: u32, items: const [..] u32, contentX, contentY, contentWidth, gap: f32, containing: HtmlContainingBlock)->f32
     {
         let style     = &.styles[.boxes[box].style]
         let itemCount = @countof(items)
@@ -1813,7 +1813,7 @@ impl HtmlLayout
     }
 
     // Lays a grid container out over the columns its template declares.
-    private mtd layoutGrid(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
+    mtd layoutGrid(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
     {
         let styleIndex = .boxes[box].style
         let style      = &.styles[styleIndex]
@@ -1885,7 +1885,7 @@ impl HtmlLayout
     }
 
     // Lays a table out, sizing its columns from what their cells need.
-    private mtd layoutTable(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
+    mtd layoutTable(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
     {
         let rows = .flowChildren(box)
         if rows.isEmpty() do

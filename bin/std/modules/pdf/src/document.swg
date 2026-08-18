@@ -26,7 +26,7 @@ struct Document
     }
 }
 
-public impl Document
+impl Document
 {
     // Creates an empty PDF document.
     func create()->Document
@@ -58,6 +58,7 @@ public impl Document
             var page = try reader.loadPage(index)
             result.addPage(#move page)
         }
+
         return result
     }
 

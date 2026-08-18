@@ -1,9 +1,9 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Replaces the image's RGB channels with samples from `generator`.
-    public mtd fillNoise(generator: *Noise.FastNoise)
+    mtd fillNoise(generator: *Noise.FastNoise)
     {
         .visitPixels(generator)
         {

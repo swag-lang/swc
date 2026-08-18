@@ -31,22 +31,22 @@ impl NativeCursor
     defaultCursors[Wait].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_WAIT))
 }
 
-impl Cursor
+public impl Cursor
 {
     // Returns the shared native cursor for a standard cursor shape.
-    public func from(shape: CursorShape)->Cursor
+    func from(shape: CursorShape)->Cursor
     {
         return NativeCursor.defaultCursors[shape]
     }
 
     // Restores an invalid cursor descriptor without destroying the shared system cursor.
-    public mtd clear()
+    mtd clear()
     {
         .cursor = null
     }
 
     // Activates the cursor for the current thread.
-    public func activate(cursor: Cursor)
+    func activate(cursor: Cursor)
     {
         SetCursor(cursor.native.cursor)
     }

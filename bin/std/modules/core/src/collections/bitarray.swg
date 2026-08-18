@@ -19,9 +19,9 @@ public struct BitArray
     }
 }
 
-impl BitArray
+private impl BitArray
 {
-    private mtd const wordCount()->u64
+    mtd const wordCount()->u64
     {
         if !.count do
             return 0
@@ -32,19 +32,19 @@ impl BitArray
         return result
     }
 
-    private mtd dataPtr()->[*] u32
+    mtd dataPtr()->[*] u32
     {
         return .buffer!
     }
 
-    private mtd const constDataPtr()->const [*] u32
+    mtd const constDataPtr()->const [*] u32
     {
         return cast(const [*] u32) .buffer!
     }
 
     // Frees the memory allocated by the bit array.
     // Does nothing if the buffer is not allocated.
-    private mtd release()
+    mtd release()
     {
         if !.buffer do
             return
@@ -56,7 +56,7 @@ impl BitArray
 
     // Reallocates the private buffer to a new capacity.
     // This is a low-level memory operation.
-    private mtd realloc(newCapacityBytes: u64)
+    mtd realloc(newCapacityBytes: u64)
     {
         if !.allocator do
             .allocator = @getcontext().allocator
@@ -64,7 +64,7 @@ impl BitArray
         .capacityBytes = newCapacityBytes
     }
 
-    private mtd clearUnusedBits()
+    mtd clearUnusedBits()
     {
         let usedBits = .count & 31
         if !usedBits do

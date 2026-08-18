@@ -33,7 +33,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
             if loadError == null
             {
                 result.loaded += 1
-                face = opened
+                face          = opened
             }
         }
 
@@ -67,12 +67,12 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
 #test
 {
     const pages: [6] { name: string, page: u64 } = [
-        {"llvm-polly-impact-2011-paper.pdf", 0},
-        {"llvm-polly-impact-2011-paper.pdf", 3},
-        {"llvm-openmp-reference.pdf", 12},
-        {"llvm-polly-raghesh-masters-thesis.pdf", 20},
+        {"llvm-polly-impact-2011-paper.pdf",          0},
+        {"llvm-polly-impact-2011-paper.pdf",          3},
+        {"llvm-openmp-reference.pdf",                 12},
+        {"llvm-polly-raghesh-masters-thesis.pdf",     20},
         {"llvm-polly-kernelgen-ncar-2012-slides.pdf", 4},
-        {"llvm-polly-impact-2011-slides.pdf", 5}]
+        {"llvm-polly-impact-2011-slides.pdf",         5}]
 
     for entry in pages
     {

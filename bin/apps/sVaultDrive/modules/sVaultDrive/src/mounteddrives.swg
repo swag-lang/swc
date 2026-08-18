@@ -38,12 +38,12 @@ internal enum MountedColumn
 // stand for a drive everywhere else.
 struct MountedDrives
 {
-    card:          VaultCard   = undefined
-    list:          *ListCtrl   = undefined
-    empty:         *Label      = undefined
-    unmountButton: *PushButton = undefined
-    drives:        Array'MountedDrive
-    startupEnabled: bool = true
+    card:           VaultCard   = undefined
+    list:           *ListCtrl   = undefined
+    empty:          *Label      = undefined
+    unmountButton:  *PushButton = undefined
+    drives:         Array'MountedDrive
+    startupEnabled: bool        = true
 
     // Emitted once the table says what `drives` now holds. Whether the action of the card can
     // work depends on the selection *and* on what the window is doing, so the window is what

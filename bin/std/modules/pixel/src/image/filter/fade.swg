@@ -1,9 +1,9 @@
 using Core
 
-impl Image
+public impl Image
 {
     // Fade to a given color. 'factor' is [0, 1]
-    public mtd fade(color: Color, factor: f32 = 0.5)
+    mtd fade(color: Color, factor: f32 = 0.5)
     {
         // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do

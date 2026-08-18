@@ -7,10 +7,10 @@ using Core, Core.Math, Pixel
 #[Swag.NoDoc]
 public enum FontProgramKind
 {
-    None       // The font embeds no program and is drawn with a substitute face.
-    TrueType   // A `FontFile2` program, or a `FontFile3` OpenType wrapper around one.
-    Type1      // A `FontFile` program, in its PFB, PFA, or bare form.
-    Cff        // A `FontFile3` bare CFF program, keyed by name or by character identifier.
+    None         // The font embeds no program and is drawn with a substitute face.
+    TrueType     // A `FontFile2` program, or a `FontFile3` OpenType wrapper around one.
+    Type1        // A `FontFile` program, in its PFB, PFA, or bare form.
+    Cff          // A `FontFile3` bare CFF program, keyed by name or by character identifier.
 }
 
 // A font a decoded page refers to, with everything needed to lay its text out again.
@@ -40,7 +40,7 @@ public struct FontResource
 
     // A CIDFontType2 either addresses the embedded TrueType glyphs directly or provides the
     // explicit CID-to-GID table used to do so.
-    glyphIndices:  Array'u32
+    glyphIndices:   Array'u32
     identityGlyphs: bool
 
     // A composite font whose descendant is a CIDFontType0 addresses a CID-keyed CFF through
@@ -342,10 +342,10 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
 
 // Bits of the `/Flags` entry of a font descriptor this module reads.
 private const FlagFixedPitch = 1'u32 << 0
-private const FlagSerif      = 1'u32 << 1
-private const FlagSymbolic   = 1'u32 << 2
-private const FlagItalic     = 1'u32 << 6
-private const FlagForceBold  = 1'u32 << 18
+private const FlagSerif = 1'u32 << 1
+private const FlagSymbolic = 1'u32 << 2
+private const FlagItalic = 1'u32 << 6
+private const FlagForceBold = 1'u32 << 18
 
 // Reads the traits that decide which substitute face stands in for a font.
 //

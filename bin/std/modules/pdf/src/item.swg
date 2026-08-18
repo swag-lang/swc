@@ -21,9 +21,9 @@ enum StrokeCap
 // Selects how consecutive segments of a stroked PDF path meet.
 enum StrokeJoin
 {
-    Miter      // Extend the outer edges until the miter limit, then bevel the corner.
-    Round      // Join the segments with a circular arc.
-    Bevel      // Cut the outer corner with a straight edge.
+    Miter     // Extend the outer edges until the miter limit, then bevel the corner.
+    Round     // Join the segments with a circular arc.
+    Bevel     // Cut the outer corner with a straight edge.
 }
 
 // Describes the geometry of a PDF path stroke.
@@ -31,7 +31,7 @@ struct PathStrokeStyle
 {
     public
     {
-        cap:         StrokeCap = .Butt       // Shape at open path ends and dash ends.
+        cap:         StrokeCap  = .Butt      // Shape at open path ends and dash ends.
         join:        StrokeJoin = .Miter     // Shape between consecutive segments.
         miterLimit:  f32        = 10         // Maximum miter length relative to the stroke width; at least one.
         dashPattern: Array'f32               // Alternating painted and blank lengths in PDF points; empty means solid.
@@ -50,12 +50,12 @@ struct Item
 
     internal
     {
-        text:      String
-        textCodes: Array'u32
+        text:         String
+        textCodes:    Array'u32
         textAdvances: Array'f32
-        path:      LinePathList
-        image:     Image
-        transform: Transform2 = Transform2.Identity
+        path:         LinePathList
+        image:        Image
+        transform:    Transform2 = Transform2.Identity
 
         fillColor:    Color        = Color.fromArgb(Argb.Black)
         strokeColor:  Color        = Color.fromArgb(Argb.Black)
@@ -76,7 +76,7 @@ struct Item
     }
 }
 
-public impl Item
+impl Item
 {
     // Returns the text carried by a text item, or an empty string for another kind.
     mtd const textValue()->string => .kind == .Text ? .text.toString() : ""
@@ -123,23 +123,23 @@ public impl Item
     mtd const imageValue()->#null const *Image => .kind == .Image ? &.image : null
 }
 
-impl Item
+internal impl Item
 {
-    internal func createText()->Item
+    func createText()->Item
     {
         var result: retval
         result.kind = .Text
         return result
     }
 
-    internal func createPath()->Item
+    func createPath()->Item
     {
         var result: retval
         result.kind = .Path
         return result
     }
 
-    internal func createImage()->Item
+    func createImage()->Item
     {
         var result: retval
         result.kind = .Image

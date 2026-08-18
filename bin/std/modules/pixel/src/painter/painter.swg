@@ -116,9 +116,9 @@ enum BlendingMode
     Luminosity     // Use the source luminosity with backdrop hue and saturation.
 }
 
-impl BlendingMode
+internal impl BlendingMode
 {
-    internal mtd usesAdvancedBlending()->bool
+    mtd usesAdvancedBlending()->bool
     {
         switch me
         {
@@ -127,7 +127,7 @@ impl BlendingMode
         }
     }
 
-    internal mtd isSeparable()->bool
+    mtd isSeparable()->bool
     {
         switch me
         {

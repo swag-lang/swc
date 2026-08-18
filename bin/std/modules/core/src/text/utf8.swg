@@ -725,7 +725,7 @@ func lastRune(src: const [..] u8)->rune
 }
 
 // Selects comparison type.
-public enum ComparisonType
+enum ComparisonType
 {
     Latin1            // Selects latin1.
     Latin1NoCase      // Selects latin1 no case.

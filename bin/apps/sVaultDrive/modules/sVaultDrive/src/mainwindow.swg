@@ -150,18 +150,18 @@ struct MountSettings
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:         Jobs.Job                // Worker scheduled for `kind`.
-    kind:        OperationKind           // Work the job performs, or `None` while the window is idle.
-    timer:       #null *Timer            // Polls the job while it runs.
-    error:       #null any               // Failure captured by the job, or null when it succeeded.
-    path:        String                  // Container file the operation acts on.
-    mount:       String                  // Stable backend destination identifier requested by a mount operation.
-    mountLabel:  String                  // Host-facing destination name reported when the operation completes.
-    size:        u64                     // Container size requested by a create or a grow.
-    camouflageOnly: bool                 // Whether resize only refreshes the random physical tail.
-    password:    Array'u8                // Password copy owned by the operation and wiped when it ends.
-    replacement: Array'u8                // New password of a change, empty when the change removes it.
-    volume:      #null *MountedVault     // Mount a mount operation produced, or the one an unmount closes.
+    job:            Jobs.Job                // Worker scheduled for `kind`.
+    kind:           OperationKind           // Work the job performs, or `None` while the window is idle.
+    timer:          #null *Timer            // Polls the job while it runs.
+    error:          #null any               // Failure captured by the job, or null when it succeeded.
+    path:           String                  // Container file the operation acts on.
+    mount:          String                  // Stable backend destination identifier requested by a mount operation.
+    mountLabel:     String                  // Host-facing destination name reported when the operation completes.
+    size:           u64                     // Container size requested by a create or a grow.
+    camouflageOnly: bool                    // Whether resize only refreshes the random physical tail.
+    password:       Array'u8                // Password copy owned by the operation and wiped when it ends.
+    replacement:    Array'u8                // New password of a change, empty when the change removes it.
+    volume:         #null *MountedVault     // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
     readOnly:        bool     // Whether a mount operation exposes the drive read only.
@@ -191,10 +191,10 @@ struct MainWindow
     #[Swag.Late]
     {
         privacyModeControl: *CheckButton
-        unmountOnLock:    *CheckButton
-        unmountOnSuspend: *CheckButton
-        unmountOnIdle:    *CheckButton
-        idleTimeout:      *ComboBox
+        unmountOnLock:      *CheckButton
+        unmountOnSuspend:   *CheckButton
+        unmountOnIdle:      *CheckButton
+        idleTimeout:        *ComboBox
     }
 
     // Controls of the "create a new vault" card.
@@ -250,7 +250,7 @@ struct MainWindow
     mountedDrives: MountedDrives
 
     fileDlgState: FileDlgState
-    privacyMode: bool = true
+    privacyMode:  bool = true
     state:        AppState
     shuttingDown: bool
     operation:    VaultOperation
@@ -857,10 +857,10 @@ impl MainWindow
         card.actions.hide()
 
         .privacyModeControl = form.addOptionField(appStrings().ui_PrivacyMode, help: appStrings().ui_PrivacyModeHelp)
-        .unmountOnLock    = form.addOptionField(appStrings().ui_UnmountOnLock, help: appStrings().ui_UnmountOnLockHelp)
-        .unmountOnSuspend = form.addOptionField(appStrings().ui_UnmountOnSuspend, help: appStrings().ui_UnmountOnSuspendHelp)
-        .unmountOnIdle    = form.addOptionField(appStrings().ui_UnmountOnIdle, help: appStrings().ui_UnmountOnIdleHelp)
-        .idleTimeout      = form.addChoiceField(appStrings().ui_IdleTimeout)
+        .unmountOnLock      = form.addOptionField(appStrings().ui_UnmountOnLock, help: appStrings().ui_UnmountOnLockHelp)
+        .unmountOnSuspend   = form.addOptionField(appStrings().ui_UnmountOnSuspend, help: appStrings().ui_UnmountOnSuspendHelp)
+        .unmountOnIdle      = form.addOptionField(appStrings().ui_UnmountOnIdle, help: appStrings().ui_UnmountOnIdleHelp)
+        .idleTimeout        = form.addChoiceField(appStrings().ui_IdleTimeout)
 
         for minutes in [5'u32, 15, 30, 60] do
             .idleTimeout.addItem(Format.toString(appStrings().ui_Minutes, minutes).toString())
@@ -909,7 +909,7 @@ impl MainWindow
     // automatic-unmount preferences.
     mtd clearPrivateState()
     {
-        .fileDlgState = {}
+        .fileDlgState  = {}
         .mountSettings = {}
         .startupVaults.clear()
         .startupQueue.clear()
@@ -1722,7 +1722,7 @@ impl MainWindow
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        var requestedSize = 0'u64
+        var requestedSize  = 0'u64
         let camouflageOnly = fields.keepCapacity.isChecked()
         if !camouflageOnly
         {
@@ -1732,11 +1732,12 @@ impl MainWindow
                 .showError(size.error.toString())
                 return
             }
+
             requestedSize = size.bytes
         }
 
-        .operation.path = path
-        .operation.size = requestedSize
+        .operation.path           = path
+        .operation.size           = requestedSize
         .operation.camouflageOnly = camouflageOnly
         .operation.password.add(fields.current.bytes())
         .statusProgress = 0
@@ -1795,6 +1796,7 @@ impl MainWindow
                     discard catch volume.resize(.operation.size, &.operation.progress) as resizeError
                     .operation.error = resizeError
                 }
+
                 volume.close()
             }
 
@@ -2227,6 +2229,7 @@ impl IWnd for MainWindow
                 .clearPrivateState()
                 catch g_App.saveState()
             }
+
             .applyTheme()
             .applyLanguage()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
@@ -2259,6 +2262,7 @@ impl IWnd for MainWindow
             catch evt.serializer.serialize("MainWindow.mountSettings", &me.mountSettings)
             catch evt.serializer.serialize("MainWindow.startupVaults", &me.startupVaults)
         }
+
         catch evt.serializer.serialize("MainWindow.autoUnmount", &me.autoUnmount)
 
         // The window reopens on the page it was left on, so a reader who only ever mounts an

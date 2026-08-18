@@ -95,11 +95,11 @@ private impl PdfPluginView
     {
         if index >= .reader.pageCount() do
             return
-        var page  = try .reader.loadPage(index)
+        var page = try .reader.loadPage(index)
         .pageSize = {page.width, page.height}
         let scale = .renderScale()
         let image = try page.render({scale: scale, maxDimension: PdfMaxDimension})
-        .pageIndex = index
+        .pageIndex   = index
         .rasterScale = scale
         .imageView.setImage(image)
         .imageView.show()
@@ -183,7 +183,7 @@ private impl PdfPluginView
 
         with result.imageView = ImageView.create(result)
         {
-            .dockStyle       = .Center
+            .dockStyle      = .Center
             .sigZoomChanged += func|view = result|(imageView)
             {
                 discard imageView
@@ -246,7 +246,6 @@ private impl IWnd for PdfPluginView
             evt.accepted = false
         }
     }
-
 }
 
 private func createPdfPluginView(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, view: *#null *PdfPluginView) fail

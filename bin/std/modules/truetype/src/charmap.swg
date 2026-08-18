@@ -20,12 +20,12 @@ public struct CharMap
 
 impl CharMap
 {
-    internal mtd initialize(face: *Face)
+    mtd initialize(face: *Face)
     {
         .face = face
     }
 
-    internal mtd select(platformID, encodingID: u16)
+    mtd select(platformID, encodingID: u16)
     {
         .platformID = platformID
         .encodingID = encodingID

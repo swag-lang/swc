@@ -102,7 +102,7 @@ public struct Codec
 
 impl Codec
 {
-    internal mtd configure(sourceEncoding, destinationEncoding: SoundFileEncoding, type: const *Swag.TypeInfoStruct, allocator: IAllocator)
+    mtd configure(sourceEncoding, destinationEncoding: SoundFileEncoding, type: const *Swag.TypeInfoStruct, allocator: IAllocator)
     {
         .sourceEncoding      = sourceEncoding
         .destinationEncoding = destinationEncoding

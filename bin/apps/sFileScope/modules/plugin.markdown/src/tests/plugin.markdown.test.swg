@@ -5,6 +5,11 @@ private func markdownFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
 }
 
+private func markdownWhiteyFixturePath()->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/whitey.md")
+}
+
 // File-open failures cross the plugin boundary instead of becoming plugin-specific content.
 #test
 {
@@ -168,4 +173,24 @@ private func markdownFixturePath()->String
         @assert(image.isValid())
         view.destroy()
     }
+}
+
+// Whitey keeps soft-wrapped list items together, hangs wrapped lines beneath their wording, and
+// draws list and task markers without depending on optional font glyphs.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 900)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let source = expect File.readAllText(markdownWhiteyFixturePath())
+    let view   = MarkdownView.createText(&host.root, source.toString())
+    view.resize(960, 900)
+    applyMarkdownViewerStyle(view, 5, 1)
+    view.applyLayout()
+    Testing.assertContentFits(view)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "plugin.markdown.whitey")
 }

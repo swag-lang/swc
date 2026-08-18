@@ -14,6 +14,10 @@ private enum MarkdownInlineFlags
     Link
     Subscript
     Superscript
+    ListMarker
+    ListBullet
+    ListUnchecked
+    ListChecked
 }
 
 private struct MarkdownInlineAtom
@@ -35,15 +39,19 @@ private struct MarkdownInlineAtom
 
 private struct MarkdownInlineState
 {
-    bold:        u32
-    italic:      u32
-    strikeout:   u32
-    code:        u32
-    highlight:   u32
-    link:        u32
-    subscript:   u32
-    superscript: u32
-    colorIndex:  u32
+    bold:          u32
+    italic:        u32
+    strikeout:     u32
+    code:          u32
+    highlight:     u32
+    link:          u32
+    subscript:     u32
+    superscript:   u32
+    listMarker:    u32
+    listBullet:    u32
+    listUnchecked: u32
+    listChecked:   u32
+    colorIndex:    u32
 }
 
 private impl MarkdownInlineState
@@ -67,6 +75,14 @@ private impl MarkdownInlineState
             result.add(.Subscript)
         if .superscript do
             result.add(.Superscript)
+        if .listMarker do
+            result.add(.ListMarker)
+        if .listBullet do
+            result.add(.ListBullet)
+        if .listUnchecked do
+            result.add(.ListUnchecked)
+        if .listChecked do
+            result.add(.ListChecked)
         return result
     }
 }
@@ -302,6 +318,44 @@ impl MarkdownInlineView
                 state.superscript = state.superscript ? state.superscript - 1 : 0
                 eaten             = 6
 
+            case Utf8.startsWith(remaining, "<lm>"):
+                state.listMarker += 1
+                eaten            = 4
+
+            case Utf8.startsWith(remaining, "</lm>"):
+                state.listMarker = state.listMarker ? state.listMarker - 1 : 0
+                eaten            = 5
+
+            case Utf8.startsWith(remaining, "<lb>"):
+                state.listMarker += 1
+                state.listBullet += 1
+                eaten            = 4
+
+            case Utf8.startsWith(remaining, "</lb>"):
+                state.listMarker = state.listMarker ? state.listMarker - 1 : 0
+                state.listBullet = state.listBullet ? state.listBullet - 1 : 0
+                eaten            = 5
+
+            case Utf8.startsWith(remaining, "<lu>"):
+                state.listMarker    += 1
+                state.listUnchecked += 1
+                eaten               = 4
+
+            case Utf8.startsWith(remaining, "</lu>"):
+                state.listMarker    = state.listMarker ? state.listMarker - 1 : 0
+                state.listUnchecked = state.listUnchecked ? state.listUnchecked - 1 : 0
+                eaten               = 5
+
+            case Utf8.startsWith(remaining, "<lc>"):
+                state.listMarker  += 1
+                state.listChecked += 1
+                eaten             = 4
+
+            case Utf8.startsWith(remaining, "</lc>"):
+                state.listMarker  = state.listMarker ? state.listMarker - 1 : 0
+                state.listChecked = state.listChecked ? state.listChecked - 1 : 0
+                eaten             = 5
+
             case Utf8.startsWith(remaining, "<p1>"):
                 state.colorIndex = 1
                 eaten            = 4
@@ -434,6 +488,24 @@ impl MarkdownInlineView
         }
 
         let font = .font(atom)
+        if atom.flags.has(.ListBullet)
+        {
+            atom.position.width  = font.height * 0.55
+            atom.position.height = font.height
+            atom.ascent          = font.ascent
+            atom.descent         = -font.descent
+            return
+        }
+
+        if atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
+        {
+            atom.position.width  = font.height * 0.8
+            atom.position.height = font.height
+            atom.ascent          = font.ascent
+            atom.descent         = -font.descent
+            return
+        }
+
         let text = atom.isSpace ? " " : atom.text.toString()
         atom.position.width  = Painter.measureString(text, font).width
         atom.position.height = font.height
@@ -492,12 +564,15 @@ impl MarkdownInlineView
             return .layoutHeight
         }
 
-        let inset = .padding()
-        let left  = inset.x
-        let right = Math.max(width - inset.z, left + 1)
-        var x     = left
-        var y     = inset.y
-        var first = 0'u64
+        let inset            = .padding()
+        let left             = inset.x
+        let right            = Math.max(width - inset.z, left + 1)
+        var x                = left
+        var y                = inset.y
+        var first            = 0'u64
+        var lineLeft         = left
+        var continuationLeft = left
+        var afterMarker: bool
 
         for &atom, index in .atoms
         {
@@ -505,27 +580,38 @@ impl MarkdownInlineView
             .measureAtom(atom)
             if atom.isBreak
             {
-                y     += .finishLine(first, index, y, left, right)
-                x     = left
-                first = index + 1
+                y                += .finishLine(first, index, y, lineLeft, right)
+                x                = left
+                first            = index + 1
+                lineLeft         = left
+                continuationLeft = left
+                afterMarker      = false
                 continue
             }
 
-            if atom.isSpace and x == left do
+            if atom.isSpace and x == lineLeft and .kind != .List do
                 continue
-            if !atom.isSpace and x > left and x + atom.position.width > right
+            if !atom.isSpace and x > lineLeft and x + atom.position.width > right
             {
-                y     += .finishLine(first, index, y, left, right)
-                x     = left
-                first = index
+                y        += .finishLine(first, index, y, lineLeft, right)
+                x        = continuationLeft
+                first    = index
+                lineLeft = continuationLeft
             }
 
             atom.visible    = true
             atom.position.x = x
             x               += atom.position.width
+            if atom.flags.has(.ListMarker) do
+                afterMarker = true
+            elif afterMarker and atom.isSpace do
+                continuationLeft = x
+            elif !atom.isSpace do
+                afterMarker = false
         }
 
-        y             += .finishLine(first, .atoms.count, y, left, right)
+        if first < .atoms.count or .atoms.isEmpty() do
+            y += .finishLine(first, .atoms.count, y, lineLeft, right)
         .layoutWidth  = width
         .layoutHeight = y + inset.w
         return .layoutHeight
@@ -584,7 +670,12 @@ impl IWnd for MarkdownInlineView
         let painter = evt.paintContext.painter
         discard .layout(rect.width)
 
-        if .kind == .Code or .kind == .Table or .kind == .Metadata or .kind == .TableOfContents do
+        if .kind == .Code
+        {
+            painter.fillRect(rect, .themeColors().edit_Bk)
+            painter.drawRect(rect, .themeColors().edit_Border, 1)
+        }
+        elif .kind == .Table or .kind == .Metadata or .kind == .TableOfContents do
             painter.fillRect(rect, .themeColors().edit_Bk)
         if .kind == .Quote or .kind >= .AlertNote and .kind <= .AlertCaution
         {
@@ -636,6 +727,31 @@ impl IWnd for MarkdownInlineView
             }
             else
             {
+                if atom.flags.has(.ListBullet)
+                {
+                    let font = .font(atom)
+                    let size = Math.max(Math.round(font.height * 0.3), 4)
+                    painter.fillRect({atom.position.x + (atom.position.width - size) * 0.5, atom.position.y + (font.height - size) * 0.5, size, size}, color)
+                    continue
+                }
+
+                if atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
+                {
+                    let font = .font(atom)
+                    let size = Math.max(Math.round(font.height * 0.62), 8)
+                    let x    = atom.position.x + (atom.position.width - size) * 0.5
+                    let y    = atom.position.y + (font.height - size) * 0.5
+                    painter.drawRect({x, y, size, size}, color, 1)
+                    if atom.flags.has(.ListChecked)
+                    {
+                        let stroke = Math.max(Math.round(size * 0.14), 1)
+                        painter.drawLine(x + size * 0.2, y + size * 0.52, x + size * 0.42, y + size * 0.74, color, stroke)
+                        painter.drawLine(x + size * 0.42, y + size * 0.74, x + size * 0.82, y + size * 0.24, color, stroke)
+                    }
+
+                    continue
+                }
+
                 let decoration = atom.flags.has(.Strikeout) ? UnderlineStyle.Strikeout : (atom.flags.has(.Link) ? UnderlineStyle.Underline : UnderlineStyle.None)
                 painter.drawString(atom.position.x, atom.position.y, atom.isSpace ? " " : atom.text.toString(), .font(atom), color, decoration)
             }

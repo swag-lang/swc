@@ -73,6 +73,27 @@ func markdownFixturePath()->String
     @assert(Utf8.contains(blocks[4].text.toString(), "<sup>2</sup>"))
 }
 
+// Soft-wrapped list items stay in their list, while nested blocks remain independently laid out
+// beneath the item that owns them.
+#test
+{
+    let source = "- Found while: a condition was evaluated over a\n  Core.String.\n- Evidence: the failure was observed at\n  src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74.\n\n  ```swag\n  if @countof(box) do\n      return 1\n  ```\n\n  A following paragraph still belongs beneath the evidence.\n- Next step: trace the condition."
+    let blocks = parseMarkdownBlocks(source)
+
+    @assert(blocks.count == 4)
+    @assert(blocks[0].kind == .List)
+    @assert(Utf8.contains(blocks[0].text.toString(), "a Core.String."))
+    @assert(Utf8.contains(blocks[0].text.toString(), "at src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74."))
+    @assert(blocks[1].kind == .Code)
+    @assert(blocks[2].kind == .Paragraph)
+    @assert(blocks[3].kind == .List)
+
+    let tasks = parseMarkdownBlocks("- [x] Complete\n- [ ] Pending")
+    @assert(tasks.count == 1)
+    @assert(Utf8.contains(tasks[0].text.toString(), "<lc>*</lc>"))
+    @assert(Utf8.contains(tasks[0].text.toString(), "<lu>*</lu>"))
+}
+
 // Inline mathematics is parsed by Pixel instead of being approximated with Unicode text.
 #test
 {

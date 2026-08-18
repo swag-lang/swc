@@ -301,27 +301,45 @@ internal func parseMarkdownBlocks(source: string)->Array'MarkdownBlock
                 let current = markdownListItem(lines[index])
                 if !current.found do
                     break
-                for current.indent / 2 do
-                    list += "  "
-                if current.ordered do
-                    list += Format.toString("<p3>%.</p> ", current.marker)
-                else do
-                    list += "<p1>◆</p> "
-                var content = current.content
+
+                var content  = String.from(current.content)
+                var previous = lines[index]
+                index += 1
+                while index < lines.count
+                {
+                    let continuation = markdownListItem(lines[index])
+                    let next         = Latin1.trim(lines[index])
+                    if !@countof(next) or continuation.found or continuation.indent < current.contentIndent or markdownFence(lines[index]).found do
+                        break
+
+                    content  += markdownHardBreak(previous) ? "\n" : " "
+                    content  += next
+                    previous = lines[index]
+                    index    += 1
+                }
+
+                for current.indent do
+                    list += " "
+
+                // Markers remain semantic atoms so wrapping can hang beneath the item text and
+                // geometric markers never depend on optional typeface glyphs.
                 if Utf8.startsWith(content, "[ ] ")
                 {
-                    list    += "☐ "
-                    content = content[4 to]
+                    list += "<p1><lu>*</lu></p> "
+                    content.remove(0, 4)
                 }
                 elif Utf8.startsWith(content, "[x] ") or Utf8.startsWith(content, "[X] ")
                 {
-                    list    += "<p1>☒</p> "
-                    content = content[4 to]
+                    list += "<p1><lc>*</lc></p> "
+                    content.remove(0, 4)
                 }
+                elif current.ordered do
+                    list += Format.toString("<p3><lm>%.</lm></p> ", current.marker)
+                else do
+                    list += "<p1><lb>*</lb></p> "
 
-                list  += renderMarkdownInline(content, references.toSlice())
-                list  += "\n"
-                index += 1
+                list += renderMarkdownInline(content.toString(), references.toSlice())
+                list += "\n"
             }
 
             appendMarkdownBlock(&result, .List, #move list)

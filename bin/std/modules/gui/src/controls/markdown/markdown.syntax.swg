@@ -404,11 +404,12 @@ struct MarkdownHeadingInfo
 
 struct MarkdownListInfo
 {
-    found:   bool
-    ordered: bool
-    content: string = ""
-    marker:  string = ""
-    indent:  u32
+    found:         bool
+    ordered:       bool
+    content:       string = ""
+    marker:        string = ""
+    indent:        u32
+    contentIndent: u32
 }
 
 struct MarkdownFenceInfo
@@ -491,8 +492,9 @@ func markdownListItem(line: string)->MarkdownListInfo
 
     if (line[index] == '-' or line[index] == '*' or line[index] == '+') and index + 1 < @countof(line) and line[index + 1] == ' '
     {
-        result.found   = true
-        result.content = line[index + 2 to]
+        result.found         = true
+        result.content       = line[index + 2 to]
+        result.contentIndent = result.indent + 2
         return result
     }
 
@@ -501,10 +503,11 @@ func markdownListItem(line: string)->MarkdownListInfo
         index += 1
     if index > digitStart and index + 1 < @countof(line) and (line[index] == '.' or line[index] == ')') and line[index + 1] == ' '
     {
-        result.found   = true
-        result.ordered = true
-        result.marker  = line[digitStart until index]
-        result.content = line[index + 2 to]
+        result.found         = true
+        result.ordered       = true
+        result.marker        = line[digitStart until index]
+        result.content       = line[index + 2 to]
+        result.contentIndent = result.indent + cast(u32) (index - digitStart) + 2
     }
 
     return result

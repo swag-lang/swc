@@ -415,8 +415,17 @@ impl HtmlPainter
             let boxStyle  = .layout.constStyle(target.style)
             let clipRight = target.content.right() + offset.x
             let ellipsis  = boxStyle.textOverflowEllipsis and boxStyle.overflowX != .Visible and style.whiteSpace == .NoWrap and x + item.width > clipRight
-            if ellipsis and clipRight > x do
+            if ellipsis and clipRight > x
+            {
                 .paintEllipsized(item, style, font, ink, x, y, clipRight - x)
+            }
+            elif item.hyphenAtBreak
+            {
+                // The soft hyphen only exists where the line actually broke.
+                var hyphenated: String = item.text
+                hyphenated += "-"
+                .paintTextRun(hyphenated.toString(), style, font, ink, x, y)
+            }
             else do
                 .paintTextRun(item.text.toString(), style, font, ink, x, y)
             .paintDecorationLines(item, style, alpha, x, y)
@@ -556,6 +565,13 @@ impl HtmlPainter
     // positive positioned levels.
     private mtd paintChildren(box: u32, offset: Math.Point, alpha: f32)
     {
+        if !.layout.constBox(box).hasStacked
+        {
+            for child in .layout.constBox(box).children do
+                .paintBox(child, offset, alpha)
+            return
+        }
+
         .paintStackedChildren(box, offset, alpha, false)
         for child in .layout.constBox(box).children where .stackingLevel(child) == 0 do
             .paintBox(child, offset, alpha)
@@ -738,11 +754,23 @@ impl HtmlPainter
 
     private mtd const scrollBarAtChildren(box: u32, point: Math.Point, offset: Math.Point)->HtmlRegionScrollBar
     {
+        let children = .layout.constBox(box).children
+        if !.layout.constBox(box).hasStacked
+        {
+            for index in children.count
+            {
+                let found = .scrollBarAtBox(children[children.count - index - 1], point, offset)
+                if found.box != HtmlNoNode do
+                    return found
+            }
+
+            return {}
+        }
+
         let positive = .scrollBarAtStackedChildren(box, point, offset, true)
         if positive.box != HtmlNoNode do
             return positive
 
-        let children = .layout.constBox(box).children
         for index in children.count
         {
             let child = children[children.count - index - 1]
@@ -824,11 +852,23 @@ impl HtmlPainter
 
     private mtd const nodeAtChildren(box: u32, point: Math.Point, offset: Math.Point)->u32
     {
+        let children = .layout.constBox(box).children
+        if !.layout.constBox(box).hasStacked
+        {
+            for index in children.count
+            {
+                let found = .nodeAtBox(children[children.count - index - 1], point, offset)
+                if found != HtmlNoNode do
+                    return found
+            }
+
+            return HtmlNoNode
+        }
+
         let positive = .nodeAtStackedChildren(box, point, offset, true)
         if positive != HtmlNoNode do
             return positive
 
-        let children = .layout.constBox(box).children
         for index in children.count
         {
             let child = children[children.count - index - 1]
@@ -927,11 +967,23 @@ impl HtmlPainter
 
     private mtd const scrollableAtChildren(box: u32, point: Math.Point, offset: Math.Point)->u32
     {
+        let children = .layout.constBox(box).children
+        if !.layout.constBox(box).hasStacked
+        {
+            for index in children.count
+            {
+                let found = .scrollableAtBox(children[children.count - index - 1], point, offset)
+                if found != HtmlNoNode do
+                    return found
+            }
+
+            return HtmlNoNode
+        }
+
         let positive = .scrollableAtStackedChildren(box, point, offset, true)
         if positive != HtmlNoNode do
             return positive
 
-        let children = .layout.constBox(box).children
         for index in children.count
         {
             let child = children[children.count - index - 1]

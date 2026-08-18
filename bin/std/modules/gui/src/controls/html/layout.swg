@@ -29,7 +29,19 @@ public struct HtmlLayout
     viewport:       Math.Point
     documentHeight: f32
     deviceScale:    f32 = 1
-    widthCache:     HashTable'(u64, f32)
+
+    // Measured run widths, keyed by text and by what the measurement really depends on — the
+    // resolved face, the tracking and the device grid — so entries survive the repeated rebuilds
+    // of a streaming load instead of re-shaping every word of the document each time.
+    widthCache: HashTable'(u64, f32)
+
+    // The face each style resolves to, filled lazily; painting asks once per drawn run and the
+    // theme lookup is not free at that rate.
+    fontCache: Array'(#null *Font)
+
+    // The next ordinal of each list being built, so a ten-thousand-item list does not walk its
+    // siblings once per item.
+    listOrdinals: HashTable'(u32, u32)
 
     // The floats currently narrowing the flow, in document coordinates. A box that establishes
     // its own formatting context truncates the list back on exit, so a float never reaches
@@ -85,6 +97,9 @@ impl HtmlLayout
     // Returns the font a style asks for, mapped onto the faces the theme actually carries.
     mtd font(styleIndex: u32)->*Font
     {
+        if styleIndex < .fontCache.count and .fontCache[styleIndex] != null do
+            return .fontCache[styleIndex]!
+
         let style = &.styles[styleIndex]
         let size  = cast(u32) Math.clamp(Math.round(style.fontSize), 6, 300)
         let bold  = style.fontWeight >= 600
@@ -96,9 +111,12 @@ impl HtmlLayout
         elif style.italic do
             face = .Italic
 
-        if style.fontFamily == .Mono do
-            return .theme.createDefaultFontFS(size, face)
-        return .theme.createDefaultFont(size, face)
+        let result = style.fontFamily == .Mono ? .theme.createDefaultFontFS(size, face) : .theme.createDefaultFont(size, face)
+        if .fontCache.count < .styles.count do
+            .fontCache.resize(.styles.count)
+        if styleIndex < .fontCache.count do
+            .fontCache[styleIndex] = result
+        return result
     }
 
     // Measures one text run, remembering the answer because a document repeats its words.
@@ -114,16 +132,22 @@ impl HtmlLayout
         if !@countof(text) do
             return 0
 
-        let key   = Hash.murmur3(Hash.hash64(text), cast(u64) styleIndex)
-        let found = .widthCache.tryFind(key)
+        // The key carries the face, the tracking and the device grid rather than the style
+        // index: a style index means something else after each streaming rebuild, while the
+        // measurement below only ever reads these three.
+        let font    = .font(styleIndex)
+        var spacing = .styles[styleIndex].letterSpacing
+        var scale   = .deviceScale
+        let salt    = cast(u64) font ^ (cast(u64) (cast(const *u32) &spacing)[] << 32) ^ cast(u64) (cast(const *u32) &scale)[]
+        let key     = Hash.murmur3(Hash.hash64(text), salt)
+        let found   = .widthCache.tryFind(key)
         if found do
             return found!.value
 
         // CSS puts the tracking after every character, the shaper only between two of them, so
         // one more gap closes the run. Without it every word of a tracked line is a gap short and
         // the spaces between them disappear.
-        let spacing = .styles[styleIndex].letterSpacing
-        let width   = Painter.measureStringSnapped(text, .font(styleIndex), Swag.U64.Max, DefaultTextTabSize, spacing, .deviceScale) + spacing
+        let width = Painter.measureStringSnapped(text, font, Swag.U64.Max, DefaultTextTabSize, spacing, .deviceScale) + spacing
         .widthCache.add(key, width)
         return width
     }
@@ -196,7 +220,8 @@ impl HtmlLayout
         .pool     = resolver.pool
         .styles   = #move resolver.styles
         .boxes.clear()
-        .widthCache.clear()
+        .fontCache.clear()
+        .listOrdinals.clear()
         .pseudoStyles.clear()
         .nodeBox.clear()
 
@@ -215,6 +240,21 @@ impl HtmlLayout
         for child in document.constNode(0).children do
             .buildChild(.root, child, &pending)
         .flushInline(.root, &pending, true)
+
+        // Positioned stacking levels are rare. Recording which boxes actually have one lets the
+        // painter and the hit tests walk children once instead of scanning them per level.
+        for &box in .boxes
+        {
+            for child in box.children
+            {
+                let style = &.styles[.boxes[child].style]
+                if style.position != .Static and style.zIndex != 0
+                {
+                    box.hasStacked = true
+                    break
+                }
+            }
+        }
     }
 
     // Emits one DOM child into the box that contains it.
@@ -486,26 +526,21 @@ impl HtmlLayout
     // Gives a list item the marker its list asks for.
     private mtd buildMarker(box: u32, node: u32)
     {
-        let style = &.styles[node]
-        if style.listStyleType == .None do
-            return
-
+        // Items of one list reach here in document order, so each list only needs its running
+        // count; walking every sibling per item made a long list quadratic. An item whose marker
+        // is suppressed still takes its ordinal, exactly as the sibling walk counted it.
         var ordinal = 1'u32
         let parent  = .document.constNode(node).parent
         if parent != HtmlNoNode
         {
-            var seen = 0'u32
-            for sibling in .document.constNode(parent).children
-            {
-                if .document.constNode(sibling).kind != .Element do
-                    continue
-                if .styles[sibling].display != .ListItem do
-                    continue
-                seen += 1
-                if sibling == node do
-                    ordinal = seen
-            }
+            let entry = .listOrdinals.findOrAdd(parent)
+            entry.value += 1
+            ordinal = entry.value
         }
+
+        let style = &.styles[node]
+        if style.listStyleType == .None do
+            return
 
         .boxes[box].marker      = HtmlLayout.markerText(style.listStyleType, ordinal)
         .boxes[box].markerKind  = .Text
@@ -725,9 +760,14 @@ private impl HtmlLayout
                     continue
                 }
 
-                var end = index
-                while end < @countof(text) and (text[end] == ' ' or text[end] == '\t') do
+                var end    = index
+                var spaces = 0'u32
+                while end < @countof(text) and (text[end] == ' ' or text[end] == '\t')
+                {
+                    if text[end] == ' ' do
+                        spaces += 1
                     end += 1
+                }
 
                 var item: HtmlInlineItem
                 item.kind        = .Space
@@ -736,7 +776,7 @@ private impl HtmlLayout
                 item.text        = text[index until end]
                 item.sourceStart = index
                 item.sourceEnd   = end
-                item.width       = .measure(styleIndex, item.text.toString())
+                item.width       = .measure(styleIndex, item.text.toString()) + style.wordSpacing * cast(f32) spaces
                 item.ascent      = font.ascent
                 item.descent     = -font.descent
                 pending.add(#move item)
@@ -746,19 +786,86 @@ private impl HtmlLayout
 
             let end = HtmlLayout.wordEnd(text, index)
 
-            var item: HtmlInlineItem
-            item.kind        = .Text
-            item.style       = styleIndex
-            item.node        = node
-            item.text        = HtmlLayout.transform(text[index until end], style.textTransform)
-            item.sourceStart = index
-            item.sourceEnd   = end
-            item.width       = .measure(styleIndex, item.text.toString())
-            item.ascent      = font.ascent
-            item.descent     = -font.descent
-            pending.add(#move item)
+            // The word splits further where a line may break inside it: after each CJK
+            // character, which is its own break opportunity in scripts written without spaces,
+            // and at each soft hyphen, which leaves the run and is remembered on the item
+            // before it so the hyphen only draws where a break is taken.
+            var fragStart = index
+            while fragStart < end
+            {
+                var fragEnd = fragStart
+                var shyEat  = 0'u64
+                while fragEnd < end
+                {
+                    let character = text[fragEnd]
+                    if character < 0x80
+                    {
+                        fragEnd += 1
+                        continue
+                    }
+
+                    // A soft hyphen is U+00AD, the two bytes 0xC2 0xAD.
+                    if character == 0xC2 and fragEnd + 1 < end and text[fragEnd + 1] == 0xAD
+                    {
+                        if fragEnd == fragStart
+                        {
+                            fragStart += 2
+                            fragEnd   = fragStart
+                            continue
+                        }
+
+                        shyEat = 2
+                        break
+                    }
+
+                    let {c, eat} = Utf8.decodeRune(text[fragEnd until end])
+                    if style.wordBreak != .KeepAll and HtmlLayout.isCjkBreakable(c)
+                    {
+                        if fragEnd == fragStart do
+                            fragEnd += eat
+                        break
+                    }
+
+                    fragEnd += eat
+                }
+
+                if fragEnd <= fragStart do
+                    break
+
+                var item: HtmlInlineItem
+                item.kind        = .Text
+                item.style       = styleIndex
+                item.node        = node
+                item.text        = HtmlLayout.transform(text[fragStart until fragEnd], style.textTransform)
+                item.sourceStart = fragStart
+                item.sourceEnd   = fragEnd + shyEat
+                item.width       = .measure(styleIndex, item.text.toString())
+                item.ascent      = font.ascent
+                item.descent     = -font.descent
+                item.softHyphen  = shyEat != 0
+                pending.add(#move item)
+                fragStart = fragEnd + shyEat
+            }
+
             index = end
         }
+    }
+
+    // Reports whether a code point belongs to the CJK scripts, whose text carries no spaces and
+    // where every character is therefore a break opportunity.
+    func isCjkBreakable(value: rune)->bool
+    {
+        if value >= 0x2E80 and value <= 0x9FFF do
+            return true
+        if value >= 0xAC00 and value <= 0xD7A3 do
+            return true
+        if value >= 0xF900 and value <= 0xFAFF do
+            return true
+        if value >= 0xFE30 and value <= 0xFE4F do
+            return true
+        if value >= 0xFF00 and value <= 0xFFEF do
+            return true
+        return value >= 0x20000 and value <= 0x3FFFD
     }
 
     // Adds one collapsible space, unless the previous item already opened one.
@@ -785,7 +892,7 @@ private impl HtmlLayout
         item.text        = " "
         item.sourceStart = sourceStart
         item.sourceEnd   = sourceEnd
-        item.width       = .measure(styleIndex, " ")
+        item.width       = .measure(styleIndex, " ") + .styles[styleIndex].wordSpacing
         item.ascent      = font.ascent
         item.descent     = -font.descent
         pending.add(#move item)
@@ -1072,8 +1179,14 @@ impl HtmlLayout
             return
 
         .viewport = {Math.max(width, 1), Math.max(height, 1)}
-        for &box in .boxes do
-            box.hasIntrinsic = false
+
+        // Intrinsic widths must be measured on the items the build produced, so the fragments a
+        // previous narrower layout split are re-joined before anything reads them.
+        for boxIndex in .boxes.count
+        {
+            .boxes[boxIndex].hasIntrinsic = false
+            .mergeContinuations(cast(u32) boxIndex)
+        }
 
         var containing: HtmlContainingBlock
         containing.width     = .viewport.x
@@ -1650,6 +1763,7 @@ private impl HtmlLayout
     mtd layoutInline(box: u32, contentX, contentY, contentWidth: f32)->f32
     {
         .boxes[box].lines.clear()
+        .mergeContinuations(box)
 
         let styleIndex = .boxes[box].style
         let blockStyle = &.styles[styleIndex]
@@ -1669,10 +1783,13 @@ private impl HtmlLayout
         // indent itself, so the break test needs no separate limit.
         var pen = band.left + indent
 
-        let count = .boxes[box].items.count
-        for index in count
+        // Splitting an overlong run inserts its tail after the current item, so the loop reads
+        // the count as it goes.
+        var index = 0'u64
+        while index < .boxes[box].items.count
         {
-            .boxes[box].items[index].visible = false
+            .boxes[box].items[index].visible       = false
+            .boxes[box].items[index].hyphenAtBreak = false
             let kind = .boxes[box].items[index].kind
             if kind == .Break
             {
@@ -1680,6 +1797,7 @@ private impl HtmlLayout
                 lineStart = index + 1
                 band      = .lineBand(contentX, contentWidth, y)
                 pen       = band.left
+                index     += 1
                 continue
             }
 
@@ -1692,7 +1810,7 @@ private impl HtmlLayout
                 .boxes[box].items[index].width = .boxes[child].rect.width
             }
 
-            let width      = .boxes[box].items[index].width
+            var width      = .boxes[box].items[index].width
             let itemStyle  = &.styles[.boxes[box].items[index].style]
             let breakable  = itemStyle.whiteSpace != .NoWrap and itemStyle.whiteSpace != .Pre
             let atLineHead = index == lineStart
@@ -1703,11 +1821,24 @@ private impl HtmlLayout
             if kind == .Space and atLineHead and !keepsHeadSpace
             {
                 lineStart = index + 1
+                index     += 1
                 continue
+            }
+
+            // `break-all` fills the line to its edge: the run splits at the last character that
+            // fits instead of wrapping whole.
+            if kind == .Text and breakable and !atLineHead and itemStyle.wordBreak == .BreakAll and pen + width > band.right + 0.5
+            {
+                if .splitInlineItem(box, index, band.right + 0.5 - pen) do
+                    width = .boxes[box].items[index].width
             }
 
             if breakable and kind != .Space and !atLineHead and pen + width > band.right + 0.5
             {
+                // A break taken at a soft hyphen is where its hyphen becomes visible.
+                if index > lineStart and .boxes[box].items[index - 1].kind == .Text and .boxes[box].items[index - 1].softHyphen do
+                    .boxes[box].items[index - 1].hyphenAtBreak = true
+
                 y         += .finishLine(box, lineStart, index, y, band.left, band.right - band.left)
                 lineStart = index
                 band      = .lineBand(contentX, contentWidth, y)
@@ -1729,14 +1860,108 @@ private impl HtmlLayout
                 }
             }
 
+            // An unbreakable head wider than the whole line splits at a character boundary when
+            // the document allows breaking within words; the tail restarts the fitting on the
+            // next line.
+            if kind == .Text and breakable and index == lineStart and pen + width > band.right + 0.5 and (itemStyle.overflowWrap or itemStyle.wordBreak == .BreakAll)
+            {
+                if .splitInlineItem(box, index, band.right + 0.5 - pen) do
+                    width = .boxes[box].items[index].width
+            }
+
             .boxes[box].items[index].x       = pen
             .boxes[box].items[index].visible = kind != .OpenInline and kind != .CloseInline
-            pen += width
+            pen   += width
+            index += 1
         }
 
-        if .hasLineContent(box, lineStart, count) do
-            y += .finishLine(box, lineStart, count, y, band.left, band.right - band.left)
+        if .hasLineContent(box, lineStart, .boxes[box].items.count) do
+            y += .finishLine(box, lineStart, .boxes[box].items.count, y, band.left, band.right - band.left)
         return Math.max(y - contentY, 0)
+    }
+
+    // Re-joins the fragments a previous, narrower layout split, so every layout of this box
+    // starts from the items the build produced.
+    mtd mergeContinuations(box: u32)
+    {
+        var hasSplit: bool
+        for item in .boxes[box].items where item.continuation
+        {
+            hasSplit = true
+            break
+        }
+
+        if !hasSplit do
+            return
+
+        var write = 0'u64
+        for read in .boxes[box].items.count
+        {
+            if .boxes[box].items[read].continuation and write > 0
+            {
+                let head = &.boxes[box].items[write - 1]
+                if head.kind == .Text and head.node == .boxes[box].items[read].node and head.style == .boxes[box].items[read].style
+                {
+                    head.text       += .boxes[box].items[read].text
+                    head.sourceEnd  = .boxes[box].items[read].sourceEnd
+                    head.softHyphen = .boxes[box].items[read].softHyphen
+                    head.width      = .measure(head.style, head.text.toString())
+                    continue
+                }
+            }
+
+            if write != read do
+                .boxes[box].items[write] = .boxes[box].items[read]
+            write += 1
+        }
+
+        .boxes[box].items.resize(write)
+    }
+
+    // Splits one text run so its head fits `room`, inserting the tail right after it as a
+    // continuation. Returns false when not even one character fits, where wrapping the whole
+    // run is the better answer.
+    mtd splitInlineItem(box: u32, index: u64, room: f32)->bool
+    {
+        if room <= 0 do
+            return false
+
+        let source: String = .boxes[box].items[index].text
+        let styleIndex     = .boxes[box].items[index].style
+        let text           = source.toString()
+        if @countof(text) < 2 do
+            return false
+
+        // The longest prefix that fits, keeping at least one character on each side.
+        var fit  = 0'u64
+        var scan = 0'u64
+        while scan < @countof(text)
+        {
+            let {?, eat} = Utf8.decodeRune(text[scan to])
+            let next     = scan + eat
+            if next >= @countof(text) do
+                break
+            if .measure(styleIndex, text[0 until next]) > room do
+                break
+            fit  = next
+            scan = next
+        }
+
+        if !fit do
+            return false
+
+        var tail: HtmlInlineItem = .boxes[box].items[index]
+        tail.text         = String.from(text[fit to])
+        tail.width        = .measure(styleIndex, tail.text.toString())
+        tail.sourceStart  = tail.sourceStart + fit
+        tail.continuation = true
+
+        .boxes[box].items[index].text       = String.from(text[0 until fit])
+        .boxes[box].items[index].width      = .measure(styleIndex, text[0 until fit])
+        .boxes[box].items[index].sourceEnd  = .boxes[box].items[index].sourceStart + fit
+        .boxes[box].items[index].softHyphen = false
+        .boxes[box].items.insertAt(index + 1, tail)
+        return true
     }
 }
 

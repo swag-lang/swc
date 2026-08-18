@@ -51,9 +51,8 @@ public enum HtmlPseudoClass
     Target
     Checked
     Disabled
-    NthOdd
-    NthEven
-    NthIndex
+    Nth
+    NthOfType
     Never
 }
 
@@ -79,8 +78,11 @@ public struct HtmlSelectorPart
     attributes:    Array'HtmlAttributeSelector
     pseudo = HtmlPseudoClass.None
     pseudoElement: HtmlPseudoElement
-    nthIndex:      u32
-    rejectFirst:   u32
+
+    // The `an+b` form of a structural pseudo-class, matching positions `a*k + b` for `k >= 0`.
+    nthA:        s32
+    nthB:        s32
+    rejectFirst: u32
     rejectCount:   u32
     acceptFirst:   u32
     acceptCount:   u32
@@ -335,7 +337,7 @@ impl HtmlStyleSheet
         if pseudo.has(.Empty) and document.constNode(element).children.count do
             return false
 
-        let structural = HtmlPseudoClass.FirstChild | .LastChild | .OnlyChild | .FirstOfType | .LastOfType | .NthOdd | .NthEven | .NthIndex
+        let structural = HtmlPseudoClass.FirstChild | .LastChild | .OnlyChild | .FirstOfType | .LastOfType | .Nth | .NthOfType
         if (pseudo & structural) == .None do
             return true
 
@@ -346,23 +348,34 @@ impl HtmlStyleSheet
             return false
         if pseudo.has(.OnlyChild) and position.count != 1 do
             return false
-        if pseudo.has(.NthOdd) and !(position.index & 1) do
-            return false
-        if pseudo.has(.NthEven) and (position.index & 1) do
-            return false
-        if pseudo.has(.NthIndex) and position.index != part.nthIndex do
+        if pseudo.has(.Nth) and !HtmlStyleSheet.matchesNthForm(part.nthA, part.nthB, position.index) do
             return false
 
-        if pseudo.has(.FirstOfType) or pseudo.has(.LastOfType)
+        if pseudo.has(.FirstOfType) or pseudo.has(.LastOfType) or pseudo.has(.NthOfType)
         {
             let ofType = .typePosition(element, document)
             if pseudo.has(.FirstOfType) and ofType.index != 1 do
                 return false
             if pseudo.has(.LastOfType) and ofType.index != ofType.count do
                 return false
+            if pseudo.has(.NthOfType) and !HtmlStyleSheet.matchesNthForm(part.nthA, part.nthB, ofType.index) do
+                return false
         }
 
         return true
+    }
+
+    // Reports whether a position satisfies an `a*k + b` form for some non-negative integer `k`.
+    private func matchesNthForm(a, b: s32, index: u32)->bool
+    {
+        let position = cast(s32) index
+        if a == 0 do
+            return position == b
+
+        let delta = position - b
+        if a > 0 do
+            return delta >= 0 and delta % a == 0
+        return delta <= 0 and delta % a == 0
     }
 
     private mtd const typePosition(element: u32, document: const *HtmlDocument)->{ index: u32, count: u32 }
@@ -373,8 +386,15 @@ impl HtmlStyleSheet
         if parent == HtmlNoNode do
             return {1, 1}
 
-        for value in document.constNode(parent).children where document.constNode(value).kind == .Element and document.constNode(value).tag == node.tag
+        // Unknown elements share one interned tag, so they only count as the same type when
+        // their names agree too.
+        for value in document.constNode(parent).children
         {
+            let sibling = document.constNode(value)
+            if sibling.kind != .Element or sibling.tag != node.tag do
+                continue
+            if node.tag == .Unknown and sibling.name != node.name do
+                continue
             result.count += 1
             if value == element do
                 result.index = result.count
@@ -1078,8 +1098,11 @@ impl HtmlStyleSheet
             part.acceptFirst = first
             part.acceptCount = cast(u32) .subParts.count - first
 
-        case "nth-child", "nth-of-type":
-            HtmlStyleSheet.applyNth(part, argument.toString())
+        case "nth-child":
+            HtmlStyleSheet.applyNth(part, argument.toString(), ofType: false)
+
+        case "nth-of-type":
+            HtmlStyleSheet.applyNth(part, argument.toString(), ofType: true)
 
         // A condition the engine cannot decide is refused rather than granted: applying a state
         // rule to every element is a worse answer than applying it to none. Everything left
@@ -1114,29 +1137,78 @@ impl HtmlStyleSheet
         return added
     }
 
-    private func applyNth(part: *HtmlSelectorPart, argument: string)
+    // Parses the full `an+b` grammar: `odd`, `even`, a bare index, `3n`, `2n+1`, `-n+3`, with or
+    // without spaces around the sign. A form that does not parse matches nothing, which is what
+    // an invalid selector argument means.
+    private func applyNth(part: *HtmlSelectorPart, argument: string, ofType: bool)
     {
-        let text = String.from(Latin1.trim(argument)).toLower()
-        switch text.toString()
-        {
-        case "odd", "2n+1", "2n-1":
-            part.pseudo.add(.NthOdd)
-            return
+        var compact: String
+        for character in Latin1.trim(argument) where !Latin1.isSpace(character) do
+            compact.append(Latin1.toLower(character))
 
-        case "even", "2n", "2n+0":
-            part.pseudo.add(.NthEven)
+        var a, b:    s32
+        var matched: bool
+        switch compact.toString()
+        {
+        case "odd":
+            a       = 2
+            b       = 1
+            matched = true
+
+        case "even":
+            a       = 2
+            matched = true
+
+        default:
+            let text = compact.toString()
+            let n    = Utf8.indexOf(text, 'n'rune)
+            if n == Swag.U64.Max
+            {
+                let number = htmlParseNumber(text)
+                if number.eat == @countof(text)
+                {
+                    b       = cast(s32) number.value
+                    matched = true
+                }
+            }
+            else
+            {
+                let aPart = text[0 until n]
+                matched = true
+                if !@countof(aPart) or aPart == "+" do
+                    a = 1
+                elif aPart == "-" do
+                    a = -1
+                else
+                {
+                    let number = htmlParseNumber(aPart)
+                    if number.eat == @countof(aPart) do
+                        a = cast(s32) number.value
+                    else do
+                        matched = false
+                }
+
+                let bPart = text[n + 1 to]
+                if @countof(bPart) and matched
+                {
+                    let number = htmlParseNumber(bPart)
+                    if number.eat == @countof(bPart) do
+                        b = cast(s32) number.value
+                    else do
+                        matched = false
+                }
+            }
+        }
+
+        if !matched
+        {
+            part.pseudo.add(.Never)
             return
         }
 
-        let number = htmlParseNumber(text.toString())
-        if number.eat == text.length and number.value >= 1
-        {
-            part.pseudo.add(.NthIndex)
-            part.nthIndex = cast(u32) number.value
-            return
-        }
-
-        part.pseudo.add(.Never)
+        part.nthA = a
+        part.nthB = b
+        part.pseudo.add(ofType ? HtmlPseudoClass.NthOfType : HtmlPseudoClass.Nth)
     }
 }
 

@@ -371,3 +371,36 @@ Entries are sorted by identifier, ascending; position carries no priority.
   content arrives outside them, route head content into a synthesized `head` — so a fragment and
   a full document build the same tree; the `closeImplied` `.Head -> .Body` case already expects
   those elements to exist.
+
+### F-161 — The HTML box build allocates one heap String per word of the document
+
+- Area: bin/std
+- Found while: the HTML engine performance pass (2026-08-18), profiling where a large page's
+  load time goes after the measurement cache was made to survive streaming rebuilds.
+- Observation: `HtmlLayout.appendText` routes every fragment through `HtmlLayout.transform`,
+  which returns `String.from(text)` even for the `None` transform, so each word of the document
+  costs one heap allocation and one copy at build time — and the streaming loader rebuilds the
+  box tree at doubling intervals, repeating the allocations. `HtmlInlineItem.text` cannot be a
+  borrowed slice today because `HtmlDocument.appendText` grows an existing text node's `String`
+  when a chunk boundary splits a run, which can reallocate the buffer between two rebuilds.
+- Evidence: code reading of `layout.swg` (`appendText`, `transform`) and `document.swg`
+  (`appendText`); a 1 MB page holds on the order of 150k words, so a full load allocates
+  roughly twice that many transient Strings.
+- Next step: give the build a per-rebuild text arena (one growing buffer, items keep offsets),
+  or intern untransformed fragments against the node's text with a copy taken only when the
+  parser later extends that node; measure the load of `std.pixel.html` before and after.
+
+### F-162 — A streaming rebuild re-parses every stylesheet from scratch
+
+- Area: bin/std
+- Found while: the same HTML engine performance pass.
+- Observation: `HtmlView.rebuild` calls `collectStyleSheets`, which clears the sheet and the
+  value pool and re-walks the whole document re-parsing every `<style>` block and every linked
+  stylesheet text. The streaming loader rebuilds at doubling intervals, so a document whose CSS
+  arrives early still pays its full CSS parse about `log2(size / 192KB)` times, and a theme
+  change pays it again although nothing in the source changed.
+- Evidence: code reading of `view.swg` (`rebuild`, `collectStyleSheets`) and `stylesheet.swg`
+  (`parse` clears nothing incrementally; rules, buckets and media are rebuilt whole).
+- Next step: cache parsed sheets keyed by the style node's text identity (offset and length are
+  stable once a `<style>` element closed), append only sheets not seen yet, and re-evaluate
+  media queries instead of re-parsing on a theme change.

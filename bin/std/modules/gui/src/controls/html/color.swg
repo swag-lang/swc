@@ -208,6 +208,133 @@ private func htmlColorFromHsl(hue, saturation, lightness, alpha: f32)->Color
     return result
 }
 
+// Reads a hue component, converting the CSS angle units to degrees. A bare number is degrees.
+private func htmlColorHue(text: string)->f32
+{
+    let trimmed = Latin1.trim(text)
+    let number  = htmlParseNumber(trimmed)
+    if !number.eat do
+        return 0
+
+    switch Latin1.trim(trimmed[number.eat to])
+    {
+    case "turn": return number.value * 360
+    case "rad":  return number.value * 180 / Math.ConstF32.Pi
+    case "grad": return number.value * 0.9
+    }
+
+    return number.value
+}
+
+// Encodes one linear-light component to the sRGB transfer curve, clamped into gamut.
+private func htmlLinearToSrgb(value: f32)->u8
+{
+    let linear  = Math.clamp(value, 0, 1)
+    let encoded = linear <= 0.0031308 ? linear * 12.92 : 1.055 * Math.pow(linear, 1.0 / 2.4) - 0.055
+    return cast(u8) Math.round(Math.clamp(encoded, 0, 1) * 255)
+}
+
+private func htmlColorFromLinearRgb(red, green, blue, alpha: f32)->Color
+{
+    return Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), htmlLinearToSrgb(red), htmlLinearToSrgb(green), htmlLinearToSrgb(blue))
+}
+
+// Converts OKLab coordinates to sRGB, out-of-gamut components clamping to the gamut edge.
+private func htmlColorFromOklab(lightness, aAxis, bAxis, alpha: f32)->Color
+{
+    let l = lightness + 0.3963377774 * aAxis + 0.2158037573 * bAxis
+    let m = lightness - 0.1055613458 * aAxis - 0.0638541728 * bAxis
+    let s = lightness - 0.0894841775 * aAxis - 1.2914855480 * bAxis
+
+    let l3 = l * l * l
+    let m3 = m * m * m
+    let s3 = s * s * s
+
+    let red   = 4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3
+    let green = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3
+    let blue  = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3
+    return htmlColorFromLinearRgb(red, green, blue, alpha)
+}
+
+// Converts CIE Lab coordinates, whose CSS white point is D50, to sRGB.
+private func htmlColorFromLab(lightness, aAxis, bAxis, alpha: f32)->Color
+{
+    const Epsilon = 216.0 / 24389.0
+    const Kappa   = 24389.0 / 27.0
+
+    let fy = (lightness + 16) / 116
+    let fx = fy + aAxis / 500
+    let fz = fy - bAxis / 200
+
+    let fx3 = fx * fx * fx
+    let fz3 = fz * fz * fz
+    let xr  = fx3 > Epsilon ? fx3 : (116 * fx - 16) / Kappa
+    let yr  = lightness > Kappa * Epsilon ? Math.pow((lightness + 16) / 116, 3) : lightness / Kappa
+    let zr  = fz3 > Epsilon ? fz3 : (116 * fz - 16) / Kappa
+
+    // D50 reference white, then the D50-adapted XYZ-to-sRGB matrix.
+    let x = xr * 0.96422
+    let y = yr
+    let z = zr * 0.82521
+
+    let red   = 3.1338561 * x - 1.6168667 * y - 0.4906146 * z
+    let green = -0.9787684 * x + 1.9161415 * y + 0.0334540 * z
+    let blue  = 0.0719453 * x - 0.2289914 * y + 1.4052427 * z
+    return htmlColorFromLinearRgb(red, green, blue, alpha)
+}
+
+// Converts `hwb()`, which tints and shades the pure hue with whiteness and blackness.
+private func htmlColorFromHwb(hue, whiteness, blackness, alpha: f32)->Color
+{
+    var white = Math.clamp(whiteness / 100, 0, 1)
+    var black = Math.clamp(blackness / 100, 0, 1)
+    if white + black >= 1
+    {
+        let gray = cast(u8) Math.round(white / (white + black) * 255)
+        return Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), gray, gray, gray)
+    }
+
+    let pure  = htmlColorFromHsl(hue, 100, 50, 1)
+    let scale = 1 - white - black
+    let red   = cast(u8) Math.round((cast(f32) pure.r / 255 * scale + white) * 255)
+    let green = cast(u8) Math.round((cast(f32) pure.g / 255 * scale + white) * 255)
+    let blue  = cast(u8) Math.round((cast(f32) pure.b / 255 * scale + white) * 255)
+    return Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), red, green, blue)
+}
+
+// Converts the `color()` function's supported spaces. Display-P3 goes through its linear
+// matrix to sRGB, so a P3 color keeps its hue and clamps only what the narrower gamut loses.
+private func htmlColorFromColorSpace(space: string, c1, c2, c3, alpha: f32)->{ color: Color, matched: bool }
+{
+    var result: retval
+    result.matched = true
+    switch space
+    {
+    case "srgb":
+        result.color = Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), cast(u8) Math.round(Math.clamp(c1, 0, 1) * 255), cast(u8) Math.round(Math.clamp(c2, 0, 1) * 255), cast(u8) Math.round(Math.clamp(c3, 0, 1) * 255))
+
+    case "srgb-linear":
+        result.color = htmlColorFromLinearRgb(c1, c2, c3, alpha)
+
+    case "display-p3":
+        let r = Math.clamp(c1, 0, 1)
+        let g = Math.clamp(c2, 0, 1)
+        let b = Math.clamp(c3, 0, 1)
+        let lr = r <= 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4)
+        let lg = g <= 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4)
+        let lb = b <= 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4)
+        let red   = 1.2249401763 * lr - 0.2249401763 * lg
+        let green = -0.0420569547 * lr + 1.0420569547 * lg
+        let blue  = -0.0196375546 * lr - 0.0786360456 * lg + 1.0982735901 * lb
+        result.color = htmlColorFromLinearRgb(red, green, blue, alpha)
+
+    default:
+        result.matched = false
+    }
+
+    return result
+}
+
 private func htmlHexDigit(character: u8)->{ value: u32, matched: bool }
 {
     var result: retval
@@ -415,13 +542,91 @@ func htmlParseColor(text: string)->HtmlColorValue
     let hsl = htmlColorFunctionParts(lower.toString(), "hsl", "hsla")
     if hsl.matched and hsl.parts.count >= 3
     {
-        let h = htmlColorComponent(hsl.parts[0].toString(), 360)
+        let h = htmlColorHue(hsl.parts[0].toString())
         let s = htmlColorComponent(hsl.parts[1].toString(), 100)
         let l = htmlColorComponent(hsl.parts[2].toString(), 100)
         let a = hsl.parts.count >= 4 ? htmlColorAlpha(hsl.parts[3].toString()) : 1.0
         result.color   = htmlColorFromHsl(h, s, l, a)
         result.matched = true
         return result
+    }
+
+    let hwb = htmlColorFunctionParts(lower.toString(), "hwb", "hwb")
+    if hwb.matched and hwb.parts.count >= 3
+    {
+        let h = htmlColorHue(hwb.parts[0].toString())
+        let w = htmlColorComponent(hwb.parts[1].toString(), 100)
+        let b = htmlColorComponent(hwb.parts[2].toString(), 100)
+        let a = hwb.parts.count >= 4 ? htmlColorAlpha(hwb.parts[3].toString()) : 1.0
+        result.color   = htmlColorFromHwb(h, w, b, a)
+        result.matched = true
+        return result
+    }
+
+    // The OK family: a percentage lightness maps to 0..1, a percentage chroma or axis to the
+    // reference ranges the specification gives them.
+    let oklch = htmlColorFunctionParts(lower.toString(), "oklch", "oklch")
+    if oklch.matched and oklch.parts.count >= 3
+    {
+        let l = htmlColorComponent(oklch.parts[0].toString(), 1)
+        let c = htmlColorComponent(oklch.parts[1].toString(), 0.4)
+        let h = htmlColorHue(oklch.parts[2].toString()) * Math.ConstF32.Pi / 180
+        let a = oklch.parts.count >= 4 ? htmlColorAlpha(oklch.parts[3].toString()) : 1.0
+        result.color   = htmlColorFromOklab(l, c * Math.cos(h), c * Math.sin(h), a)
+        result.matched = true
+        return result
+    }
+
+    let oklab = htmlColorFunctionParts(lower.toString(), "oklab", "oklab")
+    if oklab.matched and oklab.parts.count >= 3
+    {
+        let l = htmlColorComponent(oklab.parts[0].toString(), 1)
+        let aAxis = htmlColorComponent(oklab.parts[1].toString(), 0.4)
+        let bAxis = htmlColorComponent(oklab.parts[2].toString(), 0.4)
+        let a = oklab.parts.count >= 4 ? htmlColorAlpha(oklab.parts[3].toString()) : 1.0
+        result.color   = htmlColorFromOklab(l, aAxis, bAxis, a)
+        result.matched = true
+        return result
+    }
+
+    let lch = htmlColorFunctionParts(lower.toString(), "lch", "lch")
+    if lch.matched and lch.parts.count >= 3
+    {
+        let l = htmlColorComponent(lch.parts[0].toString(), 100)
+        let c = htmlColorComponent(lch.parts[1].toString(), 150)
+        let h = htmlColorHue(lch.parts[2].toString()) * Math.ConstF32.Pi / 180
+        let a = lch.parts.count >= 4 ? htmlColorAlpha(lch.parts[3].toString()) : 1.0
+        result.color   = htmlColorFromLab(l, c * Math.cos(h), c * Math.sin(h), a)
+        result.matched = true
+        return result
+    }
+
+    let lab = htmlColorFunctionParts(lower.toString(), "lab", "lab")
+    if lab.matched and lab.parts.count >= 3
+    {
+        let l = htmlColorComponent(lab.parts[0].toString(), 100)
+        let aAxis = htmlColorComponent(lab.parts[1].toString(), 125)
+        let bAxis = htmlColorComponent(lab.parts[2].toString(), 125)
+        let a = lab.parts.count >= 4 ? htmlColorAlpha(lab.parts[3].toString()) : 1.0
+        result.color   = htmlColorFromLab(l, aAxis, bAxis, a)
+        result.matched = true
+        return result
+    }
+
+    let spaced = htmlColorFunctionParts(lower.toString(), "color", "color")
+    if spaced.matched and spaced.parts.count >= 4
+    {
+        let c1 = htmlColorComponent(spaced.parts[1].toString(), 1)
+        let c2 = htmlColorComponent(spaced.parts[2].toString(), 1)
+        let c3 = htmlColorComponent(spaced.parts[3].toString(), 1)
+        let a  = spaced.parts.count >= 5 ? htmlColorAlpha(spaced.parts[4].toString()) : 1.0
+        let converted = htmlColorFromColorSpace(spaced.parts[0].toString(), c1, c2, c3, a)
+        if converted.matched
+        {
+            result.color   = converted.color
+            result.matched = true
+            return result
+        }
     }
 
     let named = htmlNamedColor(lower.toString())

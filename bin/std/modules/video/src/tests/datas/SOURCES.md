@@ -75,6 +75,22 @@ frames per second, 8-bit `C420jpeg`, progressive.
 - SHA-256: `ee715b25c78937abe7c9b66a45260fdfbeff3b0951e5e72c224cd768a59a2570`
 - License: same as this repository, as for every generated and edited file above.
 
+`ffmpeg-h264-pyramid.mp4` and `ffmpeg-h264-temporal.mp4` are 96x64, 60-frame clips of moving
+blocks over a scrolling gradient with one noise band, generated for this repository and encoded
+with libx264 through PyAV. They exist because a codec bug that only shows on real encoder output
+needs real encoder output to be caught:
+
+- `ffmpeg-h264-pyramid.mp4`: `preset=medium g=30` — High profile at x264 defaults: CABAC, intra
+  8x8 prediction modes, a reference-B pyramid, weighted P prediction, and multi-partition B
+  macroblocks whose motion feeds the entropy contexts across partitions.
+- `ffmpeg-h264-temporal.mp4`: `profile=main preset=slow g=30` plus
+  `x264-params=direct=temporal:slices=3` — temporal direct modes, several references, and three
+  CABAC slices per picture, so contexts restart and neighbor availability stops at slice
+  boundaries.
+
+The matching `.yuv` files are the same streams decoded by FFmpeg, which is what the tests demand
+byte for byte.
+
 ## Expected values
 
 The colours the tests assert were read by decoding the same file with ffmpeg, not with this

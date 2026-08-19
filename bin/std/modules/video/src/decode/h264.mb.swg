@@ -48,17 +48,18 @@ struct Mb
     class:        u8
     skipped:      bool
     transform8x8: bool
-    directMb:     bool          // B_Direct_16x16.
+    directMb:     bool     // B_Direct_16x16.
     i16Mode:      u32
     chromaMode:   u32
-    intraModes:   [16] u8       // Per raster 4x4 block.
+    intraModes:   [16] u8     // Per raster 4x4 block.
     shape:        u8
     subShape:     [4] u8
-    subType:      [4] u8        // Raw B sub-macroblock type, for its list usage.
+    subType:      [4] u8     // Raw B sub-macroblock type, for its list usage.
     subDirect:    [4] bool
     ctxRef:       [2, 4] s8     // Parsed reference per quadrant, for the CABAC contexts.
     refIdx:       [2, 4] s8     // Per 8x8 quadrant; -1 when the list is unused.
-    decodedMask:  u32           // Raster 4x4 blocks whose motion is final.
+    decodedMask:  u32           // Raster 4x4 blocks already reconstructed, for intra prediction.
+    motionMask:   [2] u32       // Raster 4x4 blocks whose motion is assigned, per reference list.
     jobs:         [16] McJob
     jobCount:     u32
     cbpLuma:      u32
@@ -66,18 +67,18 @@ struct Mb
     qp:           s32
 
     // Residual coefficients in scan order, flattened.
-    lumaDc:       [16] s16
-    lumaAc:       [256] s16        // Sixteen coefficients per raster 4x4 block.
-    luma8:        [256] s16        // Sixty-four coefficients per 8x8 quadrant.
-    chromaDc:     [8] s16          // Four per plane.
-    chromaAc:     [128] s16        // Sixteen per chroma block, scan positions 1..15.
+    lumaDc:   [16] s16
+    lumaAc:   [256] s16     // Sixteen coefficients per raster 4x4 block.
+    luma8:    [256] s16     // Sixty-four coefficients per 8x8 quadrant.
+    chromaDc: [8] s16       // Four per plane.
+    chromaAc: [128] s16     // Sixteen per chroma block, scan positions 1..15.
 
     // Nonzero bookkeeping, CAVLC count semantics.
-    nzLuma:       [16] u8          // Per raster 4x4 block.
-    nzCb:         [4] u8
-    nzCr:         [4] u8
-    dcFlags:      [3] u8
-    codedBlocks:  [16] u8          // Any coefficient in the block, for deblocking.
+    nzLuma:      [16] u8     // Per raster 4x4 block.
+    nzCb:        [4] u8
+    nzCr:        [4] u8
+    dcFlags:     [3] u8
+    codedBlocks: [16] u8     // Any coefficient in the block, for deblocking.
 }
 
 // One neighbor's motion state.
@@ -127,8 +128,11 @@ impl Slice
         let nMbY = y4 >> 2
         if nMbX == mb.mbX and nMbY == mb.mbY
         {
+            // A block of the current macroblock contributes as soon as its motion for this
+            // list is assigned, which is how earlier partitions feed the entropy contexts
+            // and the prediction of later ones.
             let raster = cast(u32) ((y4 & 3) * 4 + (x4 & 3))
-            if (mb.decodedMask & (1'u32 << raster)) == 0 do
+            if (mb.motionMask[list] & (1'u32 << raster)) == 0 do
                 return result
         }
         elif dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId
@@ -197,15 +201,19 @@ impl Slice
         case 1:
             if b.available and !b.intra and cast(s32) b.refIdx == refIdx do
                 return [b.mvX, b.mvY]
+
         case 2:
             if a.available and !a.intra and cast(s32) a.refIdx == refIdx do
                 return [a.mvX, a.mvY]
+
         case 3:
             if a.available and !a.intra and cast(s32) a.refIdx == refIdx do
                 return [a.mvX, a.mvY]
+
         case 4:
             if c.available and !c.intra and cast(s32) c.refIdx == refIdx do
                 return [c.mvX, c.mvY]
+
         default:
             break
         }
@@ -242,36 +250,31 @@ impl Slice
                 let index = cast(u64) ((mb.mbY * 4 + y4 + cast(s32) row) * gw + mb.mbX * 4 + x4 + cast(s32) column)
                 if list == 0
                 {
-                    dec.refIdxL0[index]     = cast(s8) refIdx
-                    dec.mvL0[index * 2]     = mv[0]
-                    dec.mvL0[index * 2 + 1] = mv[1]
+                    dec.refIdxL0[index]      = cast(s8) refIdx
+                    dec.mvL0[index * 2]      = mv[0]
+                    dec.mvL0[index * 2 + 1]  = mv[1]
                     dec.mvdL0[index * 2]     = mvd[0]
                     dec.mvdL0[index * 2 + 1] = mvd[1]
-                    dec.refPocL0[index]     = refIdx >= 0 ? .refs[0, refIdx].poc : NoRefPoc
+                    dec.refPocL0[index]      = refIdx >= 0 ? .refs[0, refIdx].poc : NoRefPoc
                 }
                 else
                 {
-                    dec.refIdxL1[index]     = cast(s8) refIdx
-                    dec.mvL1[index * 2]     = mv[0]
-                    dec.mvL1[index * 2 + 1] = mv[1]
+                    dec.refIdxL1[index]      = cast(s8) refIdx
+                    dec.mvL1[index * 2]      = mv[0]
+                    dec.mvL1[index * 2 + 1]  = mv[1]
                     dec.mvdL1[index * 2]     = mvd[0]
                     dec.mvdL1[index * 2 + 1] = mvd[1]
-                    dec.refPocL1[index]     = refIdx >= 0 ? .refs[1, refIdx].poc : NoRefPoc
+                    dec.refPocL1[index]      = refIdx >= 0 ? .refs[1, refIdx].poc : NoRefPoc
                 }
 
                 dec.directFlags[index] = isDirect ? 1 : 0
             }
         }
 
-        // The decoded mask advances only once both lists are written; list 1 (or list 0 for
-        // P slices) is always the last one assigned.
-        if list == 1 or .header.type == SliceTypeP
+        for row in cast(u64) h4
         {
-            for row in cast(u64) h4
-            {
-                for column in cast(u64) w4 do
-                    mb.decodedMask |= 1'u32 << cast(u32) ((y4 + cast(s32) row) * 4 + x4 + cast(s32) column)
-            }
+            for column in cast(u64) w4 do
+                mb.motionMask[list] |= 1'u32 << cast(u32) ((y4 + cast(s32) row) * 4 + x4 + cast(s32) column)
         }
     }
 
@@ -288,14 +291,14 @@ impl Slice
         job.mv[0, 1] = mv0[1]
         job.mv[1, 0] = mv1[0]
         job.mv[1, 1] = mv1[1]
-        mb.jobCount += 1
+        mb.jobCount  += 1
     }
 
     // Derives the motion of a P-skip macroblock, section 8.4.1.1.
     mtd deriveSkipP(mb: *Mb)
     {
-        let a = .motionAt(mb, 0, mb.mbX * 4 - 1, mb.mbY * 4)
-        let b = .motionAt(mb, 0, mb.mbX * 4, mb.mbY * 4 - 1)
+        let a     = .motionAt(mb, 0, mb.mbX * 4 - 1, mb.mbY * 4)
+        let b     = .motionAt(mb, 0, mb.mbX * 4, mb.mbY * 4 - 1)
         var mv: [2] s16
         let zeroA = a.available and !a.intra and a.refIdx == 0 and a.mvX == 0 and a.mvY == 0
         let zeroB = b.available and !b.intra and b.refIdx == 0 and b.mvX == 0 and b.mvY == 0
@@ -304,6 +307,7 @@ impl Slice
 
         var mvd: [2] s16
         .assignMotion(mb, 0, 0, 0, 4, 4, 0, mv, mvd, false)
+        .assignMotion(mb, 1, 0, 0, 4, 4, -1, mvd, mvd, false)
         var noRef: [2] s8 = [0, -1]
         .addJob(mb, 0, 0, 4, 4, noRef, mv, mvd)
     }
@@ -373,9 +377,9 @@ impl Slice
                 mvL1 = .predictMv(mb, 1, 0, 0, 4, refL1, 0)
         }
 
-        let quadFirst = quad < 0 ? 0 : quad
-        let quadLast  = quad < 0 ? 3 : quad
-        let inference = dec.sps!.direct8x8Inference
+        let quadFirst   = quad < 0 ? 0 : quad
+        let quadLast    = quad < 0 ? 3 : quad
+        let inference   = dec.sps!.direct8x8Inference
         var mvd: [2] s16
         var currentQuad = quadFirst
         while currentQuad <= quadLast
@@ -439,13 +443,13 @@ impl Slice
     // Temporal direct prediction, section 8.4.1.2.3.
     mtd deriveDirectTemporal(mb: *Mb, quad: s32)
     {
-        let dec = .dec!
-        let col = .refs[1, 0].frame!
+        let dec        = .dec!
+        let col        = .refs[1, 0].frame!
         let currentPoc = dec.current!.poc
 
-        let quadFirst = quad < 0 ? 0 : quad
-        let quadLast  = quad < 0 ? 3 : quad
-        let inference = dec.sps!.direct8x8Inference
+        let quadFirst   = quad < 0 ? 0 : quad
+        let quadLast    = quad < 0 ? 3 : quad
+        let inference   = dec.sps!.direct8x8Inference
         var mvd: [2] s16
         var currentQuad = quadFirst
         while currentQuad <= quadLast
@@ -508,8 +512,8 @@ impl Slice
                 }
                 else
                 {
-                    let tb = Math.clamp(currentPoc - poc0, -128, 127)
-                    let tx = (16384 + Math.abs(td / 2)) / td
+                    let tb    = Math.clamp(currentPoc - poc0, -128, 127)
+                    let tx    = (16384 + Math.abs(td / 2)) / td
                     let scale = Math.clamp((tb * tx + 32) >> 6, -1024, 1023)
                     mvL0 = [cast(s16) ((scale * colMvX + 128) >> 8), cast(s16) ((scale * colMvY + 128) >> 8)]
                     mvL1 = [cast(s16) (cast(s32) mvL0[0] - colMvX), cast(s16) (cast(s32) mvL0[1] - colMvY)]
@@ -583,7 +587,7 @@ impl Slice
                 .reconstructMb(&mb)
                 .bookkeepMb(&mb)
                 dec.decodedMbs += 1
-                .mbAddr += 1
+                .mbAddr        += 1
             }
 
             if .isCabac
@@ -607,18 +611,20 @@ impl Slice
     mtd prepareMb(mb: *Mb)
     {
         let dec = .dec!
-        mb.mbX = cast(s32) (.mbAddr % cast(u32) dec.sps!.mbWidth)
-        mb.mbY = cast(s32) (.mbAddr / cast(u32) dec.sps!.mbWidth)
-        mb.class        = MbClassInter
-        mb.skipped      = false
-        mb.transform8x8 = false
-        mb.directMb     = false
-        mb.decodedMask  = 0
-        mb.jobCount     = 0
-        mb.cbpLuma      = 0
-        mb.cbpChroma    = 0
-        mb.chromaMode   = 0
-        mb.i16Mode      = 0
+        mb.mbX           = cast(s32) (.mbAddr % cast(u32) dec.sps!.mbWidth)
+        mb.mbY           = cast(s32) (.mbAddr / cast(u32) dec.sps!.mbWidth)
+        mb.class         = MbClassInter
+        mb.skipped       = false
+        mb.transform8x8  = false
+        mb.directMb      = false
+        mb.decodedMask   = 0
+        mb.motionMask[0] = 0
+        mb.motionMask[1] = 0
+        mb.jobCount      = 0
+        mb.cbpLuma       = 0
+        mb.cbpChroma     = 0
+        mb.chromaMode    = 0
+        mb.i16Mode       = 0
         for &value in mb.nzLuma do
             value[] = 0
         for &value in mb.nzCb do
@@ -635,6 +641,10 @@ impl Slice
             value[] = -1
         for &value in mb.subType do
             value[] = 0
+        for &value in mb.subShape do
+            value[] = 0
+        for &value in mb.subDirect do
+            value[] = false
         for &value in mb.intraModes do
             value[] = cast(u8) IntraDc
         for &value in mb.lumaDc do
@@ -666,14 +676,14 @@ impl Slice
         .reconstructMb(mb)
         .bookkeepMb(mb)
         dec.decodedMbs += 1
-        .mbAddr += 1
+        .mbAddr        += 1
     }
 
     // Parses one full macroblock with CAVLC entropy coding.
     mtd parseMbCavlc(mb: *Mb) fail
     {
-        let dec = .dec!
-        let pps = dec.pps!
+        let dec    = .dec!
+        let pps    = dec.pps!
         var mbType = .bits.ue()
 
         // Fold the slice-type-specific type space onto the intra space.
@@ -687,13 +697,13 @@ impl Slice
             if mbType >= 5
             {
                 isIntra = true
-                mbType -= 5
+                mbType  -= 5
             }
         }
         elif mbType >= 23
         {
             isIntra = true
-            mbType -= 23
+            mbType  -= 23
         }
 
         if isIntra do
@@ -787,9 +797,11 @@ impl Slice
             {
                 for quad in 4's32
                 {
-                    let mode = .parseIntraMode(mb, quad * 5, fromCabac)
+                    // The neighbor derivation anchors on the top-left 4x4 block of the
+                    // quadrant, section 8.3.2.1.
                     let bx   = (quad & 1) * 2
                     let by   = (quad >> 1) * 2
+                    let mode = .parseIntraMode(mb, by * 4 + bx, fromCabac)
                     mb.intraModes[cast(u64) (by * 4 + bx)]           = cast(u8) mode
                     mb.intraModes[cast(u64) (by * 4 + bx + 1)]       = cast(u8) mode
                     mb.intraModes[cast(u64) ((by + 1) * 4 + bx)]     = cast(u8) mode
@@ -834,8 +846,8 @@ impl Slice
         // The prediction is the smaller of the neighbor modes, section 8.3.1.1. A neighbor in
         // an available macroblock that is not Intra_4x4/8x8 contributes DC, but a missing
         // neighbor forces the whole prediction to DC: the -1 it reports wins the minimum.
-        let modeA = .neighborIntraMode(mb, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
-        let modeB = .neighborIntraMode(mb, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
+        let modeA     = .neighborIntraMode(mb, mb.mbX * 4 + bx - 1, mb.mbY * 4 + by)
+        let modeB     = .neighborIntraMode(mb, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
         var predicted = Math.min(modeA, modeB)
         if predicted < 0 do
             predicted = cast(s32) IntraDc
@@ -951,6 +963,7 @@ impl Slice
             .parsePartitions(mb, 2)
 
         default:
+
             // P_8x8 and P_8x8ref0 differ only in reference coding.
             mb.shape = Shape8x8
             for quad in 4'u64
@@ -1025,6 +1038,11 @@ impl Slice
             let geometry = .partGeometry(mb.shape, cast(u32) part)
             let mvd      = .parseMvd(mb, 0, geometry.x4, geometry.y4)
             .applyMotion(mb, 0, cast(u32) part, refs[part], mvd)
+
+            // A P partition never uses list 1; writing that down keeps the deblocking
+            // reference comparison off stale values from an earlier picture.
+            var zero: [2] s16
+            .assignMotion(mb, 1, geometry.x4, geometry.y4, geometry.w4, geometry.h4, -1, zero, zero, false)
         }
     }
 
@@ -1069,8 +1087,8 @@ impl Slice
     // Applies one parsed partition motion: prediction plus difference, then the job.
     mtd applyMotion(mb: *Mb, list: u32, part: u32, refIdx: s32, mvd: [2] s16)
     {
-        let geometry = .partGeometry(mb.shape, part)
-        let predicted = .predictMv(mb, list, geometry.x4, geometry.y4, geometry.w4, refIdx, geometry.hint)
+        let geometry    = .partGeometry(mb.shape, part)
+        let predicted   = .predictMv(mb, list, geometry.x4, geometry.y4, geometry.w4, refIdx, geometry.hint)
         var mv: [2] s16 = [cast(s16) (cast(s32) predicted[0] + cast(s32) mvd[0]), cast(s16) (cast(s32) predicted[1] + cast(s32) mvd[1])]
         .assignMotion(mb, list, geometry.x4, geometry.y4, geometry.w4, geometry.h4, refIdx, mv, mvd, false)
 
@@ -1155,8 +1173,12 @@ impl Slice
             mb.ctxRef[0, quad] = cast(s8) refs[quad]
         }
 
-        for quad in 4's32 do
+        for quad in 4's32
+        {
             .parseSubMvs(mb, 0, quad, refs[quad])
+            var zero: [2] s16
+            .assignMotion(mb, 1, (quad & 1) * 2, (quad >> 1) * 2, 2, 2, -1, zero, zero, false)
+        }
     }
 
     // Parses one 8x8 quadrant's reference index.
@@ -1188,9 +1210,9 @@ impl Slice
     // Parses the vectors of one 8x8 quadrant, sub-block by sub-block.
     mtd parseSubMvs(mb: *Mb, list: u32, quad: s32, refIdx: s32) fail
     {
-        let qx = (quad & 1) * 2
-        let qy = (quad >> 1) * 2
-        let shape = mb.subShape[quad]
+        let qx        = (quad & 1) * 2
+        let qy        = (quad >> 1) * 2
+        let shape     = mb.subShape[quad]
         var partCount = 1's32
         if shape == Sub8x4 or shape == Sub4x8 do
             partCount = 2
@@ -1208,20 +1230,23 @@ impl Slice
             case Sub8x4:
                 h4 = 1
                 y4 += part
+
             case Sub4x8:
                 w4 = 1
                 x4 += part
+
             case Sub4x4:
                 w4 = 1
                 h4 = 1
                 x4 += part & 1
                 y4 += part >> 1
+
             default:
                 break
             }
 
-            let mvd = .parseMvd(mb, list, x4, y4)
-            let predicted = .predictMv(mb, list, x4, y4, w4, refIdx, 0)
+            let mvd         = .parseMvd(mb, list, x4, y4)
+            let predicted   = .predictMv(mb, list, x4, y4, w4, refIdx, 0)
             var mv: [2] s16 = [cast(s16) (cast(s32) predicted[0] + cast(s32) mvd[0]), cast(s16) (cast(s32) predicted[1] + cast(s32) mvd[1])]
             .assignMotion(mb, list, x4, y4, w4, h4, refIdx, mv, mvd, false)
 
@@ -1252,7 +1277,7 @@ impl Slice
     mtd parsePartitionsB(mb: *Mb, mbType: u32) fail
     {
         // Which lists each partition uses: bit 0 list 0, bit 1 list 1.
-        let usage = BListUsage[mbType]
+        let usage     = BListUsage[mbType]
         let partCount = mb.shape == Shape16x16 ? 1'u32 : 2'u32
 
         var refs: [2, 2] s32
@@ -1273,28 +1298,24 @@ impl Slice
             }
         }
 
+        // A partition that does not use a list writes its absence in the same pass, so a later
+        // partition's contexts and prediction see it exactly as decoded order dictates.
         for list in 2'u32
         {
             for part in partCount
             {
-                if refs[list, part] < 0 do
-                    continue
-                let geometry = .partGeometry(mb.shape, part)
-                let mvd      = .parseMvd(mb, list, geometry.x4, geometry.y4)
-                .applyMotion(mb, list, part, refs[list, part], mvd)
-            }
-        }
-
-        // Unused lists still write their absence into the grid.
-        for list in 2'u32
-        {
-            for part in partCount
-            {
-                if refs[list, part] >= 0 do
-                    continue
-                let geometry = .partGeometry(mb.shape, part)
-                var zero: [2] s16
-                .assignMotion(mb, list, geometry.x4, geometry.y4, geometry.w4, geometry.h4, -1, zero, zero, false)
+                if refs[list, part] >= 0
+                {
+                    let geometry = .partGeometry(mb.shape, part)
+                    let mvd      = .parseMvd(mb, list, geometry.x4, geometry.y4)
+                    .applyMotion(mb, list, part, refs[list, part], mvd)
+                }
+                else
+                {
+                    let geometry = .partGeometry(mb.shape, part)
+                    var zero: [2] s16
+                    .assignMotion(mb, list, geometry.x4, geometry.y4, geometry.w4, geometry.h4, -1, zero, zero, false)
+                }
             }
         }
     }
@@ -1314,7 +1335,7 @@ impl Slice
                 let use = (BSubListUsage[sub] >> list) & 1
                 if use != 0
                 {
-                    refs[list, quad] = .parseSubRefIdx(mb, list, quad)
+                    refs[list, quad]                = .parseSubRefIdx(mb, list, quad)
                     mb.ctxRef[list, cast(u64) quad] = cast(s8) refs[list, quad]
                 }
             }
@@ -1325,25 +1346,23 @@ impl Slice
         for quad in 4's32 where mb.subDirect[quad] do
             .deriveDirect(mb, quad)
 
+        // A quadrant that does not use a list writes its absence in the same pass, so a later
+        // quadrant's contexts and prediction see it exactly as decoded order dictates.
         for list in 2'u32
         {
             for quad in 4's32
             {
-                if refs[list, quad] < 0 do
+                if mb.subDirect[quad] do
                     continue
-                .parseSubMvs(mb, list, quad, refs[list, quad])
-            }
-        }
-
-        // Unused lists of coded quadrants write their absence.
-        for list in 2'u32
-        {
-            for quad in 4's32
-            {
-                if mb.subDirect[quad] or refs[list, quad] >= 0 do
-                    continue
-                var zero: [2] s16
-                .assignMotion(mb, list, (quad & 1) * 2, (quad >> 1) * 2, 2, 2, -1, zero, zero, false)
+                if refs[list, quad] >= 0
+                {
+                    .parseSubMvs(mb, list, quad, refs[list, quad])
+                }
+                else
+                {
+                    var zero: [2] s16
+                    .assignMotion(mb, list, (quad & 1) * 2, (quad >> 1) * 2, 2, 2, -1, zero, zero, false)
+                }
             }
         }
     }
@@ -1397,14 +1416,14 @@ impl Slice
             for block in 16's32
             {
                 let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-                dec.refIdxL0[index]     = -1
-                dec.refIdxL1[index]     = -1
-                dec.refPocL0[index]     = NoRefPoc
-                dec.refPocL1[index]     = NoRefPoc
-                dec.mvL0[index * 2]     = 0
-                dec.mvL0[index * 2 + 1] = 0
-                dec.mvL1[index * 2]     = 0
-                dec.mvL1[index * 2 + 1] = 0
+                dec.refIdxL0[index]      = -1
+                dec.refIdxL1[index]      = -1
+                dec.refPocL0[index]      = NoRefPoc
+                dec.refPocL1[index]      = NoRefPoc
+                dec.mvL0[index * 2]      = 0
+                dec.mvL0[index * 2 + 1]  = 0
+                dec.mvL1[index * 2]      = 0
+                dec.mvL1[index * 2 + 1]  = 0
                 dec.mvdL0[index * 2]     = 0
                 dec.mvdL0[index * 2 + 1] = 0
                 dec.mvdL1[index * 2]     = 0
@@ -1420,11 +1439,11 @@ impl Slice
             let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
             if mb.class != MbClassInter
             {
-                frame.colRef[index] = -1
+                frame.colRef[index]        = -1
                 frame.colMv[index * 2]     = 0
                 frame.colMv[index * 2 + 1] = 0
-                frame.colPoc[index]   = 0
-                frame.colShort[index] = 0
+                frame.colPoc[index]        = 0
+                frame.colShort[index]      = 0
                 continue
             }
 
@@ -1455,7 +1474,7 @@ impl Slice
         let isIntra16 = mb.class == MbClassIntra16x16
         if isIntra16
         {
-            let nC = .lumaNc(mb, 0, 0)
+            let nC    = .lumaNc(mb, 0, 0)
             let count = residualCavlc(&.bits, nC, 16, @dataof(mb.lumaDc))
             mb.dcFlags[0] = count > 0 ? 1 : 0
             if count > 0
@@ -1625,20 +1644,20 @@ const BShapes: [23] u8 = [
 // List usage of each B macroblock type: bits 0..1 = partition 0/1 in list 0, bits 4..5 the
 // same in list 1, Table 7-14.
 const BListUsage: [23] u8 = [
-    0x00,       // B_Direct_16x16, derived.
-    0x01,       // B_L0_16x16.
-    0x10,       // B_L1_16x16.
-    0x11,       // B_Bi_16x16.
-    0x03, 0x03, // B_L0_L0_16x8, B_L0_L0_8x16.
-    0x30, 0x30, // B_L1_L1.
-    0x21, 0x21, // B_L0_L1.
-    0x12, 0x12, // B_L1_L0.
-    0x23, 0x23, // B_L0_Bi.
-    0x32, 0x32, // B_L1_Bi.
-    0x13, 0x13, // B_Bi_L0.
-    0x31, 0x31, // B_Bi_L1.
-    0x33, 0x33, // B_Bi_Bi.
-    0x00]       // B_8x8, parsed separately.
+    0x00,           // B_Direct_16x16, derived.
+    0x01,           // B_L0_16x16.
+    0x10,           // B_L1_16x16.
+    0x11,           // B_Bi_16x16.
+    0x03, 0x03,     // B_L0_L0_16x8, B_L0_L0_8x16.
+    0x30, 0x30,     // B_L1_L1.
+    0x21, 0x21,     // B_L0_L1.
+    0x12, 0x12,     // B_L1_L0.
+    0x23, 0x23,     // B_L0_Bi.
+    0x32, 0x32,     // B_L1_Bi.
+    0x13, 0x13,     // B_Bi_L0.
+    0x31, 0x31,     // B_Bi_L1.
+    0x33, 0x33,     // B_Bi_Bi.
+    0x00]           // B_8x8, parsed separately.
 
 // Sub-partition shape of each B sub-macroblock type, Table 7-18.
 const BSubShape: [13] u8 = [
@@ -1649,7 +1668,7 @@ const BSubShape: [13] u8 = [
 
 // List usage of each B sub-macroblock type: bit 0 list 0, bit 1 list 1, Table 7-18.
 const BSubListUsage: [13] u8 = [
-    0,          // B_Direct_8x8, derived.
+    0,     // B_Direct_8x8, derived.
     1, 2, 3,
     1, 1, 2, 2, 3, 3,
     1, 2, 3]

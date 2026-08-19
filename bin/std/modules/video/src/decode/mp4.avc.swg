@@ -25,8 +25,8 @@ struct AvcStream
     syncFlags:    Array'u8             // Whether each sample starts a clean decode.
     pending:      Array'PendingFrame
     payload:      Array'u8
-    nextDecode:   u64                  // Next sample to hand the decoder.
-    nextRank:     u64                  // Display rank the next decode call returns.
+    nextDecode:   u64     // Next sample to hand the decoder.
+    nextRank:     u64     // Display rank the next decode call returns.
     width:        s32
     height:       s32
     cropLeft:     s32
@@ -116,8 +116,31 @@ impl AvcStream
             .releasePending()
             .nextDecode = sync
         }
+        else
+        {
+            // Ranks jumped over will never be requested again; holding their frames would
+            // starve the decoder's frame pool over a long playback.
+            .releasePendingBelow(rank)
+        }
 
         .nextRank = rank
+    }
+
+    // Releases every pending frame whose display rank precedes `rank`.
+    mtd releasePendingBelow(rank: u64)
+    {
+        var index = 0'u64
+        while index < .pending.count
+        {
+            if .pending[index].rank < rank
+            {
+                .decoder.releaseFrame(.pending[index].frame!)
+                .pending.removeAt(index)
+                continue
+            }
+
+            index += 1
+        }
     }
 
     // Decodes until the frame with the current display rank exists, then emits it.

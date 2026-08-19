@@ -2,8 +2,9 @@
 
 The module reads and writes silent video as a stream: a codec registered against `Video.IDecoder`
 and `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
-Three codecs ship — YUV4MPEG2, AVI, and ISO-BMFF with Motion JPEG — and all code every frame on
-its own, so a reader costs one frame of memory whatever the length of the file.
+Four codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, and ISO-BMFF with H.264 — and the
+readers hold one frame of memory whatever the length of the file, plus the reference frames H.264
+prediction needs.
 
 What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
 than in design: what is missing is decoders.
@@ -11,6 +12,18 @@ than in design: what is missing is decoders.
 The picture codec of an AVI stream is the Pixel one, so what Motion JPEG this module reads is
 decided there — [T-426](todo.pixel.md#t-426--jpeg-chroma-sampling-is-limited-to-one-block-per-unit)
 is the layout it does not read yet.
+
+### T-504 — H.264 decoding runs below real time at high resolutions
+
+- Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams, but every
+  stage is scalar Swag — interpolation, IDCT, deblocking, CABAC renormalization, and the YUV to
+  RGB conversion. A 640x360 stream decodes at roughly 40 frames per second in a fast-debug build;
+  1080p lands well below real time. The sFileScope player now bounds its catch-up work per tick,
+  so a slow stream plays smoothly below real time instead of freezing, but it should not have to.
+- Complete when: a 1080p25 High-profile stream decodes in real time in a release build. The
+  levers, in the order the profile will likely rank them: SIMD luma/chroma interpolation and
+  IDCT following the `Pixel.RenderCpu` fast-path precedent, a byte-run significance fast path in
+  the CABAC engine, and row-batched deblocking.
 
 ### T-424 — A video stream carries no sound
 

@@ -40,7 +40,7 @@ func h264ReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32)->I
 func h264AssertFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32)
 {
     @assert(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
-    let expected = h264ReferenceFrame(reference, index, width, height)
+    let expected   = h264ReferenceFrame(reference, index, width, height)
     var mismatches = 0'u64
     for position in frame.pixels.count where frame.pixels.buffer![position] != expected.pixels.buffer![position] do
         mismatches += 1
@@ -84,11 +84,46 @@ func h264AssertStream(name: string, width, height: s32, frameCount: u64)
     h264AssertStream("ffmpeg-h264-crop", 60, 34, 8)
 }
 
+// High profile at x264 defaults: intra 8x8 prediction modes, a reference-B pyramid, and
+// multi-partition B macroblocks whose motion feeds the entropy contexts across partitions.
+#test
+{
+    h264AssertStream("ffmpeg-h264-pyramid", 96, 64, 60)
+}
+
+// Main profile with temporal direct modes, several references, and three CABAC slices per
+// picture, so the contexts restart and neighbor availability stops at slice boundaries.
+#test
+{
+    h264AssertStream("ffmpeg-h264-temporal", 96, 64, 60)
+}
+
+// A player that falls behind skips display ranks. Frames decoded for skipped ranks must be
+// released, or a long playback starves the decoder's frame pool.
+#test
+{
+    var source             = expect Source.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var decoder:  Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+
+    var frame: Image
+    var index = 0'u64
+    while index < 60
+    {
+        expect idecoder.seekFrame(&source, index)
+        expect idecoder.decodeFrame(&source, &frame)
+        index += 3
+    }
+
+    @assert(decoder.avc.pending.count <= 4)
+}
+
 // Random access decodes through the nearest sync sample and still matches, both across and
 // inside groups of pictures.
 #test
 {
-    var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-high.mp4"))
+    var reader    = expect Reader.open(videoFixturePath("ffmpeg-h264-high.mp4"))
     let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-high.yuv").toString())
     @assert(reader.frameRate() == expect FrameRate.create(12_800, 512))
 

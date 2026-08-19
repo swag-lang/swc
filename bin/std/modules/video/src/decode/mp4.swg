@@ -1,4 +1,4 @@
-#global namespace Mp4
+﻿#global namespace Mp4
 
 using Core, Core.Errors, Pixel
 
@@ -24,10 +24,18 @@ const VideoHandlerId      = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
 const ElementaryStreamId  = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
 const Mpeg4VisualId       = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
 
+const SyncSampleId        = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
+const CompositionId       = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
+const AvcConfigId         = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
+
 const JpegCodecIds: [3] u32 = [
     fourCc('j'u32, 'p'u32, 'e'u32, 'g'u32),
     fourCc('m'u32, 'j'u32, 'p'u32, 'g'u32),
     fourCc('m'u32, 'j'u32, 'p'u32, 'a'u32)]
+
+const AvcCodecIds: [2] u32 = [
+    fourCc('a'u32, 'v'u32, 'c'u32, '1'u32),
+    fourCc('a'u32, 'v'u32, 'c'u32, '3'u32)]
 
 const JpegName       = ".jpg"
 const JpegObjectType = 0x6C'u8
@@ -51,7 +59,7 @@ private struct Descriptor
 }
 
 // One compressed frame in the media-data boxes.
-private struct FrameEntry
+struct FrameEntry
 {
     offset: u64
     size:   u64
@@ -73,7 +81,7 @@ private struct ChunkEntry
 }
 
 // Tables describing one media track.
-private struct Track
+struct Track
 {
     codec:          u32
     width:          s32
@@ -84,8 +92,19 @@ private struct Track
     chunks:         Array'ChunkEntry
     sizes:          Array'u32
     offsets:        Array'u64
+    syncSamples:    Array'u32          // Zero-based sync sample indices; empty means every sample.
+    ctsEntries:     Array'CtsEntry     // Composition offset runs, empty for decode-order streams.
+    avcConfig:      Array'u8           // The `avcC` decoder configuration of an AVC track.
     hasDescription: bool
     isJpeg:         bool
+    isAvc:          bool
+}
+
+// One run of samples sharing a composition-time offset.
+private struct CtsEntry
+{
+    sampleCount: u32
+    offset:      s32
 }
 
 // What walking the movie metadata found.
@@ -246,7 +265,7 @@ private impl Layout
                 if candidate.handler == VideoHandlerId
                 {
                     .hasVideo = true
-                    if candidate.hasDescription and candidate.isJpeg and !.track.hasDescription do
+                    if candidate.hasDescription and (candidate.isJpeg or candidate.isAvc) and !.track.hasDescription do
                         .track = #move candidate
                     elif !.unsupportedCodec do
                         .unsupportedCodec = candidate.codec
@@ -258,7 +277,7 @@ private impl Layout
     }
 }
 
-private impl Track
+impl Track
 {
     // Reads the media hierarchy of one track.
     mtd parse(source: *Source, end: u64) fail
@@ -356,6 +375,8 @@ private impl Track
             case SampleSizeId:        .parseSampleSizes(source, box.end)
             case ChunkOffsetId:       .parseChunkOffsets(source, box.end, false)
             case ChunkOffset64Id:     .parseChunkOffsets(source, box.end, true)
+            case SyncSampleId:        .parseSyncSamples(source, box.end)
+            case CompositionId:       .parseCompositionOffsets(source, box.end)
             }
 
             source.seek(box.end)
@@ -385,6 +406,71 @@ private impl Track
         .isJpeg = Slice.contains(JpegCodecIds, .codec)
         if .codec == Mpeg4VisualId do
             .isJpeg = .parseMpeg4VisualDescription(source, entry)
+        if Slice.contains(AvcCodecIds, .codec) do
+            .isAvc = .parseAvcDescription(source, entry)
+    }
+
+    // Locates and keeps the `avcC` decoder configuration of an AVC sample entry.
+    mtd parseAvcDescription(source: *Source, entry: Box)->bool fail
+    {
+        const VisualSampleEntrySize = 78'u64
+        var position = entry.data + VisualSampleEntrySize
+        while position + BoxHeaderSize <= entry.end
+        {
+            source.seek(position)
+            let child = readBox(source, entry.end)
+            if child.kind == AvcConfigId
+            {
+                let size = child.end - child.data
+                .avcConfig.resize(size)
+                source.readExact(.avcConfig.toSlice())
+                return true
+            }
+
+            position = child.end
+        }
+
+        return false
+    }
+
+    // Reads the sync sample table, converting indices to zero-based sample numbers.
+    mtd parseSyncSamples(source: *Source, end: u64) fail
+    {
+        if 8 > end - source.position() do
+            fail InvalidFormatError{"MP4 sync-sample box is truncated"}
+        discard readFullBox(source)
+        let count = readU32(source)
+        if cast(u64) count * 4 > end - source.position() do
+            fail InvalidFormatError{"MP4 sync-sample table is truncated"}
+        .syncSamples.reserve(count)
+        for count
+        {
+            let number = readU32(source)
+            if !number do
+                fail InvalidFormatError{"MP4 sync-sample table holds a zero sample number"}
+            .syncSamples.add(number - 1)
+        }
+    }
+
+    // Reads the composition offset table.
+    mtd parseCompositionOffsets(source: *Source, end: u64) fail
+    {
+        if 8 > end - source.position() do
+            fail InvalidFormatError{"MP4 composition-offset box is truncated"}
+        let version = readFullBox(source)
+        let count   = readU32(source)
+        if cast(u64) count * 8 > end - source.position() do
+            fail InvalidFormatError{"MP4 composition-offset table is truncated"}
+        if version > 1 do
+            fail UnsupportedFormatError{"video decoder does not support this MP4 composition-offset version"}
+        .ctsEntries.reserve(count)
+        for count
+        {
+            let sampleCount = readU32(source)
+            let rawOffset   = readU32(source)
+            let offset      = version == 0 ? cast(s32) Math.min(rawOffset, cast(u32) Swag.S32.Max) : cast(s32) rawOffset
+            .ctsEntries.add({sampleCount, offset})
+        }
     }
 
     // Reports whether an `mp4v` sample entry identifies ISO/IEC 10918-1 JPEG samples.
@@ -507,27 +593,96 @@ private impl Track
             .offsets.add(wide ? readU64(source) : cast(u64) readU32(source))
     }
 
-    // Returns the one constant duration every frame uses.
-    mtd const sampleDelta()->u32 fail
+    // Returns the exact frame rate of a constant-duration track, and the exact average rate
+    // of a variable one, which is what a caller pacing playback can best use.
+    mtd const frameRate()->FrameRate fail
     {
         if !.times.count do
             fail InvalidFormatError{"MP4 video track has no time-to-sample table"}
         if !.timescale do
             fail InvalidFormatError{"MP4 video track has no media timescale"}
-        let delta = .times[0].sampleDelta
-        if !delta do
-            fail InvalidFormatError{"MP4 video samples have a zero duration"}
-        var samples = 0'u64
+
+        let delta    = .times[0].sampleDelta
+        var constant = true
+        var samples  = 0'u64
+        var ticks    = 0'u64
         for entry in .times
         {
             if entry.sampleDelta != delta do
-                fail UnsupportedFormatError{"video decoder does not support variable-frame-rate MP4 tracks"}
+                constant = false
             samples += entry.sampleCount
+            ticks += cast(u64) entry.sampleCount * cast(u64) entry.sampleDelta
         }
 
         if samples != .sizes.count do
             fail InvalidFormatError{"MP4 timing and sample-size tables describe different frame counts"}
-        return delta
+        if constant
+        {
+            if !delta do
+                fail InvalidFormatError{"MP4 video samples have a zero duration"}
+            return FrameRate.create(.timescale, delta)
+        }
+
+        if !ticks do
+            fail InvalidFormatError{"MP4 video samples have a zero duration"}
+
+        // The average `timescale * samples / ticks`, reduced so it fits the rate's parts.
+        var numerator   = cast(u64) .timescale * samples
+        var denominator = ticks
+        var a = numerator
+        var b = denominator
+        while b != 0
+        {
+            let remainder = a % b
+            a = b
+            b = remainder
+        }
+
+        numerator /= a
+        denominator /= a
+        if numerator <= Swag.U32.Max and denominator <= Swag.U32.Max do
+            return FrameRate.create(cast(u32) numerator, cast(u32) denominator)
+        return FrameRate.create(.timescale, cast(u32) Math.max(ticks / samples, 1))
+    }
+
+    // Expands the composition offsets into the display time of every sample.
+    mtd const sampleTimes()->Array's64 fail
+    {
+        var result: retval
+        result.reserve(.sizes.count)
+
+        // Decode times first.
+        var time = 0's64
+        for entry in .times
+        {
+            for entry.sampleCount
+            {
+                if result.count >= .sizes.count do
+                    break
+                result.add(time)
+                time += cast(s64) entry.sampleDelta
+            }
+        }
+
+        while result.count < .sizes.count
+        {
+            result.add(time)
+            time += cast(s64) (.times.count ? .times.back().sampleDelta : 1)
+        }
+
+        var index = 0'u64
+        for entry in .ctsEntries
+        {
+            for entry.sampleCount
+            {
+                if index >= result.count do
+                    break
+                result[index] += cast(s64) entry.offset
+                index += 1
+            }
+        }
+
+        return result
     }
 
     // Expands the chunk tables into one direct frame table.
@@ -560,7 +715,7 @@ private impl Track
                     fail InvalidFormatError{"MP4 chunk table describes more samples than the sample-size table"}
                 let size = cast(u64) .sizes[sampleIndex]
                 if !size do
-                    fail InvalidFormatError{"MP4 Motion JPEG sample has no payload"}
+                    fail InvalidFormatError{"MP4 video sample has no payload"}
                 if offset > sourceSize or size > sourceSize - offset do
                     fail InvalidFormatError{"MP4 sample runs past the end of the stream"}
                 result.add({offset, size})
@@ -575,14 +730,15 @@ private impl Track
     }
 }
 
-// Reads ISO-BMFF files whose video samples are complete JPEG images.
+// Reads ISO-BMFF files carrying Motion JPEG or H.264 video samples.
 //
 // Opening walks only the movie metadata and expands its compact sample tables into one direct
 // offset-and-size entry per frame. Frame payloads remain in the source and are read only when
-// requested. Every supported sample is a key frame, so seeking costs one table lookup.
+// requested. A Motion JPEG sample is a key frame, so seeking costs one table lookup; an H.264
+// stream seeks by decoding forward from the nearest sync sample, and its frames are returned
+// in display order whatever order the file stores them in.
 //
-// The container may carry other tracks, including audio; they are ignored. The video track must
-// use the `jpeg`, `mjpg`, or `mjpa` Motion JPEG sample entry and a constant frame duration.
+// The container may carry other tracks, including audio; they are ignored.
 struct Decoder
 {
     internal
@@ -591,6 +747,8 @@ struct Decoder
         frames:    Array'FrameEntry
         payload:   Array'u8
         nextIndex: u64
+        isAvc:     bool
+        avc:       AvcStream
     }
 }
 
@@ -602,27 +760,48 @@ impl IDecoder for Decoder
     {
         var layout: Layout
         layout.parse(source)
-        let delta = layout.track.sampleDelta()
-        .frames = layout.track.buildFrames(source.size())
+        var frames = layout.track.buildFrames(source.size())
 
-        .info.width      = layout.track.width
-        .info.height     = layout.track.height
-        .info.frameRate  = FrameRate.create(layout.track.timescale, delta)
-        .info.frameCount = .frames.count
+        .info.frameRate  = layout.track.frameRate()
+        .info.frameCount = frames.count
         .nextIndex       = 0
+
+        if layout.track.isAvc
+        {
+            .isAvc = true
+            .avc.open(&layout.track, #move frames)
+            .info.width  = .avc.width
+            .info.height = .avc.height
+        }
+        else
+        {
+            .frames      = #move frames
+            .info.width  = layout.track.width
+            .info.height = layout.track.height
+        }
+
         return .info
     }
 
     mtd impl seekFrame(source: *Source, index: u64) fail
     {
         discard source
-        if index >= .frames.count do
+        if index >= .info.frameCount do
             fail BadParameterError{"MP4 frame index exceeds the stream frame count"}
-        .nextIndex = index
+        if .isAvc do
+            .avc.seekTo(index)
+        else do
+            .nextIndex = index
     }
 
     mtd impl decodeFrame(source: *Source, target: *Image) fail
     {
+        if .isAvc
+        {
+            .avc.decodeNext(source, target)
+            return
+        }
+
         let current = .nextIndex
         if current >= .frames.count do
             fail InvalidFormatError{"MP4 stream has no frame at this position"}

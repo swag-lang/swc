@@ -45,6 +45,7 @@ struct McJob
 struct Mb
 {
     mbX, mbY:     s32
+    sliceIndex:   u32     // Reconstruction context in Decoder.pictureSlices.
     class:        u8
     skipped:      bool
     transform8x8: bool
@@ -559,7 +560,6 @@ impl Slice
             .cabac.start(.bits.data! + offset, .bits.size - offset)
         }
 
-        var mb: Mb
         let inter = .header.type != SliceTypeI
         while true
         {
@@ -573,7 +573,7 @@ impl Slice
                 {
                     if .mbAddr >= mbCount do
                         fail InvalidFormatError{"H.264 skip run passes the end of the picture"}
-                    .decodeSkipMb(&mb)
+                    .decodeSkipMb(&dec.parsedMbs[.mbAddr])
                     skipRun -= 1
                 }
 
@@ -583,19 +583,19 @@ impl Slice
                     fail InvalidFormatError{"H.264 slice data runs past the end of the picture"}
             }
 
-            if inter and .isCabac and .decodeSkipFlagCabac(&mb)
+            let mb = &dec.parsedMbs[.mbAddr]
+            if inter and .isCabac and .decodeSkipFlagCabac(mb)
             {
-                .decodeSkipMb(&mb)
+                .decodeSkipMb(mb)
             }
             else
             {
-                .prepareMb(&mb)
+                .prepareMb(mb)
                 if .isCabac do
-                    .parseMbCabac(&mb)
+                    .parseMbCabac(mb)
                 else do
-                    .parseMbCavlc(&mb)
-                .reconstructMb(&mb)
-                .bookkeepMb(&mb)
+                    .parseMbCavlc(mb)
+                .bookkeepMb(mb)
                 dec.decodedMbs += 1
                 .mbAddr        += 1
             }
@@ -623,6 +623,7 @@ impl Slice
         let dec = .dec!
         mb.mbX           = cast(s32) (.mbAddr % cast(u32) dec.sps!.mbWidth)
         mb.mbY           = cast(s32) (.mbAddr / cast(u32) dec.sps!.mbWidth)
+        mb.sliceIndex    = cast(u32) .sliceId - 1
         mb.class         = MbClassInter
         mb.skipped       = false
         mb.transform8x8  = false
@@ -670,7 +671,6 @@ impl Slice
         else do
             .deriveDirect(mb, -1)
 
-        .reconstructMb(mb)
         .bookkeepMb(mb)
         dec.decodedMbs += 1
         .mbAddr        += 1

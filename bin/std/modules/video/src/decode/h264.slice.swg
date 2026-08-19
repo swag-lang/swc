@@ -55,6 +55,7 @@ private struct ListOp
 struct Slice
 {
     dec:            #null *Decoder
+    pps:            #null *Pps     // Kept because reconstruction runs after every slice parses.
     header:         SliceHeader
     bits:           BitReader          // CAVLC entropy source, shared with the header.
     cabac:          CabacReader
@@ -106,6 +107,7 @@ impl Slice
         let sps = &dec.spsSet[pps.spsId]
         dec.pps = pps
         dec.sps = sps
+        .pps    = pps
 
         .header.frameNum = .bits.read(sps.log2MaxFrameNum)
 

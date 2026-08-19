@@ -52,6 +52,9 @@ func h264AssertFrame(frame: Image, reference: const [..] u8, index: u64, width, 
 // Decodes a whole stream in order and demands byte-exact frames.
 func h264AssertStream(name: string, width, height: s32, frameCount: u64)
 {
+    if Jobs.isSynchronous() do
+        discard expect Jobs.initialize(4)
+
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.mp4", name).toString()))
     @assert(reader.width() == width and reader.height() == height)
     @assert(reader.frameCount() == frameCount)
@@ -63,6 +66,27 @@ func h264AssertStream(name: string, width, height: s32, frameCount: u64)
         expect reader.decodeFrameInto(&frame, index)
         h264AssertFrame(frame, reference.toSlice(), index, width, height)
     }
+}
+
+// A forward seek crosses directly to the nearest useful sync sample instead of decoding the
+// whole stream prefix. The pyramid fixture carries a later clean decode point.
+#test
+{
+    var source              = expect Source.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var decoder: Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+
+    var expectedSync = cast(u64) decoder.avc.sampleAtRank[57]
+    while expectedSync > 0 and decoder.avc.syncFlags[expectedSync] == 0 do
+        expectedSync -= 1
+    decoder.avc.seekTo(57)
+    @assert(expectedSync > 0 and decoder.avc.nextDecode == expectedSync)
+
+    let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-pyramid.yuv").toString())
+    var frame: Image
+    expect idecoder.decodeFrame(&source, &frame)
+    h264AssertFrame(frame, reference.toSlice(), 57, 96, 64)
 }
 
 // Constrained Baseline: CAVLC entropy coding, I and P slices, several references.

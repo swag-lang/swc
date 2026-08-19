@@ -9,6 +9,7 @@ using Core, Core.Errors
 // just outside the frame stays inside the padded storage once the edges are replicated. Longer
 // excursions go through the bounded fallback of the interpolator instead.
 const FramePadding = 32's32
+private const ConversionBands = 4'u32
 
 // One decoded picture: padded 4:2:0 planes plus the reference and motion state the rest of
 // the stream needs from it.
@@ -94,50 +95,20 @@ impl Frame
         if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
             target[] = Pixel.Image.create(width, height, .RGB8)
 
-        for y in height
+        let bandCount = Math.min(Math.min(Jobs.workerCount(), ConversionBands), cast(u32) height)
+        if bandCount <= 1
         {
-            var destination = target.pixels.buffer! + cast(u64) (height - y - 1) * cast(u64) target.rowStride
-            var luma        = .luma.buffer! + cast(u64) (cropTop + y + FramePadding) * .strideLuma + cast(u64) (cropLeft + FramePadding)
-            let chromaRow   = cast(u64) (((cropTop + y) >> 1) + FramePadding) * .strideChroma
-            let cbRow       = .cb.buffer! + chromaRow
-            let crRow       = .cr.buffer! + chromaRow
+            convertRgbRows(me, target, width, height, cropLeft, cropTop, 0, height)
+            return
+        }
 
-            // Two horizontal luma samples share one chroma sample, so the chroma terms of the
-            // conversion are computed once per pair. An odd crop offsets the pairing by one.
-            var chromaAt  = cast(u64) ((cropLeft >> 1) + FramePadding)
-            var remaining = width
-            if cropLeft & 1
-            {
-                let d = cast(s32) cbRow[chromaAt] - 128
-                let e = cast(s32) crRow[chromaAt] - 128
-                storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, 409 * e + 128, -100 * d - 208 * e + 128, 516 * d + 128)
-                destination += 3
-                luma        += 1
-                chromaAt    += 1
-                remaining   -= 1
-            }
-
-            while remaining >= 2
-            {
-                let d     = cast(s32) cbRow[chromaAt] - 128
-                let e     = cast(s32) crRow[chromaAt] - 128
-                let rTerm = 409 * e + 128
-                let gTerm = -100 * d - 208 * e + 128
-                let bTerm = 516 * d + 128
-                storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, rTerm, gTerm, bTerm)
-                storeRgbPixel(destination + 3, max0S32(cast(s32) luma[1] - 16) * 298, rTerm, gTerm, bTerm)
-                destination += 6
-                luma        += 2
-                chromaAt    += 1
-                remaining   -= 2
-            }
-
-            if remaining
-            {
-                let d = cast(s32) cbRow[chromaAt] - 128
-                let e = cast(s32) crRow[chromaAt] - 128
-                storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, 409 * e + 128, -100 * d - 208 * e + 128, 516 * d + 128)
-            }
+        var context = {frame: me, target: target, width: width, height: height, cropLeft: cropLeft, cropTop: cropTop, bandCount: bandCount}
+        Jobs.parallelFor(bandCount, &context)
+        {
+            let state = cast(*#decltype(context)) data!
+            let first = state.height * cast(s32) index / cast(s32) state.bandCount
+            let end   = state.height * cast(s32) (index + 1) / cast(s32) state.bandCount
+            convertRgbRows(state.frame, state.target, state.width, state.height, state.cropLeft, state.cropTop, first, end)
         }
     }
 
@@ -147,6 +118,56 @@ impl Frame
         extendPlane(.luma.buffer!, .strideLuma, .mbWidth * 16, .mbHeight * 16)
         extendPlane(.cb.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
         extendPlane(.cr.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
+    }
+}
+
+// Converts a contiguous band of visible rows. Bands write disjoint destination rows.
+private func convertRgbRows(frame: const *Frame, target: *Pixel.Image, width, height, cropLeft, cropTop, firstY, endY: s32)
+{
+    for y in firstY until endY
+    {
+        var destination = target.pixels.buffer! + cast(u64) (height - y - 1) * cast(u64) target.rowStride
+        var luma        = frame.luma.buffer! + cast(u64) (cropTop + y + FramePadding) * frame.strideLuma + cast(u64) (cropLeft + FramePadding)
+        let chromaRow   = cast(u64) (((cropTop + y) >> 1) + FramePadding) * frame.strideChroma
+        let cbRow       = frame.cb.buffer! + chromaRow
+        let crRow       = frame.cr.buffer! + chromaRow
+
+        // Two horizontal luma samples share one chroma sample, so the chroma terms of the
+        // conversion are computed once per pair. An odd crop offsets the pairing by one.
+        var chromaAt  = cast(u64) ((cropLeft >> 1) + FramePadding)
+        var remaining = width
+        if cropLeft & 1
+        {
+            let d = cast(s32) cbRow[chromaAt] - 128
+            let e = cast(s32) crRow[chromaAt] - 128
+            storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, 409 * e + 128, -100 * d - 208 * e + 128, 516 * d + 128)
+            destination += 3
+            luma        += 1
+            chromaAt    += 1
+            remaining   -= 1
+        }
+
+        while remaining >= 2
+        {
+            let d     = cast(s32) cbRow[chromaAt] - 128
+            let e     = cast(s32) crRow[chromaAt] - 128
+            let rTerm = 409 * e + 128
+            let gTerm = -100 * d - 208 * e + 128
+            let bTerm = 516 * d + 128
+            storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, rTerm, gTerm, bTerm)
+            storeRgbPixel(destination + 3, max0S32(cast(s32) luma[1] - 16) * 298, rTerm, gTerm, bTerm)
+            destination += 6
+            luma        += 2
+            chromaAt    += 1
+            remaining   -= 2
+        }
+
+        if remaining
+        {
+            let d = cast(s32) cbRow[chromaAt] - 128
+            let e = cast(s32) crRow[chromaAt] - 128
+            storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, 409 * e + 128, -100 * d - 208 * e + 128, 516 * d + 128)
+        }
     }
 }
 

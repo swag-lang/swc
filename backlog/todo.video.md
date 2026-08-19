@@ -24,16 +24,20 @@ is the layout it does not read yet.
   strength shortcut in deblocking, average-fused interpolation passes, memset-based `prepareMb`,
   and a word-buffered branchless CABAC engine. The sFileScope player bounds its catch-up work per
   tick, so a slow stream plays smoothly below real time instead of freezing, but it should not
-  have to.
+  have to. A follow-up split entropy parsing from reconstruction, fans independent inter
+  macroblock bands and YUV-to-RGB bands through `Core.Jobs`, and makes forward seeks restart at
+  a nearer sync sample. On Intel's 300-frame 1080p sample this reduced a release decode from
+  about 17.5 s to 14.8 s; seeking directly to its last frame dropped from decoding the whole
+  stream to about 1.25 s because the decoder starts at sample 270.
 - Per-stage now (59 frames of 1080p30, release, native): motion compensation ~870 ms, CABAC
   parse ~730 of which residual blocks ~380, deblocking ~610, YUV-to-RGB ~470, bookkeeping ~230,
   motion derivations ~210, `prepareMb` ~110.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
-  levers, in expected order of value: parallel reconstruction on `Core.Jobs` — entropy parsing is
-  serial per slice, but inter macroblocks read only reference frames, so per-row fan-out of
-  reconstruction, deblocking, and conversion is legal once parse and recon are split; SWAR 16-bit
-  lanes for the six-tap filters; a byte-run significance fast path in the CABAC engine; packed
-  stores in the conversion; and word writes in `bookkeepMb`. A trap for the parse/recon split:
+  levers, in expected order of value: wavefront deblocking on `Core.Jobs`; a byte-run significance
+  fast path in the CABAC engine; packed stores in the conversion; and word writes in
+  `bookkeepMb`. A 16-bit SWAR six-tap prototype stayed byte-exact but regressed this backend by
+  about 13%, because expanding byte inputs cost more than the packed arithmetic saved. A trap for
+  the parse/recon split:
   the Intra_16x16 and chroma reconstruction read residual blocks the entropy decoders never
   parsed, so the per-macroblock residual arrays must stay cleared (see `prepareMb`).
 

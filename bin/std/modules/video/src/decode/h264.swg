@@ -83,6 +83,11 @@ struct Decoder
     mvdL1:       Array's16
     directFlags: Array'u8     // Whether the block was coded in a direct mode.
 
+    // Entropy parsing stays serial inside a slice. Parsed macroblocks and their immutable
+    // slice contexts remain here until inter reconstruction fans out through Core.Jobs.
+    parsedMbs:     Array'Mb
+    pictureSlices: Array'Slice
+
     decodedMbs: u64
     sliceCount: u32
 
@@ -159,6 +164,23 @@ impl Decoder
     mtd releaseFrame(frame: *Frame)
     {
         frame.heldByCaller = false
+    }
+
+    // Flushes prediction state before decoding from a container sync sample.
+    mtd restart()
+    {
+        for reference in .shortRefs do
+            reference.isShortTerm = false
+        for reference in .longRefs do
+            reference.isLongTerm = false
+        .shortRefs.clear()
+        .longRefs.clear()
+        .pictureSlices.clear()
+        .current            = null
+        .prevPocMsb         = 0
+        .prevPocLsb         = 0
+        .prevFrameNum       = 0
+        .prevFrameNumOffset = 0
     }
 
     // Decodes one access unit and returns its frame, or null when the unit carries no picture.
@@ -261,7 +283,8 @@ impl Decoder
         slice.sliceId = cast(u16) .sliceCount
         if slice.header.type != SliceTypeI do
             slice.buildLists()
-        slice.decodeData()
+        .pictureSlices.add(#move slice)
+        .pictureSlices[.pictureSlices.count - 1].decodeData()
     }
 
     // Parses one sequence parameter set and stores it under its identifier.
@@ -347,6 +370,7 @@ impl Decoder
             .mvdL0.resize(blocks * 2)
             .mvdL1.resize(blocks * 2)
             .directFlags.resize(blocks)
+            .parsedMbs.resize(mbCount)
         }
 
         // A stale slice id would make a mb from the previous picture look like a neighbor.
@@ -355,6 +379,7 @@ impl Decoder
 
         .decodedMbs = 0
         .sliceCount = 0
+        .pictureSlices.clear()
     }
 
     // Completes the current picture: filters it, publishes its edges, and applies its
@@ -366,6 +391,7 @@ impl Decoder
         if .decodedMbs != mbCount do
             fail InvalidFormatError{"H.264 access unit does not cover the whole picture"}
 
+        .reconstructPicture()
         deblockPicture(me)
         let frame = .current!
         frame.extendEdges()

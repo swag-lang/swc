@@ -106,14 +106,24 @@ impl AvcStream
         if rank == .nextRank do
             return
 
-        // Moving forward keeps decoding from where the stream stands; only moving backward
-        // restarts at a sync sample.
-        if rank < .nextRank
+        let sample = cast(u64) .sampleAtRank[rank]
+        var sync   = sample
+        while sync > 0 and .syncFlags[sync] == 0 do
+            sync -= 1
+
+        var alreadyPending = false
+        for entry in .pending where entry.rank == rank
         {
-            var sync = cast(u64) .sampleAtRank[rank]
-            while sync > 0 and .syncFlags[sync] == 0 do
-                sync -= 1
+            alreadyPending = true
+            break
+        }
+
+        // A forward jump also restarts when its preceding sync sample is ahead of the current
+        // decode position. This avoids decoding an ever-growing prefix while scrubbing.
+        if rank < .nextRank or (!alreadyPending and sync > .nextDecode)
+        {
             .releasePending()
+            .decoder.restart()
             .nextDecode = sync
         }
         else

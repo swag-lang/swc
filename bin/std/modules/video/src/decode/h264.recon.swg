@@ -3,6 +3,70 @@
 
 using Core, Core.Errors
 
+private const ReconstructionBands = 4'u32
+
+private struct ReconstructionContext
+{
+    decoder:   *Decoder
+    bandCount: u32
+    failed:    u32
+}
+
+impl Decoder
+{
+    // Reconstructs inter macroblocks in a few long row bands. Entropy parsing has already
+    // published every motion and residual context, and inter prediction reads reference
+    // pictures only, so bands write disjoint parts of the current picture. Intra blocks stay
+    // in raster order because their prediction reads neighboring samples of this picture.
+    mtd reconstructPicture() fail
+    {
+        let sps       = .sps!
+        let mbCount   = cast(u32) (sps.mbWidth * sps.mbHeight)
+        let bandCount = Math.min(Math.min(Jobs.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight)
+
+        if bandCount <= 1
+        {
+            for index in mbCount
+            {
+                let mb = &.parsedMbs[index]
+                if mb.class == MbClassInter do
+                    .pictureSlices[mb.sliceIndex].reconstructMb(mb)
+            }
+        }
+        else
+        {
+            var context = ReconstructionContext{me, bandCount}
+            Jobs.parallelFor(bandCount, &context)
+            {
+                let state = cast(*ReconstructionContext) data!
+                let firstRow = cast(u32) state.decoder.sps!.mbHeight * index / state.bandCount
+                let endRow   = cast(u32) state.decoder.sps!.mbHeight * (index + 1) / state.bandCount
+                let first    = firstRow * cast(u32) state.decoder.sps!.mbWidth
+                let end      = endRow * cast(u32) state.decoder.sps!.mbWidth
+                for mbIndex in first until end
+                {
+                    let mb = &state.decoder.parsedMbs[mbIndex]
+                    if mb.class != MbClassInter do
+                        continue
+                    catch state.decoder.pictureSlices[mb.sliceIndex].reconstructMb(mb) as reconstructionError
+                    if reconstructionError != null do
+                        Atomic.exchange(&state.failed, 1)
+                }
+            }
+
+            if Atomic.get(&context.failed) != 0 do
+                fail InvalidFormatError{"H.264 inter block has no reference picture"}
+        }
+
+        for index in mbCount
+        {
+            let mb = &.parsedMbs[index]
+            if mb.class != MbClassInter do
+                .pictureSlices[mb.sliceIndex].reconstructMb(mb)
+        }
+    }
+}
+
 impl Slice
 {
     // Reconstructs one parsed macroblock into the current picture.
@@ -12,7 +76,7 @@ impl Slice
             return
 
         let dec     = .dec!
-        let pps     = dec.pps!
+        let pps     = .pps!
         let frame   = dec.current!
         let isIntra = mb.class != MbClassInter
 
@@ -44,7 +108,7 @@ impl Slice
     {
         if !.mbAvailable(mbX, mbY) do
             return false
-        if !.dec!.pps!.constrainedIntra do
+        if !.pps!.constrainedIntra do
             return true
         return .mbInfoAt(mbX, mbY).class != MbClassInter
     }
@@ -144,7 +208,7 @@ impl Slice
     mtd dequant4x4(mb: *Mb, raster: s32, dcValue: s32, hasDc: bool, block: [*] s16)
     {
         let dec  = .dec!
-        let pps  = dec.pps!
+        let pps  = .pps!
         let list = mb.class == MbClassInter ? 3'u64 : 0'u64
         for index in 16'u64 do
             block[index] = 0
@@ -168,7 +232,7 @@ impl Slice
     mtd dequant8x8(mb: *Mb, quad: s32, list: u64, block: [*] s16)
     {
         let dec = .dec!
-        let pps = dec.pps!
+        let pps = .pps!
         for index in 64'u64 do
             block[index] = 0
 
@@ -187,7 +251,7 @@ impl Slice
     mtd addLumaResidual(mb: *Mb, frame: *Frame)
     {
         let dec    = .dec!
-        let pps    = dec.pps!
+        let pps    = .pps!
         let stride = frame.strideLuma
 
         if mb.class == MbClassIntra16x16
@@ -242,7 +306,7 @@ impl Slice
     mtd addChromaResidual(mb: *Mb, frame: *Frame, plane: u32, qpc: s32)
     {
         let dec    = .dec!
-        let pps    = dec.pps!
+        let pps    = .pps!
         let stride = frame.strideChroma
         if mb.cbpChroma == 0 do
             return

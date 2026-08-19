@@ -173,6 +173,8 @@ protected:
     virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)                                                                     = 0;
     virtual void encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)                                                              = 0;
     virtual void encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, uint64_t value)                                                                 = 0;
+    virtual void encodeVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)                                                                                    = 0;
+    virtual void encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits, uint64_t value)                                          = 0;
 
     virtual void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
     {

@@ -641,3 +641,35 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// Non-destructive packed unary: dst = op(src), with dst distinct from src.
+// Carries the widen, abs, sqrt, and movemask packed forms; movemask is the
+// one whose destination is an integer register. Layout [dst, src, opBits,
+// microOp]. Does not touch the CPU flags.
+SWC_MICRO_INSTR_DEF(
+    VecUnaryRegReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 3,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
+// Non-destructive three-operand form with an immediate: dst = op(src1, src2,
+// imm). Carries the packed float compares, whose predicate rides in the
+// immediate. Layout [dst, src1, src2, opBits, microOp, imm]. Does not touch
+// the CPU flags.
+SWC_MICRO_INSTR_DEF(
+    OpTernaryRegRegRegImm,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 4,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

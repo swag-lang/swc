@@ -121,12 +121,13 @@ enum class MicroOp : uint8_t
     Test,
     Xor,
 
-    // 128-bit packed integer operations on the float register file (SSE2).
-    // Appended after the scalar operations to keep prior enum values stable.
-    // The bitwise forms are lane-agnostic; the arithmetic and shift forms name
-    // their lane width. Shifts take an immediate count; VecShuffle32 is the
-    // four-lane permute (pshufd) and lives on its own opcode because it is the
-    // only non-destructive reg/reg/imm shape in the instruction set.
+    // 128-bit packed operations on the float register file. Everything from
+    // VecAdd32 to the end of the enum is a packed operation: isVecMicroOp is a
+    // range test, so a new scalar operation goes before VecAdd32 and a new
+    // packed one after it. The bitwise forms are lane-agnostic; the other
+    // forms name their lane width and signedness where the instruction cares.
+    // Shifts and rounds take an immediate; VecShuffle32 is the four-lane
+    // permute (pshufd).
     VecAdd32,
     VecAnd,
     VecOr,
@@ -135,29 +136,132 @@ enum class MicroOp : uint8_t
     VecShuffle32,
     VecSub32,
     VecXor,
+
+    // Packed integer arithmetic, three-operand only (OpBinaryRegRegReg).
+    VecAdd8,
+    VecAdd16,
+    VecAdd64,
+    VecSub8,
+    VecSub16,
+    VecSub64,
+    VecMul16,
+    VecMul32,
+    VecSatAddS8,
+    VecSatAddS16,
+    VecSatAddU8,
+    VecSatAddU16,
+    VecSatSubS8,
+    VecSatSubS16,
+    VecSatSubU8,
+    VecSatSubU16,
+    VecAvgU8,
+    VecAvgU16,
+    VecMaddS16,
+    VecAndNot,
+
+    // Packed integer min/max (OpBinaryRegRegReg).
+    VecMinS8,
+    VecMinS16,
+    VecMinS32,
+    VecMinU8,
+    VecMinU16,
+    VecMinU32,
+    VecMaxS8,
+    VecMaxS16,
+    VecMaxS32,
+    VecMaxU8,
+    VecMaxU16,
+    VecMaxU32,
+
+    // Packed integer compares, producing all-ones/all-zeros lanes
+    // (OpBinaryRegRegReg). Greater-than exists only in signed form; unsigned
+    // compares are synthesized by biasing the sign bit.
+    VecCmpEq8,
+    VecCmpEq16,
+    VecCmpEq32,
+    VecCmpEq64,
+    VecCmpGtS8,
+    VecCmpGtS16,
+    VecCmpGtS32,
+    VecCmpGtS64,
+
+    // Saturating narrowing packs and lane interleaves (OpBinaryRegRegReg).
+    // Pack lane widths name the SOURCE lanes; VecPermB is the dynamic byte
+    // table lookup (pshufb).
+    VecPackSS16,
+    VecPackSS32,
+    VecPackUS16,
+    VecPackUS32,
+    VecUnpackLo8,
+    VecUnpackLo16,
+    VecUnpackLo32,
+    VecUnpackLo64,
+    VecUnpackHi8,
+    VecUnpackHi16,
+    VecUnpackHi32,
+    VecUnpackHi64,
+    VecPermB,
+
+    // Packed float arithmetic (OpBinaryRegRegReg).
+    VecAddF32,
+    VecAddF64,
+    VecSubF32,
+    VecSubF64,
+    VecMulF32,
+    VecMulF64,
+    VecDivF32,
+    VecDivF64,
+    VecMinF32,
+    VecMinF64,
+    VecMaxF32,
+    VecMaxF64,
+
+    // Packed unary forms, non-destructive (VecUnaryRegReg). The widen forms
+    // extend the low eight/four/two lanes to double width; the movemask forms
+    // write the lane sign bits into an integer register.
+    VecAbsS8,
+    VecAbsS16,
+    VecAbsS32,
+    VecWidenLoS8,
+    VecWidenLoS16,
+    VecWidenLoS32,
+    VecWidenLoU8,
+    VecWidenLoU16,
+    VecWidenLoU32,
+    VecSqrtF32,
+    VecSqrtF64,
+    VecMoveMaskB,
+    VecMoveMaskF32,
+    VecMoveMaskF64,
+
+    // Packed shifts by immediate (OpBinaryRegRegImm). The byte shifts move
+    // whole bytes across the register (pslldq/psrldq); the A forms are
+    // arithmetic right shifts, which the hardware has only for 16/32-bit
+    // lanes. VecRoundF32/F64 carry the rounding mode in the immediate.
+    VecShiftLeft16,
+    VecShiftLeft64,
+    VecShiftRight16,
+    VecShiftRight64,
+    VecShiftRightA16,
+    VecShiftRightA32,
+    VecShiftLeftBytes,
+    VecShiftRightBytes,
+    VecRoundF32,
+    VecRoundF64,
+
+    // Packed float compare with a predicate immediate (OpTernaryRegRegRegImm).
+    VecCmpF32,
+    VecCmpF64,
 };
 
-// True for the 128-bit packed operations, which only the auto-vectorizer
-// creates: they run on the float register file, ignore the CPU flags, and
-// keep their immediate operands verbatim (a shift count or a shuffle
-// control), so scalar rewrites must leave them alone.
+// True for the 128-bit packed operations: they run on the float register
+// file, ignore the CPU flags, and keep their immediate operands verbatim (a
+// shift count, a rounding mode, a shuffle control), so scalar rewrites must
+// leave them alone. Every operation from VecAdd32 on is packed - see the
+// enum's layout comment.
 inline bool isVecMicroOp(const MicroOp op)
 {
-    switch (op)
-    {
-        case MicroOp::VecAdd32:
-        case MicroOp::VecAnd:
-        case MicroOp::VecOr:
-        case MicroOp::VecShiftLeft32:
-        case MicroOp::VecShiftRight32:
-        case MicroOp::VecShuffle32:
-        case MicroOp::VecSub32:
-        case MicroOp::VecXor:
-            return true;
-
-        default:
-            return false;
-    }
+    return op >= MicroOp::VecAdd32;
 }
 
 enum class MicroCond : uint8_t

@@ -390,6 +390,128 @@ namespace
         return Result::Continue;
     }
 
+    // One byte-exact case per packed operation, all VEX-encoded with
+    // xmm1 = op(xmm2, xmm3) (or xmm1 = op(xmm2) for the unary forms), plus one
+    // extended-register case per distinct prefix/map family.
+    Result buildVecPackedOps(const RunCaseFn& runCase)
+    {
+        // 0F map, 66 prefix, three-operand integer arithmetic.
+        ENCODE_CASE("vec_add8_vex", "C5 E9 FC CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAdd8, MicroOpBits::B128););
+        ENCODE_CASE("vec_add16_vex", "C5 E9 FD CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAdd16, MicroOpBits::B128););
+        ENCODE_CASE("vec_add64_vex", "C5 E9 D4 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAdd64, MicroOpBits::B128););
+        ENCODE_CASE("vec_sub8_vex", "C5 E9 F8 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSub8, MicroOpBits::B128););
+        ENCODE_CASE("vec_sub16_vex", "C5 E9 F9 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSub16, MicroOpBits::B128););
+        ENCODE_CASE("vec_sub64_vex", "C5 E9 FB CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSub64, MicroOpBits::B128););
+        ENCODE_CASE("vec_mul16_vex", "C5 E9 D5 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMul16, MicroOpBits::B128););
+        ENCODE_CASE("vec_satadds8_vex", "C5 E9 EC CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatAddS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_satadds16_vex", "C5 E9 ED CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatAddS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_sataddu8_vex", "C5 E9 DC CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatAddU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_sataddu16_vex", "C5 E9 DD CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatAddU16, MicroOpBits::B128););
+        ENCODE_CASE("vec_satsubs8_vex", "C5 E9 E8 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatSubS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_satsubs16_vex", "C5 E9 E9 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatSubS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_satsubu8_vex", "C5 E9 D8 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatSubU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_satsubu16_vex", "C5 E9 D9 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatSubU16, MicroOpBits::B128););
+        ENCODE_CASE("vec_avgu8_vex", "C5 E9 E0 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAvgU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_avgu16_vex", "C5 E9 E3 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAvgU16, MicroOpBits::B128););
+        ENCODE_CASE("vec_madds16_vex", "C5 E9 F5 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaddS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_andnot_vex", "C5 E9 DF CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAndNot, MicroOpBits::B128););
+        ENCODE_CASE("vec_mins16_vex", "C5 E9 EA CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_minu8_vex", "C5 E9 DA CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxs16_vex", "C5 E9 EE CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxu8_vex", "C5 E9 DE CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpeq8_vex", "C5 E9 74 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpEq8, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpeq16_vex", "C5 E9 75 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpEq16, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpeq32_vex", "C5 E9 76 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpEq32, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpgts8_vex", "C5 E9 64 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpGtS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpgts16_vex", "C5 E9 65 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpGtS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpgts32_vex", "C5 E9 66 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpGtS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_packss16_vex", "C5 E9 63 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecPackSS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_packss32_vex", "C5 E9 6B CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecPackSS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_packus16_vex", "C5 E9 67 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecPackUS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpacklo8_vex", "C5 E9 60 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackLo8, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpacklo16_vex", "C5 E9 61 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackLo16, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpacklo32_vex", "C5 E9 62 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackLo32, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpacklo64_vex", "C5 E9 6C CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackLo64, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpackhi8_vex", "C5 E9 68 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackHi8, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpackhi16_vex", "C5 E9 69 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackHi16, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpackhi32_vex", "C5 E9 6A CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackHi32, MicroOpBits::B128););
+        ENCODE_CASE("vec_unpackhi64_vex", "C5 E9 6D CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecUnpackHi64, MicroOpBits::B128););
+
+        // 0F38 map, 66 prefix: always the three-byte VEX form.
+        ENCODE_CASE("vec_mul32_vex", "C4 E2 69 40 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMul32, MicroOpBits::B128););
+        ENCODE_CASE("vec_mins8_vex", "C4 E2 69 38 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_mins32_vex", "C4 E2 69 39 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_minu16_vex", "C4 E2 69 3A CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinU16, MicroOpBits::B128););
+        ENCODE_CASE("vec_minu32_vex", "C4 E2 69 3B CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinU32, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxs8_vex", "C4 E2 69 3C CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxs32_vex", "C4 E2 69 3D CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxu16_vex", "C4 E2 69 3E CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxU16, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxu32_vex", "C4 E2 69 3F CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxU32, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpeq64_vex", "C4 E2 69 29 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpEq64, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpgts64_vex", "C4 E2 69 37 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpGtS64, MicroOpBits::B128););
+        ENCODE_CASE("vec_packus32_vex", "C4 E2 69 2B CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecPackUS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_permb_vex", "C4 E2 69 00 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecPermB, MicroOpBits::B128););
+        // Extended registers across the three positions of the 0F38 shape.
+        ENCODE_CASE("vec_mins8_vex_ext_dst", "C4 62 69 38 CB", b.emitOpBinaryRegRegReg(XMM9, XMM2, XMM3, MicroOp::VecMinS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_mins8_vex_ext_src1", "C4 E2 31 38 CB", b.emitOpBinaryRegRegReg(XMM1, XMM9, XMM3, MicroOp::VecMinS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_mins8_vex_ext_src2", "C4 C2 69 38 C9", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM9, MicroOp::VecMinS8, MicroOpBits::B128););
+
+        // Packed float arithmetic: ps has no mandatory prefix, pd has 66.
+        ENCODE_CASE("vec_addf32_vex", "C5 E8 58 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAddF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_subf32_vex", "C5 E8 5C CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSubF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_mulf32_vex", "C5 E8 59 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMulF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_divf32_vex", "C5 E8 5E CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecDivF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_minf32_vex", "C5 E8 5D CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxf32_vex", "C5 E8 5F CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_addf64_vex", "C5 E9 58 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAddF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_subf64_vex", "C5 E9 5C CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSubF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_mulf64_vex", "C5 E9 59 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMulF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_divf64_vex", "C5 E9 5E CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecDivF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_minf64_vex", "C5 E9 5D CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMinF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_maxf64_vex", "C5 E9 5F CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMaxF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_addf32_vex_ext_src2", "C4 C1 68 58 C9", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM9, MicroOp::VecAddF32, MicroOpBits::B128););
+
+        // Packed unary forms: vvvv is unused, so it reads as 1111.
+        ENCODE_CASE("vec_abss8", "C4 E2 79 1C CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecAbsS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_abss16", "C4 E2 79 1D CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecAbsS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_abss32", "C4 E2 79 1E CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecAbsS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlos8", "C4 E2 79 20 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecWidenLoS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlos16", "C4 E2 79 23 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecWidenLoS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlos32", "C4 E2 79 25 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecWidenLoS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlou8", "C4 E2 79 30 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecWidenLoU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlou16", "C4 E2 79 33 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecWidenLoU16, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlou32", "C4 E2 79 35 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecWidenLoU32, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlou8_ext_dst", "C4 62 79 30 CA", b.emitVecUnaryRegReg(XMM9, XMM2, MicroOp::VecWidenLoU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_widenlou8_ext_src", "C4 C2 79 30 C9", b.emitVecUnaryRegReg(XMM1, XMM9, MicroOp::VecWidenLoU8, MicroOpBits::B128););
+        ENCODE_CASE("vec_sqrtf32", "C5 F8 51 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecSqrtF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_sqrtf64", "C5 F9 51 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecSqrtF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_movemaskb", "C5 F9 D7 C2", b.emitVecUnaryRegReg(RAX, XMM2, MicroOp::VecMoveMaskB, MicroOpBits::B128););
+        ENCODE_CASE("vec_movemaskb_ext_dst", "C5 79 D7 D2", b.emitVecUnaryRegReg(R10, XMM2, MicroOp::VecMoveMaskB, MicroOpBits::B128););
+        ENCODE_CASE("vec_movemaskf32", "C5 F8 50 C2", b.emitVecUnaryRegReg(RAX, XMM2, MicroOp::VecMoveMaskF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_movemaskf64", "C5 F9 50 C2", b.emitVecUnaryRegReg(RAX, XMM2, MicroOp::VecMoveMaskF64, MicroOpBits::B128););
+
+        // The shift-by-immediate group: opcode extension in ModRM.reg, so the
+        // destination rides in vvvv and the source in r/m.
+        ENCODE_CASE("vec_shl16_vex", "C5 F1 71 F2 03", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(3, 8), MicroOp::VecShiftLeft16, MicroOpBits::B128););
+        ENCODE_CASE("vec_shr16_vex", "C5 F1 71 D2 03", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(3, 8), MicroOp::VecShiftRight16, MicroOpBits::B128););
+        ENCODE_CASE("vec_sar16_vex", "C5 F1 71 E2 03", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(3, 8), MicroOp::VecShiftRightA16, MicroOpBits::B128););
+        ENCODE_CASE("vec_sar32_vex", "C5 F1 72 E2 05", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(5, 8), MicroOp::VecShiftRightA32, MicroOpBits::B128););
+        ENCODE_CASE("vec_shl64_vex", "C5 F1 73 F2 07", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(7, 8), MicroOp::VecShiftLeft64, MicroOpBits::B128););
+        ENCODE_CASE("vec_shr64_vex", "C5 F1 73 D2 07", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(7, 8), MicroOp::VecShiftRight64, MicroOpBits::B128););
+        ENCODE_CASE("vec_shlbytes_vex", "C5 F1 73 FA 08", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(8, 8), MicroOp::VecShiftLeftBytes, MicroOpBits::B128););
+        ENCODE_CASE("vec_shrbytes_vex", "C5 F1 73 DA 08", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(8, 8), MicroOp::VecShiftRightBytes, MicroOpBits::B128););
+        ENCODE_CASE("vec_sar16_vex_ext_dst", "C5 B1 71 E2 03", b.emitOpBinaryRegRegImm(XMM9, XMM2, ApInt(3, 8), MicroOp::VecShiftRightA16, MicroOpBits::B128););
+
+        // Rounds: plain destination-in-reg shape on the 0F3A map.
+        ENCODE_CASE("vec_roundf32_floor", "C4 E3 79 08 CA 09", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(9, 8), MicroOp::VecRoundF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_roundf64_ceil", "C4 E3 79 09 CA 0A", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(10, 8), MicroOp::VecRoundF64, MicroOpBits::B128););
+
+        // Packed float compares: predicate in the immediate.
+        ENCODE_CASE("vec_cmpf32_lt", "C5 E8 C2 CB 01", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 1, MicroOp::VecCmpF32, MicroOpBits::B128););
+        ENCODE_CASE("vec_cmpf64_le", "C5 E9 C2 CB 02", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 2, MicroOp::VecCmpF64, MicroOpBits::B128););
+        return Result::Continue;
+    }
+
     Result runCase(TaskContext& ctx, Result (*buildFn)(const RunCaseFn&))
     {
         const RunCaseFn runOneCase = EncoderRunCase{.ctx = &ctx};
@@ -448,6 +570,12 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(EncodeX64_CmpAndCond)
 {
     SWC_RESULT(runCase(ctx, buildCmpAndCond));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_VecPackedOps)
+{
+    SWC_RESULT(runCase(ctx, buildVecPackedOps));
 }
 SWC_TEST_END()
 

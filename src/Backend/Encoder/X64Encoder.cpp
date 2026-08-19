@@ -625,52 +625,196 @@ namespace
         }
     }
 
-    // VEX prefix for the scalar 128-bit forms this encoder emits: L = 0, W
-    // ignored, and mmmmm always the 0F escape - so the two-byte form covers
-    // everything except a second source in the extended register file. The
-    // R/B/vvvv fields are stored inverted, which is why every one of them is
-    // written as its complement.
-    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, X64Reg dst, X64Reg src1, X64Reg src2)
+    // Opcode maps reachable through a VEX prefix; the value is the mmmmm field.
+    constexpr uint8_t VEX_MAP_0F   = 1;
+    constexpr uint8_t VEX_MAP_0F38 = 2;
+    constexpr uint8_t VEX_MAP_0F3A = 3;
+
+    // VEX prefix for the 128-bit forms this encoder emits: L = 0, W = 0, and
+    // the opcode map named explicitly. The two-byte C5 form only exists for
+    // the 0F map, so the other maps always take the three-byte form. The
+    // R/X/B/vvvv fields are stored inverted, which is why every one of them
+    // is written as its complement.
+    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2)
     {
         const uint8_t pp     = vexPrefixBits(mandatoryPrefix);
         const uint8_t vvvv   = static_cast<uint8_t>(~x64RegNumber(src1) & 0x0F);
         const bool    extDst = isExtendedReg(dst);
         const bool    extSrc = isExtendedReg(src2);
 
-        if (!extSrc)
+        if (map == VEX_MAP_0F && !extSrc)
         {
             store.pushU8(0xC5);
             store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (vvvv << 3) | pp));
             return;
         }
 
-        // Three-byte form, reached only when the second source is extended, so
-        // its B field is the one that has to go to zero. X is unused here.
+        // Three-byte form: X is unused, B covers the r/m register, and mmmmm
+        // names the opcode map.
         store.pushU8(0xC4);
-        store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | 0x40 | 0x01));
+        store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | 0x40 | (extSrc ? 0 : 0x20) | map));
         store.pushU8(static_cast<uint8_t>((vvvv << 3) | pp));
     }
 
-    // The 0F-map opcode byte of a 128-bit packed integer operation. The same
-    // byte serves the legacy 66 0F form and its VEX counterpart.
-    uint8_t vecPackedOpcodeByte(MicroOp op)
+    struct VecOpEncoding
+    {
+        uint8_t map;
+        uint8_t prefix;
+        uint8_t opcode;
+    };
+
+    // Opcode selection for the packed forms whose ModRM carries plain
+    // registers. The same entry serves the destructive legacy SSE shape where
+    // one is still emitted and the VEX shape. The shift-by-immediate group is
+    // keyed separately (vecShiftImmEncoding) because it carries an opcode
+    // extension instead of a destination in ModRM.reg.
+    VecOpEncoding vecOpEncoding(MicroOp op)
     {
         switch (op)
         {
-            case MicroOp::VecAdd32:
-                return 0xFE;
-            case MicroOp::VecSub32:
-                return 0xFA;
-            case MicroOp::VecAnd:
-                return 0xDB;
-            case MicroOp::VecOr:
-                return 0xEB;
-            case MicroOp::VecXor:
-                return 0xEF;
+            case MicroOp::VecAdd8: return {VEX_MAP_0F, 0x66, 0xFC};
+            case MicroOp::VecAdd16: return {VEX_MAP_0F, 0x66, 0xFD};
+            case MicroOp::VecAdd32: return {VEX_MAP_0F, 0x66, 0xFE};
+            case MicroOp::VecAdd64: return {VEX_MAP_0F, 0x66, 0xD4};
+            case MicroOp::VecSub8: return {VEX_MAP_0F, 0x66, 0xF8};
+            case MicroOp::VecSub16: return {VEX_MAP_0F, 0x66, 0xF9};
+            case MicroOp::VecSub32: return {VEX_MAP_0F, 0x66, 0xFA};
+            case MicroOp::VecSub64: return {VEX_MAP_0F, 0x66, 0xFB};
+            case MicroOp::VecMul16: return {VEX_MAP_0F, 0x66, 0xD5};
+            case MicroOp::VecMul32: return {VEX_MAP_0F38, 0x66, 0x40};
+            case MicroOp::VecSatAddS8: return {VEX_MAP_0F, 0x66, 0xEC};
+            case MicroOp::VecSatAddS16: return {VEX_MAP_0F, 0x66, 0xED};
+            case MicroOp::VecSatAddU8: return {VEX_MAP_0F, 0x66, 0xDC};
+            case MicroOp::VecSatAddU16: return {VEX_MAP_0F, 0x66, 0xDD};
+            case MicroOp::VecSatSubS8: return {VEX_MAP_0F, 0x66, 0xE8};
+            case MicroOp::VecSatSubS16: return {VEX_MAP_0F, 0x66, 0xE9};
+            case MicroOp::VecSatSubU8: return {VEX_MAP_0F, 0x66, 0xD8};
+            case MicroOp::VecSatSubU16: return {VEX_MAP_0F, 0x66, 0xD9};
+            case MicroOp::VecAvgU8: return {VEX_MAP_0F, 0x66, 0xE0};
+            case MicroOp::VecAvgU16: return {VEX_MAP_0F, 0x66, 0xE3};
+            case MicroOp::VecMaddS16: return {VEX_MAP_0F, 0x66, 0xF5};
+            case MicroOp::VecAnd: return {VEX_MAP_0F, 0x66, 0xDB};
+            case MicroOp::VecAndNot: return {VEX_MAP_0F, 0x66, 0xDF};
+            case MicroOp::VecOr: return {VEX_MAP_0F, 0x66, 0xEB};
+            case MicroOp::VecXor: return {VEX_MAP_0F, 0x66, 0xEF};
+            case MicroOp::VecMinS8: return {VEX_MAP_0F38, 0x66, 0x38};
+            case MicroOp::VecMinS16: return {VEX_MAP_0F, 0x66, 0xEA};
+            case MicroOp::VecMinS32: return {VEX_MAP_0F38, 0x66, 0x39};
+            case MicroOp::VecMinU8: return {VEX_MAP_0F, 0x66, 0xDA};
+            case MicroOp::VecMinU16: return {VEX_MAP_0F38, 0x66, 0x3A};
+            case MicroOp::VecMinU32: return {VEX_MAP_0F38, 0x66, 0x3B};
+            case MicroOp::VecMaxS8: return {VEX_MAP_0F38, 0x66, 0x3C};
+            case MicroOp::VecMaxS16: return {VEX_MAP_0F, 0x66, 0xEE};
+            case MicroOp::VecMaxS32: return {VEX_MAP_0F38, 0x66, 0x3D};
+            case MicroOp::VecMaxU8: return {VEX_MAP_0F, 0x66, 0xDE};
+            case MicroOp::VecMaxU16: return {VEX_MAP_0F38, 0x66, 0x3E};
+            case MicroOp::VecMaxU32: return {VEX_MAP_0F38, 0x66, 0x3F};
+            case MicroOp::VecCmpEq8: return {VEX_MAP_0F, 0x66, 0x74};
+            case MicroOp::VecCmpEq16: return {VEX_MAP_0F, 0x66, 0x75};
+            case MicroOp::VecCmpEq32: return {VEX_MAP_0F, 0x66, 0x76};
+            case MicroOp::VecCmpEq64: return {VEX_MAP_0F38, 0x66, 0x29};
+            case MicroOp::VecCmpGtS8: return {VEX_MAP_0F, 0x66, 0x64};
+            case MicroOp::VecCmpGtS16: return {VEX_MAP_0F, 0x66, 0x65};
+            case MicroOp::VecCmpGtS32: return {VEX_MAP_0F, 0x66, 0x66};
+            case MicroOp::VecCmpGtS64: return {VEX_MAP_0F38, 0x66, 0x37};
+            case MicroOp::VecPackSS16: return {VEX_MAP_0F, 0x66, 0x63};
+            case MicroOp::VecPackSS32: return {VEX_MAP_0F, 0x66, 0x6B};
+            case MicroOp::VecPackUS16: return {VEX_MAP_0F, 0x66, 0x67};
+            case MicroOp::VecPackUS32: return {VEX_MAP_0F38, 0x66, 0x2B};
+            case MicroOp::VecUnpackLo8: return {VEX_MAP_0F, 0x66, 0x60};
+            case MicroOp::VecUnpackLo16: return {VEX_MAP_0F, 0x66, 0x61};
+            case MicroOp::VecUnpackLo32: return {VEX_MAP_0F, 0x66, 0x62};
+            case MicroOp::VecUnpackLo64: return {VEX_MAP_0F, 0x66, 0x6C};
+            case MicroOp::VecUnpackHi8: return {VEX_MAP_0F, 0x66, 0x68};
+            case MicroOp::VecUnpackHi16: return {VEX_MAP_0F, 0x66, 0x69};
+            case MicroOp::VecUnpackHi32: return {VEX_MAP_0F, 0x66, 0x6A};
+            case MicroOp::VecUnpackHi64: return {VEX_MAP_0F, 0x66, 0x6D};
+            case MicroOp::VecPermB: return {VEX_MAP_0F38, 0x66, 0x00};
+            case MicroOp::VecAddF32: return {VEX_MAP_0F, 0x00, 0x58};
+            case MicroOp::VecAddF64: return {VEX_MAP_0F, 0x66, 0x58};
+            case MicroOp::VecSubF32: return {VEX_MAP_0F, 0x00, 0x5C};
+            case MicroOp::VecSubF64: return {VEX_MAP_0F, 0x66, 0x5C};
+            case MicroOp::VecMulF32: return {VEX_MAP_0F, 0x00, 0x59};
+            case MicroOp::VecMulF64: return {VEX_MAP_0F, 0x66, 0x59};
+            case MicroOp::VecDivF32: return {VEX_MAP_0F, 0x00, 0x5E};
+            case MicroOp::VecDivF64: return {VEX_MAP_0F, 0x66, 0x5E};
+            case MicroOp::VecMinF32: return {VEX_MAP_0F, 0x00, 0x5D};
+            case MicroOp::VecMinF64: return {VEX_MAP_0F, 0x66, 0x5D};
+            case MicroOp::VecMaxF32: return {VEX_MAP_0F, 0x00, 0x5F};
+            case MicroOp::VecMaxF64: return {VEX_MAP_0F, 0x66, 0x5F};
+            case MicroOp::VecAbsS8: return {VEX_MAP_0F38, 0x66, 0x1C};
+            case MicroOp::VecAbsS16: return {VEX_MAP_0F38, 0x66, 0x1D};
+            case MicroOp::VecAbsS32: return {VEX_MAP_0F38, 0x66, 0x1E};
+            case MicroOp::VecWidenLoS8: return {VEX_MAP_0F38, 0x66, 0x20};
+            case MicroOp::VecWidenLoS16: return {VEX_MAP_0F38, 0x66, 0x23};
+            case MicroOp::VecWidenLoS32: return {VEX_MAP_0F38, 0x66, 0x25};
+            case MicroOp::VecWidenLoU8: return {VEX_MAP_0F38, 0x66, 0x30};
+            case MicroOp::VecWidenLoU16: return {VEX_MAP_0F38, 0x66, 0x33};
+            case MicroOp::VecWidenLoU32: return {VEX_MAP_0F38, 0x66, 0x35};
+            case MicroOp::VecSqrtF32: return {VEX_MAP_0F, 0x00, 0x51};
+            case MicroOp::VecSqrtF64: return {VEX_MAP_0F, 0x66, 0x51};
+            case MicroOp::VecMoveMaskB: return {VEX_MAP_0F, 0x66, 0xD7};
+            case MicroOp::VecMoveMaskF32: return {VEX_MAP_0F, 0x00, 0x50};
+            case MicroOp::VecMoveMaskF64: return {VEX_MAP_0F, 0x66, 0x50};
+            case MicroOp::VecRoundF32: return {VEX_MAP_0F3A, 0x66, 0x08};
+            case MicroOp::VecRoundF64: return {VEX_MAP_0F3A, 0x66, 0x09};
+            case MicroOp::VecCmpF32: return {VEX_MAP_0F, 0x00, 0xC2};
+            case MicroOp::VecCmpF64: return {VEX_MAP_0F, 0x66, 0xC2};
             default:
                 SWC_INTERNAL_ERROR();
         }
-        return 0;
+        return {};
+    }
+
+    // The packed shift-by-immediate group: the opcode byte names the lane
+    // width, the operation rides in ModRM.reg as an opcode extension.
+    bool vecShiftImmEncoding(MicroOp op, uint8_t& outOpcode, uint8_t& outModRmReg)
+    {
+        switch (op)
+        {
+            case MicroOp::VecShiftLeft16:
+                outOpcode  = 0x71;
+                outModRmReg = MODRM_REG_6;
+                return true;
+            case MicroOp::VecShiftRight16:
+                outOpcode  = 0x71;
+                outModRmReg = MODRM_REG_2;
+                return true;
+            case MicroOp::VecShiftRightA16:
+                outOpcode  = 0x71;
+                outModRmReg = MODRM_REG_4;
+                return true;
+            case MicroOp::VecShiftLeft32:
+                outOpcode  = 0x72;
+                outModRmReg = MODRM_REG_6;
+                return true;
+            case MicroOp::VecShiftRight32:
+                outOpcode  = 0x72;
+                outModRmReg = MODRM_REG_2;
+                return true;
+            case MicroOp::VecShiftRightA32:
+                outOpcode  = 0x72;
+                outModRmReg = MODRM_REG_4;
+                return true;
+            case MicroOp::VecShiftLeft64:
+                outOpcode  = 0x73;
+                outModRmReg = MODRM_REG_6;
+                return true;
+            case MicroOp::VecShiftRight64:
+                outOpcode  = 0x73;
+                outModRmReg = MODRM_REG_2;
+                return true;
+            case MicroOp::VecShiftLeftBytes:
+                outOpcode  = 0x73;
+                outModRmReg = MODRM_REG_7;
+                return true;
+            case MicroOp::VecShiftRightBytes:
+                outOpcode  = 0x73;
+                outModRmReg = MODRM_REG_3;
+                return true;
+            default:
+                return false;
+        }
     }
 
     uint8_t getX64OpCode(MicroOp op)
@@ -2468,15 +2612,19 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     ///////////////////////////////////////////
     // 128-bit packed integer forms (SSE2): 66 0F <op> /r with the destination
     // in the reg field. The lane width is carried by the operation itself;
-    // opBits is the full vector width.
+    // opBits is the full vector width. Only the 0F-map 66-prefixed operations
+    // have this destructive legacy shape; everything else goes through the
+    // VEX three-operand form.
     if (isVecMicroOp(op))
     {
         SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
 
+        const VecOpEncoding enc = vecOpEncoding(op);
+        SWC_ASSERT(enc.map == VEX_MAP_0F && enc.prefix == 0x66);
         emitCpuOp(store_, 0x66);
         emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, vecPackedOpcodeByte(op));
+        emitCpuOp(store_, enc.opcode);
         emitModRm(store_, regDst, regSrc);
         return;
     }
@@ -3399,14 +3547,15 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
 {
     SWC_ASSERT(regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
 
-    // 128-bit packed integer: the VEX form of the same 66 0F <op> encoding the
-    // two-operand shape uses, with the untouched source named in vvvv instead
-    // of having to be copied into the destination first.
+    // 128-bit packed: the VEX form of the same legacy encoding the two-operand
+    // shape uses, with the untouched source named in vvvv instead of having to
+    // be copied into the destination first.
     if (isVecMicroOp(op))
     {
         SWC_ASSERT(opBits == MicroOpBits::B128);
-        emitVex(store_, 0x66, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
-        emitCpuOp(store_, vecPackedOpcodeByte(op));
+        const VecOpEncoding enc = vecOpEncoding(op);
+        emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
+        emitCpuOp(store_, enc.opcode);
         emitModRm(store_, regDst, regSrc2);
         return;
     }
@@ -3420,24 +3569,67 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
                                               : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
 
     // No 0F byte: the VEX prefix already carries the escape.
-    emitVex(store_, mandatoryPrefix, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
+    emitVex(store_, mandatoryPrefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
     emitCpuOp(store_, op);
     emitModRm(store_, regDst, regSrc2);
 }
 
 void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, uint64_t value)
 {
-    // vpslld/vpsrld xmm1, xmm2, imm8 (VEX.NDD.128.66.0F.WIG 72 /6|/2 ib). The
-    // shift-by-immediate group puts its opcode extension in the ModRM.reg
-    // field, so the destination travels in vvvv and the source in r/m - the
-    // reverse of the three-operand arithmetic form.
-    SWC_ASSERT(op == MicroOp::VecShiftLeft32 || op == MicroOp::VecShiftRight32);
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
-    SWC_ASSERT(value <= 31);
+    SWC_ASSERT(value <= 0xFF);
 
-    emitVex(store_, 0x66, X64Reg::Rax, microRegToX64Reg(regDst), microRegToX64Reg(regSrc));
-    emitCpuOp(store_, 0x72);
-    emitModRm(store_, op == MicroOp::VecShiftLeft32 ? MODRM_REG_6 : MODRM_REG_2, regSrc);
+    // vroundps/vroundpd xmm1, xmm2, imm8 (VEX.128.66.0F3A 08|09 /r ib): plain
+    // destination-in-reg shape, vvvv unused.
+    if (op == MicroOp::VecRoundF32 || op == MicroOp::VecRoundF64)
+    {
+        const VecOpEncoding enc = vecOpEncoding(op);
+        emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(regSrc));
+        emitCpuOp(store_, enc.opcode);
+        emitModRm(store_, regDst, regSrc);
+        emitValue(store_, value, MicroOpBits::B8);
+        return;
+    }
+
+    // The shift-by-immediate group (VEX.NDD.128.66.0F 71|72|73 /n ib) puts its
+    // opcode extension in the ModRM.reg field, so the destination travels in
+    // vvvv and the source in r/m - the reverse of the three-operand
+    // arithmetic form.
+    uint8_t opcode   = 0;
+    uint8_t modRmReg = 0;
+    const bool isShift = vecShiftImmEncoding(op, opcode, modRmReg);
+    SWC_ASSERT(isShift);
+    emitVex(store_, 0x66, VEX_MAP_0F, X64Reg::Rax, microRegToX64Reg(regDst), microRegToX64Reg(regSrc));
+    emitCpuOp(store_, opcode);
+    emitModRm(store_, modRmReg, regSrc);
+    emitValue(store_, value, MicroOpBits::B8);
+}
+
+void X64Encoder::encodeVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regSrc.isFloat());
+    // The movemask forms write lane sign bits into an integer register; every
+    // other packed unary writes a float one. vvvv is unused in all of them.
+    SWC_ASSERT(regDst.isFloat() || op == MicroOp::VecMoveMaskB || op == MicroOp::VecMoveMaskF32 || op == MicroOp::VecMoveMaskF64);
+
+    const VecOpEncoding enc = vecOpEncoding(op);
+    emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), X64Reg::Rax, microRegToX64Reg(regSrc));
+    emitCpuOp(store_, enc.opcode);
+    emitModRm(store_, regDst, regSrc);
+}
+
+void X64Encoder::encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits, uint64_t value)
+{
+    // vcmpps/vcmppd xmm1, xmm2, xmm3, imm8: the predicate rides in the
+    // immediate, the lanes come out all-ones/all-zeros.
+    SWC_ASSERT(op == MicroOp::VecCmpF32 || op == MicroOp::VecCmpF64);
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
+    SWC_ASSERT(value <= 0xFF);
+
+    const VecOpEncoding enc = vecOpEncoding(op);
+    emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
+    emitCpuOp(store_, enc.opcode);
+    emitModRm(store_, regDst, regSrc2);
     emitValue(store_, value, MicroOpBits::B8);
 }
 

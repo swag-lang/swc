@@ -188,6 +188,8 @@ public:
     void emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, const ApInt& value, MicroOp op, MicroOpBits opBits);
+    void emitVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits);
+    void emitOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, uint8_t value, MicroOp op, MicroOpBits opBits);
 
 private:
     std::pair<MicroInstrRef, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands);

@@ -349,6 +349,125 @@ namespace
         builder.emitRet();
     }
 
+    // The packed codec vocabulary executed directly: rounding average,
+    // saturating add, widen, multiply-add, saturating packs, shift, signed
+    // compare, movemask, and the and/andnot/or select composition. Inputs at
+    // offsets 0/16 (bytes), 32 (s16 twos), 48 (s16 fifties); outputs from 64.
+    uint32_t vecPackedOpsData[32];
+
+    void buildReturnZeroAfterVecCodecOps(MicroBuilder& builder, const CallConv& callConv)
+    {
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg rdx  = MicroReg::intReg(3);
+        constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+        constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+        constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+        constexpr MicroReg xmm4 = MicroReg::floatReg(4);
+        constexpr MicroReg xmm5 = MicroReg::floatReg(5);
+
+        builder.emitLoadRegPtrImm(r8, reinterpret_cast<uint64_t>(vecPackedOpsData));
+        builder.emitLoadVecRegMem(xmm1, r8, 0, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(xmm2, r8, 16, MicroOpBits::B128);
+
+        // avg(i, 255 - i) rounds up to 128 in every byte lane.
+        builder.emitOpBinaryRegRegReg(xmm3, xmm1, xmm2, MicroOp::VecAvgU8, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 64, xmm3, MicroOpBits::B128);
+
+        // i + (255 - i) saturates to 255 in every byte lane.
+        builder.emitOpBinaryRegRegReg(xmm3, xmm1, xmm2, MicroOp::VecSatAddU8, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 80, xmm3, MicroOpBits::B128);
+
+        // widen {0..7}, madd by twos, then narrow twice through the
+        // saturating packs: bytes {2, 10, 18, 26} repeated.
+        builder.emitVecUnaryRegReg(xmm2, xmm1, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(xmm4, r8, 32, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm5, xmm2, xmm4, MicroOp::VecMaddS16, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm5, xmm5, xmm5, MicroOp::VecPackUS32, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm5, xmm5, xmm5, MicroOp::VecPackUS16, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 96, xmm5, MicroOpBits::B128);
+
+        // t = lanes * 16; mask = t > 50; select(mask, t, 50).
+        builder.emitOpBinaryRegRegImm(xmm3, xmm2, ApInt(4, 8), MicroOp::VecShiftLeft16, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(xmm4, r8, 48, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm5, xmm3, xmm4, MicroOp::VecCmpGtS16, MicroOpBits::B128);
+
+        // The four high lanes compare greater, so their bytes set the top
+        // eight movemask bits.
+        builder.emitClearReg(callConv.intReturn, MicroOpBits::B64);
+        builder.emitVecUnaryRegReg(rdx, xmm5, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rdx, ApInt(0xFF00, 32), MicroOp::Xor, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+
+        // sel = (t & mask) | (fifties & ~mask); vpandn complements its FIRST source.
+        builder.emitOpBinaryRegRegReg(xmm1, xmm3, xmm5, MicroOp::VecAnd, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm2, xmm5, xmm4, MicroOp::VecAndNot, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm1, xmm1, xmm2, MicroOp::VecOr, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 112, xmm1, MicroOpBits::B128);
+
+        // acc |= (out word ^ expected word) over the four stored vectors.
+        static constexpr uint32_t EXPECTED[16] = {
+            0x80808080, 0x80808080, 0x80808080, 0x80808080,
+            0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+            0x1A120A02, 0x1A120A02, 0x1A120A02, 0x1A120A02,
+            0x00320032, 0x00320032, 0x00500040, 0x00700060};
+        for (uint32_t word = 0; word < 16; ++word)
+        {
+            builder.emitLoadRegMem(rdx, r8, 64 + word * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[word], 32), MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+        }
+        builder.emitRet();
+    }
+
+    // The packed float vocabulary executed directly: sqrt, add, floor-round,
+    // predicate compare plus its movemask, and multiply, verified on exact
+    // bit patterns.
+    float vecFloatOpsData[16];
+
+    void buildReturnZeroAfterVecFloatOps(MicroBuilder& builder, const CallConv& callConv)
+    {
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg rdx  = MicroReg::intReg(3);
+        constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+        constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+        constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+        constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+        constexpr MicroReg xmm4 = MicroReg::floatReg(4);
+        constexpr MicroReg xmm5 = MicroReg::floatReg(5);
+
+        builder.emitLoadRegPtrImm(r8, reinterpret_cast<uint64_t>(vecFloatOpsData));
+        builder.emitLoadVecRegMem(xmm1, r8, 0, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(xmm2, r8, 16, MicroOpBits::B128);
+
+        // sqrt{1,4,9,16} = {1,2,3,4}; +0.5 then floor lands back on it.
+        builder.emitVecUnaryRegReg(xmm3, xmm1, MicroOp::VecSqrtF32, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(xmm4, xmm3, xmm2, MicroOp::VecAddF32, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegImm(xmm5, xmm4, ApInt(9, 8), MicroOp::VecRoundF32, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 32, xmm5, MicroOpBits::B128);
+
+        // Every floored lane equals its sqrt lane, so the compare mask is full.
+        builder.emitClearReg(callConv.intReturn, MicroOpBits::B64);
+        builder.emitOpTernaryRegRegRegImm(xmm0, xmm5, xmm3, 0, MicroOp::VecCmpF32, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(rdx, xmm0, MicroOp::VecMoveMaskF32, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rdx, ApInt(0xF, 32), MicroOp::Xor, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+
+        builder.emitOpBinaryRegRegReg(xmm2, xmm4, xmm4, MicroOp::VecMulF32, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 48, xmm2, MicroOpBits::B128);
+
+        // acc |= (out word ^ expected bit pattern) over both stored vectors.
+        static constexpr uint32_t EXPECTED[8] = {
+            0x3F800000, 0x40000000, 0x40400000, 0x40800000,
+            0x40100000, 0x40C80000, 0x41440000, 0x41A20000};
+        for (uint32_t word = 0; word < 8; ++word)
+        {
+            builder.emitLoadRegMem(rdx, r8, 32 + word * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[word], 32), MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+        }
+        builder.emitRet();
+    }
+
     // End-to-end auto-vectorization: scalar lanes written by hand, the SLP
     // pass grouping them into packed code, and a scalar readback verifying
     // the values. The data lives outside the frame so scalar promotion
@@ -448,6 +567,38 @@ SWC_TEST_BEGIN(JIT_PackedIntegerOps)
     }
 
     SWC_RESULT(runCase(ctx, &buildReturnZeroAfterPackedIntegerOps, 0));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_VecCodecOps)
+{
+    for (uint32_t lane = 0; lane < 4; ++lane)
+    {
+        // Bytes 0..15 at offset 0, bytes 255..240 at offset 16.
+        vecPackedOpsData[lane]     = 0x03020100u + 0x04040404u * lane;
+        vecPackedOpsData[4 + lane] = 0xFCFDFEFFu - 0x04040404u * lane;
+        vecPackedOpsData[8 + lane]  = 0x00020002u;
+        vecPackedOpsData[12 + lane] = 0x00320032u;
+    }
+    for (uint32_t word = 16; word < 32; ++word)
+        vecPackedOpsData[word] = 0;
+
+    SWC_RESULT(runCase(ctx, &buildReturnZeroAfterVecCodecOps, 0));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_VecFloatOps)
+{
+    static constexpr float IN[4] = {1.0f, 4.0f, 9.0f, 16.0f};
+    for (uint32_t lane = 0; lane < 4; ++lane)
+    {
+        vecFloatOpsData[lane]     = IN[lane];
+        vecFloatOpsData[4 + lane] = 0.5f;
+        vecFloatOpsData[8 + lane]  = 0.0f;
+        vecFloatOpsData[12 + lane] = 0.0f;
+    }
+
+    SWC_RESULT(runCase(ctx, &buildReturnZeroAfterVecFloatOps, 0));
 }
 SWC_TEST_END()
 

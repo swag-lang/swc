@@ -147,6 +147,15 @@ private func convertRgbRows(frame: const *Frame, target: *Pixel.Image, width, he
             remaining   -= 1
         }
 
+        while remaining >= 16
+        {
+            convertRgb16(destination, luma, cbRow + chromaAt, crRow + chromaAt)
+            destination += 48
+            luma        += 16
+            chromaAt    += 8
+            remaining   -= 16
+        }
+
         while remaining >= 2
         {
             let d     = cast(s32) cbRow[chromaAt] - 128
@@ -178,6 +187,65 @@ private func storeRgbPixel(destination: [*] u8, c298, rTerm, gTerm, bTerm: s32)
     destination[0] = clampPixel((c298 + rTerm) >> 8)
     destination[1] = clampPixel((c298 + gTerm) >> 8)
     destination[2] = clampPixel((c298 + bTerm) >> 8)
+}
+
+// Converts sixteen luma samples against their eight shared chroma samples, with the
+// exact fixed-point arithmetic of the scalar path: the products need 32-bit lanes,
+// the signed pack keeps the shifted values intact (they stay within about -204..481),
+// and the unsigned pack is exactly the scalar clamp. The three packed color vectors
+// then interleave into the 48 output bytes.
+#[Swag.Inline]
+private func convertRgb16(destination: [*] u8, luma, cb, cr: const [*] u8)
+{
+    // Each chroma byte serves a pair of pixels.
+    const DupPairs = cast(#simd [16] u8) [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]
+
+    let y16 = @vecsatsub((cast(const [*] #simd [16] u8) luma)[0], cast(#simd [16] u8) 16'u8)
+    let yLo = @vecwidenlo(y16)
+    let yHi = @vecwidenhi(y16)
+    let y0  = (cast #bit(#simd [4] s32) @vecwidenlo(yLo)) * 298
+    let y1  = (cast #bit(#simd [4] s32) @vecwidenhi(yLo)) * 298
+    let y2  = (cast #bit(#simd [4] s32) @vecwidenlo(yHi)) * 298
+    let y3  = (cast #bit(#simd [4] s32) @vecwidenhi(yHi)) * 298
+
+    let dBytes = @vecperm((cast(const [*] #simd [16] u8) cb)[0], DupPairs)
+    let eBytes = @vecperm((cast(const [*] #simd [16] u8) cr)[0], DupPairs)
+    let dSLo   = (cast #bit(#simd [8] s16) @vecwidenlo(dBytes)) - 128
+    let dSHi   = (cast #bit(#simd [8] s16) @vecwidenhi(dBytes)) - 128
+    let eSLo   = (cast #bit(#simd [8] s16) @vecwidenlo(eBytes)) - 128
+    let eSHi   = (cast #bit(#simd [8] s16) @vecwidenhi(eBytes)) - 128
+
+    let d0 = @vecwidenlo(dSLo)
+    let d1 = @vecwidenhi(dSLo)
+    let d2 = @vecwidenlo(dSHi)
+    let d3 = @vecwidenhi(dSHi)
+    let e0 = @vecwidenlo(eSLo)
+    let e1 = @vecwidenhi(eSLo)
+    let e2 = @vecwidenlo(eSHi)
+    let e3 = @vecwidenhi(eSHi)
+
+    let r8 = @vecpackus(@vecpackss((y0 + e0 * 409 + 128) >> 8, (y1 + e1 * 409 + 128) >> 8),
+                        @vecpackss((y2 + e2 * 409 + 128) >> 8, (y3 + e3 * 409 + 128) >> 8))
+    let g8 = @vecpackus(@vecpackss((y0 - d0 * 100 - e0 * 208 + 128) >> 8, (y1 - d1 * 100 - e1 * 208 + 128) >> 8),
+                        @vecpackss((y2 - d2 * 100 - e2 * 208 + 128) >> 8, (y3 - d3 * 100 - e3 * 208 + 128) >> 8))
+    let b8 = @vecpackus(@vecpackss((y0 + d0 * 516 + 128) >> 8, (y1 + d1 * 516 + 128) >> 8),
+                        @vecpackss((y2 + d2 * 516 + 128) >> 8, (y3 + d3 * 516 + 128) >> 8))
+
+    // Byte k of the 48 output bytes is color k % 3 of pixel k / 3; a permutation index
+    // of 128 clears the lane, so the three spreads combine with plain ors.
+    const PermR0 = cast(#simd [16] u8) [0'u8, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128, 5]
+    const PermG0 = cast(#simd [16] u8) [128'u8, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128]
+    const PermB0 = cast(#simd [16] u8) [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128]
+    const PermR1 = cast(#simd [16] u8) [128'u8, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10, 128]
+    const PermG1 = cast(#simd [16] u8) [5'u8, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10]
+    const PermB1 = cast(#simd [16] u8) [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128]
+    const PermR2 = cast(#simd [16] u8) [128'u8, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128, 128]
+    const PermG2 = cast(#simd [16] u8) [128'u8, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128]
+    const PermB2 = cast(#simd [16] u8) [10'u8, 128, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15]
+
+    (cast([*] #simd [16] u8) destination)[0]        = @vecperm(r8, PermR0) | @vecperm(g8, PermG0) | @vecperm(b8, PermB0)
+    (cast([*] #simd [16] u8) (destination + 16))[0] = @vecperm(r8, PermR1) | @vecperm(g8, PermG1) | @vecperm(b8, PermB1)
+    (cast([*] #simd [16] u8) (destination + 32))[0] = @vecperm(r8, PermR2) | @vecperm(g8, PermG2) | @vecperm(b8, PermB2)
 }
 
 // Replicates the edges of one plane into its padding border.

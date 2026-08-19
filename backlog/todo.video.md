@@ -43,14 +43,22 @@ is the layout it does not read yet.
 - Per-stage now (59 frames of 1080p30, release, native): motion compensation ~870 ms, CABAC
   parse ~730 of which residual blocks ~380, deblocking ~610, YUV-to-RGB ~470, bookkeeping ~230,
   motion derivations ~210, `prepareMb` ~110.
+- The `#simd` pass (2026-08-19) packed the sixteen-wide six-tap and averaging rows, then the
+  eight- and four-wide six-tap filters, the whole center half-sample position (16-bit horizontal
+  sums, widened vertical pass), the eight- and four-wide chroma blends, and the conversion —
+  sixteen pixels per iteration with the exact 32-bit arithmetic and three `@vecperm` spreads
+  for the packed stores. On the 300-frame sample, 59 frames went from about 2.5-2.7 s to about
+  2.2-2.4 s (best 2498 to 2207 ms, roughly 11%), byte-exact in fast-debug and release.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
-  levers, in expected order of value: a byte-run significance fast path in the CABAC engine and
-  packed stores in the conversion. Branchful CABAC decisions, quotient-based bypass runs, and
-  four-byte row copies in `bookkeepMb` all regressed release decoding and were discarded. A 16-bit
-  SWAR six-tap prototype stayed byte-exact but regressed this backend by about 13%, because
-  expanding byte inputs cost more than the packed arithmetic saved. A trap for the parse/recon split:
-  the Intra_16x16 and chroma reconstruction read residual blocks the entropy decoders never
-  parsed, so the per-macroblock residual arrays must stay cleared (see `prepareMb`).
+  levers, in expected order of value: a byte-run significance fast path in the CABAC engine,
+  packed deblocking filters (the transposed vertical edges are the hard half), and packed
+  weighted prediction (`weightUni`/`weightBi` widen to pairs for `@vecmadd`). Branchful CABAC
+  decisions, quotient-based bypass runs, and four-byte row copies in `bookkeepMb` all regressed
+  release decoding and were discarded. A 16-bit SWAR six-tap prototype stayed byte-exact but
+  regressed this backend by about 13%, because expanding byte inputs cost more than the packed
+  arithmetic saved — the `#simd` lanes do not pay that expansion. A trap for the parse/recon
+  split: the Intra_16x16 and chroma reconstruction read residual blocks the entropy decoders
+  never parsed, so the per-macroblock residual arrays must stay cleared (see `prepareMb`).
 
 ### T-424 — A video stream carries no sound
 

@@ -15,18 +15,59 @@ using Core
 #[Swag.Inline]
 func tap6(a, b, c, d, e, f: s32)->s32 => a - 5 * b + 20 * c + 20 * d - 5 * e + f
 
-// Eight six-tap half-samples on widened byte lanes. Every intermediate fits
-// s16: the positive taps reach 20 * 510 + 510 = 10710 and the negative ones
-// -2550, so the arithmetic never wraps and the caller's saturating pack is
-// exactly the scalar clamp.
+// Eight unclipped six-tap sums on widened byte lanes. Every sum fits s16: the
+// positive taps reach 20 * 510 + 510 = 10710 and the negative ones -2550, so
+// the arithmetic never wraps.
 #[Swag.Inline]
-private func tap6Half16(a, b, c, d, e, f: #simd [8] u16)->#simd [8] s16
+private func tap6Raw16(a, b, c, d, e, f: #simd [8] u16)->#simd [8] s16
 {
     let inner = cast #bit(#simd [8] s16) (c + d)
     let outer = cast #bit(#simd [8] s16) (b + e)
     let edges = cast #bit(#simd [8] s16) (a + f)
-    let sum   = edges + inner * 20 - outer * 5
-    return (sum + 16) >> 5
+    return edges + inner * 20 - outer * 5
+}
+
+// Eight six-tap half-samples on widened byte lanes; the caller's saturating
+// pack is exactly the scalar clamp.
+#[Swag.Inline]
+private func tap6Half16(a, b, c, d, e, f: #simd [8] u16)->#simd [8] s16
+{
+    return (tap6Raw16(a, b, c, d, e, f) + 16) >> 5
+}
+
+// One vertical six-tap over four widened sums, with the center rounding shift.
+// The 32-bit intermediates stay far inside the lane range: the sums reach
+// ±10710, so the filtered value reaches about ±470000.
+#[Swag.Inline]
+private func tap6CenterQuad(a, b, c, d, e, f: #simd [4] s32)->#simd [4] s32
+{
+    let sum = (a + f) + (c + d) * 20 - (b + e) * 5
+    return (sum + 512) >> 10
+}
+
+// One vertical six-tap over eight 16-bit sums, back to 16-bit lanes; the
+// shifted result reaches about ±460, so the signed pack never saturates and
+// the caller's unsigned pack is exactly the scalar clamp.
+#[Swag.Inline]
+private func tap6Center8(a, b, c, d, e, f: #simd [8] s16)->#simd [8] s16
+{
+    let lo = tap6CenterQuad(@vecwidenlo(a), @vecwidenlo(b), @vecwidenlo(c), @vecwidenlo(d), @vecwidenlo(e), @vecwidenlo(f))
+    let hi = tap6CenterQuad(@vecwidenhi(a), @vecwidenhi(b), @vecwidenhi(c), @vecwidenhi(d), @vecwidenhi(e), @vecwidenhi(f))
+    return @vecpackss(lo, hi)
+}
+
+// Stores the low eight lanes of a packed vector.
+#[Swag.Inline]
+private func storeLow8(dst: [*] u8, value: #simd [16] u8)
+{
+    (cast([*] u64) dst)[0] = (cast #bit(#simd [2] u64) value)[0]
+}
+
+// Stores the low four lanes of a packed vector.
+#[Swag.Inline]
+private func storeLow4(dst: [*] u8, value: #simd [16] u8)
+{
+    (cast([*] u32) dst)[0] = (cast #bit(#simd [4] u32) value)[0]
 }
 
 // Sixteen six-tap half-samples in one pass: rows spaced by `stride` widen to
@@ -46,6 +87,22 @@ private func tap6Row16(line: const [*] u8, stride: u64)->#simd [16] u8
     let lo = tap6Half16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
     let hi = tap6Half16(@vecwidenhi(r0), @vecwidenhi(r1), @vecwidenhi(r2), @vecwidenhi(r3), @vecwidenhi(r4), @vecwidenhi(r5))
     return @vecpackus(lo, hi)
+}
+
+// Eight six-tap half-samples in the low lanes: one sixteen-byte load per tap
+// covers the thirteen bytes the shifted lanes read.
+#[Swag.Inline]
+private func tap6Row8(line: const [*] u8, stride: u64)->#simd [16] u8
+{
+    let r0 = (cast(const [*] #simd [16] u8) line)[0]
+    let r1 = (cast(const [*] #simd [16] u8) (line + stride))[0]
+    let r2 = (cast(const [*] #simd [16] u8) (line + 2 * stride))[0]
+    let r3 = (cast(const [*] #simd [16] u8) (line + 3 * stride))[0]
+    let r4 = (cast(const [*] #simd [16] u8) (line + 4 * stride))[0]
+    let r5 = (cast(const [*] #simd [16] u8) (line + 5 * stride))[0]
+
+    let lo = tap6Half16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
+    return @vecpackus(lo, lo)
 }
 
 // Copies the `width` by `height` window at `x`, `y` with edge clamping, including the two
@@ -70,6 +127,19 @@ private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride:
     {
         for row in cast(u64) height do
             (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = tap6Row16(src + row * srcStride - 2, 1)
+        return
+    }
+
+    if width == 8 or width == 4
+    {
+        for row in cast(u64) height
+        {
+            let half = tap6Row8(src + row * srcStride - 2, 1)
+            if width == 8 do
+                storeLow8(dst + row * dstStride, half)
+            else do
+                storeLow4(dst + row * dstStride, half)
+        }
         return
     }
 
@@ -99,6 +169,21 @@ private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
         return
     }
 
+    if width == 8 or width == 4
+    {
+        for row in cast(u64) height
+        {
+            let half  = tap6Row8(src + row * srcStride - 2, 1)
+            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
+            let mixed = @vecavgr(half, other)
+            if width == 8 do
+                storeLow8(dst + row * dstStride, mixed)
+            else do
+                storeLow4(dst + row * dstStride, mixed)
+        }
+        return
+    }
+
     for row in cast(u64) height
     {
         let line  = src + row * srcStride - 2
@@ -120,6 +205,19 @@ private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
     {
         for row in cast(u64) height do
             (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = tap6Row16(src + row * srcStride - 2 * srcStride, srcStride)
+        return
+    }
+
+    if width == 8 or width == 4
+    {
+        for row in cast(u64) height
+        {
+            let half = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
+            if width == 8 do
+                storeLow8(dst + row * dstStride, half)
+            else do
+                storeLow4(dst + row * dstStride, half)
+        }
         return
     }
 
@@ -149,6 +247,21 @@ private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
         return
     }
 
+    if width == 8 or width == 4
+    {
+        for row in cast(u64) height
+        {
+            let half  = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
+            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
+            let mixed = @vecavgr(half, other)
+            if width == 8 do
+                storeLow8(dst + row * dstStride, mixed)
+            else do
+                storeLow4(dst + row * dstStride, mixed)
+        }
+        return
+    }
+
     for row in cast(u64) height
     {
         let line  = src + row * srcStride - 2 * srcStride
@@ -167,6 +280,18 @@ private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
 // vertically.
 private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
+    if width == 16
+    {
+        halfCenter16(dst, dstStride, src, srcStride, height)
+        return
+    }
+
+    if width == 8 or width == 4
+    {
+        halfCenter8(dst, dstStride, src, srcStride, width, height)
+        return
+    }
+
     // Horizontal six-tap sums for every row the vertical filter reads.
     var sums: [21 * 16] s32 = undefined
     let sumStride           = cast(u64) width
@@ -186,6 +311,60 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
             let sum = tap6(sums[base - 2 * sumStride + column], sums[base - sumStride + column], sums[base + column], sums[base + sumStride + column], sums[base + 2 * sumStride + column], sums[base + 3 * sumStride + column])
             out[column] = clampPixel((sum + 512) >> 10)
         }
+    }
+}
+
+// Sixteen center half-samples per row: the horizontal sums stay in 16-bit
+// lanes, two vectors per row, and the vertical pass widens them on the fly.
+private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, height: s32)
+{
+    var sums: [21 * 2] #simd [8] s16 = undefined
+    for row in cast(u64) (height + 5)
+    {
+        let line = src + row * srcStride - 2 * srcStride - 2
+        let r0   = (cast(const [*] #simd [16] u8) line)[0]
+        let r1   = (cast(const [*] #simd [16] u8) (line + 1))[0]
+        let r2   = (cast(const [*] #simd [16] u8) (line + 2))[0]
+        let r3   = (cast(const [*] #simd [16] u8) (line + 3))[0]
+        let r4   = (cast(const [*] #simd [16] u8) (line + 4))[0]
+        let r5   = (cast(const [*] #simd [16] u8) (line + 5))[0]
+        sums[row * 2]     = tap6Raw16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
+        sums[row * 2 + 1] = tap6Raw16(@vecwidenhi(r0), @vecwidenhi(r1), @vecwidenhi(r2), @vecwidenhi(r3), @vecwidenhi(r4), @vecwidenhi(r5))
+    }
+
+    for row in cast(u64) height
+    {
+        let lo = tap6Center8(sums[row * 2], sums[row * 2 + 2], sums[row * 2 + 4], sums[row * 2 + 6], sums[row * 2 + 8], sums[row * 2 + 10])
+        let hi = tap6Center8(sums[row * 2 + 1], sums[row * 2 + 3], sums[row * 2 + 5], sums[row * 2 + 7], sums[row * 2 + 9], sums[row * 2 + 11])
+        (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = @vecpackus(lo, hi)
+    }
+}
+
+// Same shape for the narrower blocks: one sum vector per row, the low lanes
+// carrying the block.
+private func halfCenter8(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
+{
+    var sums: [21] #simd [8] s16 = undefined
+    for row in cast(u64) (height + 5)
+    {
+        let line = src + row * srcStride - 2 * srcStride - 2
+        let r0   = (cast(const [*] #simd [16] u8) line)[0]
+        let r1   = (cast(const [*] #simd [16] u8) (line + 1))[0]
+        let r2   = (cast(const [*] #simd [16] u8) (line + 2))[0]
+        let r3   = (cast(const [*] #simd [16] u8) (line + 3))[0]
+        let r4   = (cast(const [*] #simd [16] u8) (line + 4))[0]
+        let r5   = (cast(const [*] #simd [16] u8) (line + 5))[0]
+        sums[row] = tap6Raw16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
+    }
+
+    for row in cast(u64) height
+    {
+        let half   = tap6Center8(sums[row], sums[row + 1], sums[row + 2], sums[row + 3], sums[row + 4], sums[row + 5])
+        let packed = @vecpackus(half, half)
+        if width == 8 do
+            storeLow8(dst + row * dstStride, packed)
+        else do
+            storeLow4(dst + row * dstStride, packed)
     }
 }
 
@@ -258,11 +437,13 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     let planeWidth  = reference.mbWidth * 16
     let planeHeight = reference.mbHeight * 16
 
-    // A window outside the replicated padding goes through a clamped copy first.
+    // A window outside the replicated padding goes through a clamped copy first. The
+    // right bound uses the sixteen-byte span of the packed row loads whatever the
+    // block width, so the narrow filters may read wide.
     var window:    [21 * 24] u8 = undefined
     var src:       [*] u8       = undefined
     var srcStride: u64
-    if x - 2 < -FramePadding or y - 2 < -FramePadding or x + width + 3 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
+    if x - 2 < -FramePadding or y - 2 < -FramePadding or x + 19 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
     {
         copyClamped(@dataof(window), 21, reference.luma.buffer!, reference.strideLuma, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
         src       = @dataof(window) + 2 * 21 + 2
@@ -381,10 +562,12 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     let planeHeight = reference.mbHeight * 8
     let base        = plane == 0 ? reference.cb.buffer! : reference.cr.buffer!
 
+    // The right bound uses the sixteen-byte span of the packed row loads whatever the
+    // block width, so the narrow blends may read wide.
     var window:    [9 * 12] u8 = undefined
     var src:       [*] u8      = undefined
     var srcStride: u64
-    if x < -FramePadding or y < -FramePadding or x + width + 1 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
+    if x < -FramePadding or y < -FramePadding or x + 17 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
     {
         copyClamped(@dataof(window), 9, base, reference.strideChroma, x, y, width + 1, height + 1, planeWidth, planeHeight)
         src       = @dataof(window)
@@ -411,6 +594,20 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     {
         let wl = (8 - fracX) * 8
         let wr = fracX * 8
+        if width == 8 or width == 4
+        {
+            for cast(u64) height
+            {
+                let a = @vecwidenlo((cast(const [*] #simd [16] u8) line)[0])
+                let b = @vecwidenlo((cast(const [*] #simd [16] u8) (line + 1))[0])
+                storeChromaBlend(out, width, a * cast(u16) wl + b * cast(u16) wr)
+                out  += dstStride
+                line += srcStride
+            }
+
+            return
+        }
+
         for cast(u64) height
         {
             for column in cast(u64) width do
@@ -426,6 +623,20 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     {
         let wt = (8 - fracY) * 8
         let wb = fracY * 8
+        if width == 8 or width == 4
+        {
+            for cast(u64) height
+            {
+                let a = @vecwidenlo((cast(const [*] #simd [16] u8) line)[0])
+                let b = @vecwidenlo((cast(const [*] #simd [16] u8) (line + srcStride))[0])
+                storeChromaBlend(out, width, a * cast(u16) wt + b * cast(u16) wb)
+                out  += dstStride
+                line += srcStride
+            }
+
+            return
+        }
+
         for cast(u64) height
         {
             for column in cast(u64) width do
@@ -441,6 +652,23 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     let wrt = fracX * (8 - fracY)
     let wlb = (8 - fracX) * fracY
     let wrb = fracX * fracY
+    if width == 8 or width == 4
+    {
+        for cast(u64) height
+        {
+            let below = line + srcStride
+            let a     = @vecwidenlo((cast(const [*] #simd [16] u8) line)[0])
+            let b     = @vecwidenlo((cast(const [*] #simd [16] u8) (line + 1))[0])
+            let c     = @vecwidenlo((cast(const [*] #simd [16] u8) below)[0])
+            let d     = @vecwidenlo((cast(const [*] #simd [16] u8) (below + 1))[0])
+            storeChromaBlend(out, width, a * cast(u16) wlt + b * cast(u16) wrt + c * cast(u16) wlb + d * cast(u16) wrb)
+            out  += dstStride
+            line += srcStride
+        }
+
+        return
+    }
+
     for cast(u64) height
     {
         let below = line + srcStride
@@ -453,6 +681,20 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         out  += dstStride
         line += srcStride
     }
+}
+
+// Rounds, narrows, and stores one row of blended chroma lanes. The weights of
+// one blend sum to 64, so the accumulators peak at 64 * 255 + 32, well inside
+// the unsigned lanes, and the shifted lanes are plain bytes.
+#[Swag.Inline]
+private func storeChromaBlend(out: [*] u8, width: s32, value: #simd [8] u16)
+{
+    let bytes  = cast #bit(#simd [8] s16) ((value + 32) >> 6)
+    let packed = @vecpackus(bytes, bytes)
+    if width == 8 do
+        storeLow8(out, packed)
+    else do
+        storeLow4(out, packed)
 }
 
 // Applies one explicit weight to a predicted block, section 8.4.2.3.2.

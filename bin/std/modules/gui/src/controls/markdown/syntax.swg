@@ -208,7 +208,133 @@ private func resolveReferenceTarget(references: #null const [..] Reference, name
     return ""
 }
 
-func renderInline(text: string, references: #null const [..] Reference = null)->String
+private struct HtmlInlineInfo
+{
+    found: bool
+    eat:   u64
+    text:  String
+}
+
+private func appendHtmlInlineChildren(output: *String, document: const *HtmlDocument, node: u32, references: #null const [..] Reference)
+{
+    for child in document.constNode(node).children do
+        appendHtmlInlineNode(output, document, child, references)
+}
+
+// Translates the HTML parser's semantic tree into the smaller rich-text protocol understood by
+// Markdown inline views. Layout-bearing HTML is kept as an Html block instead.
+private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument, node: u32, references: #null const [..] Reference)
+{
+    let current = document.constNode(node)
+    if current.kind == .Text
+    {
+        output[] += renderInline(current.text.toString(), references, true)
+        return
+    }
+
+    switch current.tag
+    {
+    case .Br:
+        output[] += "\n"
+
+    case .Wbr:
+        return
+
+    case .Img:
+        let source = document.attribute(node, "src")
+        let alt    = document.attribute(node, "alt")
+        output[] += "<a><p3>[Image"
+        if @countof(alt)
+        {
+            output[] += ": "
+            output[] += richText(alt)
+        }
+
+        output[] += "]</p></a><t>"
+        output[] += richText(source)
+        output[] += "</t>"
+
+    case .A:
+        output[] += "<a>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</a><t>"
+        output[] += richText(document.attribute(node, "href"))
+        output[] += "</t>"
+
+    case .B, .Strong:
+        output[] += "<b>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</b>"
+
+    case .I, .Em, .Cite, .Dfn, .Var:
+        output[] += "<i>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</i>"
+
+    case .Del, .S:
+        output[] += "<s>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</s>"
+
+    case .Code, .Kbd, .Samp:
+        output[] += "<c>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</c>"
+
+    case .Mark:
+        output[] += "<h>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</h>"
+
+    case .Sub:
+        output[] += "<sub>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</sub>"
+
+    case .Sup:
+        output[] += "<sup>"
+        appendHtmlInlineChildren(output, document, node, references)
+        output[] += "</sup>"
+
+    default:
+        appendHtmlInlineChildren(output, document, node, references)
+    }
+}
+
+// Parses exactly one complete inline element at `start`. Feeding one UTF-8 character at a time
+// lets the streaming HTML parser identify the matching close without duplicating its quote,
+// entity, raw-text, void-element, or nesting rules here.
+private func parseHtmlInline(text: string, start: u64, references: #null const [..] Reference)->HtmlInlineInfo
+{
+    var result: retval
+    var document = HtmlDocument.create()
+    var parser: HtmlParser
+    parser.start(&document)
+
+    var end = start
+    while end < @countof(text)
+    {
+        let decoded = Utf8.decodeRune(text[end to])
+        parser.feed(text[end until end + decoded.eat])
+        end += decoded.eat
+        if !parser.carry.isEmpty() or parser.stack.count != 1 or document.constNode(0).children.count != 1 do
+            continue
+
+        let node = document.constNode(0).children[0]
+        let root = document.constNode(node)
+        if root.kind != .Element or root.tag == .Unknown or HtmlParser.startsBlock(root.tag) do
+            return result
+
+        result.found = true
+        result.eat   = end - start
+        appendHtmlInlineNode(&result.text, &document, node, references)
+        return result
+    }
+
+    return result
+}
+
+func renderInline(text: string, references: #null const [..] Reference = null, parsedHtmlText = false)->String
 {
     var result: retval
     var index = 0'u64
@@ -291,7 +417,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
                 if target.found
                 {
                     result += "<a>"
-                    result += renderInline(text[index + 1 until labelEnd], references)
+                    result += renderInline(text[index + 1 until labelEnd], references, parsedHtmlText)
                     result += "</a><t>"
                     result += richText(target.target)
                     result += "</t>"
@@ -317,7 +443,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
                     if @countof(target)
                     {
                         result += "<a>"
-                        result += renderInline(text[index + 1 until labelEnd], references)
+                        result += renderInline(text[index + 1 until labelEnd], references, parsedHtmlText)
                         result += "</a><t>"
                         result += richText(target)
                         result += "</t>"
@@ -330,19 +456,18 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
 
         if text[index] == '<'
         {
-            // GitHub documents lean on '<br>' even inside Markdown tables; it is the one HTML
-            // tag rendered, as a line break.
-            var brEat = 0'u64
-            if Utf8.startsWith(text[index to], "<br>") do
-                brEat = 4
-            elif Utf8.startsWith(text[index to], "<br/>") do
-                brEat = 5
-            elif Utf8.startsWith(text[index to], "<br />") do
-                brEat = 6
-            if brEat
+            if parsedHtmlText
             {
-                result += "\n"
-                index  += brEat
+                result += "<<"
+                index  += 1
+                continue
+            }
+
+            let html = parseHtmlInline(text, index, references)
+            if html.found
+            {
+                result += html.text
+                index  += html.eat
                 continue
             }
 
@@ -398,7 +523,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             if end != Swag.U64.Max
             {
                 result += "<s>"
-                result += renderInline(text[index + 2 until end], references)
+                result += renderInline(text[index + 2 until end], references, parsedHtmlText)
                 result += "</s>"
                 index  = end + 2
                 continue
@@ -411,7 +536,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             if end != Swag.U64.Max
             {
                 result += "<h>"
-                result += renderInline(text[index + 2 until end], references)
+                result += renderInline(text[index + 2 until end], references, parsedHtmlText)
                 result += "</h>"
                 index  = end + 2
                 continue
@@ -425,7 +550,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             if end != Swag.U64.Max and end > index + 3
             {
                 result += "<b><i>"
-                result += renderInline(text[index + 3 until end], references)
+                result += renderInline(text[index + 3 until end], references, parsedHtmlText)
                 result += "</i></b>"
                 index  = end + 3
                 continue
@@ -439,7 +564,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             if end != Swag.U64.Max
             {
                 result += "<b>"
-                result += renderInline(text[index + 2 until end], references)
+                result += renderInline(text[index + 2 until end], references, parsedHtmlText)
                 result += "</b>"
                 index  = end + 2
                 continue
@@ -453,7 +578,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<i>"
-                result += renderInline(text[index + 1 until end], references)
+                result += renderInline(text[index + 1 until end], references, parsedHtmlText)
                 result += "</i>"
                 index  = end + 1
                 continue
@@ -514,7 +639,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<sup>"
-                result += renderInline(text[index + 1 until end], references)
+                result += renderInline(text[index + 1 until end], references, parsedHtmlText)
                 result += "</sup>"
                 index  = end + 1
                 continue
@@ -527,7 +652,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<sub>"
-                result += renderInline(text[index + 1 until end], references)
+                result += renderInline(text[index + 1 until end], references, parsedHtmlText)
                 result += "</sub>"
                 index  = end + 1
                 continue
@@ -536,6 +661,13 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
 
         if text[index] == '&'
         {
+            if parsedHtmlText
+            {
+                result += "&"
+                index  += 1
+                continue
+            }
+
             let entity = decodeEntity(text, index)
             result += entity.value
             index  += entity.eat

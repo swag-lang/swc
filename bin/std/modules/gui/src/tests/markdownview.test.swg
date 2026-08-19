@@ -149,6 +149,93 @@ func markdownFixturePath()->String
     @assert(Markdown.renderInline("cell<br>break") == "cell\nbreak")
 }
 
+// Inline HTML is tokenized by the HTML parser before its semantics join Markdown rich text.
+#test
+{
+    @assert(Markdown.renderInline("Press <kbd>Ctrl</kbd> and <strong>go</strong>.") == "Press <c>Ctrl</c> and <b>go</b>.")
+    @assert(Markdown.renderInline("**Use <span>HTML</span> inside emphasis**") == "<b>Use HTML inside emphasis</b>")
+    @assert(Markdown.renderInline("<a href=\"https://example.com\">Example</a>") == "<a>Example</a><t>https://example.com</t>")
+    @assert(Markdown.renderInline("<span>&amp;lt; &lt;tag&gt;</span>") == "&lt; <<tag>")
+    @assert(Markdown.renderInline("<span>*&lt;tag&gt;*</span>") == "<i><<tag></i>")
+}
+
+// Raw HTML blocks use the HTML document engine, including the centered image pattern used by
+// the repository README, instead of leaking their tags into Markdown text.
+#test
+{
+    let source = "<p align=\"center\">\n    <img src=\"web/imgs/swag_icon.png\" width=\"120\" height=\"120\" alt=\"Swag\">\n</p>\n\n<h1 align=\"center\">Swag</h1>\n\nAfter."
+    let blocks = Markdown.parseBlocks(source)
+    @assert(blocks.count == 3)
+    @assert(blocks[0].kind == .Html)
+    @assert(blocks[1].kind == .Html)
+    @assert(blocks[2].kind == .Paragraph)
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+
+    let view = Markdown.View.createText(&host.root, source)
+    view.resize(720, 480)
+    view.applyLayout()
+    view.layoutDocument()
+
+    @assert(view.blocks.count == 3)
+    @assert(view.blocks[0].html != null and view.blocks[1].html != null)
+    var hasImage: bool
+    var imageNode = HtmlNoNode
+    var paragraph = HtmlNoNode
+    for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img
+    {
+        hasImage  = true
+        imageNode = cast(u32) index
+    }
+
+    for node, index in view.blocks[0].html!.document.nodes where node.tag == .P do
+        paragraph = cast(u32) index
+    @assert(hasImage)
+    @assert(paragraph != HtmlNoNode and view.blocks[0].html!.layout.styles[paragraph].textAlign == .Center)
+    @assert(imageNode != HtmlNoNode and view.blocks[0].html!.layout.styles[imageNode].width == HtmlLength.pixels(120))
+    @assert(view.blocks[0].html!.layout.styles[imageNode].height == HtmlLength.pixels(120))
+    @assert(view.blocks[1].html!.document.textContent(0) == "Swag")
+    @assert(view.blocks[0].wnd.position.height > 0 and view.blocks[1].wnd.position.height > 0)
+    Testing.assertContentFits(view)
+}
+
+// HTML fragments loaded from a Markdown file resolve local images beside that Markdown file.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let stem          = Format.toString("gui_markdown_html_%", Guid64.random())
+    let markdownPath  = Path.combine(tempDirectory.toString(), Format.toString("%.md", stem).toString())
+    let imagePath     = Path.combine(tempDirectory.toString(), Format.toString("%.png", stem).toString())
+    defer discard catch File.delete(markdownPath)
+    defer discard catch File.delete(imagePath)
+
+    var image = Pixel.Image.create(4, 3, .RGBA8)
+    image.fill(Pixel.Color.fromArgb(0xFF285078))
+    expect image.save(imagePath)
+    let source = Format.toString("<p><img src=\"%\" width=\"80%%\" alt=\"Local\"></p>", Path.fileName(imagePath) orelse "")
+    discard expect File.writeAllBytes(markdownPath, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+
+    let view = Markdown.View.createFile(&host.root, markdownPath)
+    view.resize(320, 240)
+    view.applyLayout()
+    for 64 where view.isLoading() do
+        host.fireTimers()
+
+    @assert(!view.isLoading() and view.blocks.count == 1 and view.blocks[0].html != null)
+    @assert(view.blocks[0].html!.images.entries.count == 1 and view.blocks[0].html!.images.entries[0].loaded)
+    var imageNode = HtmlNoNode
+    for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img do
+        imageNode = cast(u32) index
+    @assert(imageNode != HtmlNoNode)
+    @assert(view.blocks[0].html!.layout.styles[imageNode].width.kind == .Percent and view.blocks[0].html!.layout.styles[imageNode].width.value == 0.8)
+}
+
 // Ordered markers renumber from the first written value, per nesting level.
 #test
 {

@@ -17,6 +17,7 @@ enum BlockKind
     Quote
     Code
     Table
+    Html
     Math
     Rule
     Metadata
@@ -92,6 +93,39 @@ private struct OrderedCounter
 {
     indent: u32
     value:  u64
+}
+
+// Reports whether a line opens an HTML block by asking the HTML parser what element the source
+// actually creates. Inline phrasing tags stay in Markdown paragraphs and are handled by
+// renderInline.
+private func isHtmlBlockStart(line: string)->bool
+{
+    let trimmed = Latin1.trim(line)
+    if !@countof(trimmed) or trimmed[0] != '<' do
+        return false
+
+    var document = HtmlDocument.create()
+    var parser: HtmlParser
+    parser.start(&document)
+    parser.feed(trimmed)
+    parser.finish()
+
+    for child in document.constNode(0).children
+    {
+        let node = document.constNode(child)
+        if node.kind != .Element or node.tag == .Unknown do
+            continue
+        if HtmlParser.startsBlock(node.tag) do
+            return true
+
+        switch node.tag
+        {
+        case .Html, .Head, .Body, .Base, .Link, .Meta, .Style, .Img, .Picture: return true
+        default: continue
+        }
+    }
+
+    return false
 }
 
 internal func parseBlocks(source: string)->Array'Block
@@ -256,6 +290,21 @@ internal func parseBlocks(source: string)->Array'Block
             }
 
             appendBlock(&result, .Math, #move math)
+            continue
+        }
+
+        if isHtmlBlockStart(raw)
+        {
+            var html: String
+            while index < lines.count and @countof(Latin1.trim(lines[index]))
+            {
+                if !html.isEmpty() do
+                    html += "\n"
+                html  += lines[index]
+                index += 1
+            }
+
+            appendBlock(&result, .Html, #move html)
             continue
         }
 

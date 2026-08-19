@@ -55,8 +55,8 @@ bitmap arrives, without disturbing the byte-to-height estimate.
 ### T-492 — Block structure is flat: containers do not nest
 
 The parser recognizes every leaf block but no container can hold one. A list inside a quote, a
-fence inside a quote, or a `> >` nested quote all degrade — the second `>` even paints as a stray
-`›` glyph. A fence inside a list item is deliberately hoisted to a sibling block, which keeps it
+fence inside a quote, or a `> >` nested quote all degrade — the second `>` renders as literal
+text. A fence inside a list item is deliberately hoisted to a sibling block, which keeps it
 readable but loses its indentation and its ownership; a second paragraph of a list item loses the
 item's hanging indent entirely. Real documents — changelogs, RFCs, this repository's own backlog —
 are made of exactly these shapes. The outcome is a container-block tree (quote and list item own
@@ -68,60 +68,18 @@ keeping the streamed, per-block visual pipeline as it is.
   and a two-level quote lays out with correct indentation and borders, and the existing
   list-hoisting test is rewritten to the new stance
 
-### T-493 — A code block is not a code surface
+### T-493 — A code block has no syntax coloring
 
-Three gaps compound. Leading indentation collapses — the layout skips spaces at the start of a
-line for every kind but `.List` (`inlineview.swg`), so a fenced Swag snippet paints flush-left and
-its structure is gone. The fence's language is shown as an uppercase label but never used: no
-syntax coloring, while the repository already colors Swag both in `DocMarkdown` and through the
-RichEdit lexer interface (`controls/richedit/lexerswag.swg`). And long lines soft-wrap with
-nothing marking the wrap. Indentation is a correctness break, not a preference; coloring is the
-visible half of parity with every competitor.
+The fence's language is shown as an uppercase label but never used: no syntax coloring, while the
+repository already colors Swag both in `DocMarkdown` and through the RichEdit lexer interface
+(`controls/richedit/lexerswag.swg`). Long lines also soft-wrap with nothing marking the wrap.
+Coloring is the visible half of parity with every competitor.
 
-- Intent: fenced code paints with exact whitespace and language coloring
-- Complete when: indentation is preserved byte-for-byte, a `swag` fence colors through the shared
-  lexer interface, an unknown language stays plain, and wrapped lines are visually distinguishable
-  from new lines
-
-### T-494 — Table columns all get the same width
-
-`TableView` divides the available width by the column count, so a two-word status column takes the
-same room as a sentence-long description column and forces it to wrap. Columns must size from
-measured cell content — natural width per column, minimum readable width, surplus distributed to
-the columns that want it — inside the document column cap. While in the file: body rows carrying
-more cells than the header silently drop the extras; clip them visibly or widen the table, but
-decide.
-
-- Intent: table columns size from their content
-- Complete when: the comprehensive fixture's tables show narrow columns narrow and wide columns
-  wide, at every document width the sFileScope plugin offers
+- Intent: fenced code colors through the shared lexer interface
+- Complete when: a `swag` fence colors, an unknown language stays plain, and wrapped lines are
+  visually distinguishable from new lines
 
 ## Tier B — The text and the links must be right
-
-### T-495 — The markup protocol cannot say a literal angle bracket
-
-`richText` substitutes `<` and `>` (and the `&lt;`/`&gt;` entities) with the look-alike guillemets
-`‹`/`›` so `InlineView.parse` never re-reads document text as protocol tags. The reader gets the
-wrong glyph, search over the rebuilt atom text cannot match the source characters, and the moment
-selection ships (T-419) a copy would paste guillemets into a compiler. The protocol needs a real
-escape, and the substitution disappears everywhere.
-
-- Intent: the inline protocol carries literal `<` and `>` losslessly
-- Complete when: a paragraph, a code span and a table cell containing `a < b > c` paint, search
-  and (once T-419 lands) copy the exact characters
-- Related: T-419
-
-### T-496 — A link destination ends at the first closing parenthesis
-
-`[text](url "title")` puts the quoted title inside the activated URL; a destination containing
-`)` truncates early; the `<destination with spaces>` form is unread. Titles are common in
-generated documentation, so today those links are silently wrong. Parse the destination per
-CommonMark — balanced or escaped parentheses, optional angle form, optional title — activate the
-clean URL, and keep the title (a tooltip is the natural home once one exists).
-
-- Intent: link destinations parse to the URL the author wrote
-- Complete when: titled links, parenthesized URLs and angle destinations all activate their exact
-  target in the parser tests
 
 ### T-497 — Reference and footnote definitions do not cross a streaming boundary
 
@@ -139,8 +97,7 @@ directions.
 
 ### T-498 — The document cannot navigate itself
 
-`[TOC]` renders a flat, inert text block — its two-space indents are the same leading whitespace
-the layout collapses (T-493's cause), and no entry is a link. Heading anchors do not exist, so a
+`[TOC]` renders an inert text block: no entry is a link. Heading anchors do not exist, so a
 `#fragment` link leaves through `sigLinkActivated` and dies in `Env.openUrl`. A footnote
 reference paints as a superscript but does not jump to its footnote. A reader of a long streamed
 document has keyboard paging and nothing else. Anchored navigation needs the parser to keep each
@@ -148,59 +105,52 @@ heading's byte offset, which is the same currency `revealFileOffset` already tra
 
 - Intent: TOC entries, `#fragment` links and footnote references scroll to their target
 - Complete when: clicking a TOC entry or an in-document anchor reaches its heading in both
-  `createText` and a streamed file, and the TOC shows its hierarchy
+  `createText` and a streamed file
 
 ## Tier C — Conformance and finish
 
-### T-499 — Inline HTML has no stance
+### T-499 — Inline HTML has no documented stance
 
 READMEs written for GitHub lean on a small HTML set — `<br>` in table cells, `<img>` for sized
-logos, `<kbd>`, `<details>` — and today all of it renders as escaped text with substituted
-glyphs. The engine will never execute anything, but it owes a decision: support a minimal
-allowlist (at least `<br>` and `<img>`, which have exact equivalents already), and render the
-rest as clean literal text once T-495 makes that possible. Document the list the way the HTML
-engine documents its stances.
+logos, `<kbd>`, `<details>`. `<br>` breaks a line and every other tag renders as its literal
+source text, but nothing records that decision, and `<img>` still shows its source. The engine
+will never execute anything; it owes the documented allowlist the HTML engine gives its stances,
+and `<img>` should paint the moment T-491 gives images a path.
 
 - Intent: a decided, documented behavior for inline HTML instead of an accident
-- Complete when: `<br>` breaks a line, `<img>` paints through T-491's path, and an unsupported tag
-  renders as its literal source text
-- Related: T-491, T-495
+- Complete when: the stance is recorded beside the engine, and `<img>` paints through T-491's path
+- Related: T-491
 
 ### T-500 — No measured conformance stance
 
 Nobody can say which part of CommonMark the parser speaks. Run the CommonMark and GFM example
 corpora through `parseBlocks`/`renderInline`, record each case as passing or deviating by choice,
-and fix the cheap, high-frequency failures the sweep will surface — known already: no
-double-backtick code spans, no backslash hard break, a fence closes on any three matching
-characters so a ```` ```` ```` fence cannot display a ```` ``` ```` fence, ordered lists render
-their literal markers instead of renumbering, indented code blocks do not exist, and `_foo_bar`
-closes emphasis inside a word. The recorded stance is the durable artifact; the fixes are the
-first harvest.
+and fix the cheap, high-frequency failures the sweep will surface — known already: indented code
+blocks do not exist, and the emphasis flanking rules are approximate. The recorded stance is the
+durable artifact; the fixes are the first harvest.
 
 - Intent: conformance is a measured number with a recorded stance, not a guess
-- Complete when: the corpus runs as a test, a stance file lists every deviation as deliberate,
-  and the failures named above are fixed or claimed
+- Complete when: the corpus runs as a test and a stance file lists every deviation as deliberate
 
-### T-501 — Find highlights one match, first per block
+### T-501 — Find cannot walk its matches
 
-`highlightText` marks only the first case-insensitive occurrence in a block, and `findText` moves
-block to block with a single wrap: no all-match highlight, no next/previous within a block, no
-match count. sFileScope's search panel deserves the same behavior over Markdown as over code.
+Every occurrence of a find highlights, but `findText` still moves block to block with a single
+wrap: no next/previous within a block, no match count. sFileScope's search panel deserves the
+same behavior over Markdown as over code.
 
-- Intent: find shows every match and walks them one by one
-- Complete when: all visible occurrences highlight, repeated find advances match-by-match across
-  and within blocks, and the match count is exposed to the host
+- Intent: find walks matches one by one and says how many there are
+- Complete when: repeated find advances match-by-match across and within blocks, and the match
+  count is exposed to the host
 
-### T-502 — The view's English is hardcoded
+### T-502 — A rendered document ignores a live language switch
 
-The alert titles ("Note", "Tip", "Important", "Warning", "Caution" in `block.swg`), "This
-Markdown document is empty.", "Unable to read this Markdown document." and the zero-byte failure
-message are literal English inside the module, against the repository's localization rule. Route
-them through `Gui.Strings` with French translations like every other gui string.
+The engine's strings live in `Gui.Strings` with French translations, but an alert title is baked
+into its block's text at parse time, so a document already on screen keeps the previous language
+until it is reloaded — the menu-bar failure of F-023, one widget over.
 
-- Intent: no user-visible literal English in the Markdown engine
-- Complete when: every string has a `Gui.Strings` key and a French translation, and a language
-  switch restyles a rendered document's alert titles
+- Intent: a language switch restyles a rendered document's alert titles
+- Complete when: switching the language re-renders parsed alert blocks in place, in `createText`
+  and streamed documents alike
 
 ### T-503 — No typographic finish
 

@@ -140,6 +140,7 @@ private func streamBoundary(source: string)->u64
     var result      = 0'u64
     var lineStart   = 0'u64
     var fenceMarker = 0'u8
+    var fenceLength = 0'u32
     var displayMath: bool
     var bracketMath: bool
 
@@ -148,9 +149,14 @@ private func streamBoundary(source: string)->u64
         let line    = source[lineStart until index]
         let trimmed = Latin1.trim(line)
         let fence   = parseFence(line)
-        if fence.found and (!fenceMarker or fence.marker == fenceMarker)
+        if fence.found and !fenceMarker
         {
-            fenceMarker = fenceMarker ? 0 : fence.marker
+            fenceMarker = fence.marker
+            fenceLength = fence.length
+        }
+        elif fence.found and fence.marker == fenceMarker and fence.length >= fenceLength and !@countof(fence.info)
+        {
+            fenceMarker = 0
         }
         elif !fenceMarker and Utf8.startsWith(trimmed, "$$")
         {
@@ -331,7 +337,7 @@ private impl View
 
         if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
         {
-            .reportLoadFailure("Markdown source contains a zero byte and is not supported UTF-8 text")
+            .reportLoadFailure(strings().markdown_NotUtf8)
             return
         }
 
@@ -353,9 +359,9 @@ private impl View
     {
         .failureReason = reason
         if .failureReason.isEmpty() do
-            .failureReason = "Markdown source could not be read"
+            .failureReason = strings().markdown_ReadFailed
         .sigLoadFailed.call(me, .failureReason.toString())
-        .sourceCarry = "Unable to read this Markdown document."
+        .sourceCarry = strings().markdown_LoadFailed
         .sourceDone  = true
         .bytesRead   = .fileSize
         .stream.close()
@@ -402,7 +408,7 @@ private impl View
         {
             var empty: Block
             empty.kind = .Paragraph
-            empty.text = "This Markdown document is empty."
+            empty.text = strings().markdown_EmptyDocument
             .appendBlock(#move empty)
         }
 
@@ -604,7 +610,7 @@ impl View
         {
             var empty: Block
             empty.kind = .Paragraph
-            empty.text = "This Markdown document is empty."
+            empty.text = strings().markdown_EmptyDocument
             result.appendBlock(#move empty)
         }
 

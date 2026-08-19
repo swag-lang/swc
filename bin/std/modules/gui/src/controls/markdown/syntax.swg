@@ -3,7 +3,7 @@
 
 using Core
 
-private func findClosing(text: string, marker: string, start: u64)->u64
+private func findClosing(text: string, marker: string, start: u64, wordBoundaryClose = false)->u64
 {
     let markerLength = @countof(marker)
     var index        = start
@@ -19,9 +19,13 @@ private func findClosing(text: string, marker: string, start: u64)->u64
         while runEnd < @countof(text) and text[runEnd] == marker[0] do
             runEnd += 1
         let runLength = runEnd - index
-        if markerLength == 1 and runLength & 1 do
+
+        // Underscore emphasis never closes inside a word, so 'foo_bar' in '_foo_bar_' stays plain
+        // and the emphasis closes on the word-final run instead.
+        let boundary = !wordBoundaryClose or runEnd >= @countof(text) or !Latin1.isWord(text[runEnd])
+        if markerLength == 1 and runLength & 1 and boundary do
             return runEnd - 1
-        if markerLength > 1 and runLength >= markerLength do
+        if markerLength > 1 and runLength >= markerLength and boundary do
             return runEnd - markerLength
         index = runEnd
     }
@@ -73,6 +77,103 @@ struct Reference
 {
     name:   String
     target: String
+}
+
+struct LinkTargetInfo
+{
+    found:  bool
+    target: string = ""
+    end:    u64
+}
+
+// Parses an inline link destination starting right after its opening parenthesis: an optional
+// '<...>' form, balanced or backslash-escaped parentheses, and an optional quoted title that
+// never joins the activated target. `end` is the index of the closing parenthesis.
+func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
+{
+    var result: retval
+    var index = start
+    while index < @countof(text) and text[index] == ' ' do
+        index += 1
+
+    var targetStart = index
+    var targetEnd   = index
+    if index < @countof(text) and text[index] == '<'
+    {
+        targetStart = index + 1
+        let close = Utf8.indexOf(text, '>'rune, targetStart)
+        if close == Swag.U64.Max do
+            return result
+        targetEnd = close
+        index     = close + 1
+    }
+    else
+    {
+        var depth = 0
+        while index < @countof(text)
+        {
+            let value = text[index]
+            if value == '\\' and index + 1 < @countof(text)
+            {
+                index += 2
+                continue
+            }
+
+            if value == '(' do
+                depth += 1
+            elif value == ')'
+            {
+                if !depth do
+                    break
+                depth -= 1
+            }
+            elif value == ' ' or value == '\t' do
+                break
+            index += 1
+        }
+
+        targetEnd = index
+    }
+
+    while index < @countof(text) and (text[index] == ' ' or text[index] == '\t') do
+        index += 1
+
+    if index < @countof(text) and (text[index] == '"' or text[index] == '\'')
+    {
+        let quote = text[index]
+        var close = index + 1
+        while close < @countof(text) and text[close] != quote do
+            close += 1
+        if close >= @countof(text) do
+            return result
+        index = close + 1
+        while index < @countof(text) and (text[index] == ' ' or text[index] == '\t') do
+            index += 1
+    }
+
+    if index >= @countof(text) or text[index] != ')' do
+        return result
+    result.found  = true
+    result.target = text[targetStart until targetEnd]
+    result.end    = index
+    return result
+}
+
+// Extracts the destination of a reference definition's raw value, dropping an optional quoted
+// title so '[guide]: url "Title"' activates the same target as its inline form.
+func referenceTarget(value: string)->string
+{
+    if @countof(value) and value[0] == '<'
+    {
+        let close = Utf8.indexOf(value, '>'rune, 1)
+        if close != Swag.U64.Max do
+            return value[1 until close]
+    }
+
+    var end = 0'u64
+    while end < @countof(value) and value[end] != ' ' and value[end] != '\t' do
+        end += 1
+    return value[0 until end]
 }
 
 struct ReferenceInfo
@@ -138,15 +239,15 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
             let labelEnd = Utf8.indexOf(text, ']'rune, index + 2)
             if labelEnd != Swag.U64.Max and labelEnd + 1 < @countof(text) and text[labelEnd + 1] == '('
             {
-                let urlEnd = Utf8.indexOf(text, ')'rune, labelEnd + 2)
-                if urlEnd != Swag.U64.Max
+                let target = parseLinkTarget(text, labelEnd + 2)
+                if target.found
                 {
                     result += "<a><p3>[Image: "
                     result += richText(text[index + 2 until labelEnd], true)
                     result += "]</p></a><t>"
-                    result += richText(text[labelEnd + 2 until urlEnd])
+                    result += richText(target.target)
                     result += "</t>"
-                    index  = urlEnd + 1
+                    index  = target.end + 1
                     continue
                 }
             }
@@ -186,15 +287,15 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
 
             if labelEnd != Swag.U64.Max and labelEnd + 1 < @countof(text) and text[labelEnd + 1] == '('
             {
-                let urlEnd = Utf8.indexOf(text, ')'rune, labelEnd + 2)
-                if urlEnd != Swag.U64.Max
+                let target = parseLinkTarget(text, labelEnd + 2)
+                if target.found
                 {
                     result += "<a>"
                     result += renderInline(text[index + 1 until labelEnd], references)
                     result += "</a><t>"
-                    result += richText(text[labelEnd + 2 until urlEnd])
+                    result += richText(target.target)
                     result += "</t>"
-                    index  = urlEnd + 1
+                    index  = target.end + 1
                     continue
                 }
             }
@@ -229,6 +330,22 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
 
         if text[index] == '<'
         {
+            // GitHub documents lean on '<br>' even inside Markdown tables; it is the one HTML
+            // tag rendered, as a line break.
+            var brEat = 0'u64
+            if Utf8.startsWith(text[index to], "<br>") do
+                brEat = 4
+            elif Utf8.startsWith(text[index to], "<br/>") do
+                brEat = 5
+            elif Utf8.startsWith(text[index to], "<br />") do
+                brEat = 6
+            if brEat
+            {
+                result += "\n"
+                index  += brEat
+                continue
+            }
+
             let end = Utf8.indexOf(text, '>'rune, index + 1)
             if end != Swag.U64.Max
             {
@@ -304,7 +421,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
         if index + 2 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*' and text[index + 2] == '*') or (text[index] == '_' and text[index + 1] == '_' and text[index + 2] == '_' and canOpenUnderscore(text, index)))
         {
             let marker = text[index until index + 3]
-            let end    = findClosing(text, marker, index + 3)
+            let end    = findClosing(text, marker, index + 3, wordBoundaryClose: text[index] == '_')
             if end != Swag.U64.Max and end > index + 3
             {
                 result += "<b><i>"
@@ -318,7 +435,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
         if index + 1 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*') or (text[index] == '_' and text[index + 1] == '_' and canOpenUnderscore(text, index)))
         {
             let marker = text[index until index + 2]
-            let end    = findClosing(text, marker, index + 2)
+            let end    = findClosing(text, marker, index + 2, wordBoundaryClose: text[index] == '_')
             if end != Swag.U64.Max
             {
                 result += "<b>"
@@ -332,7 +449,7 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
         if text[index] == '*' or (text[index] == '_' and canOpenUnderscore(text, index))
         {
             let marker = text[index until index + 1]
-            let end    = findClosing(text, marker, index + 1)
+            let end    = findClosing(text, marker, index + 1, wordBoundaryClose: text[index] == '_')
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<i>"
@@ -345,15 +462,50 @@ func renderInline(text: string, references: #null const [..] Reference = null)->
 
         if text[index] == '`'
         {
-            let end = Utf8.indexOf(text, '`'rune, index + 1)
+            var open = index + 1
+            while open < @countof(text) and text[open] == '`' do
+                open += 1
+            let runLength = open - index
+
+            // A code span closes on a backtick run of the same length, so a longer opener can
+            // quote literal backticks.
+            var end    = Swag.U64.Max
+            var search = open
+            while search < @countof(text)
+            {
+                if text[search] != '`'
+                {
+                    search += 1
+                    continue
+                }
+
+                var runEnd = search + 1
+                while runEnd < @countof(text) and text[runEnd] == '`' do
+                    runEnd += 1
+                if runEnd - search == runLength
+                {
+                    end = search
+                    break
+                }
+
+                search = runEnd
+            }
+
             if end != Swag.U64.Max
             {
+                var content = text[open until end]
+                if @countof(content) >= 2 and content[0] == ' ' and content[@countof(content) - 1] == ' ' and @countof(Latin1.trim(content)) do
+                    content = content[1 until @countof(content) - 1]
                 result += "<c>"
-                result += richText(text[index + 1 until end])
+                result += richText(content)
                 result += "</c>"
-                index  = end + 1
+                index  = end + runLength
                 continue
             }
+
+            result += richText(text[index until open])
+            index  = open
+            continue
         }
 
         if text[index] == '^'
@@ -417,6 +569,7 @@ struct FenceInfo
 {
     found:  bool
     marker: u8
+    length: u32
     info:   string = ""
 }
 
@@ -475,7 +628,12 @@ func isRule(line: string)->bool
 
 func hasHardBreak(line: string)->bool
 {
-    return @countof(line) >= 2 and line[@countof(line) - 1] == ' ' and line[@countof(line) - 2] == ' '
+    let count = @countof(line)
+    if count >= 2 and line[count - 1] == ' ' and line[count - 2] == ' ' do
+        return true
+
+    // A backslash ending the line is a hard break too, unless it is itself escaped.
+    return count >= 1 and line[count - 1] == '\\' and (count == 1 or line[count - 2] != '\\')
 }
 
 func parseListItem(line: string)->ListInfo
@@ -537,10 +695,15 @@ func parseFence(line: string)->FenceInfo
     let trimmed = Latin1.trim(line)
     if @countof(trimmed) < 3 or (trimmed[0] != '`' and trimmed[0] != '~') do
         return result
-    if trimmed[1] != trimmed[0] or trimmed[2] != trimmed[0] do
+
+    var run = 1'u64
+    while run < @countof(trimmed) and trimmed[run] == trimmed[0] do
+        run += 1
+    if run < 3 do
         return result
     result.found  = true
     result.marker = trimmed[0]
-    result.info   = Latin1.trim(trimmed[3 to])
+    result.length = cast(u32) run
+    result.info   = Latin1.trim(trimmed[run to])
     return result
 }

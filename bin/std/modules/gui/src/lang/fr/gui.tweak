@@ -61,6 +61,16 @@ browser_StatusFile   fichier
 browser_StatusFiles  fichiers
 browser_StatusSelected "  —  % sélectionné(s)"
 
+markdown_AlertNote      Note
+markdown_AlertTip       Astuce
+markdown_AlertImportant Important
+markdown_AlertWarning   Avertissement
+markdown_AlertCaution   Attention
+markdown_EmptyDocument  Ce document Markdown est vide.
+markdown_LoadFailed     Impossible de lire ce document Markdown.
+markdown_ReadFailed     La source Markdown n'a pas pu être lue
+markdown_NotUtf8        La source Markdown contient un octet nul et n'est pas du texte UTF-8 pris en charge
+
 prop_Copy             Copier
 prop_Paste            Coller
 prop_ResetDefault     Rétablir la valeur par défaut

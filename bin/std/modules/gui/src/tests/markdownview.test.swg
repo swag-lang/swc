@@ -94,6 +94,148 @@ func markdownFixturePath()->String
     @assert(Utf8.contains(tasks[0].text.toString(), "<lu>*</lu>"))
 }
 
+// A literal '<' survives the markup protocol losslessly, in text, code spans and entities alike.
+#test
+{
+    @assert(Markdown.renderInline("a < b > c") == "a << b > c")
+    @assert(Markdown.renderInline("`a < b`") == "<c>a << b</c>")
+    @assert(Markdown.renderInline("2 &lt; 3 &gt; 1") == "2 << 3 > 1")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+
+    let view = Markdown.View.createText(&host.root, "a < b")
+    view.resize(640, 240)
+    view.applyLayout()
+    view.layoutDocument()
+
+    var rebuilt: String
+    for &atom in view.blocks[0].inline!.atoms where !atom.isSpace and !atom.isBreak do
+        rebuilt += atom.text
+    @assert(rebuilt == "a<b")
+    @assert(view.findText("a < b"))
+}
+
+// Link destinations keep their exact URL: titles are dropped, parentheses balance, and the angle
+// form carries spaces — in the inline form and in a reference definition alike.
+#test
+{
+    @assert(Markdown.renderInline("[x](https://e.com/guide \"Title\")") == "<a>x</a><t>https://e.com/guide</t>")
+    @assert(Markdown.renderInline("[x](https://e.com/a(b)c)") == "<a>x</a><t>https://e.com/a(b)c</t>")
+    @assert(Markdown.renderInline("[x](<https://e.com/a b>)") == "<a>x</a><t>https://e.com/a b</t>")
+
+    let blocks = Markdown.parseBlocks("A [reference][guide].\n\n[guide]: https://e.com/guide \"Guide title\"")
+    @assert(Utf8.contains(blocks[0].text.toString(), "<a>reference</a><t>https://e.com/guide</t>"))
+}
+
+// A longer code span quotes literal backticks, and a longer fence displays a shorter one.
+#test
+{
+    @assert(Markdown.renderInline("``a `tick` b``") == "<c>a `tick` b</c>")
+
+    let blocks = Markdown.parseBlocks("````\n```\ncode\n```\n````")
+    @assert(blocks.count == 1)
+    @assert(blocks[0].kind == .Code)
+    @assert(Utf8.contains(blocks[0].text.toString(), "```"))
+}
+
+// A trailing backslash is a hard break, and '<br>' breaks a line even inside a table cell.
+#test
+{
+    let blocks = Markdown.parseBlocks("line one\\\nline two")
+    @assert(blocks.count == 1)
+    @assert(blocks[0].text == "line one\nline two")
+    @assert(Markdown.renderInline("cell<br>break") == "cell\nbreak")
+}
+
+// Ordered markers renumber from the first written value, per nesting level.
+#test
+{
+    let blocks = Markdown.parseBlocks("1. a\n1. b\n1. c")
+    @assert(blocks.count == 1)
+    @assert(Utf8.contains(blocks[0].text.toString(), "<lm>1.</lm>"))
+    @assert(Utf8.contains(blocks[0].text.toString(), "<lm>2.</lm>"))
+    @assert(Utf8.contains(blocks[0].text.toString(), "<lm>3.</lm>"))
+
+    let nested = Markdown.parseBlocks("3. a\n   1. x\n   1. y\n4. b")
+    @assert(Utf8.contains(nested[0].text.toString(), "<lm>3.</lm>"))
+    @assert(Utf8.contains(nested[0].text.toString(), "<lm>1.</lm>"))
+    @assert(Utf8.contains(nested[0].text.toString(), "<lm>2.</lm>"))
+    @assert(Utf8.contains(nested[0].text.toString(), "<lm>4.</lm>"))
+}
+
+// Underscore emphasis never closes inside a word.
+#test
+{
+    @assert(Markdown.renderInline("_foo_bar_") == "<i>foo_bar</i>")
+    @assert(Markdown.renderInline("snake_case_name") == "snake_case_name")
+}
+
+// Code blocks preserve the author's indentation; only the space a wrap leaves behind is dropped.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+
+    let view = Markdown.View.createText(&host.root, "```\nzero\n    four\n```")
+    view.resize(640, 240)
+    view.applyLayout()
+    view.layoutDocument()
+
+    @assert(view.blocks.count == 1)
+    var zeroX = -1'f32
+    var fourX = -1'f32
+    for &atom in view.blocks[0].inline!.atoms where atom.visible
+    {
+        if atom.text == "zero" do
+            zeroX = atom.position.x
+        elif atom.text == "four" do
+            fourX = atom.position.x
+    }
+
+    @assert(zeroX >= 0 and fourX > zeroX)
+}
+
+// Every occurrence of a find highlights, not only the first one.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+
+    let view = Markdown.View.createText(&host.root, "alpha beta alpha")
+    view.resize(640, 240)
+    view.applyLayout()
+    view.layoutDocument()
+
+    @assert(view.findText("alpha"))
+    var hits = 0'u32
+    for &atom in view.blocks[0].inline!.atoms where atom.searchHit and !atom.isSpace do
+        hits += 1
+    @assert(hits == 2)
+}
+
+// Table columns size from their content instead of splitting the width evenly.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+
+    let source = "| A | Description |\n| --- | --- |\n| x | A much longer description cell |"
+    let view   = Markdown.View.createText(&host.root, source)
+    view.resize(720, 360)
+    view.applyLayout()
+    view.layoutDocument()
+
+    @assert(view.blocks.count == 1)
+    let table = view.blocks[0].table!
+    @assert(table.columnCount == 2)
+    @assert(table.columnWidths[1] > table.columnWidths[0] * 2)
+}
+
 // Inline mathematics is parsed by Pixel instead of being approximated with Unicode text.
 #test
 {

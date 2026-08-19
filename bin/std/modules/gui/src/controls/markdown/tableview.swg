@@ -26,11 +26,16 @@ public struct TableView
     cells:        Array'TableCell
     alignments:   Array'TableAlignment
     rowHeights:   Array'f32
+    columnWidths: Array'f32
+    tableWidth:   f32
     columnCount:  u32
     rowCount:     u32
     layoutWidth:  f32
     layoutHeight: f32
 }
+
+private const MinColumnWidth = 48'f32
+private const CellPadding = 20'f32
 
 private func parseTableCells(line: string)->Array'String
 {
@@ -111,6 +116,14 @@ impl TableView
         }
     }
 
+    mtd columnOffset(column: u32)->f32
+    {
+        var result = 0'f32
+        for one in column do
+            result += .columnWidths[one]
+        return result
+    }
+
     mtd layout(width: f32)->f32
     {
         if width <= 0 or !.columnCount do
@@ -118,13 +131,44 @@ impl TableView
         if .layoutWidth == width do
             return .layoutHeight
 
+        // Columns take their natural content width; only when the table would overflow the
+        // document column do the wide columns shrink, and columns at the floor keep it.
+        .columnWidths.clear()
+        .columnWidths.resize(.columnCount)
+        for &cell in .cells do
+            .columnWidths[cell.column] = Math.max(.columnWidths[cell.column], cell.view.naturalWidth() + CellPadding)
+
+        var total = 0'f32
+        for &column in .columnWidths
+        {
+            column[] = Math.max(column[], MinColumnWidth)
+            total    += column[]
+        }
+
+        if total > width
+        {
+            var flexible = 0'f32
+            for column in .columnWidths where column > MinColumnWidth do
+                flexible += column - MinColumnWidth
+            if flexible > 0
+            {
+                let excess = Math.min(total - width, flexible)
+                for &column in .columnWidths where column[] > MinColumnWidth do
+                    column[] -= (column[] - MinColumnWidth) / flexible * excess
+            }
+
+            total = 0
+            for column in .columnWidths do
+                total += column
+        }
+
+        .tableWidth = Math.min(total, width)
         .rowHeights.clear()
-        let columnWidth = width / cast(f32) .columnCount
         for row in .rowCount
         {
             var height = 38'f32
             for &cell in .cells where cell.row == row do
-                height = Math.max(height, cell.view.preferredHeight(Math.max(columnWidth - 20, 1)) + 12)
+                height = Math.max(height, cell.view.preferredHeight(Math.max(.columnWidths[cell.column] - CellPadding, 1)) + 12)
             .rowHeights.add(height)
         }
 
@@ -133,8 +177,8 @@ impl TableView
         {
             for &cell in .cells where cell.row == row
             {
-                let x = cast(f32) cell.column * columnWidth
-                cell.view.setPosition({x + 10, y + 4, Math.max(columnWidth - 20, 1), .rowHeights[row] - 8})
+                let x = .columnOffset(cell.column)
+                cell.view.setPosition({x + 10, y + 4, Math.max(.columnWidths[cell.column] - CellPadding, 1), .rowHeights[row] - 8})
             }
 
             y += .rowHeights[row]
@@ -195,23 +239,23 @@ impl IWnd for TableView
         let painter = evt.paintContext.painter
         discard .layout(rect.width)
         if .rowHeights.count do
-            painter.fillRect({0, 0, rect.width, .rowHeights[0]}, .themeColors().edit_Bk)
+            painter.fillRect({0, 0, .tableWidth, .rowHeights[0]}, .themeColors().edit_Bk)
 
         let border = .themeColors().edit_Border
         var y      = 0'f32
         for height in .rowHeights
         {
-            painter.fillRect({0, y, rect.width, 1}, border)
+            painter.fillRect({0, y, .tableWidth, 1}, border)
             y += height
         }
 
-        painter.fillRect({0, y - 1, rect.width, 1}, border)
+        painter.fillRect({0, y - 1, .tableWidth, 1}, border)
 
         if .columnCount
         {
-            let columnWidth = rect.width / cast(f32) .columnCount
-            for column in .columnCount + 1 do
-                painter.fillRect({cast(f32) column * columnWidth, 0, 1, rect.height}, border)
+            for column in .columnCount do
+                painter.fillRect({.columnOffset(column), 0, 1, rect.height}, border)
+            painter.fillRect({.tableWidth - 1, 0, 1, rect.height}, border)
         }
     }
 

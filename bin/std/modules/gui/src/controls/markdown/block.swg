@@ -78,13 +78,20 @@ private func alertTitle(kind: BlockKind)->string
 {
     switch kind
     {
-    case .AlertNote:      return "Note"
-    case .AlertTip:       return "Tip"
-    case .AlertImportant: return "Important"
-    case .AlertWarning:   return "Warning"
-    case .AlertCaution:   return "Caution"
+    case .AlertNote:      return strings().markdown_AlertNote
+    case .AlertTip:       return strings().markdown_AlertTip
+    case .AlertImportant: return strings().markdown_AlertImportant
+    case .AlertWarning:   return strings().markdown_AlertWarning
+    case .AlertCaution:   return strings().markdown_AlertCaution
     default:              return ""
     }
+}
+
+// One live ordinal of the ordered list being rendered, per indentation level.
+private struct OrderedCounter
+{
+    indent: u32
+    value:  u64
 }
 
 internal func parseBlocks(source: string)->Array'Block
@@ -101,7 +108,7 @@ internal func parseBlocks(source: string)->Array'Block
         {
             var reference: Reference
             reference.name   = definition.name
-            reference.target = definition.value
+            reference.target = referenceTarget(definition.value)
             references.add(#move reference)
         }
     }
@@ -112,7 +119,7 @@ internal func parseBlocks(source: string)->Array'Block
         index = 1
         while index < lines.count and Latin1.trim(lines[index]) != "---"
         {
-            metadata += lines[index]
+            metadata += richText(lines[index])
             metadata += "\n"
             index    += 1
         }
@@ -174,8 +181,10 @@ internal func parseBlocks(source: string)->Array'Block
             index += 1
             while index < lines.count
             {
+                // A closing fence carries no info and is at least as long as its opener, so a
+                // longer fence can display a shorter one as content.
                 let close = parseFence(lines[index])
-                if close.found and close.marker == fence.marker
+                if close.found and close.marker == fence.marker and close.length >= fence.length and !@countof(close.info)
                 {
                     index += 1
                     break
@@ -296,7 +305,8 @@ internal func parseBlocks(source: string)->Array'Block
         let item = parseListItem(raw)
         if item.found
         {
-            var list: String
+            var list:     String
+            var counters: Array'OrderedCounter
             while index < lines.count
             {
                 let current = parseListItem(lines[index])
@@ -334,10 +344,28 @@ internal func parseBlocks(source: string)->Array'Block
                     list += "<p1><lc>*</lc></p> "
                     content.remove(0, 4)
                 }
-                elif current.ordered do
-                    list += Format.toString("<p3><lm>%.</lm></p> ", current.marker)
-                else do
+                elif current.ordered
+                {
+                    // Ordinals count from the first written marker and advance by position, so
+                    // '1. 1. 1.' renders 1, 2, 3; a level popped by a shallower item restarts.
+                    while counters.count and counters.back().indent > current.indent do
+                        counters.removeBack()
+                    if counters.count and counters.back().indent == current.indent do
+                        counters.backPtr().value += 1
+                    else
+                    {
+                        let parsed = catch StrConv.parseU64(current.marker) as parseError
+                        counters.add({current.indent, parseError == null ? parsed.value : 1})
+                    }
+
+                    list += Format.toString("<p3><lm>%.</lm></p> ", counters.back().value)
+                }
+                else
+                {
+                    while counters.count and counters.back().indent >= current.indent do
+                        counters.removeBack()
                     list += "<p1><lb>*</lb></p> "
+                }
 
                 list += renderInline(content.toString(), references.toSlice())
                 list += "\n"

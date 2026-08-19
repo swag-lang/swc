@@ -22,10 +22,10 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
         result.value = "&"
 
     case "lt":
-        result.value = "‹"
+        result.value = "<<"
 
     case "gt":
-        result.value = "›"
+        result.value = ">"
 
     case "quot":
         result.value = "\""
@@ -83,9 +83,7 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
         if !Utf8.isValidRune(character) do
             return result
         if character == '<' do
-            result.value = "‹"
-        elif character == '>' do
-            result.value = "›"
+            result.value = "<<"
         else
         {
             result.value.clear()
@@ -97,6 +95,8 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
     return result
 }
 
+// Escapes document text for the inline markup protocol. Only '<' opens a protocol tag, so a
+// literal '<' doubles into '<<' and every other character, '>' included, passes through unchanged.
 func richText(text: string, decodeEntities = false)->String
 {
     var result: retval
@@ -112,9 +112,7 @@ func richText(text: string, decodeEntities = false)->String
         }
 
         if text[index] == '<' do
-            result += "‹"
-        elif text[index] == '>' do
-            result += "›"
+            result += "<<"
         else do
             result += text[index]
         index += 1

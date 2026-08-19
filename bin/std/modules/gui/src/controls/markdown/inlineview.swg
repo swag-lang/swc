@@ -117,7 +117,7 @@ impl InlineView
             .invalidate()
     }
 
-    // Highlights every rendered atom touched by the first case-insensitive match.
+    // Highlights every rendered atom touched by a case-insensitive match, for all matches.
     mtd highlightText(text: string)->bool
     {
         .clearSearchHighlight()
@@ -132,21 +132,31 @@ impl InlineView
                 source += atom.text
         }
 
-        let match = Utf8.indexOf(source.toString(), text, 0, .Latin1NoCase)
-        if match == Swag.U64.Max do
-            return false
-
-        let matchEnd = match + @countof(text)
-        var start    = 0'u64
-        for &atom in .atoms
+        var found      = false
+        var searchFrom = 0'u64
+        while true
         {
-            let length = atom.isBreak or atom.isSpace ? 1 : (atom.isMath ? 0 : @countof(atom.text))
-            let end    = start + length
-            if end > match and start < matchEnd do
-                atom.searchHit = true
-            start = end
+            let match = Utf8.indexOf(source.toString(), text, searchFrom, .Latin1NoCase)
+            if match == Swag.U64.Max do
+                break
+
+            found = true
+            let matchEnd = match + @countof(text)
+            var start    = 0'u64
+            for &atom in .atoms
+            {
+                let length = atom.isBreak or atom.isSpace ? 1 : (atom.isMath ? 0 : @countof(atom.text))
+                let end    = start + length
+                if end > match and start < matchEnd do
+                    atom.searchHit = true
+                start = end
+            }
+
+            searchFrom = match + Math.max(@countof(text), 1)
         }
 
+        if !found do
+            return false
         .invalidate()
         return true
     }
@@ -263,6 +273,11 @@ impl InlineView
             var eaten     = 0'u64
             switch
             {
+            // The protocol escape for a literal '<' in document text.
+            case Utf8.startsWith(remaining, "<<"):
+                .appendText("<", state)
+                eaten = 2
+
             case Utf8.startsWith(remaining, "<b>"):
                 state.bold += 1
                 eaten      = 3
@@ -573,6 +588,7 @@ impl InlineView
         var first            = 0'u64
         var lineLeft         = left
         var continuationLeft = left
+        var explicitStart    = true
         var afterMarker: bool
 
         for &atom, index in .atoms
@@ -586,11 +602,14 @@ impl InlineView
                 first            = index + 1
                 lineLeft         = left
                 continuationLeft = left
+                explicitStart    = true
                 afterMarker      = false
                 continue
             }
 
-            if atom.isSpace and x == lineLeft and .kind != .List do
+            // Whitespace the author wrote at the start of a line — code indentation, a nested
+            // list level — is layout, so it renders; only the space a wrap left behind is dropped.
+            if atom.isSpace and x == lineLeft and !explicitStart do
                 continue
             if !atom.isSpace and x > lineLeft and x + atom.position.width > right
             {
@@ -603,6 +622,8 @@ impl InlineView
             atom.visible    = true
             atom.position.x = x
             x               += atom.position.width
+            if !atom.isSpace do
+                explicitStart = false
             if atom.flags.has(.ListMarker) do
                 afterMarker = true
             elif afterMarker and atom.isSpace do
@@ -649,6 +670,27 @@ impl InlineView
     }
 
     mtd preferredHeight(width: f32)->f32 => .layout(width)
+
+    // Width of the longest line when nothing wraps, used by tables to size columns from content.
+    mtd naturalWidth()->f32
+    {
+        var widest = 0'f32
+        var x      = 0'f32
+        for &atom in .atoms
+        {
+            if atom.isBreak
+            {
+                widest = Math.max(widest, x)
+                x      = 0
+                continue
+            }
+
+            .measureAtom(atom)
+            x += atom.position.width
+        }
+
+        return Math.max(widest, x)
+    }
 
     func create(owner: *View, parent: *Wnd, source: string, kind: BlockKind)->*InlineView
     {

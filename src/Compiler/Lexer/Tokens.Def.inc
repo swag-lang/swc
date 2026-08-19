@@ -208,6 +208,7 @@ SWC_TOKEN_DEF(ModifierNoFail, "#nofail", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierBit, "#bit", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierUnConst, "#unconst", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierRaw, "#raw", TokenIdKindE::Modifier)
+SWC_TOKEN_DEF(ModifierSimd, "#simd", TokenIdKindE::Modifier)
 
 // COMPILER IDENTIFIERS
 

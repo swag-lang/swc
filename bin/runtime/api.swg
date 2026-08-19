@@ -644,6 +644,7 @@ namespace Swag
         CodeBlock         // The typeinfo is a [[TypeInfoCodeBlock]]
         Interface         // The typeinfo is a [[TypeInfoStruct]], but this is an interface
         Attribute         // The typeinfo is a [[TypeInfoFunc]], but this is an attribute
+        Simd              // The typeinfo is a [[TypeInfoSimd]]
     }
 
     // The native type if the type is... native.
@@ -873,6 +874,16 @@ namespace Swag
         {
             using base:  TypeInfo
             pointedType: const *TypeInfo     // The underlying type
+        }
+    }
+
+    struct TypeInfoSimd
+    {
+        public
+        {
+            using base: TypeInfo
+            laneType:   const *TypeInfo     // The native type of one lane
+            count:      u64                 // Number of lanes in the vector
         }
     }
 

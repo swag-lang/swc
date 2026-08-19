@@ -418,4 +418,154 @@ Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
+Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    TypeManager&        typeMgr = sema.typeMgr();
+    const TypeInfo&     srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&     dstType = typeMgr.get(dstTypeRef);
+    const CastArrayArgs args{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
+
+    const TypeRef  laneTypeRef = dstType.payloadSimdLaneTypeRef();
+    const uint32_t laneCount   = dstType.payloadSimdLaneCount();
+    const uint64_t laneBytes   = 16 / laneCount;
+
+    // Only a qualifier change converts between simd types here; a different
+    // shape needs an explicit '#bit' reinterpretation.
+    if (srcType.isSimd())
+    {
+        if (srcType.payloadSimdLaneTypeRef() == laneTypeRef && srcType.payloadSimdLaneCount() == laneCount)
+            return castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    }
+
+    // An array literal builds the lanes: the count must match exactly, and
+    // each element must convert to the lane type.
+    if (srcType.isAggregateArray())
+    {
+        const auto& srcTypes = srcType.payloadAggregate().types;
+        if (srcTypes.size() != laneCount)
+        {
+            const Result res = castRequest.fail(DiagnosticId::sema_err_simd_lane_count, srcTypeRef, dstTypeRef);
+            castRequest.failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint64_t>(laneCount));
+            castRequest.failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcTypes.size()));
+            return res;
+        }
+
+        const std::vector<ConstantRef>* srcValues = nullptr;
+        SWC_RESULT(getAggregateConstantValues(args, srcValues));
+
+        for (size_t i = 0; i < srcTypes.size(); ++i)
+        {
+            const ArrayElemLocation location = arrayElemLocation(args, i);
+            const ConstantRef       valueRef = srcValues ? (*srcValues)[i] : ConstantRef::invalid();
+            SWC_RESULT(checkElemCast(args, srcTypes[i], laneTypeRef, location, valueRef));
+        }
+
+        if (!castRequest.materializeConstantResult())
+            return Result::Continue;
+
+        ByteArray                  buffer(16);
+        const std::span<std::byte> bytes = buffer.span();
+        for (size_t i = 0; i < srcValues->size(); ++i)
+        {
+            const ArrayElemLocation location = arrayElemLocation(args, i);
+            ConstantRef             castedRef;
+            SWC_RESULT(foldElemCast(args, srcTypes[i], laneTypeRef, location, (*srcValues)[i], castedRef));
+            if (castedRef.isInvalid())
+            {
+                castRequest.outConstRef = ConstantRef::invalid();
+                return Result::Continue;
+            }
+            const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, castedRef, laneTypeRef));
+        }
+
+        castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, bytes);
+        SWC_ASSERT(castRequest.outConstRef.isValid());
+        return Result::Continue;
+    }
+
+    if (castRequest.kind != CastKind::Explicit)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    // A fixed-size array of the exact shape reinterprets bit for bit.
+    if (srcType.isArray())
+    {
+        const auto&   dims           = srcType.payloadArrayDims();
+        const TypeRef srcElemTypeRef = typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcType.payloadArrayElemTypeRef());
+        if (dims.size() != 1 || dims[0] != laneCount || srcElemTypeRef != laneTypeRef)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+        if (castRequest.isConstantFolding() && castRequest.materializeConstantResult())
+        {
+            const ConstantValue& cst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            if (cst.isArray())
+                castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, cst.getArray());
+        }
+        return Result::Continue;
+    }
+
+    // A scalar broadcasts into every lane. A constant may still convert to the
+    // lane type while folding; a runtime value must already be the lane type,
+    // because the splat lowering converts nothing.
+    if (!castRequest.isConstantFolding())
+    {
+        const TypeInfo& resolvedSrcType = typeMgr.get(typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef));
+        if (!resolvedSrcType.isScalarNumeric() || resolvedSrcType.typeRef() != laneTypeRef)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Continue;
+    }
+
+    if (!typeMgr.get(typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef)).isScalarNumeric())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    SWC_RESULT(checkElemCast(args, srcTypeRef, laneTypeRef, {}, castRequest.constantFoldingSrc()));
+    if (!castRequest.materializeConstantResult())
+        return Result::Continue;
+
+    ConstantRef elemRef;
+    SWC_RESULT(foldElemCast(args, srcTypeRef, laneTypeRef, {}, castRequest.constantFoldingSrc(), elemRef));
+    if (elemRef.isInvalid())
+    {
+        castRequest.outConstRef = ConstantRef::invalid();
+        return Result::Continue;
+    }
+
+    ByteArray                  buffer(16);
+    const std::span<std::byte> bytes = buffer.span();
+    for (uint32_t i = 0; i < laneCount; ++i)
+    {
+        const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
+        SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, elemRef, laneTypeRef));
+    }
+    castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, bytes);
+    SWC_ASSERT(castRequest.outConstRef.isValid());
+    return Result::Continue;
+}
+
+Result Cast::castFromSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    TypeManager&    typeMgr = sema.typeMgr();
+    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+
+    // The only value route out of a vector is the explicit reinterpretation
+    // into the fixed-size array of the exact same shape.
+    if (castRequest.kind != CastKind::Explicit || !dstType.isArray())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    const auto&   dims           = dstType.payloadArrayDims();
+    const TypeRef dstElemTypeRef = typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), dstType.payloadArrayElemTypeRef());
+    if (dims.size() != 1 || dims[0] != srcType.payloadSimdLaneCount() || dstElemTypeRef != srcType.payloadSimdLaneTypeRef())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (castRequest.isConstantFolding() && castRequest.materializeConstantResult())
+    {
+        const ConstantValue& cst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+        if (cst.isArray())
+            castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, cst.getArray());
+    }
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

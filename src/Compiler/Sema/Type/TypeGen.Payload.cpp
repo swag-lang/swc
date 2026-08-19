@@ -1015,6 +1015,10 @@ void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::Typ
             initArray(*reinterpret_cast<Runtime::TypeInfoArray*>(&rtType), type);
             break;
 
+        case LayoutKind::Simd:
+            reinterpret_cast<Runtime::TypeInfoSimd*>(&rtType)->count = type.payloadSimdLaneCount();
+            break;
+
         case LayoutKind::Struct:
             initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(&rtType), offset, type, entry);
             break;
@@ -1072,6 +1076,9 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
         case LayoutKind::Func:
             return reservePayload<Runtime::TypeInfoFunc>(storage, Runtime::TypeInfoKind::Func);
 
+        case LayoutKind::Simd:
+            return reservePayload<Runtime::TypeInfoSimd>(storage, Runtime::TypeInfoKind::Simd);
+
         case LayoutKind::Base:
         default:
         {
@@ -1123,6 +1130,13 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         case LayoutKind::Slice:
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), payloadDepEntry(typeMgr, cache, key).offset);
             break;
+
+        case LayoutKind::Simd:
+        {
+            const auto& dep = requireCacheEntry(cache, typeMgr.get(key).payloadSimdLaneTypeRef());
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSimd, laneType), dep.offset);
+            break;
+        }
 
         case LayoutKind::Array:
         {

@@ -37,6 +37,7 @@ namespace
         map[static_cast<size_t>(Pn::TypeInfoGeneric)]    = RuntimeTypeKind::TypeInfoGeneric;
         map[static_cast<size_t>(Pn::TypeInfoNamespace)]  = RuntimeTypeKind::TypeInfoNamespace;
         map[static_cast<size_t>(Pn::TypeInfoCodeBlock)]  = RuntimeTypeKind::TypeInfoCodeBlock;
+        map[static_cast<size_t>(Pn::TypeInfoSimd)]       = RuntimeTypeKind::TypeInfoSimd;
         map[static_cast<size_t>(Pn::TypeValue)]          = RuntimeTypeKind::TypeValue;
         map[static_cast<size_t>(Pn::Attribute)]          = RuntimeTypeKind::Attribute;
         map[static_cast<size_t>(Pn::AttributeParam)]     = RuntimeTypeKind::AttributeParam;
@@ -384,7 +385,7 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
     const RuntimeTypeKind kind  = it->second;
     const auto            uKind = static_cast<uint32_t>(kind);
     return uKind >= static_cast<uint32_t>(RuntimeTypeKind::TypeInfo) &&
-           uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoCodeBlock);
+           uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoSimd);
 }
 
 bool TypeManager::isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const

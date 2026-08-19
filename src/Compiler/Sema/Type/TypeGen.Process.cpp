@@ -190,6 +190,10 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
             break;
         }
 
+        case LayoutKind::Simd:
+            deps.push_back(type.payloadSimdLaneTypeRef());
+            break;
+
         case LayoutKind::Struct:
         {
             if (type.isAggregateStruct())

@@ -1034,6 +1034,16 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
 };
 
 // -----------------------------------------------------------------------------
+struct AstSimdType : AstNodeT<AstNodeId::SimdType>
+{
+    AstNodeRef nodeArrayTypeRef;
+
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArrayTypeRef}); }
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+};
+
+// -----------------------------------------------------------------------------
 struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 {
     AstNodeRef nodeIdentRef;

@@ -451,6 +451,11 @@ uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeIn
             }
             return h;
 
+        case TypeInfoKind::Simd:
+            h = Math::hashCombine(h, stableTypeHash(ctx, typeInfo.payloadSimd_.laneTypeRef));
+            h = Math::hashCombine(h, typeInfo.payloadSimd_.laneCount);
+            return h;
+
         default:
             SWC_UNREACHABLE();
     }

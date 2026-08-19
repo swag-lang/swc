@@ -2241,6 +2241,14 @@ AstNodeRef AstArrayType::semaClone(Sema& sema, const CloneContext& cloneContext)
     return newRef;
 }
 
+AstNodeRef AstSimdType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::SimdType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstSimdType>();
+    cloned.nodeArrayTypeRef = cloneNodeRef(sema, nodeArrayTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstNamedType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::NamedType>(sema, *this);

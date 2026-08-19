@@ -118,7 +118,7 @@ namespace
 
         if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregateStruct() || storageType.isAggregateArray() || (storageType.isFunction() && storageType.isLambdaClosure()))
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
-        else if (storageType.isArray())
+        else if (storageType.isArray() || storageType.isSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
         else
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
@@ -219,7 +219,7 @@ namespace
         if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
             return resolveClosureStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, payload);
 
-        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString())
+        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSimd())
             return true;
 
         if (typeInfo.isSlice())
@@ -441,7 +441,7 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     // Mirror makeMaterializedConstantValue's kind decision. Only the array/struct branches build a
     // borrowed span constant; the scalar branch takes a different code path.
     ConstantKind kind;
-    if (storageType.isArray())
+    if (storageType.isArray() || storageType.isSimd())
         kind = ConstantKind::Array;
     else if (storageType.isBool() || storageType.isChar() || storageType.isRune() || storageType.isInt() || storageType.isFloat() || storageType.isAnyPointer() || storageType.isReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
         return 0;

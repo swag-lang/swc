@@ -58,3 +58,4 @@ SWC_DIAG_DEF(parser_err_switch_missing_case, Error, "switch body has no 'case' o
 SWC_DIAG_DEF(parser_err_mixed_destructuring, Error, "destructuring pattern mixes positional and named bindings; [help] use 'field: binding' for every entry, or remove every field name")
 SWC_DIAG_DEF(parser_err_for_selector_removed, Error, "loop selector '{tok}' is no longer supported; [help] iterate an ordinary view, such as 'value.pairs()' or 'value.reversed()'")
 SWC_DIAG_DEF(parser_err_reference_type_removed, Error, "the '&T' reference type has been replaced by the pointer type '*T'; [help] replace '&' with '*' in the type")
+SWC_DIAG_DEF(parser_err_simd_expected_array, Error, "'#simd' needs a fixed-size array type; [help] write the vector shape as '#simd [16] u8', '#simd [4] f32', or another 16-byte form")

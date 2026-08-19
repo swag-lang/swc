@@ -152,6 +152,11 @@ private:
     template<class T>
     friend class PagedStoreTyped;
 
+    // The largest alignment the store hands out. Simd globals and constants
+    // need 16; page storage is allocated at least this aligned so an aligned
+    // offset stays aligned in memory (proximity carves are OS-page aligned).
+    static constexpr uint32_t K_MAX_ALIGN = 16;
+
     struct Page
     {
         std::byte*            storage       = nullptr;

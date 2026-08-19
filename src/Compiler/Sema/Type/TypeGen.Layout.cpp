@@ -15,6 +15,8 @@ TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
         return LayoutKind::Enum;
     if (type.isArray())
         return LayoutKind::Array;
+    if (type.isSimd())
+        return LayoutKind::Simd;
     if (type.isSlice())
         return LayoutKind::Slice;
     if (type.isAlias())
@@ -60,6 +62,7 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
         case LayoutKind::TypedVariadic: predefinedName = Pn::TypeInfoVariadic; break;
         case LayoutKind::CodeBlock: predefinedName = Pn::TypeInfoCodeBlock; break;
         case LayoutKind::Func: predefinedName = Pn::TypeInfoFunc; break;
+        case LayoutKind::Simd: predefinedName = Pn::TypeInfoSimd; break;
         case LayoutKind::Base: predefinedName = Pn::TypeInfo; break;
     }
 

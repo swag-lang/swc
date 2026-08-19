@@ -301,6 +301,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::CString:
             case TypeInfoKind::Any:
             case TypeInfoKind::Interface:
+            case TypeInfoKind::Simd:
                 break;
             default:
                 const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
@@ -371,6 +372,9 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             break;
         case TypeInfoKind::TypeInfo:
             typeRef = typeMgr.addType(TypeInfo::makeTypeInfo(typeFlags));
+            break;
+        case TypeInfoKind::Simd:
+            typeRef = typeMgr.addType(TypeInfo::makeSimd(qualifiedType.payloadSimdLaneTypeRef(), qualifiedType.payloadSimdLaneCount(), typeFlags));
             break;
         default:
             SWC_UNREACHABLE();
@@ -566,6 +570,61 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     const std::span<const TypeRef> arrayIndexTypeRefs = hasEnumDimension ? indexTypeRefs.span() : std::span<const TypeRef>{};
     const TypeInfo                 ty                 = TypeInfo::makeArray(dims, view.typeRef(), TypeInfoFlagsE::Zero, arrayIndexTypeRefs);
     const TypeRef                  typeRef            = sema.typeMgr().addType(ty);
+    sema.setType(sema.curNodeRef(), typeRef);
+    return Result::Continue;
+}
+
+Result AstSimdType::semaPostNode(Sema& sema) const
+{
+    TaskContext&       ctx       = sema.ctx();
+    const SemaNodeView view      = sema.viewType(nodeArrayTypeRef);
+    const TypeInfo&    arrayType = sema.typeMgr().get(view.typeRef());
+
+    if (!arrayType.isArray() || arrayType.payloadArrayDims().size() != 1)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_simd_shape, nodeArrayTypeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    // Lanes are stored as their canonical native type, so two aliases of the
+    // same lane intern to the same vector type.
+    TypeRef laneTypeRef = arrayType.payloadArrayElemTypeRef();
+    for (;;)
+    {
+        const TypeInfo& laneCandidate = sema.typeMgr().get(laneTypeRef);
+        if (!laneCandidate.isAlias())
+            break;
+        const TypeRef underlyingRef = laneCandidate.payloadTypeRef();
+        if (!underlyingRef.isValid())
+            break;
+        laneTypeRef = underlyingRef;
+    }
+
+    const TypeInfo& laneType  = sema.typeMgr().get(laneTypeRef);
+    const bool      intLane   = laneType.isInt() && laneType.payloadIntBits() != 0 && laneType.payloadIntSign() != TypeInfo::Sign::Unknown;
+    const bool      floatLane = laneType.isFloat() && laneType.payloadFloatBits() != 0;
+    if (!intLane && !floatLane)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_simd_element_type, nodeArrayTypeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, arrayType.payloadArrayElemTypeRef());
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    const uint64_t laneCount = arrayType.payloadArrayDims()[0];
+    const uint64_t laneBytes = (intLane ? laneType.payloadIntBits() : laneType.payloadFloatBits()) / 8;
+    if (laneCount * laneBytes != 16)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_simd_shape, nodeArrayTypeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    const TypeInfo ty      = TypeInfo::makeSimd(laneTypeRef, static_cast<uint32_t>(laneCount));
+    const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }

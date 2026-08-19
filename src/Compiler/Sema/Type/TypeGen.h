@@ -118,6 +118,7 @@ private:
         TypedVariadic,
         CodeBlock,
         Func,
+        Simd,
     };
 
     TypeGenCache&                                  cacheFor(const DataSegment& storage);

@@ -1245,6 +1245,12 @@ Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const
         return Result::Continue;
     }
 
+    if (targetType.isSimd())
+    {
+        outTypeRef = targetType.payloadSimdLaneTypeRef();
+        return Result::Continue;
+    }
+
     if (targetType.isSlice() || targetType.isTypedVariadic())
     {
         outTypeRef = targetType.payloadTypeRef();

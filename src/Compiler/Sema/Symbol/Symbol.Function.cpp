@@ -323,6 +323,14 @@ namespace
                 appendPublicApiSymbolFragment(out, "typed_variadic");
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
                 return;
+            case TypeInfoKind::Simd:
+            {
+                appendPublicApiSymbolFragment(out, "simd");
+                const auto laneCountText = std::to_string(typeInfo.payloadSimdLaneCount());
+                appendPublicApiSymbolFragment(out, laneCountText);
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadSimdLaneTypeRef());
+                return;
+            }
             case TypeInfoKind::Function:
             {
                 const SymbolFunction& function = typeInfo.payloadSymFunction();

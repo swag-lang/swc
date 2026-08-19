@@ -910,6 +910,24 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
         }
     }
 
+    // A simd vector reinterprets bit for bit into another simd shape, or into
+    // the fixed-size 16-byte array carrying the same storage (and back).
+    if (srcType->isSimd() || dstType.isSimd())
+    {
+        const bool srcFits = (srcType->isSimd() || srcType->isArray()) && srcType->sizeOf(ctx) == 16;
+        const bool dstFits = (dstType.isSimd() || dstType.isArray()) && dstType.sizeOf(ctx) == 16;
+        if (!srcFits || !dstFits)
+            return castRequest.fail(DiagnosticId::sema_err_bit_cast_invalid_type, orgSrcTypeRef, dstTypeRef);
+
+        if (castRequest.isConstantFolding() && castRequest.materializeConstantResult())
+        {
+            const ConstantValue& cst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            if (cst.isArray())
+                castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, cst.getArray());
+        }
+        return Result::Continue;
+    }
+
     const bool srcScalar = srcType->isScalarNumeric();
     const bool dstScalar = dstType.isScalarNumeric();
     if (!srcScalar || !dstScalar)
@@ -1591,6 +1609,10 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castToFromTypeInfo(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isFunction())
         res = castToFunction(sema, castRequest, srcTypeRef, dstTypeRef);
+    else if (dstType.isSimd())
+        res = castToSimd(sema, castRequest, srcTypeRef, dstTypeRef);
+    else if (srcType.isSimd())
+        res = castFromSimd(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isArray())
         res = castToArray(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isSlice())

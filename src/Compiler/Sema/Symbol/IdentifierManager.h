@@ -124,6 +124,7 @@ public:
         TypeInfoGeneric,
         TypeInfoNamespace,
         TypeInfoCodeBlock,
+        TypeInfoSimd,
         TypeInfoKind,
         TypeInfoNativeKind,
         TypeInfoFlags,

@@ -85,6 +85,7 @@ namespace Runtime
         CodeBlock,
         Interface,
         Attribute,
+        Simd,
     };
 
     enum class TypeInfoNativeKind : uint8_t
@@ -261,6 +262,13 @@ namespace Runtime
     {
         TypeInfo        base;
         const TypeInfo* pointedType;
+    };
+
+    struct TypeInfoSimd
+    {
+        TypeInfo        base;
+        const TypeInfo* laneType;
+        uint64_t        count;
     };
 
     struct TypeInfoVariadic

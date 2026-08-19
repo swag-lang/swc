@@ -808,6 +808,14 @@ namespace
             return lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
         }
 
+        // A simd constant is carried as a raw 16-byte array payload.
+        if (dstType.isSimd())
+        {
+            SWC_INTERNAL_CHECK(cst.isArray());
+            copyBytes(dstBytes, cst.getArray());
+            return Result::Continue;
+        }
+
         if (dstType.isAggregateStruct())
         {
             if (cst.isStruct())
@@ -962,6 +970,7 @@ namespace
             case TypeInfoKind::Rune:
             case TypeInfoKind::Int:
             case TypeInfoKind::Float:
+            case TypeInfoKind::Simd:
                 return materializeStaticScalar(payload.dstBytes, payload.srcBytes);
 
             case TypeInfoKind::String:

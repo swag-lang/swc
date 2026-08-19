@@ -294,3 +294,6 @@ SWC_DIAG_DEF(sema_err_late_bad_type, Error, "'Swag.Late' needs a non-null nullab
 SWC_DIAG_DEF(sema_err_isset_not_late_field, Error, "'@isset' needs a 'Swag.Late' struct field or global variable; [help] '@isset' tests whether a deferred field or global has received its value: it has no meaning for other expressions")
 SWC_DIAG_DEF(sema_err_late_read_never_set, Error, "'Swag.Late' field '{value}' of '{sym}' is read here, but no path assigns it first; [help] assign the field before this read, or test it with '@isset'")
 SWC_DIAG_DEF(sema_err_compile_time_global_write_dropped, Error, "compile-time execution writes global '{sym}', whose storage the generated artifact zeroes; [help] declare '{sym}' with '= undefined' to emit what compile-time execution wrote, or set it from '#init' at startup")
+SWC_DIAG_DEF(sema_err_simd_element_type, Error, "a '#simd' vector accepts u8, s8, u16, s16, u32, s32, u64, s64, f32 or f64 lanes, found '{type}'")
+SWC_DIAG_DEF(sema_err_simd_shape, Error, "a '#simd' vector needs a one-dimensional array shape totalling exactly 16 bytes, but '{type}' does not fit; [help] use one of '#simd [16] u8', '#simd [8] u16', '#simd [4] u32', '#simd [2] u64', '#simd [4] f32', '#simd [2] f64' or a signed variant")
+SWC_DIAG_DEF(sema_err_simd_lane_count, Error, "'{requested-type}' needs {value} lane values, found {count}")

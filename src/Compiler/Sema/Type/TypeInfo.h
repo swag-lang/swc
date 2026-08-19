@@ -62,6 +62,7 @@ enum class TypeInfoKind : uint8_t
     TypedVariadic,
     CodeBlock,
     TypeInfo,
+    Simd,
 };
 
 enum class TypeExpandE : uint32_t
@@ -172,6 +173,7 @@ public:
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
     bool isIndexable() const noexcept { return isArray() || isSlice() || isString() || isCString() || isAnyVariadic(); }
+    bool isSimd() const noexcept { return kind_ == TypeInfoKind::Simd; }
 
     bool isSupportsNullableQualifier() const noexcept;
     bool isEnumFlags() const noexcept;
@@ -298,6 +300,18 @@ public:
         return payloadAggregate_;
     }
 
+    TypeRef payloadSimdLaneTypeRef() const noexcept
+    {
+        SWC_ASSERT(isSimd());
+        return payloadSimd_.laneTypeRef;
+    }
+
+    uint32_t payloadSimdLaneCount() const noexcept
+    {
+        SWC_ASSERT(isSimd());
+        return payloadSimd_.laneCount;
+    }
+
     bool    tryGetAggregateMemberIndexByName(size_t& outIndex, IdentifierRef name, std::string_view nameText) const noexcept;
     bool    tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskContext& ctx, IdentifierRef name) const noexcept;
     TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept;
@@ -337,6 +351,7 @@ public:
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
     static TypeInfo makeCodeBlock(TypeRef typeRef);
+    static TypeInfo makeSimd(TypeRef laneTypeRef, uint32_t laneCount, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
     uint32_t runtimeHash(const TaskContext& ctx) const;
@@ -409,6 +424,12 @@ private:
         {
             SymbolFunction* sym;
         } payloadFunction_;
+
+        struct
+        {
+            TypeRef  laneTypeRef;
+            uint32_t laneCount;
+        } payloadSimd_;
     };
 };
 

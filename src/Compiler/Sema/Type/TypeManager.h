@@ -35,6 +35,7 @@ enum class RuntimeTypeKind : uint32_t
     TypeInfoGeneric,
     TypeInfoNamespace,
     TypeInfoCodeBlock,
+    TypeInfoSimd,
     TypeValue,
     Attribute,
     AttributeParam,

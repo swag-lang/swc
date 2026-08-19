@@ -94,6 +94,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::TypeInfoGeneric, .str = "TypeInfoGeneric"},
         {.name = PredefinedName::TypeInfoNamespace, .str = "TypeInfoNamespace"},
         {.name = PredefinedName::TypeInfoCodeBlock, .str = "TypeInfoCodeBlock"},
+        {.name = PredefinedName::TypeInfoSimd, .str = "TypeInfoSimd"},
         {.name = PredefinedName::TypeInfoKind, .str = "TypeInfoKind"},
         {.name = PredefinedName::TypeInfoNativeKind, .str = "TypeInfoNativeKind"},
         {.name = PredefinedName::TypeInfoFlags, .str = "TypeInfoFlags"},

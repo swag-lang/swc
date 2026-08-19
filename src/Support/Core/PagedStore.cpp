@@ -495,12 +495,12 @@ PagedStore::SpanView PagedStore::spanView(Ref ref, uint32_t elemSize, uint32_t e
 
 std::byte* PagedStore::Page::allocateAligned(uint32_t size)
 {
-    return static_cast<std::byte*>(operator new(size, static_cast<std::align_val_t>(alignof(std::max_align_t))));
+    return static_cast<std::byte*>(operator new(size, static_cast<std::align_val_t>(K_MAX_ALIGN)));
 }
 
 void PagedStore::Page::deallocateAligned(std::byte* p) noexcept
 {
-    operator delete(p, static_cast<std::align_val_t>(alignof(std::max_align_t)));
+    operator delete(p, static_cast<std::align_val_t>(K_MAX_ALIGN));
 }
 
 PagedStore::Page::Page(uint32_t pageSize, bool proximity)
@@ -589,7 +589,7 @@ bool PagedStore::containsRef(Ref ref, uint32_t minSize) const noexcept
 
 std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
 {
-    SWC_ASSERT(size <= pageSizeValue_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
+    SWC_ASSERT(size <= pageSizeValue_ && (align & (align - 1)) == 0 && align <= K_MAX_ALIGN);
 
     Page*    page     = curPage_ ? curPage_ : newPage();
     uint32_t prevUsed = page->used.load(std::memory_order_relaxed);

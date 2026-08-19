@@ -232,6 +232,28 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         return child;
     }
 
+    // Packed vector type: '#simd [N] T'. The wrapped type must be written as a
+    // fixed-size array; sema then restricts the shape to one 16-byte machine
+    // vector of native numeric lanes.
+    const TokenRef tokSimdRef = consumeIf(TokenId::ModifierSimd);
+    if (tokSimdRef.isValid())
+    {
+        // Recover on the written type alone so one focused diagnostic comes
+        // out instead of a cascade.
+        if (!is(TokenId::SymLeftBracket))
+        {
+            raiseError(DiagnosticId::parser_err_simd_expected_array, ref());
+            return parseSubType();
+        }
+
+        const AstNodeRef child = parseSubType();
+        if (child.isInvalid())
+            return AstNodeRef::invalid();
+        auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::SimdType>(tokSimdRef);
+        nodePtr->nodeArrayTypeRef = child;
+        return nodeRef;
+    }
+
     // Value pointer
     const TokenRef tokStarRef = consumeIf(TokenId::SymAsterisk);
     if (tokStarRef.isValid())

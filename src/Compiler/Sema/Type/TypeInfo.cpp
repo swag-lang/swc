@@ -183,6 +183,9 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Function:
             payloadFunction_ = other.payloadFunction_;
             break;
+        case TypeInfoKind::Simd:
+            payloadSimd_ = other.payloadSimd_;
+            break;
 
         default:
             SWC_UNREACHABLE();
@@ -253,6 +256,9 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
             break;
         case TypeInfoKind::Function:
             payloadFunction_ = other.payloadFunction_;
+            break;
+        case TypeInfoKind::Simd:
+            payloadSimd_ = other.payloadSimd_;
             break;
 
         default:
@@ -372,6 +378,9 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                     return false;
             return true;
 
+        case TypeInfoKind::Simd:
+            return payloadSimd_.laneTypeRef == other.payloadSimd_.laneTypeRef && payloadSimd_.laneCount == other.payloadSimd_.laneCount;
+
         default:
             SWC_UNREACHABLE();
     }
@@ -488,6 +497,11 @@ uint32_t TypeInfo::hash() const
                 if (!payloadArray_.indexTypeRefs.empty())
                     h = Math::hashCombine(h, payloadArray_.indexTypeRefs[i].get());
             }
+            return h;
+
+        case TypeInfoKind::Simd:
+            h = Math::hashCombine(h, payloadSimd_.laneTypeRef.get());
+            h = Math::hashCombine(h, payloadSimd_.laneCount);
             return h;
 
         default:
@@ -710,6 +724,15 @@ namespace
                 break;
             }
 
+            // The rendered name is also the cross-module export spelling, so it
+            // must parse back as the same type.
+            case TypeInfoKind::Simd:
+            {
+                const TypeInfo& laneType = ctx.typeMgr().get(typeInfo.payloadSimdLaneTypeRef());
+                out += std::format("#simd [{}] {}", typeInfo.payloadSimdLaneCount(), renderTypeName(laneType, ctx, mode));
+                break;
+            }
+
             default:
                 SWC_UNREACHABLE();
         }
@@ -785,6 +808,8 @@ Utf8 TypeInfo::toFamily(const TaskContext& ctx) const
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
             return "variadic";
+        case TypeInfoKind::Simd:
+            return "simd vector";
         default:
             SWC_UNREACHABLE();
     }
@@ -1013,6 +1038,14 @@ TypeInfo TypeInfo::makeCodeBlock(TypeRef typeRef)
     return ti;
 }
 
+TypeInfo TypeInfo::makeSimd(TypeRef laneTypeRef, uint32_t laneCount, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::Simd, flags};
+    ti.payloadSimd_ = {.laneTypeRef = laneTypeRef, .laneCount = laneCount};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
 {
     switch (kind_)
@@ -1058,6 +1091,9 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
                 count *= d;
             return count;
         }
+
+        case TypeInfoKind::Simd:
+            return 16;
 
         case TypeInfoKind::Struct:
             return payloadSymStruct().sizeOf();
@@ -1142,6 +1178,9 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(payloadArray_.typeRef).alignOf(ctx);
+
+        case TypeInfoKind::Simd:
+            return 16;
 
         case TypeInfoKind::Struct:
             return payloadSymStruct().alignment();

@@ -32,7 +32,7 @@ information.
 - Before accepting a name, search exact and unprefixed spellings across current software products,
   platform features, package registries, and repositories. Reject a name dominated by an existing
   product or operating-system feature even when capitalization differs.
-- Use the complete spelling for the application workspace, primary module directory,
+- Use the complete spelling for the application module directory,
   `BuildCfg.name`, resource application name, executable, title, registration identity,
   documentation, and URLs.
 - Derive new lowercase technical suffixes from the two-word product stem only where a platform
@@ -74,8 +74,8 @@ glyph, another app's icon, or a letter tile.
    ```powershell
    py -3 .agents/skills/build-swag-standard-apps/scripts/package_app_icon.py `
        generated-master.png `
-       --png bin/apps/sName/modules/sName/datas/appicon.png `
-       --ico bin/apps/sName/modules/sName/datas/appicon.ico
+       --png bin/apps/modules/sName/datas/appicon.png `
+       --ico bin/apps/modules/sName/datas/appicon.ico
    ```
 
 6. Set `BuildCfg.resAppIcoFileName` in `module.swg`, using a path relative to the module folder.
@@ -308,16 +308,17 @@ Three things this gets wrong if they are not said:
 
 ## Keep The Workspace Shippable
 
-- Give every application its own workspace at `bin/apps/sName/`. Put the primary executable in
-  `bin/apps/sName/modules/sName` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a root-level
+- Keep every standard application in the single `bin/apps` workspace. Put its executable module in
+  `bin/apps/modules/sName` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a root-level
   `datas/` for icons and other immutable app resources. That root-level `datas/` is what the running
   program loads, and it never moves under `src/`; the fixtures a test reads are a separate folder,
   `src/tests/datas/`. An application module lays its tests out exactly like a `bin/std` one — see
   *Lay Out A Module's Tests The Same Way Every Time* in
   [modify-swag-codebase](../modify-swag-codebase/SKILL.md).
-- Put every additional application module directly under the same `modules/` directory. A plugin,
-  helper library, or optional backend is a normal workspace module, never a nested module hidden
-  under the executable and never a special standalone build in `tools/apps.swgs`.
+- Put a genuine shared application helper directly under `bin/apps/modules` as a normal workspace
+  module. Compile one application's format viewers and optional backends into that application's
+  module unless another shipped application imports the same contract; do not create loadable
+  plugin modules or a special standalone build in `tools/apps.swgs`.
 - Make a module that normally emits a library select an executable backend for `#test` when its
   tests need to run natively. The workspace's ordinary `build`, `test`, and `smoke` commands must
   cover the whole application without a module-specific compilation path in the tool.
@@ -331,8 +332,8 @@ Three things this gets wrong if they are not said:
   explanation. Use repository-relative commands and paths.
 - Add reusable build, package, and integration entry points under `tools/`; do not leave personal
   absolute paths or root-level app scripts behind.
-- Make `tools/apps.swgs` build, test, run, or smoke the application's own workspace. Its positional
-  name selects an application, not one module inside it. Package runtime dependencies after a
+- Make `tools/apps.swgs` build, test, run, or smoke the shared applications workspace. Its positional
+  name selects one application module. Package runtime dependencies after a
   normal workspace build when the executable is not functional without them.
 
 ## Prove The Application
@@ -345,7 +346,7 @@ Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed
    changed.
 3. Build with `swc tools/apps.swgs dm build sName` when module setup, linking, resources,
    packaging, or shipped output changed.
-4. Run `swc tools/apps.swgs dm smoke sName` when startup, the main loop, plugin loading, or packaged
+4. Run `swc tools/apps.swgs dm smoke sName` when startup, the main loop, or packaged
    runtime behavior changed.
 5. Run any affected dedicated integration script. Keep tests that need UAC, drivers, hardware, or
    visible interaction in an explicit `tools/test-<name>-integration.swgs`; do not surprise the

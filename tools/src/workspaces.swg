@@ -109,7 +109,7 @@ public func runExamples(context: *Context, options: *Options)->s32 fail
     return try context.runCompiler(arguments)
 }
 
-// Builds, runs, tests, or smokes one or every application workspace.
+// Builds, runs, tests, or smokes one or every module in the applications workspace.
 //
 // Every command publishes the standard library beside the artifact it links. That is not a
 // build-only concern: a link without it *removes* the libraries a previous link published, so a
@@ -129,25 +129,17 @@ public func runApps(context: *Context, options: *Options)->s32 fail
     if command == "run" do
         return try launchApplication(context, options)
 
-    if !options.module.isEmpty() do
-        return try runApplicationWorkspace(context, options, options.module.toString(), command.toString())
-
-    for name in context.workspaceModules("apps")
-    {
-        let code = try runApplicationWorkspace(context, options, name.toString(), command.toString())
-        if code != 0 do
-            return code
-    }
-
-    return 0
+    return try runApplicationWorkspace(context, options, options.module.toString(), command.toString())
 }
 
-// Runs one command over every module owned by one application.
+// Runs one command over the applications workspace, optionally selecting one application module.
 private func runApplicationWorkspace(context: *Context, options: *Options, name, command: string)->s32 fail
 {
     var arguments: Arguments
-    arguments.add([command, "--workspace", applicationWorkspace(context, name).toString()])
+    arguments.add([command, "--workspace", applicationWorkspace(context).toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString(), "--publish"])
+    if @countof(name) do
+        arguments.add(["--workspace-module", name])
 
     // Applications and test-enabled library modules run once in their emitted artifacts. An
     // explicit --test-jit can still opt back into the in-process pass.
@@ -168,7 +160,17 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
     let code = try context.runCompiler(arguments)
     if code != 0 or command != "build" do
         return code
-    return try packageApplication(context, options, name)
+
+    if @countof(name) do
+        return try packageApplication(context, options, name)
+    for moduleName in context.workspaceModules("apps")
+    {
+        let packaged = try packageApplication(context, options, moduleName.toString())
+        if packaged != 0 do
+            return packaged
+    }
+
+    return 0
 }
 
 // Launches the packaged executable from its own directory, so it finds the files beside it.
@@ -190,13 +192,13 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
 
 private func applicationDirectory(context: *Context, options: *Options, name: string)->String
 {
-    return Path.combine(applicationWorkspace(context, name).toString(), ".output", name, "executable", options.buildCfg.toString(), context.targetArch.toString())
+    return Path.combine(applicationWorkspace(context).toString(), ".output", name, "executable", options.buildCfg.toString(), context.targetArch.toString())
 }
 
-// Returns the workspace one application owns.
-private func applicationWorkspace(context: *Context, name: string)->String
+// Returns the workspace containing every standard application.
+private func applicationWorkspace(context: *Context)->String
 {
-    return Path.combine(context.workspacePath("apps").toString(), name)
+    return context.workspacePath("apps")
 }
 
 // Copies the runtime files one application owns beside its built executable.
@@ -214,9 +216,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
         return 1
     }
 
-    let moduleDir = Path.combine(applicationWorkspace(context, name).toString(), "modules", name)
-    if name == "sFileScope" do
-        return try packageFileScopePlugins(context, options, moduleDir.toString(), appDir.toString())
+    let moduleDir = Path.combine(applicationWorkspace(context).toString(), "modules", name)
     if name != "sVaultDrive" do
         return 0
 
@@ -232,70 +232,6 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     if File.exists(installer) do
         discard catch File.delete(installer.toString())
 
-    return 0
-}
-
-// Packages the optional sFileScope format modules beside the host without linking them into it.
-//
-// The normal workspace build already produced every module. The host reads only `plugin.index.filescope`
-// on startup. A DLL enters the process only after that index
-// selects it for the opened extension, which keeps future plugin accumulation off the hot path.
-private func packageFileScopePlugins(context: *Context, options: *Options, moduleDir, appDir: string)->s32 fail
-{
-    let outputDir = Path.combine(appDir, "plugins")
-    if !Directory.exists(outputDir) do
-        try Directory.create(outputDir)
-
-    // This directory is a runtime payload, not a compiler output. Remove artifacts that an older
-    // or interrupted local build may have left beside the loadable plugins.
-    let existing = try Directory.enumerateFiles(outputDir.toString())
-    for file in existing
-    {
-        var extension = String.from(Path.extension(file.fullname.toString()) orelse "")
-        extension = extension.toLower()
-        let name      = Path.fileName(file.fullname.toString()) orelse ""
-        let oldPlugin = Utf8.startsWith(name, "sfilescope_")
-        let plugin    = Utf8.startsWith(name, "plugin_") or Utf8.startsWith(name, "plugin.")
-        if name == "index.filescope" or extension == ".lib" or extension == ".swgsrc" or ((oldPlugin or plugin) and (extension == ".dll" or extension == ".pdb")) do
-            try File.delete(file.fullname.toString())
-    }
-
-    for pluginKind in ["code", "image", "markdown", "html", "pdf", "hex", "sound", "video", "font", "binary"]
-    {
-        let moduleName = Format.toString("plugin.%", pluginKind)
-        let pluginDir  = Path.combine(applicationWorkspace(context, "sFileScope").toString(), ".output", moduleName.toString(), "shared-library", options.buildCfg.toString(), context.targetArch.toString())
-
-        let artifactName = Format.toString("plugin_%.dll", pluginKind)
-        let outputName   = Format.toString("plugin.%.dll", pluginKind)
-        try copyBeside(Path.combine(pluginDir.toString(), artifactName.toString()).toString(), outputDir.toString(), outputName.toString())
-        let pdbName   = Format.toString("plugin_%.pdb", pluginKind)
-        let pdbPath   = Path.combine(pluginDir.toString(), pdbName.toString())
-        let outputPdb = Format.toString("plugin.%.pdb", pluginKind)
-        if File.exists(pdbPath) do
-            try copyBeside(pdbPath.toString(), outputDir.toString(), outputPdb.toString())
-    }
-
-    // The host does not import this module itself, so publishing the application cannot infer
-    // the runtime needed by the lazily loaded sound plugin. Package it explicitly.
-    for dependency in ["audio"]
-    {
-        let paths = context.artifactPaths(Format.toString("std/%", dependency).toString(), "shared-library", options.buildCfg.toString())
-        let dll   = Format.toString("%.dll", dependency)
-        try copyBeside(Path.combine(paths.outDir.toString(), dll.toString()).toString(), appDir, dll.toString())
-        let pdb = Path.combine(paths.outDir.toString(), Format.toString("%.pdb", dependency).toString())
-        if File.exists(pdb) do
-            try copyBeside(pdb.toString(), appDir, Format.toString("%.pdb", dependency).toString())
-    }
-
-    // The video plugin is loaded through the same runtime boundary and owns the only import of
-    // std/video in this application workspace.
-    let videoPaths = context.artifactPaths("std/video", "shared-library", options.buildCfg.toString())
-    try copyBeside(Path.combine(videoPaths.outDir.toString(), "video.dll").toString(), appDir, "video.dll")
-    let videoPdb = Path.combine(videoPaths.outDir.toString(), "video.pdb")
-    if File.exists(videoPdb) do
-        try copyBeside(videoPdb.toString(), appDir, "video.pdb")
-
-    try copyBeside(Path.combine(moduleDir, "datas", "plugins", "plugin.index.filescope").toString(), outputDir.toString(), "plugin.index.filescope")
     return 0
 }
 

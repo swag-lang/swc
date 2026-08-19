@@ -1,7 +1,7 @@
 # Findings — sSnapForge
 
 Evidence about the sSnapForge application itself: what will be fixed under
-`bin/apps/sSnapForge`. Intent for the same unit is [todo.snapforge.md](todo.snapforge.md).
+`bin/apps/modules/sSnapForge`. Intent for the same unit is [todo.snapforge.md](todo.snapforge.md).
 
 A lead that sSnapForge exposed but that will be fixed in `std/gui` belongs in
 [findings.gui.md](findings.gui.md) instead — the file follows the fix, not the discovery.
@@ -50,10 +50,10 @@ Entries are sorted by identifier, ascending; position carries no priority.
   The save TagBin-encodes and deflates `backImg` *and* `backImgOriginal` on every save, although
   the original never changes after the capture is taken. On a large capture (a 4K grab is ~33 MB
   of BGRA per image) the whole thing is a visible freeze, felt right after every adjustment.
-- Evidence: `Capture.save` in [capture.swg](../bin/apps/sSnapForge/modules/sSnapForge/src/capture.swg)
+- Evidence: `Capture.save` in [capture.swg](../bin/apps/modules/sSnapForge/src/capture.swg)
   re-encodes both image chunks unconditionally (`encodeValue(&.backImg)`,
   `encodeValue(&.backImgOriginal)`, both under `codecDeflate`); the timer path is
-  `RecentWnd.onTimerEvent` in [recentwnd.swg](../bin/apps/sSnapForge/modules/sSnapForge/src/recentwnd.swg).
+  `RecentWnd.onTimerEvent` in [recentwnd.swg](../bin/apps/modules/sSnapForge/src/recentwnd.swg).
 - Next step: cache the encoded+deflated `backImgOriginal` chunk on the `Capture` (invalidated the
   rare times the original changes, e.g. RestoreOrg/Flatten) and hand the pre-compressed bytes to
   `Scc.Writer`, which halves the save; then measure whether the remaining `backImg` deflate is

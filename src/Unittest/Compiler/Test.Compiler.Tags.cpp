@@ -244,8 +244,8 @@ SWC_TEST_BEGIN(Compiler_TestCommandGrantsTheModuleAsCorpus)
 {
     CommandLine cmdLine;
     cmdLine.command       = CommandKind::Test;
-    cmdLine.workspacePath = fs::path("C:/repo/bin/std");
-    cmdLine.modulePath    = fs::path("C:/repo/bin/std/modules/pixel");
+    cmdLine.workspacePath = fs::path("C:/repo/workspaces/sample");
+    cmdLine.modulePath    = fs::path("C:/repo/workspaces/sample/modules/program");
 
     const Utf8              expected = std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, cmdLine.modulePath.string());
     const std::vector<Utf8> runArgs  = effectiveGeneratedArtifactRunArgs(cmdLine);
@@ -262,7 +262,7 @@ SWC_TEST_BEGIN(Compiler_TestCommandGrantsTheWorkspaceWithoutAModule)
 {
     CommandLine cmdLine;
     cmdLine.command       = CommandKind::Test;
-    cmdLine.workspacePath = fs::path("C:/repo/bin/apps/sFileScope");
+    cmdLine.workspacePath = fs::path("C:/repo/workspaces/sample");
 
     const Utf8              expected = std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, cmdLine.workspacePath.string());
     const std::vector<Utf8> runArgs  = effectiveGeneratedArtifactRunArgs(cmdLine);
@@ -278,7 +278,7 @@ SWC_TEST_BEGIN(Compiler_SmokeCommandGrantsNoCorpus)
 {
     CommandLine cmdLine;
     cmdLine.command    = CommandKind::Smoke;
-    cmdLine.modulePath = fs::path("C:/repo/bin/apps/sVaultDrive/modules/sVaultDrive");
+    cmdLine.modulePath = fs::path("C:/repo/workspaces/sample/modules/program");
 
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(cmdLine);
     if (hasRunArgNamed(runArgs, SWAG_SANDBOX_CORPUS_RUN_ARG))

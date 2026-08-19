@@ -1,0 +1,170 @@
+using Core, Core.Errors, Gui
+
+// One integrated viewer associated with lowercase extensions or exact file names.
+struct ViewerSpec
+{
+    displayName: String     // Name shown in the viewer selector.
+    create:      ViewerCreate = undefined
+    extensions:  Array'String     // Lowercase extensions or file names, or `*` for every file.
+}
+
+// Selects whether one available viewer is the basic text surface or a format-specific viewer.
+enum ViewerChoiceKind
+{
+    BasicText
+    Viewer
+}
+
+// One viewer offered for the current file.
+struct ViewerChoice
+{
+    kind:      ViewerChoiceKind
+    specIndex: u64 = Swag.U64.Max     // Index in [[ViewerIndex.specs]] for a format-specific viewer.
+    name:      String                 // Name shown in the action-bar selector.
+}
+
+// The format viewers compiled into sFileScope, in selection order.
+struct ViewerIndex
+{
+    specs: Array'ViewerSpec
+}
+
+private func addViewer(index: *ViewerIndex, name: string, create: ViewerCreate, selectors: string)
+{
+    var spec: ViewerSpec
+    spec.displayName = String.from(name)
+    spec.create      = create
+    for selector in Tokenize.split(selectors, ';'u8) do
+        spec.extensions.add(String.from(selector))
+    index.specs.add(#move spec)
+}
+
+// Creates the complete built-in viewer table.
+func createViewerIndex()->ViewerIndex
+{
+    var result: retval
+    addViewer(&result, "HTML", &createHtmlViewer, ".htm;.html;.shtml;.xht;.xhtml")
+    addViewer(&result, "Code", &createCodeViewer, ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;.nix")
+    addViewer(&result, "Markdown", &createMarkdownViewer, ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
+    addViewer(&result, "Image", &createImageViewer, ".bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp")
+    addViewer(&result, "Video", &createVideoViewer, ".y4m;.avi;.mp4;.m4v;.mov")
+    addViewer(&result, "PDF", &createPdfViewer, ".pdf")
+    addViewer(&result, "Sound", &createSoundViewer, ".wav")
+    addViewer(&result, "Font", &createFontViewer, ".ttf;.ttc")
+    addViewer(&result, "Binary", &createBinaryViewer, ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm")
+    addViewer(&result, "Hexadecimal", &createHexViewer, "*")
+    return result
+}
+
+impl ViewerIndex
+{
+    private mtd const matches(spec: const *ViewerSpec, baseName, extension: string, wildcard: bool)->bool
+    {
+        for supported in spec.extensions
+        {
+            if wildcard and supported[] == "*" do
+                return true
+            if wildcard do
+                continue
+
+            let selector = supported[].toString()
+            if selector[0] == '.'
+            {
+                if selector == extension do
+                    return true
+            }
+            elif selector == baseName do
+                return true
+        }
+
+        return false
+    }
+
+    // Returns every viewer available for `fileName` in selection order.
+    mtd const choices(fileName: string)->Array'ViewerChoice
+    {
+        var result: retval
+        var extension = String.from(Path.extension(fileName) orelse "")
+        extension = extension.toLower()
+        var baseName = String.from(Path.fileName(fileName) orelse "")
+        baseName = baseName.toLower()
+
+        for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: false) do
+            result.add(ViewerChoice{.Viewer, index, spec.displayName})
+
+        if BasicTextView.supports(fileName) do
+            result.add(ViewerChoice{.BasicText, Swag.U64.Max, appStrings().ui_BasicText})
+
+        for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: true) do
+            result.add(ViewerChoice{.Viewer, index, spec.displayName})
+        return result
+    }
+
+    // Reports whether two files share one explicitly registered viewer, or the same extension
+    // when neither has a format-specific viewer.
+    mtd const sharesViewer(a, b: string)->bool
+    {
+        var extensionA = String.from(Path.extension(a) orelse "")
+        extensionA = extensionA.toLower()
+        var extensionB = String.from(Path.extension(b) orelse "")
+        extensionB = extensionB.toLower()
+        var baseA = String.from(Path.fileName(a) orelse "")
+        baseA = baseA.toLower()
+        var baseB = String.from(Path.fileName(b) orelse "")
+        baseB = baseB.toLower()
+
+        var anyA, anyB: bool
+        for spec in .specs
+        {
+            let matchA = .matches(spec, baseA.toString(), extensionA.toString(), wildcard: false)
+            let matchB = .matches(spec, baseB.toString(), extensionB.toString(), wildcard: false)
+            if matchA and matchB do
+                return true
+            anyA = anyA or matchA
+            anyB = anyB or matchB
+        }
+
+        if !anyA and !anyB do
+            return extensionA == extensionB
+        return false
+    }
+
+    // Reports whether `fileName` has an explicitly registered extension or exact name.
+    mtd const explicitlySupports(fileName: string)->bool
+    {
+        var extension = String.from(Path.extension(fileName) orelse "")
+        extension = extension.toLower()
+        var baseName = String.from(Path.fileName(fileName) orelse "")
+        baseName = baseName.toLower()
+        for spec in .specs
+        {
+            for supported in spec.extensions
+            {
+                let selector = supported[].toString()
+                if selector == "*" do
+                    continue
+                if selector[0] == '.' and selector == extension.toString() do
+                    return true
+                if selector[0] != '.' and selector == baseName.toString() do
+                    return true
+            }
+        }
+
+        return false
+    }
+}
+
+impl ViewerSpec
+{
+    // Creates one selected viewer and verifies the common result contract.
+    mtd createView(request: const *ViewerRequest, result: *ViewerResult) fail
+    {
+        .create(request, result)
+        if result.view and !result.failureReason.isEmpty() do
+            fail InvalidFormatError{"viewer returned both a view and a failure reason"}
+        if !result.view and result.failureReason.isEmpty() do
+            fail InvalidFormatError{"viewer returned neither a view nor a failure reason"}
+        if !result.view and result.commands do
+            fail InvalidFormatError{"viewer returned commands without a view"}
+    }
+}

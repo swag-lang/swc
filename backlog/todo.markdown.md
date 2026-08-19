@@ -11,7 +11,7 @@ where a document engine lives is decided — beside its widget, inside `gui`, as
 [todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family; selection
 and copy — shipped by `HtmlView`, still missing here — stay in
 [T-419](todo.gui.md#t-419--the-markdown-view-cannot-select-or-copy-text), and the
-application-level affordances a viewer plugin adds — zoom, printing, thumbnails — stay in
+application-level affordances an integrated viewer adds — zoom, printing, thumbnails — stay in
 [todo.filescope.md](todo.filescope.md). This file holds intent about the Markdown engine itself.
 [README.md](README.md) has the whole layout.
 
@@ -31,7 +31,7 @@ URLs, escapes, entities, and inline mathematics parsed by `Pixel.MathExpression`
 approximated with text. The view streams multi-megabyte files behind a byte-to-height estimate,
 reveals an arbitrary byte offset without parsing what precedes it, navigates by line, page and
 document boundary from the keyboard, restyles live from a theme sheet and a typography style —
-the sFileScope plugin ships five complete reading themes on top of it — finds and highlights text,
+the sFileScope viewer ships five complete reading themes on top of it — finds and highlights text,
 and signals link activation to its host. Tests cover the block grammar, emphasis nesting, inline
 mathematics, wrap, forward and reverse streaming, and both failure paths.
 

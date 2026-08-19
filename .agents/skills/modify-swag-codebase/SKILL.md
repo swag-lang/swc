@@ -154,7 +154,7 @@ Three test surfaces exist, and they are not interchangeable:
 
 ### Lay Out A Module's Tests The Same Way Every Time
 
-Every module under `bin/` — standard library, application, and application plugin alike — uses one
+Every module under `bin/` — standard library and application alike — uses one
 layout. A new module copies it without deciding anything:
 
 ```

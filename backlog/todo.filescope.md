@@ -4,7 +4,7 @@ This file is the product roadmap for sFileScope, measured against the viewers it
 QuickLook and Seer on Windows, macOS Quick Look as the interaction reference, File Viewer Plus and
 Universal Viewer as the "universal viewer" claim, Total Commander's Lister and its `wlx` plugin
 ecosystem, and — on the binary side — HxD, ImHex, 010 Editor, CFF Explorer, PE-bear and Detect It
-Easy. It is scoped to `bin/apps/sFileScope` and to the `bin/std` facilities it depends on.
+Easy. It is scoped to `bin/apps/modules/sFileScope` and to the `bin/std` facilities it depends on.
 
 It holds intent only. A defect of this application is evidence and goes to a `findings.filescope.md`
 beside this file, created the day it has an entry; a lead this application merely exposed goes to
@@ -23,7 +23,7 @@ Worth stating, because it decides what is worth building next.
 
 **Bounded streaming is the real differentiator.** A resident window opened at the requested offset,
 64 KiB hex paging, asynchronous 256 KiB search chunks, an estimated scrollbar that keeps its
-position as the estimate is refined, and a `revealMatch` in the contract so a plugin materializes
+position as the estimate is refined, and a `revealMatch` in the contract so a viewer materializes
 only the window containing a hit. The competing viewers load first and show second; a 4 GB file
 opens here instantly and searches without being materialized. Nothing else in the category does
 this.
@@ -34,16 +34,16 @@ engine to render the same documents. For the actual use of a viewer — looking 
 trusting it — this is the right architecture, and it beats everyone but the dedicated forensic
 tools.
 
-**Hex, structure tree and one search over the same file.** `plugin.binary` reads PE/PE32+, COFF,
+**Hex, structure tree and one search over the same file.** the `Binary` viewer reads PE/PE32+, COFF,
 `ar`, ELF, Mach-O and universal binaries, WebAssembly, ZIP and its derivatives, RIFF, sfnt and SCC
 down to field name, decoded value, offset and meaning, and a hit inside a payload lands on the
 structure that owns it. That normally takes CFF Explorer plus PE-bear plus a hex editor plus a ZIP
 tool.
 
-**The plugin contract is 55 lines.** Four declarations in
-[shared/pluginapi.swg](../bin/apps/sFileScope/shared/pluginapi.swg), `#load`ed by the host and by
-each plugin, no module and no build-graph edge. Compare with the legacy C ABI a `wlx` plugin
-implements.
+**Every viewer is in one executable.** The common request/result contract stays small, while direct
+function bindings remove the ABI, dynamic loading, packaging, and version-skew failure modes. A
+format viewer is now ordinary application code with the same tests and lifecycle as the window
+that hosts it.
 
 The gaps are elsewhere: nothing can be taken out of a view, the application is not reachable from
 where files are actually selected, and the format table below is what a reader compares first.
@@ -54,13 +54,13 @@ where files are actually selected, and the format table below is what a reader c
 
 ### T-388 — Select-all in a streamed document silently means the resident window
 
-- Measured, not assumed: the basic text view and `plugin.code` both run on `RichEditCtrl`, which
+- Measured, not assumed: the basic text view and the `Code` viewer both run on `RichEditCtrl`, which
   already selects with the mouse and the keyboard and already binds Ctrl+A and Ctrl+C — read-only
   guards none of that, and `viewerwindow.test.swg` asserts `editor.selectedText()` today. What the
   two views do not have is a *bound*: the editor holds one window of the file, so Ctrl+A over a
   4 GB log selects 256 KiB and Ctrl+C returns it with nothing said.
 - Intent: a copy out of a partly resident document either carries the whole document or names what
-  it carried, the way `plugin.hex` names its own 1 MiB bound on the command itself.
+  it carried, the way the `Hexadecimal` viewer names its own 1 MiB bound on the command itself.
 - Complete when: select-all reaches the whole file or the command that copies it says how much of
   it is leaving, and a reader can tell the two apart before pasting.
 - Related: T-419
@@ -71,8 +71,8 @@ where files are actually selected, and the format table below is what a reader c
   QuickLook won its category: select, look, move on, without launching an application.
 - Complete when: a registered preview handler renders the same views inside Explorer's preview
   pane, and `--register-file-types` installs it.
-- Note: the handler hosts a view in a process it does not own, so the plugin contract has to be
-  usable without the application window. That constraint is worth checking before committing.
+- Note: the handler hosts a view in a process it does not own, so the viewer request/result contract
+  has to be usable without the application window. That constraint is worth checking before committing.
 - Related: T-396, T-418
 
 ### T-391 — Search cannot be constrained, reversed, or counted
@@ -92,9 +92,9 @@ where files are actually selected, and the format table below is what a reader c
 
 ### T-394 — No zoom or text-size control
 
-- Intent: `plugin.image` zooms; no text-bearing view does. Ctrl+wheel and Ctrl+plus/minus do
+- Intent: the `Image` viewer zooms; no text-bearing view does. Ctrl+wheel and Ctrl+plus/minus do
   nothing in text, code, Markdown or HTML, so a dense source file is stuck at one size.
-- Complete when: a shared zoom command changes text size in every host and plugin text view, is
+- Complete when: a shared zoom command changes text size in every basic and format-specific text view, is
   persisted, and leaves the streaming window arithmetic correct.
 
 ### T-395 — The hexadecimal view cannot search for a byte pattern
@@ -102,7 +102,7 @@ where files are actually selected, and the format table below is what a reader c
 - Intent: the host search scans raw bytes for a literal string, which is what a text view needs and
   not what a hex reader wants. `4D 5A`, a wildcard run, or a little-endian scalar cannot be
   searched.
-- Complete when: `plugin.hex` contributes a byte-pattern query — hexadecimal pairs, wildcards, and
+- Complete when: the `Hexadecimal` viewer contributes a byte-pattern query — hexadecimal pairs, wildcards, and
   the currently selected scalar type — routed through the same asynchronous host scan.
 
 ### T-396 — Explorer shows no thumbnail for a viewable file
@@ -137,7 +137,7 @@ The map below is what a reader compares before anything else, and it is where th
 viewer" claim is currently weakest. Read the `Today` column as:
 
 - **full** — a dedicated view renders the format
-- **structure** — `plugin.binary` decodes the container into its field tree
+- **structure** — the `Binary` viewer decodes the container into its field tree
 - **signature** — identified, sized and weighed by entropy, nothing more
 - **text** / **code** — falls into the basic text view or the code lexer
 - **none** — only the hexadecimal fallback
@@ -226,7 +226,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 ### T-401 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
 - Intent: the module's own coverage gaps now live in [todo.pdf.md](todo.pdf.md), which is the
-  roadmap for `std/pdf`. What stays here is the viewer's half: `PdfPluginView` reports whatever
+  roadmap for `std/pdf`. What stays here is the viewer's half: `PdfViewer` reports whatever
   `loadPage` or `render` failed with and shows nothing, so a document with one unsupported
   construct anywhere reads as a broken file rather than as a page with a gap in it.
 - Complete when: the viewer draws the part of a page that decoded, states the construct it could
@@ -251,11 +251,11 @@ viewer" claim is currently weakest. Read the `Today` column as:
   without extracting the whole archive, starting with the deflate and stored methods that
   `Core.Inflate` already covers, and with `tar`/`gzip` listing.
 
-### T-404 — plugin.sound reads WAV and nothing else
+### T-404 — The Sound viewer reads WAV and nothing else
 
 - Intent: every compressed format is routed to the binary structure tree, so the most common audio
   files on a disk cannot be played by the viewer that ships a player.
-- Complete when: `plugin.sound` claims `.mp3`, `.flac`, `.ogg` and `.opus`, streams them with the
+- Complete when: the `Sound` viewer claims `.mp3`, `.flac`, `.ogg` and `.opus`, streams them with the
   same waveform behaviour as WAV, and the registry moves those extensions off the binary line.
 - Related: T-058, T-166, T-167, T-168
 
@@ -299,14 +299,14 @@ viewer" claim is currently weakest. Read the `Today` column as:
 ### T-411 — Certificates and keys are not decoded
 
 - Intent: `.pem`, `.der`, `.crt`, `.cer` and `.p12` show base64 or bytes. `Core.Crypto` and the
-  binary plugin's structure model already give the two halves of what is needed.
+  binary viewer's structure model already give the two halves of what is needed.
 - Complete when: an ASN.1 tree and a decoded X.509 summary — subject, issuer, validity, key, and
   extensions — are shown, with no validation claim of any kind.
 
 ### T-412 — MP4 and Matroska containers are only identified
 
 - Intent: decoding video is out of scope; reading the container is not, and it is exactly what
-  `plugin.binary` already does for every other container.
+  the `Binary` viewer already does for every other container.
 - Complete when: the ISO-BMFF box tree, the Matroska EBML tree, and the track, codec, duration and
   resolution summaries are reported like any other structure.
 
@@ -315,7 +315,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Intent: this repository writes PDBs. Reading one back with the same tool that inspects the image
   it belongs to is a capability the competition does not have, and it is a debugging asset here.
 - Complete when: the MSF superblock, the stream directory, the named streams and the GUID/age that
-  must match the image's CodeView record are reported by `plugin.binary`.
+  must match the image's CodeView record are reported by the `Binary` viewer.
 
 ### T-414 — Camera RAW files show nothing
 
@@ -333,7 +333,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
   a codec registry, so a format is a `Video.IDecoder` reading a `Video.Source` and answering
   `seekFrame` its own way — an offset for a fixed frame size, a container index for AVI, a sample
   table for MP4, or a keyframe followed by decoding forward for an inter-coded codec.
-- Complete when: a `plugin.video` shows the picture with transport, a seekable timeline and the
+- Complete when: a the `Video` viewer shows the picture with transport, a seekable timeline and the
   frame position for H.264 in MP4 and VP9 or AV1 in WebM and Matroska, and the registry moves those
   extensions off the binary line for playback while T-412 keeps the structure reader available as
   a second viewer. Audio uses `std/audio` and stays synchronized with the picture.
@@ -348,36 +348,13 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ---
 
-## Tier C — The contract as a public extension point
+## Tier C — Portability
 
-### T-416 — apiVersion refuses everything but its exact version
+### T-418 — File-type registration is Windows-only
 
-- Intent: `ViewerPluginApiVersion` is at 9 and a plugin returns false on any other value, so every
-  bump orphans every plugin that is not rebuilt in the same tree. That is correct while all seven
-  plugins ship here, and hostile the day one does not.
-- Complete when: the contract states a minimum supported version alongside the current one, the host
-  declines only what is genuinely incompatible, and the README states the compatibility window.
-
-### T-417 — There is no plugin SDK outside the tree
-
-- Intent: `wlx` has hundreds of third-party plugins and QuickLook has dozens because both published
-  what a plugin author needs. The contract here is good and reaches no one.
-- Complete when: a documented minimal plugin — sources, module file, build command and packaging
-  step — exists as a self-contained sample, and the documentation states what a plugin may and may
-  not do inside the host process.
-- Related: T-416
-
----
-
-## Tier D — Portability
-
-### T-418 — The plugin model and the file-type registration are Windows-only
-
-- Intent: the DLL registry, `Env.registerApplication`, `Env.associateFileExtension` and the shell
-  integration entries above are the whole platform boundary; the views, the streaming and the
-  structure readers are already portable.
-- Complete when: the plugin index resolves the platform's own shared-library extension, and desktop
-  registration goes through whatever portable contract T-288 settles on.
+- Intent: `Env.registerApplication`, `Env.associateFileExtension` and the shell integration entries
+  above are the whole platform boundary; the viewers, streaming, and structure readers are portable.
+- Complete when: desktop registration goes through whatever portable contract T-288 settles on.
 - Related: T-266, T-288
 
 ---
@@ -392,7 +369,7 @@ does not change under it.
 write path this application deliberately does not have.
 
 **Legacy binary Office rendering.** `.doc`, `.xls` and `.ppt` are undocumented compound-document
-formats whose fidelity nobody outside Microsoft reaches. The CFB structure is what `plugin.binary`
+formats whose fidelity nobody outside Microsoft reaches. The CFB structure is what the `Binary` viewer
 can honestly show.
 
 **Packer and protector identification.** Detect It Easy is built on a signature database that has to

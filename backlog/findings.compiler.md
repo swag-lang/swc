@@ -194,3 +194,20 @@ Entries are sorted by identifier, ascending; position carries no priority.
   uses (drop the old target, move the field out of the temporary, neutralize the temporary's
   field), then land the reproducer as `bin/unittests/jit/operators/temporary_drop.swg`'s missing
   case plus its `native` twin, asserting the drop *trace*, not the drop count.
+
+### F-164 — DevMode assigns a semantic payload to the same slice node twice
+
+- Area: compiler
+- Found while: building the shared `bin/apps` workspace after integrating sFileScope's viewers.
+- Observation: a freshly built `swc_devmode.exe` deterministically asserts while semantically
+  checking the unchanged `tools/src/backlog.swg`; the Release compiler checks the same tool.
+- Evidence: two consecutive `bin/swc_devmode.exe tools/apps.swgs dm build sFileScope` runs assert
+  in `NodePayload::setSemaPayload` at `NodePayload.cpp:806` because
+  `shard->semaPayloads` already contains the node. Both name the `start` reference inside
+  `line[start until @countof(line)]` at `tools/src/backlog.swg:172`, under the `#code` body passed
+  to `Utf8.visitRunes`. The defect has not yet been reduced because the tool combines a slice of a
+  `string`, a captured mutable index, and macro-generated traversal; removing one without first
+  identifying the second semantic visit would risk recording the wrong mechanism.
+- Next step: reduce `markdownHeadingAnchor` into a standalone sema input while preserving the
+  `#code` expansion, then trace both calls to `setSemaPayload` for the slice node and add that input
+  to `bin/unittests/sema` before changing payload ownership.

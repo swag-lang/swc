@@ -127,7 +127,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   (`check_bk` is a 22-unit square at 5,5 of a 32-unit tile), so the *ink* of the box starts about
   3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
   form column therefore reads as indented against every field above it.
-- Evidence: measured on the rendered surface, `bin/apps/sVaultDrive/modules/sVaultDrive` in `swagLightPalette`: the
+- Evidence: measured on the rendered surface, `bin/apps/modules/sVaultDrive` in `swagLightPalette`: the
   edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
   inset exists vertically on other atlas glyphs: in `vaultdrive.surface.png` the folder icon of the
   container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
@@ -229,7 +229,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   through `StringVertAlignment.OpticalCenter`; every other widget still centers on the line box.
 - Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
   [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
-  `bin/apps/sVaultDrive/modules/sVaultDrive/src/tests/goldens/vaultdrive.surface.png`: the "256" digits of the capacity
+  `bin/apps/modules/sVaultDrive/src/tests/goldens/vaultdrive.surface.png`: the "256" digits of the capacity
   field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
   password placeholder below it sat exactly on the middle of its own box.
 - Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
@@ -335,9 +335,9 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Area: bin/std
 - Found while: migrating the PDF engine into `std/gui` and verifying the new `PdfView` inside the
   running sFileScope on a 150% monitor.
-- Observation: the host hands each viewer plugin a content window sized straight from the
+- Observation: sFileScope hands each integrated viewer a content window sized straight from the
   surface's physical pixel size, while gui lays out and paints in logical units times
-  `deviceScale`. At 150% the plugin content area measured 1161x730 logical units inside a window
+  `deviceScale`. At 150% the viewer content area measured 1161x730 logical units inside a window
   whose client is only about 978x598 logical, so the viewer — any viewer, this predates the PDF
   rework — is 1.5x wider and taller than the window: a fitted page centres itself in the
   oversized widget and shows up right-shifted and cut. At 100% DPI physical equals logical and
@@ -346,7 +346,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `position=0,0,1161x730, deviceScale=1.5, fitted zoom=0.867, content centred at x=322` — the
   widget math is exact, the size it was given is not. The sidebar and toolbar paint at their
   layout size times 1.5, matching the screenshots.
-- Next step: find where the sFileScope host computes the content and command areas from the
+- Next step: find where sFileScope computes the content and command areas from the
   surface size and divide by `deviceScale` there; then check the same path in every host that
   sizes children from a `Surface` rectangle, since the surface contract is physical pixels.
   Verify with the HTML viewer at 150%, which should show the same overflow today.

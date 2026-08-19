@@ -88,22 +88,22 @@ going for a bounded number of frames, isolated from the machine.
 
     case "apps":
         Console.print("""
-Builds, runs, tests, or smokes one or every application workspace.
+Builds, runs, tests, or smokes one or every module in the applications workspace.
 
   swc tools/apps.swgs [dm] [build|run|test|smoke] [<application>] [options...]
 
   dm                 use the DevMode compiler
-  <application>      a workspace under bin/apps, for instance sVaultDrive or sSnapForge
+  <application>      a module under bin/apps/modules, for instance sVaultDrive or sSnapForge
   -bc <config>       release, debug, or fast-debug (default fast-debug)
   --test-file <text> run only #test functions from matching source paths; repeatable
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
 
   swc tools/apps.swgs run sVaultDrive          launch one application
-  swc tools/apps.swgs dm test sSnapForge    run its tests with the DevMode compiler
+  swc tools/apps.swgs dm test sSnapForge       run its tests with the DevMode compiler
 
-Every command covers every module in the selected application workspace and places
-its runtime files beside the executable. 'run' needs an application name
+Every command uses the shared bin/apps workspace and places each application's runtime files
+beside its executable. 'run' needs an application name
 and launches the packaged executable from its own directory.
 """)
 

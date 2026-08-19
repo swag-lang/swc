@@ -112,7 +112,7 @@ across modules uses the workspace suite.
   exported representation, shared runtime state, or a path the owning module cannot activate.
   Do not walk every importer mechanically.
 - In an application, run the test file that owns the behavior. Add `build` for module setup,
-  packaging, resources, or link changes. Add `smoke` for startup, main-loop, plugin loading, or
+  packaging, resources, or link changes. Add `smoke` for startup, main-loop, or
   packaged-runtime changes. A local model or widget edit does not require all three.
 - Smoke only the changed example or script when its value is that the real program starts.
 - Test one reference page with `--file-filter` when it is self-contained. Test the complete
@@ -129,7 +129,7 @@ Repeat it to select a union:
 ```text
 swc tools/std.swgs dm test gui --test-file htmlview.test.swg
 swc tools/std.swgs dm test gui --test-file htmlview.test.swg --test-file markdownview.test.swg
-swc tools/apps.swgs dm test sFileScope --test-file plugin.video.test.swg
+swc tools/apps.swgs dm test sFileScope --test-file viewer.video.test.swg
 ```
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.
@@ -139,11 +139,11 @@ files outside the test file.
 Prefer a named application test file over all GUI tests:
 
 - HTML parser/layout/rendering: `gui`'s `htmlview.test.swg`, then sFileScope's
-  `plugin.html.test.swg` as the concrete file-viewer consumer; do not run the rest of GUI.
+  `viewer.html.test.swg` as the concrete file-viewer consumer; do not run the rest of GUI.
 - Markdown parser/layout/rendering: `gui`'s `markdownview.test.swg`, then
-  `plugin.markdown.test.swg` as the concrete viewer consumer.
+  `viewer.markdown.test.swg` as the concrete viewer consumer.
 - Video codecs/streaming: the matching `video` file (`avi.test.swg`, `y4m.test.swg`, or
-  `streaming.test.swg`), then sFileScope's `plugin.video.test.swg` as the concrete player.
+  `streaming.test.swg`), then sFileScope's `viewer.video.test.swg` as the concrete player.
 - Dialog composition: `dialogs.charter.test.swg`, `dialogs.layout.test.swg`, and the exact dialog
   test such as `messagedlg.test.swg`; use `gui9` only for the required visual inspection.
 

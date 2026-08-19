@@ -182,7 +182,7 @@ public func runVaultDrive(context: *Context, options: *Options)->s32 fail
     if tagged != 0 do
         return tagged
 
-    let appDir = Path.combine(context.workspacePath("apps").toString(), "sVaultDrive", ".output", "sVaultDrive", "executable", "release", context.targetArch.toString())
+    let appDir = Path.combine(context.workspacePath("apps").toString(), ".output", "sVaultDrive", "executable", "release", context.targetArch.toString())
     let report = Path.combine(appDir.toString(), "sVaultDrive-integration-result.txt")
     if File.exists(report) do
         discard catch File.delete(report.toString())

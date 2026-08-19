@@ -861,7 +861,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 - Area: language
 - Found while: studying pointer-read ergonomics after the noref campaign; the shape comes from
-  [quickstyles.test.swg](../bin/apps/sSnapForge/modules/sSnapForge/src/tests/quickstyles.test.swg), where a
+  [quickstyles.test.swg](../bin/apps/modules/sSnapForge/src/tests/quickstyles.test.swg), where a
   closure captures `dismissed = &didDismiss` (a `*bool`) and must spell `if dismissed[]`.
 - Observation: on a `#null *T`, `if p` is the null test and feeds flow narrowing — load-bearing
   and correct. On a bare non-null `*T`, the same spelling compiles and is vacuously always-true:

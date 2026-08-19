@@ -1,0 +1,27 @@
+# French strings of sFileScope. A key omitted here keeps its English value.
+
+ui_WindowTitle  sFileScope — Visionneuse universelle
+ui_Open         Ouvrir
+ui_Previous     Fichier précédent
+ui_Next         Fichier suivant
+ui_Viewer       Visionneuse
+ui_BasicText    Texte brut
+ui_WrapOn       Retour
+ui_WrapOff      Sans retour
+ui_Encoding     Encodage des caractères
+ui_Files        Fichiers à côté de celui-ci
+ui_SameKind     Seulement les fichiers du même type
+ui_Recent       Récents
+ui_Folder       Dossier
+ui_NotText      Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.
+ui_Search       Rechercher dans le document
+ui_NoMatch      Aucun résultat
+ui_Searching    Recherche…
+ui_DropTitle    Déposez un fichier pour l'afficher
+ui_Ready        Prêt
+ui_Unsupported  Aucune visionneuse ne peut afficher ce fichier.
+ui_OpenStopped  Le fichier n'a pas pu être affiché.
+ui_ViewerError  Cette visionneuse n'a pas pu décoder le fichier.
+dlg_TitleOpen   Ouvrir un fichier
+dlg_ButtonOpen  Ouvrir
+dlg_AllFiles    Tous les fichiers

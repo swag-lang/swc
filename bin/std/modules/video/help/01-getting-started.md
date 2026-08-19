@@ -43,11 +43,13 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | --- | --- | --- | --- |
 | `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Nothing is lost, and nothing is compressed either: one second of 720p costs about forty megabytes. |
 | `.avi` | Motion JPEG, and uncompressed 24- and 32-bit frames | Motion JPEG | Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses. |
+| `.mp4`, `.m4v`, `.mov` | Motion JPEG in ISO-BMFF sample tables | Motion JPEG | Every frame is independently seekable. H.264 and other inter-frame codecs are identified and refused until their picture decoders exist. |
 
-Both code every frame on its own, so both seek anywhere at the cost of one frame: YUV4MPEG2
-computes the offset from the constant size of a frame, and AVI reads it from the index the
-container carries. Neither holds a decoded frame between two calls, which is why decoding a
-stream out of order costs the same as decoding it in order.
+All three code every frame on its own, so they seek anywhere at the cost of one frame: YUV4MPEG2
+computes the offset from the constant size of a frame, AVI reads it from the index the container
+carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens. None holds a
+decoded frame between two calls, which is why decoding a stream out of order costs the same as
+decoding it in order.
 
 ## Controlling how a stream is encoded
 
@@ -59,8 +61,8 @@ passing nothing takes the defaults of the selected format.
 try clip.save("capture.avi", Video.Avi.EncodeOptions{quality: 80})
 ```
 
-[[Avi.EncodeOptions]] is the only one today, because YUV4MPEG2 writes one plane layout and one
-colour range and so has nothing to choose.
+[[Avi.EncodeOptions]] and [[Mp4.EncodeOptions]] both select the JPEG quality of their Motion JPEG
+frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.
 
 ## Adding a format
 
@@ -72,9 +74,11 @@ way, one file per format on each side:
 src/decode/reader.swg    the registry, and Video.Reader
 src/decode/y4m.swg       Y4m.Decoder, and the layout of the format
 src/decode/avi.swg       Avi.Decoder, and the layout of the container
+src/decode/mp4.swg       Mp4.Decoder, and the ISO-BMFF sample tables
 src/encode/writer.swg    the registry, and Video.Writer
 src/encode/y4m.swg       Y4m.Encoder
 src/encode/avi.swg       Avi.Encoder
+src/encode/mp4.swg       Mp4.Encoder
 ```
 
 Decoding and encoding one format are two independent implementations that share only its binary
@@ -96,10 +100,10 @@ works.
 Every decoding test reads a file from `src/tests/datas/`, and none of those files is produced
 by this module: a codec that only reads back what it wrote proves nothing about the files people
 have. The corpus holds a camera recording, sequences from the standard research collection, one
-clip encoded nine ways by ffmpeg, and copies of that clip with a container shape injected into
-them that no single writer produces. `datas/SOURCES.md` states where each one came from, what it
-exercises, and under what terms it is redistributed.
+synthetic clip encoded in the tested layouts by ffmpeg, and copies of that clip with a container
+shape injected into them that no single writer produces. `datas/SOURCES.md` states where each one
+came from, what it exercises, and under what terms it is redistributed.
 
-Neither format has an audio stream. Audio tracks and synchronization will belong to future
-container codecs and will compose with the standard Audio module rather than adding a second
-sound implementation here.
+The current reader exposes no audio stream. ISO-BMFF audio tracks are skipped while the Motion
+JPEG picture track remains playable. Audio-track decoding and synchronization will compose with
+the standard Audio module rather than adding a second sound implementation here.

@@ -35,6 +35,7 @@ compressed variants and 32x24 for the uncompressed ones; the `.y4m` clips are 32
 | `ffmpeg-mjpeg-422.avi` | `-c:v mjpeg -pix_fmt yuvj422p -q:v 3` | Two chroma blocks per minimum coded unit, which the Pixel JPEG decoder does not read yet |
 | `ffmpeg-mjpeg-444.avi` | `-c:v mjpeg -pix_fmt yuvj444p -q:v 3` | The same, at full chroma resolution |
 | `ffmpeg-mjpeg-ntsc.avi` | `-c:v mjpeg -pix_fmt yuvj420p -q:v 3 -r 30000/1001` | A broadcast rate the stream header carries as a ratio |
+| `ffmpeg-mjpeg.mp4` | `-i ffmpeg-mjpeg-420.avi -map 0:v:0 -c:v copy -an -movflags +faststart` | ISO-BMFF with `moov` before `mdat`, one chunk holding ten samples, and an `mp4v` entry whose `esds` descriptor names JPEG object type `0x6c` |
 | `ffmpeg-rawvideo-bgr24.avi` | `-c:v rawvideo -pix_fmt bgr24` | Uncompressed 24-bit frames, `biCompression` zero, negative bitmap height, `00dc` chunks |
 | `ffmpeg-rawvideo-bgra.avi` | `-c:v rawvideo -pix_fmt bgra` | Uncompressed 32-bit frames, whose alpha byte is dropped |
 | `ffmpeg-rawvideo-odd.avi` | `-c:v rawvideo -pix_fmt bgr24`, 33x25 | A row of 99 bytes padded to 100, which is the bitmap rule |

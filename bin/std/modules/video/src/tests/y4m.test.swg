@@ -259,21 +259,21 @@ using Core, Core.Errors, Pixel
     discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C420p10\nFRAME\nabc") as chroma
     discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\nFRAME\nab") as truncated
     discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\n") as noFrame
-    discard catch Reader.openMemory("bad.mp4", "") as extension
+    discard catch Reader.openMemory("bad.mp4", "") as mp4Header
     @assert(missingHeader is InvalidFormatError)
     @assert(chroma is UnsupportedFormatError)
     @assert(truncated is InvalidFormatError)
     @assert(noFrame is InvalidFormatError)
-    @assert(extension is UnsupportedFormatError)
+    @assert(mp4Header is InvalidFormatError)
 
     let rate = expect FrameRate.create(30, 1)
     var clip = expect Clip.create(2, 2, rate)
     discard catch clip.addFrame(videoTestImage(1, 1, [0'u8, 0, 0])) as dimensions
     discard catch clip.encode("empty.y4m") as empty
-    discard catch clip.encode("empty.mp4") as unsupported
+    discard catch clip.encode("empty.mp4") as emptyMp4
     @assert(dimensions is BadParameterError)
     @assert(empty is InvalidFormatError)
-    @assert(unsupported is UnsupportedFormatError)
+    @assert(emptyMp4 is InvalidFormatError)
 }
 
 // The registry is the only thing that decides which extensions the module reads and writes.
@@ -281,15 +281,16 @@ using Core, Core.Errors, Pixel
 {
     @assert(Reader.canOpen("clip.y4m") and Reader.canOpen("CLIP.Y4M"))
     @assert(Reader.canOpen("clip.avi") and Reader.canOpen("CLIP.AVI"))
-    @assert(!Reader.canOpen("clip.mp4") and !Reader.canOpen("clip") and !Reader.canOpen(""))
-    @assert(Writer.canCreate("clip.y4m") and Writer.canCreate("clip.avi") and !Writer.canCreate("clip.mkv"))
+    @assert(Reader.canOpen("clip.mp4") and Reader.canOpen("clip.m4v") and Reader.canOpen("clip.mov"))
+    @assert(!Reader.canOpen("clip") and !Reader.canOpen(""))
+    @assert(Writer.canCreate("clip.y4m") and Writer.canCreate("clip.avi") and Writer.canCreate("clip.mp4") and !Writer.canCreate("clip.mkv"))
 
     // Every format is both read and written; a codec registered on one side alone would be a
     // stream this module can produce and not open again, or the reverse.
     let decodable = Reader.decodableFormats()
     let encodable = Writer.encodableFormats()
-    @assert(decodable.count == 2 and encodable.count == 2)
+    @assert(decodable.count == 3 and encodable.count == 3)
     for format, index in decodable do
         @assert(format.name == encodable[index].name)
-    @assert(decodable[0].matches("a.y4m") and decodable[1].matches("a.avi"))
+    @assert(decodable[0].matches("a.y4m") and decodable[1].matches("a.avi") and decodable[2].matches("a.mp4") and decodable[2].matches("a.MOV"))
 }

@@ -2,8 +2,8 @@
 
 The module reads and writes silent video as a stream: a codec registered against `Video.IDecoder`
 and `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
-Two codecs ship — YUV4MPEG2 and AVI with Motion JPEG — and both code every frame on its own, so a
-reader costs one frame of memory whatever the length of the file.
+Three codecs ship — YUV4MPEG2, AVI, and ISO-BMFF with Motion JPEG — and all code every frame on
+its own, so a reader costs one frame of memory whatever the length of the file.
 
 What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
 than in design: what is missing is decoders.

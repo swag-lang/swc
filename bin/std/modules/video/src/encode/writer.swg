@@ -262,4 +262,5 @@ impl Writer
 {
     Writer.registerEncoder'(Y4m.Encoder)()
     Writer.registerEncoder'(Avi.Encoder)()
+    Writer.registerEncoder'(Mp4.Encoder)()
 }

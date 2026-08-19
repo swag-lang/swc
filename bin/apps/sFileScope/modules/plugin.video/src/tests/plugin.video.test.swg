@@ -22,7 +22,7 @@ func videoPreviewFile(name: string)->String fail
 
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("filescope-video-%.y4m", Guid64.random()).toString())
+    let fileName = expect videoPreviewFile(Format.toString("filescope-video-%.mp4", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost

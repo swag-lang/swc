@@ -41,6 +41,8 @@ using Core
     let fontChoices = shipped.choices("family.ttf")
     @assert(fontChoices[0].name == "Font" and fontChoices[1].name == "Hexadecimal")
     @assert(shipped.choices("outlines.otf")[0].name == "Binary")
+    let mp4Choices = shipped.choices("movie.mp4")
+    @assert(mp4Choices[0].name == "Video" and mp4Choices[1].name == "Binary" and mp4Choices[2].name == "Hexadecimal")
 }
 
 #test

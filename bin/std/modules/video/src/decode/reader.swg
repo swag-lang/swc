@@ -256,4 +256,5 @@ impl Reader
 {
     Reader.registerDecoder'(Y4m.Decoder)()
     Reader.registerDecoder'(Avi.Decoder)()
+    Reader.registerDecoder'(Mp4.Decoder)()
 }

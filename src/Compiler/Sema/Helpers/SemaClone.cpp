@@ -878,19 +878,25 @@ namespace
         // A call's overload was selected against the call node, not its callee identifier, so
         // the recursion above copied the callee's whole overload set / first overload. Override
         // the cloned callee with the function the call actually resolved to, so the preserved
-        // body doesn't re-run (and mis-pick) overload selection in a foreign scope.
-        if (sema.node(sourceRef).is(AstNodeId::CallExpr) && sema.node(clonedRef).is(AstNodeId::CallExpr))
+        // body doesn't re-run (and mis-pick) overload selection in a foreign scope. Overloaded
+        // intrinsics (@min, @vecwidenlo, ...) resolve through the same declaration matching, so
+        // their calls need the same override.
+        const AstNode& sourceNode   = sema.node(sourceRef);
+        const AstNode& clonedNode   = sema.node(clonedRef);
+        AstNodeRef     clonedCallee = AstNodeRef::invalid();
+        if (sourceNode.is(AstNodeId::CallExpr) && clonedNode.is(AstNodeId::CallExpr))
+            clonedCallee = clonedNode.cast<AstCallExpr>().nodeExprRef;
+        else if (sourceNode.is(AstNodeId::IntrinsicCallExpr) && clonedNode.is(AstNodeId::IntrinsicCallExpr))
+            clonedCallee = clonedNode.cast<AstIntrinsicCallExpr>().nodeExprRef;
+
+        if (clonedCallee.isValid() && sema.node(clonedCallee).is(AstNodeId::Identifier))
         {
             if (const Symbol* callSym = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym())
             {
                 if (callSym->safeCast<SymbolFunction>())
                 {
-                    const AstNodeRef clonedCallee = sema.node(clonedRef).cast<AstCallExpr>().nodeExprRef;
-                    if (clonedCallee.isValid() && sema.node(clonedCallee).is(AstNodeId::Identifier))
-                    {
-                        sema.setSymbol(clonedCallee, callSym);
-                        sema.node(clonedCallee).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
-                    }
+                    sema.setSymbol(clonedCallee, callSym);
+                    sema.node(clonedCallee).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
                 }
             }
         }

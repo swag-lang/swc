@@ -92,7 +92,7 @@ namespace
         if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
             return resolveClosureStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, payload);
 
-        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString())
+        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSimd())
             return true;
 
         if (typeInfo.isSlice())
@@ -249,7 +249,7 @@ namespace
         const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
         ConstantValue   result;
 
-        if (storageType.isArray())
+        if (storageType.isArray() || storageType.isSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
         else if (storageType.isBool() || storageType.isChar() || storageType.isRune() || storageType.isInt() || storageType.isFloat() || storageType.isAnyPointer() || storageType.isReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);

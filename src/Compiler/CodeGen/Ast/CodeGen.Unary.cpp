@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -68,6 +69,18 @@ namespace
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
         loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
 
+        if (info.storageTypeInfo->isSimd())
+        {
+            // Per-lane negation is `0 - x`, with the zero built from a self-xor.
+            const TypeInfo& laneType = codeGen.typeMgr().get(info.storageTypeInfo->payloadSimdLaneTypeRef());
+            const MicroReg  zeroReg  = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(zeroReg, resultPayload.reg, resultPayload.reg, MicroOp::VecXor, MicroOpBits::B128);
+            const MicroReg negReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(negReg, zeroReg, resultPayload.reg, CodeGenVectorHelpers::binaryMicroOpForLane(TokenId::SymMinus, laneType), MicroOpBits::B128);
+            resultPayload.reg = negReg;
+            return Result::Continue;
+        }
+
         if (info.storageTypeInfo->isFloat())
         {
             // The micro layer exposes float subtraction but no dedicated float negate, so lower `-x` as
@@ -107,6 +120,11 @@ namespace
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
         loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
+        if (info.storageTypeInfo->isSimd())
+        {
+            resultPayload.reg = CodeGenVectorHelpers::bitwiseNot(codeGen, resultPayload.reg);
+            return Result::Continue;
+        }
         codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::BitwiseNot, info.opBits);
         return Result::Continue;
     }

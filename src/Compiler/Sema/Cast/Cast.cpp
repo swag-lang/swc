@@ -157,6 +157,11 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (srcConstRef.isValid())
         return TypeRef::invalid();
 
+    // A vector reinterpreted as its array shape may only live in a register,
+    // and array consumers read through an address.
+    if (srcType.isSimd() && dstType.isArray())
+        return dstTypeRef;
+
     if (indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
         return dstTypeRef;
 

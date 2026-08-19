@@ -25,6 +25,11 @@ namespace CodeGenTypeHelpers
         if (typeInfo.isIntLike())
             return microOpBitsFromBitWidth(typeInfo.payloadIntLikeBitsOr(64));
 
+        // A simd vector is register-resident like a scalar: one 128-bit value
+        // in a float register.
+        if (typeInfo.isSimd())
+            return MicroOpBits::B128;
+
         return MicroOpBits::Zero;
     }
 

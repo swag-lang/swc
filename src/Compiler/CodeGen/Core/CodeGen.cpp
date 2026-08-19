@@ -1742,7 +1742,7 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
             resolvedTypeRef = typeInfo.unwrapAliasEnum(ctx(), typeRef);
 
         const TypeInfo& resolvedTypeInfo = typeMgr().get(resolvedTypeRef);
-        if (resolvedTypeInfo.isFloat())
+        if (resolvedTypeInfo.isFloat() || resolvedTypeInfo.isSimd())
             return nextVirtualFloatRegister();
     }
 

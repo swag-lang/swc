@@ -25,6 +25,8 @@ inline MicroOpBits microOpBitsFromChunkSize(uint32_t chunkSize)
             return MicroOpBits::B32;
         case 8:
             return MicroOpBits::B64;
+        case 16:
+            return MicroOpBits::B128;
         default:
             SWC_UNREACHABLE();
     }
@@ -38,6 +40,7 @@ inline MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
         case 16:
         case 32:
         case 64:
+        case 128:
             return microOpBitsFromChunkSize(bitWidth / 8);
         default:
             return MicroOpBits::Zero;
@@ -252,6 +255,17 @@ enum class MicroOp : uint8_t
     // Packed float compare with a predicate immediate (OpTernaryRegRegRegImm).
     VecCmpF32,
     VecCmpF64,
+
+    // Packed shifts by a variable count (OpBinaryRegRegReg): every lane
+    // shifts by the value in the low 64 bits of the second source.
+    VecShiftLeftV16,
+    VecShiftLeftV32,
+    VecShiftLeftV64,
+    VecShiftRightV16,
+    VecShiftRightV32,
+    VecShiftRightV64,
+    VecShiftRightAV16,
+    VecShiftRightAV32,
 };
 
 // True for the 128-bit packed operations: they run on the float register

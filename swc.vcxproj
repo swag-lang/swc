@@ -353,6 +353,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.Call.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.cpp"/>
@@ -671,6 +672,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.h"/>

@@ -79,6 +79,12 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         return makeIndirectStructType(size, align, needsCopy);
     }
 
+    // A simd vector is one 16-byte value riding a float register. The C
+    // convention has no such rule (Win64 passes vectors indirectly by
+    // default), so sema rejects simd in non-Swag foreign signatures.
+    if (ty.isSimd())
+        return makeNormalizedType(false, true, false, 128);
+
     if (ty.isStruct() || ty.isArray() || ty.isAggregate())
     {
         const uint64_t rawSize = ty.sizeOf(ctx);

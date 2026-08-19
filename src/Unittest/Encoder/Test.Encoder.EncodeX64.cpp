@@ -509,6 +509,16 @@ namespace
         // Packed float compares: predicate in the immediate.
         ENCODE_CASE("vec_cmpf32_lt", "C5 E8 C2 CB 01", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 1, MicroOp::VecCmpF32, MicroOpBits::B128););
         ENCODE_CASE("vec_cmpf64_le", "C5 E9 C2 CB 02", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 2, MicroOp::VecCmpF64, MicroOpBits::B128););
+
+        // Variable shifts: every lane shifts by the low 64 bits of src2.
+        ENCODE_CASE("vec_shlv16_vex", "C5 E9 F1 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftLeftV16, MicroOpBits::B128););
+        ENCODE_CASE("vec_shlv32_vex", "C5 E9 F2 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftLeftV32, MicroOpBits::B128););
+        ENCODE_CASE("vec_shlv64_vex", "C5 E9 F3 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftLeftV64, MicroOpBits::B128););
+        ENCODE_CASE("vec_shrv16_vex", "C5 E9 D1 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftRightV16, MicroOpBits::B128););
+        ENCODE_CASE("vec_shrv32_vex", "C5 E9 D2 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftRightV32, MicroOpBits::B128););
+        ENCODE_CASE("vec_shrv64_vex", "C5 E9 D3 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftRightV64, MicroOpBits::B128););
+        ENCODE_CASE("vec_sarv16_vex", "C5 E9 E1 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftRightAV16, MicroOpBits::B128););
+        ENCODE_CASE("vec_sarv32_vex", "C5 E9 E2 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecShiftRightAV32, MicroOpBits::B128););
         return Result::Continue;
     }
 

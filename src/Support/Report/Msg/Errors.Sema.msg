@@ -297,3 +297,5 @@ SWC_DIAG_DEF(sema_err_compile_time_global_write_dropped, Error, "compile-time ex
 SWC_DIAG_DEF(sema_err_simd_element_type, Error, "a '#simd' vector accepts u8, s8, u16, s16, u32, s32, u64, s64, f32 or f64 lanes, found '{type}'")
 SWC_DIAG_DEF(sema_err_simd_shape, Error, "a '#simd' vector needs a one-dimensional array shape totalling exactly 16 bytes, but '{type}' does not fit; [help] use one of '#simd [16] u8', '#simd [8] u16', '#simd [4] u32', '#simd [2] u64', '#simd [4] f32', '#simd [2] f64' or a signed variant")
 SWC_DIAG_DEF(sema_err_simd_lane_count, Error, "'{requested-type}' needs {value} lane values, found {count}")
+SWC_DIAG_DEF(sema_err_simd_operator, Error, "'{type}' does not support operator '{tok}' on its lanes; [help] packed integer divide, modulo, 8-bit and 64-bit multiplies, 8-bit shifts, and 64-bit arithmetic right shifts do not exist on the target")
+SWC_DIAG_DEF(sema_err_foreign_simd_type, Error, "a foreign function with a C calling convention does not accept the simd type '{type}'; [help] simd values only cross a foreign boundary with 'callconv: Swag.CallConv.Swag'")

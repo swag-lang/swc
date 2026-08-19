@@ -120,6 +120,12 @@ namespace
             return countReg;
         }
 
+        if (indexedType.isSimd())
+        {
+            builder.emitLoadRegImm(countReg, ApInt(indexedType.payloadSimdLaneCount(), 64), MicroOpBits::B64);
+            return countReg;
+        }
+
         if (indexedType.isString())
         {
             builder.emitLoadRegMem(countReg, indexedPayload.reg, offsetof(Runtime::String, length), MicroOpBits::B64);
@@ -400,7 +406,7 @@ bool CodeGenSafety::hasOverflowRuntimeSafety(const CodeGen& codeGen)
 
 Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg)
 {
-    if (!indexedType.isIndexable())
+    if (!indexedType.isIndexable() && !indexedType.isSimd())
         return Result::Continue;
 
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());

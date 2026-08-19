@@ -760,6 +760,14 @@ namespace
             case MicroOp::VecRoundF64: return {VEX_MAP_0F3A, 0x66, 0x09};
             case MicroOp::VecCmpF32: return {VEX_MAP_0F, 0x00, 0xC2};
             case MicroOp::VecCmpF64: return {VEX_MAP_0F, 0x66, 0xC2};
+            case MicroOp::VecShiftLeftV16: return {VEX_MAP_0F, 0x66, 0xF1};
+            case MicroOp::VecShiftLeftV32: return {VEX_MAP_0F, 0x66, 0xF2};
+            case MicroOp::VecShiftLeftV64: return {VEX_MAP_0F, 0x66, 0xF3};
+            case MicroOp::VecShiftRightV16: return {VEX_MAP_0F, 0x66, 0xD1};
+            case MicroOp::VecShiftRightV32: return {VEX_MAP_0F, 0x66, 0xD2};
+            case MicroOp::VecShiftRightV64: return {VEX_MAP_0F, 0x66, 0xD3};
+            case MicroOp::VecShiftRightAV16: return {VEX_MAP_0F, 0x66, 0xE1};
+            case MicroOp::VecShiftRightAV32: return {VEX_MAP_0F, 0x66, 0xE2};
             default:
                 SWC_INTERNAL_ERROR();
         }

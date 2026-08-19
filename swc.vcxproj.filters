@@ -606,6 +606,9 @@
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
@@ -1371,6 +1374,9 @@
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h">

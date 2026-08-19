@@ -429,6 +429,83 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
             break;
     }
 
+    // Element-wise simd arithmetic: both sides carry the same vector type, or
+    // one side is a scalar broadcasting over the other's lanes (a shift count
+    // stays a plain integer). Each operator is limited to the lane set the
+    // hardware provides on every target.
+    if (aliasType(sema, leftView).isSimd() || aliasType(sema, rightView).isSimd())
+    {
+        const TypeInfo& leftType2  = aliasType(sema, leftView);
+        const TypeInfo& rightType2 = aliasType(sema, rightView);
+        const bool      leftSimd   = leftType2.isSimd();
+        const bool      rightSimd  = rightType2.isSimd();
+        const TypeInfo& vecType    = leftSimd ? leftType2 : rightType2;
+        const TypeInfo& laneType   = sema.typeMgr().get(vecType.payloadSimdLaneTypeRef());
+        const bool      floatLanes = laneType.isFloat();
+        const uint32_t  laneBits   = floatLanes ? laneType.payloadFloatBits() : laneType.payloadIntBits();
+
+        const bool isShift = op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater;
+        if (isShift)
+        {
+            if (!leftSimd || rightSimd || !aliasType(sema, rightView).isIntLike())
+                return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
+        }
+        else if (leftSimd && rightSimd)
+        {
+            const bool sameShape = leftType2.payloadSimdLaneTypeRef() == rightType2.payloadSimdLaneTypeRef() &&
+                                   leftType2.payloadSimdLaneCount() == rightType2.payloadSimdLaneCount();
+            if (!sameShape)
+                return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
+        }
+        else
+        {
+            const SemaNodeView& scalarView = leftSimd ? rightView : leftView;
+            const AstNodeRef    scalarRef  = leftSimd ? rightRef : leftRef;
+            if (!aliasType(sema, scalarView).isScalarNumeric())
+                return SemaError::raiseBinaryOperandType(sema, nodeRef, scalarRef, leftView.typeRef(), rightView.typeRef());
+        }
+
+        // The lane legality of each operator, from what the hardware offers:
+        // no packed integer divide or modulo, no 8-bit or 64-bit packed
+        // multiply, no 8-bit shifts, and no 64-bit arithmetic right shift.
+        bool legal = true;
+        switch (op)
+        {
+            case TokenId::SymPercent:
+                legal = false;
+                break;
+            case TokenId::SymSlash:
+                legal = floatLanes;
+                break;
+            case TokenId::SymAsterisk:
+                legal = floatLanes || laneBits == 16 || laneBits == 32;
+                break;
+            case TokenId::SymAmpersand:
+            case TokenId::SymPipe:
+            case TokenId::SymCircumflex:
+                legal = !floatLanes;
+                break;
+            case TokenId::SymLowerLower:
+                legal = !floatLanes && laneBits != 8;
+                break;
+            case TokenId::SymGreaterGreater:
+                legal = !floatLanes && laneBits != 8 && !(laneType.isIntSigned() && laneBits == 64);
+                break;
+            default:
+                break;
+        }
+
+        if (!legal)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_simd_operator, nodeRef, SemaError::ReportLocation::Token);
+            diag.addArgument(Diagnostic::ARG_TYPE, (leftSimd ? leftView : rightView).typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
     // Arithmetic works on any scalar number; the bitwise operators need integers, except when
     // both sides are the very same flags enum, where they combine enumerators.
     if (Token::isOpArithmetic(op))

@@ -870,6 +870,25 @@ namespace
 
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
+        // Element-wise simd compares need the same vector type on both sides,
+        // and the three-way compare has no lane form.
+        const TypeInfo& leftType  = aliasType(sema, nodeLeftView);
+        const TypeInfo& rightType = aliasType(sema, nodeRightView);
+        if (leftType.isSimd() || rightType.isSimd())
+        {
+            const bool sameShape = leftType.isSimd() && rightType.isSimd() &&
+                                   leftType.payloadSimdLaneTypeRef() == rightType.payloadSimdLaneTypeRef() &&
+                                   leftType.payloadSimdLaneCount() == rightType.payloadSimdLaneCount();
+            if (sameShape && op != TokenId::SymLessEqualGreater)
+                return Result::Continue;
+
+            Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
+            diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
+            diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
         if (Token::isOpEquality(op))
             return checkEqualEqual(sema, node, nodeLeftView, nodeRightView);
 
@@ -916,6 +935,21 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
 
     // Type-check
     SWC_RESULT(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
+
+    // An element-wise simd compare produces a mask vector of the same
+    // geometry: unsigned lanes, all-ones where the compare holds. Masks never
+    // fold at compile time.
+    {
+        const TypeInfo& leftCmpType = aliasType(sema, nodeLeftView);
+        if (leftCmpType.isSimd())
+        {
+            const TypeInfo& laneType = sema.typeMgr().get(leftCmpType.payloadSimdLaneTypeRef());
+            const uint32_t  laneBits = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
+            const TypeRef   maskLane = sema.typeMgr().typeInt(laneBits, TypeInfo::Sign::Unsigned);
+            sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeSimd(maskLane, leftCmpType.payloadSimdLaneCount())));
+            return Result::Continue;
+        }
+    }
 
     // Set the result type
     if (tok.id == TokenId::SymLessEqualGreater)

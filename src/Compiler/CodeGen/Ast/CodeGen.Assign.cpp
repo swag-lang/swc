@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -54,6 +55,7 @@ namespace
         IntLikeCompound,
         FloatCompound,
         PointerCompound,
+        VectorCompound,
     };
 
     struct AssignTarget
@@ -83,6 +85,9 @@ namespace
 
         if (targetType.isFloat())
             return AssignEncodingKind::FloatCompound;
+
+        if (targetType.isSimd())
+            return AssignEncodingKind::VectorCompound;
 
         return AssignEncodingKind::IntLikeCompound;
     }
@@ -326,6 +331,72 @@ namespace
         return Result::Continue;
     }
 
+    Result emitAssignCompoundVector(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
+    {
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.target.opTypeRef.isValid());
+
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
+        SWC_ASSERT(targetType.isSimd());
+        const TypeInfo& laneType = codeGen.typeMgr().get(targetType.payloadSimdLaneTypeRef());
+
+        const TokenId      binaryOp      = Token::assignToBinary(assignOp);
+        MicroBuilder&      builder       = codeGen.builder();
+        CodeGenNodePayload targetPayload = encodeCtx.target.payload;
+        stabilizeAssignAddressPayload(codeGen, targetPayload);
+
+        const MicroReg leftReg = codeGen.nextVirtualFloatRegister();
+        builder.emitLoadVecRegMem(leftReg, targetPayload.reg, 0, MicroOpBits::B128);
+
+        const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+        if (binaryOp == TokenId::SymLowerLower || binaryOp == TokenId::SymGreaterGreater)
+        {
+            const TypeRef     countTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
+            const TypeInfo&   countType    = codeGen.typeMgr().get(countTypeRef);
+            const MicroOpBits countBits    = CodeGenTypeHelpers::numericBits(countType);
+            MicroReg          countReg     = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, countTypeRef);
+            if (countBits != MicroOpBits::B64)
+            {
+                const MicroReg wideCountReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadZeroExtendRegReg(wideCountReg, countReg, MicroOpBits::B64, countBits);
+                countReg = wideCountReg;
+            }
+
+            const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
+            builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);
+            builder.emitOpBinaryRegRegReg(resultReg, leftReg, countVecReg, CodeGenVectorHelpers::variableShiftMicroOpForLane(binaryOp, laneType), MicroOpBits::B128);
+        }
+        else
+        {
+            const TypeRef   rightResolvedTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
+            const TypeInfo& rightType            = codeGen.typeMgr().get(rightResolvedTypeRef);
+
+            MicroReg rhsReg;
+            if (rightType.isSimd())
+            {
+                if (encodeCtx.rightPayload->isAddress())
+                {
+                    rhsReg = codeGen.nextVirtualFloatRegister();
+                    builder.emitLoadVecRegMem(rhsReg, encodeCtx.rightPayload->reg, 0, MicroOpBits::B128);
+                }
+                else
+                {
+                    rhsReg = encodeCtx.rightPayload->reg;
+                }
+            }
+            else
+            {
+                const MicroReg scalarReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, targetType.payloadSimdLaneTypeRef());
+                rhsReg                   = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
+            }
+
+            builder.emitOpBinaryRegRegReg(resultReg, leftReg, rhsReg, CodeGenVectorHelpers::binaryMicroOpForLane(binaryOp, laneType), MicroOpBits::B128);
+        }
+
+        builder.emitStoreVecMemReg(targetPayload.reg, 0, resultReg, MicroOpBits::B128);
+        return Result::Continue;
+    }
+
     Result emitAssignCompoundFloat(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
     {
         SWC_ASSERT(encodeCtx.rightPayload);
@@ -403,6 +474,8 @@ namespace
                 return emitAssignCompoundIntLike(codeGen, encodeCtx, assignOp);
             case AssignEncodingKind::FloatCompound:
                 return emitAssignCompoundFloat(codeGen, encodeCtx, assignOp);
+            case AssignEncodingKind::VectorCompound:
+                return emitAssignCompoundVector(codeGen, encodeCtx, assignOp);
             case AssignEncodingKind::PointerCompound:
                 return emitAssignCompoundPointer(codeGen, encodeCtx, assignOp);
         }

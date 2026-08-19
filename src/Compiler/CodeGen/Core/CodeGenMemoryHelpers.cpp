@@ -681,6 +681,14 @@ void CodeGenMemoryHelpers::storePayloadToAddress(CodeGen& codeGen, MicroReg dstR
         return;
     }
 
+    // A register-resident vector is a value, not an address: store its 16
+    // bytes directly.
+    if (copySize == 16 && srcPayload.reg.isAnyFloat())
+    {
+        builder.emitStoreVecMemReg(dstReg, 0, srcPayload.reg, MicroOpBits::B128);
+        return;
+    }
+
     if (copySize > 8)
     {
         emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize, srcPayload.sourceCodeRef, builder.currentDebugSourceCodeRef());

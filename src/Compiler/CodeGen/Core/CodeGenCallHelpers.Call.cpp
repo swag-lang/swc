@@ -435,7 +435,7 @@ namespace
         auto     loadBits = MicroOpBits::Zero;
         if (normalizedArg.isFloat)
         {
-            if (normalizedArg.numBits != 32 && normalizedArg.numBits != 64)
+            if (normalizedArg.numBits != 32 && normalizedArg.numBits != 64 && normalizedArg.numBits != 128)
                 return;
 
             dstReg   = codeGen.nextVirtualFloatRegister();

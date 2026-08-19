@@ -10,6 +10,7 @@
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -1727,6 +1728,34 @@ namespace
         if (sourceTypeRef == dstTypeRef)
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        // A scalar of the lane type broadcasts into every lane of the vector.
+        if (resolvedDstType.isSimd() && resolvedSrcType.isScalarNumeric())
+        {
+            const TypeInfo&   laneType = typeMgr.get(resolvedDstType.payloadSimdLaneTypeRef());
+            const MicroOpBits laneBits = CodeGenTypeHelpers::numericBits(laneType);
+            MicroReg          scalarReg = srcPayload.reg;
+            if (srcPayload.isAddress())
+            {
+                scalarReg = codeGen.nextVirtualRegisterForType(resolvedDstType.payloadSimdLaneTypeRef());
+                builder.emitLoadRegMem(scalarReg, srcPayload.reg, 0, laneBits);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
+            return Result::Continue;
+        }
+
+        // A vector reinterpreted as its array shape needs memory: array
+        // consumers read through an address, and the vector may only live in
+        // a register.
+        if (resolvedSrcType.isSimd() && resolvedDstType.isArray() && !srcPayload.isAddress())
+        {
+            const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            builder.emitStoreVecMemReg(storageReg, 0, srcPayload.reg, MicroOpBits::B128);
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), storageReg, dstTypeRef);
             return Result::Continue;
         }
 

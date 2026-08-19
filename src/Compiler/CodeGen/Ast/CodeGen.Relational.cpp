@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -807,6 +808,24 @@ namespace
         builder.emitOpBinaryRegReg(resultPayload.reg, lessReg, MicroOp::Subtract, MicroOpBits::B32);
         return Result::Continue;
     }
+
+    // Element-wise simd compare: the result is a mask vector, not a bool.
+    Result emitRelationalVector(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
+    {
+        const SemaNodeView leftView     = codeGen.viewType(node.nodeLeftRef);
+        const TypeRef      vecTypeRef   = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), leftView.typeRef());
+        const TypeInfo&    vecType      = codeGen.typeMgr().get(vecTypeRef);
+        SWC_ASSERT(vecType.isSimd());
+        const TypeInfo& laneType = codeGen.typeMgr().get(vecType.payloadSimdLaneTypeRef());
+
+        const MicroReg lhsReg  = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(node.nodeLeftRef));
+        const MicroReg rhsReg  = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(node.nodeRightRef));
+        const MicroReg maskReg = CodeGenVectorHelpers::emitCompare(codeGen, tokId, lhsReg, rhsReg, laneType);
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        resultPayload.reg                 = maskReg;
+        return Result::Continue;
+    }
 }
 
 Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -821,6 +840,10 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
         if (calledFn.specOpKind() == SpecOpKind::OpEquals || calledFn.specOpKind() == SpecOpKind::OpCompare)
             return emitSpecialRelational(codeGen, tok.id, calledFn, resultTypeRef, *relationalPayload);
     }
+
+    const TypeRef resultTypeRef = codeGen.viewType(codeGen.curNodeRef()).typeRef();
+    if (resultTypeRef.isValid() && codeGen.typeMgr().get(resultTypeRef).isSimd())
+        return emitRelationalVector(codeGen, *this, tok.id);
 
     if (tok.id == TokenId::SymLessEqualGreater)
         return emitThreeWayCompare(codeGen, *this);

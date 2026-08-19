@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -22,6 +23,7 @@ namespace
         Float,
         PointerOffset,
         PointerDiff,
+        Vector,
     };
 
     struct BinaryEncodeContext
@@ -56,6 +58,9 @@ namespace
             default:
                 break;
         }
+
+        if (leftType.isSimd() || rightType.isSimd())
+            return BinaryEncodingKind::Vector;
 
         if (leftType.isFloat())
             return BinaryEncodingKind::Float;
@@ -503,6 +508,63 @@ namespace
         return Result::Continue;
     }
 
+    Result emitBinaryVector(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
+    {
+        SWC_ASSERT(encodeCtx.leftPayload);
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.resultTypeRef.isValid());
+
+        const TypeManager& typeMgr    = codeGen.typeMgr();
+        const TypeInfo&    vecType    = typeMgr.get(encodeCtx.resultTypeRef);
+        SWC_ASSERT(vecType.isSimd());
+        const TypeInfo& laneType  = typeMgr.get(vecType.payloadSimdLaneTypeRef());
+        const bool      leftIsVec = typeMgr.get(encodeCtx.leftOperandTypeRef).isSimd();
+
+        MicroBuilder&       builder     = codeGen.builder();
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
+        nodePayload.reg                 = codeGen.nextVirtualFloatRegister();
+
+        if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
+        {
+            // Every lane shifts by the same count, carried in the low bits of
+            // a vector register.
+            const MicroReg lhsReg = CodeGenVectorHelpers::loadVectorOperand(codeGen, *encodeCtx.leftPayload);
+            MicroReg       countReg;
+            materializeArithmeticOperand(countReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, codeGen.typeMgr().typeU64());
+            const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
+            builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);
+            const MicroOp op = CodeGenVectorHelpers::variableShiftMicroOpForLane(tokId, laneType);
+            builder.emitOpBinaryRegRegReg(nodePayload.reg, lhsReg, countVecReg, op, MicroOpBits::B128);
+            return Result::Continue;
+        }
+
+        // A scalar operand was already converted to the lane type by sema and
+        // broadcasts over the lanes here.
+        MicroReg lhsReg;
+        if (leftIsVec)
+            lhsReg = CodeGenVectorHelpers::loadVectorOperand(codeGen, *encodeCtx.leftPayload);
+        else
+        {
+            MicroReg scalarReg;
+            materializeArithmeticOperand(scalarReg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, vecType.payloadSimdLaneTypeRef());
+            lhsReg = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
+        }
+
+        MicroReg rhsReg;
+        if (typeMgr.get(encodeCtx.rightOperandTypeRef).isSimd())
+            rhsReg = CodeGenVectorHelpers::loadVectorOperand(codeGen, *encodeCtx.rightPayload);
+        else
+        {
+            MicroReg scalarReg;
+            materializeArithmeticOperand(scalarReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, vecType.payloadSimdLaneTypeRef());
+            rhsReg = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
+        }
+
+        const MicroOp op = CodeGenVectorHelpers::binaryMicroOpForLane(tokId, laneType);
+        builder.emitOpBinaryRegRegReg(nodePayload.reg, lhsReg, rhsReg, op, MicroOpBits::B128);
+        return Result::Continue;
+    }
+
     Result emitPointerOffset(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
     {
         SWC_ASSERT(encodeCtx.leftPayload);
@@ -600,6 +662,8 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return emitPointerOffset(codeGen, encodeCtx, tokId);
         case BinaryEncodingKind::PointerDiff:
             return emitPointerDifference(codeGen, encodeCtx);
+        case BinaryEncodingKind::Vector:
+            return emitBinaryVector(codeGen, encodeCtx, tokId);
     }
 
     SWC_UNREACHABLE();

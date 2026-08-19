@@ -1667,6 +1667,30 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
         sym.setVariadicParamFlag(sema.ctx());
 
+        // A simd value rides a float register only in the Swag calling
+        // convention, so a C-convention foreign boundary rejects it.
+        if (sym.isForeign() && sym.callConvKind() != CallConvKind::Swag)
+        {
+            TypeRef foreignSimdTypeRef = TypeRef::invalid();
+            if (sym.returnTypeRef().isValid() && sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), sym.returnTypeRef())).isSimd())
+                foreignSimdTypeRef = sym.returnTypeRef();
+            for (const SymbolVariable* param : sym.parameters())
+            {
+                if (foreignSimdTypeRef.isValid())
+                    break;
+                if (param && param->typeRef().isValid() && sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), param->typeRef())).isSimd())
+                    foreignSimdTypeRef = param->typeRef();
+            }
+
+            if (foreignSimdTypeRef.isValid())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_foreign_simd_type, sema.curNodeRef(), SemaError::ReportLocation::Token);
+                diag.addArgument(Diagnostic::ARG_TYPE, foreignSimdTypeRef);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);

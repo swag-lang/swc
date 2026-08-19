@@ -78,7 +78,7 @@ namespace
 
     Result setupIndexBoundCheck(Sema& sema, AstNodeRef nodeRef, const TypeInfo& indexedType, const SourceCodeRef& codeRef)
     {
-        if (!indexedType.isIndexable())
+        if (!indexedType.isIndexable() && !indexedType.isSimd())
             return Result::Continue;
         return SemaHelpers::setupRuntimeSafetyPanic(sema, nodeRef, Runtime::SafetyWhat::BoundCheck, codeRef);
     }
@@ -336,9 +336,9 @@ namespace
         const TypeRef   indexedTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
         const TypeInfo& indexedType    = sema.typeMgr().get(indexedTypeRef);
         SWC_RESULT(sema.waitSemaCompleted(&indexedType, indexedRef));
-        if (!indexedType.isArray())
+        if (!indexedType.isArray() && !indexedType.isSimd())
             return Result::Continue;
-        if (indexedView.hasConstant())
+        if (indexedView.hasConstant() && !indexedType.isSimd())
             return Result::Continue;
 
         bool needsRuntimeStorage = !sema.isLValue(indexedRef);
@@ -352,15 +352,20 @@ namespace
             }
         }
 
+        // A simd value can live in a register with no memory home at all, so
+        // lane access always gets a spill slot to index into.
+        if (indexedType.isSimd())
+            needsRuntimeStorage = true;
+
         if (!needsRuntimeStorage)
             return Result::Continue;
 
         const uint64_t valueSize = indexedType.sizeOf(sema.ctx());
-        if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8)
+        if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8 && !indexedType.isSimd())
             return Result::Continue;
 
         SmallVector<uint64_t> dims;
-        dims.push_back(8);
+        dims.push_back(indexedType.isSimd() ? 16 : 8);
         outRuntimeStorageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
         return Result::Continue;
     }
@@ -457,6 +462,14 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     {
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeU8());
     }
+    else if (indexedType.isSimd())
+    {
+        // A constant lane index is checked statically against the lane count;
+        // a dynamic one is bound-checked at run time like an array index.
+        if (hasConstIndex && std::cmp_greater_equal(constIndex, indexedType.payloadSimdLaneCount()))
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, indexedType.payloadSimdLaneCount());
+        sema.setType(sema.curNodeRef(), indexedType.payloadSimdLaneTypeRef());
+    }
     else if (indexedType.isValuePointer())
     {
         return SemaError::raisePointerArithmeticValuePointer(sema, sema.curNodeRef(), nodeExprRef, nodeExprView.typeRef());
@@ -468,8 +481,10 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     sema.setIsValue(*this);
 
-    // Constant extract
-    if (nodeExprView.cst() && hasConstIndex)
+    // Constant extract. A simd constant stays a runtime lane read: its
+    // constant payload is raw bytes, and the lane loads go through the
+    // vector's spill storage instead.
+    if (nodeExprView.cst() && hasConstIndex && !indexedType.isSimd())
     {
         SWC_RESULT(ConstantExtract::atIndex(sema, *nodeExprView.cst(), constIndex, nodeArgRef));
     }

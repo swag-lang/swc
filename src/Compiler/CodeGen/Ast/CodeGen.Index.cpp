@@ -255,6 +255,27 @@ namespace
             return materializeAddressFromValue(codeGen, indexedNodeRef, indexedPayload, indexedType);
         }
 
+        if (indexedType.isSimd())
+        {
+            if (indexedPayload.isAddress())
+                return indexedPayload.reg;
+
+            // A register-resident vector spills into its attached storage so
+            // lanes can be addressed. An assignment target is always
+            // address-backed, so writes never land in the spill.
+            AstNodeRef spillOwnerRef = codeGen.curNodeRef();
+            if (indexedNodeRef.isValid())
+            {
+                const CodeGenNodePayload* spillPayload = codeGen.safePayload(indexedNodeRef);
+                if (spillPayload && spillPayload->runtimeStorageSym != nullptr)
+                    spillOwnerRef = indexedNodeRef;
+            }
+
+            const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(spillOwnerRef);
+            builder.emitStoreVecMemReg(spillAddrReg, 0, indexedPayload.reg, MicroOpBits::B128);
+            return spillAddrReg;
+        }
+
         if (indexedType.isAnyPointer() || indexedType.isCString())
         {
             if (indexedPayload.isValue())
@@ -295,6 +316,8 @@ namespace
             return typeMgr.get(typeMgr.typeU8()).sizeOf(codeGen.ctx());
         if (indexedType.isVariadic())
             return typeMgr.get(typeMgr.typeAny()).sizeOf(codeGen.ctx());
+        if (indexedType.isSimd())
+            return typeMgr.get(indexedType.payloadSimdLaneTypeRef()).sizeOf(codeGen.ctx());
 
         SWC_UNREACHABLE();
     }
@@ -317,6 +340,8 @@ namespace
             return typeMgr.typeU8();
         if (indexedType.isVariadic())
             return typeMgr.typeAny();
+        if (indexedType.isSimd())
+            return indexedType.payloadSimdLaneTypeRef();
 
 #if SWC_DEV_MODE
         {

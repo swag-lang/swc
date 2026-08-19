@@ -487,7 +487,7 @@ namespace
             storageTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(codeGen.sema(), storageTypeRef, cstRef);
 
         const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
-        if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregateStruct() && !storageType.isAggregateArray())
+        if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregateStruct() && !storageType.isAggregateArray() && !storageType.isSimd())
             return ConstantRef::invalid();
 
         const uint64_t storageSize = storageType.sizeOf(codeGen.ctx());

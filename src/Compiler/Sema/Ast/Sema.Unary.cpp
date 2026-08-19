@@ -227,6 +227,19 @@ namespace
         if (type.isFloat() || type.isIntSigned() || type.isIntUnsized())
             return Result::Continue;
 
+        // Element-wise negation follows the scalar rule per lane.
+        if (type.isSimd())
+        {
+            const TypeInfo& laneType = sema.typeMgr().get(type.payloadSimdLaneTypeRef());
+            if (laneType.isFloat() || laneType.isIntSigned())
+                return Result::Continue;
+
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
         if (type.isIntUnsigned())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
@@ -259,6 +272,8 @@ namespace
     {
         const TypeInfo& type = aliasType(sema, view);
         if (type.isIntLike() || type.isEnum())
+            return Result::Continue;
+        if (type.isSimd() && sema.typeMgr().get(type.payloadSimdLaneTypeRef()).isInt())
             return Result::Continue;
         return reportInvalidType(sema, expr, view);
     }

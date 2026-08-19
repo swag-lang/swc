@@ -394,6 +394,22 @@ namespace
                 return "vec.cmpf32";
             case MicroOp::VecCmpF64:
                 return "vec.cmpf64";
+            case MicroOp::VecShiftLeftV16:
+                return "vec.shlv16";
+            case MicroOp::VecShiftLeftV32:
+                return "vec.shlv32";
+            case MicroOp::VecShiftLeftV64:
+                return "vec.shlv64";
+            case MicroOp::VecShiftRightV16:
+                return "vec.shrv16";
+            case MicroOp::VecShiftRightV32:
+                return "vec.shrv32";
+            case MicroOp::VecShiftRightV64:
+                return "vec.shrv64";
+            case MicroOp::VecShiftRightAV16:
+                return "vec.sarv16";
+            case MicroOp::VecShiftRightAV32:
+                return "vec.sarv32";
         }
 
         SWC_UNREACHABLE();

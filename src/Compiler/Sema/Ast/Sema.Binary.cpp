@@ -482,6 +482,26 @@ namespace
                 break;
         }
 
+        // Element-wise simd arithmetic: the result is the vector side's type,
+        // and a scalar operand broadcasts by converting to the lane type. A
+        // shift keeps its plain integer count.
+        if ((leftAliasType.isSimd() || rightAliasType.isSimd()) && Token::isOpArithmeticOrBitwise(op))
+        {
+            if (op != TokenId::SymGreaterGreater && op != TokenId::SymLowerLower)
+            {
+                if (leftAliasType.isSimd() && !rightAliasType.isSimd())
+                    SWC_RESULT(Cast::cast(sema, nodeRightView, leftAliasType.payloadSimdLaneTypeRef(), CastKind::Implicit));
+                else if (!leftAliasType.isSimd() && rightAliasType.isSimd())
+                {
+                    SWC_RESULT(Cast::cast(sema, nodeLeftView, rightAliasType.payloadSimdLaneTypeRef(), CastKind::Implicit));
+                    resultTypeRef = nodeRightView.typeRef();
+                }
+            }
+
+            sema.setType(sema.curNodeRef(), resultTypeRef);
+            return Result::Continue;
+        }
+
         if (Token::isOpArithmeticOrBitwise(op) && !handledPointerArithmetic)
         {
             if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&

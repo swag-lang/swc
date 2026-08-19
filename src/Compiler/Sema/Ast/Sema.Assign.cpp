@@ -262,8 +262,22 @@ namespace
 
     Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        const TokenId binOp                = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
-        const auto    targetLeftView       = assignmentTargetView(sema, nodeLeftView);
+        const TokenId binOp          = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
+        const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);
+
+        // A compound simd assignment broadcasts a scalar operand over the
+        // lanes by converting it to the lane type; the target stays a vector.
+        if (binOp != op && binOp != TokenId::SymGreaterGreater && binOp != TokenId::SymLowerLower)
+        {
+            const TypeRef   targetTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), targetLeftView.typeRef());
+            const TypeInfo& targetType    = sema.typeMgr().get(targetTypeRef);
+            if (targetType.isSimd() && nodeRightView.type() && !nodeRightView.type()->isSimd())
+            {
+                SWC_RESULT(Cast::cast(sema, nodeRightView, targetType.payloadSimdLaneTypeRef(), CastKind::Implicit));
+                return Result::Continue;
+            }
+        }
+
         const TypeRef pointerResultTypeRef = compoundPointerArithmeticResultTypeRef(sema, binOp, targetLeftView, nodeRightView);
         if (pointerResultTypeRef.isValid())
             SWC_RESULT(tryAssignmentCast(sema, nodeLeftView.nodeRef(), nodeLeftView, pointerResultTypeRef, sema.curNodeRef(), DiagnosticId::sema_note_assignment_target_here));

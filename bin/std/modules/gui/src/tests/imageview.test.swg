@@ -29,6 +29,13 @@ using Swag, Core, Pixel
     @assert(view.isFitted)
     @assert(view.panOffset == Math.Point{})
 
+    let textureHandle = view.uploadedTexture.handle
+    image.fill(Argb.Red)
+    view.updateImage(&image)
+    @assert(view.uploadedTexture.handle == textureHandle)
+    @assert(view.image.pixels[0] == 255 and view.image.pixels[1] == 0)
+    @assert(view.isFitted)
+
     view.clear()
     @assert(!view.uploadedTexture.isValid())
 }

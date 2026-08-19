@@ -183,11 +183,17 @@ impl AvcStream
             source.seek(entry.offset)
             source.readExact(.payload.toSlice())
 
+            let rank = cast(u64) .rankOfSample[.nextDecode]
+            if rank < wanted and .decoder.canSkipWhileSeeking(.payload.toSlice())
+            {
+                .nextDecode += 1
+                continue
+            }
+
             let decoded = .decoder.decodeAccessUnit(.payload.toSlice())
             if !decoded do
                 fail InvalidFormatError{"MP4 video sample carries no picture"}
 
-            let rank = cast(u64) .rankOfSample[.nextDecode]
             .nextDecode += 1
             if rank < wanted
             {

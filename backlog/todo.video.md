@@ -28,13 +28,18 @@ is the layout it does not read yet.
   macroblock bands and YUV-to-RGB bands through `Core.Jobs`, and makes forward seeks restart at
   a nearer sync sample. On Intel's 300-frame 1080p sample this reduced a release decode from
   about 17.5 s to 14.8 s; seeking directly to its last frame dropped from decoding the whole
-  stream to about 1.25 s because the decoder starts at sample 270.
+  stream to about 1.25 s because the decoder starts at sample 270. Wavefront deblocking then
+  halved that stage on Intel's 556-frame 1080p sample (about 5.7 s to 2.5 s), bringing the full
+  release decode to about 19.6 s for a 23.2 s clip. Seeking skips non-reference pictures on POC
+  type 0 streams; the last-frame seek on that sample fell from about 5.5 s to 3.3 s by omitting
+  69 of the 162 intervening pictures. sFileScope also stopped recreating its 1080p renderer
+  texture per frame and decodes a timeline drag only when the gesture ends.
 - Per-stage now (59 frames of 1080p30, release, native): motion compensation ~870 ms, CABAC
   parse ~730 of which residual blocks ~380, deblocking ~610, YUV-to-RGB ~470, bookkeeping ~230,
   motion derivations ~210, `prepareMb` ~110.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
-  levers, in expected order of value: wavefront deblocking on `Core.Jobs`; a byte-run significance
-  fast path in the CABAC engine; packed stores in the conversion; and word writes in
+  levers, in expected order of value: a byte-run significance fast path in the CABAC engine;
+  packed stores in the conversion; and word writes in
   `bookkeepMb`. A 16-bit SWAR six-tap prototype stayed byte-exact but regressed this backend by
   about 13%, because expanding byte inputs cost more than the packed arithmetic saved. A trap for
   the parse/recon split:

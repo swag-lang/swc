@@ -42,6 +42,8 @@ func videoPreviewFile(name: string)->String fail
 
     view.seekFrame(2)
     @assert(view.frameIndex == 2)
+    view.timeline.setValue(3)
+    @assert(view.frameIndex == 3)
     view.togglePlayback()
     @assert(view.playing)
     view.togglePlayback()

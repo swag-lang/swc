@@ -69,7 +69,7 @@ internal impl VideoViewer
         }
 
         .frameIndex = index
-        .imageView.setImage(.frame)
+        .imageView.updateImage(&.frame)
         .refreshTransport()
         return true
     }
@@ -246,7 +246,9 @@ private impl VideoViewer
             .dockStyle  = .Left
             .margin     = {8, 1, 8, 1}
             .toolTip    = videoStrings().ui_TipSeek
-            .sigChanged += func|view = result|(slider)
+            // A drag may cross hundreds of frames. Decode its final position once instead of
+            // serially decoding every intermediate value queued by the pointer movement.
+            .sigEndChange += func|view = result|(slider)
             {
                 view.seekFrame(cast(u64) Math.round(slider.value()))
             }

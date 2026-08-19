@@ -214,6 +214,30 @@ impl ImageView
         .zoomToFit()
     }
 
+    // Updates a still image while reusing its renderer texture and viewing position.
+    //
+    // `image` is borrowed for the call and its pixels are copied. When its dimensions or pixel
+    // format differ from the current still image, this behaves like [[Gui.ImageView.setImage]]
+    // and fits the replacement to the viewport. An animated image is replaced by a still one.
+    mtd updateImage(image: const *Image)
+    {
+        if !image.isValid()
+        {
+            .clear()
+            return
+        }
+
+        if .movie.isValid() or !.image.isValid() or !.uploadedTexture.isValid() or image.width != .image.width or image.height != .image.height or image.pixelFormat != .image.pixelFormat
+        {
+            .setImage(image[])
+            return
+        }
+
+        Memory.copy(.image.pixels.buffer!, image.pixels.buffer!, .image.byteCount)
+        .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
+        .invalidate()
+    }
+
     // Replaces the image with another rendering of the same content, keeping the view.
     //
     // A viewer whose content is scalable — a document page, a drawing — does not zoom by

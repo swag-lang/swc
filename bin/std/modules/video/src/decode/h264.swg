@@ -227,6 +227,46 @@ impl Decoder
         return null
     }
 
+    // Reports whether an access unit can be omitted while seeking past it. POC type 0 updates
+    // its carried order state only for reference pictures, so a non-reference picture cannot
+    // affect either prediction or the order of a later target. Other POC types keep the
+    // conservative path because their frame-number state also advances on non-reference input.
+    mtd const canSkipWhileSeeking(sample: const [..] u8)->bool
+    {
+        let configured = .firstSps()
+        if !configured or configured!.pocType != 0 or .nalLengthSize == 0 do
+            return false
+
+        var hasPicture = false
+        var offset     = 0'u64
+        while offset < @countof(sample)
+        {
+            if offset + .nalLengthSize > @countof(sample) do
+                return false
+            var size = 0'u64
+            for .nalLengthSize
+            {
+                size   = (size << 8) | cast(u64) sample[offset]
+                offset += 1
+            }
+
+            if size < 1 or size > @countof(sample) - offset do
+                return false
+            let header  = sample[offset]
+            let nalType = header & 0x1F
+            if nalType == 1 or nalType == 5
+            {
+                hasPicture = true
+                if header & 0x60 do
+                    return false
+            }
+
+            offset += size
+        }
+
+        return hasPicture
+    }
+
     // Dispatches one NAL unit.
     private mtd handleNal(nal: const [..] u8) fail
     {

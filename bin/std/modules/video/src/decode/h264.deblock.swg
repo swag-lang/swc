@@ -7,14 +7,60 @@ using Core
 // vertical edges left to right, then its horizontal edges top to bottom, in place, in raster
 // macroblock order.
 
+private const DeblockLanes = 4'u32
+
+private struct DeblockContext
+{
+    decoder:     *Decoder
+    rowProgress: [*] u32
+    laneCount:   u32
+}
+
 // Filters the whole decoded picture.
 func deblockPicture(dec: *Decoder)
 {
-    let sps = dec.sps!
-    for mbY in sps.mbHeight
+    let sps       = dec.sps!
+    let laneCount = Math.min(Math.min(Jobs.workerCount(), DeblockLanes), cast(u32) sps.mbHeight)
+    if laneCount <= 1
     {
-        for mbX in sps.mbWidth do
-            deblockMb(dec, mbX, mbY)
+        for mbY in sps.mbHeight
+        {
+            for mbX in sps.mbWidth do
+                deblockMb(dec, mbX, mbY)
+        }
+
+        return
+    }
+
+    // A macroblock touches samples owned by its left and top neighbors. Rows therefore form a
+    // wavefront: row Y may filter X once row Y-1 has completed X+1. The extra macroblock of
+    // lead matters because the previous row's next vertical boundary overlaps the horizontal
+    // edge being filtered here. Rows with the same lane are far enough apart to run in one job.
+    var rowProgress: Array'u32
+    rowProgress.resize(cast(u64) sps.mbHeight)
+    var context = DeblockContext{dec, rowProgress.buffer!, laneCount}
+    Jobs.parallelFor(laneCount, &context)
+    {
+        let state  = cast(*DeblockContext) data!
+        let width  = state.decoder.sps!.mbWidth
+        let height = state.decoder.sps!.mbHeight
+        var mbY    = cast(s32) index
+        while mbY < height
+        {
+            for mbX in width
+            {
+                if mbY > 0
+                {
+                    let required = cast(u32) Math.min(mbX + 2, width)
+                    while Atomic.get(state.rowProgress + cast(u64) mbY - 1) < required {}
+                }
+
+                deblockMb(state.decoder, mbX, mbY)
+                Atomic.exchange(state.rowProgress + cast(u64) mbY, cast(u32) mbX + 1)
+            }
+
+            mbY += cast(s32) state.laneCount
+        }
     }
 }
 

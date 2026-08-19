@@ -15,6 +15,39 @@ using Core
 #[Swag.Inline]
 func tap6(a, b, c, d, e, f: s32)->s32 => a - 5 * b + 20 * c + 20 * d - 5 * e + f
 
+// Eight six-tap half-samples on widened byte lanes. Every intermediate fits
+// s16: the positive taps reach 20 * 510 + 510 = 10710 and the negative ones
+// -2550, so the arithmetic never wraps and the caller's saturating pack is
+// exactly the scalar clamp.
+#[Swag.Inline]
+private func tap6Half16(a, b, c, d, e, f: #simd [8] u16)->#simd [8] s16
+{
+    let inner = cast #bit(#simd [8] s16) (c + d)
+    let outer = cast #bit(#simd [8] s16) (b + e)
+    let edges = cast #bit(#simd [8] s16) (a + f)
+    let sum   = edges + inner * 20 - outer * 5
+    return (sum + 16) >> 5
+}
+
+// Sixteen six-tap half-samples in one pass: rows spaced by `stride` widen to
+// 16-bit lanes, filter, and narrow back through the saturating pack. With a
+// stride of one this is the horizontal filter, reading the same bytes the
+// scalar loop touches.
+#[Swag.Inline]
+private func tap6Row16(line: const [*] u8, stride: u64)->#simd [16] u8
+{
+    let r0 = (cast(const [*] #simd [16] u8) line)[0]
+    let r1 = (cast(const [*] #simd [16] u8) (line + stride))[0]
+    let r2 = (cast(const [*] #simd [16] u8) (line + 2 * stride))[0]
+    let r3 = (cast(const [*] #simd [16] u8) (line + 3 * stride))[0]
+    let r4 = (cast(const [*] #simd [16] u8) (line + 4 * stride))[0]
+    let r5 = (cast(const [*] #simd [16] u8) (line + 5 * stride))[0]
+
+    let lo = tap6Half16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
+    let hi = tap6Half16(@vecwidenhi(r0), @vecwidenhi(r1), @vecwidenhi(r2), @vecwidenhi(r3), @vecwidenhi(r4), @vecwidenhi(r5))
+    return @vecpackus(lo, hi)
+}
+
 // Copies the `width` by `height` window at `x`, `y` with edge clamping, including the two
 // extra samples each side the six-tap filter reads.
 private func copyClamped(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, x, y, width, height, planeWidth, planeHeight: s32)
@@ -33,6 +66,13 @@ private func copyClamped(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u6
 // Produces the clipped horizontal half-sample plane at integer rows.
 private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
+    if width == 16
+    {
+        for row in cast(u64) height do
+            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = tap6Row16(src + row * srcStride - 2, 1)
+        return
+    }
+
     for row in cast(u64) height
     {
         let line = src + row * srcStride - 2
@@ -48,6 +88,17 @@ private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride:
 // Produces the horizontal half-samples averaged with `anchor`, in one pass.
 private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, anchor: [*] u8, anchorStride: u64, width, height: s32)
 {
+    if width == 16
+    {
+        for row in cast(u64) height
+        {
+            let half  = tap6Row16(src + row * srcStride - 2, 1)
+            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
+            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = @vecavgr(half, other)
+        }
+        return
+    }
+
     for row in cast(u64) height
     {
         let line  = src + row * srcStride - 2
@@ -65,6 +116,13 @@ private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
 // Produces the clipped vertical half-sample plane at integer columns.
 private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
+    if width == 16
+    {
+        for row in cast(u64) height do
+            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = tap6Row16(src + row * srcStride - 2 * srcStride, srcStride)
+        return
+    }
+
     for row in cast(u64) height
     {
         let line = src + row * srcStride - 2 * srcStride
@@ -80,6 +138,17 @@ private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
 // Produces the vertical half-samples averaged with `anchor`, in one pass.
 private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, anchor: [*] u8, anchorStride: u64, width, height: s32)
 {
+    if width == 16
+    {
+        for row in cast(u64) height
+        {
+            let half  = tap6Row16(src + row * srcStride - 2 * srcStride, srcStride)
+            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
+            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = @vecavgr(half, other)
+        }
+        return
+    }
+
     for row in cast(u64) height
     {
         let line  = src + row * srcStride - 2 * srcStride
@@ -122,8 +191,9 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
 
 // Averages two planes with upward rounding.
 //
-// `(x | y) - (((x ^ y) & 0xFE...) >> 1)` is the rounding-up byte average on independent
-// lanes, so a whole row averages in one or two word operations.
+// A sixteen-wide row is one packed rounding average; the narrower rows keep
+// the word trick: `(x | y) - (((x ^ y) & 0xFE...) >> 1)` is the rounding-up
+// byte average on independent lanes.
 func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] u8, bStride: u64, width, height: s32)
 {
     const Mask64 = 0xFEFE_FEFE_FEFE_FEFE'u64
@@ -137,15 +207,12 @@ func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] 
     case 16:
         for cast(u64) height
         {
-            let a0 = (cast(const [*] u64) pa)[0]
-            let b0 = (cast(const [*] u64) pb)[0]
-            let a1 = (cast(const [*] u64) pa)[1]
-            let b1 = (cast(const [*] u64) pb)[1]
-            (cast([*] u64) pd)[0] = (a0 | b0) - (((a0 ^ b0) & Mask64) >> 1)
-            (cast([*] u64) pd)[1] = (a1 | b1) - (((a1 ^ b1) & Mask64) >> 1)
-            pd                    += dstStride
-            pa                    += aStride
-            pb                    += bStride
+            let va = (cast(const [*] #simd [16] u8) pa)[0]
+            let vb = (cast(const [*] #simd [16] u8) pb)[0]
+            (cast([*] #simd [16] u8) pd)[0] = @vecavgr(va, vb)
+            pd += dstStride
+            pa += aStride
+            pb += bStride
         }
 
     case 8:
@@ -273,10 +340,9 @@ func copyPlane(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
     case 16:
         for cast(u64) height
         {
-            (cast([*] u64) d)[0] = (cast(const [*] u64) s)[0]
-            (cast([*] u64) d)[1] = (cast(const [*] u64) s)[1]
-            d                    += dstStride
-            s                    += srcStride
+            (cast([*] #simd [16] u8) d)[0] = (cast(const [*] #simd [16] u8) s)[0]
+            d += dstStride
+            s += srcStride
         }
 
     case 8:

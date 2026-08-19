@@ -137,6 +137,17 @@ families, and the family says what it annotates.
 }
 
 /**
+'#simd' also builds a type: it turns a 16-byte array shape into a packed
+vector whose lanes compute element-wise (see the simd chapter):
+*/
+
+#test
+{
+    var lanes: #simd [4] s32
+    @assert(#alignof(lanes) == 16)
+}
+
+/**
 # Passing Modes
 
 '#move' and '#fwd' in a parameter position are part of the signature: they

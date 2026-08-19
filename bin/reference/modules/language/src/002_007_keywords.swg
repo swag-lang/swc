@@ -98,7 +98,7 @@ attribute instead.
 
 ```swag
 #bit  #complete  #fail  #fwd  #move  #nodrop  #nofail  #null
-#prom  #raw  #relocate  #unconst  #wrap
+#prom  #raw  #relocate  #simd  #unconst  #wrap
 ```
 
 # Runtime and Compiler Intrinsics
@@ -134,6 +134,14 @@ Memory, atomic, and C variadic intrinsics:
 ```swag
 @atomadd  @atomand  @atomcmpxchg  @atomor  @atomxchg  @atomxor
 @memcmp  @memcpy  @memmove  @memset
+```
+
+Packed vector intrinsics:
+
+```swag
+@vecall  @vecany  @vecavgr  @vecmadd  @vecmask  @vecpackss
+@vecpackus  @vecperm  @vecsatadd  @vecsatsub  @vecselect
+@vecwidenhi  @vecwidenlo
 ```
 
 > NOTE:

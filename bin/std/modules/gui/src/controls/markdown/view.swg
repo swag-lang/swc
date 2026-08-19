@@ -51,6 +51,7 @@ struct VisualBlock
     wnd:        *Wnd = undefined
     inline:     #null *InlineView
     table:      #null *TableView
+    html:       #null *HtmlView
     kind:       BlockKind
     searchText: String
 }
@@ -122,7 +123,7 @@ private func blockGap(kind: BlockKind)->f32
     case .Heading2: return 22
     case .Heading3, .Heading4, .Heading5, .Heading6: return 16
 
-    case .Code, .Table, .Math, .Quote, .TableOfContents,
+    case .Code, .Table, .Html, .Math, .Quote, .TableOfContents,
          .AlertNote, .AlertTip, .AlertImportant,
          .AlertWarning, .AlertCaution: return 20
 
@@ -130,6 +131,14 @@ private func blockGap(kind: BlockKind)->f32
     case .Rule:     return 24
     default:        return 14
     }
+}
+
+private func htmlStyle(documentStyle: Style)->HtmlStyle
+{
+    var result: retval
+    result.bodyFontSize = documentStyle.bodyFontSize
+    result.codeFontSize = documentStyle.codeFontSize
+    return result
 }
 
 private func streamBoundary(source: string)->u64
@@ -235,6 +244,8 @@ private impl View
             block.wnd.resize(width, (cast(*MathView) block.wnd).preferredHeight())
         elif block.kind == .Table do
             block.wnd.resize(width, block.table!.preferredHeight(width))
+        elif block.kind == .Html do
+            block.wnd.resize(width, block.html!.embeddedHeight(width))
         else do
             block.wnd.resize(width, block.inline!.preferredHeight(width))
 
@@ -280,6 +291,26 @@ private impl View
             let table = TableView.create(me, .body, block.text.toString())
             visual.wnd   = table
             visual.table = table
+            if !.documentThemeColors.isEmpty() do
+                applyThemeColors(visual.wnd, .documentThemeColors.toString())
+            .blocks.add(visual)
+            let geometry = .documentGeometry()
+            .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
+            .updateDocumentSize()
+            return
+        }
+        elif block.kind == .Html
+        {
+            let basePath = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
+            let html     = HtmlView.createEmbedded(.body, block.text.toString(), basePath, htmlStyle(.documentStyle))
+            html.sigLinkActivated += func|markdown = me|(document, target)
+            {
+                discard document
+                markdown.sigLinkActivated.call(markdown, target)
+            }
+            visual.wnd        = html
+            visual.html       = html
+            visual.searchText = html.document.textContent(0)
             if !.documentThemeColors.isEmpty() do
                 applyThemeColors(visual.wnd, .documentThemeColors.toString())
             .blocks.add(visual)
@@ -531,6 +562,8 @@ private impl View
 
             if block.table do
                 block.table!.layoutWidth = 0
+            if block.html do
+                block.html!.setDocumentStyle(htmlStyle(.documentStyle))
         }
 
         .layoutDocument()
@@ -676,6 +709,8 @@ impl View
                 block.inline!.clearSearchHighlight()
             if block.table do
                 block.table!.clearSearchHighlight()
+            if block.html do
+                block.html!.clearSearchHighlight()
         }
 
         let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
@@ -688,6 +723,8 @@ impl View
                 found = block.inline!.highlightText(text)
             elif block.table do
                 found = block.table!.highlightText(text)
+            elif block.html do
+                found = block.html!.findText(text)
             if !found do
                 found = Utf8.indexOf(block.searchText.toString(), text, 0, .Latin1NoCase) != Swag.U64.Max
             if !found do

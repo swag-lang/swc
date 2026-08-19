@@ -313,6 +313,28 @@ impl HtmlStyleResolver
                 style.display = .None
         }
 
+        // Legacy documents and repository landing pages still use presentational attributes.
+        // Apply them before author CSS so an ordinary style rule keeps precedence.
+        let align = .document.attribute(element, "align")
+        if Utf8.compare(align, "left", .Latin1NoCase) == 0 do
+            style.textAlign = .Left
+        elif Utf8.compare(align, "center", .Latin1NoCase) == 0 do
+            style.textAlign = .Center
+        elif Utf8.compare(align, "right", .Latin1NoCase) == 0 do
+            style.textAlign = .Right
+        elif Utf8.compare(align, "justify", .Latin1NoCase) == 0 do
+            style.textAlign = .Justify
+
+        if node.tag == .Img
+        {
+            let width = .document.attribute(element, "width")
+            if @countof(width) do
+                style.applyDeclaration(.Width, width, context)
+            let height = .document.attribute(element, "height")
+            if @countof(height) do
+                style.applyDeclaration(.Height, height, context)
+        }
+
         context.length.fontSize = style.fontSize
     }
 

@@ -168,6 +168,7 @@ struct HtmlView
         sourceDone:  bool
         loadTimer:   #null *Timer
         nextRefresh: u64
+        embedded:    bool
 
         pendingSearch:      String
         pendingFragment:    String
@@ -384,7 +385,7 @@ internal impl HtmlView
         // The canvas is one viewport tall whatever the document measures, and the paint applies
         // the scroll offset itself. A window as tall as the document would be a window of a
         // quarter of a million pixels, which is not a shape the surface geometry is built for.
-        let height   = Math.max(.layout.documentHeight, viewport.y)
+        let height   = .embedded ? viewport.y : Math.max(.layout.documentHeight, viewport.y)
         let position = .scroll.scrollPosition()
         .canvas.setPosition({0, 0, viewport.x, viewport.y})
         .scroll.setScrollSize(viewport.x, height)
@@ -674,6 +675,8 @@ internal impl HtmlView
 
     private mtd activateLink(url: string)->bool
     {
+        if .embedded do
+            return false
         if .navigateToFragment(url) do
             return true
         return .navigateToLocalDocument(url)
@@ -713,6 +716,15 @@ internal impl HtmlView
         }
 
         return false
+    }
+
+    // Clears the current match when an embedding document starts another search.
+    mtd clearSearchHighlight()
+    {
+        .searchNode  = HtmlNoNode
+        .searchStart = 0
+        .searchEnd   = 0
+        .canvas.invalidate()
     }
 
     // Returns the selection normalized to document order, or `has == false` when it is empty.
@@ -947,6 +959,22 @@ internal impl HtmlView
         .invalidate()
     }
 
+    // Measures an embedded document at `width` without exposing a nested scrolling surface.
+    mtd embeddedHeight(width: f32)->f32
+    {
+        @assert(.embedded)
+        var height = Math.max(.layout.documentHeight, 1)
+        for 2
+        {
+            .resize(width, height)
+            .applyLayout()
+            .placeDocument()
+            height = Math.max(.layout.documentHeight, 1)
+        }
+
+        return height
+    }
+
     func createBase(contentParent: *Wnd, documentStyle: HtmlStyle)->*HtmlView
     {
         let result = Wnd.create'HtmlView(contentParent, "gui.html")
@@ -1050,6 +1078,20 @@ internal impl HtmlView
         return result
     }
 
+    // Creates a complete HTML fragment that contributes its natural height to a parent document.
+    func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {})->*HtmlView
+    {
+        let result = .createBase(contentParent, documentStyle)
+        result.embedded        = true
+        result.images.basePath = basePath
+        result.parser.feed(source)
+        result.parser.finish()
+        result.sourceDone = true
+        result.bytesRead  = @countof(source)
+        result.rebuild()
+        return result
+    }
+
     // Creates a view and progressively loads an HTML file.
     //
     // The encoding is decided from the file itself — its byte-order mark, its `<meta charset>`,
@@ -1094,7 +1136,7 @@ internal impl IWnd for HtmlView
             }
         }
 
-        if !scrollDocumentWithKey(.scroll, evt) do
+        if .embedded or !scrollDocumentWithKey(.scroll, evt) do
             evt.accepted = false
     }
 

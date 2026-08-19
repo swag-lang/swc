@@ -33,16 +33,22 @@ is the layout it does not read yet.
   release decode to about 19.6 s for a 23.2 s clip. Seeking skips non-reference pictures on POC
   type 0 streams; the last-frame seek on that sample fell from about 5.5 s to 3.3 s by omitting
   69 of the 162 intervening pictures. sFileScope also stopped recreating its 1080p renderer
-  texture per frame and decodes a timeline drag only when the gesture ends.
+  texture per frame and decodes a timeline drag only when the gesture ends. Profiling the latter
+  sample found 2.18 million skipped macroblocks, 76% of them spatial-direct B blocks. Publishing
+  both reference lists in one grid pass, writing motion masks one row at a time, and emitting a
+  uniform spatial-direct macroblock directly as one 16x16 job reduced skip derivation from about
+  54% to 44% of the CABAC parse time on the same instrumented decoder. Uniform macroblocks also
+  export their co-located motion from that single job instead of resolving the same reference 16
+  times.
 - Per-stage now (59 frames of 1080p30, release, native): motion compensation ~870 ms, CABAC
   parse ~730 of which residual blocks ~380, deblocking ~610, YUV-to-RGB ~470, bookkeeping ~230,
   motion derivations ~210, `prepareMb` ~110.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
-  levers, in expected order of value: a byte-run significance fast path in the CABAC engine;
-  packed stores in the conversion; and word writes in
-  `bookkeepMb`. A 16-bit SWAR six-tap prototype stayed byte-exact but regressed this backend by
-  about 13%, because expanding byte inputs cost more than the packed arithmetic saved. A trap for
-  the parse/recon split:
+  levers, in expected order of value: a byte-run significance fast path in the CABAC engine and
+  packed stores in the conversion. Branchful CABAC decisions, quotient-based bypass runs, and
+  four-byte row copies in `bookkeepMb` all regressed release decoding and were discarded. A 16-bit
+  SWAR six-tap prototype stayed byte-exact but regressed this backend by about 13%, because
+  expanding byte inputs cost more than the packed arithmetic saved. A trap for the parse/recon split:
   the Intra_16x16 and chroma reconstruction read residual blocks the entropy decoders never
   parsed, so the per-macroblock residual arrays must stay cleared (see `prepareMb`).
 

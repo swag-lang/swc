@@ -242,8 +242,9 @@ impl Slice
     // Stores the final motion of one partition into the picture grid and the parse state.
     mtd assignMotion(mb: *Mb, list: u32, x4, y4, w4, h4: s32, refIdx: s32, mv: [2] s16, mvd: [2] s16, isDirect: bool)
     {
-        let dec = .dec!
-        let gw  = dec.sps!.mbWidth * 4
+        let dec    = .dec!
+        let gw     = dec.sps!.mbWidth * 4
+        let refPoc = refIdx >= 0 ? .refs[list, refIdx].poc : NoRefPoc
         for row in cast(u64) h4
         {
             for column in cast(u64) w4
@@ -256,7 +257,7 @@ impl Slice
                     dec.mvL0[index * 2 + 1]  = mv[1]
                     dec.mvdL0[index * 2]     = mvd[0]
                     dec.mvdL0[index * 2 + 1] = mvd[1]
-                    dec.refPocL0[index]      = refIdx >= 0 ? .refs[0, refIdx].poc : NoRefPoc
+                    dec.refPocL0[index]      = refPoc
                 }
                 else
                 {
@@ -265,17 +266,57 @@ impl Slice
                     dec.mvL1[index * 2 + 1]  = mv[1]
                     dec.mvdL1[index * 2]     = mvd[0]
                     dec.mvdL1[index * 2 + 1] = mvd[1]
-                    dec.refPocL1[index]      = refIdx >= 0 ? .refs[1, refIdx].poc : NoRefPoc
+                    dec.refPocL1[index]      = refPoc
                 }
 
                 dec.directFlags[index] = isDirect ? 1 : 0
             }
         }
 
+        let rowMask = ((1'u32 << cast(u32) w4) - 1) << cast(u32) x4
+        for row in cast(u32) h4
+        {
+            let mask = rowMask << cast(u32) ((y4 + cast(s32) row) * 4)
+            mb.motionMask[list] |= mask
+        }
+    }
+
+    // Publishes both reference lists of a skip or direct region in one grid pass. These modes
+    // carry zero motion-vector differences, and writing the shared direct flag once avoids the
+    // duplicate store made by two independent list assignments.
+    mtd assignSkipMotion(mb: *Mb, x4, y4, w4, h4: s32, refIdx: [2] s8, mv0, mv1: [2] s16, isDirect: bool)
+    {
+        let dec  = .dec!
+        let gw   = dec.sps!.mbWidth * 4
+        let poc0 = refIdx[0] >= 0 ? .refs[0, cast(u64) refIdx[0]].poc : NoRefPoc
+        let poc1 = refIdx[1] >= 0 ? .refs[1, cast(u64) refIdx[1]].poc : NoRefPoc
         for row in cast(u64) h4
         {
-            for column in cast(u64) w4 do
-                mb.motionMask[list] |= 1'u32 << cast(u32) ((y4 + cast(s32) row) * 4 + x4 + cast(s32) column)
+            for column in cast(u64) w4
+            {
+                let index = cast(u64) ((mb.mbY * 4 + y4 + cast(s32) row) * gw + mb.mbX * 4 + x4 + cast(s32) column)
+                dec.refIdxL0[index]      = refIdx[0]
+                dec.refIdxL1[index]      = refIdx[1]
+                dec.mvL0[index * 2]      = mv0[0]
+                dec.mvL0[index * 2 + 1]  = mv0[1]
+                dec.mvL1[index * 2]      = mv1[0]
+                dec.mvL1[index * 2 + 1]  = mv1[1]
+                dec.mvdL0[index * 2]     = 0
+                dec.mvdL0[index * 2 + 1] = 0
+                dec.mvdL1[index * 2]     = 0
+                dec.mvdL1[index * 2 + 1] = 0
+                dec.refPocL0[index]      = poc0
+                dec.refPocL1[index]      = poc1
+                dec.directFlags[index]   = isDirect ? 1 : 0
+            }
+        }
+
+        let rowMask = ((1'u32 << cast(u32) w4) - 1) << cast(u32) x4
+        for row in cast(u32) h4
+        {
+            let mask = rowMask << cast(u32) ((y4 + cast(s32) row) * 4)
+            mb.motionMask[0] |= mask
+            mb.motionMask[1] |= mask
         }
     }
 
@@ -306,11 +347,10 @@ impl Slice
         if a.available and b.available and !zeroA and !zeroB do
             mv = .predictMv(mb, 0, 0, 0, 4, 0, 0)
 
-        var mvd: [2] s16
-        .assignMotion(mb, 0, 0, 0, 4, 4, 0, mv, mvd, false)
-        .assignMotion(mb, 1, 0, 0, 4, 4, -1, mvd, mvd, false)
+        var zero: [2] s16
         var noRef: [2] s8 = [0, -1]
-        .addJob(mb, 0, 0, 4, 4, noRef, mv, mvd)
+        .assignSkipMotion(mb, 0, 0, 4, 4, noRef, mv, zero, false)
+        .addJob(mb, 0, 0, 4, 4, noRef, mv, zero)
     }
 
     // Derives the direct motion of a B macroblock region, section 8.4.1.2.
@@ -378,10 +418,53 @@ impl Slice
                 mvL1 = .predictMv(mb, 1, 0, 0, 4, refL1, 0)
         }
 
+        // A whole direct macroblock normally uses the same co-located zero decision in all four
+        // quadrants. Publish and compensate it as one 16x16 region instead of constructing four
+        // identical 8x8 jobs that reconstruction would merge again later.
+        var knownColZeroMask = -1's32
+        if quad < 0 and dec.sps!.direct8x8Inference
+        {
+            let dependsOnColZero = (refL0 == 0 and (mvL0[0] != 0 or mvL0[1] != 0)) or (refL1 == 0 and (mvL1[0] != 0 or mvL1[1] != 0))
+            var uniform          = !dependsOnColZero
+            var collapseZero     = false
+            if dependsOnColZero
+            {
+                var mask = 0'u32
+                for q in 4's32
+                {
+                    let colIndex = .colBlockIndex(mb, (q & 1) * 3, (q >> 1) * 3)
+                    if col.colRef[colIndex] == 0 and col.colShort[colIndex] != 0
+                    {
+                        let cx = cast(s32) col.colMv[colIndex * 2]
+                        let cy = cast(s32) col.colMv[colIndex * 2 + 1]
+                        if cx >= -1 and cx <= 1 and cy >= -1 and cy <= 1 do
+                            mask |= 1'u32 << cast(u32) q
+                    }
+                }
+
+                knownColZeroMask = cast(s32) mask
+                uniform          = mask == 0 or mask == 15
+                collapseZero     = mask == 15
+            }
+
+            if uniform
+            {
+                var blockMvL0 = mvL0
+                var blockMvL1 = mvL1
+                if refL0 < 0 or (refL0 == 0 and collapseZero) do
+                    blockMvL0 = [0's16, 0's16]
+                if refL1 < 0 or (refL1 == 0 and collapseZero) do
+                    blockMvL1 = [0's16, 0's16]
+                var refs: [2] s8 = [cast(s8) refL0, cast(s8) refL1]
+                .assignSkipMotion(mb, 0, 0, 4, 4, refs, blockMvL0, blockMvL1, true)
+                .addJob(mb, 0, 0, 4, 4, refs, blockMvL0, blockMvL1)
+                return
+            }
+        }
+
         let quadFirst   = quad < 0 ? 0 : quad
         let quadLast    = quad < 0 ? 3 : quad
         let inference   = dec.sps!.direct8x8Inference
-        var mvd: [2] s16
         var currentQuad = quadFirst
         while currentQuad <= quadLast
         {
@@ -406,13 +489,20 @@ impl Slice
                     colY = (currentQuad >> 1) * 3
                 }
 
-                let colIndex = .colBlockIndex(mb, colX, colY)
-                var colZero  = false
-                if col.colRef[colIndex] == 0 and col.colShort[colIndex] != 0
+                var colZero = false
+                if knownColZeroMask >= 0
                 {
-                    let cx = cast(s32) col.colMv[colIndex * 2]
-                    let cy = cast(s32) col.colMv[colIndex * 2 + 1]
-                    colZero = cx >= -1 and cx <= 1 and cy >= -1 and cy <= 1
+                    colZero = (knownColZeroMask & (1 << currentQuad)) != 0
+                }
+                else
+                {
+                    let colIndex = .colBlockIndex(mb, colX, colY)
+                    if col.colRef[colIndex] == 0 and col.colShort[colIndex] != 0
+                    {
+                        let cx = cast(s32) col.colMv[colIndex * 2]
+                        let cy = cast(s32) col.colMv[colIndex * 2 + 1]
+                        colZero = cx >= -1 and cx <= 1 and cy >= -1 and cy <= 1
+                    }
                 }
 
                 var blockMvL0 = mvL0
@@ -435,10 +525,8 @@ impl Slice
                     blockMvL0 = zeroMv
                 if refL1 < 0 do
                     blockMvL1 = zeroMv
-                .assignMotion(mb, 0, bx, by, span, span, refL0, blockMvL0, mvd, true)
-                .assignMotion(mb, 1, bx, by, span, span, refL1, blockMvL1, mvd, true)
-
                 var refs: [2] s8 = [cast(s8) refL0, cast(s8) refL1]
+                .assignSkipMotion(mb, bx, by, span, span, refs, blockMvL0, blockMvL1, true)
                 .addJob(mb, bx, by, span, span, refs, blockMvL0, blockMvL1)
             }
 
@@ -456,7 +544,6 @@ impl Slice
         let quadFirst   = quad < 0 ? 0 : quad
         let quadLast    = quad < 0 ? 3 : quad
         let inference   = dec.sps!.direct8x8Inference
-        var mvd: [2] s16
         var currentQuad = quadFirst
         while currentQuad <= quadLast
         {
@@ -530,9 +617,8 @@ impl Slice
                     mvL1 = [cast(s16) (cast(s32) mvL0[0] - colMvX), cast(s16) (cast(s32) mvL0[1] - colMvY)]
                 }
 
-                .assignMotion(mb, 0, bx, by, span, span, refL0, mvL0, mvd, true)
-                .assignMotion(mb, 1, bx, by, span, span, 0, mvL1, mvd, true)
                 var refs: [2] s8 = [cast(s8) refL0, 0]
+                .assignSkipMotion(mb, bx, by, span, span, refs, mvL0, mvL1, true)
                 .addJob(mb, bx, by, span, span, refs, mvL0, mvL1)
             }
 
@@ -1432,6 +1518,47 @@ impl Slice
 
         // Export the motion the co-located prediction of later pictures reads.
         let frame = dec.current!
+        if mb.class == MbClassInter and mb.jobCount == 1
+        {
+            let job = &mb.jobs[0]
+            var ref:   s8
+            var mvX:   s16
+            var mvY:   s16
+            var poc:   s32
+            var short: u8
+            if job.refIdx[0] >= 0
+            {
+                ref   = job.refIdx[0]
+                mvX   = job.mv[0, 0]
+                mvY   = job.mv[0, 1]
+                poc   = .refs[0, cast(u64) ref].poc
+                short = .refs[0, cast(u64) ref].isLong ? 0 : 1
+            }
+            else
+            {
+                ref = job.refIdx[1]
+                mvX = job.mv[1, 0]
+                mvY = job.mv[1, 1]
+                if ref >= 0
+                {
+                    poc   = .refs[1, cast(u64) ref].poc
+                    short = .refs[1, cast(u64) ref].isLong ? 0 : 1
+                }
+            }
+
+            for block in 16's32
+            {
+                let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
+                frame.colRef[index]        = ref
+                frame.colMv[index * 2]     = mvX
+                frame.colMv[index * 2 + 1] = mvY
+                frame.colPoc[index]        = poc
+                frame.colShort[index]      = short
+            }
+
+            return
+        }
+
         for block in 16's32
         {
             let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))

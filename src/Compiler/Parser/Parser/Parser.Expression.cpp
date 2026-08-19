@@ -866,6 +866,11 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicBitCountNz:
         case TokenId::IntrinsicBitCountTz:
         case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicVecWidenLo:
+        case TokenId::IntrinsicVecWidenHi:
+        case TokenId::IntrinsicVecMask:
+        case TokenId::IntrinsicVecAny:
+        case TokenId::IntrinsicVecAll:
             return parseIntrinsicCallExpr(1);
 
         case TokenId::IntrinsicStringCmp:
@@ -880,12 +885,20 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicAtomicOr:
         case TokenId::IntrinsicAtomicAnd:
         case TokenId::IntrinsicAtomicAdd:
+        case TokenId::IntrinsicVecSatAdd:
+        case TokenId::IntrinsicVecSatSub:
+        case TokenId::IntrinsicVecPackUS:
+        case TokenId::IntrinsicVecPackSS:
+        case TokenId::IntrinsicVecAvgR:
+        case TokenId::IntrinsicVecMadd:
+        case TokenId::IntrinsicVecPerm:
             return parseIntrinsicCallExpr(2);
 
         case TokenId::IntrinsicMemCmp:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicMulAdd:
+        case TokenId::IntrinsicVecSelect:
             return parseIntrinsicCallExpr(3);
 
         case TokenId::NumberInteger:

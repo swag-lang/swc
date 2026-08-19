@@ -363,6 +363,19 @@ SWC_TOKEN_DEF(IntrinsicAtomicOr, "@atomor", TokenIdKindE::Intrinsic | TokenIdKin
 SWC_TOKEN_DEF(IntrinsicAtomicXor, "@atomxor", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicAtomicXchg, "@atomxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicAtomicCmpXchg, "@atomcmpxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecSatAdd, "@vecsatadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecSatSub, "@vecsatsub", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecPackUS, "@vecpackus", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecPackSS, "@vecpackss", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecWidenLo, "@vecwidenlo", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecWidenHi, "@vecwidenhi", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecAvgR, "@vecavgr", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecMadd, "@vecmadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecPerm, "@vecperm", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecSelect, "@vecselect", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecMask, "@vecmask", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecAny, "@vecany", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecAll, "@vecall", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // NATIVE TYPES
 

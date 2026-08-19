@@ -428,6 +428,19 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 {
     const Token& tok = sema.token(selectedFn.codeRef());
 
+    // The packed overloads never fold: their constants are raw byte payloads,
+    // and the lowering runs them like any other code.
+    if (!args.empty())
+    {
+        const SemaNodeView firstView(sema, args[0], SemaNodeViewPartE::Type);
+        if (firstView.type())
+        {
+            const TypeRef firstTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), firstView.typeRef());
+            if (sema.typeMgr().get(firstTypeRef).isSimd())
+                return Result::Continue;
+        }
+    }
+
     switch (tok.id)
     {
         case TokenId::IntrinsicMin:

@@ -1391,6 +1391,125 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @round(value: f64)->f64
 }
 
+// Packed vector intrinsics. Every operation maps to one hardware form of the
+// baseline instruction set; none folds into a compile-time constant, but all
+// of them execute under compile-time evaluation like any other code.
+{
+    // Element-wise minimum and maximum.
+    func @min(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @min(value1, value2: #simd [16] s8)->#simd [16] s8
+    func @min(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @min(value1, value2: #simd [8] s16)->#simd [8] s16
+    func @min(value1, value2: #simd [4] u32)->#simd [4] u32
+    func @min(value1, value2: #simd [4] s32)->#simd [4] s32
+    func @min(value1, value2: #simd [4] f32)->#simd [4] f32
+    func @min(value1, value2: #simd [2] f64)->#simd [2] f64
+    func @max(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @max(value1, value2: #simd [16] s8)->#simd [16] s8
+    func @max(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @max(value1, value2: #simd [8] s16)->#simd [8] s16
+    func @max(value1, value2: #simd [4] u32)->#simd [4] u32
+    func @max(value1, value2: #simd [4] s32)->#simd [4] s32
+    func @max(value1, value2: #simd [4] f32)->#simd [4] f32
+    func @max(value1, value2: #simd [2] f64)->#simd [2] f64
+
+    // Element-wise absolute value and square root.
+    func @abs(value: #simd [16] s8)->#simd [16] s8
+    func @abs(value: #simd [8] s16)->#simd [8] s16
+    func @abs(value: #simd [4] s32)->#simd [4] s32
+    func @sqrt(value: #simd [4] f32)->#simd [4] f32
+    func @sqrt(value: #simd [2] f64)->#simd [2] f64
+
+    // Element-wise '(val1 * val2) + val3'.
+    func @muladd(val1, val2, val3: #simd [4] f32)->#simd [4] f32
+    func @muladd(val1, val2, val3: #simd [2] f64)->#simd [2] f64
+
+    // Element-wise float rounding. There is no packed round-away-from-zero.
+    func @floor(value: #simd [4] f32)->#simd [4] f32
+    func @floor(value: #simd [2] f64)->#simd [2] f64
+    func @ceil(value: #simd [4] f32)->#simd [4] f32
+    func @ceil(value: #simd [2] f64)->#simd [2] f64
+    func @trunc(value: #simd [4] f32)->#simd [4] f32
+    func @trunc(value: #simd [2] f64)->#simd [2] f64
+
+    // Saturating addition and subtraction: results clamp to the lane range
+    // instead of wrapping.
+    func @vecsatadd(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @vecsatadd(value1, value2: #simd [16] s8)->#simd [16] s8
+    func @vecsatadd(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @vecsatadd(value1, value2: #simd [8] s16)->#simd [8] s16
+    func @vecsatsub(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @vecsatsub(value1, value2: #simd [16] s8)->#simd [16] s8
+    func @vecsatsub(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @vecsatsub(value1, value2: #simd [8] s16)->#simd [8] s16
+
+    // Saturating narrowing packs: the lanes of 'low' land in the low half of
+    // the result and the lanes of 'high' in the high half, each clamped to
+    // the destination range.
+    func @vecpackus(low, high: #simd [8] s16)->#simd [16] u8
+    func @vecpackus(low, high: #simd [4] s32)->#simd [8] u16
+    func @vecpackss(low, high: #simd [8] s16)->#simd [16] s8
+    func @vecpackss(low, high: #simd [4] s32)->#simd [8] s16
+
+    // Widening: the low or high half of the lanes extends to double width,
+    // zero-extended for unsigned lanes and sign-extended for signed ones.
+    func @vecwidenlo(value: #simd [16] u8)->#simd [8] u16
+    func @vecwidenlo(value: #simd [16] s8)->#simd [8] s16
+    func @vecwidenlo(value: #simd [8] u16)->#simd [4] u32
+    func @vecwidenlo(value: #simd [8] s16)->#simd [4] s32
+    func @vecwidenlo(value: #simd [4] u32)->#simd [2] u64
+    func @vecwidenlo(value: #simd [4] s32)->#simd [2] s64
+    func @vecwidenhi(value: #simd [16] u8)->#simd [8] u16
+    func @vecwidenhi(value: #simd [16] s8)->#simd [8] s16
+    func @vecwidenhi(value: #simd [8] u16)->#simd [4] u32
+    func @vecwidenhi(value: #simd [8] s16)->#simd [4] s32
+    func @vecwidenhi(value: #simd [4] u32)->#simd [2] u64
+    func @vecwidenhi(value: #simd [4] s32)->#simd [2] s64
+
+    // Rounding average: '(a + b + 1) >> 1' per lane, without overflow.
+    func @vecavgr(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @vecavgr(value1, value2: #simd [8] u16)->#simd [8] u16
+
+    // Pairwise multiply-add: lanes multiply pairwise and adjacent products
+    // add into double-width lanes.
+    func @vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
+
+    // Dynamic byte permute: every result byte picks the source byte named by
+    // the low four bits of the matching table byte, or zero when the table
+    // byte's high bit is set.
+    func @vecperm(value: #simd [16] u8, table: #simd [16] u8)->#simd [16] u8
+
+    // Per-lane select: lanes of 'ifTrue' where the mask lane is all-ones,
+    // lanes of 'ifFalse' where it is all-zeros.
+    func @vecselect(mask, ifTrue, ifFalse: #simd [16] u8)->#simd [16] u8
+    func @vecselect(mask: #simd [8] u16, ifTrue, ifFalse: #simd [8] s16)->#simd [8] s16
+    func @vecselect(mask, ifTrue, ifFalse: #simd [8] u16)->#simd [8] u16
+    func @vecselect(mask: #simd [4] u32, ifTrue, ifFalse: #simd [4] s32)->#simd [4] s32
+    func @vecselect(mask, ifTrue, ifFalse: #simd [4] u32)->#simd [4] u32
+    func @vecselect(mask: #simd [4] u32, ifTrue, ifFalse: #simd [4] f32)->#simd [4] f32
+    func @vecselect(mask: #simd [2] u64, ifTrue, ifFalse: #simd [2] f64)->#simd [2] f64
+    func @vecselect(mask, ifTrue, ifFalse: #simd [2] u64)->#simd [2] u64
+    func @vecselect(mask: #simd [2] u64, ifTrue, ifFalse: #simd [2] s64)->#simd [2] s64
+    func @vecselect(mask: #simd [16] u8, ifTrue, ifFalse: #simd [16] s8)->#simd [16] s8
+
+    // Lane sign bits gathered into the low bits of an integer: one bit per
+    // lane, lane zero in bit zero.
+    func @vecmask(value: #simd [16] u8)->u32
+    func @vecmask(value: #simd [8] u16)->u32
+    func @vecmask(value: #simd [4] u32)->u32
+    func @vecmask(value: #simd [2] u64)->u32
+
+    // True when any (respectively every) mask lane is all-ones.
+    func @vecany(value: #simd [16] u8)->bool
+    func @vecany(value: #simd [8] u16)->bool
+    func @vecany(value: #simd [4] u32)->bool
+    func @vecany(value: #simd [2] u64)->bool
+    func @vecall(value: #simd [16] u8)->bool
+    func @vecall(value: #simd [8] u16)->bool
+    func @vecall(value: #simd [4] u32)->bool
+    func @vecall(value: #simd [2] u64)->bool
+}
+
 #[Swag.ConstExpr]
 {
     // Trigonometric functions.

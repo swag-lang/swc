@@ -781,3 +781,96 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var light = host.render(window)
     Pixel.Testing.assertImageGolden(&light, "sfilescope.viewer.light")
 }
+
+// The folder filter walks only the neighbours of the current file's kind: registered viewers
+// group their extensions, and an unregistered kind groups by its extension alone.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_kind_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    let names: [5] string = ["pic1.png", "pic2.jpg", "notes.txt", "more.txt", "readme.md"]
+    for one in names do
+        discard expect File.writeAllBytes(Path.combine(folder.toString(), one).toString(), cast(const [..] u8) "a readable line\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(Path.combine(folder.toString(), "pic1.png").toString())
+
+    window.rebuildSiblings()
+    @assert(window.siblings.count == 5)
+
+    // Pictures walk pictures: both image extensions belong to one registered viewer.
+    window.setFolderSameKind(true)
+    window.rebuildSiblings()
+    @assert(window.siblings.count == 2)
+    window.navigate(1)
+    @assert(Path.fileName(window.currentFile.toString()) == "pic2.jpg")
+    window.navigate(1)
+    @assert(Path.fileName(window.currentFile.toString()) == "pic1.png")
+
+    // A kind nothing registers falls back to the extension.
+    window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
+    window.rebuildSiblings()
+    @assert(window.siblings.count == 2)
+
+    window.setFolderSameKind(false)
+    window.rebuildSiblings()
+    @assert(window.siblings.count == 5)
+
+    // The choice survives a session like the other panel decisions.
+    window.setFolderSameKind(true)
+    let state = saveViewerState(window)
+    window.setFolderSameKind(false)
+    loadViewerState(window, cast(const [..] u8) state.toString())
+    @assert(window.folderSameKind)
+}
+
+// A bare arrow gives the active viewer the first say, wherever the focus sits; only a viewer
+// that declines the key changes the file.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_arrows_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    var opaque: Array'u8
+    for value in 64 do
+        opaque.add(cast(u8) value)
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "raw1.bin").toString(), opaque.toSlice())
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "raw2.bin").toString(), opaque.toSlice())
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "t1.txt").toString(), cast(const [..] u8) "a readable line\n")
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "t2.txt").toString(), cast(const [..] u8) "a readable line\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = expect ViewerPluginIndex.parse(cast(string) DefaultPluginIndex, "plugins")
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+
+    // The text editor owns the caret keys: with the keyboard parked on a toolbar button, the
+    // arrow reaches the editor instead of walking the folder, and the keyboard follows it.
+    window.openFile(Path.combine(folder.toString(), "t1.txt").toString())
+    let textView = cast(*BasicTextView) window.currentView!
+    window.openButton.setFocus()
+    @assert(!textView.editor.hasFocus())
+    host.keyPress(Input.Key.Right)
+    @assert(Path.fileName(window.currentFile.toString()) == "t1.txt")
+    @assert(textView.editor.hasFocus())
+
+    // A view with no use for the arrows lets them walk the folder, from wherever the focus is.
+    window.openFile(Path.combine(folder.toString(), "raw1.bin").toString())
+    window.openButton.setFocus()
+    host.keyPress(Input.Key.Right)
+    @assert(Path.fileName(window.currentFile.toString()) == "raw2.bin")
+}

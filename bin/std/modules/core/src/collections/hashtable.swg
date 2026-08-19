@@ -5,9 +5,10 @@ using Swag
 // Represents a single key-value pair entry within a HashTable.
 struct(K, V) HashTableEntry
 {
+    hash: u32
+
     public
     {
-        internal hash: u32
         readonly key: K     // The key.
         value: V            // The value associated with the key.
     }

@@ -21,15 +21,12 @@ struct ThemeStyle
         styleSheetMetrics: String         // Style sheet metrics associated with this value.
         styleSheetColors:  String         // Style sheet colors associated with this value.
         font:              FontFamily     // Font associated with this value.
-
-        // The shared theme this style resolves against, and whether it must be resolved again.
-        // The style takes and releases the reference itself, so its count stays correct.
-        internal
-        {
-            refr:  #null *ThemeStyleRef     // Reference-counted theme this style resolves to.
-            dirty: bool                     // Whether the style sheets must be applied again.
-        }
     }
+
+    // The shared theme this style resolves against, and whether it must be resolved again.
+    // The style takes and releases the reference itself, so its count stays correct.
+    refr:  #null *ThemeStyleRef     // Reference-counted theme this style resolves to.
+    dirty: bool                     // Whether the style sheets must be applied again.
 }
 
 impl ThemeStyle

@@ -52,3 +52,17 @@ using Core
     @assert(firstError != null)
     @assert(secondError != null)
 }
+
+// "The same kind" to folder navigation: one registered viewer claims both files, or neither
+// file is claimed and the extensions agree.
+#test
+{
+    let source = "img|Image|img.dll|.png;.jpg\nsnd|Sound|snd.dll|.wav"
+    let index  = expect ViewerPluginIndex.parse(source, ".")
+
+    @assert(index.sharesViewer("a.png", "B.JPG"))
+    @assert(!index.sharesViewer("a.png", "b.wav"))
+    @assert(index.sharesViewer("x.foo", "y.FOO"))
+    @assert(!index.sharesViewer("x.foo", "y.bar"))
+    @assert(!index.sharesViewer("a.png", "x.foo"))
+}

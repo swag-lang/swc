@@ -68,7 +68,7 @@ struct FileBrowserCtrl
     {
         using wnd: Wnd     // Embedded wnd state.
 
-        public readonly
+        readonly
         {
             treeCtrl:      #null *ListCtrl     // Optional recent, shortcut and drive locations list.
             options:       FileDlgOptions      // Effective browsing and selection options.
@@ -93,17 +93,14 @@ struct FileBrowserCtrl
         sigAccepted:           SigArray'func||(*FileBrowserCtrl)     // Emitted when the current selection is activated.
         sigFolderChanged:      SigArray'func||(*FileBrowserCtrl)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
         sigNewFolderRequested: SigArray'func||(*FileBrowserCtrl)     // Emitted when the user requests a new folder.
-
-        internal
-        {
-            treePathStr:    Array'String          // Folder paths backing `treeCtrl` rows.
-            comboPathStr:   Array'String          // Folder paths backing `comboPath` entries.
-            currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
-            history:        NavigationHistory     // Folder-navigation history.
-            shownFolders:   u32                   // Folders displayed by the last fill.
-            shownFiles:     u32                   // Files displayed by the last fill.
-        }
     }
+
+    treePathStr:    Array'String          // Folder paths backing `treeCtrl` rows.
+    comboPathStr:   Array'String          // Folder paths backing `comboPath` entries.
+    currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
+    history:        NavigationHistory     // Folder-navigation history.
+    shownFolders:   u32                   // Folders displayed by the last fill.
+    shownFiles:     u32                   // Files displayed by the last fill.
 }
 
 impl IWnd for FileBrowserCtrl

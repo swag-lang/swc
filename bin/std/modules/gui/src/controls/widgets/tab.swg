@@ -54,17 +54,14 @@ struct TabItem
         using item: Item     // Embedded label, icon, identifier, and user data.
         readonly
         view:       #null *Wnd     // Page view owned by the tab control, if any.
-
-        // Placement computed by the bar layout, and the color animations of the painted parts.
-        internal
-        {
-            pos:       f32            // Left edge of the tab in the bar.
-            width:     f32            // Width of the tab in the bar.
-            aniImg:    BlendColor     // Color animation of the icon.
-            aniBorder: BlendColor     // Color animation of the border.
-            aniText:   BlendColor     // Color animation of the label.
-        }
     }
+
+    // Placement computed by the bar layout, and the color animations of the painted parts.
+    pos:       f32            // Left edge of the tab in the bar.
+    width:     f32            // Width of the tab in the bar.
+    aniImg:    BlendColor     // Color animation of the icon.
+    aniBorder: BlendColor     // Color animation of the border.
+    aniText:   BlendColor     // Color animation of the label.
 }
 
 // Displays a selectable tab bar and one owned page view at a time.
@@ -91,20 +88,17 @@ struct Tab
             selectedIndex                 = Swag.U32.Max     // Selected tab index, or U32.Max when empty.
             pageTransitions:  bool                           // Whether owned page changes use the standard transition.
         }
-
-        // Bar layout and overflow state, recomputed by the layout pass.
-        internal
-        {
-            buttonPopup:       #null *IconButton        // Button that opens the overflow list.
-            popup:             #null *PopupListCtrl     // Overflow list while it is open.
-            firstVisibleIndex: u32                      // First tab the bar can show.
-            hotIndex:          u32 = Swag.U32.Max       // Tab under the mouse.
-            barHeight:         f32                      // Height the bar measured for itself.
-            mostRightPos:      f32                      // Right edge of the last laid out tab.
-            selectionRail:     Math.Rectangle           // Animated active-rail position.
-            hasSelectionRail:  bool                     // Whether the rail has been laid out once.
-        }
     }
+
+    // Bar layout and overflow state, recomputed by the layout pass.
+    buttonPopup:       #null *IconButton        // Button that opens the overflow list.
+    popup:             #null *PopupListCtrl     // Overflow list while it is open.
+    firstVisibleIndex: u32                      // First tab the bar can show.
+    hotIndex:          u32 = Swag.U32.Max       // Tab under the mouse.
+    barHeight:         f32                      // Height the bar measured for itself.
+    mostRightPos:      f32                      // Right edge of the last laid out tab.
+    selectionRail:     Math.Rectangle           // Animated active-rail position.
+    hasSelectionRail:  bool                     // Whether the rail has been laid out once.
 }
 
 impl IWnd for Tab

@@ -9,7 +9,7 @@ struct Button
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        public readonly
+        readonly
         {
             icon:       Icon     // Optional icon displayed by the concrete button.
             iconWidth:  f32      // Explicit icon width, or zero to preserve the icon width.
@@ -18,17 +18,14 @@ struct Button
 
         sigPressed:      SigArray'func||(*Button)     // Emitted after a completed primary activation.
         sigRightPressed: SigArray'func||(*Button)     // Emitted when the secondary button is pressed inside the control.
-
-        // Hover and press state, moved by the mouse events the button receives. Connect to
-        // 'sigPressed' to react to a press instead of polling it.
-        internal
-        {
-            isPressed:  bool     // Whether the button is held down.
-            isPressing: bool     // Whether the press gesture started on this button.
-            isHot:      bool     // Whether the mouse is over the button.
-            isIn:       bool     // Whether the mouse is inside the button rectangle.
-        }
     }
+
+    // Hover and press state, moved by the mouse events the button receives. Connect to
+    // 'sigPressed' to react to a press instead of polling it.
+    isPressed:  bool     // Whether the button is held down.
+    isPressing: bool     // Whether the press gesture started on this button.
+    isHot:      bool     // Whether the mouse is over the button.
+    isIn:       bool     // Whether the mouse is inside the button rectangle.
 }
 
 impl IWnd for Button

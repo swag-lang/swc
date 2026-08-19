@@ -25,32 +25,29 @@ struct Slider
         sigStartChange: SigArray'func||(*Slider)     // Emitted when a user-style change transaction starts.
         sigChanged:     SigArray'func||(*Slider)     // Emitted after either value changes.
         sigEndChange:   SigArray'func||(*Slider)     // Emitted when a user-style change transaction ends.
-
-        // Drag and hover state of the two markers, and the color animations that follow it. The
-        // mouse and keyboard events maintain all of it; connect to the signals to react to a change.
-        internal
-        {
-            lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
-            upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
-            min:        f32         // Inclusive value-space minimum.
-            max:        f32 = 1     // Inclusive value-space maximum.
-            steps:      f32         // Configured step normalized to the value range.
-
-            isMoving:       bool     // Whether a drag gesture is in progress.
-            isLowerPressed: bool     // Whether the first marker is held down.
-            isUpperPressed: bool     // Whether the second marker is held down.
-            isLowerHot:     bool     // Whether the mouse is over the first marker.
-            isUpperHot:     bool     // Whether the mouse is over the second marker.
-            hasLowerValue:  bool     // Whether the first value was established.
-            hasUpperValue:  bool     // Whether the second value was established.
-            correcMoving:   f32      // Grab offset inside the marker, kept for the drag.
-
-            lowerMarkerAnimation: BlendColor     // Color animation of the first marker.
-            upperMarkerAnimation: BlendColor     // Color animation of the second marker.
-            lowerStepAnimation:   BlendColor     // Color animation of the first step indicator.
-            upperStepAnimation:   BlendColor     // Color animation of the second step indicator.
-        }
     }
+
+    // Drag and hover state of the two markers, and the color animations that follow it. The
+    // mouse and keyboard events maintain all of it; connect to the signals to react to a change.
+    lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
+    upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
+    min:        f32         // Inclusive value-space minimum.
+    max:        f32 = 1     // Inclusive value-space maximum.
+    steps:      f32         // Configured step normalized to the value range.
+
+    isMoving:       bool     // Whether a drag gesture is in progress.
+    isLowerPressed: bool     // Whether the first marker is held down.
+    isUpperPressed: bool     // Whether the second marker is held down.
+    isLowerHot:     bool     // Whether the mouse is over the first marker.
+    isUpperHot:     bool     // Whether the mouse is over the second marker.
+    hasLowerValue:  bool     // Whether the first value was established.
+    hasUpperValue:  bool     // Whether the second value was established.
+    correcMoving:   f32      // Grab offset inside the marker, kept for the drag.
+
+    lowerMarkerAnimation: BlendColor     // Color animation of the first marker.
+    upperMarkerAnimation: BlendColor     // Color animation of the second marker.
+    lowerStepAnimation:   BlendColor     // Color animation of the first step indicator.
+    upperStepAnimation:   BlendColor     // Color animation of the second step indicator.
 }
 
 impl IWnd for Slider

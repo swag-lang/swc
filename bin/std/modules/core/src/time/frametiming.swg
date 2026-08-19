@@ -9,16 +9,15 @@ struct FrameTiming
         minimumDeltaSeconds: f32 = 1 / 100000.0     // Lower bound applied to each measured delta.
         maximumDeltaSeconds: f32 = 0.1              // Upper bound applied to each measured delta.
 
-        public readonly
+        readonly
         {
             deltaSeconds: f32 = 1 / 60.0     // Delta time produced by the latest update.
             frameCount:   u64                // Number of unpaused updates.
             isPaused:     bool               // Whether updates are paused.
         }
-
-        internal
-        previousTick: u64
     }
+
+    previousTick: u64
 }
 
 impl FrameTiming

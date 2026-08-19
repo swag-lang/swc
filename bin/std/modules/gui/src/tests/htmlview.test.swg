@@ -701,6 +701,26 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(top >= position and top <= position + view.scroll.paddedClientRect().height)
 }
 
+// Painting a search hit survives every split of the match across inline items: an item that
+// begins inside the hit has an empty prefix, which must never reach String.opSlice.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(220, 240)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, "<p>alpha beta gamma delta epsilon zeta</p>")
+    view.resize(220, 240)
+    view.applyLayout()
+    view.rebuild()
+
+    // One hit covering a whole item, then one the narrow viewport can split across a wrap.
+    @assert(view.findText("alpha"))
+    discard host.render(view)
+    @assert(view.findText("gamma delta"))
+    discard host.render(view)
+}
+
 // What a scroll position shows does not depend on how the reader got there.
 //
 // This is the contract the previous viewer could not keep: it held a moving window of source
@@ -1815,4 +1835,94 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
     view.rebuild()
     discard host.render(view)
     @assert(Utf8.contains(view.document.textContent(0).toString(), "deep text"))
+}
+
+// Returns the canvas rectangle of the first inline item drawn with `text`.
+func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
+{
+    for boxIndex in view.layout.boxes.count
+    {
+        let box = view.layout.constBox(cast(u32) boxIndex)
+        for itemIndex in box.items.count
+        {
+            let item = &box.items[itemIndex]
+            if item.text == text do
+                return {item.x, item.y, item.width, item.ascent + item.descent}
+        }
+    }
+
+    return {}
+}
+
+// Select-all covers the whole document, extraction keeps the reading order, and the clipboard
+// receives exactly what the reader sees.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, "<p>alpha beta</p><p>gamma delta</p>")
+    view.resize(640, 480)
+    view.applyLayout()
+    view.rebuild()
+
+    @assert(!view.hasSelection())
+    view.selectAll()
+    @assert(view.hasSelection())
+    @assert(view.selectedText() == "alpha beta\ngamma delta")
+    @assert(view.copySelection())
+    @assert(Clipboard.getString() == "alpha beta\ngamma delta")
+
+    view.clearSelection()
+    @assert(!view.hasSelection())
+    @assert(!view.copySelection())
+}
+
+// A mouse drag selects what it crosses, and a double click takes the word under the pointer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, "<p>alpha beta gamma</p>")
+    view.resize(640, 480)
+    view.applyLayout()
+    view.rebuild()
+
+    let alpha = findItemRect(view, "alpha")
+    let gamma = findItemRect(view, "gamma")
+    @assert(alpha.width > 0 and gamma.width > 0)
+
+    let dragFrom = view.canvas.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()})
+    let dragTo   = view.canvas.localToSurface(Math.Point{gamma.right() - 1, gamma.vertCenter()})
+    host.drag(dragFrom, dragTo)
+    @assert(view.selectedText() == "alpha beta gamma")
+
+    host.doubleClick(view.canvas.localToSurface(Math.Point{alpha.horzCenter(), alpha.vertCenter()}))
+    @assert(view.selectedText() == "alpha")
+}
+
+// The context menu reaches the same selection commands the keyboard binds.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, "<p>menu content</p>")
+    view.resize(640, 480)
+    view.applyLayout()
+    view.rebuild()
+
+    host.clickPopupMenuItemWhenShown(HtmlView.CtxSelectAll)
+    view.showContextMenu({50, 50})
+    host.pump()
+    @assert(view.selectedText() == "menu content")
+
+    host.clickPopupMenuItemWhenShown(HtmlView.CtxCopy)
+    view.showContextMenu({50, 50})
+    host.pump()
+    @assert(Clipboard.getString() == "menu content")
 }

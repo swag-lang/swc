@@ -11,7 +11,7 @@ struct RadioButton
 
         groupId: #null WndId     // Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.
 
-        public readonly
+        readonly
         {
             flags = RadioButtonFlags.None     // Active marker placement options.
             checked: bool                     // Whether this option is selected.

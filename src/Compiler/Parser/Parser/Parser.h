@@ -71,6 +71,9 @@ private:
     uint32_t           closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
     uint32_t           closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
     TokenRef           lastErrorToken_                 = TokenRef::invalid();
+    TokenRef           topLevelAccessRef_              = TokenRef::invalid();
+    TokenRef           aggregateAccessModifierRef_     = TokenRef::invalid();
+    TokenRef           aggregateReadOnlyRef_           = TokenRef::invalid();
 
     FwdParseMode fwdPassMode_     = FwdParseMode::Copy; // variant emitted by the current statement pass
     FwdParseMode fwdCurMode_      = FwdParseMode::Copy; // mode of the innermost '#fwd'-declaring function

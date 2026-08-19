@@ -103,23 +103,23 @@ struct TagBin
         // end of the write. This replaces the per-field 'Serialization.Compress' attribute
         // when most of the stream benefits from compression.
         compressStream: bool
+    }
 
-        // Writing state: the compressor, the section stack and the buffer pools it recycles.
-        private
-        {
-            compressor:   Core.Compress.Deflate                                       // Compressor used for compressed sections.
-            finalOutput:  #null *ConcatBuffer                                         // Caller buffer receiving the header, then the body.
-            output:       #null *ConcatBuffer                                         // Current sink: the body, or a compressed element scratch.
-            body:         ConcatBuffer                                                // Accumulates every section before the final assembly.
-            shapeIds:     HashTable'(u32, u32)                                        // Maps a struct type crc to its shape id.
-            shapePlans:   Array'(const *Plan)                                         // The plan of each registered shape, by shape id.
-            headerPatch:  ConcatBufferPosition                                        // Position of the shape directory offset in the header.
-            freeSections: ArrayPtr'TagBinSection                                      // Pool of reusable section structures.
-            sections:     ArrayPtr'TagBinSection                                      // Stack of currently active sections.
-            outStack:     Array'(#null *ConcatBuffer)                                 // Output buffers of the enclosing sections.
-            elemStack:    Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }     // Element stack.
-            freeTmpBuf:   ArrayPtr'ConcatBuffer                                       // Pool of reusable scratch buffers.
-        }
+    // Writing state: the compressor, the section stack and the buffer pools it recycles.
+    private
+    {
+        compressor:   Core.Compress.Deflate                                       // Compressor used for compressed sections.
+        finalOutput:  #null *ConcatBuffer                                         // Caller buffer receiving the header, then the body.
+        output:       #null *ConcatBuffer                                         // Current sink: the body, or a compressed element scratch.
+        body:         ConcatBuffer                                                // Accumulates every section before the final assembly.
+        shapeIds:     HashTable'(u32, u32)                                        // Maps a struct type crc to its shape id.
+        shapePlans:   Array'(const *Plan)                                         // The plan of each registered shape, by shape id.
+        headerPatch:  ConcatBufferPosition                                        // Position of the shape directory offset in the header.
+        freeSections: ArrayPtr'TagBinSection                                      // Pool of reusable section structures.
+        sections:     ArrayPtr'TagBinSection                                      // Stack of currently active sections.
+        outStack:     Array'(#null *ConcatBuffer)                                 // Output buffers of the enclosing sections.
+        elemStack:    Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }     // Element stack.
+        freeTmpBuf:   ArrayPtr'ConcatBuffer                                       // Pool of reusable scratch buffers.
     }
 }
 

@@ -9,10 +9,10 @@ alias HmacSha256Digest = [32] u8
 #[Swag.Opaque]
 struct HmacSha256
 {
+    inner: Hash.Sha256
+
     public
     {
-        internal
-        inner:       Hash.Sha256
         outer:       Hash.Sha256
         initialized: bool
     }

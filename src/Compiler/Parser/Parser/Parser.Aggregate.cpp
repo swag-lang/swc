@@ -39,12 +39,29 @@ AstNodeRef Parser::parseAggregateAccessModifier()
     // 'readonly' is not a level: it rides on the one written before it, and on the default when
     // written alone. It is therefore the one modifier that may follow another, and it comes last
     // so the pair reads the way the access table does.
+    TokenRef tokReadOnly = TokenRef::invalid();
     if (modifierId == TokenId::KwdReadOnly)
+    {
         nodePtr->addFlag(AstAccessModifierFlagsE::ReadOnly);
+        tokReadOnly = tokModifier;
+    }
     else if (is(TokenId::KwdReadOnly))
     {
         nodePtr->addFlag(AstAccessModifierFlagsE::ReadOnly);
-        consume();
+        tokReadOnly = consume();
+    }
+
+    if (modifierId != TokenId::KwdReadOnly && aggregateAccessModifierRef_.isValid())
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_nested_member_access, tokModifier);
+        diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, aggregateAccessModifierRef_), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+        diag.report(*ctx_);
+    }
+    else if (tokReadOnly.isValid() && aggregateReadOnlyRef_.isValid())
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicated_modifier, tokReadOnly);
+        diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, aggregateReadOnlyRef_), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+        diag.report(*ctx_);
     }
 
     switch (id())
@@ -60,7 +77,9 @@ AstNodeRef Parser::parseAggregateAccessModifier()
                 raiseError(DiagnosticId::parser_err_readonly_before_access, ref());
             else
             {
-                const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
+                const bool         repeatsReadOnly = is(TokenId::KwdReadOnly) && tokReadOnly.isValid();
+                const DiagnosticId diagId          = id() == modifierId || repeatsReadOnly ? DiagnosticId::parser_err_duplicated_modifier : DiagnosticId::parser_err_duplicate_modifier;
+                const Diagnostic   diag            = reportError(diagId, ref());
                 diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
                 diag.report(*ctx_);
             }
@@ -72,7 +91,14 @@ AstNodeRef Parser::parseAggregateAccessModifier()
             break;
     }
 
-    nodePtr->nodeWhatRef = parseAggregateValue();
+    const TokenRef savedAccessModifierRef = aggregateAccessModifierRef_;
+    const TokenRef savedReadOnlyRef       = aggregateReadOnlyRef_;
+    aggregateAccessModifierRef_           = tokModifier;
+    if (tokReadOnly.isValid())
+        aggregateReadOnlyRef_ = tokReadOnly;
+    nodePtr->nodeWhatRef        = parseAggregateValue();
+    aggregateAccessModifierRef_ = savedAccessModifierRef;
+    aggregateReadOnlyRef_       = savedReadOnlyRef;
     return nodeRef;
 }
 
@@ -197,7 +223,14 @@ AstNodeRef Parser::parseAggregateDecl()
 
 AstNodeRef Parser::parseAggregateBody()
 {
-    return parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
+    const TokenRef savedAccessModifierRef = aggregateAccessModifierRef_;
+    const TokenRef savedReadOnlyRef       = aggregateReadOnlyRef_;
+    aggregateAccessModifierRef_.setInvalid();
+    aggregateReadOnlyRef_.setInvalid();
+    const AstNodeRef result     = parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
+    aggregateAccessModifierRef_ = savedAccessModifierRef;
+    aggregateReadOnlyRef_       = savedReadOnlyRef;
+    return result;
 }
 
 AstNodeRef Parser::parseInterfaceValue()

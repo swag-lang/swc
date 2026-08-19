@@ -36,8 +36,10 @@ private impl RichEditCtrl
     mtd deleteSelectionPrivate(posStart, posEnd: RichEditCursor, selRect: bool)
     {
         let undo = Memory.new'RichEditUndo()
-        undo.type                 = .Delete
-        {undo.runes, undo.styles} = .textRangeData(posStart, posEnd)
+        undo.type = .Delete
+        var range = .textRangeData(posStart, posEnd)
+        undo.runes  = #move range.text
+        undo.styles = #move range.styles
         undo.selBeg               = .selBeg
         undo.cursorPos            = .cursorPos
         undo.hasSelRect           = selRect

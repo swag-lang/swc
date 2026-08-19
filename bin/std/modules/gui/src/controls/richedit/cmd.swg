@@ -381,4 +381,38 @@ impl RichEditCtrl
             .deleteSelection()
         }
     }
+
+    internal const CtxCut       = "RichEdit.CtxCut"
+    internal const CtxCopy      = "RichEdit.CtxCopy"
+    internal const CtxPaste     = "RichEdit.CtxPaste"
+    internal const CtxSelectAll = "RichEdit.CtxSelectAll"
+
+    // Offers the clipboard vocabulary at `surfacePos`, honoring the read-only state.
+    //
+    // The labels come from the module's string table, so the menu follows a language switch,
+    // and every entry routes through [[executeCommand]], which keeps the menu and the shortcut
+    // table two spellings of the same operations.
+    mtd showContextMenu(surfacePos: Math.Point)
+    {
+        let readOnly = .isReadOnly()
+        let hasSel   = !.isSelectionEmpty()
+
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        if !readOnly do
+            menu.addItem(strings().edit_Cut, CtxCut, rightName: "Ctrl+X", disabled: !hasSel)
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: !hasSel)
+        if !readOnly do
+            menu.addItem(strings().edit_Paste, CtxPaste, rightName: "Ctrl+V", disabled: !Clipboard.hasString())
+        menu.addSeparator()
+        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
+
+        let picked = menu.doModal(surfacePos, .TopLeft, autoDestroy: true) orelse ""
+        switch picked
+        {
+        case CtxCut:       .executeCommand(.ClipboardCut)
+        case CtxCopy:      .executeCommand(.ClipboardCopy)
+        case CtxPaste:     .executeCommand(.ClipboardPaste)
+        case CtxSelectAll: .executeCommand(.SelectAllFile)
+        }
+    }
 }

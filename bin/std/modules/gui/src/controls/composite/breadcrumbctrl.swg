@@ -25,7 +25,7 @@ struct BreadcrumbCtrl
     {
         using wnd: Wnd     // Embedded wnd state.
 
-        public readonly
+        readonly
         {
             items: Array'BreadcrumbItem     // Ordered path levels.
             padX     = 7.0'f32              // Horizontal padding inside each level body.
@@ -36,15 +36,12 @@ struct BreadcrumbCtrl
         sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                // Emitted after a level body is activated.
         sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)     // Emitted when a level's child menu needs content.
         sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)        // Emitted after a command is selected from a child menu.
-
-        internal
-        {
-            hotItem   = Swag.U64.Max     // Level currently under the pointer.
-            hotArrow:   bool             // Whether the pointer is over that level's arrow.
-            pressItem = Swag.U64.Max     // Level on which the current press began.
-            pressArrow: bool             // Whether the current press began on its arrow.
-        }
     }
+
+    hotItem   = Swag.U64.Max     // Level currently under the pointer.
+    hotArrow:   bool             // Whether the pointer is over that level's arrow.
+    pressItem = Swag.U64.Max     // Level on which the current press began.
+    pressArrow: bool             // Whether the current press began on its arrow.
 }
 
 impl BreadcrumbCtrl

@@ -91,7 +91,7 @@ struct ListCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-        public readonly
+        readonly
         {
             horizontalExtent: f32                                // Explicit content width, or zero to derive it from the view or header.
             fixedLineHeight:  f32                                // Fixed row height, or zero to derive it from the font.
@@ -121,20 +121,20 @@ struct ListCtrl
         sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted for a key press before the list reads it; accept the event to claim the key.
         onFillVirtualLine:    #null func(*ListCtrl, #null *ListLine, u32)                      // Fills a transient row before a virtual row is painted.
         compareLines:         #null func(#null *ListLine, #null *ListLine, u32, bool)->s32     // Compares two rows for custom sorting.
+    }
 
-        internal
-        {
-            toFreeLines:      ArrayPtr'ListLine           // Owns every allocated root row.
-            lines:            Array'(#null *ListLine)     // Visible rows in display order.
-            idxLineToIdxList: HashTable'(u32, u32)        // Maps stable row identities to visible indexes.
-            selModel:         SelModel                    // Selected stable row identities.
-            checkModel:       SelModel                    // Checked stable row identities.
-            nextLineIndex:    u32                         // Identity assigned to the next created row.
-        }
+    toFreeLines:      ArrayPtr'ListLine           // Owns every allocated root row.
+    lines:            Array'(#null *ListLine)     // Visible rows in display order.
+    idxLineToIdxList: HashTable'(u32, u32)        // Maps stable row identities to visible indexes.
+    selModel:         SelModel                    // Selected stable row identities.
+    checkModel:       SelModel                    // Checked stable row identities.
+    nextLineIndex:    u32                         // Identity assigned to the next created row.
 
+    public
+    {
         // Where the keyboard and the mouse currently are in the list. The list moves them as it
         // handles events; move the focus with 'setFocusIndex'.
-        public readonly
+        readonly
         {
             focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
             hotIndex   = Swag.U32.Max     // Row under the mouse.
@@ -142,7 +142,7 @@ struct ListCtrl
 
         // Where a drop hovering the list would land. The list never sets these itself: a window
         // showing a drag decides what it accepts, and says so with 'setDropMark'.
-        public readonly
+        readonly
         {
             dropMarkIndex = Swag.U32.Max          // Row the mark is drawn against.
             dropMark      = ListDropMark.None     // What the mark says about that row.
@@ -158,15 +158,12 @@ struct ListView
         using wnd: Wnd     // Embedded wnd state.
         #[Swag.Late]
         list: *ListCtrl     // List associated with this value.
-
-        // Set when a press was consumed by something else, so the matching release is ignored.
-        internal
-        {
-            discardMouseRelease: bool
-            selectionRailY:      f32      // Animated top edge of the single-selection rail.
-            hasSelectionRail:    bool     // Whether a selected row has initialized the rail.
-        }
     }
+
+    // Set when a press was consumed by something else, so the matching release is ignored.
+    discardMouseRelease: bool
+    selectionRailY:      f32      // Animated top edge of the single-selection rail.
+    hasSelectionRail:    bool     // Whether a selected row has initialized the rail.
 }
 
 impl ListLine

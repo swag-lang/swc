@@ -25,11 +25,14 @@ struct PasswordEdit
         sigSubmitted: SigArray'func||(*PasswordEdit)     // Emitted when Enter is pressed.
         sigCancelled: SigArray'func||(*PasswordEdit)     // Emitted when Escape is pressed.
 
-        public readonly flags = PasswordEditFlags.RevealButton     // Active interaction and presentation options.
+        readonly flags = PasswordEditFlags.RevealButton     // Active interaction and presentation options.
+    }
 
-        internal
-        #[Swag.Late]
-        edit:         *EditBox              // Mask-only child owned by this control.
+    #[Swag.Late]
+    edit: *EditBox     // Mask-only child owned by this control.
+
+    public
+    {
         revealButton: #null *IconButton     // Optional press-and-hold reveal action.
         storage:      [1024] u8             // Fixed storage avoids reallocating plaintext through a general allocator.
         byteCount:    u64                   // Number of occupied plaintext bytes.

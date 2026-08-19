@@ -8,12 +8,12 @@ interface IEvent {}
 // Common routing state embedded by every GUI event.
 struct Event
 {
+    type: #null typeinfo     // Concrete allocation type used for owned posted events.
+
     public
     {
-        internal
-        type:     #null typeinfo     // Concrete allocation type used for owned posted events.
-        target:   #null *Wnd         // Current routing target; changes while an event bubbles.
-        accepted: bool               // Whether propagation has been handled and must stop.
+        target:   #null *Wnd     // Current routing target; changes while an event bubbles.
+        accepted: bool           // Whether propagation has been handled and must stop.
     }
 }
 

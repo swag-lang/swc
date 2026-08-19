@@ -57,30 +57,27 @@ public struct MenuCtrl
         sigCommandSelected: SigArray'func||(*MenuCtrl, WndId)         // Emitted after a command is selected.
         onPrepareItem:      #null func(*MenuCtrl, *PopupMenuItem)     // Updates an item before menu layout is computed.
 
-        public readonly
+        readonly
         {
             flags: MenuFlags = None           // Active presentation options.
             items: ArrayPtr'PopupMenuItem     // Commands, submenus, and separators in display order.
         }
-
-        internal
-        {
-            paddingSel:              f32 = 4                // Selection-background padding.
-            hotIdx:                  u32 = Swag.U32.Max     // Item currently under the pointer.
-            selectedIdx:             u32 = Swag.U32.Max     // Item selected by keyboard navigation.
-            bar:                     bool                   // Whether this control is a persistent menu bar.
-            endModal:                bool                   // Whether the active modal loop should end.
-            endModalResult:          #null WndId            // Selected command, or `null` when dismissed.
-            ownerMenu:               #null *MenuCtrl        // Parent menu for a submenu.
-            subVisible:              #null *MenuCtrl        // Currently visible submenu.
-            timer:                   #null *Timer           // Delayed submenu-opening timer.
-            dirtyLayout:             bool                   // Whether item bounds need recomputing.
-            paintByFrame:            bool                   // Whether the frame paints an anchored popup.
-            popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
-            popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
-            ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
-        }
     }
+
+    paddingSel:              f32 = 4                // Selection-background padding.
+    hotIdx:                  u32 = Swag.U32.Max     // Item currently under the pointer.
+    selectedIdx:             u32 = Swag.U32.Max     // Item selected by keyboard navigation.
+    bar:                     bool                   // Whether this control is a persistent menu bar.
+    endModal:                bool                   // Whether the active modal loop should end.
+    endModalResult:          #null WndId            // Selected command, or `null` when dismissed.
+    ownerMenu:               #null *MenuCtrl        // Parent menu for a submenu.
+    subVisible:              #null *MenuCtrl        // Currently visible submenu.
+    timer:                   #null *Timer           // Delayed submenu-opening timer.
+    dirtyLayout:             bool                   // Whether item bounds need recomputing.
+    paintByFrame:            bool                   // Whether the frame paints an anchored popup.
+    popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
+    popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
+    ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
 }
 
 public impl IWnd for MenuCtrl

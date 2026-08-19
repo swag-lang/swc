@@ -30,7 +30,7 @@ struct Image
         // field is keyed by the CRC of its name, so a rename without an alias silently drops the
         // value: an image written by an older build would read back with no stride and no format,
         // and decode to noise.
-        public readonly
+        readonly
         {
             #[Core.Serialization.Alias("size")]
             byteCount: u64     // Total pixel-buffer size, in bytes.
@@ -50,12 +50,11 @@ struct Image
             #[Core.Serialization.Alias("bpp8")]
             bytesPerPixel: u8     // Number of bytes per pixel.
         }
-
-        // Reusable scratch image owned by this image, allocated on demand by the transforms.
-        #[Core.Serialization.NoSerialize]
-        internal
-        workingBuffer: #null *Image
     }
+
+    // Reusable scratch image owned by this image, allocated on demand by the transforms.
+    #[Core.Serialization.NoSerialize]
+    workingBuffer: #null *Image
 }
 
 impl Image

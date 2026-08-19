@@ -56,36 +56,33 @@ struct Circular
         sigStartChange: SigArray'func||(*Circular)     // Fired when user starts changing value
         sigChanged:     SigArray'func||(*Circular)     // Fired when value changes
         sigEndChange:   SigArray'func||(*Circular)     // Fired when user finishes changing value
-
-        internal
-        {
-            lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
-            upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
-            min:        f32         // Inclusive value-space minimum.
-            max:        f32 = 1     // Inclusive value-space maximum.
-            steps:      f32         // Configured step normalized to the value range.
-
-            // Internal state tracking
-            isMoving:       bool     // True when user is dragging a marker
-            isLowerPressed: bool     // True when primary marker is being pressed
-            isUpperPressed: bool     // True when secondary marker is being pressed
-            isLowerHot:     bool     // True when mouse is hovering over primary marker
-            isUpperHot:     bool     // True when mouse is hovering over secondary marker
-            hasLowerValue:  bool     // True if primary value has been set
-            hasUpperValue:  bool     // True if secondary value has been set
-
-            // Calculated geometry (updated in updateGeometry())
-            radius:       f32     // Radius of the main circular track
-            centerX:      f32     // X coordinate of circle center
-            centerY:      f32     // Y coordinate of circle center
-            correcMoving: f32     // Movement correction factor
-
-            // Animation blending for smooth color transitions
-            lowerMarkerAnimation: BlendColor     // Color animation for primary marker
-            upperMarkerAnimation: BlendColor     // Color animation for secondary marker
-            aniStep:              BlendColor     // Color animation for step indicators
-        }
     }
+
+    lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
+    upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
+    min:        f32         // Inclusive value-space minimum.
+    max:        f32 = 1     // Inclusive value-space maximum.
+    steps:      f32         // Configured step normalized to the value range.
+
+    // Internal state tracking
+    isMoving:       bool     // True when user is dragging a marker
+    isLowerPressed: bool     // True when primary marker is being pressed
+    isUpperPressed: bool     // True when secondary marker is being pressed
+    isLowerHot:     bool     // True when mouse is hovering over primary marker
+    isUpperHot:     bool     // True when mouse is hovering over secondary marker
+    hasLowerValue:  bool     // True if primary value has been set
+    hasUpperValue:  bool     // True if secondary value has been set
+
+    // Calculated geometry (updated in updateGeometry())
+    radius:       f32     // Radius of the main circular track
+    centerX:      f32     // X coordinate of circle center
+    centerY:      f32     // Y coordinate of circle center
+    correcMoving: f32     // Movement correction factor
+
+    // Animation blending for smooth color transitions
+    lowerMarkerAnimation: BlendColor     // Color animation for primary marker
+    upperMarkerAnimation: BlendColor     // Color animation for secondary marker
+    aniStep:              BlendColor     // Color animation for step indicators
 }
 
 impl IWnd for Circular

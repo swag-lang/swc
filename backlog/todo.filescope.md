@@ -352,7 +352,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-416 — apiVersion refuses everything but its exact version
 
-- Intent: `ViewerPluginApiVersion` is at 7 and a plugin returns false on any other value, so every
+- Intent: `ViewerPluginApiVersion` is at 9 and a plugin returns false on any other value, so every
   bump orphans every plugin that is not rebuilt in the same tree. That is correct while all seven
   plugins ship here, and hostile the day one does not.
 - Complete when: the contract states a minimum supported version alongside the current one, the host

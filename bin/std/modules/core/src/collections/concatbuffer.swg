@@ -33,18 +33,18 @@ struct ConcatBuffer
     {
         allocator:   #null Swag.IAllocator     // The allocator to use for all memory operations.
         granularity: u64 = 1024                // The default size for newly allocated buckets.
+    }
 
-        // The bucket chain and the cursor inside it. Append and seek through the methods, which keep
-        // the chain, the per-bucket counts and the cursor consistent.
-        private
-        {
-            firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.
-            curBucket:       #null *ConcatBufferBucket     // The bucket the cursor is located in.
-            lastBucket:      #null *ConcatBufferBucket     // The last bucket in the chain.
-            currentSP:       #null [*] u8                  // The cursor inside `curBucket`.
-            isAtEnd:         bool = true                   // Whether the cursor is at the very end.
-            viewFirstBucket: ConcatBufferBucket            // Bucket reused by views, to skip an allocation.
-        }
+    // The bucket chain and the cursor inside it. Append and seek through the methods, which keep
+    // the chain, the per-bucket counts and the cursor consistent.
+    private
+    {
+        firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.
+        curBucket:       #null *ConcatBufferBucket     // The bucket the cursor is located in.
+        lastBucket:      #null *ConcatBufferBucket     // The last bucket in the chain.
+        currentSP:       #null [*] u8                  // The cursor inside `curBucket`.
+        isAtEnd:         bool = true                   // Whether the cursor is at the very end.
+        viewFirstBucket: ConcatBufferBucket            // Bucket reused by views, to skip an allocation.
     }
 }
 

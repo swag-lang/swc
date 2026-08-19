@@ -231,7 +231,7 @@ private impl Layout
     }
 
     // Reads the `hdrl` list: the header of the file, and the streams it declares.
-    private mtd parseHeaderList(source: *Source, end: u64) fail
+    mtd parseHeaderList(source: *Source, end: u64) fail
     {
         var index = 0'u32
         while source.position() + ChunkHeaderSize <= end
@@ -253,7 +253,7 @@ private impl Layout
     }
 
     // Reads one `strl` list, keeping the first video stream the file declares.
-    private mtd parseStreamList(source: *Source, end: u64, index: u32) fail
+    mtd parseStreamList(source: *Source, end: u64, index: u32) fail
     {
         var header:    StreamHeader
         var hasHeader: bool

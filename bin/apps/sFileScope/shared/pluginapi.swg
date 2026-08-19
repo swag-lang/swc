@@ -17,13 +17,18 @@ import edge, all to publish a small declaration set that carries no code.
 // The host passes it in and the plugin refuses anything else, so a plugin library left behind by
 // an older build is declined instead of being called through a layout it does not share. Bump it
 // whenever a field of [[ViewerRequest]] or [[ViewerResult]] moves, changes meaning, or appears.
-const ViewerPluginApiVersion = 8'u32
+const ViewerPluginApiVersion = 9'u32
 
 // Name of the function every viewer plugin exports.
 const ViewerPluginCreateSymbol = "s_file_scope_plugin_create"
 
 // Reveals `text` at its absolute byte offset without loading the preceding file content.
 alias ViewerRevealMatch = func(*Wnd, u64, string)->bool
+
+// Finds and reveals the next occurrence of `text`, wrapping once, and reports whether the
+// document holds it. A viewer owning its search decides what "next" means — the PDF viewer
+// walks pages — where the host's own search can only scan the raw file bytes.
+alias ViewerFindText = func(*Wnd, string)->bool
 
 // Reports whether a view is still doing work whose result has not reached the screen.
 alias ViewerIsLoading = func(*Wnd)->bool
@@ -49,7 +54,8 @@ struct ViewerRequest
 // decoder's explanation through `failureReason`; the host then owns the complete error surface.
 // A plugin that needs no action bar leaves `commands` null, and one that cannot reveal an offset
 // leaves `revealMatch` null; the host then owns the whole search itself. A view that does no
-// progressive work leaves `isLoading` null.
+// progressive work leaves `isLoading` null. A viewer that searches better than the host's raw
+// byte scan sets `findText`, which then replaces that scan entirely.
 struct ViewerResult
 {
     view:          #null *Wnd                  // Document view the plugin owns, or null when decoding stopped.
@@ -57,6 +63,7 @@ struct ViewerResult
     details:       String                      // Short format-specific summary shown by the host.
     failureReason: String                      // Decoder explanation when `view` is null, or empty on success.
     revealMatch:   #null ViewerRevealMatch     // Reveals a byte offset, or null when not searchable.
+    findText:      #null ViewerFindText        // Viewer-owned search, or null to let the host scan the file.
     isLoading:     #null ViewerIsLoading       // Reports unfinished visible work, or null for an immediate view.
 }
 

@@ -17,15 +17,14 @@ struct ProgressBar
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        public readonly
+        readonly
         {
             value: f32                        // Finite progress, clamped to the zero-to-one range.
             flags = ProgressBarFlags.None     // Active presentation options.
         }
-
-        internal
-        animationPhase: f32     // Position of the indeterminate marker from zero to one.
     }
+
+    animationPhase: f32     // Position of the indeterminate marker from zero to one.
 }
 
 impl IWnd for ProgressBar

@@ -36,22 +36,19 @@ struct ColorPicker
 
         sigColorChanged: SigArray'func||(*ColorPicker)     // Emitted after the selected color changes.
 
-        public readonly
+        readonly
         {
             hue, saturation, lightness: f32                // Current HSL components in the closed interval [0, 1].
             alpha, red, green, blue:    f32                // Current ARGB components in the closed interval [0, 1].
             mode = ColorPickerMode.SaturationLightness     // Current component mapping.
         }
-
-        internal
-        {
-            dirty:            bool = true
-            isDragging:       bool
-            image:            Image
-            texture:          Texture
-            cursorX, cursorY: s32
-        }
     }
+
+    dirty:            bool = true
+    isDragging:       bool
+    image:            Image
+    texture:          Texture
+    cursorX, cursorY: s32
 }
 
 impl IWnd for ColorPicker

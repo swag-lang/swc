@@ -150,3 +150,39 @@ using Swag, Core
     ed.redo()
     @assert(ed.text() == "Xabc")
 }
+
+// The context menu reaches the same clipboard commands the keyboard does, and a read-only
+// editor only offers the reading half of the vocabulary.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    defer host.shutdown()
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    ed.setText("First line")
+
+    host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxSelectAll)
+    ed.showContextMenu({60, 60})
+    host.pump()
+    @assert(ed.selectedText() == "First line")
+
+    host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
+    ed.showContextMenu({60, 60})
+    host.pump()
+    @assert(Clipboard.getString() == "First line")
+
+    // Cut through the menu edits the document, which a read-only editor must refuse to offer.
+    host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCut)
+    ed.showContextMenu({60, 60})
+    host.pump()
+    @assert(ed.text() == "")
+
+    ed.setText("Frozen")
+    ed.setFlags(.ReadOnly)
+    ed.selectAll()
+    host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
+    ed.showContextMenu({60, 60})
+    host.pump()
+    @assert(Clipboard.getString() == "Frozen")
+    @assert(ed.text() == "Frozen")
+}

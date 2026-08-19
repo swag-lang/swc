@@ -57,11 +57,10 @@ struct RichString
         boundRect:   Math.Rectangle      // Bounds of visible content from the most recent layout.
         hasUrl:      bool                // Whether at least one chunk is a URL.
         layoutScale: f32                 // Device scale used by the most recent layout, or zero before one.
-
-        // Whether the chunks must be rebuilt before the next layout or paint.
-        internal
-        dirty: bool
     }
+
+    // Whether the chunks must be rebuilt before the next layout or paint.
+    dirty: bool
 }
 
 impl RichString

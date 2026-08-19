@@ -27,46 +27,45 @@ struct RichEditLexerSwag
             Numeric          // Selects numeric.
             Error            // Selects error.
         }
-
-        #[Swag.Incomplete]
-        // Identifies the lexical state carried between lines.
-        internal enum State: s32
-        {
-            Default               // Selects default.
-            LineComment           // Selects line comment.
-            Comment               // Selects comment.
-            Keyword               // Selects keyword.
-            Declaration           // Selects declaration.
-            Control               // Selects control.
-            Intrinsic             // Selects intrinsic.
-            Builtin               // Compiler builtin function.
-            Compiler              // Selects compiler.
-            CompilerFunction      // Selects compiler function.
-            CompilerGlobal        // Selects compiler global.
-            CompilerStatement     // Selects compiler statement.
-            Modifier              // Selects modifier.
-            FunctionCall          // Selects function call.
-            FunctionSpecOp        // Selects function spec op.
-            Type                  // Selects type.
-            StorageModifier       // Selects storage modifier.
-            UserType              // Selects user type.
-            Constant              // Selects constant.
-            String                // Selects string.
-            RawString             // Selects raw string.
-            Character             // Selects character.
-            Numeric               // Selects numeric.
-            NumericHex            // Selects numeric hex.
-            NumericBin            // Selects numeric bin.
-            NumericFrac           // Selects numeric frac.
-            Attribute             // Selects attribute.
-            Error                 // Selects error.
-        }
-
-        internal
-        mapStyles: [State] Style
-        internal
-        mapWords:  HashTable'(string, State)
     }
+
+    #[Swag.Incomplete]
+    // Identifies the lexical state carried between lines.
+    enum State: s32
+    {
+        Default               // Selects default.
+        LineComment           // Selects line comment.
+        Comment               // Selects comment.
+        Keyword               // Selects keyword.
+        Declaration           // Selects declaration.
+        Control               // Selects control.
+        Intrinsic             // Selects intrinsic.
+        Builtin               // Compiler builtin function.
+        Compiler              // Selects compiler.
+        CompilerFunction      // Selects compiler function.
+        CompilerGlobal        // Selects compiler global.
+        CompilerStatement     // Selects compiler statement.
+        Modifier              // Selects modifier.
+        FunctionCall          // Selects function call.
+        FunctionSpecOp        // Selects function spec op.
+        Type                  // Selects type.
+        StorageModifier       // Selects storage modifier.
+        UserType              // Selects user type.
+        Constant              // Selects constant.
+        String                // Selects string.
+        RawString             // Selects raw string.
+        Character             // Selects character.
+        Numeric               // Selects numeric.
+        NumericHex            // Selects numeric hex.
+        NumericBin            // Selects numeric bin.
+        NumericFrac           // Selects numeric frac.
+        Attribute             // Selects attribute.
+        Error                 // Selects error.
+    }
+
+    mapStyles: [State] Style
+
+    mapWords: HashTable'(string, State)
 }
 
 impl IRichEditLexer for RichEditLexerSwag

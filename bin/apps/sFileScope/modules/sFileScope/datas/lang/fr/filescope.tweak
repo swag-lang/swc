@@ -10,6 +10,7 @@ ui_WrapOn       Retour
 ui_WrapOff      Sans retour
 ui_Encoding     Encodage des caractères
 ui_Files        Fichiers à côté de celui-ci
+ui_SameKind     Seulement les fichiers du même type
 ui_Recent       Récents
 ui_Folder       Dossier
 ui_NotText      Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.

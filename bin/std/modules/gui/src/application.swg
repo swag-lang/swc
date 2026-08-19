@@ -38,30 +38,31 @@ struct Application
 
         options: ApplicationOptions     // Diagnostics and development options.
         appIcon: Pixel.Image            // Icon used for native windows created by the application.
+    }
 
-        // The two cuts of `appIcon`, uploaded the first time a caption asks for one, so the drawn
-        // title bar shows the same mark as the taskbar without the application saying so twice.
-        // Which one a band takes is decided in [[Gui.Application.appIconAt]].
-        internal
-        {
-            appIconList:     ImageList     // The glyph alone, its ink ground keyed out.
-            appIconTileList: ImageList     // The mark as it ships: the glyph on its ink tile.
-            appIconLoaded:   bool
-        }
-
+    // The two cuts of `appIcon`, uploaded the first time a caption asks for one, so the drawn
+    // title bar shows the same mark as the taskbar without the application saying so twice.
+    // Which one a band takes is decided in [[Gui.Application.appIconAt]].
+    appIconList:     ImageList     // The glyph alone, its ink ground keyed out.
+    appIconTileList: ImageList     // The mark as it ships: the glyph on its ink tile.
+    appIconLoaded:   bool
+    public
+    {
         // Named resources of the application: theme art, fonts, theme sheets, and language
         // files. The embedded content of every loaded module registers itself as the
         // fallback, so a bare application needs no configuration; add a disk folder before
         // creating the first surface to let files override any of those names.
         resources: Resources.Bundle
-        public readonly
+        readonly
         {
             #[Swag.Late]
             renderer: Pixel.IRenderer     // Renderer selected before the first surface is created.
         }
+    }
 
-        internal
-        rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
+    rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
+    public
+    {
         #[Swag.Late]
         theme:       *Theme             // Active application theme.
         style:       ThemeStyle         // Root style inherited by surface window trees.
@@ -71,37 +72,33 @@ struct Application
 
         // The surface list is maintained by the application: create and destroy surfaces through
         // its own API so the modal stack and the render loop stay consistent.
-        public readonly
+        readonly
         surfaces: Array'(*Surface)
 
         // Frame and input bookkeeping. Reading it tells what the application is doing this frame;
         // writing it from outside would desynchronize the loop from the window tree.
         animator: Animator     // Shared finite-animation scheduler.
 
-        public readonly
+        readonly
         {
             timing:           Time.FrameTiming               // Timing of the frame being run.
             motionPreference: MotionPreference = .System     // Application override of the platform motion preference.
             isActivated:      bool                           // Whether the application owns a native window.
         }
+    }
 
-        // Focus tracking, moved by the windows themselves as events are dispatched.
-        internal
-        {
-            keyboardFocusWnd:      #null *Wnd     // Window currently holding the keyboard focus.
-            mouseCaptureWnd:       #null *Wnd     // Window currently holding the mouse capture.
-            mouseEnterWnd:         #null *Wnd     // Window the mouse last entered.
-            nativeFocusTransition: bool           // Whether a logical focus move is synchronously changing the native focus.
-        }
+    // Focus tracking, moved by the windows themselves as events are dispatched.
+    keyboardFocusWnd:      #null *Wnd     // Window currently holding the keyboard focus.
+    mouseCaptureWnd:       #null *Wnd     // Window currently holding the mouse capture.
+    mouseEnterWnd:         #null *Wnd     // Window the mouse last entered.
+    nativeFocusTransition: bool           // Whether a logical focus move is synchronously changing the native focus.
 
-        // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the
-        // window it is over and the position it reached are followed apart from the pointer state.
-        internal
-        {
-            dragEnterWnd:  #null *Wnd     // Window the drag last entered, or `null` outside a gesture.
-            dragScreenPos: Math.Point     // Last position a drag reported, in physical screen pixels.
-        }
-
+    // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the
+    // window it is over and the position it reached are followed apart from the pointer state.
+    dragEnterWnd:  #null *Wnd     // Window the drag last entered, or `null` outside a gesture.
+    dragScreenPos: Math.Point     // Last position a drag reported, in physical screen pixels.
+    public
+    {
         // The tool tip belongs here for the same reason the focus and the drag do: it is one
         // pointer's state over one window tree. Held per process instead, two applications in a
         // process share one tip, and a test that leaves one open hands it to the next test — which
@@ -114,44 +111,44 @@ struct Application
         // with the mouse keeps the focus without a ring around it while a surface being driven from
         // the keyboard always says where the keyboard is. Widgets read it through
         // [[Gui.Wnd.hasVisibleFocus]].
-        public readonly
+        readonly
         focusVisible: bool
 
         frameCursor: Cursor            // Cursor selected for the current frame.
         fadeDisabledSurface = true     // Whether modal-disabled surfaces fade toward the disabled theme color.
+    }
 
-        // Run-loop state. It only means something to the loop that owns it.
-        internal
-        {
-            postedEvents:        Array'(IEvent)                                             // Events queued from any thread, drained each frame.
-            postDestroy:         Array'(*Wnd)                                               // Windows to destroy once the frame is over.
-            hookOnEvent:         Array'(*Wnd)                                               // Windows watching every event of the application.
-            endModalExit:        #null WndId                                                // Result the innermost modal loop exits with.
-            inModalLoop:         u32                                                        // Depth of the modal loop nesting.
-            quitCode:            s32                                                        // Exit code the run loop returns.
-            mustQuit:            bool                                                       // Whether the run loop stops at the end of the frame.
-            endModal:            bool                                                       // Whether the innermost modal loop stops.
-            mutexPostedEvents:   Sync.Mutex                                                 // Guards 'postedEvents' against other threads.
-            duringTimerEvents:   bool                                                       // Whether timer callbacks are running, so lists defer.
-            timers:              Array'(*Timer)                                             // Active timers.
-            timersToAdd:         Array'(*Timer)                                             // Timers added while callbacks were running.
-            timersToDelete:      Array'(*Timer)                                             // Timers removed while callbacks were running.
-            frameEvents:         Array'(*Wnd)                                               // Windows asking for a per-frame event.
-            modalSurfaces:       Array'(*Surface)                                           // Surface stack of the nested modal loops.
-            toDelete:            Array'{ ptr: #null *void, type: const *Swag.TypeInfo }     // Deferred deletions.
-            systemReducedMotion: bool                                                       // Platform client-area-animation preference.
-        }
-
+    // Run-loop state. It only means something to the loop that owns it.
+    postedEvents:        Array'(IEvent)                                             // Events queued from any thread, drained each frame.
+    postDestroy:         Array'(*Wnd)                                               // Windows to destroy once the frame is over.
+    hookOnEvent:         Array'(*Wnd)                                               // Windows watching every event of the application.
+    endModalExit:        #null WndId                                                // Result the innermost modal loop exits with.
+    inModalLoop:         u32                                                        // Depth of the modal loop nesting.
+    quitCode:            s32                                                        // Exit code the run loop returns.
+    mustQuit:            bool                                                       // Whether the run loop stops at the end of the frame.
+    endModal:            bool                                                       // Whether the innermost modal loop stops.
+    mutexPostedEvents:   Sync.Mutex                                                 // Guards 'postedEvents' against other threads.
+    duringTimerEvents:   bool                                                       // Whether timer callbacks are running, so lists defer.
+    timers:              Array'(*Timer)                                             // Active timers.
+    timersToAdd:         Array'(*Timer)                                             // Timers added while callbacks were running.
+    timersToDelete:      Array'(*Timer)                                             // Timers removed while callbacks were running.
+    frameEvents:         Array'(*Wnd)                                               // Windows asking for a per-frame event.
+    modalSurfaces:       Array'(*Surface)                                           // Surface stack of the nested modal loops.
+    toDelete:            Array'{ ptr: #null *void, type: const *Swag.TypeInfo }     // Deferred deletions.
+    systemReducedMotion: bool                                                       // Platform client-area-animation preference.
+    public
+    {
         // Stops the run loop after this many frames, or never when zero. A test or a scripted
         // run sets it to bound the loop without a user closing the window.
         maxRunFrame: u32
-        internal
-        {
-            statePath: String                // File used by [[saveState]] and [[loadState]].
-            hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
-        }
+    }
 
-        public readonly
+    statePath: String                // File used by [[saveState]] and [[loadState]].
+    hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
+
+    public
+    {
+        readonly
         dirtyTheme: u32     // Revision incremented after each theme change.
     }
 }

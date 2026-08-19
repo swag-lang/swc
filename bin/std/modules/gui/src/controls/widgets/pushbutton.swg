@@ -26,17 +26,14 @@ struct PushButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        public readonly
+        readonly
         form = PushButtonForm.Normal     // Current visual emphasis.
-
-        // Color animations of the painted parts, driven by the hover and press state.
-        internal
-        {
-            aniBk:     BlendColor     // Color animation of the background.
-            aniBorder: BlendColor     // Color animation of the border.
-            aniText:   BlendColor     // Color animation of the label.
-        }
     }
+
+    // Color animations of the painted parts, driven by the hover and press state.
+    aniBk:     BlendColor     // Color animation of the background.
+    aniBorder: BlendColor     // Color animation of the border.
+    aniText:   BlendColor     // Color animation of the label.
 }
 
 impl IWnd for PushButton

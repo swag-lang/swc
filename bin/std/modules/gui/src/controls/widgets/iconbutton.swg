@@ -70,7 +70,7 @@ struct IconButton
         sigCheckedChanged: SigArray'func||(*IconButton)                                                 // Emitted after user activation changes checked state.
         iconPainter:       #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)     // Custom icon painter, or null for `icon`.
 
-        public readonly
+        readonly
         {
             iconColor: Color                                   // Explicit icon color, or transparent for theme color.
             textColor: Color                                   // Explicit label color, or transparent for theme color.
@@ -81,14 +81,11 @@ struct IconButton
             flags          = IconButtonFlags.None              // Active interaction and content options.
             isChecked: bool                                    // Whether the button is checked.
         }
-
-        // The popup this button owns while it is open, and the background animation.
-        internal
-        {
-            aniBk: BlendColor     // Color animation of the background.
-            popup: #null *Wnd     // Popup currently shown by this button.
-        }
     }
+
+    // The popup this button owns while it is open, and the background animation.
+    aniBk: BlendColor     // Color animation of the background.
+    popup: #null *Wnd     // Popup currently shown by this button.
 }
 
 // Returns the chevron a given arrow placement points with.

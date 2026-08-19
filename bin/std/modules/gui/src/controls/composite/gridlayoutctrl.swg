@@ -44,14 +44,11 @@ struct GridLayoutCtrl
         numRows:           s32           // Number of rows.
         horizontalSpacing: f32 = 5       // Gap between adjacent columns.
         verticalSpacing:   f32 = 5       // Gap between adjacent rows.
-
-        internal
-        {
-            layout:       Array'(#null *Wnd)     // Window assigned to each cell.
-            columnTracks: Array'GridTrack        // Column definitions.
-            rowTracks:    Array'GridTrack        // Row definitions.
-        }
     }
+
+    layout:       Array'(#null *Wnd)     // Window assigned to each cell.
+    columnTracks: Array'GridTrack        // Column definitions.
+    rowTracks:    Array'GridTrack        // Row definitions.
 }
 
 impl IWnd for GridLayoutCtrl

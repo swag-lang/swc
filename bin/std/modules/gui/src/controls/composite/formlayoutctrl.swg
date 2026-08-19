@@ -70,7 +70,7 @@ struct FormLayoutCtrl
 
         options: FormLayoutOptions     // Geometry applied to all rows.
 
-        public readonly
+        readonly
         {
             rows:          Array'FormLayoutRow     // Rows in display order.
             contentHeight: f32                     // Height required by the latest layout pass.

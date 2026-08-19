@@ -16,6 +16,10 @@ using Core, Pixel
 // click toggles between fitted and actual size, and the arrow, page, `Home` and `End` keys turn
 // pages. Embedded actions, scripts, and forms are never executed.
 //
+// The page's text can be worked with: a drag over words selects them, a double click takes the
+// word, `Ctrl+C` and the right-click menu copy the selection, and [[Gui.PdfView.findText]]
+// searches the whole document and reveals what it finds.
+//
 // ```swag
 // let view = PdfView.create(parent)
 // try view.open("document.pdf")
@@ -31,35 +35,48 @@ struct PdfView
         sigZoomChanged: SigArray'func||(*PdfView)             // Emitted after the effective zoom changes.
         sigRenderError: SigArray'func||(*PdfView, string)     // Emitted when a page cannot be decoded or painted.
 
-        public readonly
+        readonly
         {
             zoom:      f32  = 1        // Requested logical units per PDF point outside fitted mode.
             isFitted:  bool = true     // Whether the page is scaled to the available viewport.
             panOffset: Math.Point      // Page-centre offset from the viewport centre, in logical units.
             pageIndex: u64             // Zero-based index of the displayed page.
         }
-
-        internal
-        {
-            reader:  Pdf.Reader
-            page:    Pdf.Page
-            hasPage: bool
-
-            // Textures of the page's image items, uploaded to the application renderer once
-            // per page and reused by every subsequent paint, in item order.
-            imageTextures: Array'Texture
-            hasTextures:   bool
-
-            // Typefaces resolved once per page rather than once per paint.
-            fonts: Pdf.RenderFontCache
-
-            // One failing paint reports through `sigRenderError` once, not once per frame.
-            reportedPaintError: bool
-
-            isPanning:   bool
-            lastPointer: Math.Point
-        }
     }
+
+    reader:  Pdf.Reader
+    page:    Pdf.Page
+    hasPage: bool
+
+    // Textures of the page's image items, uploaded to the application renderer once
+    // per page and reused by every subsequent paint, in item order.
+    imageTextures: Array'Texture
+    hasTextures:   bool
+
+    // Typefaces resolved once per page rather than once per paint.
+    fonts: Pdf.RenderFontCache
+
+    // One failing paint reports through `sigRenderError` once, not once per frame.
+    reportedPaintError: bool
+
+    isPanning:   bool
+    lastPointer: Math.Point
+
+    // The displayed page's text, indexed once per page and only when selection or
+    // search first asks for it.
+    textIndex:    Pdf.TextIndex
+    hasTextIndex: bool
+
+    // The reader's selection, as byte offsets into the indexed page text. The anchor is
+    // where the press landed and the caret follows the pointer.
+    selAnchor = Swag.U64.Max
+    selCaret  = Swag.U64.Max
+    selecting: bool
+
+    // Where the running search resumes: the page and the offset just past the last hit.
+    searchQuery:  String
+    searchPage:   u64
+    searchOffset: u64
 }
 
 private impl PdfView
@@ -112,6 +129,96 @@ private impl PdfView
         catch .showPage(index) as pageError
         if pageError != null do
             .sigRenderError.call(me, Errors.message(pageError))
+    }
+
+    // Converts a widget-local point into page points.
+    mtd const pageFromLocal(point: Math.Point)->Math.Point
+    {
+        let content = .contentRect()
+        let scale   = .effectiveZoom()
+        if scale <= 0 do
+            return {}
+        return {(point.x - content.x) / scale, (point.y - content.y) / scale}
+    }
+
+    // Indexes the displayed page's text, once per page and only when selection or search asks.
+    mtd ensureTextIndex()
+    {
+        if .hasTextIndex or !.hasPage do
+            return
+        .textIndex    = Pdf.TextIndex.build(&.page)
+        .hasTextIndex = true
+    }
+
+    // Drops the text index and the selection a page change invalidates.
+    mtd clearTextState()
+    {
+        .textIndex.text.clear()
+        .textIndex.runs.clear()
+        .hasTextIndex = false
+        .selAnchor    = Swag.U64.Max
+        .selCaret     = Swag.U64.Max
+        .selecting    = false
+    }
+
+    // Pans just enough for the selection to be visible, which is what reveals a search hit.
+    mtd scrollSelectionIntoView()
+    {
+        if !.hasSelection() do
+            return
+
+        var rects: Array'Math.Rectangle
+        .textIndex.rangeRects(Math.min(.selAnchor, .selCaret), Math.max(.selAnchor, .selCaret), &rects)
+        if rects.isEmpty() do
+            return
+
+        var bounds = rects[0]
+        for index in 1 until rects.count
+        {
+            let rect  = rects[index]
+            let right = Math.max(bounds.right(), rect.right())
+            let down  = Math.max(bounds.bottom(), rect.bottom())
+            bounds.x      = Math.min(bounds.x, rect.x)
+            bounds.y      = Math.min(bounds.y, rect.y)
+            bounds.width  = right - bounds.x
+            bounds.height = down - bounds.y
+        }
+
+        let content = .contentRect()
+        let scale   = .effectiveZoom()
+        let client  = .paddedClientRect()
+        var target  = Math.Rectangle{content.x + bounds.x * scale, content.y + bounds.y * scale, bounds.width * scale, bounds.height * scale}
+
+        var dx = 0.0'f32
+        var dy = 0.0'f32
+        if target.right() > client.right() do
+            dx = client.right() - target.right()
+        if target.x + dx < client.x do
+            dx = client.x - target.x
+        if target.bottom() > client.bottom() do
+            dy = client.bottom() - target.bottom()
+        if target.y + dy < client.y do
+            dy = client.y - target.y
+
+        if dx != 0 or dy != 0
+        {
+            .panOffset.x += dx
+            .panOffset.y += dy
+            .invalidate()
+        }
+    }
+
+    // Makes a found range the selection and reveals it, then remembers where to resume.
+    mtd revealMatch(pageIdx, offset, length: u64)
+    {
+        .ensureTextIndex()
+        .selAnchor    = Math.min(offset, .textIndex.text.length)
+        .selCaret     = Math.min(offset + length, .textIndex.text.length)
+        .selecting    = false
+        .searchPage   = pageIdx
+        .searchOffset = offset + length
+        .scrollSelectionIntoView()
+        .invalidate()
     }
 }
 
@@ -182,6 +289,19 @@ impl IWnd for PdfView
         let pageToSurface = Math.Transform2{scale, 0, 0, scale, base.tx + content.x, base.ty + content.y}
         catch Pdf.drawPageItems(painter, &.page, pageToSurface, scale * .deviceScale(), &.fonts, "", .imageTextures.toSlice()) as paintError
         painter.setTransform(base)
+
+        // The selection is a translucent wash over the drawn page, so the marked words stay
+        // readable under it whatever the page paints there.
+        if .hasSelection()
+        {
+            var rects: Array'Math.Rectangle
+            .textIndex.rangeRects(Math.min(.selAnchor, .selCaret), Math.max(.selAnchor, .selCaret), &rects)
+            var wash = .themeColors().edit_SelectedBk
+            wash.a = cast(u8) (cast(u32) wash.a * 140 / 255)
+            for rect in rects do
+                painter.fillRect({content.x + rect.x * scale, content.y + rect.y * scale, rect.width * scale, rect.height * scale}, wash)
+        }
+
         painter.popClippingRect()
 
         if paintError != null and !.reportedPaintError
@@ -221,6 +341,18 @@ impl IWnd for PdfView
             }
 
         case .DoubleClick where evt.button == .Left:
+            if .hasPage
+            {
+                // A double click on a word takes the word; elsewhere it keeps toggling the zoom.
+                .ensureTextIndex()
+                let hit = .textIndex.positionAt(.pageFromLocal(.surfaceToLocal(evt.surfacePos)))
+                if hit.offset != Swag.U64.Max and hit.distance == 0
+                {
+                    .selectWordAt(hit.offset)
+                    return
+                }
+            }
+
             if .isFitted do
                 .actualSize()
             else do
@@ -229,15 +361,50 @@ impl IWnd for PdfView
         case .Pressed where evt.button == .Left:
             if !.hasPage do
                 return
+
+            // A press on a word starts a selection drag; a press on anything else pans, which
+            // keeps the page draggable everywhere the text is not.
+            .ensureTextIndex()
+            let hit = .textIndex.positionAt(.pageFromLocal(.surfaceToLocal(evt.surfacePos)))
+            if hit.offset != Swag.U64.Max and hit.distance == 0
+            {
+                .selAnchor = hit.offset
+                .selCaret  = hit.offset
+                .selecting = true
+                .captureMouse()
+                .invalidate()
+                return
+            }
+
+            if .hasSelection() do
+                .clearSelection()
             .isPanning   = true
             .lastPointer = evt.surfacePos
             .captureMouse()
 
         case .Move:
+            if .selecting
+            {
+                let hit = .textIndex.positionAt(.pageFromLocal(.surfaceToLocal(evt.surfacePos)))
+                if hit.offset != Swag.U64.Max and hit.offset != .selCaret
+                {
+                    .selCaret = hit.offset
+                    .invalidate()
+                }
+
+                .app().setFrameCursor(Cursor.from(.IBeam))
+                return
+            }
+
             if !.isPanning
             {
-                if .hasPage do
-                    .app().setFrameCursor(Cursor.from(.Hand))
+                if .hasPage
+                {
+                    .ensureTextIndex()
+                    let hit = .textIndex.positionAt(.pageFromLocal(.surfaceToLocal(evt.surfacePos)))
+                    .app().setFrameCursor(Cursor.from(hit.offset != Swag.U64.Max and hit.distance == 0 ? CursorShape.IBeam : CursorShape.Hand))
+                }
+
                 return
             }
 
@@ -245,8 +412,19 @@ impl IWnd for PdfView
             .lastPointer = evt.surfacePos
             .invalidate()
 
+        case .Pressed where evt.button == .Right:
+            if !.hasPage do
+                return
+            .setFocus()
+            .showContextMenu(evt.surfacePos)
+
         case .Released where evt.button == .Left:
-            if .isPanning
+            if .selecting
+            {
+                .selecting = false
+                .releaseMouse()
+            }
+            elif .isPanning
             {
                 .isPanning = false
                 .releaseMouse()
@@ -288,6 +466,23 @@ impl IWnd for PdfView
         case .F:
             .zoomToFit()
 
+        case .C where evt.modifiers == .Control:
+            if !.copySelection() do
+                evt.accepted = false
+
+        case .Insert where evt.modifiers == .Control:
+            if !.copySelection() do
+                evt.accepted = false
+
+        case .A where evt.modifiers == .Control:
+            .selectAll()
+
+        case .Escape where evt.modifiers == .None:
+            if .hasSelection() do
+                .clearSelection()
+            else do
+                evt.accepted = false
+
         default:
             evt.accepted = false
         }
@@ -306,7 +501,10 @@ impl PdfView
     {
         Debug.assert(parent != null)
         let result = Wnd.create'PdfView(parent, null, position, id)
-        result.focusPolicy = .Click
+
+        // A document view is a traversal stop: opening a file must leave the keyboard on the
+        // page, or the arrows land on whatever container happens to hold the focus.
+        result.focusPolicy = .Tab
         return result
     }
 
@@ -334,12 +532,15 @@ impl PdfView
         @drop(&.page, 1)
         @init(&.page, 1)
         .fonts.reset(0)
-        .hasPage            = false
-        .pageIndex          = 0
-        .zoom               = 1
-        .isFitted           = true
-        .panOffset          = {}
-        .reportedPaintError = false
+        .clearTextState()
+        .searchQuery.clear()
+        .searchPage, .searchOffset = 0
+        .hasPage                   = false
+        .pageIndex                 = 0
+        .zoom                      = 1
+        .isFitted                  = true
+        .panOffset                 = {}
+        .reportedPaintError        = false
         .invalidate()
     }
 
@@ -367,6 +568,7 @@ impl PdfView
         .pageIndex = index
         .panOffset = {}
         .fonts.reset(.page.fonts.count)
+        .clearTextState()
         .reportedPaintError = false
         .sigPageChanged.call(me)
         if .isFitted do
@@ -434,5 +636,150 @@ impl PdfView
     {
         .panOffset = {}
         .applyZoom(ActualSizeZoom)
+    }
+
+    // Reports whether the reader selected text on the displayed page.
+    mtd const hasSelection()->bool => .selAnchor != Swag.U64.Max and .selCaret != Swag.U64.Max and .selAnchor != .selCaret
+
+    // Empties the selection.
+    mtd clearSelection()
+    {
+        if .selAnchor == Swag.U64.Max and .selCaret == Swag.U64.Max do
+            return
+        .selAnchor = Swag.U64.Max
+        .selCaret  = Swag.U64.Max
+        .selecting = false
+        .invalidate()
+    }
+
+    // Selects the whole text of the displayed page.
+    mtd selectAll()
+    {
+        if !.hasPage do
+            return
+        .ensureTextIndex()
+        if .textIndex.text.isEmpty() do
+            return
+        .selAnchor = 0
+        .selCaret  = .textIndex.text.length
+        .selecting = false
+        .invalidate()
+    }
+
+    // Returns the selected text, in the reading order the page indexes to.
+    mtd selectedText()->String
+    {
+        var result: retval
+        if !.hasSelection() do
+            return result
+        let lo = Math.min(.selAnchor, .selCaret)
+        let hi = Math.max(.selAnchor, .selCaret)
+        result = .textIndex.text[lo until hi]
+        return result
+    }
+
+    // Puts the selected text on the clipboard, and reports whether there was one.
+    mtd copySelection()->bool
+    {
+        if !.hasSelection() do
+            return false
+        let text = .selectedText()
+        if text.isEmpty() do
+            return false
+        Clipboard.addString(text.toString())
+        return true
+    }
+
+    // Finds and reveals the next occurrence of `text`, scanning forward from the last hit and
+    // wrapping once around the document. The match becomes the selection, so a copy right after
+    // a search takes what the search found. Reports whether any page holds the text.
+    //
+    // Every page visited between the current one and the match is decoded to extract its text,
+    // so the first search through a large document pays one decode per crossed page.
+    mtd findText(text: string)->bool
+    {
+        if !.hasPage or !@countof(text) do
+            return false
+
+        if .searchQuery != text
+        {
+            .searchQuery  = text
+            .searchPage   = .pageIndex
+            .searchOffset = 0
+        }
+
+        // The resume page is visited twice — its tail first, its head after the wrap — so one
+        // pass covers the whole document from wherever the previous hit stopped.
+        let count = .reader.pageCount()
+        var visit = 0'u64
+        while visit <= count
+        {
+            let pageIdx = (.searchPage + visit) % count
+            let from    = visit == 0 ? .searchOffset : 0
+            visit += 1
+
+            if pageIdx == .pageIndex
+            {
+                .ensureTextIndex()
+                if from >= .textIndex.text.length do
+                    continue
+                let found = Utf8.indexOf(.textIndex.text.toString(), text, from, .Latin1NoCase)
+                if found == Swag.U64.Max do
+                    continue
+                .revealMatch(pageIdx, found, @countof(text))
+                return true
+            }
+
+            var page = catch .reader.loadPage(pageIdx) as pageError
+            if pageError != null do
+                continue
+            let index = Pdf.TextIndex.build(&page)
+            if from >= index.text.length do
+                continue
+            let found = Utf8.indexOf(index.text.toString(), text, from, .Latin1NoCase)
+            if found == Swag.U64.Max do
+                continue
+
+            .showPageOrReport(pageIdx)
+            if .pageIndex != pageIdx do
+                return false
+            .revealMatch(pageIdx, found, @countof(text))
+            return true
+        }
+
+        return false
+    }
+
+    internal const CtxCopy = "Pdf.CtxCopy"
+    internal const CtxSelectAll = "Pdf.CtxSelectAll"
+
+    // Selects the word around one offset of the page text, the double-click gesture.
+    internal mtd selectWordAt(offset: u64)
+    {
+        .ensureTextIndex()
+        let range = .textIndex.wordRangeAt(offset)
+        if range.end <= range.start do
+            return
+        .selAnchor = range.start
+        .selCaret  = range.end
+        .selecting = false
+        .invalidate()
+    }
+
+    // Offers the reading vocabulary at `surfacePos`: what a page can give the clipboard, with
+    // the same shortcuts the keyboard already binds.
+    internal mtd showContextMenu(surfacePos: Math.Point)
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: !.hasSelection())
+        menu.addSeparator()
+        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
+
+        let picked = menu.doModal(surfacePos, .TopLeft, autoDestroy: true) orelse ""
+        switch picked
+        {
+        case CtxCopy:      discard .copySelection()
+        case CtxSelectAll: .selectAll()
+        }
     }
 }

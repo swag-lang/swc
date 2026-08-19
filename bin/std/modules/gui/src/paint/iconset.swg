@@ -75,18 +75,14 @@ struct IconSet
     {
         // The rasterized document; borrowed, never owned. It must outlive the set.
         atlas: #null *IconAtlas
-
-        // The renderer frame textures are created through; borrowed, never owned.
-        #[Swag.Late]
-        internal
-        renderer: Pixel.IRenderer
-
-        internal
-        {
-            lists: HashTable'(s32, *ImageList)     // Frame lists by logical size.
-            scale: f32                             // Device scale the lists were built at.
-        }
     }
+
+    // The renderer frame textures are created through; borrowed, never owned.
+    #[Swag.Late]
+    renderer: Pixel.IRenderer
+
+    lists: HashTable'(s32, *ImageList)     // Frame lists by logical size.
+    scale: f32                             // Device scale the lists were built at.
 }
 
 impl IconSet

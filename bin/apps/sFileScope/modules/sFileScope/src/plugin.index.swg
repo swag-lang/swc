@@ -141,6 +141,35 @@ impl ViewerPluginIndex
         return result
     }
 
+    // Reports whether two files are "the same kind" to folder navigation: they share one
+    // explicitly registered viewer, or the same extension when neither has a registered one.
+    mtd const sharesViewer(a, b: string)->bool
+    {
+        var extensionA = String.from(Path.extension(a) orelse "")
+        extensionA = extensionA.toLower()
+        var extensionB = String.from(Path.extension(b) orelse "")
+        extensionB = extensionB.toLower()
+        var baseA = String.from(Path.fileName(a) orelse "")
+        baseA = baseA.toLower()
+        var baseB = String.from(Path.fileName(b) orelse "")
+        baseB = baseB.toLower()
+
+        var anyA, anyB: bool
+        for spec in .specs
+        {
+            let matchA = .matches(spec, baseA.toString(), extensionA.toString(), wildcard: false)
+            let matchB = .matches(spec, baseB.toString(), extensionB.toString(), wildcard: false)
+            if matchA and matchB do
+                return true
+            anyA = anyA or matchA
+            anyB = anyB or matchB
+        }
+
+        if !anyA and !anyB do
+            return extensionA == extensionB
+        return false
+    }
+
     // Reports whether `fileName` has an explicitly registered extension or exact name.
     mtd const explicitlySupports(fileName: string)->bool
     {

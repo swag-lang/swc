@@ -63,15 +63,16 @@ struct EditBox
     public
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
+    }
 
-        internal
-        textStorage: String     // Current UTF-8 text content.
-
+    textStorage: String     // Current UTF-8 text content.
+    public
+    {
         sigTextChanged: SigArray'func||(*EditBox)     // Emitted once after text changes.
         sigFocusLost:   SigArray'func||(*EditBox)     // Emitted after keyboard focus is lost.
         sigSubmitted:   SigArray'func||(*EditBox)     // Emitted when Enter is pressed.
         sigCancelled:   SigArray'func||(*EditBox)     // Emitted when Escape is pressed.
-        public readonly
+        readonly
         {
             icon:           Icon                                           // Optional leading icon.
             unit:           String                                         // Optional trailing unit, such as "kg".
@@ -82,38 +83,35 @@ struct EditBox
             trailingMargin: f32                                            // Extra trailing inset in logical units.
             validator:      #null func||(*EditBox)->EditBoxCheckResult     // Custom validator, or null for built-in validation.
         }
-
-        internal
-        {
-            // Text the box held when it took the focus. It is what Escape puts back, so an edit
-            // the reader backs out of leaves the value the surface around it had written here.
-            originalText: String
-
-            // Numeric bounds used when inputMode is S64/U64/X64/F64.
-            using minMax: union
-            {
-                minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
-                minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
-                minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
-            }
-
-            aniBk:     BlendColor = {speed: 4}     // Background colour animation
-            aniBorder: BlendColor = {speed: 4}     // Border colour animation
-
-            isInvalid:          bool                  // True if current content is invalid
-            isHot:              bool                  // True while the mouse is hovering
-            isDragging:         bool                  // True while the user is selecting text
-            selBeg, selEnd:     u64                   // Selection start/end (byte indices)
-            timerCaret:         #null *Timer          // Blinking‑caret timer
-            clearBtn:           #null *IconButton     // Optional clear button instance
-            clearBtnTextMargin: f32                   // Text margin reserved for the clear button
-            visibleCaret:       bool                  // True when the caret should be visible
-            posSelBeg:          f32                   // X‑position of selection start in pixels
-            posSelEnd:          f32                   // X‑position of selection end in pixels
-            scrollPosX:         f32                   // Horizontal scroll offset
-            countRunes:         s32                   // Number of runes currently in text
-        }
     }
+
+    // Text the box held when it took the focus. It is what Escape puts back, so an edit
+    // the reader backs out of leaves the value the surface around it had written here.
+    originalText: String
+
+    // Numeric bounds used when inputMode is S64/U64/X64/F64.
+    using minMax: union
+    {
+        minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
+        minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
+        minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
+    }
+
+    aniBk:     BlendColor = {speed: 4}     // Background colour animation
+    aniBorder: BlendColor = {speed: 4}     // Border colour animation
+
+    isInvalid:          bool                  // True if current content is invalid
+    isHot:              bool                  // True while the mouse is hovering
+    isDragging:         bool                  // True while the user is selecting text
+    selBeg, selEnd:     u64                   // Selection start/end (byte indices)
+    timerCaret:         #null *Timer          // Blinking‑caret timer
+    clearBtn:           #null *IconButton     // Optional clear button instance
+    clearBtnTextMargin: f32                   // Text margin reserved for the clear button
+    visibleCaret:       bool                  // True when the caret should be visible
+    posSelBeg:          f32                   // X‑position of selection start in pixels
+    posSelEnd:          f32                   // X‑position of selection end in pixels
+    scrollPosX:         f32                   // Horizontal scroll offset
+    countRunes:         s32                   // Number of runes currently in text
 }
 
 impl IWnd for EditBox
@@ -184,6 +182,7 @@ impl IWnd for EditBox
             colorBorder = colors.edit_DisabledBorder
             colorBk     = colors.edit_DisabledBk
             colorText   = colors.edit_DisabledText
+            colorUnit   = colors.edit_DisabledText
 
         case .isInvalid:
             colorBorder = colors.edit_ErrorBorder
@@ -196,6 +195,7 @@ impl IWnd for EditBox
             colorBorder = colors.edit_DisabledBorder
             colorBk     = colors.edit_DisabledBk
             colorText   = colors.edit_DisabledText
+            colorUnit   = colors.edit_DisabledText
 
         case .hasFocus():
             colorBorder = colors.edit_FocusBorder
@@ -225,7 +225,9 @@ impl IWnd for EditBox
         // are level on the middle of the box and stay level whatever face the box is set in.
         if .icon.isValid()
         {
-            .icon.paint(bc.painter, clientRect.x, clientRect.vertCenter() - .icon.sizeY * 0.5, colors.edit_Text)
+            // The icon follows the value ink, so an unavailable box does not keep a full-ink
+            // glyph beside a greyed value.
+            .icon.paint(bc.painter, clientRect.x, clientRect.vertCenter() - .icon.sizeY * 0.5, colorText)
             clientRect.x     += .icon.sizeX + metrics.iconText_Margin
             clientRect.width -= .icon.sizeX + metrics.iconText_Margin
         }

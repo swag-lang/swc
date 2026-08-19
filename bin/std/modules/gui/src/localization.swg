@@ -83,6 +83,13 @@ struct Strings
         markdown_ReadFailed:     string = "Markdown source could not be read"                                          // Fallback load-failure reason.
         markdown_NotUtf8:        string = "Markdown source contains a zero byte and is not supported UTF-8 text"      // Load-failure reason for binary input.
 
+        // Context-menu vocabulary shared by every text-bearing view: editors, the HTML and PDF
+        // viewers, and any control offering its selection to the clipboard.
+        edit_Cut:       string = "Cut"            // Move the selection to the clipboard.
+        edit_Copy:      string = "Copy"           // Copy the selection to the clipboard.
+        edit_Paste:     string = "Paste"          // Insert the clipboard at the caret.
+        edit_SelectAll: string = "Select All"     // Extend the selection to the whole content.
+
         prop_Copy:             string = "Copy"                              // Copy the value of a property.
         prop_Paste:            string = "Paste"                             // Paste into a property.
         prop_ResetDefault:     string = "Reset to default"                  // Restore the default value of a property.

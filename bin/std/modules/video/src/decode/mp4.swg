@@ -234,7 +234,7 @@ private impl Layout
     }
 
     // Walks every track in a movie box.
-    private mtd parseMovie(source: *Source, end: u64) fail
+    mtd parseMovie(source: *Source, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
@@ -272,7 +272,7 @@ private impl Track
         }
     }
 
-    private mtd parseMedia(source: *Source, end: u64) fail
+    mtd parseMedia(source: *Source, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
@@ -294,7 +294,7 @@ private impl Track
         }
     }
 
-    private mtd parseMediaHeader(source: *Source, end: u64) fail
+    mtd parseMediaHeader(source: *Source, end: u64) fail
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 media header is truncated"}
@@ -323,7 +323,7 @@ private impl Track
             fail InvalidFormatError{"MP4 video track has a zero timescale"}
     }
 
-    private mtd parseHandler(source: *Source, end: u64) fail
+    mtd parseHandler(source: *Source, end: u64) fail
     {
         if 12 > end - source.position() do
             fail InvalidFormatError{"MP4 handler box is truncated"}
@@ -332,7 +332,7 @@ private impl Track
         .handler = readU32(source)
     }
 
-    private mtd parseMediaInfo(source: *Source, end: u64) fail
+    mtd parseMediaInfo(source: *Source, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
@@ -343,7 +343,7 @@ private impl Track
         }
     }
 
-    private mtd parseSampleTable(source: *Source, end: u64) fail
+    mtd parseSampleTable(source: *Source, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
@@ -362,7 +362,7 @@ private impl Track
         }
     }
 
-    private mtd parseSampleDescription(source: *Source, end: u64) fail
+    mtd parseSampleDescription(source: *Source, end: u64) fail
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-description box is truncated"}
@@ -391,7 +391,7 @@ private impl Track
     //
     // FFmpeg uses the generic MPEG-4 visual sample entry for Motion JPEG and carries the real
     // codec as object type `0x6c` in its elementary-stream descriptor.
-    private mtd parseMpeg4VisualDescription(source: *Source, entry: Box)->bool fail
+    mtd parseMpeg4VisualDescription(source: *Source, entry: Box)->bool fail
     {
         const VisualSampleEntrySize = 78'u64
         var position = entry.data + VisualSampleEntrySize
@@ -408,7 +408,7 @@ private impl Track
     }
 
     // Reads enough of `esds` to identify its decoder object type.
-    private mtd parseElementaryStreamDescriptor(source: *Source, end: u64)->bool fail
+    mtd parseElementaryStreamDescriptor(source: *Source, end: u64)->bool fail
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream box is truncated"}
@@ -439,14 +439,14 @@ private impl Track
     }
 
     // Skips bytes without leaving their descriptor.
-    private mtd skipDescriptorBytes(source: *Source, end: u64, count: u64) fail
+    mtd skipDescriptorBytes(source: *Source, end: u64, count: u64) fail
     {
         if source.position() > end or count > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream descriptor is truncated"}
         source.skip(count)
     }
 
-    private mtd parseTimeToSample(source: *Source, end: u64) fail
+    mtd parseTimeToSample(source: *Source, end: u64) fail
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 time-to-sample box is truncated"}
@@ -459,7 +459,7 @@ private impl Track
             .times.add({readU32(source), readU32(source)})
     }
 
-    private mtd parseSampleToChunk(source: *Source, end: u64) fail
+    mtd parseSampleToChunk(source: *Source, end: u64) fail
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-to-chunk box is truncated"}
@@ -479,7 +479,7 @@ private impl Track
         }
     }
 
-    private mtd parseSampleSizes(source: *Source, end: u64) fail
+    mtd parseSampleSizes(source: *Source, end: u64) fail
     {
         if 12 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size box is truncated"}
@@ -493,7 +493,7 @@ private impl Track
             size[] = fixedSize ? fixedSize : readU32(source)
     }
 
-    private mtd parseChunkOffsets(source: *Source, end: u64, wide: bool) fail
+    mtd parseChunkOffsets(source: *Source, end: u64, wide: bool) fail
     {
         if 8 > end - source.position() do
             fail InvalidFormatError{"MP4 chunk-offset box is truncated"}

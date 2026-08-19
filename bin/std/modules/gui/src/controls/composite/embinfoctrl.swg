@@ -31,7 +31,7 @@ struct InfoBar
 
         sigDismissed: SigArray'func||(*InfoBar)     // Emitted when user action or timeout dismisses the bar.
 
-        public readonly
+        readonly
         {
             kind:             InfoBarKind             // Current semantic presentation.
             flags:            InfoBarFlags            // Current placement and lifetime options.
@@ -42,10 +42,9 @@ struct InfoBar
             #[Swag.Late]
             closeButton: *IconButton     // Dismiss button owned by this bar.
         }
-
-        internal
-        timer: #null *Timer     // Active auto-dismiss timer.
     }
+
+    timer: #null *Timer     // Active auto-dismiss timer.
 }
 
 impl IWnd for InfoBar

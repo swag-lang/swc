@@ -88,16 +88,29 @@ inside that scope.
 - Start a uniformly public, private, or internal file with the matching `#global` directive. Use
   `#global export` for a documented module API file. Do not repeat that level on its top-level
   functions, types, or `impl` blocks.
-- Put a shared level on an `impl`, not on every method. Split mixed method families into separate
-  `impl` blocks by visibility; an unqualified `impl` inherits the file level.
+- An access modifier governs the whole declaration it prefixes. A modifier on an `impl` governs
+  every method in that `impl`; a modifier on a namespace or `{ ... }` block governs every
+  declaration in that body. Do not repeat the same level inside that governed body: write
+  `private impl Cache { mtd reset() {} }`, never
+  `private impl Cache { private mtd reset() {} }`. The compiler rejects the repeated level.
+- A different nested level is a deliberate override in a top-level declaration block, namespace,
+  or `impl`. Put the common level on that scope, then qualify isolated exceptions there; for example,
+  `private impl Cache { mtd reset() {}; public mtd open() {} }`. Split substantial method families
+  into sibling `impl` blocks by visibility when that grouping reads more clearly. An unqualified
+  `impl` inherits the file level.
 - A named aggregate starts its members at `internal` regardless of the file, the aggregate's own
   visibility, or an enclosing top-level access block. Omit `internal` at that member root. Use one
   access block for adjacent fields that share another level, and a modifier on the declaration for
   an isolated exception.
+- Member access blocks do not nest visibility levels. Close the current block before starting a
+  `public`, `internal`, or `private` group, and preserve declaration order across the sibling groups.
+  Unlike an `impl`, an aggregate has no local visibility override inside an access block.
 - `readonly` is a write restriction layered on the current member level, not a fourth visibility.
   Write `readonly` inside a `public` block, `public readonly` outside one, or a corresponding block
   for several fields. Never write `internal readonly` at the member root: bare `readonly` already
   means that. `private readonly` is invalid because `private` already restricts writes to the type.
+  Bare `readonly` is the only modifier that can be nested in a member access block: it adds the write
+  restriction without restating visibility. `public readonly` inside a `public` block is rejected.
 
 ```swag
 #global public

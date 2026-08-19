@@ -73,3 +73,29 @@ private func createPdfFixture()->String
     @assert(result.view == null and result.commands == null)
     @assert(!result.failureReason.isEmpty())
 }
+
+// The plugin owns the search: PDF text lives compressed in the file, so only the viewer can
+// walk pages and reveal a match.
+#test
+{
+    let fileName = createPdfFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: HeadlessHost
+    host.setup(640, 450)
+    defer host.shutdown()
+
+    let request = ViewerRequest{ViewerPluginApiVersion, &host.root, &host.root, fileName.toString()}
+    var result: ViewerResult
+    @assert(sFileScopePluginCreate(&request, &result))
+    @assert(result.findText != null and result.revealMatch == null)
+
+    let view = cast(*PdfPluginView) result.view!
+    view.resize(640, 420)
+    view.applyLayout()
+
+    @assert(result.findText!(result.view!, "second"))
+    @assert(view.pdfView.pageIndex == 1)
+    @assert(view.pdfView.selectedText() == "Second")
+    @assert(!result.findText!(result.view!, "absent"))
+}

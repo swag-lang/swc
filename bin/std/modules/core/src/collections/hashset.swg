@@ -5,9 +5,10 @@ using Swag
 // Represents a single entry within a HashSet.
 struct(K) HashSetEntry
 {
+    hash: u32
+
     public
     {
-        internal hash: u32
         readonly key: K     // The key itself.
     }
 }

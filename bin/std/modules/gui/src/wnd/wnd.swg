@@ -320,12 +320,12 @@ struct Wnd
         focusDelegate: #null *Wnd
 
         backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
-        internal
-        {
-            isAllocated:      bool     // Whether destruction must release this allocation.
-            paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
-        }
+    }
 
+    isAllocated:      bool     // Whether destruction must release this allocation.
+    paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
+    public
+    {
         // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
         // writing it from outside would desynchronize the pass from the tree.
         readonly
@@ -334,14 +334,17 @@ struct Wnd
             managedByLayout:  bool                // Whether a layout container places this window.
             layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
         }
+    }
 
-        private
-        {
-            cachedSizeHint:  SizeHint        // Memoized measure result, refreshed by the layout pass.
-            createEventDone: bool            // Whether the create event was already delivered.
-            layoutDirty:     bool = true     // Whether the next frame must re-run layout.
-        }
+    private
+    {
+        cachedSizeHint:  SizeHint        // Memoized measure result, refreshed by the layout pass.
+        createEventDone: bool            // Whether the create event was already delivered.
+        layoutDirty:     bool = true     // Whether the next frame must re-run layout.
+    }
 
+    public
+    {
         hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
         hookOnChildEvent: #null HookEvent     // Will be called before processing whatever event of a child window
     }

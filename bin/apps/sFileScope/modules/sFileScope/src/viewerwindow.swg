@@ -22,6 +22,7 @@ struct ViewerInstance
     view:          #null *Wnd
     commands:      #null *Wnd
     revealMatch:   #null ViewerRevealMatch
+    findText:      #null ViewerFindText
     isLoading:     #null ViewerIsLoading
     details:       String
     failureReason: String
@@ -104,6 +105,7 @@ struct ViewerWindow
         commandBar:       *Wnd
         previousButton:   *IconButton
         nextButton:       *IconButton
+        kindButton:       *IconButton
         openButton:       *IconButton
         filesButton:      *IconButton
         searchBox:        *EditBox
@@ -144,6 +146,15 @@ struct ViewerWindow
     siblings:        Array'String
     siblingIndex:    u64
     siblingsDirty        = true
+
+    // Whether next/previous and the folder list keep only the neighbours the current file's
+    // viewer would open, so a reader flips through the pictures of a folder without landing on
+    // the notes stored beside them.
+    folderSameKind: bool
+
+    // Guards the one nested dispatch [[forwardKeyToViewer]] makes, so a key the viewer
+    // declines falls back to file navigation instead of being offered again.
+    forwardingViewerKey: bool
     recent:          Array'String
     panelVisible:    bool
     recentPaneSize       = ViewerRecentHeight
@@ -184,9 +195,9 @@ impl IWnd for ViewerWindow
         elif evt.key == .F3 and evt.modifiers == .None do
             .findNext()
         elif evt.key == .Left and evt.modifiers == .None do
-            .navigate(-1)
+            .navigateOrForward(-1, evt)
         elif evt.key == .Right and evt.modifiers == .None do
-            .navigate(1)
+            .navigateOrForward(1, evt)
         elif evt.key == .F5 and !.currentFile.isEmpty() do
             .openFile(.currentFile.toString())
         else do
@@ -249,6 +260,7 @@ impl IWnd for ViewerWindow
         catch g_App.loadState()
         .applyTheme(.themeIndex)
         .applyLanguage()
+        .kindButton.setChecked(.folderSameKind)
         .setFilePanelVisible(.panelVisible)
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
         evt.accepted = true
@@ -265,6 +277,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
         catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
+        catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, 1)
@@ -491,9 +504,28 @@ impl ViewerWindow
             .padding         = {10, 8, 10, 8}
         }
 
-        with result.folderLabel = Label.create(result.folderPane, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        // The header carries the filter beside the folder name: the toggle changes what this
+        // list holds, and the next/previous arrows walk the same list.
+        with let folderHeader = Wnd.create'Wnd(result.folderPane, {0, 0, 0, ViewerPanelLabel})
         {
-            .dockStyle = .Top
+            .dockStyle       = .Top
+            .backgroundStyle = .Window
+        }
+
+        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, 16), {0, 0, 24, 24}, flags: .Toggle)
+        {
+            .dockStyle = .Right
+            .toolTip   = appStrings().ui_SameKind
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|window = result|(button)
+            {
+                window.setFolderSameKind(button.isChecked)
+            }
+        }
+
+        with result.folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        {
+            .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
@@ -609,6 +641,7 @@ impl ViewerWindow
             instance.view          = errorView
             instance.commands      = null
             instance.revealMatch   = null
+            instance.findText      = null
             instance.isLoading     = null
             instance.failureReason = #move message
             instance.details.clear()
@@ -645,6 +678,7 @@ impl ViewerWindow
         instance.view        = null
         instance.commands    = null
         instance.revealMatch = null
+        instance.findText    = null
         instance.isLoading   = null
         instance.details.clear()
         .currentView     = null
@@ -736,6 +770,7 @@ impl ViewerWindow
                 next.commands    = null
                 next.view        = ViewerErrorView.create(me, next.failureReason.toString())
                 next.revealMatch = null
+                next.findText    = null
                 next.isLoading   = null
                 next.details.clear()
             }
@@ -756,6 +791,7 @@ impl ViewerWindow
         instance.view          = .currentView
         instance.commands      = .currentCommands
         instance.revealMatch   = next.revealMatch
+        instance.findText      = next.findText
         instance.isLoading     = next.isLoading
         instance.details       = #move next.details
         instance.failureReason = #move next.failureReason
@@ -775,6 +811,23 @@ impl ViewerWindow
         let text = .searchBox.text()
         if !@countof(text) or .currentFile.isEmpty() do
             return
+
+        // A viewer that owns its search replaces the raw byte scan entirely: it knows what its
+        // document's text looks like where the file's bytes do not show it.
+        if .activeChoiceIndex < .instances.count
+        {
+            let instance = &.instances[.activeChoiceIndex]
+            if instance.findText and instance.view
+            {
+                .stopSearch()
+                if instance.findText!(instance.view!, text) do
+                    .updateFileInfo(instance.details.toString())
+                else do
+                    .infoStatsLabel.setText(appStrings().ui_NoMatch)
+                return
+            }
+        }
+
         let sameQuery = .searchQuery == text
         .stopSearch()
         .searchWrapped = false
@@ -797,12 +850,61 @@ impl ViewerWindow
 
     mtd hideSearch()
     {
-        .currentView?.setFocus()
+        .viewerFocusTarget()?.setFocus()
+    }
+
+    // Returns the window of the active viewer that owns the keyboard, or the viewer itself when
+    // it declares no traversal stop. A composite stop hands out its focus delegate, which is
+    // the window that actually reads the keys.
+    mtd viewerFocusTarget()->#null *Wnd
+    {
+        let view = .currentView
+        if !view do
+            return null
+        let order = FocusOrder.collect(view!)
+        let stop  = order.stops.isEmpty() ? view! : order.stops[0]!
+        return stop!.focusTarget()
+    }
+
+    // Gives the active viewer the first say on a bare navigation key, wherever the focus sits.
+    //
+    // A viewer that turns pages with the arrows keeps them even while a toolbar button holds
+    // the keyboard; only a key the viewer declines falls back to the previous or next file.
+    mtd navigateOrForward(delta: s32, evt: *KeyEvent)
+    {
+        if !.forwardingViewerKey and .forwardKeyToViewer(evt) do
+            return
+        .navigate(delta)
+    }
+
+    private mtd forwardKeyToViewer(evt: *KeyEvent)->bool
+    {
+        let target = .viewerFocusTarget()
+        if !target do
+            return false
+
+        // A key the viewer's key owner already saw and declined must not be offered twice.
+        let focused = .focusedWindow()
+        if focused and (focused! == target! or target!.isOwnerOf(focused!)) do
+            return false
+
+        let view = .currentView
+        var copy = KeyEvent{kind: evt.kind, key: evt.key, modifiers: evt.modifiers}
+        .forwardingViewerKey = true
+        defer .forwardingViewerKey = false
+        target!.sendEvent(&copy)
+
+        // A declined key bubbles back here and navigates to another file, which destroys the
+        // viewer the key was offered to; only a viewer that is still showing takes the keyboard.
+        if copy.accepted and .currentView == view do
+            target!.setFocus()
+        return copy.accepted
     }
 
     mtd updateSearchAvailability()
     {
-        let available = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].revealMatch != null
+        let active    = .activeChoiceIndex < .instances.count
+        let available = active and (.instances[.activeChoiceIndex].revealMatch != null or .instances[.activeChoiceIndex].findText != null)
         .searchBox.enable(available)
         if !available
         {
@@ -991,6 +1093,7 @@ impl ViewerWindow
         .filesButton.toolTip    = texts.ui_Files
         .previousButton.toolTip = texts.ui_Previous
         .nextButton.toolTip     = texts.ui_Next
+        .kindButton.toolTip     = texts.ui_SameKind
         .viewerCombo.toolTip    = texts.ui_Viewer
         .searchBox.setPlaceholder(texts.ui_Search)
         .recentLabel.setText(texts.ui_Recent)
@@ -1113,8 +1216,15 @@ impl ViewerWindow
         let files = catch Directory.enumerateFiles(folder) as listError
         if listError != null do
             return
-        for file in files where !file.isDirectory() do
+        for file in files
+        {
+            if file.isDirectory() do
+                continue
+            if .folderSameKind and !.index.sharesViewer(.currentFile.toString(), file.fullname.toString()) do
+                continue
             .siblings.add(file.fullname)
+        }
+
         .siblings.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
 
         for i in @countof(.siblings) where .siblings[i] == .currentFile
@@ -1124,6 +1234,19 @@ impl ViewerWindow
         }
 
         .siblingsDirty = false
+    }
+
+    // Applies the folder-navigation filter and refreshes what depends on it.
+    mtd setFolderSameKind(value: bool)
+    {
+        if .folderSameKind == value do
+            return
+        .folderSameKind = value
+        .kindButton.setChecked(value)
+        .siblingsDirty = true
+        if .panelVisible and !.currentFile.isEmpty() do
+            .refreshFileLists()
+        catch g_App.saveState()
     }
 
     mtd navigate(delta: s32)

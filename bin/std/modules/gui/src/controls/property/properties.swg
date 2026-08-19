@@ -127,40 +127,39 @@ struct Properties
             // Whether the view is restricted to fields that differ from their defaults.
             modifiedOnly: bool
         }
+    }
 
-        // Theme-derived implementation metrics. They remain private to the control so callers do not
-        // have to coordinate dependent geometry manually.
-        internal
-        {
-            // Grid and condensed presentation metrics.
-            gridLineHeight:    f32 = 32
-            gridLineMargin:    s32 = 4
-            gridColumnSize:    s32 = 150
-            gridColumnSizeReq: s32 = 150     // Requested width, re-clamped on resize.
-            gridMarginColumn:  s32 = 16
-            gridIndentSize:    s32 = 14
+    // Theme-derived implementation metrics. They remain private to the control so callers do not
+    // have to coordinate dependent geometry manually.
+    // Grid and condensed presentation metrics.
+    gridLineHeight:    f32 = 32
+    gridLineMargin:    s32 = 4
+    gridColumnSize:    s32 = 150
+    gridColumnSizeReq: s32 = 150     // Requested width, re-clamped on resize.
+    gridMarginColumn:  s32 = 16
+    gridIndentSize:    s32 = 14
 
-            // List and panel presentation metrics.
-            listNameMarginBefore: s32 = 12
-            listNameMarginAfter:  s32 = 0
-            listDescMarginAfter:  s32 = 5
+    // List and panel presentation metrics.
+    listNameMarginBefore: s32 = 12
+    listNameMarginAfter:  s32 = 0
+    listDescMarginAfter:  s32 = 5
 
-            // Inline validation message-bar metrics.
-            valBarGlyphWidth: f32 = 32
-            valBarIconSize:   f32 = 18
-            valBarPaddingX:   f32 = 12
-            valBarPaddingY:   f32 = 7
-            valBarGap:        f32 = 7
-            valBarRadius:     f32
+    // Inline validation message-bar metrics.
+    valBarGlyphWidth: f32 = 32
+    valBarIconSize:   f32 = 18
+    valBarPaddingX:   f32 = 12
+    valBarPaddingY:   f32 = 7
+    valBarGap:        f32 = 7
+    valBarRadius:     f32
 
-            leftMargin:  s32 = 15
-            rightMargin: s32 = 15
+    leftMargin:  s32 = 15
+    rightMargin: s32 = 15
 
-            fontSection:  FontFamily
-            fontCategory: FontFamily
-            fontName:     FontFamily
-        }
-
+    fontSection:  FontFamily
+    fontCategory: FontFamily
+    fontName:     FontFamily
+    public
+    {
         sigValueChanged: SigArray'func||(*Properties, #null *PropertiesItem)     // Emitted after an edited value changes; item is null for detached undo/redo.
 
         // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
@@ -176,73 +175,62 @@ struct Properties
         #[Swag.Late]
         readonly
         scrollWnd: *ScrollWnd
-
-        // View the rows are painted in, established when the grid is created.
-        #[Swag.Late]
-        internal
-        edView: *PropertiesView
-
-        // Grid state rebuilt from the rows: section index, hover and selection, and the transient
-        // state of one gesture. The grid maintains all of it.
-        internal
-        {
-            sections: Array'{ item: #null *PropertiesItem, lvl: s32 }     // Section rows and their depth.
-
-            // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
-            // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
-            gridLevelHasMark:    Array'bool                // Whether any row at that depth shows a triangle.
-            hotItem:             #null *PropertiesItem     // Row under the mouse.
-            currentSectionIndex: u32 = Swag.U32.Max        // Section the viewport is scrolled to.
-            stringFilter:        String                    // Active row filter.
-            cursorSet:           bool                      // Whether the grid set the cursor this frame.
-            resizingColumn:      bool                      // Whether a column-resize drag is in progress.
-            aniBar:              BlendColor                // Animation of the live column-resize rule.
-            editPopup:           #null *Wnd                // Popup owned by the row being edited.
-
-            // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
-            // instance per added struct, freed on destroy; every row's defaultData points into it.
-            defaultRoots: Array'PropDefaultRoot     // One default-constructed instance per added struct.
-        }
-
-        // Row the context menu currently operates on. Read by the ActionProperties commands (and
-        // any keyboard/toolbar trigger of the same commands); kept set across the async command
-        // dispatch that follows doModal.
-        internal
-        menuItem: #null *PropertiesItem
-
-        // Undo/redo (propertiesundo.swg). Every field edit committed through commitItemChange records
-        // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
-        // while a command is restoring a value. externUndoMgr, when set, receives the commands
-        // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
-        // of one slider drag into a single command. generation stamps the grid content: it bumps on
-        // clear so commands recorded against dropped rows skip their row refresh.
-        internal
-        externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
-        internal
-        undoEnabled:   bool = true     // Whether edits record undo commands.
-
-        // Recording state of the undo timeline the grid owns.
-        internal
-        {
-            undoMgr:      UndoManager                // Commands recorded by this grid.
-            applyingUndo: bool                       // Whether a command is restoring a value right now.
-            generation:   u64                        // Content stamp, bumped by 'clear'.
-            dragItem:     #null *PropertiesItem      // Row of the slider drag being coalesced.
-            dragCmd:      #null *PropUndoCommand     // Command the drag accumulates into.
-        }
-
-        // Host-level notify interface (setNotify): consulted for every row, in addition to the
-        // per-struct IPropertyNotify implementations bound at build time. This is how a host that
-        // does not own the displayed structs (an editor panel showing a document's objects) plugs
-        // dynamic visibility, validation and change reactions.
-        internal
-        hostNtfy: #null IPropertyNotify
-
-        // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
-        // explicit Properties.Name attribute get a row.
-        internal
-        buildOnlyNamed: bool
     }
+
+    // View the rows are painted in, established when the grid is created.
+    #[Swag.Late]
+    edView: *PropertiesView
+
+    // Grid state rebuilt from the rows: section index, hover and selection, and the transient
+    // state of one gesture. The grid maintains all of it.
+    sections: Array'{ item: #null *PropertiesItem, lvl: s32 }     // Section rows and their depth.
+
+    // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
+    // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
+    gridLevelHasMark:    Array'bool                // Whether any row at that depth shows a triangle.
+    hotItem:             #null *PropertiesItem     // Row under the mouse.
+    currentSectionIndex: u32 = Swag.U32.Max        // Section the viewport is scrolled to.
+    stringFilter:        String                    // Active row filter.
+    cursorSet:           bool                      // Whether the grid set the cursor this frame.
+    resizingColumn:      bool                      // Whether a column-resize drag is in progress.
+    aniBar:              BlendColor                // Animation of the live column-resize rule.
+    editPopup:           #null *Wnd                // Popup owned by the row being edited.
+
+    // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
+    // instance per added struct, freed on destroy; every row's defaultData points into it.
+    defaultRoots: Array'PropDefaultRoot     // One default-constructed instance per added struct.
+
+    // Row the context menu currently operates on. Read by the ActionProperties commands (and
+    // any keyboard/toolbar trigger of the same commands); kept set across the async command
+    // dispatch that follows doModal.
+    menuItem: #null *PropertiesItem
+
+    // Undo/redo (propertiesundo.swg). Every field edit committed through commitItemChange records
+    // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
+    // while a command is restoring a value. externUndoMgr, when set, receives the commands
+    // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
+    // of one slider drag into a single command. generation stamps the grid content: it bumps on
+    // clear so commands recorded against dropped rows skip their row refresh.
+    externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
+
+    undoEnabled: bool = true     // Whether edits record undo commands.
+
+    // Recording state of the undo timeline the grid owns.
+    undoMgr:      UndoManager                // Commands recorded by this grid.
+    applyingUndo: bool                       // Whether a command is restoring a value right now.
+    generation:   u64                        // Content stamp, bumped by 'clear'.
+    dragItem:     #null *PropertiesItem      // Row of the slider drag being coalesced.
+    dragCmd:      #null *PropUndoCommand     // Command the drag accumulates into.
+
+    // Host-level notify interface (setNotify): consulted for every row, in addition to the
+    // per-struct IPropertyNotify implementations bound at build time. This is how a host that
+    // does not own the displayed structs (an editor panel showing a document's objects) plugs
+    // dynamic visibility, validation and change reactions.
+    hostNtfy: #null IPropertyNotify
+
+    // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
+    // explicit Properties.Name attribute get a row.
+    buildOnlyNamed: bool
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points

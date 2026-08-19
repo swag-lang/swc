@@ -19,7 +19,7 @@ struct PropertiesCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-        public readonly
+        readonly
         {
             #[Swag.Late]
             splitter: *SplitterCtrl     // Splitter associated with this value.
@@ -35,7 +35,7 @@ struct PropertiesCtrl
             properties: *Properties     // Property editor owned by this control.
         }
 
-        public readonly
+        readonly
         flags: PropertiesCtrlFlags     // Active optional UI features.
     }
 }

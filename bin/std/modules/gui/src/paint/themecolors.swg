@@ -1224,7 +1224,11 @@ impl ThemeColors
         result.text      = 0xFFE9E9ED
         result.softText  = 0xFFB4B4BE
         result.faintText = 0xFF91919D
-        result.disabled  = 0xFF91919D
+
+        // The ink ladder has to keep stepping down past its faintest rung: a disabled control
+        // wearing the placeholder ink reads as available. This sits at the contrast the neutral
+        // palettes give their own disabled ink, about two and a half times the panel.
+        result.disabled = 0xFF60606A
 
         // The two identity tones, written exactly as the light palette writes them. Both fill
         // with a color bright enough to carry ink, and on ink both already point with it, so
@@ -1309,7 +1313,10 @@ impl ThemeColors
         result.text      = 0xFF1B1B1D
         result.softText  = 0xFF55555C
         result.faintText = 0xFF83838D
-        result.disabled  = 0xFF83838D
+
+        // Same rule as the dark palette: disabled is one real step past the faintest ink, at
+        // the weight the neutral light palette greys its unavailable controls with.
+        result.disabled = 0xFFA6A6B0
 
         // Character for character what the dark palette writes. Both blocks come through
         // untouched — Voltage under ink is the most recognizable thing the chart owns, and the

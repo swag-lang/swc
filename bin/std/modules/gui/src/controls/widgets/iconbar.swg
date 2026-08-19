@@ -16,7 +16,7 @@ struct IconBar
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        public readonly
+        readonly
         {
             orientation      = IconBarOrientation.Horizontal     // Current button layout axis.
             iconSize:    f32                                     // Square icon size in logical units.

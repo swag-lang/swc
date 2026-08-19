@@ -21,14 +21,11 @@ public struct Job
     {
         lambda: #null func(#null *void)     // Callback invoked once, or `null` for a no-op job.
         data:   #null *void                 // Opaque caller-owned context passed to `lambda`.
-
-        // Scheduling state, owned by the job manager that runs the job.
-        internal
-        {
-            state:        u32 = 0                // Encoded scheduler state.
-            pendingIndex: u32 = Swag.U32.Max     // Slot of the job in the pending list.
-        }
     }
+
+    // Scheduling state, owned by the job manager that runs the job.
+    state:        u32 = 0                // Encoded scheduler state.
+    pendingIndex: u32 = Swag.U32.Max     // Slot of the job in the pending list.
 }
 
 // Expansion-only storage used by [[Core.Jobs.parallelVisit]].

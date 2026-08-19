@@ -146,3 +146,51 @@ Entries are sorted by identifier, ascending; position carries no priority.
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
+
+### F-163 — Destructuring assignment into fields leaks the old values and double-drops the temporary
+
+- Area: compiler (Sema/CodeGen of `{a.x, a.y} = call()` — the assignment form, not the declaration)
+- Found while: adding a context menu to RichEdit; the `ClipboardCut` path corrupted the heap and
+  the debug allocator reported "memory block is freed twice" when the undo record was released.
+- Observation: `{holder.first, holder.second} = makeTuple(...)` with droppable field types gets
+  the ownership wrong twice. The old target values are never dropped (leak), and the temporary's
+  fields are dropped after their bits were bit-copied into the targets, so target and temporary
+  own the same payload. A later drop of the receiver frees that payload a second time. With
+  `Core.Array` fields the debug allocator panics; the declaration form (`var {a, b} = call()`,
+  covered by `bin/unittests/jit/operators/temporary_drop.swg`) transfers correctly.
+- Evidence: standalone reproducer, fails in JIT with the release 0.1.153 compiler (`swc test -d`),
+  no Core needed. Drop-count assertions alone cannot see it — the wrong values die with the right
+  count — the per-value trace is what discriminates:
+
+  ```swag
+  var DropTrace: s64
+  struct Owner { value: s32, pad: [3] s64 }
+  impl Owner { mtd opDrop() { DropTrace = DropTrace * 10 + cast(s64) .value } }
+  struct Holder { first: Owner, second: Owner }
+  #[Swag.NoInline]
+  func makeTuple(first, second: s32)->{ x: Owner, y: Owner }
+  {
+      var result: retval
+      result.x.value = first
+      result.y.value = second
+      return result
+  }
+  #test
+  {
+      var holder: Holder
+      holder.first.value  = 8
+      holder.second.value = 9
+      {holder.first, holder.second} = makeTuple(4, 5)
+      @assert(DropTrace == 89 or DropTrace == 98)     // FAILS: the temporary's 4/5 die instead
+  }
+  ```
+
+  In-tree witness: `bin/std/modules/gui/src/controls/richedit/selection.swg`
+  `deleteSelectionPrivate` used `{undo.runes, undo.styles} = .textRangeData(...)`; running
+  `richedit.test.swg` in `-bc debug` panicked "memory block is freed twice" in `clearUndo`. It now
+  uses `var range = ...; undo.runes = #move range.text` as the correct spelling, which also keeps
+  working after the fix.
+- Next step: route the assignment form through the same per-field transfer the declaration form
+  uses (drop the old target, move the field out of the temporary, neutralize the temporary's
+  field), then land the reproducer as `bin/unittests/jit/operators/temporary_drop.swg`'s missing
+  case plus its `native` twin, asserting the drop *trace*, not the drop count.

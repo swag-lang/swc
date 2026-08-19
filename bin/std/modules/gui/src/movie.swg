@@ -22,25 +22,22 @@ struct Movie
         sigFrameChanged:      SigArray'func||(*Movie)     // Signal emitted after the visible frame changes.
 
         // Where the movie is. The playback advances all three; seek with 'setFrame'.
-        public readonly
+        readonly
         {
             frameCount: s32       // Number of frames exposed by the source.
             frameIndex: s32       // Frame currently decoded.
             frame:      Image     // Pixels of the current frame.
         }
-
-        // The source the frames come from, and the decoding state that walks it.
-        internal
-        {
-            source:              MovieSource = None     // Kind of source the movie plays.
-            imgList:             ImageList              // Frames of an image-list source.
-            gif:                 Gif.Decoder            // Decoder of a GIF source.
-            bytes:               Array'u8               // Encoded bytes of the source.
-            cachedFrames:        Array'Image            // Decoded GIF frames retained when caching is enabled.
-            elapsedFrameSeconds: f32                    // Time accumulated toward the next frame.
-            dirtyFrame:          bool                   // Whether a seek changed the current frame.
-        }
     }
+
+    // The source the frames come from, and the decoding state that walks it.
+    source:              MovieSource = None     // Kind of source the movie plays.
+    imgList:             ImageList              // Frames of an image-list source.
+    gif:                 Gif.Decoder            // Decoder of a GIF source.
+    bytes:               Array'u8               // Encoded bytes of the source.
+    cachedFrames:        Array'Image            // Decoded GIF frames retained when caching is enabled.
+    elapsedFrameSeconds: f32                    // Time accumulated toward the next frame.
+    dirtyFrame:          bool                   // Whether a seek changed the current frame.
 }
 
 private impl Movie

@@ -190,20 +190,19 @@ struct Theme
         // The tokens the colors were derived from. A theme sheet that names one of them
         // re-derives the whole palette, which is what makes a theme file thirty lines rather
         // than three hundred; a sheet that names a color instead overrides that one part.
-        public readonly
+        readonly
         palette: ThemePalette
 
         // Whether the theme was set up. A theme is established once against a renderer, so the
         // flag is a result to read, never a switch to flip.
-        public readonly
+        readonly
         initialized: bool
-
-        // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
-        // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
-        #[Swag.Late]
-        internal
-        fonts: *Pixel.FontCache
     }
+
+    // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
+    // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
+    #[Swag.Late]
+    fonts: *Pixel.FontCache
 }
 
 impl Theme

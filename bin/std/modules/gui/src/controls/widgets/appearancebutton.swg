@@ -23,7 +23,7 @@ struct AppearanceButton
         sigThemeChanged:    SigArray'func||(*AppearanceButton)     // Emitted after the user changes the theme.
         sigLanguageChanged: SigArray'func||(*AppearanceButton)     // Emitted after the user changes the language.
 
-        public readonly
+        readonly
         {
             appearanceTheme = AppearanceTheme.Dark     // Theme currently selected by the control.
             language: String                           // Registered language tag, or empty to follow the system.

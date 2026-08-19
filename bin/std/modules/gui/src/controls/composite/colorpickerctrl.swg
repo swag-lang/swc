@@ -31,7 +31,7 @@ struct ColorPickerCtrl
 
         sigColorChanged: SigArray'func||(*ColorPickerCtrl)     // Emitted once after the selected color changes.
 
-        public readonly
+        readonly
         {
             originalColor: Color                                // Color captured by the first `setColor` call.
             selectedColor: Color                                // Current selected color.
@@ -57,12 +57,9 @@ struct ColorPickerCtrl
                 radioB:    *RadioButton     // Blue mode selector.
             }
         }
-
-        internal
-        {
-            hasOriginalColor: bool     // Whether the first assigned color has been captured.
-        }
     }
+
+    hasOriginalColor: bool     // Whether the first assigned color has been captured.
 }
 
 impl IWnd for ColorPickerCtrl

@@ -29,6 +29,13 @@ struct HtmlPainter
     searchEnd:   u64
     selection:   Color
 
+    // The reader's selection, normalized to document order. Both bounds are a text node plus a
+    // byte offset into that node's source text, the same coordinates the search hit uses.
+    selStartNode = HtmlNoNode
+    selEndNode   = HtmlNoNode
+    selStartOffset: u64
+    selEndOffset:   u64
+
     scrollTrack:    Color
     scrollThumb:    Color
     scrollBarSize:  f32
@@ -401,6 +408,7 @@ impl HtmlPainter
                 .painter.fillRect({x, y - padTop, item.width, item.ascent + item.descent + padTop + padBottom}, HtmlPainter.withAlpha(style.background, alpha))
             }
 
+            .paintSelectionHit(item, alpha, x, y)
             .paintSearchHit(item, alpha, x, y)
 
             if item.kind == .Space
@@ -471,6 +479,59 @@ impl HtmlPainter
         .paintTextRun(clipped.toString(), style, font, ink, x, y)
     }
 
+    // Returns the horizontal span a source-offset range covers inside an item, measured with the
+    // same font the item is drawn with. An item whose drawn text no longer maps one-to-one onto
+    // its source range answers with its whole width.
+    private mtd coveredSpan(item: const *HtmlInlineItem, rangeStart, rangeEnd: u64, x: f32)->{ left: f32, width: f32 }
+    {
+        var result: retval
+        result.left  = x
+        result.width = item.width
+
+        let sourceLength = item.sourceEnd - item.sourceStart
+        if sourceLength == @countof(item.text) and sourceLength
+        {
+            let start = Math.max(rangeStart, item.sourceStart) - item.sourceStart
+            let end   = Math.min(rangeEnd, item.sourceEnd) - item.sourceStart
+
+            // A range that starts before this item has an empty prefix, and an empty range cannot
+            // reach a user opSlice: its inclusive upper bound would underflow.
+            if start do
+                result.left += .layout.measure(item.style, item.text[0 until start])
+            result.width = start < end ? .layout.measure(item.style, item.text[start until end]) : 0
+        }
+
+        return result
+    }
+
+    // Returns the part of the selection falling inside one node's source text, in that node's
+    // offsets. Node identifiers grow in document order, which is what lets a range spanning
+    // several nodes cover every node between its two ends.
+    private mtd const selectionRangeInNode(node: u32)->{ start: u64, end: u64, has: bool }
+    {
+        var result: retval
+        if node == HtmlNoNode or .selStartNode == HtmlNoNode or .selEndNode == HtmlNoNode do
+            return result
+        if node < .selStartNode or node > .selEndNode do
+            return result
+
+        result.start = node == .selStartNode ? .selStartOffset : 0
+        result.end   = node == .selEndNode ? .selEndOffset : Swag.U64.Max
+        result.has   = result.end > result.start
+        return result
+    }
+
+    // Paints the part of a text run the reader selected, behind the run itself.
+    private mtd paintSelectionHit(item: const *HtmlInlineItem, alpha: f32, x: f32, y: f32)
+    {
+        let range = .selectionRangeInNode(item.node)
+        if !range.has or range.end <= item.sourceStart or range.start >= item.sourceEnd do
+            return
+
+        let span = .coveredSpan(item, range.start, range.end, x)
+        .paintRunBand(item, span.left, span.width, alpha, y)
+    }
+
     // Marks the part of a text run covered by the current find result. Source offsets remain on
     // each inline item, so a match split by wrapping or inline markup still paints continuously.
     private mtd paintSearchHit(item: const *HtmlInlineItem, alpha: f32, x: f32, y: f32)
@@ -478,17 +539,13 @@ impl HtmlPainter
         if item.node != .searchNode or .searchEnd <= item.sourceStart or .searchStart >= item.sourceEnd do
             return
 
-        var left         = x
-        var width        = item.width
-        let sourceLength = item.sourceEnd - item.sourceStart
-        if sourceLength == @countof(item.text) and sourceLength
-        {
-            let start = Math.max(.searchStart, item.sourceStart) - item.sourceStart
-            let end   = Math.min(.searchEnd, item.sourceEnd) - item.sourceStart
-            left  += .layout.measure(item.style, item.text[0 until start])
-            width = .layout.measure(item.style, item.text[start until end])
-        }
+        let span = .coveredSpan(item, .searchStart, .searchEnd, x)
+        .paintRunBand(item, span.left, span.width, alpha, y)
+    }
 
+    // Fills the highlight band a marked part of a run sits on.
+    private mtd paintRunBand(item: const *HtmlInlineItem, left, width, alpha, y: f32)
+    {
         if width <= 0 do
             return
         let padTop    = item.ascent * 0.28
@@ -1016,5 +1073,183 @@ impl HtmlPainter
             return child
 
         return .layout.constBox(box).scrollable ? box : HtmlNoNode
+    }
+}
+
+// One position inside the document's text, as hit testing answers it.
+struct HtmlTextHit
+{
+    node = HtmlNoNode     // Text node the position belongs to.
+    offset:   u64         // Byte offset into that node's source text.
+    distance: f32         // How far the queried point was from the run that answered.
+}
+
+// Text hit testing and selection extraction.
+impl HtmlPainter
+{
+    // Returns the text position nearest to a canvas point.
+    //
+    // A point inside a run answers exactly; a point beside a line snaps to the closest run of
+    // that line, so a drag that leaves the text keeps selecting the line it travels along.
+    mtd textPositionAt(point: Math.Point)->HtmlTextHit
+    {
+        var result: retval
+        result.distance = Swag.F32.Max
+        if .layout.root != HtmlNoNode do
+            .textHitBox(.layout.root, point, {0, -.scrollY}, &result)
+        return result
+    }
+
+    private mtd textHitBox(box: u32, point: Math.Point, parentOffset: Math.Point, best: *HtmlTextHit)
+    {
+        let style = .layout.constStyle(.layout.constBox(box).style)
+        if !style.visible or style.display == .None do
+            return
+
+        var offset = parentOffset
+        offset.y += .stickyOffset(box, parentOffset)
+
+        var rect = .layout.constBox(box).rect
+        rect.offset(offset.x, offset.y)
+
+        var inner = offset
+        if style.overflowX != .Visible or style.overflowY != .Visible
+        {
+            if !rect.contains(point) do
+                return
+            inner.y -= .layout.constBox(box).scrollTop
+        }
+
+        let target = .layout.constBox(box)
+        for index in target.items.count
+        {
+            let item = &target.items[index]
+            if !item.visible do
+                continue
+
+            if item.kind == .Atomic
+            {
+                if item.box != HtmlNoNode do
+                    .textHitBox(item.box, point, inner, best)
+                continue
+            }
+
+            if item.node == HtmlNoNode or item.sourceEnd <= item.sourceStart do
+                continue
+
+            let frame = Math.Rectangle{item.x + inner.x, item.y + inner.y, item.width, item.ascent + item.descent}
+            if frame.contains(point)
+            {
+                best.node     = item.node
+                best.offset   = .offsetAtRun(item, point.x - frame.x)
+                best.distance = 0
+                continue
+            }
+
+            // A run on the pointed line beats every run of another line, however close.
+            var dx = 0.0'f32
+            if point.x < frame.x do
+                dx = frame.x - point.x
+            elif point.x > frame.right() do
+                dx = point.x - frame.right()
+            var dy = 0.0'f32
+            if point.y < frame.y do
+                dy = frame.y - point.y
+            elif point.y > frame.bottom() do
+                dy = point.y - frame.bottom()
+
+            let distance = dy * 4096 + dx
+            if distance < best.distance
+            {
+                best.node     = item.node
+                best.offset   = point.x < frame.x ? item.sourceStart : item.sourceEnd
+                best.distance = distance
+            }
+        }
+
+        for child in target.children do
+            .textHitBox(child, point, inner, best)
+    }
+
+    // Returns the source offset nearest to a horizontal position inside a run, on the rune
+    // boundary the midpoint rule selects.
+    private mtd offsetAtRun(item: const *HtmlInlineItem, localX: f32)->u64
+    {
+        let sourceLength = item.sourceEnd - item.sourceStart
+        if sourceLength != @countof(item.text) or !sourceLength do
+            return localX < item.width * 0.5 ? item.sourceStart : item.sourceEnd
+
+        let source   = item.text.toString()
+        var end      = 0'u64
+        var previous = 0.0'f32
+        while end < @countof(source)
+        {
+            let {?, eat} = Utf8.decodeRune(source[end to])
+            let next     = end + eat
+            let width    = .layout.measure(item.style, source[0 until next])
+            if width >= localX do
+                return localX - previous < width - localX ? item.sourceStart + end : item.sourceStart + next
+            previous = width
+            end      = next
+        }
+
+        return item.sourceEnd
+    }
+
+    // Appends the selected text in reading order, one space per soft line break and one line
+    // per block, which is the plain-text shape a reader expects from a copied page.
+    mtd collectSelection(result: *String)
+    {
+        if .layout.root == HtmlNoNode or .selStartNode == HtmlNoNode do
+            return
+        var lastBox = HtmlNoNode
+        var lastY   = 0.0'f32
+        .collectBox(.layout.root, result, &lastBox, &lastY)
+    }
+
+    private mtd collectBox(box: u32, result: *String, lastBox: *u32, lastY: *f32)
+    {
+        let target = .layout.constBox(box)
+        for index in target.items.count
+        {
+            let item = &target.items[index]
+            if item.kind == .Atomic
+            {
+                if item.box != HtmlNoNode do
+                    .collectBox(item.box, result, lastBox, lastY)
+                continue
+            }
+
+            if !item.visible or item.node == HtmlNoNode do
+                continue
+            let range = .selectionRangeInNode(item.node)
+            if !range.has or range.end <= item.sourceStart or range.start >= item.sourceEnd do
+                continue
+
+            if lastBox[] != HtmlNoNode
+            {
+                if lastBox[] != box do
+                    result[] += "\n"
+                elif item.y != lastY[] do
+                    result[] += " "
+            }
+
+            let sourceLength = item.sourceEnd - item.sourceStart
+            if sourceLength == @countof(item.text) and sourceLength
+            {
+                let start = Math.max(range.start, item.sourceStart) - item.sourceStart
+                let end   = Math.min(range.end, item.sourceEnd) - item.sourceStart
+                if start < end do
+                    result[] += item.text[start until end]
+            }
+            else do
+                result[] += item.text
+
+            lastBox[] = box
+            lastY[]   = item.y
+        }
+
+        for child in target.children do
+            .collectBox(child, result, lastBox, lastY)
     }
 }

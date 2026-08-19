@@ -191,3 +191,135 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     @assert(view.pageCount() == 0)
     @assert(!view.hasTextures and view.imageTextures.count == 0)
 }
+
+// The text index reads a page the way a reader does: lines top to bottom, words separated by
+// their gaps, positions and rectangles answering in page space.
+#test
+{
+    var page = Page.create(320, 220)
+    page.addText("alpha beta", 40, 40, 20, Color.fromArgb(Argb.Black))
+    page.addText("gamma", 40, 80, 20, Color.fromArgb(Argb.Black))
+
+    let index = TextIndex.build(&page)
+    @assert(index.text == "alpha beta\ngamma")
+    @assert(index.runs.count == 2)
+
+    // A point inside the first glyph answers its exact offset.
+    let hit = index.positionAt({41, 50})
+    @assert(hit.distance == 0)
+    @assert(hit.offset == 0)
+
+    // A point far to the right of a line snaps to that line's end.
+    let far = index.positionAt({300, 50})
+    @assert(far.offset == 10)
+
+    let word = index.wordRangeAt(7)
+    @assert(index.text.toString()[word.start until word.end] == "beta")
+
+    var rects: Array'Math.Rectangle
+    index.rangeRects(0, 5, &rects)
+    @assert(rects.count == 1)
+    @assert(rects[0].x >= 39 and rects[0].x <= 41)
+    @assert(rects[0].y >= 39 and rects[0].y <= 41)
+}
+
+// Selection on the view: a drag over words takes them, a double click takes one word, and the
+// clipboard receives what the page shows.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(fileName.toString())
+    view.resize(640, 420)
+    view.applyLayout()
+
+    // Page-space (32, 28)-(32+w, 52) holds "PDF viewer"; aim inside it through the fit scale.
+    let scale   = view.effectiveZoom()
+    let client  = view.paddedClientRect()
+    let size    = view.pageSize()
+    let originX = client.horzCenter() - size.x * scale * 0.5 + view.panOffset.x
+    let originY = client.vertCenter() - size.y * scale * 0.5 + view.panOffset.y
+
+    let dragFrom = view.localToSurface(Math.Point{originX + 33 * scale, originY + 40 * scale})
+    let dragTo   = view.localToSurface(Math.Point{originX + 300 * scale, originY + 40 * scale})
+    host.drag(dragFrom, dragTo)
+    @assert(view.hasSelection())
+    @assert(view.selectedText() == "PDF viewer")
+    @assert(view.copySelection())
+    @assert(Clipboard.getString() == "PDF viewer")
+
+    host.doubleClick(dragFrom)
+    @assert(view.selectedText() == "PDF")
+
+    view.clearSelection()
+    @assert(!view.hasSelection())
+    @assert(!view.copySelection())
+
+    view.selectAll()
+    @assert(view.selectedText() == "PDF viewer")
+}
+
+// Search scans forward from the current page, wraps once around the document, and turns the
+// match into the visible selection.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(fileName.toString())
+    view.resize(640, 420)
+    view.applyLayout()
+
+    @assert(view.findText("second"))
+    @assert(view.pageIndex == 1)
+    @assert(view.selectedText() == "Second")
+
+    // The same query keeps walking and comes back around to the only match.
+    @assert(view.findText("second"))
+    @assert(view.pageIndex == 1)
+    @assert(view.selectedText() == "Second")
+
+    // A match behind the current page is reached through the wrap.
+    @assert(view.findText("viewer"))
+    @assert(view.pageIndex == 0)
+    @assert(view.selectedText() == "viewer")
+
+    @assert(!view.findText("absent"))
+}
+
+// The context menu reaches the same selection commands the keyboard binds.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(fileName.toString())
+    view.resize(640, 420)
+    view.applyLayout()
+
+    host.clickPopupMenuItemWhenShown(PdfView.CtxSelectAll)
+    view.showContextMenu({100, 100})
+    host.pump()
+    @assert(view.selectedText() == "PDF viewer")
+
+    host.clickPopupMenuItemWhenShown(PdfView.CtxCopy)
+    view.showContextMenu({100, 100})
+    host.pump()
+    @assert(Clipboard.getString() == "PDF viewer")
+}

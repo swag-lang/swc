@@ -23,13 +23,12 @@ struct SplitterItem
         maximumSize:  f32 = 0          // Maximum size, or zero for no upper bound.
         label:        #null *Label     // Optional pane title managed by the splitter.
         preserveSize: bool             // Whether other panes absorb resize changes first.
-        internal
-        visible           = true     // Whether the pane participates in layout.
-
-        // Color animation of the bar that follows this pane.
-        internal
-        aniBar: BlendColor
     }
+
+    visible = true     // Whether the pane participates in layout.
+
+    // Color animation of the bar that follows this pane.
+    aniBar: BlendColor
 }
 
 // Arranges resizable panes separated by draggable dividers.
@@ -45,16 +44,13 @@ struct SplitterCtrl
         // the layout follow.
         readonly
         items: ArrayPtr'SplitterItem
-
-        // Hover and drag state of one gesture over a bar, and the pane count the layout derived.
-        internal
-        {
-            correctMoving:   f32      // Grab offset inside the bar, kept for the drag.
-            hotIdx = Swag.U32.Max     // Bar under the mouse.
-            moving:          bool     // Whether a bar drag is in progress.
-            numVisiblePanes: s32      // Panes the last layout actually placed.
-        }
     }
+
+    // Hover and drag state of one gesture over a bar, and the pane count the layout derived.
+    correctMoving:   f32      // Grab offset inside the bar, kept for the drag.
+    hotIdx = Swag.U32.Max     // Bar under the mouse.
+    moving:          bool     // Whether a bar drag is in progress.
+    numVisiblePanes: s32      // Panes the last layout actually placed.
 }
 
 impl IWnd for SplitterCtrl

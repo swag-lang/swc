@@ -36,18 +36,20 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group" open>
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">2</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">3</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Video">Video</a></li>
 <li><a href="#namespace_Video_Avi">Video.Avi</a></li>
+<li><a href="#namespace_Video_Mp4">Video.Mp4</a></li>
 </ul>
 </details>
 <details class="toc-group" open>
-<summary><span class="toc-label">Types</span><span class="toc-count">11</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">12</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a></li>
+<li><a href="#Video_Mp4_EncodeOptions">Mp4.EncodeOptions</a></li>
 <li><a href="#Video_Clip">Video.Clip</a></li>
 <li><a href="#Video_FrameRate">Video.FrameRate</a></li>
 <li><a href="#Video_IDecoder">Video.IDecoder</a></li>
@@ -162,13 +164,14 @@
 <span class="SKwd">var</span> picture: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>
 <span class="SLgc">for</span> index <span class="SLgc">in</span> reader.<span class="SFct">frameCount</span>() <span class="SLgc">do</span>
     <span class="SKwd">try</span> reader.<span class="SFct">decodeFrameInto</span>(&amp;picture, index)</span></div>
-<p>A format is a codec registered against <a href="#Video_IDecoder">Video.IDecoder</a> and <a href="#Video_IEncoder">Video.IEncoder</a>, selected by filename extension; both read and write through <a href="#Video_Source">Video.Source</a> and <a href="#Video_Sink">Video.Sink</a>, which are what make a codec independent of files and memory alike. Two codecs ship in the box:</p>
+<p>A format is a codec registered against <a href="#Video_IDecoder">Video.IDecoder</a> and <a href="#Video_IEncoder">Video.IEncoder</a>, selected by filename extension; both read and write through <a href="#Video_Source">Video.Source</a> and <a href="#Video_Sink">Video.Sink</a>, which are what make a codec independent of files and memory alike. Three codecs ship in the box:</p>
 <ul>
 <li>YUV4MPEG2 (<span class="code-inline">.y4m</span>) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 YCbCr frames and writes 4:4:4 ones. It does not compress, so it favors a small implementation over the size of what it produces.</li>
 <li>AVI (<span class="code-inline">.avi</span>) reads Motion JPEG and uncompressed frames and writes Motion JPEG ones. It seeks through the index the container carries rather than through the frames themselves, so a seek costs one frame whatever the length of the file.</li>
+<li>ISO-BMFF (<span class="code-inline">.mp4</span>, <span class="code-inline">.m4v</span>, and <span class="code-inline">.mov</span>) reads and writes Motion JPEG tracks. It expands the movie's sample tables into direct frame offsets, ignores non-video tracks, and accepts the <span class="code-inline">jpeg</span>, <span class="code-inline">mjpg</span>, <span class="code-inline">mjpa</span>, and JPEG-tagged <span class="code-inline">mp4v</span> forms.</li>
 </ul>
-<p>Decoding and encoding are separate implementations of a format, under <span class="code-inline">src/decode</span> and <span class="code-inline">src/encode</span>, laid out as the Pixel image codecs are. A format that has something to choose takes an options structure the same way they do, such as <a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a>.</p>
-<p>Neither format carries audio. Alpha is discarded during encoding, and decoded frames use <a href="std.pixel.html#Pixel_PixelFormat_RGB8">Pixel.PixelFormat.RGB8</a>. Malformed streams, unsupported codecs, inconsistent frames, and file access errors use Swag's normal <span class="code-inline">fail</span> mechanism.</p>
+<p>Decoding and encoding are separate implementations of a format, under <span class="code-inline">src/decode</span> and <span class="code-inline">src/encode</span>, laid out as the Pixel image codecs are. A format that has something to choose takes an options structure the same way they do, such as <a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a> and <a href="#Video_Mp4_EncodeOptions">Mp4.EncodeOptions</a>.</p>
+<p>The reader does not expose audio tracks. MP4 tracks using H.264 or another inter-frame codec fail as unsupported rather than being mistaken for pictures. Alpha is discarded during encoding, and decoded frames use <a href="std.pixel.html#Pixel_PixelFormat_RGB8">Pixel.PixelFormat.RGB8</a>. Malformed streams, unsupported codecs, inconsistent frames, and file access errors use Swag's normal <span class="code-inline">fail</span> mechanism.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Reading_and_writing_video">Reading and writing video</h2>
 <p>A video is read as a stream and written as a stream. <a href="#Video_Reader">Video.Reader</a> opens a file by reading its header alone and decodes one frame at a time; <a href="#Video_Writer">Video.Writer</a> encodes one frame at a time into its destination. Neither ever holds the encoded stream, so a video of any length costs the memory of a single frame. <a href="#Video_Clip">Video.Clip</a> is the other half: the frames a program builds in memory before encoding them.</p>
@@ -191,27 +194,30 @@
 <tbody>
 <tr><td><span class="code-inline">.y4m</span></td><td>8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr</td><td>4:4:4 planar YCbCr</td><td>Nothing is lost, and nothing is compressed either: one second of 720p costs about forty megabytes.</td></tr>
 <tr><td><span class="code-inline">.avi</span></td><td>Motion JPEG, and uncompressed 24- and 32-bit frames</td><td>Motion JPEG</td><td>Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses.</td></tr>
+<tr><td><span class="code-inline">.mp4</span>, <span class="code-inline">.m4v</span>, <span class="code-inline">.mov</span></td><td>Motion JPEG in ISO-BMFF sample tables</td><td>Motion JPEG</td><td>Every frame is independently seekable. H.264 and other inter-frame codecs are identified and refused until their picture decoders exist.</td></tr>
 </tbody>
 </table>
-<p>Both code every frame on its own, so both seek anywhere at the cost of one frame: YUV4MPEG2 computes the offset from the constant size of a frame, and AVI reads it from the index the container carries. Neither holds a decoded frame between two calls, which is why decoding a stream out of order costs the same as decoding it in order.</p>
+<p>All three code every frame on its own, so they seek anywhere at the cost of one frame: YUV4MPEG2 computes the offset from the constant size of a frame, AVI reads it from the index the container carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens. None holds a decoded frame between two calls, which is why decoding a stream out of order costs the same as decoding it in order.</p>
 <h3 id="guide_Reading_and_writing_video_Controlling_how_a_stream_is_encoded">Controlling how a stream is encoded</h3>
 <p>A format that has something to configure takes an options structure, exactly as the Pixel image encoders do. Pass it to <a href="#Video_Clip_save">Video.Clip.save</a>, <a href="#Video_Clip_encode">Video.Clip.encode</a> or <a href="#Video_Writer_create">Video.Writer.create</a>; passing nothing takes the defaults of the selected format.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">try</span> clip.<span class="SFct">save</span>(<span class="SStr">"capture.avi"</span>, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst"><a href="#Video_Avi_EncodeOptions">EncodeOptions</a></span>{quality: <span class="SNum">80</span>})</span></div>
-<p><a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a> is the only one today, because YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">try</span> clip.<span class="SFct">save</span>(<span class="SStr">"capture.avi"</span>, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst">EncodeOptions</span>{quality: <span class="SNum">80</span>})</span></div>
+<p><a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a> and <a href="#Video_Mp4_EncodeOptions">Mp4.EncodeOptions</a> both select the JPEG quality of their Motion JPEG frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.</p>
 <h3 id="guide_Reading_and_writing_video_Adding_a_format">Adding a format</h3>
 <p>A format is a codec registered against <a href="#Video_IDecoder">Video.IDecoder</a> and <a href="#Video_IEncoder">Video.IEncoder</a> and selected by filename extension, exactly like the image codecs of the Pixel module — and laid out the same way, one file per format on each side:</p>
 <div class="code-block"><span class="SCde">src/decode/reader.swg    the registry, and Video.Reader
 src/decode/y4m.swg       Y4m.Decoder, and the layout of the format
 src/decode/avi.swg       Avi.Decoder, and the layout of the container
+src/decode/mp4.swg       Mp4.Decoder, and the ISO-BMFF sample tables
 src/encode/writer.swg    the registry, and Video.Writer
 src/encode/y4m.swg       Y4m.Encoder
-src/encode/avi.swg       Avi.Encoder</span></div>
+src/encode/avi.swg       Avi.Encoder
+src/encode/mp4.swg       Mp4.Encoder</span></div>
 <p>Decoding and encoding one format are two independent implementations that share only its binary layout, and that layout is declared on the decoding side, where reading it comes first.</p>
 <p>A codec reads through <a href="#Video_Source">Video.Source</a> and writes through <a href="#Video_Sink">Video.Sink</a>, which are what keep it independent of files and memory alike, and it implements random access itself: a fixed frame size computes an offset, an indexed container reads the index, and a format with inter-coded frames seeks to a keyframe and decodes forward.</p>
 <p>A container whose header carries a total it only learns at the end — the size of the file, the number of frames, the offset of an index — reserves that field when it writes the header and rewrites it with <a href="#Video_Sink_patch">Video.Sink.patch</a> once the last frame lands. That is what keeps a writer at the memory cost of one frame instead of the cost of the result, and it is how the AVI encoder works.</p>
 <h3 id="guide_Reading_and_writing_video_What_a_codec_is_tested_against">What a codec is tested against</h3>
-<p>Every decoding test reads a file from <span class="code-inline">src/tests/datas/</span>, and none of those files is produced by this module: a codec that only reads back what it wrote proves nothing about the files people have. The corpus holds a camera recording, sequences from the standard research collection, one clip encoded nine ways by ffmpeg, and copies of that clip with a container shape injected into them that no single writer produces. <span class="code-inline">datas/SOURCES.md</span> states where each one came from, what it exercises, and under what terms it is redistributed.</p>
-<p>Neither format has an audio stream. Audio tracks and synchronization will belong to future container codecs and will compose with the standard Audio module rather than adding a second sound implementation here.</p>
+<p>Every decoding test reads a file from <span class="code-inline">src/tests/datas/</span>, and none of those files is produced by this module: a codec that only reads back what it wrote proves nothing about the files people have. The corpus holds a camera recording, sequences from the standard research collection, one synthetic clip encoded in the tested layouts by ffmpeg, and copies of that clip with a container shape injected into them that no single writer produces. <span class="code-inline">datas/SOURCES.md</span> states where each one came from, what it exercises, and under what terms it is redistributed.</p>
+<p>The current reader exposes no audio stream. ISO-BMFF audio tracks are skipped while the Motion JPEG picture track remains playable. Audio-track decoding and synchronization will compose with the standard Audio module rather than adding a second sound implementation here.</p>
 </section>
 <section class="api-overview">
 <h2 id="api-reference">API reference</h2>
@@ -222,6 +228,7 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 <tbody>
 <tr><td class="code-type"><a href="#namespace_Video">Video</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Video_Avi">Video.Avi</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Video_Mp4">Video.Mp4</a></td></tr>
 </tbody>
 </table>
 <h3 id="summary-types">Types</h3>
@@ -229,6 +236,8 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 <thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the Motion JPEG frames of an encoded AVI stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Mp4_EncodeOptions">Mp4.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the Motion JPEG samples of an encoded MP4 stream.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Clip">Video.Clip</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a silent sequence of equal-sized image frames held in memory.</p>
 </td></tr>
@@ -423,6 +432,7 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 <thead><tr><th>Namespace</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#namespace_Video_Avi">Video.Avi</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Video_Mp4">Video.Mp4</a></td></tr>
 </tbody>
 </table>
 <h3 id="namespace_Video_types">Types</h3>
@@ -464,11 +474,23 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 </tbody>
 </table>
 </section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Video_Mp4" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Video.Mp4</span> <a class="api-item-permalink" href="#namespace_Video_Mp4" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Video.Mp4</span>.</p>
+<h3 id="namespace_Video_Mp4_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Mp4_EncodeOptions">Mp4.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the Motion JPEG samples of an encoded MP4 stream.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Avi_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Avi.EncodeOptions</span> <a class="api-item-permalink" href="#Video_Avi_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/avi.options.swg#L6">src</a></div>
 <p>Configures the Motion JPEG frames of an encoded AVI stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Avi_EncodeOptions">EncodeOptions</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -483,6 +505,25 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 <section class="api-member-detail"><h4 id="Video_Avi_EncodeOptions_quality"><span class="api-member-name">quality</span><a class="api-member-permalink" href="#Video_Avi_EncodeOptions_quality" aria-label="Permalink">#</a></h4>
 <p>Quality of every frame, in <span class="code-inline">[1, 100]</span>; higher values preserve more detail and produce larger files.</p>
 <p>The default sits below the one a single photograph deserves: a video is a long sequence of similar pictures, so the last few percent of detail costs proportionally far more here.</p>
+</section>
+</div>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Video_Mp4_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.EncodeOptions</span> <a class="api-item-permalink" href="#Video_Mp4_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4.options.swg#L6">src</a></div>
+<p>Configures the Motion JPEG samples of an encoded MP4 stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Mp4_EncodeOptions_quality">quality</a></td><td class="code-type">u8</td><td><p>Quality of every frame, in <span class="code-inline">[1, 100]</span>; higher values preserve more detail and produce</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Video_Mp4_EncodeOptions_member-details">Field details</h3>
+<div class="api-member-details">
+<section class="api-member-detail"><h4 id="Video_Mp4_EncodeOptions_quality"><span class="api-member-name">quality</span><a class="api-member-permalink" href="#Video_Mp4_EncodeOptions_quality" aria-label="Permalink">#</a></h4>
+<p>Quality of every frame, in <span class="code-inline">[1, 100]</span>; higher values preserve more detail and produce larger files.</p>
 </section>
 </div>
 <section class="api-symbol">
@@ -868,7 +909,7 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 <p>Encodes the clip and writes it to <span class="code-inline">fileName</span>.</p>
 <p>Frames are encoded and written one at a time, so saving never holds the encoded stream in addition to the clip.</p>
 <h2 id="Video_Clip_save_0_Example">Example</h2>
-<div class="code-block"><span class="SCde"><span class="SKwd">try</span> clip.<span class="SFct">save</span>(<span class="SStr">"preview.avi"</span>, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst"><a href="#Video_Avi_EncodeOptions">EncodeOptions</a></span>{quality: <span class="SNum">80</span>})</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">try</span> clip.<span class="SFct">save</span>(<span class="SStr">"preview.avi"</span>, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst">EncodeOptions</span>{quality: <span class="SNum">80</span>})</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -1193,7 +1234,7 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 <p><span class="code-inline">options</span> is <span class="code-inline">null</span> for the defaults of the selected format, or points to that format's options structure, exactly as the Pixel image encoders take theirs.</p>
 <h2 id="Video_Writer_create_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> rate   = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span>.<span class="SFct">create</span>(<span class="SNum">30</span>, <span class="SNum">1</span>)
-<span class="SKwd">var</span> writer = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#Video_Writer">Writer</a></span>.<span class="SFct">create</span>(<span class="SStr">"capture.avi"</span>, <span class="SNum">640</span>, <span class="SNum">480</span>, rate, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst"><a href="#Video_Avi_EncodeOptions">EncodeOptions</a></span>{quality: <span class="SNum">80</span>})
+<span class="SKwd">var</span> writer = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#Video_Writer">Writer</a></span>.<span class="SFct">create</span>(<span class="SStr">"capture.avi"</span>, <span class="SNum">640</span>, <span class="SNum">480</span>, rate, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst">EncodeOptions</span>{quality: <span class="SNum">80</span>})
 <span class="SKwd">var</span> frame  = <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">640</span>, <span class="SNum">480</span>, .<span class="SCst">RGB8</span>)
 <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">90</span>'<span class="STpe">u64</span>
 {
@@ -1251,7 +1292,7 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.153</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.155</div>
 </footer>
 </section>
 </main>
@@ -1509,6 +1550,7 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 ([
 "n|Video|namespace_Video|",
 "n|Video.Avi|namespace_Video_Avi|",
+"n|Video.Mp4|namespace_Video_Mp4|",
 "s|Video.Clip|Video_Clip|Owns a silent sequence of equal-sized image frames held in memory.",
 "s|Video.FrameRate|Video_FrameRate|Describes an exact number of video frames per second.",
 "s|Video.Sink|Video_Sink|Writes the bytes of an encoded video stream, to a file or to memory.",
@@ -1524,6 +1566,8 @@ src/encode/avi.swg       Avi.Encoder</span></div>
 "s|Video.Reader|Video_Reader|Decodes the frames of a video stream without holding the stream in memory.",
 "s|Video.Avi.EncodeOptions|Video_Avi_EncodeOptions|Configures the Motion JPEG frames of an encoded AVI stream.",
 "v|Video.Avi.EncodeOptions.quality|Video_Avi_EncodeOptions_quality|Quality of every frame, in 1, 100; higher values preserve more detail and produce",
+"s|Video.Mp4.EncodeOptions|Video_Mp4_EncodeOptions|Configures the Motion JPEG samples of an encoded MP4 stream.",
+"v|Video.Mp4.EncodeOptions.quality|Video_Mp4_EncodeOptions_quality|Quality of every frame, in 1, 100; higher values preserve more detail and produce",
 "s|Video.Writer|Video_Writer|Encodes frames into a video stream without holding the stream in memory.",
 "i|Video.IDecoder|Video_IDecoder|Decodes one video format, one frame at a time, from a byte source.",
 "i|Video.IEncoder|Video_IEncoder|Encodes one video format, one frame at a time, into a byte sink.",

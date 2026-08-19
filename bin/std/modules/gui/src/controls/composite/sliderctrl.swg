@@ -11,7 +11,7 @@ struct SliderCtrl
 
         sigChanged: SigArray'func||(*SliderCtrl)     // Emitted after the slider value changes.
 
-        public readonly
+        readonly
         {
             labelWidth:     f32  = 60       // Width reserved for the label.
             valueWidth:     f32  = 60       // Minimum or fixed width of the numeric editor.

@@ -18,6 +18,7 @@ struct AppStrings
     ui_WrapOff:     string = "Wrap off"                                                                               // Wrapping button while long lines run off the edge.
     ui_Encoding:    string = "Character encoding"                                                                     // Tooltip of the encoding selector.
     ui_Files:       string = "Files beside this one"                                                                  // Tooltip of the file-panel button.
+    ui_SameKind:    string = "Only files of the same kind"                                                            // Tooltip of the folder-navigation filter toggle.
     ui_Recent:      string = "Recent"                                                                                 // Panel section listing what was read before.
     ui_Folder:      string = "Folder"                                                                                 // Panel section listing the current folder, before one is open.
     ui_NotText:     string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads it as text.
@@ -49,7 +50,10 @@ func appStrings()->const *AppStrings => &g_AppStrings
 func registerAppStrings(bundle: *Core.Resources.Bundle)
 {
     bundle.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'AppStrings(&g_AppStrings, "sfilescope")
+
+    // The file name here becomes `lang/<tag>/filescope.tweak`, which must be the exact resource
+    // name published above: a mismatch does not fail, it silently shows English.
+    Gui.registerStrings'AppStrings(&g_AppStrings, "filescope")
 }
 
 #run

@@ -165,7 +165,7 @@ impl IEncoder for Encoder
 private impl Encoder
 {
     // Offset of the size field of the file, which is the first total to be rewritten.
-    private const RiffSizeOffset = 4'u64
+    const RiffSizeOffset = 4'u64
 
     // Fails unless a frame of `size` bytes still fits in what the container can address.
     //

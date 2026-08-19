@@ -11,7 +11,7 @@ struct PalettePicker
 
         sigSelectionChanged: SigArray'func||(*PalettePicker)     // Emitted after the selected color changes.
 
-        public readonly
+        readonly
         {
             colors:        Array'Color            // Colors displayed in insertion order.
             selectedColor: Color                  // Selected color, or transparent black when no item is selected.
@@ -19,13 +19,10 @@ struct PalettePicker
             itemSize:      s32 = 24               // Width and height of each color item, in logical units.
             spacing:       s32 = 3                // Gap between adjacent color items, in logical units.
         }
-
-        internal
-        {
-            itemRects: Array'Math.Rectangle     // Current hit-test rectangle for every color.
-            hotIndex:  s32 = Swag.S32.Max       // Item under the pointer, or `Swag.S32.Max`.
-        }
     }
+
+    itemRects: Array'Math.Rectangle     // Current hit-test rectangle for every color.
+    hotIndex:  s32 = Swag.S32.Max       // Item under the pointer, or `Swag.S32.Max`.
 }
 
 private impl PalettePicker

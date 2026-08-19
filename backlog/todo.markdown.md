@@ -9,8 +9,8 @@ what the whole document family is: an offline, script-free, network-free viewer.
 It is not the repository's discovery backlog. Defects and leads belong in the `findings.*` files;
 where a document engine lives is decided — beside its widget, inside `gui`, as
 [todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family; selection
-and copy are shared with `HtmlView` and stay in
-[T-419](todo.gui.md#t-419--rendered-document-views-cannot-select-or-copy-text), and the
+and copy — shipped by `HtmlView`, still missing here — stay in
+[T-419](todo.gui.md#t-419--the-markdown-view-cannot-select-or-copy-text), and the
 application-level affordances a viewer plugin adds — zoom, printing, thumbnails — stay in
 [todo.filescope.md](todo.filescope.md). This file holds intent about the Markdown engine itself.
 [README.md](README.md) has the whole layout.

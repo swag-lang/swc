@@ -3,7 +3,7 @@ using Core
 public impl Image
 {
     // Selects the HSL or RGB gradient written by [[Image.fillHsl]].
-    public enum FillHslType
+    enum FillHslType
     {
         HueVert                 // Hue varies from top to bottom.
         HueHorz                 // Hue varies from left to right.

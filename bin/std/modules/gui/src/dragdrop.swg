@@ -102,29 +102,26 @@ struct DragData
     public
     {
         // Absolute paths offered by the source, in the order it listed them, empty when it offers none.
-        public readonly
+        readonly
         files: Array'String
 
         // Files offered by content rather than by path, in the order the source listed them.
         //
         // A gesture hovering a window carries their names and not their bytes, so a target decides
         // what it will take from the names alone and reads the content from the `Drop` phase on.
-        public readonly
+        readonly
         contents: Array'DragContent
 
         // Plain UTF-8 text offered by the source, empty when it offers none.
-        public readonly
+        readonly
         text: String
-
-        internal
-        {
-            imageBytes:   Array'u8        // Encoded image bytes, as offered or as encoded on demand.
-            imageName:    String          // File name whose extension selects the decoder.
-            imageValue:   Pixel.Image     // Picture handed in, or the result of the one decode.
-            imageDecoded: bool            // Whether the decode was already attempted.
-            imageEncoded: bool            // Whether the encode was already attempted.
-        }
     }
+
+    imageBytes:   Array'u8        // Encoded image bytes, as offered or as encoded on demand.
+    imageName:    String          // File name whose extension selects the decoder.
+    imageValue:   Pixel.Image     // Picture handed in, or the result of the one decode.
+    imageDecoded: bool            // Whether the decode was already attempted.
+    imageEncoded: bool            // Whether the encode was already attempted.
 }
 
 impl DragData

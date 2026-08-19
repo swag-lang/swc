@@ -143,27 +143,18 @@ accessibility, input and system-event contracts above rather than merely open a 
 therefore names the smallest coherent version that can ship and the existing controls or
 applications that would prove it.
 
-### T-419 — Rendered document views cannot select or copy text
+### T-419 — The Markdown view cannot select or copy text
 
-[[Gui.Markdown.View]] and [[Gui.HtmlView]] render a document and let none of it out: there is no
-selection, no select-all, and no clipboard path. Every application that hosts them inherits the
-gap — a reader can see a code block or a table and has no way to take it. Selection has to survive
-the streamed layout both views use, so it is expressed over document positions rather than over
-laid-out lines, and copy has to produce the source text of the selected range rather than the
-painted glyphs.
+[[Gui.Markdown.View]] renders a document and lets none of it out: there is no selection, no
+select-all, and no clipboard path, so a reader can see a code block or a table and has no way to
+take it. [[Gui.HtmlView]] and [[Gui.PdfView]] now select, copy, and offer the shared `edit_*`
+context menu; the Markdown view is the one rendered document left out, and it is the harder one:
+its blocks are separate child windows, so a selection crossing blocks has to be coordinated at the
+[[Gui.Markdown.View]] level, over document positions rather than laid-out atoms, with copy
+producing the source text of the range. The HTML view's model — per-item source offsets, a
+measure-based hit test, one painter walk for highlight and extraction — is the shape to follow.
 
-- Related: T-388, T-421
-
-### T-421 — A rich editor has no context menu
-
-Right-clicking a [[Gui.RichEditCtrl]] offers nothing, in any application: the control binds Ctrl+A,
-Ctrl+C, Ctrl+V and Ctrl+X and never presents them. The commands, their read-only guards and their
-clipboard paths all exist — what is missing is the menu that names them, so every reader who does
-not already know the shortcuts concludes the text cannot be copied. Declare them through the shared
-action system the way `ActionProperties` does, so a toolbar or a shortcut can drive the same ids,
-and add the `edit_*` keys the labels need to [[Gui.Strings]].
-
-- Related: T-388, T-419
+- Related: T-388
 
 ### T-042 — Focused controls are not scrolled into view
 

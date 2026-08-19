@@ -10,7 +10,7 @@ struct Dialog
         // Called before a button result closes the dialog; return false to keep it open.
         validateResult: #null func||(*Dialog, WndId)->bool
 
-        public readonly
+        readonly
         {
             buttonBar:     *StackLayoutCtrl = undefined     // Bottom action bar owned by the dialog.
             buttons:       Array'(*PushButton)              // Buttons in insertion order.

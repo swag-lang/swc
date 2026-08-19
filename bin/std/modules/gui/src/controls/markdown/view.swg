@@ -69,45 +69,42 @@ struct View
         sigLinkActivated: SigArray'func||(*View, string)     // Emitted when a rendered link is activated.
         sigLoadFailed:    SigArray'func||(*View, string)     // Emitted with the exact reason when progressive file loading stops.
 
-        public readonly
+        readonly
         {
             documentStyle: Style      // Active document typography and reading measure.
             failureReason: String     // File-loading explanation, or empty while loading remains valid.
         }
-
-        internal
-        {
-            #[Swag.Late]
-            {
-                scroll: *ScrollWnd
-                body:   *Wnd
-            }
-
-            stream:              File.FileStream
-            fileName:            String
-            fileSize:            u64
-            bytesRead:           u64
-            residentStart:       u64
-            virtualOrigin:       f32
-            virtualHeight:       f32
-            pendingSearch:       String
-            pendingSeek:         bool
-            pendingSeekOffset:   u64
-            sourceCarry:         String
-            sourceDone:          bool
-            pendingBlocks:       Array'Block
-            pendingIndex:        u64
-            loadTimer:           #null *Timer
-            contentHeight:       f32
-            jumpToEnd:           bool
-            hasPendingTarget:    bool
-            pendingTarget:       f32
-            pendingTargetOffset: u64 = Swag.U64.Max
-            searchBlockIndex:    u64 = Swag.U64.Max
-            documentThemeColors: String
-            blocks:              Array'VisualBlock
-        }
     }
+
+    #[Swag.Late]
+    {
+        scroll: *ScrollWnd
+        body:   *Wnd
+    }
+
+    stream:              File.FileStream
+    fileName:            String
+    fileSize:            u64
+    bytesRead:           u64
+    residentStart:       u64
+    virtualOrigin:       f32
+    virtualHeight:       f32
+    pendingSearch:       String
+    pendingSeek:         bool
+    pendingSeekOffset:   u64
+    sourceCarry:         String
+    sourceDone:          bool
+    pendingBlocks:       Array'Block
+    pendingIndex:        u64
+    loadTimer:           #null *Timer
+    contentHeight:       f32
+    jumpToEnd:           bool
+    hasPendingTarget:    bool
+    pendingTarget:       f32
+    pendingTargetOffset: u64 = Swag.U64.Max
+    searchBlockIndex:    u64 = Swag.U64.Max
+    documentThemeColors: String
+    blocks:              Array'VisualBlock
 }
 
 private func applyThemeColors(wnd: *Wnd, colors: string)

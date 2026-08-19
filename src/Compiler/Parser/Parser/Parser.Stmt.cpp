@@ -38,8 +38,16 @@ AstNodeRef Parser::parseTopLevelCall()
 
 AstNodeRef Parser::parseAccessModifier()
 {
+    const TokenId  modifierId  = id();
     const TokenRef tokModifier = consume();
     auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
+
+    if (topLevelAccessRef_.isValid() && ast_->srcView().token(topLevelAccessRef_).id == modifierId)
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicated_modifier, tokModifier);
+        diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, topLevelAccessRef_), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+        diag.report(*ctx_);
+    }
 
     switch (id())
     {
@@ -47,7 +55,8 @@ AstNodeRef Parser::parseAccessModifier()
         case TokenId::KwdInternal:
         case TokenId::KwdPrivate:
         {
-            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
+            const DiagnosticId diagId = id() == modifierId ? DiagnosticId::parser_err_duplicated_modifier : DiagnosticId::parser_err_duplicate_modifier;
+            const Diagnostic   diag   = reportError(diagId, ref());
             diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
@@ -57,7 +66,10 @@ AstNodeRef Parser::parseAccessModifier()
             break;
     }
 
-    nodePtr->nodeWhatRef = parseTopLevelDeclOrBlock();
+    const TokenRef savedAccessRef = topLevelAccessRef_;
+    topLevelAccessRef_            = tokModifier;
+    nodePtr->nodeWhatRef          = parseTopLevelDeclOrBlock();
+    topLevelAccessRef_            = savedAccessRef;
     return nodeRef;
 }
 

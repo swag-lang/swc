@@ -76,9 +76,12 @@ struct Drawing
     {
         width:  f32     // View-box width, in user units.
         height: f32     // View-box height, in user units.
+    }
 
-        internal
-        shapes:   Array'Shape                       // Parsed vector shapes, including hidden definitions.
+    shapes: Array'Shape     // Parsed vector shapes, including hidden definitions.
+
+    public
+    {
         texts:    Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
         images:   Array'SvgImage                    // Decoded raster images referenced by the paint-order list.
         items:    Array'DrawingItem                 // Visible elements in paint order.

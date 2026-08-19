@@ -68,10 +68,10 @@ private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
 #[Swag.Opaque]
 public struct Blake2b
 {
+    state: [8] u64
+
     public
     {
-        internal
-        state:       [8] u64
         buffer:      [Blake2bBlockSize] u8
         bufferCount: u64
         counterLow:  u64

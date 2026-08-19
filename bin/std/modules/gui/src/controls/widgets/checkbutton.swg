@@ -26,7 +26,7 @@ struct CheckButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        public readonly
+        readonly
         {
             state = CheckState.Unchecked      // Current displayed state.
             flags = CheckButtonFlags.None     // Active interaction and placement options.

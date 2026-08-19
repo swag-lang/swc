@@ -20,15 +20,12 @@ struct HeaderItem
         isResizable = true                // Whether the trailing separator can resize the column.
         isClickable = true                // Whether the column can emit click actions.
         reservesIconSpace: bool           // Whether list rows reserve the header icon column.
-
-        internal
-        {
-            width:        f32     // Effective width in logical units.
-            minimumWidth: f32     // Inclusive minimum width.
-            maximumWidth: f32     // Inclusive maximum width, or zero when unbounded.
-            column:       u32     // Stable logical column identifier.
-        }
     }
+
+    width:        f32     // Effective width in logical units.
+    minimumWidth: f32     // Inclusive minimum width.
+    maximumWidth: f32     // Inclusive maximum width, or zero when unbounded.
+    column:       u32     // Stable logical column identifier.
 }
 
 // Configures header interaction.
@@ -61,24 +58,21 @@ struct Header
 
         // The columns the header shows, and which one it sorts on. Add columns through the methods
         // so the layout and the owning list stay in step.
-        public readonly
+        readonly
         {
             flags         = HeaderFlags.Clickable        // Active interaction options.
             items: ArrayPtr'HeaderItem                   // Columns in display order.
             sortColumn    = Swag.U32.Max                 // Logical column carrying the sort marker.
             sortDirection = HeaderSortDirection.None     // Direction of the sort marker.
         }
-
-        // Hover and drag state of one gesture over the header.
-        internal
-        {
-            hotIdx = Swag.U32.Max     // Column under the mouse.
-            hotSeparator:  bool       // Whether the mouse is over a separator.
-            moving:        bool       // Whether a separator drag is in progress.
-            clicked:       bool       // Whether a click gesture started on a column.
-            correctMoving: f32        // Grab offset inside the separator, kept for the drag.
-        }
     }
+
+    // Hover and drag state of one gesture over the header.
+    hotIdx = Swag.U32.Max     // Column under the mouse.
+    hotSeparator:  bool       // Whether the mouse is over a separator.
+    moving:        bool       // Whether a separator drag is in progress.
+    clicked:       bool       // Whether a click gesture started on a column.
+    correctMoving: f32        // Grab offset inside the separator, kept for the drag.
 }
 
 impl IWnd for Header

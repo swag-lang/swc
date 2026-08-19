@@ -103,11 +103,37 @@ struct Nested
 
         struct Inner
         {
-            slot: s32
+            public slot: s32
         }
 
         inner: Inner
     }
+}
+
+// A nested named aggregate and a top-level declaration block introduce declaration scopes of
+// their own. Their access modifiers do not restate the level of the enclosing block.
+public
+{
+    struct PublicContainer
+    {
+        public
+        {
+            readonly value: s32 = 8
+
+            struct PublicInner
+            {
+                public value: s32 = 9
+            }
+        }
+    }
+}
+
+#test
+{
+    let outer: PublicContainer
+    let inner: PublicContainer.PublicInner
+    @assert(outer.value == 8)
+    @assert(inner.value == 9)
 }
 
 impl Nested

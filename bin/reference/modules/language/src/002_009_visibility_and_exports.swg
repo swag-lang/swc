@@ -113,6 +113,11 @@ The same placement rule keeps aggregate declarations short. Omit 'internal' at t
 root, use one access block for adjacent fields of another level, and keep an isolated
 exception on its declaration. Inside a 'public' block, bare 'readonly' means public read-only;
 outside it the full spelling is 'public readonly'.
+
+A member access block cannot contain another visibility level. Close it before starting a
+sibling 'public', 'internal', or 'private' group; bare 'readonly' is the one modifier that can
+ride inside it. An 'impl' is different: omit a repeated level, but a different level remains a
+deliberate local override, so a 'private impl' may still expose one method with 'public'.
 */
 
 struct Counter

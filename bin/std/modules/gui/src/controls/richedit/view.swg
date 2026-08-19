@@ -80,6 +80,12 @@ impl IWnd for RichEditView
                 edn.ensureCaretIsVisible()
                 .captureMouse()
             }
+            elif evt.button == .Right
+            {
+                evt.accepted = true
+                edn.setFocus()
+                edn.showContextMenu(evt.surfacePos)
+            }
 
         case .Released:
             if .selMode

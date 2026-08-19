@@ -29,17 +29,16 @@ struct PopupListCtrl
         // Emitted when the popup closes; the index is U32.Max when the action was canceled.
         sigClosed: #null func||(*PopupListCtrl, u32)
 
-        public readonly
+        readonly
         {
             items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
             selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
             #[Swag.Late]
             scrollWnd: *ScrollWnd     // Scrollable viewport owned by the popup.
         }
-
-        internal
-        maxIconSize: s32     // Widest item icon, used to align labels.
     }
+
+    maxIconSize: s32     // Widest item icon, used to align labels.
 }
 
 // Implements painting and input inside a popup list.

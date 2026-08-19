@@ -23,9 +23,9 @@ public struct SurfaceWnd
         closeBtn:      #null *IconButton       // Close btn associated with this value.
         movingSurface: bool                    // Moving surface associated with this value.
         sizingBorder:  SizingBorder = None     // Sizing border associated with this value.
-
-        internal captionButtons: Array'(*IconButton)     // Application actions immediately before the native caption controls.
     }
+
+    captionButtons: Array'(*IconButton)     // Application actions immediately before the native caption controls.
 }
 
 impl IWnd for SurfaceWnd

@@ -53,7 +53,7 @@ struct Surface
 
         // What the surface is made of and where it stands. The application creates surfaces and
         // the event loop moves them between these states; reading them tells what is on screen.
-        public readonly
+        readonly
         {
             painter: Painter          // Painter recording the surface's frame.
             rt:      RenderTarget     // Render target the frame is drawn into.
@@ -68,31 +68,28 @@ struct Surface
             isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
             isMinimized:   bool            // Whether the surface is minimized.
         }
+    }
 
-        // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
-        // the paint loop own them; callers reach the drawable with 'renderingContext'.
-        internal
-        {
-            rc:        RenderContext                                           // Drawable and viewport the frame targets.
-            dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
-            isDirty:   bool                                                    // Whether a repaint is pending.
-        }
+    // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
+    // the paint loop own them; callers reach the drawable with 'renderingContext'.
+    rc:        RenderContext                                           // Drawable and viewport the frame targets.
+    dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
+    isDirty:   bool                                                    // Whether a repaint is pending.
 
-        // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
-        // the control the reader left rather than at the top of its traversal.
-        //
-        // The application holds one focus at a time but shows several surfaces, so this is what tells
-        // them apart. Three things are recorded together: the tree that was being walked, the window
-        // the keyboard goes back to when it is still in that tree, and the rank that answers when it
-        // is gone — a row removed, a field hidden. The window is only ever compared against the stops
-        // that exist now, never followed, so a stale one cannot be read.
-        internal
-        {
-            focusRoot:  #null *Wnd     // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
-            focusWnd:   #null *Wnd     // Last window that held the keyboard on this surface.
-            focusIndex: s64 = -1       // Its rank in that tree's ring, for when it is gone.
-        }
+    // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
+    // the control the reader left rather than at the top of its traversal.
+    //
+    // The application holds one focus at a time but shows several surfaces, so this is what tells
+    // them apart. Three things are recorded together: the tree that was being walked, the window
+    // the keyboard goes back to when it is still in that tree, and the rank that answers when it
+    // is gone — a row removed, a field hidden. The window is only ever compared against the stops
+    // that exist now, never followed, so a stale one cannot be read.
+    focusRoot:  #null *Wnd     // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
+    focusWnd:   #null *Wnd     // Last window that held the keyboard on this surface.
+    focusIndex: s64 = -1       // Its rank in that tree's ring, for when it is gone.
 
+    public
+    {
         using state: SurfaceState     // Serializable placement and maximized state.
     }
 }

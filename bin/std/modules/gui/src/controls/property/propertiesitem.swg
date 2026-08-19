@@ -35,50 +35,47 @@ enum PropertiesItemFlags
 // in Properties.items, with the hierarchy tracked through the `parent` pointer.
 struct PropertiesItem
 {
+    filter: String
     public
     {
-        internal
-        filter: String
         #[Swag.Late]
         line: *Wnd          // Window hosting this row's editor.
         data: #null *u8     // Address of the bound field.
+    }
 
-        // Field address in every edited instance (multi-selection). [0] aliases `data`.
-        // Empty or a single entry means a plain single-instance edit. Items under a dynamic
-        // array are left single (their element addresses are not at a fixed struct offset).
-        internal
-        dataInstances: Array'(*u8)
+    // Field address in every edited instance (multi-selection). [0] aliases `data`.
+    // Empty or a single entry means a plain single-instance edit. Items under a dynamic
+    // array are left single (their element addresses are not at a fixed struct offset).
+    dataInstances: Array'(*u8)
 
-        // When set, the editor writes each instance itself (e.g. a vector component or an
-        // enum-flags bit), so commitItemChange must not blindly copy the whole field over the
-        // others — that would clobber the components/bits the user did not touch.
-        internal
-        selfPropagate: bool
+    // When set, the editor writes each instance itself (e.g. a vector component or an
+    // enum-flags bit), so commitItemChange must not blindly copy the whole field over the
+    // others — that would clobber the components/bits the user did not touch.
+    selfPropagate: bool
 
-        // "Reset to default" tracking (defaultstate.swg). defaultData points into the default-
-        // constructed root instance at this field's fixed offset, i.e. the value the field is
-        // initialized to in the struct declaration; it is null when there is no comparable default
-        // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the
-        // current value differs from that default (recomputed on build and after every change);
-        // revertButton is the lazily-created revert affordance shown while the row is modified.
-        internal
-        defaultData: #null *u8
-        internal
-        isModified:  bool
-        #[Swag.Late]
-        internal
-        revertButton: *IconButton
-        #[Swag.Late]
-        internal
-        arrayAddButton: *IconButton
+    // "Reset to default" tracking (defaultstate.swg). defaultData points into the default-
+    // constructed root instance at this field's fixed offset, i.e. the value the field is
+    // initialized to in the struct declaration; it is null when there is no comparable default
+    // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the
+    // current value differs from that default (recomputed on build and after every change);
+    // revertButton is the lazily-created revert affordance shown while the row is modified.
+    defaultData: #null *u8
 
-        // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
-        // field, kept per row so commitItemChange can diff the new value against it and record one undo
-        // command. Captured at build for every snapshot-able row (POD or String); left invalid for
-        // rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).
-        internal
-        undoValue: PropFieldValue
+    isModified: bool
 
+    #[Swag.Late]
+    revertButton: *IconButton
+
+    #[Swag.Late]
+    arrayAddButton: *IconButton
+
+    // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
+    // field, kept per row so commitItemChange can diff the new value against it and record one undo
+    // command. Captured at build for every snapshot-able row (POD or String); left invalid for
+    // rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).
+    undoValue: PropFieldValue
+    public
+    {
         type:      #null typeinfo            // Bound field type.
         typeValue: Swag.TypeValue            // Reflection metadata of the bound field.
         parent:    #null *PropertiesItem     // Parent row, or null for a root.
@@ -91,17 +88,18 @@ struct PropertiesItem
         description: String     // Displayed field description.
         #[Swag.Late]
         labelDesc: *Label     // Description label.
+    }
 
-        // Per-item validation (info/warning/error) shown as an inline colored message bar
-        // stacked under the row.
-        internal
-        validation:    PropValidation
-        internal
-        validationMsg: String
-        #[Swag.Late]
-        internal
-        validationLabel: *Label
+    // Per-item validation (info/warning/error) shown as an inline colored message bar
+    // stacked under the row.
+    validation: PropValidation
 
+    validationMsg: String
+
+    #[Swag.Late]
+    validationLabel: *Label
+    public
+    {
         #[Swag.Late]
         {
             editBox:   *EditBox         // Edit box associated with this value.
@@ -112,26 +110,23 @@ struct PropertiesItem
 
         sigResize:  SigArray'func||(*PropertiesItem)     // Signal emitted when resize.
         sigRefresh: SigArray'func||(*PropertiesItem)     // Signal emitted when refresh.
-
-        internal
-        ntfyItf: #null IPropertyNotify
-
-        internal
-        aniFocusBk:     BlendColor
-        internal
-        aniFocusBorder: BlendColor
-        internal
-        level:          u32
-        internal
-        numChilds:      u32
-        internal
-        section:        u32
-
-        // Grid only: height of the value cell (label + editor) on its own. The row grows below
-        // it to host the validation message bar, so we keep the base height to restore/recompute.
-        internal
-        valueCellHeight: f32
     }
+
+    ntfyItf: #null IPropertyNotify
+
+    aniFocusBk: BlendColor
+
+    aniFocusBorder: BlendColor
+
+    level: u32
+
+    numChilds: u32
+
+    section: u32
+
+    // Grid only: height of the value cell (label + editor) on its own. The row grows below
+    // it to host the validation message bar, so we keep the base height to restore/recompute.
+    valueCellHeight: f32
 }
 
 // Keeps public row state read-only while allowing the property-grid implementation to update it.

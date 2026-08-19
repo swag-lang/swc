@@ -22,7 +22,7 @@ struct Label
 
         sigLinkActivated: SigArray'func||(*Label, string)     // Emitted when the user activates a rich-text link.
 
-        public readonly
+        readonly
         {
             icon:        Icon                                        // Optional displayed icon.
             iconColor:   Color                                       // Explicit icon color, or transparent for the icon or theme color.
@@ -36,11 +36,10 @@ struct Label
             textPadding: Math.Vector4                                // Insets applied to the text layout rectangle.
             iconPadding: Math.Vector4                                // Insets applied to the icon layout rectangle.
         }
-
-        // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
-        internal
-        hotChunk: #null *RichChunk
     }
+
+    // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
+    hotChunk: #null *RichChunk
 }
 
 impl IWnd for Label

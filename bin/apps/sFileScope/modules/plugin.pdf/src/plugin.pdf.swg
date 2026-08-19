@@ -149,5 +149,9 @@ func sFileScopePluginCreate(request: const *ViewerRequest, result: *ViewerResult
     result.view     = view
     result.commands = view!.commands
     result.details  = view!.details
+
+    // PDF text lives compressed inside the file, so the host's raw byte scan would never find
+    // it: the viewer owns the search, walking pages and revealing what it finds.
+    result.findText = func(wnd, text)->bool { return (cast(*PdfPluginView) wnd).pdfView.findText(text) }
     return true
 }

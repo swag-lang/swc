@@ -31,10 +31,10 @@ private func load32Le(data: const [*] u8)->u64
 #[Swag.Opaque]
 public struct Poly1305
 {
+    r: [5] u64
+
     public
     {
-        internal
-        r:           [5] u64
         pad:         [4] u64
         accumulator: [5] u64
         buffer:      [Poly1305BlockSize] u8

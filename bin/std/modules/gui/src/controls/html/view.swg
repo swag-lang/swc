@@ -138,7 +138,7 @@ struct HtmlView
         sigLinkActivated: SigArray'func||(*HtmlView, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
         sigLoadFailed:    SigArray'func||(*HtmlView, string)     // Emitted with the exact reason when progressive file loading stops.
 
-        public readonly
+        readonly
         {
             documentStyle: HtmlStyle     // Typography a document inherits before its own CSS applies.
             failureReason: String        // File-loading explanation, or empty while loading remains valid.
@@ -178,6 +178,15 @@ struct HtmlView
         searchStart:        u64
         searchEnd:          u64
         hovered    = HtmlNoNode
+
+        // The reader's selection, as the two ends of the drag that made it. The anchor is where
+        // the press landed and the caret follows the pointer; both are a text node plus a byte
+        // offset into its source text, and normalization into document order happens on read.
+        selAnchorNode = HtmlNoNode
+        selCaretNode  = HtmlNoNode
+        selAnchorOffset: u64
+        selCaretOffset:  u64
+        selecting:       bool
 
         scrollDragBox = HtmlNoNode
         scrollDragTrackTop: f32
@@ -706,6 +715,150 @@ internal impl HtmlView
         return false
     }
 
+    // Returns the selection normalized to document order, or `has == false` when it is empty.
+    mtd const selectionRange()->{ startNode: u32, startOffset: u64, endNode: u32, endOffset: u64, has: bool }
+    {
+        var result: retval
+        if .selAnchorNode == HtmlNoNode or .selCaretNode == HtmlNoNode do
+            return result
+        if .selAnchorNode == .selCaretNode and .selAnchorOffset == .selCaretOffset do
+            return result
+
+        let anchorFirst = .selAnchorNode < .selCaretNode or (.selAnchorNode == .selCaretNode and .selAnchorOffset < .selCaretOffset)
+        result.startNode   = anchorFirst ? .selAnchorNode : .selCaretNode
+        result.startOffset = anchorFirst ? .selAnchorOffset : .selCaretOffset
+        result.endNode     = anchorFirst ? .selCaretNode : .selAnchorNode
+        result.endOffset   = anchorFirst ? .selCaretOffset : .selAnchorOffset
+        result.has         = true
+        return result
+    }
+
+    // Reports whether the reader selected something.
+    public mtd const hasSelection()->bool => .selectionRange().has
+
+    // Empties the selection.
+    public mtd clearSelection()
+    {
+        if .selAnchorNode == HtmlNoNode and .selCaretNode == HtmlNoNode do
+            return
+        .selAnchorNode = HtmlNoNode
+        .selCaretNode  = HtmlNoNode
+        .selAnchorOffset, .selCaretOffset = 0
+        .selecting = false
+        .canvas.invalidate()
+    }
+
+    // Selects the whole document text.
+    public mtd selectAll()
+    {
+        var first = HtmlNoNode
+        var last  = HtmlNoNode
+        for index in .document.nodes.count
+        {
+            let node = .document.constNode(cast(u32) index)
+            if node.kind != .Text or node.text.isEmpty() do
+                continue
+            if first == HtmlNoNode do
+                first = cast(u32) index
+            last = cast(u32) index
+        }
+
+        if first == HtmlNoNode do
+            return
+        .selAnchorNode   = first
+        .selAnchorOffset = 0
+        .selCaretNode    = last
+        .selCaretOffset  = .document.constNode(last).text.length
+        .canvas.invalidate()
+    }
+
+    // Returns the selected text, one space per soft line break and one line per block.
+    public mtd selectedText()->String
+    {
+        var result: retval
+        var painter = .painter()
+        painter.collectSelection(&result)
+        return result
+    }
+
+    // Puts the selected text on the clipboard, and reports whether there was one.
+    public mtd copySelection()->bool
+    {
+        if !.hasSelection() do
+            return false
+        let text = .selectedText()
+        if text.isEmpty() do
+            return false
+        Clipboard.addString(text.toString())
+        return true
+    }
+
+    const CtxCopy      = "Html.CtxCopy"
+    const CtxSelectAll = "Html.CtxSelectAll"
+
+    // Offers the reading vocabulary at `surfacePos`: what a read-only document can give the
+    // clipboard, with the same shortcuts the keyboard already binds.
+    mtd showContextMenu(surfacePos: Math.Point)
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: !.hasSelection())
+        menu.addSeparator()
+        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
+
+        let picked = menu.doModal(surfacePos, .TopLeft, autoDestroy: true) orelse ""
+        switch picked
+        {
+        case CtxCopy:      discard .copySelection()
+        case CtxSelectAll: .selectAll()
+        }
+    }
+
+    // Selects the word around one text position, the double-click gesture.
+    mtd selectWordAt(node: u32, offset: u64)
+    {
+        if node == HtmlNoNode or cast(u64) node >= .document.nodes.count do
+            return
+        let source = .document.constNode(node).text.toString()
+        if !@countof(source) do
+            return
+
+        // One pass records where each rune starts and whether it belongs to a word; the word is
+        // then the run of word runes around the rune holding the offset, or that rune alone.
+        var starts: Array'u64
+        var words:  Array'bool
+        var scan = 0'u64
+        while scan < @countof(source)
+        {
+            let {value, eat} = Utf8.decodeRune(source[scan to])
+            starts.add(scan)
+            words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
+            scan += eat
+        }
+
+        starts.add(scan)
+        let position = Math.min(offset, @countof(source) - 1)
+        var runeIndex = 0'u64
+        for i in words.count where starts[i] <= position do
+            runeIndex = i
+
+        var lo = runeIndex
+        var hi = runeIndex
+        if words[runeIndex]
+        {
+            while lo and words[lo - 1] do
+                lo -= 1
+            while hi + 1 < words.count and words[hi + 1] do
+                hi += 1
+        }
+
+        .selAnchorNode   = node
+        .selAnchorOffset = starts[lo]
+        .selCaretNode    = node
+        .selCaretOffset  = starts[hi + 1]
+        .selecting       = false
+        .canvas.invalidate()
+    }
+
     // Returns the anchor a node sits inside, or `HtmlNoNode` when it sits in none.
     mtd const linkElementAt(node: u32)->u32
     {
@@ -744,6 +897,14 @@ internal impl HtmlView
         result.searchStart    = .searchStart
         result.searchEnd      = .searchEnd
         result.selection      = .styleDefaults().selection
+        let range = .selectionRange()
+        if range.has
+        {
+            result.selStartNode   = range.startNode
+            result.selStartOffset = range.startOffset
+            result.selEndNode     = range.endNode
+            result.selEndOffset   = range.endOffset
+        }
         result.scrollTrack    = .themeColors().scrollBar_Bk
         result.scrollThumb    = .themeColors().scrollBar_Box
         result.scrollBarSize  = .themeMetrics().scrollBar_SmallSize
@@ -855,6 +1016,11 @@ internal impl HtmlView
         .searchStart        = 0
         .searchEnd          = 0
         .hovered            = HtmlNoNode
+        .selAnchorNode      = HtmlNoNode
+        .selCaretNode       = HtmlNoNode
+        .selAnchorOffset    = 0
+        .selCaretOffset     = 0
+        .selecting          = false
         .pendingSearch.clear()
         .failureReason.clear()
         .scroll.setScrollPos(0, 0)
@@ -909,6 +1075,25 @@ internal impl IWnd for HtmlView
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
+        if evt.kind == .Pressed
+        {
+            if (evt.key == .C and evt.modifiers == .Control) or (evt.key == .Insert and evt.modifiers == .Control)
+            {
+                if .copySelection() do
+                    return
+            }
+            elif evt.key == .A and evt.modifiers == .Control
+            {
+                .selectAll()
+                return
+            }
+            elif evt.key == .Escape and evt.modifiers == .None and .hasSelection()
+            {
+                .clearSelection()
+                return
+            }
+        }
+
         if !scrollDocumentWithKey(.scroll, evt) do
             evt.accepted = false
     }
@@ -961,8 +1146,22 @@ internal impl IWnd for HtmlCanvas
                 return
             }
 
-            let painter = owner.painter()
-            let node    = painter.nodeAt(point)
+            var painter = owner.painter()
+            if owner.selecting
+            {
+                let hit = painter.textPositionAt(point)
+                if hit.node != HtmlNoNode and (hit.node != owner.selCaretNode or hit.offset != owner.selCaretOffset)
+                {
+                    owner.selCaretNode   = hit.node
+                    owner.selCaretOffset = hit.offset
+                    .invalidate()
+                }
+
+                .app().setFrameCursor(Cursor.from(.IBeam))
+                return
+            }
+
+            let node = painter.nodeAt(point)
             if node != owner.hovered
             {
                 // Painting only reads the link under the pointer, so crossing plain text keeps
@@ -976,6 +1175,8 @@ internal impl IWnd for HtmlCanvas
 
             if @countof(owner.linkAt(node)) do
                 .app().setFrameCursor(Cursor.from(.Hand))
+            elif node != HtmlNoNode and owner.document.constNode(node).kind == .Text do
+                .app().setFrameCursor(Cursor.from(.IBeam))
 
         case .Leave:
             if owner.hovered != HtmlNoNode
@@ -988,7 +1189,7 @@ internal impl IWnd for HtmlCanvas
 
         case .Pressed where evt.button == .Left:
             owner.setFocus()
-            let painter = owner.painter()
+            var painter = owner.painter()
             let bar     = painter.scrollBarAt(point)
             if bar.box != HtmlNoNode
             {
@@ -1009,18 +1210,56 @@ internal impl IWnd for HtmlCanvas
             }
 
             let url = owner.linkAt(painter.nodeAt(point))
-            if !@countof(url)
+            if @countof(url)
+            {
+                // A reference into the document itself is followed here; anything else is a
+                // destination only the host knows how to open.
+                if !owner.activateLink(url) do
+                    owner.sigLinkActivated.call(owner, url)
+                return
+            }
+
+            // Plain text under the press starts a selection drag; a press elsewhere drops any
+            // previous one, which is how every document viewer reads.
+            owner.clearSelection()
+            let hit = painter.textPositionAt(point)
+            if hit.node != HtmlNoNode and hit.distance == 0
+            {
+                owner.selAnchorNode   = hit.node
+                owner.selAnchorOffset = hit.offset
+                owner.selCaretNode    = hit.node
+                owner.selCaretOffset  = hit.offset
+                owner.selecting       = true
+                .captureMouse()
+                return
+            }
+
+            evt.accepted = false
+
+        case .DoubleClick where evt.button == .Left:
+            var painter = owner.painter()
+            let hit     = painter.textPositionAt(point)
+            if hit.node == HtmlNoNode or hit.distance != 0
             {
                 evt.accepted = false
                 return
             }
 
-            // A reference into the document itself is followed here; anything else is a
-            // destination only the host knows how to open.
-            if !owner.activateLink(url) do
-                owner.sigLinkActivated.call(owner, url)
+            owner.selectWordAt(hit.node, hit.offset)
+
+        case .Pressed where evt.button == .Right:
+            owner.setFocus()
+            owner.showContextMenu(evt.surfacePos)
 
         case .Released where evt.button == .Left:
+            if owner.selecting
+            {
+                owner.selecting = false
+                if .mouseCapture() == me do
+                    .releaseMouse()
+                return
+            }
+
             if owner.scrollDragBox == HtmlNoNode
             {
                 evt.accepted = false

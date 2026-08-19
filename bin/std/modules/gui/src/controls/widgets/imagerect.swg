@@ -11,14 +11,13 @@ struct ImageRect
 
         sigFrameChanged: SigArray'func||(*ImageRect)     // Emitted after the visible animation frame changes.
 
-        public readonly
+        readonly
         {
             movie: Movie     // Playback state for the current content.
         }
-
-        internal
-        uploadedTexture: Texture     // Renderer texture owned by this window, if any.
     }
+
+    uploadedTexture: Texture     // Renderer texture owned by this window, if any.
 }
 
 impl IWnd for ImageRect

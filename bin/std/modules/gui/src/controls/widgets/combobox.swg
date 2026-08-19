@@ -41,7 +41,7 @@ struct ComboBox
 
         // What the combo shows. Add items through the methods, which keep the popup and the
         // measured icon width in step, and select through 'setSelected'.
-        public readonly
+        readonly
         {
             mode          = ComboBoxMode.Selection     // Text interaction mode chosen at creation.
             flags         = ComboBoxFlags.None         // Active presentation options.
@@ -49,20 +49,17 @@ struct ComboBox
             selectedIndex = Swag.U32.Max               // Selected item index, or U32.Max when empty.
             editBox: #null *EditBox                    // Embedded editor in editable mode, otherwise null.
         }
-
-        // Hover state, the open popup, and the color animations of the painted parts.
-        internal
-        {
-            isHot:              bool                     // Whether the mouse is over the combo.
-            popup:              #null *PopupListCtrl     // Drop-down list while it is open.
-            pointerFocusReturn: #null *Wnd               // Focus owner restored after pointer use.
-            maxIconSize:        s32                      // Widest item icon, sizing the icon column.
-
-            aniBk:     BlendColor     // Color animation of the background.
-            aniBorder: BlendColor     // Color animation of the border.
-            aniText:   BlendColor     // Color animation of the label.
-        }
     }
+
+    // Hover state, the open popup, and the color animations of the painted parts.
+    isHot:              bool                     // Whether the mouse is over the combo.
+    popup:              #null *PopupListCtrl     // Drop-down list while it is open.
+    pointerFocusReturn: #null *Wnd               // Focus owner restored after pointer use.
+    maxIconSize:        s32                      // Widest item icon, sizing the icon column.
+
+    aniBk:     BlendColor     // Color animation of the background.
+    aniBorder: BlendColor     // Color animation of the border.
+    aniText:   BlendColor     // Color animation of the label.
 }
 
 impl IWnd for ComboBox

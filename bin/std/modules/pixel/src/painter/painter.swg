@@ -265,91 +265,89 @@ struct Command
 // ```
 struct Painter
 {
+    // Optional backend selected for [[Painter.render]]. It is borrowed and may
+    // remain unset when the painter is used only to inspect recorded commands.
+    private
+    rendererItf: #null IRenderer
     public
     {
-        // Optional backend selected for [[Painter.render]]. It is borrowed and may
-        // remain unset when the painter is used only to inspect recorded commands.
-        private
-        rendererItf: #null IRenderer
-
         // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
         // drawing methods append to it.
-        public readonly
+        readonly
         {
             commandBuffer: Array'Command          // Deferred renderer command stream.
             vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
         }
+    }
 
-        // Gradient stops referenced by command ranges. Keeping them beside the command stream
-        // makes every recorded brush independent of the caller's lifetime without imposing a cap.
-        internal
-        gradientStops: Array'GradientStop
+    // Gradient stops referenced by command ranges. Keeping them beside the command stream
+    // makes every recorded brush independent of the caller's lifetime without imposing a cap.
+    gradientStops: Array'GradientStop
 
-        // Reusable workspaces. They only hold intermediate results of the call in progress.
-        private
-        {
-            triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
-            sharedLinePath:     LinePath                                // Reusable single-path workspace.
-            sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
-            sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
-            tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
+    // Reusable workspaces. They only hold intermediate results of the call in progress.
+    private
+    {
+        triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
+        sharedLinePath:     LinePath                                // Reusable single-path workspace.
+        sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
+        sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
+        tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
 
-            // Reusable shaped run for the immediate drawString path, so per-frame text drawing
-            // shapes without allocating a fresh glyph buffer on every call.
-            scratchShaped:     ShapedRun                 // Reusable shaping result for immediate text drawing.
-            transientTextures: Array'Texture             // Renderer-owned images released after the recorded frame.
-            transientTargets:  Array'(*RenderTarget)     // Off-screen targets released after nested alpha replay.
-        }
+        // Reusable shaped run for the immediate drawString path, so per-frame text drawing
+        // shapes without allocating a fresh glyph buffer on every call.
+        scratchShaped:     ShapedRun                 // Reusable shaping result for immediate text drawing.
+        transientTextures: Array'Texture             // Renderer-owned images released after the recorded frame.
+        transientTargets:  Array'(*RenderTarget)     // Off-screen targets released after nested alpha replay.
+    }
 
-        // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
-        // memos that keep the command stream free of redundant state changes.
-        private
-        {
-            stackState:     Array'PaintState     // States saved by [[Painter.pushState]].
-            stackTransform: Array'Transform2     // Transforms saved by [[Painter.pushTransform]].
+    // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
+    // memos that keep the command stream free of redundant state changes.
+    private
+    {
+        stackState:     Array'PaintState     // States saved by [[Painter.pushState]].
+        stackTransform: Array'Transform2     // Transforms saved by [[Painter.pushTransform]].
 
-            stackRT: Array'#null *RenderTarget     // Nested off-screen render targets.
-            curRT:   #null *RenderTarget           // Active off-screen target, or `null` for the surface.
+        stackRT: Array'#null *RenderTarget     // Nested off-screen render targets.
+        curRT:   #null *RenderTarget           // Active off-screen target, or `null` for the surface.
 
-            lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
-            lastTexture0Handle: TextureHandle              // Last brush texture handle emitted.
-            hasTextureFont:     bool                       // Whether a glyph atlas is currently bound.
+        lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
+        lastTexture0Handle: TextureHandle              // Last brush texture handle emitted.
+        hasTextureFont:     bool                       // Whether a glyph atlas is currently bound.
 
-            // The paintType / gradient uniforms live per shader program, but texture0 state
-            // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
-            // program's paint uniforms stale, so a program switch forces the next texture0
-            // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
-            texture0Dirty:  bool     // Whether brush uniforms must be re-emitted.
-            curTextProgram: s32      // Active text program: `0` none, `1` bitmap, `2` MSDF.
+        // The paintType / gradient uniforms live per shader program, but texture0 state
+        // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
+        // program's paint uniforms stale, so a program switch forces the next texture0
+        // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
+        texture0Dirty:  bool     // Whether brush uniforms must be re-emitted.
+        curTextProgram: s32      // Active text program: `0` none, `1` bitmap, `2` MSDF.
 
-            // Last MSDF font-effect uniforms emitted this frame, to skip redundant
-            // SetFontEffect commands (most text shares the same -- usually empty -- effect).
-            lastFontEffect: FontEffectParams     // Last emitted MSDF effect values.
-            hasFontEffect:  bool                 // Whether `lastFontEffect` is initialized.
+        // Last MSDF font-effect uniforms emitted this frame, to skip redundant
+        // SetFontEffect commands (most text shares the same -- usually empty -- effect).
+        lastFontEffect: FontEffectParams     // Last emitted MSDF effect values.
+        hasFontEffect:  bool                 // Whether `lastFontEffect` is initialized.
 
-            // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
-            // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
-            curTextureFont:      #null *Font     // Font owning the currently bound glyph atlas.
-            curTextureFontAtlas: s32 = -1        // Zero-based bound atlas index, or `-1`.
+        // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
+        // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
+        curTextureFont:      #null *Font     // Font owning the currently bound glyph atlas.
+        curTextureFontAtlas: s32 = -1        // Zero-based bound atlas index, or `-1`.
 
-            drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
-            layoutOnly:     bool            // Whether text layout skips rendering commands.
-            overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
-            canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
-            curState:       PaintState      // Current mutable drawing state.
+        drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
+        layoutOnly:     bool            // Whether text layout skips rendering commands.
+        overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
+        canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
+        curState:       PaintState      // Current mutable drawing state.
 
-            // Physical device pixels per painter path-space unit. The renderer multiplies
-            // every recorded coordinate by it at draw time, so the whole stream stays in
-            // logical units; the painter itself only consults it for antialiasing fringes,
-            // text resolution, and device-grid snapping.
-            curContentScale: f32 = 1     // Device pixels per logical unit for this stream.
+        // Physical device pixels per painter path-space unit. The renderer multiplies
+        // every recorded coordinate by it at draw time, so the whole stream stays in
+        // logical units; the painter itself only consults it for antialiasing fringes,
+        // text resolution, and device-grid snapping.
+        curContentScale: f32 = 1     // Device pixels per logical unit for this stream.
 
-            // Device pixels one path-space unit covers for the purpose of curve flattening,
-            // quantized by [[Pixel.Painter.setFlattenScale]]. Kept apart from the content
-            // scale: flattening tolerances were calibrated against it, and folding it in
-            // would re-flatten every cached path of every consumer on a scaled display.
-            curFlattenScale: f32 = 1     // Flattening scale for subsequent path draws.
-        }
+        // Device pixels one path-space unit covers for the purpose of curve flattening,
+        // quantized by [[Pixel.Painter.setFlattenScale]]. Kept apart from the content
+        // scale: flattening tolerances were calibrated against it, and folding it in
+        // would re-flatten every cached path of every consumer on a scaled display.
+        curFlattenScale: f32 = 1     // Flattening scale for subsequent path draws.
     }
 }
 

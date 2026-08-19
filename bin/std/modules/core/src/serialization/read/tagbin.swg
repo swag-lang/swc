@@ -49,24 +49,21 @@ struct TagBin
         ignoreElements: Array'String          // Element names skipped while decoding.
         options:        TagBinOptions         // Compatibility behavior.
         diag:           TagBinDiagnostics     // What the decode had to tolerate. Inspect after reading.
-
-        internal
-        {
-            wire:              u32                                  // Stream generation: 0, 1 or 2.
-            hasValueFlags:     bool                                 // Whether each element carries a value-flags byte (version 1).
-            stream:            ByteStream                           // Input cursor, over the body for a version 2 stream.
-            bodyBuffer:        Buffer                               // Owns the decompressed body of a compressed stream.
-            shapes:            Array'TagBinShape                    // Shape directory of a version 2 stream.
-            freeSections:      ArrayPtr'TagBinSection               // Reusable section objects.
-            sections:          ArrayPtr'TagBinSection               // Active section stack.
-            convertNextNative: #null const *Swag.TypeInfoNative     // Pending native conversion.
-            convertValToArray: bool                                 // Whether the next scalar becomes an array.
-            convertArrayToVal: bool                                 // Whether the next array becomes a scalar.
-            outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
-            elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
-            tmpPool:           ArrayPtr'Buffer
-        }
     }
+
+    wire:              u32                                  // Stream generation: 0, 1 or 2.
+    hasValueFlags:     bool                                 // Whether each element carries a value-flags byte (version 1).
+    stream:            ByteStream                           // Input cursor, over the body for a version 2 stream.
+    bodyBuffer:        Buffer                               // Owns the decompressed body of a compressed stream.
+    shapes:            Array'TagBinShape                    // Shape directory of a version 2 stream.
+    freeSections:      ArrayPtr'TagBinSection               // Reusable section objects.
+    sections:          ArrayPtr'TagBinSection               // Active section stack.
+    convertNextNative: #null const *Swag.TypeInfoNative     // Pending native conversion.
+    convertValToArray: bool                                 // Whether the next scalar becomes an array.
+    convertArrayToVal: bool                                 // Whether the next array becomes a scalar.
+    outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
+    elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
+    tmpPool:           ArrayPtr'Buffer
 }
 
 // Counters describing what a decode had to tolerate.

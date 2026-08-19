@@ -4,7 +4,7 @@ public impl Image
 {
     // Bit mask selecting destination channels for [[Image.setChannel]].
     #[Swag.EnumFlags]
-    public enum ChannelMode
+    enum ChannelMode
     {
         Red                           // Red channel.
         Green                         // Green channel.
@@ -15,7 +15,7 @@ public impl Image
     }
 
     // Selects the value copied into channels by [[Image.setChannel]].
-    public enum ChannelValueMode
+    enum ChannelValueMode
     {
         Color       // Use the explicit `color` byte.
         MinRGB      // Use the smallest color channel of the current pixel.

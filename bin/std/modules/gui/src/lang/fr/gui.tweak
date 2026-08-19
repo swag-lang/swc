@@ -71,6 +71,11 @@ markdown_LoadFailed     Impossible de lire ce document Markdown.
 markdown_ReadFailed     La source Markdown n'a pas pu être lue
 markdown_NotUtf8        La source Markdown contient un octet nul et n'est pas du texte UTF-8 pris en charge
 
+edit_Cut       Couper
+edit_Copy      Copier
+edit_Paste     Coller
+edit_SelectAll Tout sélectionner
+
 prop_Copy             Copier
 prop_Paste            Coller
 prop_ResetDefault     Rétablir la valeur par défaut

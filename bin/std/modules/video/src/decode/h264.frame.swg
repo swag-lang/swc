@@ -1,0 +1,146 @@
+﻿#global namespace H264
+#global internal
+
+using Core, Core.Errors
+
+// Padding kept around each plane so motion compensation can read past the picture edge.
+//
+// The luma interpolator reads up to five samples beyond a block, so a motion vector pointing
+// just outside the frame stays inside the padded storage once the edges are replicated. Longer
+// excursions go through the bounded fallback of the interpolator instead.
+const FramePadding = 32's32
+
+// One decoded picture: padded 4:2:0 planes plus the reference and motion state the rest of
+// the stream needs from it.
+struct Frame
+{
+    luma:         Array'u8      // Padded luma plane.
+    cb:           Array'u8      // Padded blue-difference plane.
+    cr:           Array'u8      // Padded red-difference plane.
+    strideLuma:   u64
+    strideChroma: u64
+    mbWidth:      s32
+    mbHeight:     s32
+
+    poc:          s32           // Picture order count of the frame.
+    frameNum:     u32
+    isShortTerm:  bool
+    isLongTerm:   bool
+    longTermIdx:  s32
+    frameNumWrap: s32           // Recomputed for every slice against the current frame number.
+    picNum:       s32
+    heldByCaller: bool          // The container still displays this frame.
+
+    // Motion exported for co-located prediction in later B slices, one entry per 4x4 block:
+    // the L0 motion when the block had one, its L1 motion otherwise.
+    colMv:     Array's16        // Two components per block.
+    colRef:    Array's8         // Reference index, or -1 for an intra or unpredicted block.
+    colPoc:    Array's32        // Picture order count of the referenced frame.
+    colShort:  Array'u8         // Whether the referenced frame was short-term.
+}
+
+impl Frame
+{
+    // Allocates or reuses storage for a picture of `mbWidth` by `mbHeight` macroblocks.
+    mtd prepare(mbWidth, mbHeight: s32)
+    {
+        .mbWidth      = mbWidth
+        .mbHeight     = mbHeight
+        .strideLuma   = cast(u64) (mbWidth * 16 + FramePadding * 2)
+        .strideChroma = cast(u64) (mbWidth * 8 + FramePadding * 2)
+
+        let lumaSize   = .strideLuma * cast(u64) (mbHeight * 16 + FramePadding * 2)
+        let chromaSize = .strideChroma * cast(u64) (mbHeight * 8 + FramePadding * 2)
+        if .luma.count != lumaSize
+        {
+            .luma.resize(lumaSize)
+            .cb.resize(chromaSize)
+            .cr.resize(chromaSize)
+        }
+
+        let blocks = cast(u64) mbWidth * cast(u64) mbHeight * 16
+        if .colRef.count != blocks
+        {
+            .colMv.resize(blocks * 2)
+            .colRef.resize(blocks)
+            .colPoc.resize(blocks)
+            .colShort.resize(blocks)
+        }
+
+        .isShortTerm  = false
+        .isLongTerm   = false
+        .heldByCaller = false
+    }
+
+    // Returns the address of the luma sample at `x`, `y` of the coded picture.
+    #[Swag.Inline]
+    mtd pixLuma(x, y: s32)->[*] u8 => .luma.buffer! + cast(u64) (y + FramePadding) * .strideLuma + cast(u64) (x + FramePadding)
+
+    // Returns the address of one chroma sample; `plane` selects Cb or Cr.
+    #[Swag.Inline]
+    mtd pixChroma(plane: u32, x, y: s32)->[*] u8
+    {
+        let base: [*] u8 = plane == 0 ? .cb.buffer! : .cr.buffer!
+        return base + cast(u64) (y + FramePadding) * .strideChroma + cast(u64) (x + FramePadding)
+    }
+
+    // Reports whether the frame is referenced by upcoming pictures.
+    mtd const isReference()->bool => .isShortTerm or .isLongTerm
+
+    // Converts the visible window of the frame into a bottom-up RGB8 image, with the
+    // limited-range BT.601 arithmetic every decoder of this module uses.
+    mtd const toRgb(target: *Pixel.Image, width, height, cropLeft, cropTop: s32)
+    {
+        if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
+            target[] = Pixel.Image.create(width, height, .RGB8)
+
+        for y in height
+        {
+            let destinationRow = cast(u64) (height - y - 1) * cast(u64) target.rowStride
+            let lumaRow        = .luma.buffer! + cast(u64) (cropTop + y + FramePadding) * .strideLuma + cast(u64) (cropLeft + FramePadding)
+            let chromaRow      = cast(u64) (((cropTop + y) >> 1) + FramePadding) * .strideChroma
+            let cbRow          = .cb.buffer! + chromaRow
+            let crRow          = .cr.buffer! + chromaRow
+            for x in width
+            {
+                let chromaColumn = cast(u64) (((cropLeft + x) >> 1) + FramePadding)
+                let c            = Math.max(cast(s32) lumaRow[cast(u64) x] - 16, 0)
+                let d            = cast(s32) cbRow[chromaColumn] - 128
+                let e            = cast(s32) crRow[chromaColumn] - 128
+                let destination  = target.pixels.buffer! + destinationRow + cast(u64) x * 3
+                destination[0] = clampPixel((298 * c + 409 * e + 128) >> 8)
+                destination[1] = clampPixel((298 * c - 100 * d - 208 * e + 128) >> 8)
+                destination[2] = clampPixel((298 * c + 516 * d + 128) >> 8)
+            }
+        }
+    }
+
+    // Replicates the picture edges into the padding so motion compensation can read there.
+    mtd extendEdges()
+    {
+        extendPlane(.luma.buffer!, .strideLuma, .mbWidth * 16, .mbHeight * 16)
+        extendPlane(.cb.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
+        extendPlane(.cr.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
+    }
+}
+
+// Replicates the edges of one plane into its padding border.
+private func extendPlane(base: [*] u8, stride: u64, width, height: s32)
+{
+    let pad = cast(u64) FramePadding
+    var row = base + pad * stride + pad
+    for height
+    {
+        Memory.set(row - pad, row[0], pad)
+        Memory.set(row + cast(u64) width, row[cast(u64) width - 1], pad)
+        row += stride
+    }
+
+    let top = base + pad * stride
+    let bottom = base + (pad + cast(u64) height - 1) * stride
+    for index in pad
+    {
+        Memory.copy(base + index * stride, top, stride)
+        Memory.copy(bottom + (index + 1) * stride, bottom, stride)
+    }
+}

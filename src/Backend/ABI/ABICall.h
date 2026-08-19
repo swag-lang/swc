@@ -20,7 +20,9 @@ namespace ABICall
 
     struct Arg
     {
+        // A 128-bit packed value spans value and valueHi; scalars use value alone.
         uint64_t value   = 0;
+        uint64_t valueHi = 0;
         bool     isFloat = false;
         uint8_t  numBits = 0;
     };

@@ -563,6 +563,11 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typ
     if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
         return true;
 
+    // Simd constants borrow a byte payload, so the raw return bytes must be
+    // re-anchored in persistent constant storage.
+    if (typeInfo.isSimd())
+        return true;
+
     if (typeInfo.isArray())
         return needsPersistentCompilerRunReturn(sema, typeInfo.payloadArrayElemTypeRef());
 

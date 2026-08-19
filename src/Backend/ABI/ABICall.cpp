@@ -56,6 +56,8 @@ namespace
                 continue;
             }
 
+            // Packed args must ride register lanes: call stack slots are 8 bytes.
+            SWC_INTERNAL_CHECK(argBits != MicroOpBits::B128);
             const uint64_t stackOffset = ABICall::callArgStackOffset(conv, i);
             builder.emitLoadRegMem(regTmp, regBase, argAddr, argBits);
             builder.emitLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
@@ -333,6 +335,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 }
             }
 
+            // Packed args must ride register lanes: stack and home slots are 8 bytes.
+            SWC_INTERNAL_CHECK(argBits != MicroOpBits::B128);
             const uint64_t stackOffset = callArgStackOffset(conv, i);
 
             switch (arg.kind)

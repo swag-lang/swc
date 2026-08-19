@@ -632,7 +632,10 @@ namespace
     {
         SWC_ASSERT(valuePtr != nullptr);
         SWC_ASSERT(!argType.isIndirect);
-        SWC_ASSERT(argType.numBits == 8 || argType.numBits == 16 || argType.numBits == 32 || argType.numBits == 64);
+        SWC_ASSERT(argType.numBits == 8 || argType.numBits == 16 || argType.numBits == 32 || argType.numBits == 64 || (argType.numBits == 128 && argType.isFloat));
+
+        // A 128-bit packed value fills the two contiguous quads of the slot.
+        static_assert(offsetof(ABICall::Arg, valueHi) == offsetof(ABICall::Arg, value) + sizeof(uint64_t));
 
         ABICall::Arg outArg;
         outArg.isFloat = argType.isFloat;

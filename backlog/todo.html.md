@@ -279,7 +279,7 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: a search runs over a concatenated text with a map back to node-and-offset
   ranges, a match spanning markup highlights each covered run, and case folding goes through
   Unicode rather than `Latin1NoCase`.
-- Related: [T-419](todo.gui.md#t-419--rendered-document-views-cannot-select-or-copy-text),
+- Related: [T-419](todo.gui.md#t-419--the-markdown-view-cannot-select-or-copy-text),
   which needs the same position model for selection.
 
 ---

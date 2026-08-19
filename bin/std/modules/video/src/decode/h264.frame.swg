@@ -1,4 +1,4 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 using Core, Core.Errors
@@ -14,29 +14,29 @@ const FramePadding = 32's32
 // the stream needs from it.
 struct Frame
 {
-    luma:         Array'u8      // Padded luma plane.
-    cb:           Array'u8      // Padded blue-difference plane.
-    cr:           Array'u8      // Padded red-difference plane.
+    luma:         Array'u8     // Padded luma plane.
+    cb:           Array'u8     // Padded blue-difference plane.
+    cr:           Array'u8     // Padded red-difference plane.
     strideLuma:   u64
     strideChroma: u64
     mbWidth:      s32
     mbHeight:     s32
 
-    poc:          s32           // Picture order count of the frame.
+    poc:          s32     // Picture order count of the frame.
     frameNum:     u32
     isShortTerm:  bool
     isLongTerm:   bool
     longTermIdx:  s32
-    frameNumWrap: s32           // Recomputed for every slice against the current frame number.
+    frameNumWrap: s32     // Recomputed for every slice against the current frame number.
     picNum:       s32
-    heldByCaller: bool          // The container still displays this frame.
+    heldByCaller: bool     // The container still displays this frame.
 
     // Motion exported for co-located prediction in later B slices, one entry per 4x4 block:
     // the L0 motion when the block had one, its L1 motion otherwise.
-    colMv:     Array's16        // Two components per block.
-    colRef:    Array's8         // Reference index, or -1 for an intra or unpredicted block.
-    colPoc:    Array's32        // Picture order count of the referenced frame.
-    colShort:  Array'u8         // Whether the referenced frame was short-term.
+    colMv:    Array's16     // Two components per block.
+    colRef:   Array's8      // Reference index, or -1 for an intra or unpredicted block.
+    colPoc:   Array's32     // Picture order count of the referenced frame.
+    colShort: Array'u8      // Whether the referenced frame was short-term.
 }
 
 impl Frame
@@ -96,21 +96,47 @@ impl Frame
 
         for y in height
         {
-            let destinationRow = cast(u64) (height - y - 1) * cast(u64) target.rowStride
-            let lumaRow        = .luma.buffer! + cast(u64) (cropTop + y + FramePadding) * .strideLuma + cast(u64) (cropLeft + FramePadding)
-            let chromaRow      = cast(u64) (((cropTop + y) >> 1) + FramePadding) * .strideChroma
-            let cbRow          = .cb.buffer! + chromaRow
-            let crRow          = .cr.buffer! + chromaRow
-            for x in width
+            var destination = target.pixels.buffer! + cast(u64) (height - y - 1) * cast(u64) target.rowStride
+            var luma        = .luma.buffer! + cast(u64) (cropTop + y + FramePadding) * .strideLuma + cast(u64) (cropLeft + FramePadding)
+            let chromaRow   = cast(u64) (((cropTop + y) >> 1) + FramePadding) * .strideChroma
+            let cbRow       = .cb.buffer! + chromaRow
+            let crRow       = .cr.buffer! + chromaRow
+
+            // Two horizontal luma samples share one chroma sample, so the chroma terms of the
+            // conversion are computed once per pair. An odd crop offsets the pairing by one.
+            var chromaAt  = cast(u64) ((cropLeft >> 1) + FramePadding)
+            var remaining = width
+            if cropLeft & 1
             {
-                let chromaColumn = cast(u64) (((cropLeft + x) >> 1) + FramePadding)
-                let c            = Math.max(cast(s32) lumaRow[cast(u64) x] - 16, 0)
-                let d            = cast(s32) cbRow[chromaColumn] - 128
-                let e            = cast(s32) crRow[chromaColumn] - 128
-                let destination  = target.pixels.buffer! + destinationRow + cast(u64) x * 3
-                destination[0] = clampPixel((298 * c + 409 * e + 128) >> 8)
-                destination[1] = clampPixel((298 * c - 100 * d - 208 * e + 128) >> 8)
-                destination[2] = clampPixel((298 * c + 516 * d + 128) >> 8)
+                let d = cast(s32) cbRow[chromaAt] - 128
+                let e = cast(s32) crRow[chromaAt] - 128
+                storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, 409 * e + 128, -100 * d - 208 * e + 128, 516 * d + 128)
+                destination += 3
+                luma        += 1
+                chromaAt    += 1
+                remaining   -= 1
+            }
+
+            while remaining >= 2
+            {
+                let d     = cast(s32) cbRow[chromaAt] - 128
+                let e     = cast(s32) crRow[chromaAt] - 128
+                let rTerm = 409 * e + 128
+                let gTerm = -100 * d - 208 * e + 128
+                let bTerm = 516 * d + 128
+                storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, rTerm, gTerm, bTerm)
+                storeRgbPixel(destination + 3, max0S32(cast(s32) luma[1] - 16) * 298, rTerm, gTerm, bTerm)
+                destination += 6
+                luma        += 2
+                chromaAt    += 1
+                remaining   -= 2
+            }
+
+            if remaining
+            {
+                let d = cast(s32) cbRow[chromaAt] - 128
+                let e = cast(s32) crRow[chromaAt] - 128
+                storeRgbPixel(destination, max0S32(cast(s32) luma[0] - 16) * 298, 409 * e + 128, -100 * d - 208 * e + 128, 516 * d + 128)
             }
         }
     }
@@ -122,6 +148,15 @@ impl Frame
         extendPlane(.cb.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
         extendPlane(.cr.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
     }
+}
+
+// Stores one converted pixel from its scaled luma and the shared chroma terms.
+#[Swag.Inline]
+private func storeRgbPixel(destination: [*] u8, c298, rTerm, gTerm, bTerm: s32)
+{
+    destination[0] = clampPixel((c298 + rTerm) >> 8)
+    destination[1] = clampPixel((c298 + gTerm) >> 8)
+    destination[2] = clampPixel((c298 + bTerm) >> 8)
 }
 
 // Replicates the edges of one plane into its padding border.
@@ -136,7 +171,7 @@ private func extendPlane(base: [*] u8, stride: u64, width, height: s32)
         row += stride
     }
 
-    let top = base + pad * stride
+    let top    = base + pad * stride
     let bottom = base + (pad + cast(u64) height - 1) * stride
     for index in pad
     {

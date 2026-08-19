@@ -6,9 +6,55 @@ using Core
 // Inverse transforms of section 8.5. Every routine adds its result to the prediction already
 // sitting in the destination plane, clamping to the byte range.
 
+// Branchless pixel-loop primitives. The backend lowers a ternary to a compare and branch,
+// and a branch inside a pixel loop forces the register allocator to flush its live values to
+// memory, so every clamp on the per-sample paths uses sign-bit arithmetic instead.
+
 // Clamps one reconstructed sample.
 #[Swag.Inline]
-func clampPixel(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
+func clampPixel(value: s32)->u8
+{
+    let positive = value & ~(value >> 31)
+    return cast(u8) ((positive | ((255 - positive) >> 31)) & 255)
+}
+
+// Returns `value` clamped to zero from below.
+#[Swag.Inline]
+func max0S32(value: s32)->s32 => value & ~(value >> 31)
+
+// Returns the absolute value.
+#[Swag.Inline]
+func absS32(value: s32)->s32
+{
+    let sign = value >> 31
+    return (value ^ sign) - sign
+}
+
+// Clamps `value` into `low`..`high`.
+#[Swag.Inline]
+func clampS32(value, low, high: s32)->s32
+{
+    let aboveLow  = value - low
+    let floored   = low + (aboveLow & ~(aboveLow >> 31))
+    let belowHigh = high - floored
+    return high - (belowHigh & ~(belowHigh >> 31))
+}
+
+// Returns the smaller value.
+#[Swag.Inline]
+func minS32(a, b: s32)->s32
+{
+    let difference = a - b
+    return b + (difference & (difference >> 31))
+}
+
+// Returns the larger value.
+#[Swag.Inline]
+func maxS32(a, b: s32)->s32
+{
+    let difference = a - b
+    return a - (difference & (difference >> 31))
+}
 
 // Adds the inverse 4x4 core transform of `block` to the destination, section 8.5.12.2.
 //
@@ -25,10 +71,10 @@ func addIdct4x4(destination: [*] u8, stride: u64, block: [*] s16)
     for row in 4'u64
     {
         let base = row * 4
-        let z0 = work[base] + work[base + 2]
-        let z1 = work[base] - work[base + 2]
-        let z2 = (work[base + 1] >> 1) - work[base + 3]
-        let z3 = work[base + 1] + (work[base + 3] >> 1)
+        let z0   = work[base] + work[base + 2]
+        let z1   = work[base] - work[base + 2]
+        let z2   = (work[base + 1] >> 1) - work[base + 3]
+        let z3   = work[base + 1] + (work[base + 3] >> 1)
         work[base]     = z0 + z3
         work[base + 1] = z1 + z2
         work[base + 2] = z1 - z2
@@ -92,10 +138,10 @@ func hadamard4x4(block: [*] s16)
         let e1 = c0 - c2
         let e2 = c1 - c3
         let e3 = c1 + c3
-        block[column]      = cast(s16) Math.clamp(e0 + e3, -32768, 32767)
-        block[4 + column]  = cast(s16) Math.clamp(e1 + e2, -32768, 32767)
-        block[8 + column]  = cast(s16) Math.clamp(e1 - e2, -32768, 32767)
-        block[12 + column] = cast(s16) Math.clamp(e0 - e3, -32768, 32767)
+        block[column]      = cast(s16) clampS32(e0 + e3, -32768, 32767)
+        block[4 + column]  = cast(s16) clampS32(e1 + e2, -32768, 32767)
+        block[8 + column]  = cast(s16) clampS32(e1 - e2, -32768, 32767)
+        block[12 + column] = cast(s16) clampS32(e0 - e3, -32768, 32767)
     }
 }
 
@@ -126,14 +172,14 @@ func addIdct8x8(destination: [*] u8, stride: u64, block: [*] s16)
     for row in 8'u64
     {
         let base = row * 8
-        let c0 = work[base + 0]
-        let c1 = work[base + 1]
-        let c2 = work[base + 2]
-        let c3 = work[base + 3]
-        let c4 = work[base + 4]
-        let c5 = work[base + 5]
-        let c6 = work[base + 6]
-        let c7 = work[base + 7]
+        let c0   = work[base + 0]
+        let c1   = work[base + 1]
+        let c2   = work[base + 2]
+        let c3   = work[base + 3]
+        let c4   = work[base + 4]
+        let c5   = work[base + 5]
+        let c6   = work[base + 6]
+        let c7   = work[base + 7]
 
         let a0 = c0 + c4
         let a2 = c0 - c4

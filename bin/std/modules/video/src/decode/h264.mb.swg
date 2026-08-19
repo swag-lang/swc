@@ -1,4 +1,4 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 using Core, Core.Errors
@@ -233,8 +233,8 @@ impl Slice
         if matchC and !matchA and !matchB do
             return [c.mvX, c.mvY]
 
-        let medianX = Math.max(Math.min(cast(s32) a.mvX, cast(s32) b.mvX), Math.min(Math.max(cast(s32) a.mvX, cast(s32) b.mvX), cast(s32) c.mvX))
-        let medianY = Math.max(Math.min(cast(s32) a.mvY, cast(s32) b.mvY), Math.min(Math.max(cast(s32) a.mvY, cast(s32) b.mvY), cast(s32) c.mvY))
+        let medianX = maxS32(minS32(cast(s32) a.mvX, cast(s32) b.mvX), minS32(maxS32(cast(s32) a.mvX, cast(s32) b.mvX), cast(s32) c.mvX))
+        let medianY = maxS32(minS32(cast(s32) a.mvY, cast(s32) b.mvY), minS32(maxS32(cast(s32) a.mvY, cast(s32) b.mvY), cast(s32) c.mvY))
         return [cast(s16) medianX, cast(s16) medianY]
     }
 
@@ -386,21 +386,26 @@ impl Slice
         {
             let qx = (currentQuad & 1) * 2
             let qy = (currentQuad >> 1) * 2
-            for cell in 4's32
+
+            // With 8x8 inference every cell of the quadrant reads the same co-located corner,
+            // so the whole quadrant derives once and compensates as one job.
+            let cellCount = inference ? 1's32 : 4's32
+            for cell in cellCount
             {
-                let bx = qx + (cell & 1)
-                let by = qy + (cell >> 1)
+                let bx   = inference ? qx : qx + (cell & 1)
+                let by   = inference ? qy : qy + (cell >> 1)
+                let span = inference ? 2's32 : 1's32
 
                 // The co-located motion decides whether this block collapses to zero.
-                var colX = mb.mbX * 4 + bx
-                var colY = mb.mbY * 4 + by
+                var colX = bx
+                var colY = by
                 if inference
                 {
-                    colX = mb.mbX * 4 + (currentQuad & 1) * 3
-                    colY = mb.mbY * 4 + (currentQuad >> 1) * 3
+                    colX = (currentQuad & 1) * 3
+                    colY = (currentQuad >> 1) * 3
                 }
 
-                let colIndex = .colBlockIndex(mb, colX - mb.mbX * 4, colY - mb.mbY * 4)
+                let colIndex = .colBlockIndex(mb, colX, colY)
                 var colZero  = false
                 if col.colRef[colIndex] == 0 and col.colShort[colIndex] != 0
                 {
@@ -429,11 +434,11 @@ impl Slice
                     blockMvL0 = zeroMv
                 if refL1 < 0 do
                     blockMvL1 = zeroMv
-                .assignMotion(mb, 0, bx, by, 1, 1, refL0, blockMvL0, mvd, true)
-                .assignMotion(mb, 1, bx, by, 1, 1, refL1, blockMvL1, mvd, true)
+                .assignMotion(mb, 0, bx, by, span, span, refL0, blockMvL0, mvd, true)
+                .assignMotion(mb, 1, bx, by, span, span, refL1, blockMvL1, mvd, true)
 
                 var refs: [2] s8 = [cast(s8) refL0, cast(s8) refL1]
-                .addJob(mb, bx, by, 1, 1, refs, blockMvL0, blockMvL1)
+                .addJob(mb, bx, by, span, span, refs, blockMvL0, blockMvL1)
             }
 
             currentQuad += 1
@@ -456,10 +461,15 @@ impl Slice
         {
             let qx = (currentQuad & 1) * 2
             let qy = (currentQuad >> 1) * 2
-            for cell in 4's32
+
+            // With 8x8 inference the whole quadrant shares one co-located corner and one
+            // scaled motion, so it derives once and compensates as one job.
+            let cellCount = inference ? 1's32 : 4's32
+            for cell in cellCount
             {
-                let bx = qx + (cell & 1)
-                let by = qy + (cell >> 1)
+                let bx   = inference ? qx : qx + (cell & 1)
+                let by   = inference ? qy : qy + (cell >> 1)
+                let span = inference ? 2's32 : 1's32
 
                 var colX = bx
                 var colY = by
@@ -519,10 +529,10 @@ impl Slice
                     mvL1 = [cast(s16) (cast(s32) mvL0[0] - colMvX), cast(s16) (cast(s32) mvL0[1] - colMvY)]
                 }
 
-                .assignMotion(mb, 0, bx, by, 1, 1, refL0, mvL0, mvd, true)
-                .assignMotion(mb, 1, bx, by, 1, 1, 0, mvL1, mvd, true)
+                .assignMotion(mb, 0, bx, by, span, span, refL0, mvL0, mvd, true)
+                .assignMotion(mb, 1, bx, by, span, span, 0, mvL1, mvd, true)
                 var refs: [2] s8 = [cast(s8) refL0, 0]
-                .addJob(mb, bx, by, 1, 1, refs, mvL0, mvL1)
+                .addJob(mb, bx, by, span, span, refs, mvL0, mvL1)
             }
 
             currentQuad += 1
@@ -594,7 +604,7 @@ impl Slice
             {
                 if .cabac.terminate() != 0 do
                     break
-                if .cabac.overran do
+                if .cabac.hasOverrun() do
                     fail InvalidFormatError{"H.264 slice data is truncated"}
             }
             elif !.bits.moreData()
@@ -625,38 +635,25 @@ impl Slice
         mb.cbpChroma     = 0
         mb.chromaMode    = 0
         mb.i16Mode       = 0
-        for &value in mb.nzLuma do
-            value[] = 0
-        for &value in mb.nzCb do
-            value[] = 0
-        for &value in mb.nzCr do
-            value[] = 0
-        for &value in mb.dcFlags do
-            value[] = 0
-        for &value in mb.codedBlocks do
-            value[] = 0
-        for &value in mb.refIdx do
-            value[] = -1
-        for &value in mb.ctxRef do
-            value[] = -1
-        for &value in mb.subType do
-            value[] = 0
-        for &value in mb.subShape do
-            value[] = 0
-        for &value in mb.subDirect do
-            value[] = false
-        for &value in mb.intraModes do
-            value[] = cast(u8) IntraDc
-        for &value in mb.lumaDc do
-            value[] = 0
-        for &value in mb.lumaAc do
-            value[] = 0
-        for &value in mb.luma8 do
-            value[] = 0
-        for &value in mb.chromaDc do
-            value[] = 0
-        for &value in mb.chromaAc do
-            value[] = 0
+        Memory.clear(&mb.nzLuma, #sizeof(mb.nzLuma))
+        Memory.clear(&mb.nzCb, #sizeof(mb.nzCb))
+        Memory.clear(&mb.nzCr, #sizeof(mb.nzCr))
+        Memory.clear(&mb.dcFlags, #sizeof(mb.dcFlags))
+        Memory.clear(&mb.codedBlocks, #sizeof(mb.codedBlocks))
+        Memory.set(&mb.refIdx, 0xFF, #sizeof(mb.refIdx))
+        Memory.set(&mb.ctxRef, 0xFF, #sizeof(mb.ctxRef))
+        Memory.clear(&mb.subType, #sizeof(mb.subType))
+        Memory.clear(&mb.subShape, #sizeof(mb.subShape))
+        Memory.clear(&mb.subDirect, #sizeof(mb.subDirect))
+
+        // The residual arrays must clear even for blocks the entropy decoders skip: the
+        // Intra_16x16 reconstruction and the chroma path read every block of the macroblock.
+        Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
+        Memory.clear(&mb.lumaDc, #sizeof(mb.lumaDc))
+        Memory.clear(&mb.lumaAc, #sizeof(mb.lumaAc))
+        Memory.clear(&mb.luma8, #sizeof(mb.luma8))
+        Memory.clear(&mb.chromaDc, #sizeof(mb.chromaDc))
+        Memory.clear(&mb.chromaAc, #sizeof(mb.chromaAc))
     }
 
     // Decodes one skipped macroblock.
@@ -1387,6 +1384,7 @@ impl Slice
         info.deblockIdc   = cast(u8) .header.deblockIdc
         info.alphaOffset  = cast(s8) .header.alphaOffset
         info.betaOffset   = cast(s8) .header.betaOffset
+        info.uniform      = mb.class == MbClassInter and mb.jobCount == 1 and mb.cbpLuma == 0
 
         let gw    = dec.sps!.mbWidth * 4
         let mbIdx = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)

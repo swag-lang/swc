@@ -36,10 +36,28 @@ private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride:
     for row in cast(u64) height
     {
         let line = src + row * srcStride - 2
+        let out  = dst + row * dstStride
         for column in cast(u64) width
         {
             let sum = tap6(cast(s32) line[column], cast(s32) line[column + 1], cast(s32) line[column + 2], cast(s32) line[column + 3], cast(s32) line[column + 4], cast(s32) line[column + 5])
-            dst[row * dstStride + column] = clampPixel((sum + 16) >> 5)
+            out[column] = clampPixel((sum + 16) >> 5)
+        }
+    }
+}
+
+// Produces the horizontal half-samples averaged with `anchor`, in one pass.
+private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, anchor: [*] u8, anchorStride: u64, width, height: s32)
+{
+    for row in cast(u64) height
+    {
+        let line  = src + row * srcStride - 2
+        let out   = dst + row * dstStride
+        let other = anchor + row * anchorStride
+        for column in cast(u64) width
+        {
+            let sum  = tap6(cast(s32) line[column], cast(s32) line[column + 1], cast(s32) line[column + 2], cast(s32) line[column + 3], cast(s32) line[column + 4], cast(s32) line[column + 5])
+            let half = cast(s32) clampPixel((sum + 16) >> 5)
+            out[column] = cast(u8) ((half + cast(s32) other[column] + 1) >> 1)
         }
     }
 }
@@ -50,10 +68,28 @@ private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
     for row in cast(u64) height
     {
         let line = src + row * srcStride - 2 * srcStride
+        let out  = dst + row * dstStride
         for column in cast(u64) width
         {
             let sum = tap6(cast(s32) line[column], cast(s32) line[column + srcStride], cast(s32) line[column + 2 * srcStride], cast(s32) line[column + 3 * srcStride], cast(s32) line[column + 4 * srcStride], cast(s32) line[column + 5 * srcStride])
-            dst[row * dstStride + column] = clampPixel((sum + 16) >> 5)
+            out[column] = clampPixel((sum + 16) >> 5)
+        }
+    }
+}
+
+// Produces the vertical half-samples averaged with `anchor`, in one pass.
+private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, anchor: [*] u8, anchorStride: u64, width, height: s32)
+{
+    for row in cast(u64) height
+    {
+        let line  = src + row * srcStride - 2 * srcStride
+        let out   = dst + row * dstStride
+        let other = anchor + row * anchorStride
+        for column in cast(u64) width
+        {
+            let sum  = tap6(cast(s32) line[column], cast(s32) line[column + srcStride], cast(s32) line[column + 2 * srcStride], cast(s32) line[column + 3 * srcStride], cast(s32) line[column + 4 * srcStride], cast(s32) line[column + 5 * srcStride])
+            let half = cast(s32) clampPixel((sum + 16) >> 5)
+            out[column] = cast(u8) ((half + cast(s32) other[column] + 1) >> 1)
         }
     }
 }
@@ -64,7 +100,7 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
 {
     // Horizontal six-tap sums for every row the vertical filter reads.
     var sums: [21 * 16] s32 = undefined
-    let sumStride = cast(u64) width
+    let sumStride           = cast(u64) width
     for row in cast(u64) (height + 5)
     {
         let line = src + row * srcStride - 2 * srcStride - 2
@@ -75,21 +111,74 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
     for row in cast(u64) height
     {
         let base = (row + 2) * sumStride
+        let out  = dst + row * dstStride
         for column in cast(u64) width
         {
             let sum = tap6(sums[base - 2 * sumStride + column], sums[base - sumStride + column], sums[base + column], sums[base + sumStride + column], sums[base + 2 * sumStride + column], sums[base + 3 * sumStride + column])
-            dst[row * dstStride + column] = clampPixel((sum + 512) >> 10)
+            out[column] = clampPixel((sum + 512) >> 10)
         }
     }
 }
 
 // Averages two planes with upward rounding.
-private func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] u8, bStride: u64, width, height: s32)
+//
+// `(x | y) - (((x ^ y) & 0xFE...) >> 1)` is the rounding-up byte average on independent
+// lanes, so a whole row averages in one or two word operations.
+func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] u8, bStride: u64, width, height: s32)
 {
-    for row in cast(u64) height
+    const Mask64 = 0xFEFE_FEFE_FEFE_FEFE'u64
+    const Mask32 = 0xFEFE_FEFE'u32
+
+    var pd = dst
+    var pa = a
+    var pb = b
+    switch width
     {
-        for column in cast(u64) width do
-            dst[row * dstStride + column] = cast(u8) ((cast(s32) a[row * aStride + column] + cast(s32) b[row * bStride + column] + 1) >> 1)
+    case 16:
+        for cast(u64) height
+        {
+            let a0 = (cast(const [*] u64) pa)[0]
+            let b0 = (cast(const [*] u64) pb)[0]
+            let a1 = (cast(const [*] u64) pa)[1]
+            let b1 = (cast(const [*] u64) pb)[1]
+            (cast([*] u64) pd)[0] = (a0 | b0) - (((a0 ^ b0) & Mask64) >> 1)
+            (cast([*] u64) pd)[1] = (a1 | b1) - (((a1 ^ b1) & Mask64) >> 1)
+            pd                    += dstStride
+            pa                    += aStride
+            pb                    += bStride
+        }
+
+    case 8:
+        for cast(u64) height
+        {
+            let a0 = (cast(const [*] u64) pa)[0]
+            let b0 = (cast(const [*] u64) pb)[0]
+            (cast([*] u64) pd)[0] = (a0 | b0) - (((a0 ^ b0) & Mask64) >> 1)
+            pd += dstStride
+            pa += aStride
+            pb += bStride
+        }
+
+    case 4:
+        for cast(u64) height
+        {
+            let a0 = (cast(const [*] u32) pa)[0]
+            let b0 = (cast(const [*] u32) pb)[0]
+            (cast([*] u32) pd)[0] = (a0 | b0) - (((a0 ^ b0) & Mask32) >> 1)
+            pd += dstStride
+            pa += aStride
+            pb += bStride
+        }
+
+    default:
+        for cast(u64) height
+        {
+            for column in cast(u64) width do
+                pd[column] = cast(u8) ((cast(s32) pa[column] + cast(s32) pb[column] + 1) >> 1)
+            pd += dstStride
+            pa += aStride
+            pb += bStride
+        }
     }
 }
 
@@ -103,8 +192,8 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     let planeHeight = reference.mbHeight * 16
 
     // A window outside the replicated padding goes through a clamped copy first.
-    var window: [21 * 24] u8 = undefined
-    var src: [*] u8 = undefined
+    var window:    [21 * 24] u8 = undefined
+    var src:       [*] u8       = undefined
     var srcStride: u64
     if x - 2 < -FramePadding or y - 2 < -FramePadding or x + width + 3 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
     {
@@ -120,43 +209,28 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
 
     if fracX == 0 and fracY == 0
     {
-        for row in cast(u64) height
-        {
-            for column in cast(u64) width do
-                dst[row * dstStride + column] = src[row * srcStride + column]
-        }
-
+        copyPlane(dst, dstStride, src, srcStride, width, height)
         return
     }
 
+    // Each remaining position needs at most one intermediate plane: the averaging half of
+    // section 8.4.2.2.1 rides in the last filter pass instead of a pass of its own.
     var planeA: [16 * 16] u8 = undefined
-    var planeB: [16 * 16] u8 = undefined
     if fracY == 0
     {
-        // Horizontal half-samples, averaged with the nearest integer sample off the halves.
-        halfHorizontal(@dataof(planeA), 16, src, srcStride, width, height)
-        if fracX == 2
-        {
-            copyPlane(dst, dstStride, @dataof(planeA), 16, width, height)
-            return
-        }
-
-        let anchor = fracX == 1 ? src : src + 1
-        averagePlanes(dst, dstStride, @dataof(planeA), 16, anchor, srcStride, width, height)
+        if fracX == 2 do
+            halfHorizontal(dst, dstStride, src, srcStride, width, height)
+        else do
+            halfHorizontalAvg(dst, dstStride, src, srcStride, fracX == 1 ? src : src + 1, srcStride, width, height)
         return
     }
 
     if fracX == 0
     {
-        halfVertical(@dataof(planeA), 16, src, srcStride, width, height)
-        if fracY == 2
-        {
-            copyPlane(dst, dstStride, @dataof(planeA), 16, width, height)
-            return
-        }
-
-        let anchor = fracY == 1 ? src : src + srcStride
-        averagePlanes(dst, dstStride, @dataof(planeA), 16, anchor, srcStride, width, height)
+        if fracY == 2 do
+            halfVertical(dst, dstStride, src, srcStride, width, height)
+        else do
+            halfVerticalAvg(dst, dstStride, src, srcStride, fracY == 1 ? src : src + srcStride, srcStride, width, height)
         return
     }
 
@@ -170,8 +244,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     {
         // Positions f and q: the center half against the nearest horizontal half row.
         halfCenter(@dataof(planeA), 16, src, srcStride, width, height)
-        halfHorizontal(@dataof(planeB), 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
-        averagePlanes(dst, dstStride, @dataof(planeA), 16, @dataof(planeB), 16, width, height)
+        halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, @dataof(planeA), 16, width, height)
         return
     }
 
@@ -179,25 +252,57 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     {
         // Positions i and k: the center half against the nearest vertical half column.
         halfCenter(@dataof(planeA), 16, src, srcStride, width, height)
-        halfVertical(@dataof(planeB), 16, fracX == 1 ? src : src + 1, srcStride, width, height)
-        averagePlanes(dst, dstStride, @dataof(planeA), 16, @dataof(planeB), 16, width, height)
+        halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, @dataof(planeA), 16, width, height)
         return
     }
 
     // Diagonal quarter positions e, g, p, r: nearest horizontal half against nearest
     // vertical half.
     halfHorizontal(@dataof(planeA), 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
-    halfVertical(@dataof(planeB), 16, fracX == 1 ? src : src + 1, srcStride, width, height)
-    averagePlanes(dst, dstStride, @dataof(planeA), 16, @dataof(planeB), 16, width, height)
+    halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, @dataof(planeA), 16, width, height)
 }
 
-// Copies one byte plane.
+// Copies one byte plane. Block widths are 4, 8, or 16, so whole rows move as words;
+// x86-64 reads and writes them unaligned.
 func copyPlane(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
-    for row in cast(u64) height
+    var d = dst
+    var s = src
+    switch width
     {
-        for column in cast(u64) width do
-            dst[row * dstStride + column] = src[row * srcStride + column]
+    case 16:
+        for cast(u64) height
+        {
+            (cast([*] u64) d)[0] = (cast(const [*] u64) s)[0]
+            (cast([*] u64) d)[1] = (cast(const [*] u64) s)[1]
+            d                    += dstStride
+            s                    += srcStride
+        }
+
+    case 8:
+        for cast(u64) height
+        {
+            (cast([*] u64) d)[0] = (cast(const [*] u64) s)[0]
+            d += dstStride
+            s += srcStride
+        }
+
+    case 4:
+        for cast(u64) height
+        {
+            (cast([*] u32) d)[0] = (cast(const [*] u32) s)[0]
+            d += dstStride
+            s += srcStride
+        }
+
+    default:
+        for cast(u64) height
+        {
+            for column in cast(u64) width do
+                d[column] = s[column]
+            d += dstStride
+            s += srcStride
+        }
     }
 }
 
@@ -210,8 +315,8 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     let planeHeight = reference.mbHeight * 8
     let base        = plane == 0 ? reference.cb.buffer! : reference.cr.buffer!
 
-    var window: [9 * 12] u8 = undefined
-    var src: [*] u8 = undefined
+    var window:    [9 * 12] u8 = undefined
+    var src:       [*] u8      = undefined
     var srcStride: u64
     if x < -FramePadding or y < -FramePadding or x + width + 1 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
     {
@@ -225,39 +330,79 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         srcStride = reference.strideChroma
     }
 
-    let weightRight  = fracX
-    let weightBottom = fracY
-    let weightLeft   = 8 - fracX
-    let weightTop    = 8 - fracY
-    for row in cast(u64) height
+    // A zero phase on both axes is a plain copy, and a zero phase on one axis collapses the
+    // bilinear blend to a two-tap filter; the skipped macroblocks of a still scene all take
+    // the copy path.
+    if fracX == 0 and fracY == 0
     {
-        let line = src + row * srcStride
+        copyPlane(dst, dstStride, src, srcStride, width, height)
+        return
+    }
+
+    var out  = dst
+    var line = src
+    if fracY == 0
+    {
+        let wl = (8 - fracX) * 8
+        let wr = fracX * 8
+        for cast(u64) height
+        {
+            for column in cast(u64) width do
+                out[column] = cast(u8) ((wl * cast(s32) line[column] + wr * cast(s32) line[column + 1] + 32) >> 6)
+            out  += dstStride
+            line += srcStride
+        }
+
+        return
+    }
+
+    if fracX == 0
+    {
+        let wt = (8 - fracY) * 8
+        let wb = fracY * 8
+        for cast(u64) height
+        {
+            for column in cast(u64) width do
+                out[column] = cast(u8) ((wt * cast(s32) line[column] + wb * cast(s32) line[column + srcStride] + 32) >> 6)
+            out  += dstStride
+            line += srcStride
+        }
+
+        return
+    }
+
+    let wlt = (8 - fracX) * (8 - fracY)
+    let wrt = fracX * (8 - fracY)
+    let wlb = (8 - fracX) * fracY
+    let wrb = fracX * fracY
+    for cast(u64) height
+    {
+        let below = line + srcStride
         for column in cast(u64) width
         {
-            let value = weightLeft * weightTop * cast(s32) line[column] +
-                        weightRight * weightTop * cast(s32) line[column + 1] +
-                        weightLeft * weightBottom * cast(s32) line[column + srcStride] +
-                        weightRight * weightBottom * cast(s32) line[column + srcStride + 1]
-            dst[row * dstStride + column] = cast(u8) ((value + 32) >> 6)
+            let value = wlt * cast(s32) line[column] + wrt * cast(s32) line[column + 1] + wlb * cast(s32) below[column] + wrb * cast(s32) below[column + 1]
+            out[column] = cast(u8) ((value + 32) >> 6)
         }
+
+        out  += dstStride
+        line += srcStride
     }
 }
 
 // Applies one explicit weight to a predicted block, section 8.4.2.3.2.
 func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32, logDenom, weight, offset: s32)
 {
-    for row in cast(u64) height
+    // A zero denominator shifts by nothing with no rounding term, so one expression serves
+    // both spellings of section 8.4.2.3.2.
+    let rounding = logDenom > 0 ? 1's32 << cast(u32) (logDenom - 1) : 0's32
+    var out      = dst
+    var line     = src
+    for cast(u64) height
     {
-        for column in cast(u64) width
-        {
-            let sample = cast(s32) src[row * srcStride + column]
-            var value: s32
-            if logDenom > 0 do
-                value = ((sample * weight + (1 << cast(u32) (logDenom - 1))) >> cast(u32) logDenom) + offset
-            else do
-                value = sample * weight + offset
-            dst[row * dstStride + column] = clampPixel(value)
-        }
+        for column in cast(u64) width do
+            out[column] = clampPixel(((cast(s32) line[column] * weight + rounding) >> cast(u32) logDenom) + offset)
+        out  += dstStride
+        line += srcStride
     }
 }
 
@@ -266,12 +411,15 @@ func weightBi(dst: [*] u8, dstStride: u64, src0, src1: [*] u8, srcStride: u64, w
 {
     let rounding = 1's32 << cast(u32) logDenom
     let offset   = (offset0 + offset1 + 1) >> 1
-    for row in cast(u64) height
+    var out      = dst
+    var line0    = src0
+    var line1    = src1
+    for cast(u64) height
     {
-        for column in cast(u64) width
-        {
-            let value = ((cast(s32) src0[row * srcStride + column] * weight0 + cast(s32) src1[row * srcStride + column] * weight1 + rounding) >> cast(u32) (logDenom + 1)) + offset
-            dst[row * dstStride + column] = clampPixel(value)
-        }
+        for column in cast(u64) width do
+            out[column] = clampPixel(((cast(s32) line0[column] * weight0 + cast(s32) line1[column] * weight1 + rounding) >> cast(u32) (logDenom + 1)) + offset)
+        out   += dstStride
+        line0 += srcStride
+        line1 += srcStride
     }
 }

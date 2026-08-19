@@ -1,18 +1,23 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 using Core, Core.Errors
 
 // The CABAC arithmetic decoding engine of section 9.3.
+//
+// Raw slice bits stream through a 64-bit buffer refilled whole words at a time, and
+// renormalization shifts in one step, so the per-bin cost stays flat whatever the bin rate.
 struct CabacReader
 {
-    data:     #null const [*] u8     // Slice data, still carrying emulation prevention removed upstream.
-    size:     u64
-    position: u64
-    low:      u32                    // codIOffset.
-    range:    u32                    // codIRange.
-    contexts: [1024] u8              // Packed state: `(pStateIdx << 1) | valMPS`.
-    overran:  bool
+    data:      #null const [*] u8     // Slice data, still carrying emulation prevention removed upstream.
+    size:      u64
+    position:  u64           // Next data byte to load into the bit buffer.
+    padBytes:  u64           // Synthetic zero bytes loaded past the end of the data.
+    bitBuffer: u64           // Raw slice bits, most significant first.
+    bitCount:  s32           // Valid bits at the top of `bitBuffer`.
+    low:       u32           // codIOffset.
+    range:     u32           // codIRange.
+    contexts:  [1024] u8     // Packed state: `(pStateIdx << 1) | valMPS`.
 }
 
 impl CabacReader
@@ -46,67 +51,95 @@ impl CabacReader
     // Starts the arithmetic engine on the byte-aligned slice data, section 9.3.1.2.
     mtd start(data: const [*] u8, size: u64)
     {
-        .data     = data
-        .size     = size
-        .position = 0
-        .range    = 510
-        .overran  = false
-        .low      = 0
-        for 9 do
-            .low = (.low << 1) | .readBit()
+        .data      = data
+        .size      = size
+        .position  = 0
+        .padBytes  = 0
+        .bitBuffer = 0
+        .bitCount  = 0
+        .range     = 510
+        .low       = .takeBits(9)
     }
 
-    // Reads one raw bit of slice data.
-    private mtd readBit()->u32
+    // Reports whether decoding consumed bits past the end of the slice data.
+    mtd const hasOverrun()->bool => (.position + .padBytes) * 8 - cast(u64) .bitCount > .size * 8
+
+    // Refills the top of the bit buffer, padding with zero bytes past the end of the data.
+    private mtd refill()
     {
-        if .position >= .size * 8
+        // An empty buffer with a whole word of data left loads it in one swapped read.
+        if .bitCount <= 0 and .position + 8 <= .size
         {
-            .overran = true
-            return 0
+            .bitBuffer = @byteswap((cast(const [*] u64) (.data! + .position))[0])
+            .bitCount  = 64
+            .position  += 8
+            return
         }
 
-        let value = (cast(u32) .data![.position >> 3] >> cast(u32) (7 - (.position & 7))) & 1
-        .position += 1
-        return value
+        while .bitCount <= 56
+        {
+            var value = 0'u8
+            if .position < .size
+            {
+                value     = .data![.position]
+                .position += 1
+            }
+            else
+            {
+                .padBytes += 1
+            }
+
+            .bitBuffer |= cast(u64) value << cast(u32) (56 - .bitCount)
+            .bitCount  += 8
+        }
+    }
+
+    // Takes `count` raw bits, most significant first; `count` is 1 to 9.
+    #[Swag.Inline]
+    private mtd takeBits(count: u32)->u32
+    {
+        if .bitCount < cast(s32) count do
+            .refill()
+        let bits = cast(u32) (.bitBuffer >> cast(u32) (64 - count))
+        .bitBuffer <<= count
+        .bitCount  -= cast(s32) count
+        return bits
     }
 
     // Decodes one bin with the context at `contextIndex`, section 9.3.3.2.1.
     mtd decision(contextIndex: u32)->u32
     {
-        let state  = .contexts[contextIndex]
+        let state  = cast(u32) .contexts[contextIndex]
         let pState = cast(u64) (state >> 1)
-        let mps    = cast(u32) state & 1
+        let mps    = state & 1
         let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((.range >> 6) & 3)]
 
+        // Branchless select between the two outcomes: `mask` is all ones on the MPS path.
         .range -= lps
-        var bin: u32
-        if .low >= .range
+        let diff = cast(s32) .low - cast(s32) .range
+        let mask = cast #wrap (u32) (diff >> 31)
+        .low   = (.low & mask) | ((cast #wrap (u32) diff) & ~mask)
+        .range = (.range & mask) | (lps & ~mask)
+        let lpsMps   = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
+        let mpsState = (cast(u32) CabacTransMps[pState] << 1) | mps
+        let lpsState = (cast(u32) CabacTransLps[pState] << 1) | lpsMps
+        .contexts[contextIndex] = cast(u8) ((mpsState & mask) | (lpsState & ~mask))
+
+        // Renormalize in one step.
+        let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
+        if shift != 0
         {
-            .low -= .range
-            .range = lps
-            bin    = 1 - mps
-            .contexts[contextIndex] = cast(u8) ((CabacTransLps[pState] << 1) | (pState == 0 ? 1 - mps : mps))
-        }
-        else
-        {
-            bin = mps
-            .contexts[contextIndex] = cast(u8) ((CabacTransMps[pState] << 1) | mps)
+            .range <<= cast(u32) shift
+            .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
         }
 
-        // Renormalize.
-        while .range < 256
-        {
-            .range <<= 1
-            .low = (.low << 1) | .readBit()
-        }
-
-        return bin
+        return mps ^ (1 & ~mask)
     }
 
     // Decodes one bypass bin, section 9.3.3.2.3.
     mtd bypass()->u32
     {
-        .low = (.low << 1) | .readBit()
+        .low = (.low << 1) | .takeBits(1)
         if .low >= .range
         {
             .low -= .range
@@ -123,10 +156,11 @@ impl CabacReader
         if .low >= .range do
             return 1
 
-        while .range < 256
+        let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
+        if shift != 0
         {
-            .range <<= 1
-            .low = (.low << 1) | .readBit()
+            .range <<= cast(u32) shift
+            .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
         }
 
         return 0
@@ -271,7 +305,7 @@ impl Slice
             let delta = .qpDeltaCabac()
             if delta < -26 or delta > 25 do
                 fail InvalidFormatError{"H.264 macroblock QP delta is out of range"}
-            .qp = (.qp + delta + 52) % 52
+            .qp          = (.qp + delta + 52) % 52
             .lastQpDelta = delta
         }
         else
@@ -438,11 +472,11 @@ impl Slice
     // Decodes the macroblock QP delta.
     mtd qpDeltaCabac()->s32
     {
-        var ctx = .lastQpDelta != 0 ? 1'u32 : 0'u32
+        var ctx   = .lastQpDelta != 0 ? 1'u32 : 0'u32
         var count = 0's32
         while .cabac.decision(60 + ctx) != 0
         {
-            ctx = ctx < 2 ? 2 : 3
+            ctx   = ctx < 2 ? 2 : 3
             count += 1
             if count > 104 do
                 break
@@ -512,11 +546,11 @@ impl Slice
         var result: retval
         for component in 2'u32
         {
-            let sumA = component == 0 ? Math.abs(cast(s32) a.mvdX) : Math.abs(cast(s32) a.mvdY)
-            let sumB = component == 0 ? Math.abs(cast(s32) b.mvdX) : Math.abs(cast(s32) b.mvdY)
-            let amvd = sumA + sumB
+            let sumA    = component == 0 ? absS32(cast(s32) a.mvdX) : absS32(cast(s32) a.mvdY)
+            let sumB    = component == 0 ? absS32(cast(s32) b.mvdX) : absS32(cast(s32) b.mvdY)
+            let amvd    = sumA + sumB
             var ctxBase = component == 0 ? 40'u32 : 47'u32
-            var ctx = 0'u32
+            var ctx     = 0'u32
             if amvd > 2 do
                 ctx += 1
             if amvd > 32 do
@@ -528,7 +562,7 @@ impl Slice
                 continue
             }
 
-            var value = 1'u32
+            var value    = 1'u32
             var unaryCtx = ctxBase + 3
             while value < 9 and .cabac.decision(unaryCtx) != 0
             {
@@ -544,21 +578,21 @@ impl Slice
                 while .cabac.bypass() != 0
                 {
                     value += 1'u32 << k
-                    k += 1
+                    k     += 1
                     if k > 24 do
                         fail InvalidFormatError{"H.264 motion vector difference does not decode"}
                 }
 
                 while k > 0
                 {
-                    k -= 1
+                    k     -= 1
                     value += .cabac.bypass() << k
                 }
             }
 
-            let sign = .cabac.bypass()
+            let sign      = .cabac.bypass()
             let magnitude = cast(s32) value
-            result[component] = cast(s16) Math.clamp(sign != 0 ? -magnitude : magnitude, -32768, 32767)
+            result[component] = cast(s16) clampS32(sign != 0 ? -magnitude : magnitude, -32768, 32767)
         }
 
         return result
@@ -571,12 +605,9 @@ impl Slice
     // flags `nzA` and `nzB` (-1 for an unavailable neighbor). Returns the coefficient count.
     mtd residualCabac(mb: *Mb, cat: u32, coeffs: [*] s16, maxCoeffs: u32, nzA, nzB: s32)->u32 fail
     {
-        for index in cast(u64) maxCoeffs do
-            coeffs[index] = 0
-
         if cat != 5
         {
-            var ctx = CabacCbfBase[cat]
+            var ctx   = CabacCbfBase[cat]
             let intra = mb.class != MbClassInter
             if nzA > 0 or (nzA < 0 and intra) do
                 ctx += 1
@@ -588,18 +619,18 @@ impl Slice
 
         // Significance map.
         var indices: [64] u32 = undefined
-        var count = 0'u32
-        let sigBase  = CabacSigBase[cat]
-        let lastBase = CabacLastBase[cat]
-        var scan     = 0'u32
-        var foundLast = false
+        var count             = 0'u32
+        let sigBase           = CabacSigBase[cat]
+        let lastBase          = CabacLastBase[cat]
+        var scan              = 0'u32
+        var foundLast         = false
         while scan < maxCoeffs - 1
         {
-            let sigCtx  = cat == 5 ? cast(u32) SigCoeffCtx8x8[scan] : scan
+            let sigCtx = cat == 5 ? cast(u32) SigCoeffCtx8x8[scan] : scan
             if .cabac.decision(sigBase + sigCtx) != 0
             {
                 indices[count] = scan
-                count += 1
+                count          += 1
                 let lastCtx = cat == 5 ? cast(u32) LastCoeffCtx8x8[scan] : scan
                 if .cabac.decision(lastBase + lastCtx) != 0
                 {
@@ -614,20 +645,20 @@ impl Slice
         if !foundLast and scan == maxCoeffs - 1
         {
             indices[count] = scan
-            count += 1
+            count          += 1
         }
 
         if count == 0 do
             return 0
 
         // Levels, last significant coefficient first.
-        let absBase = CabacAbsBase[cat]
-        var node    = 0'u32
+        let absBase   = CabacAbsBase[cat]
+        var node      = 0'u32
         var remaining = count
         while remaining > 0
         {
             remaining -= 1
-            let position = indices[remaining]
+            let position  = indices[remaining]
             var magnitude = 1's32
             if .cabac.decision(absBase + cast(u32) CoeffAbsLevel1Ctx[node]) == 0
             {
@@ -660,10 +691,10 @@ impl Slice
 
             if .cabac.bypass() != 0 do
                 magnitude = -magnitude
-            coeffs[position] = cast(s16) Math.clamp(magnitude, -32768, 32767)
+            coeffs[position] = cast(s16) clampS32(magnitude, -32768, 32767)
         }
 
-        if .cabac.overran do
+        if .cabac.hasOverrun() do
             fail InvalidFormatError{"H.264 residual block is truncated"}
         return count
     }
@@ -671,13 +702,13 @@ impl Slice
     // Parses every residual block of the macroblock with CABAC coding.
     mtd parseResidualCabac(mb: *Mb) fail
     {
-        let dec = .dec!
+        let dec   = .dec!
         let mbIdx = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
 
         if mb.class == MbClassIntra16x16
         {
-            let nzA = .dcFlagNeighbor(mb, -1, 0, 0)
-            let nzB = .dcFlagNeighbor(mb, 0, -1, 0)
+            let nzA   = .dcFlagNeighbor(mb, -1, 0, 0)
+            let nzB   = .dcFlagNeighbor(mb, 0, -1, 0)
             let count = .residualCabac(mb, 0, @dataof(mb.lumaDc), 16, nzA, nzB)
             mb.dcFlags[0] = count > 0 ? 1 : 0
             if count > 0
@@ -697,7 +728,7 @@ impl Slice
                 for cell in 4's32
                 {
                     let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
-                    mb.nzLuma[cast(u64) raster]      = cast(u8) Math.min(count, 16)
+                    mb.nzLuma[cast(u64) raster]      = cast(u8) minS32(count, 16)
                     mb.codedBlocks[cast(u64) raster] = 1
                 }
 
@@ -725,8 +756,8 @@ impl Slice
         {
             for plane in 2's32
             {
-                let nzA = .dcFlagNeighbor(mb, -1, 0, 1 + plane)
-                let nzB = .dcFlagNeighbor(mb, 0, -1, 1 + plane)
+                let nzA   = .dcFlagNeighbor(mb, -1, 0, 1 + plane)
+                let nzB   = .dcFlagNeighbor(mb, 0, -1, 1 + plane)
                 let count = .residualCabac(mb, 3, @dataof(mb.chromaDc) + cast(u64) plane * 4, 4, nzA, nzB)
                 mb.dcFlags[cast(u64) (1 + plane)] = count > 0 ? 1 : 0
             }
@@ -738,8 +769,8 @@ impl Slice
             {
                 for block in 4's32
                 {
-                    let nzA = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1) - 1, mb.mbY * 2 + (block >> 1))
-                    let nzB = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1), mb.mbY * 2 + (block >> 1) - 1)
+                    let nzA   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1) - 1, mb.mbY * 2 + (block >> 1))
+                    let nzB   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1), mb.mbY * 2 + (block >> 1) - 1)
                     let count = .residualCabac(mb, 4, @dataof(mb.chromaAc) + cast(u64) plane * 64 + cast(u64) block * 16 + 1, 15, nzA, nzB)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count

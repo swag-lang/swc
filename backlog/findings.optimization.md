@@ -268,3 +268,23 @@ Entries are sorted by identifier, ascending; position carries no priority.
   and an integer loop with calls in its body. Start from the existing candidate machinery,
   which already computes the spans, the benefits and the concrete-claim positions a splitting
   allocator needs.
+
+### F-165 — Integer ternaries lower to branches and starve pixel loops
+
+- Found while: T-504, profiling the H.264 decoder on a 1080p30 Main stream in release.
+- Observation: `Math.clamp`, `Math.min`, `Math.max`, `Math.abs`, and every integer ternary
+  compile to compare-and-branch. `#[Swag.PrintMicro("pre-emit")]` on the YUV-to-RGB inner loop
+  shows two conditional jumps per clamped store plus per-iteration reloads of loop-invariant
+  pointers from the frame — every branch is an allocation boundary, so the loop's live set
+  flushes at each pixel. Rewriting the decoder's clamps as sign-bit arithmetic (the
+  `value & ~(value >> 31)` family now in `h264.transform.swg`) took the conversion stage from
+  1495 ms to about 470 ms over 59 frames — 3.2x from removing branches alone, byte-identical
+  output — and the deblocking filters gained another ~30% from the same treatment.
+- Also measured: forcing `#[Swag.Inline]` on the ~25-instruction `CabacReader.decision` at its
+  ~40 call sites regressed the parse stage ~10% — inlining raised pressure and the allocator
+  spilled more, the same mechanism as
+  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers).
+- Next step: lower integer `cond ? a : b` — and through it the Math min/max/clamp/abs family —
+  to a compare-and-select without a branch in the backend, then re-measure the decoder's
+  deblock and conversion loops and retire the hand-written sign-bit forms if the select
+  matches them.

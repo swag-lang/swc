@@ -13,20 +13,25 @@ const MbClassInter      = 4'u8
 // One decoded macroblock's summary, kept for the neighbors and the deblocking filter.
 struct MbInfo
 {
-    class:        u8      // One of the MbClass values.
-    cbpLuma:      u8      // One coded bit per 8x8 quadrant.
-    cbpChroma:    u8      // 0 none, 1 DC only, 2 DC and AC.
-    qp:           u8      // Luma QP used by the macroblock.
-    chromaMode:   u8      // Intra chroma prediction mode.
+    class:        u8     // One of the MbClass values.
+    cbpLuma:      u8     // One coded bit per 8x8 quadrant.
+    cbpChroma:    u8     // 0 none, 1 DC only, 2 DC and AC.
+    qp:           u8     // Luma QP used by the macroblock.
+    chromaMode:   u8     // Intra chroma prediction mode.
     transform8x8: bool
-    skipped:      bool    // P or B skip, for the CABAC skip contexts.
-    direct:       bool    // B skip or B_Direct_16x16, for the CABAC type contexts.
-    sliceId:      u16     // Which slice decoded the macroblock.
+    skipped:      bool     // P or B skip, for the CABAC skip contexts.
+    direct:       bool     // B skip or B_Direct_16x16, for the CABAC type contexts.
+    sliceId:      u16      // Which slice decoded the macroblock.
 
     // Deblocking parameters of the owning slice.
-    deblockIdc:   u8
-    alphaOffset:  s8
-    betaOffset:   s8
+    deblockIdc:  u8
+    alphaOffset: s8
+    betaOffset:  s8
+
+    // Uniform-motion summary for the deblocking fast path: an inter macroblock with no luma
+    // coefficients and one motion over its whole grid has strength zero on every inner edge,
+    // and one strength for a whole edge against another uniform macroblock.
+    uniform: bool
 }
 
 // Reads ITU-T H.264 video: one access unit in, one decoded frame out.
@@ -45,55 +50,55 @@ struct Decoder
     spsSet:        Array'Sps
     ppsSet:        Array'Pps
     nalLengthSize: u32
-    rbsp:          Array'u8          // Unescape scratch, reused across NAL units.
+    rbsp:          Array'u8     // Unescape scratch, reused across NAL units.
 
-    sps:           #null *Sps        // Active sequence set of the current picture.
-    pps:           #null *Pps        // Active picture set of the current picture.
+    sps: #null *Sps     // Active sequence set of the current picture.
+    pps: #null *Pps     // Active picture set of the current picture.
 
-    pool:          Array'*Frame     // Every allocated frame, owned by the decoder.
-    shortRefs:     Array'*Frame     // Short-term references, most recent first.
-    longRefs:      Array'*Frame     // Long-term references, ascending index.
-    current:       #null *Frame     // Picture being decoded.
+    pool:      Array'*Frame     // Every allocated frame, owned by the decoder.
+    shortRefs: Array'*Frame     // Short-term references, most recent first.
+    longRefs:  Array'*Frame     // Long-term references, ascending index.
+    current:   #null *Frame     // Picture being decoded.
 
     // Per-macroblock state of the current picture.
-    mbInfo:        Array'MbInfo
-    dcFlags:       Array'u8         // Three per macroblock: luma, Cb, and Cr DC coded flags.
+    mbInfo:  Array'MbInfo
+    dcFlags: Array'u8     // Three per macroblock: luma, Cb, and Cr DC coded flags.
 
     // Per-4x4-block state of the current picture, on the absolute block grid: index
     // `(mbY * 4 + y) * mbWidth * 4 + mbX * 4 + x`, and half that pitch for chroma.
-    intraModes:    Array'u8         // Intra 4x4 prediction mode, DC for non-intra blocks.
-    nonZeroLuma:   Array'u8         // Nonzero AC coefficient count, for entropy contexts.
-    nonZeroCb:     Array'u8         // Chroma AC nonzero counts, one per chroma 4x4 block.
-    nonZeroCr:     Array'u8
-    codedLuma:     Array'u8         // Any coefficient coded in the block, for deblocking.
+    intraModes:  Array'u8     // Intra 4x4 prediction mode, DC for non-intra blocks.
+    nonZeroLuma: Array'u8     // Nonzero AC coefficient count, for entropy contexts.
+    nonZeroCb:   Array'u8     // Chroma AC nonzero counts, one per chroma 4x4 block.
+    nonZeroCr:   Array'u8
+    codedLuma:   Array'u8     // Any coefficient coded in the block, for deblocking.
 
     // Per-4x4-block motion state of the current picture, one array per reference list.
-    mvL0:          Array's16        // Two components per block.
-    mvL1:          Array's16
-    refIdxL0:      Array's8
-    refIdxL1:      Array's8
-    refPocL0:      Array's32        // Picture order count of the referenced frame, for deblocking.
-    refPocL1:      Array's32
-    mvdL0:         Array's16        // Motion vector differences, for the CABAC contexts.
-    mvdL1:         Array's16
-    directFlags:   Array'u8         // Whether the block was coded in a direct mode.
+    mvL0:        Array's16     // Two components per block.
+    mvL1:        Array's16
+    refIdxL0:    Array's8
+    refIdxL1:    Array's8
+    refPocL0:    Array's32     // Picture order count of the referenced frame, for deblocking.
+    refPocL1:    Array's32
+    mvdL0:       Array's16     // Motion vector differences, for the CABAC contexts.
+    mvdL1:       Array's16
+    directFlags: Array'u8     // Whether the block was coded in a direct mode.
 
-    decodedMbs:    u64
-    sliceCount:    u32
+    decodedMbs: u64
+    sliceCount: u32
 
     // Picture order state carried between pictures.
-    prevPocMsb:     s32
-    prevPocLsb:     s32
-    prevFrameNum:   u32
+    prevPocMsb:         s32
+    prevPocLsb:         s32
+    prevFrameNum:       u32
     prevFrameNumOffset: s32
 
     // Reference marking of the current picture, parsed from its first slice header.
-    markingParsed:  bool
-    idrLongTerm:    bool
+    markingParsed:   bool
+    idrLongTerm:     bool
     adaptiveMarking: bool
-    mmcoOps:        Array'MmcoOp
-    isIdrPicture:   bool
-    isRefPicture:   bool
+    mmcoOps:         Array'MmcoOp
+    isIdrPicture:    bool
+    isRefPicture:    bool
 }
 
 // One memory-management control operation of a slice header.
@@ -116,8 +121,8 @@ impl Decoder
             fail UnsupportedFormatError{"H.264 decoder configuration has an unknown version"}
 
         .nalLengthSize = cast(u32) (record[4] & 3) + 1
-        var offset     = 5'u64
-        let spsCount   = cast(u64) (record[offset] & 0x1F)
+        var offset   = 5'u64
+        let spsCount = cast(u64) (record[offset] & 0x1F)
         offset += 1
         for spsCount do
             offset = .configureSet(record, offset)
@@ -134,7 +139,7 @@ impl Decoder
     {
         if offset + 2 > @countof(record) do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
-        let size = (cast(u64) record[offset] << 8) | cast(u64) record[offset + 1]
+        let size  = (cast(u64) record[offset] << 8) | cast(u64) record[offset + 1]
         let start = offset + 2
         if size < 1 or start + size > @countof(record) do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
@@ -173,7 +178,7 @@ impl Decoder
             var size = 0'u64
             for .nalLengthSize
             {
-                size = (size << 8) | cast(u64) sample[offset]
+                size   = (size << 8) | cast(u64) sample[offset]
                 offset += 1
             }
 
@@ -188,7 +193,7 @@ impl Decoder
         .finishPicture()
         let result = .current!
         result.heldByCaller = true
-        .current = null
+        .current            = null
         return result
     }
 
@@ -230,6 +235,7 @@ impl Decoder
             fail UnsupportedFormatError{"video decoder does not support scalable or multiview H.264 streams"}
 
         default:
+
             // Access-unit delimiters, SEI messages, filler, and end markers carry nothing the
             // decoder needs.
             break
@@ -251,7 +257,7 @@ impl Decoder
             .startPicture(slice.header.frameNum, poc)
         }
 
-        .sliceCount += 1
+        .sliceCount   += 1
         slice.sliceId = cast(u16) .sliceCount
         if slice.header.type != SliceTypeI do
             slice.buildLists()
@@ -478,12 +484,12 @@ impl Decoder
                     reference.isLongTerm = false
                 .shortRefs.clear()
                 .longRefs.clear()
-                .prevPocMsb   = 0
-                .prevPocLsb   = frame.poc
-                .prevFrameNum = 0
+                .prevPocMsb         = 0
+                .prevPocLsb         = frame.poc
+                .prevFrameNum       = 0
                 .prevFrameNumOffset = 0
-                frame.frameNum = 0
-                frame.poc      = 0
+                frame.frameNum      = 0
+                frame.poc           = 0
 
             case 6:
                 .unmarkLongIndex(cast(s32) operation.arg0)
@@ -542,7 +548,7 @@ impl Decoder
             var msb    = .prevPocMsb
             if header.isIdr
             {
-                msb = 0
+                msb         = 0
                 .prevPocLsb = 0
             }
 
@@ -588,8 +594,8 @@ impl Decoder
             var expected = 0's32
             if absFrameNum > 0
             {
-                let cycles   = (absFrameNum - 1) / cycleCount
-                let inCycle  = (absFrameNum - 1) % cycleCount
+                let cycles  = (absFrameNum - 1) / cycleCount
+                let inCycle = (absFrameNum - 1) % cycleCount
                 expected = cycles * expectedDelta
                 for index in cast(u64) inCycle + 1 do
                     expected += .sps!.pocCycle[index]

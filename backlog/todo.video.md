@@ -16,14 +16,26 @@ is the layout it does not read yet.
 ### T-504 — H.264 decoding runs below real time at high resolutions
 
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams, but every
-  stage is scalar Swag — interpolation, IDCT, deblocking, CABAC renormalization, and the YUV to
-  RGB conversion. A 640x360 stream decodes at roughly 40 frames per second in a fast-debug build;
-  1080p lands well below real time. The sFileScope player now bounds its catch-up work per tick,
-  so a slow stream plays smoothly below real time instead of freezing, but it should not have to.
-- Complete when: a 1080p25 High-profile stream decodes in real time in a release build. The
-  levers, in the order the profile will likely rank them: SIMD luma/chroma interpolation and
-  IDCT following the `Pixel.RenderCpu` fast-path precedent, a byte-run significance fast path in
-  the CABAC engine, and row-batched deblocking.
+  stage is scalar Swag. The 2026-08-19 pass took a 1080p30 Main stream from 9.3 to about 16
+  frames per second in release, byte-identical: branchless sign-bit clamps on every per-sample
+  path (F-165), pair-wise YUV-to-RGB conversion, word-wide plane copies and rounding-up SWAR
+  averages, chroma zero-phase and one-axis fast paths, one derivation and one job per quadrant
+  under 8x8 inference plus a 16x16 merge for uniform direct and skip macroblocks, a uniform-MB
+  strength shortcut in deblocking, average-fused interpolation passes, memset-based `prepareMb`,
+  and a word-buffered branchless CABAC engine. The sFileScope player bounds its catch-up work per
+  tick, so a slow stream plays smoothly below real time instead of freezing, but it should not
+  have to.
+- Per-stage now (59 frames of 1080p30, release, native): motion compensation ~870 ms, CABAC
+  parse ~730 of which residual blocks ~380, deblocking ~610, YUV-to-RGB ~470, bookkeeping ~230,
+  motion derivations ~210, `prepareMb` ~110.
+- Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
+  levers, in expected order of value: parallel reconstruction on `Core.Jobs` — entropy parsing is
+  serial per slice, but inter macroblocks read only reference frames, so per-row fan-out of
+  reconstruction, deblocking, and conversion is legal once parse and recon are split; SWAR 16-bit
+  lanes for the six-tap filters; a byte-run significance fast path in the CABAC engine; packed
+  stores in the conversion; and word writes in `bookkeepMb`. A trap for the parse/recon split:
+  the Intra_16x16 and chroma reconstruction read residual blocks the entropy decoders never
+  parsed, so the per-macroblock residual arrays must stay cleared (see `prepareMb`).
 
 ### T-424 — A video stream carries no sound
 

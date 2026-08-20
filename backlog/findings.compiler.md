@@ -265,3 +265,19 @@ Entries are sorted by identifier, ascending; position carries no priority.
   defect, and the natural syntax slot is taken. Record whether the `(cast([*] T) p)[i]` idiom
   should become the documented spelling in
   `bin/reference/modules/language/src/004_007_pointers.swg` before considering new syntax.
+
+### F-170 — An intrinsic cannot start a statement, and the diagnostic does not say so
+
+- Area: compiler
+- Found while: writing `@dataof(target)[as Simd.U8x16] = value` in a `bin/std` test.
+- Observation: an assignment whose target begins with an intrinsic is rejected with "intrinsic
+  '@dataof' does not belong here". The restriction is the statement position alone, not the
+  postfix chain: the same expression is accepted everywhere else.
+- Evidence: `@dataof(buf)[as u32] = 1` and `@dataof(buf)[0] = 1` are both rejected as statements,
+  while `(@dataof(buf))[as u32] = 1` and `let p = @dataof(buf); p[as u32] = 1` compile, and
+  `use(@dataof(buf)[as u32])` compiles as a sub-expression. So the parser refuses an intrinsic as
+  the first token of a statement and the message names the intrinsic instead of the position.
+- Next step: either accept an intrinsic-rooted assignment target, or keep the restriction and give
+  the diagnostic its missing help line — "an intrinsic cannot start a statement; parenthesize it,
+  or bind it to a local first" — then cover the accepted and rejected spellings in
+  `bin/unittests/errors/parser`.

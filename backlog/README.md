@@ -79,7 +79,7 @@ The identifier is how an entry is named everywhere else — in conversation, in 
 another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
 changes file; the identifier does not.
 
-Next identifier: F-170
+Next identifier: F-171
 Next identifier: T-508
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each

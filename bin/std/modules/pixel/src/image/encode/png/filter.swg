@@ -132,6 +132,89 @@ func filterSumSub(source: const [*] u8, count, bytesPerPixel: u64)->s32
     return sum
 }
 
+func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
+{
+    const VectorBytes = #sizeof(Math.Simd.U8x16)
+    const BatchBytes  = 4 * VectorBytes
+    var offset = 0'u64
+    while offset < bytesPerPixel and offset < count
+    {
+        let average = cast(u16) previous[offset] / 2
+        destination[offset] = cast #bit(u8) (source[offset] - #wrap average)
+        offset              += 1
+    }
+
+    while count - offset >= BatchBytes
+    {
+        for batch in 4
+        {
+            let index   = offset + batch * VectorBytes
+            let left    = Math.Simd.load(source + index - bytesPerPixel)
+            let up      = Math.Simd.load(previous + index)
+            let average = Math.Simd.average(left, up) - ((left ^ up) & 1'u8)
+            Math.Simd.store(destination + index, Math.Simd.load(source + index) - average)
+        }
+
+        offset += BatchBytes
+    }
+
+    while count - offset >= VectorBytes
+    {
+        let left    = Math.Simd.load(source + offset - bytesPerPixel)
+        let up      = Math.Simd.load(previous + offset)
+        let average = Math.Simd.average(left, up) - ((left ^ up) & 1'u8)
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) - average)
+        offset += VectorBytes
+    }
+
+    while offset < count
+    {
+        let average = (cast(u16) source[offset - bytesPerPixel] + previous[offset]) / 2
+        destination[offset] = cast #bit(u8) (source[offset] - #wrap average)
+        offset              += 1
+    }
+}
+
+func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
+{
+    let bias   = Math.Simd.splat(128's16)
+    let ones   = Math.Simd.splat(1's16)
+    let prefix = Math.min(count, bytesPerPixel)
+    var sum    = 0's32
+    for i in prefix
+    {
+        let average = cast(s32) previous[i] / 2
+        let value   = cast(s32) source[i] - average
+        sum += 128 - Math.abs(value - 128)
+    }
+
+    var offset = prefix
+    while count - offset >= 16
+    {
+        let sourceBytes = Math.Simd.load(source + offset)
+        let left        = Math.Simd.load(source + offset - bytesPerPixel)
+        let up          = Math.Simd.load(previous + offset)
+        let average     = Math.Simd.average(left, up) - ((left ^ up) & 1'u8)
+        let lowValues   = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(sourceBytes) - cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(average)
+        let highValues  = cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(sourceBytes) - cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(average)
+        let lowScores   = bias - Math.abs(lowValues - bias)
+        let highScores  = bias - Math.abs(highValues - bias)
+        sum    += Math.Simd.sum(Math.Simd.mulAddPairs(lowScores, ones))
+        sum    += Math.Simd.sum(Math.Simd.mulAddPairs(highScores, ones))
+        offset += 16
+    }
+
+    while offset < count
+    {
+        let average = (cast(s32) source[offset - bytesPerPixel] + previous[offset]) / 2
+        let value   = cast(s32) source[offset] - average
+        sum    += 128 - Math.abs(value - 128)
+        offset += 1
+    }
+
+    return sum
+}
+
 impl Encoder
 {
     mtd getBestFilter(size: u32)->Filter
@@ -202,6 +285,8 @@ impl Encoder
             return filterSumSub(scanline, size, .bytesPerPixel)
         if filter == .Up do
             return filterSumIndependent(scanline, prevScanline, size, true)
+        if filter == .Average do
+            return filterSumAverage(scanline, prevScanline, size, .bytesPerPixel)
 
         for i in size
         {
@@ -258,6 +343,12 @@ impl Encoder
         if filter == .Up
         {
             filterUpRow(scanline, prevScanline, filtered, size)
+            return
+        }
+
+        if filter == .Average
+        {
+            filterAverageRow(scanline, prevScanline, filtered, size, .bytesPerPixel)
             return
         }
 

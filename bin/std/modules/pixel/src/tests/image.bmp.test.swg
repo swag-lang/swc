@@ -2,6 +2,39 @@
 
 using Swag, Core
 
+#test
+{
+    // Every source word, unaligned pointers, the SIMD/tail boundary, and
+    // untouched sentinels match the generic mask normalization exactly.
+    const Pixels = 65536 + 1
+    var source:   Array'u8
+    var actual:   Array'u8
+    var expected: Array'u8
+    source.resize(1 + Pixels * 2)
+    actual.resize(3 + Pixels * 3 + 1)
+    expected.resize(actual.count)
+    for i in actual.count
+    {
+        actual[i]   = 0xA5
+        expected[i] = 0xA5
+    }
+
+    let masks = Bmp.makeDefaultMasks(16, 0)
+    for i in Pixels
+    {
+        let value = cast(u16) (i & 0xFFFF)
+        source[1 + 2 * i]       = cast(u8) (value & 0xFF)
+        source[1 + 2 * i + 1]   = cast(u8) (value >> 8)
+        expected[3 + 3 * i]     = Bmp.maskToByte(value, masks.b)
+        expected[3 + 3 * i + 1] = Bmp.maskToByte(value, masks.g)
+        expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
+    }
+
+    Bmp.decode16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, masks)
+    for i in actual.count do
+        @assert(actual[i] == expected[i])
+}
+
 // Create an image in memory and verify its metadata.
 #test
 {

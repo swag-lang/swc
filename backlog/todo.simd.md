@@ -365,8 +365,8 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 
 ### T-548 — PNG packed samples, filters, and color conversion remain scalar
 
-- Intent: complete non-paletted color conversion and decoder Sub/Average/Paeth with prefix-scan
-  strategies where left dependencies require them.
+- Intent: complete non-paletted color conversion, decoder Sub for byte strides 1/3/6, and decoder
+  Average/Paeth with prefix-scan strategies where left dependencies require them.
   Decode and encode `Up` now process 64 bytes per iteration (1.59x and 1.27x), exact RGB/RGBA
   16-to-8 reduction processes eight samples per iteration (1.27x), and 4-bit expansion processes
   32 samples per iteration (1.34x). The 1-bit and 2-bit paths now expand 16 samples per iteration
@@ -379,6 +379,8 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   packed independent-byte reducer after the first pixel (1.59x). Encoder `Average` uses exact
   downward-rounded packed averages for row generation (2.25x) and scoring (1.63x). Encoder Paeth
   evaluates eight S16 lanes per half-vector for row generation (3.24x) and scoring (3.55x).
+  Decoder `Sub` uses packed prefix scans for 2/4/8-byte pixels (1.33x/1.44x/1.67x); the four-shuffle
+  one-byte scan regressed 18-27% and was rejected, while 3/6-byte layouts remain scalar.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
 - Related: T-514, T-516, T-517, T-520.

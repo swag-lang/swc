@@ -183,6 +183,8 @@ func firstNonAsciiRune(text: string)->rune
     @assert(Utf8.indexOf(text, "\U0001F642") == 11)
     @assert(Utf8.indexOf(text, '\u00E9'rune) == 8)
     @assert(Utf8.indexOf(text, "core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
+    @assert(Utf8.indexOf(text, "\u00C9", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 8)
+    @assert(Utf8.lastIndexOf(text, "\u00C9", Utf8.ComparisonType.Latin1NoCase) == 8)
     @assert(Utf8.indexOf(text, "missing") == Swag.U64.Max)
     @assert(Utf8.indexOf(text, "missing", @countof(text)) == Swag.U64.Max)
 
@@ -286,4 +288,69 @@ func firstNonAsciiRune(text: string)->rune
     @assert(Utf8.countRunes("aaaaaaaaaaaaaaa\u00E9") == 16)
     @assert(Utf8.countRunes("aaaaaaaaaaaaaaaa\u00E9") == 17)
     @assert(Utf8.countRunes("aaaaaaaaaaaaaaaaa\U0001F642") == 18)
+}
+
+// Forward and backward ASCII searches preserve exact byte indices across SIMD
+// boundaries, arbitrary starts, and scalar tails.
+#test
+{
+    var values: [96] u8
+    const ByteNeedles: [4] u8   = ['w', 'x', 'y', 'z']
+    const RuneNeedles: [1] rune = ['z']
+    for position in 96
+    {
+        for &value in values do
+            value[] = 'a'
+        values[position] = 'z'
+        let text = @mkstring(@dataof(values), @countof(values))
+        @assert(Utf8.indexOfAny(values, ByteNeedles) == position)
+        @assert(Utf8.indexOfAny(values, RuneNeedles) == position)
+        @assert(Utf8.lastIndexOfAny(values, ByteNeedles) == position)
+        @assert(Utf8.lastIndexOfAny(values, RuneNeedles) == position)
+        @assert(Utf8.indexOfAny(values, ByteNeedles, position + 1) == Swag.U64.Max)
+        @assert(Utf8.indexOf(text, 'z'rune) == position)
+        @assert(Utf8.lastIndexOf(text, 'z'rune) == position)
+    }
+
+    for position in 94
+    {
+        for &value in values do
+            value[] = 'a'
+        values[position + 0] = 'x'
+        values[position + 1] = 'y'
+        values[position + 2] = 'z'
+        let text = @mkstring(@dataof(values), @countof(values))
+        @assert(Utf8.indexOf(text, "xyz") == position)
+        @assert(Utf8.lastIndexOf(text, "xyz") == position)
+        @assert(Utf8.indexOf(text, "XyZ", comparisonType: Utf8.ComparisonType.Latin1NoCase) == position)
+        @assert(Utf8.lastIndexOf(text, "XyZ", Utf8.ComparisonType.Latin1NoCase) == position)
+    }
+
+    for &value in values do
+        value[] = 'a'
+    let repeated = @mkstring(@dataof(values), @countof(values))
+    @assert(Utf8.indexOf(repeated, "azzz") == Swag.U64.Max)
+    @assert(Utf8.lastIndexOf(repeated, "azzz") == Swag.U64.Max)
+    @assert(Utf8.indexOf(repeated, "AzZZ", comparisonType: Utf8.ComparisonType.Latin1NoCase) == Swag.U64.Max)
+    @assert(Utf8.lastIndexOf(repeated, "AzZZ", Utf8.ComparisonType.Latin1NoCase) == Swag.U64.Max)
+}
+
+// Byte-index lookup skips only complete ASCII blocks and stops before a
+// following multi-byte rune.
+#test
+{
+    var ascii: [80] u8
+    for &value in ascii do
+        value[] = 'a'
+    for index in 81
+    {
+        let result = Utf8.byteIndex(ascii, index)
+        @assert(result.index == index)
+        @assert(result.success == (index < @countof(ascii)))
+    }
+
+    let mixed = "aaaaaaaaaaaaaaa\u00E9"
+    @assert(Utf8.byteIndex(mixed, 15).index == 15)
+    let end = Utf8.byteIndex(mixed, 16)
+    @assert(end.index == @countof(mixed) and !end.success)
 }

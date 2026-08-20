@@ -3,6 +3,9 @@
 
 using Swag
 
+#assert(Slice.contains([1'u8, 2, 3], 2'u8))
+#assert(!Slice.contains([1'u8, 2, 3], 4'u8))
+
 #test
 {
     var empty:  #null [..] s32 = null
@@ -70,6 +73,15 @@ using Swag
 
     @assert(Slice.findLinear(values, 0xFF'u8) == Swag.U64.Max)
 
+    for position in 96
+    {
+        for &value in values do
+            value[] = 0x11
+        values[position] = 0xE7
+        @assert(Slice.contains(values, 0xE7'u8))
+        @assert(!Slice.contains(values, 0xFF'u8))
+    }
+
     let needle: [5] u8 = [1, 2, 3, 4, 5]
     for position in 80
     {
@@ -79,6 +91,10 @@ using Swag
             values[position + i] = needle[i]
         @assert(Slice.findSubslice(values, needle) == position)
     }
+
+    for &value in values do
+        value[] = 0x11
+    @assert(Slice.findSubslice(values, [0x11'u8, 0x12]) == Swag.U64.Max)
 
     var same = values
     @assert(Slice.equals(values, same))

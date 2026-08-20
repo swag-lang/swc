@@ -208,6 +208,12 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     value.trim()
     @assert(assertString(value, "core"))
 
+    value = "                \u00A0core\u00A0                "
+    value.trimStart()
+    @assert(assertString(value, "core\u00A0                "))
+    value.trimEnd()
+    @assert(assertString(value, "core"))
+
     value = "one fish, two fish, red fish"
     value.replace("fish", "cat")
     @assert(assertString(value, "one cat, two cat, red cat"))

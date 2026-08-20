@@ -137,13 +137,36 @@ public impl BitArray
     {
         if .count != other.count do
             return false
+        if !.count do
+            return true
 
         let buffer      = .constDataPtr()
         let otherBuffer = other.constDataPtr()
-        for .wordCount()
+        let wordCount   = .wordCount()
+        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        var offset = 0'u64
+        while wordCount - offset >= 4 * VectorWords
         {
-            if buffer[@index] != otherBuffer[@index] do
+            if !Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) or
+               !Math.Simd.allTrue(Math.Simd.load(buffer + offset + VectorWords) == Math.Simd.load(otherBuffer + offset + VectorWords)) or
+               !Math.Simd.allTrue(Math.Simd.load(buffer + offset + 2 * VectorWords) == Math.Simd.load(otherBuffer + offset + 2 * VectorWords)) or
+               !Math.Simd.allTrue(Math.Simd.load(buffer + offset + 3 * VectorWords) == Math.Simd.load(otherBuffer + offset + 3 * VectorWords)) do
                 return false
+            offset += 4 * VectorWords
+        }
+
+        while wordCount - offset >= VectorWords
+        {
+            if !Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) do
+                return false
+            offset += VectorWords
+        }
+
+        while offset < wordCount
+        {
+            if buffer[offset] != otherBuffer[offset] do
+                return false
+            offset += 1
         }
 
         return true

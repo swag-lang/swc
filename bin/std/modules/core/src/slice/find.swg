@@ -41,6 +41,21 @@ private func findByte(values: const [*] u8, count: u64, value: u8)->u64
     return Swag.U64.Max
 }
 
+#[Swag.Inline]
+private func verifyByteCandidates(values, subslice: const [*] u8, subCount, baseOffset: u64, candidateMask: u32)->u64
+{
+    var mask = candidateMask
+    while mask
+    {
+        let offset = baseOffset + Math.trailingZeros(mask)
+        if Memory.compare(values + offset, subslice, subCount) == 0 do
+            return offset
+        mask &= mask - 1
+    }
+
+    return Swag.U64.Max
+}
+
 // Find 'value' in a slice by performing a binary search.
 // The slice must be sorted in ascending order
 // Returns Swag.U64.Max if not found.
@@ -96,19 +111,35 @@ func findSubslice(values, subslice: const [..] u8)->u64
     if subCount > valueCount do
         return Swag.U64.Max
 
-    let valueData = @dataof(values)
-    let subData   = @dataof(subslice)
-    let lastStart = valueCount - subCount
-    var offset    = 0'u64
+    let valueData      = @dataof(values)
+    let subData        = @dataof(subslice)
+    let lastStart      = valueCount - subCount
+    let candidateCount = lastStart + 1
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let needle = Math.Simd.splat(subData[0])
+    var offset = 0'u64
     while offset <= lastStart
     {
-        let relative = findByte(valueData + offset, lastStart - offset + 1, subData[0])
+        let relative = findByte(valueData + offset, candidateCount - offset, subData[0])
         if relative == Swag.U64.Max do
             return Swag.U64.Max
         offset += relative
-        if Memory.compare(valueData + offset, subData, subCount) == 0 do
-            return offset
-        offset += 1
+        if candidateCount - offset >= VectorSize
+        {
+            let mask   = Math.Simd.bitmask(Math.Simd.load(valueData + offset) == needle)
+            let result = verifyByteCandidates(valueData, subData, subCount, offset, mask)
+            if result != Swag.U64.Max do
+                return result
+            offset += VectorSize
+            continue
+        }
+
+        while offset <= lastStart
+        {
+            if valueData[offset] == subData[0] and Memory.compare(valueData + offset, subData, subCount) == 0 do
+                return offset
+            offset += 1
+        }
     }
 
     return Swag.U64.Max
@@ -149,6 +180,12 @@ func(T, V) containsSorted(values: #null const [..] T, value: V)->bool
 }
 
 // Returns true if the given slice contains the 'value'
+#[Swag.ConstExpr]
+func contains(values: #null const [..] u8, value: u8)->bool
+{
+    return findLinear(values, value) != Swag.U64.Max
+}
+
 #[Swag.ConstExpr]
 func(T, V) contains(values: #null const [..] T, value: V)->bool
 {

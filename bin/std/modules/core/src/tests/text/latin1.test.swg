@@ -108,6 +108,36 @@ using Swag
     @assert(Latin1.trim("") == "")
 }
 
+// Trimming recognizes every Latin-1 spacing byte across packed blocks and
+// preserves the exact first and last non-space byte.
+#test
+{
+    const Spaces: [8] u8 = [9, 10, 11, 12, 13, 32, 0x85, 0xA0]
+    var buffer: [96] u8
+    for leading in 33
+    {
+        for trailing in 33
+        {
+            for &value in buffer do
+                value[] = 'x'
+            for index in leading do
+                buffer[index] = Spaces[index % @countof(Spaces)]
+            for index in trailing do
+                buffer[@countof(buffer) - index - 1] = Spaces[index % @countof(Spaces)]
+
+            let text    = @mkstring(@dataof(buffer), @countof(buffer))
+            let trimmed = Latin1.trim(text)
+            @assert(@countof(trimmed) == @countof(buffer) - leading - trailing)
+            for value in trimmed do
+                @assert(value == 'x')
+        }
+    }
+
+    for index in @countof(buffer) do
+        buffer[index] = Spaces[index % @countof(Spaces)]
+    @assert(Latin1.trim(@mkstring(@dataof(buffer), @countof(buffer))) == "")
+}
+
 // Packed casing stays byte-for-byte identical to the scalar tables for the
 // complete Latin-1 domain, including the multiplication and division signs.
 #test

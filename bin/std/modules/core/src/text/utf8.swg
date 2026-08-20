@@ -96,6 +96,195 @@ private
         {LoCB, 0x8F}]
 }
 
+private func indexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let count   = @countof(what)
+    let needle0 = Math.Simd.splat(what[0])
+    let needle1 = count > 1 ? Math.Simd.splat(what[1]) : needle0
+    let needle2 = count > 2 ? Math.Simd.splat(what[2]) : needle0
+    let needle3 = count > 3 ? Math.Simd.splat(what[3]) : needle0
+
+    var offset = 0'u64
+    while length - offset >= VectorSize
+    {
+        let values = Math.Simd.load(src + offset)
+        var mask   = Math.Simd.bitmask(values == needle0)
+        if count > 1 do
+            mask |= Math.Simd.bitmask(values == needle1)
+        if count > 2 do
+            mask |= Math.Simd.bitmask(values == needle2)
+        if count > 3 do
+            mask |= Math.Simd.bitmask(values == needle3)
+        if mask do
+            return offset + Math.trailingZeros(mask)
+        offset += VectorSize
+    }
+
+    while offset < length
+    {
+        if Slice.contains(what, src[offset]) do
+            return offset
+        offset += 1
+    }
+
+    return Swag.U64.Max
+}
+
+private func lastIndexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let count   = @countof(what)
+    let needle0 = Math.Simd.splat(what[0])
+    let needle1 = count > 1 ? Math.Simd.splat(what[1]) : needle0
+    let needle2 = count > 2 ? Math.Simd.splat(what[2]) : needle0
+    let needle3 = count > 3 ? Math.Simd.splat(what[3]) : needle0
+
+    var offset = length
+    while offset >= VectorSize
+    {
+        offset -= VectorSize
+        let values = Math.Simd.load(src + offset)
+        var mask   = Math.Simd.bitmask(values == needle0)
+        if count > 1 do
+            mask |= Math.Simd.bitmask(values == needle1)
+        if count > 2 do
+            mask |= Math.Simd.bitmask(values == needle2)
+        if count > 3 do
+            mask |= Math.Simd.bitmask(values == needle3)
+        if mask do
+            return offset + 31 - Math.leadingZeros(mask)
+    }
+
+    while offset
+    {
+        offset -= 1
+        if Slice.contains(what, src[offset]) do
+            return offset
+    }
+
+    return Swag.U64.Max
+}
+
+private func lastIndexOfSubslice(src: const [*] u8, length: u64, what: const [..] u8)->u64
+{
+    let whatLength   = @countof(what)
+    let lastByte     = @mkslice(@dataof(what) + whatLength - 1, 1)
+    var searchLength = length
+    while searchLength >= whatLength
+    {
+        let endIndex = lastIndexOfAnyAscii(src, searchLength, lastByte)
+        if endIndex == Swag.U64.Max or endIndex + 1 < whatLength do
+            return Swag.U64.Max
+        let startIndex = endIndex + 1 - whatLength
+        if Memory.compare(src + startIndex, @dataof(what), whatLength) == 0 do
+            return startIndex
+        searchLength = endIndex
+    }
+
+    return Swag.U64.Max
+}
+
+private func indexOfSubsliceNoCase(src: const [*] u8, length: u64, what: const [..] u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    var needles: [2] u8
+    needles[0] = what[0]
+    needles[1] = what[0]
+    var hasAlternate = false
+    if Latin1.isLower(what[0])
+    {
+        needles[1]   = Latin1.toUpper(what[0])
+        hasAlternate = true
+    }
+    elif Latin1.isUpper(what[0])
+    {
+        needles[1]   = Latin1.toLower(what[0])
+        hasAlternate = true
+    }
+
+    let whatLength = @countof(what)
+    let lastStart  = length - whatLength
+    let numStarts  = lastStart + 1
+    let needle0    = Math.Simd.splat(needles[0])
+    let needle1    = Math.Simd.splat(needles[1])
+    var offset     = 0'u64
+    while numStarts - offset >= VectorSize
+    {
+        let values = Math.Simd.load(src + offset)
+        var mask   = Math.Simd.bitmask(values == needle0)
+        if hasAlternate do
+            mask |= Math.Simd.bitmask(values == needle1)
+        while mask
+        {
+            let candidate = offset + Math.trailingZeros(mask)
+            if compare(@mkslice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
+                return candidate
+            mask &= mask - 1
+        }
+
+        offset += VectorSize
+    }
+
+    while offset <= lastStart
+    {
+        if compare(@mkslice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
+            return offset
+        offset += 1
+    }
+
+    return Swag.U64.Max
+}
+
+private func lastIndexOfSubsliceNoCase(src: const [*] u8, length: u64, what: const [..] u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    var needles: [2] u8
+    needles[0] = what[0]
+    needles[1] = what[0]
+    var hasAlternate = false
+    if Latin1.isLower(what[0])
+    {
+        needles[1]   = Latin1.toUpper(what[0])
+        hasAlternate = true
+    }
+    elif Latin1.isUpper(what[0])
+    {
+        needles[1]   = Latin1.toLower(what[0])
+        hasAlternate = true
+    }
+
+    let whatLength = @countof(what)
+    let needle0    = Math.Simd.splat(needles[0])
+    let needle1    = Math.Simd.splat(needles[1])
+    var offset     = length - whatLength + 1
+    while offset >= VectorSize
+    {
+        offset -= VectorSize
+        let values = Math.Simd.load(src + offset)
+        var mask   = Math.Simd.bitmask(values == needle0)
+        if hasAlternate do
+            mask |= Math.Simd.bitmask(values == needle1)
+        while mask
+        {
+            let bit       = 31 - Math.leadingZeros(mask)
+            let candidate = offset + bit
+            if compare(@mkslice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
+                return candidate
+            mask &= ~(1'u32 << bit)
+        }
+    }
+
+    while offset
+    {
+        offset -= 1
+        if compare(@mkslice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
+            return offset
+    }
+
+    return Swag.U64.Max
+}
+
 // Get the last unicode rune of the utf8 slice, and the number of
 // bytes to encode it
 func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
@@ -434,6 +623,14 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
     var resultByte = 0'u64
     while countof and resultChar != charIndex
     {
+        if charIndex - resultChar >= #sizeof(Math.Simd.U8x16) and countof >= #sizeof(Math.Simd.U8x16) and !Math.Simd.bitmask(Math.Simd.load(dataof))
+        {
+            resultByte, resultChar += #sizeof(Math.Simd.U8x16)
+            dataof                 += #sizeof(Math.Simd.U8x16)
+            countof                -= #sizeof(Math.Simd.U8x16)
+            continue
+        }
+
         let val = countBytesAt(@mkslice(dataof, countof))
         Debug.assert(val <= countof, "invalid utf8 character")
         resultByte += val
@@ -497,6 +694,18 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
     if !countof or countof > (length - startByteIndex) do
         return Swag.U64.Max
 
+    if comparisonType == .Latin1 or comparisonType == .Unicode
+    {
+        let result = Slice.findSubslice(@mkslice(@dataof(src) + startByteIndex, length - startByteIndex), what)
+        return result == Swag.U64.Max ? result : startByteIndex + result
+    }
+
+    if comparisonType == .Latin1NoCase
+    {
+        let result = indexOfSubsliceNoCase(@dataof(src) + startByteIndex, length - startByteIndex, what)
+        return result == Swag.U64.Max ? result : startByteIndex + result
+    }
+
     var idx    = startByteIndex
     var scan   = @dataof(src) + startByteIndex
     var remain = length - startByteIndex
@@ -529,6 +738,12 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
     if !countof do
         return Swag.U64.Max
 
+    if countof <= 4
+    {
+        let result = indexOfAnyAscii(@dataof(src) + startByteIndex, length - startByteIndex, what)
+        return result == Swag.U64.Max ? result : startByteIndex + result
+    }
+
     var idx    = startByteIndex
     var scan   = @dataof(src) + startByteIndex
     var remain = length - startByteIndex
@@ -558,6 +773,22 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
     let countof = @countof(what)
     if !countof do
         return Swag.U64.Max
+
+    if countof <= 4
+    {
+        var ascii: [4] u8
+        for value, index in what
+        {
+            if value > 0x7F do
+                break
+            ascii[index] = cast(u8) value
+            if index + 1 == countof
+            {
+                let result = indexOfAnyAscii(@dataof(src) + startByteIndex, length - startByteIndex, @mkslice(@dataof(ascii), countof))
+                return result == Swag.U64.Max ? result : startByteIndex + result
+            }
+        }
+    }
 
     var idx    = startByteIndex
     var scan   = @dataof(src) + startByteIndex
@@ -614,6 +845,23 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
     let length = @countof(src)
     if !length do
         return Swag.U64.Max
+    let countof = @countof(what)
+    if !countof do
+        return Swag.U64.Max
+
+    if countof <= 4
+    {
+        var ascii: [4] u8
+        for value, index in what
+        {
+            if value > 0x7F do
+                break
+            ascii[index] = cast(u8) value
+            if index + 1 == countof do
+                return lastIndexOfAnyAscii(@dataof(src), length, @mkslice(@dataof(ascii), countof))
+        }
+    }
+
     let dataof = @dataof(src)
 
     var byteIdx = length
@@ -642,6 +890,9 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
     if !@countof(what) do
         return Swag.U64.Max
 
+    if @countof(what) <= 4 do
+        return lastIndexOfAnyAscii(@dataof(src), length, what)
+
     var scan    = @dataof(src) + length
     var byteIdx = length
     while byteIdx
@@ -664,6 +915,12 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
     let lengthStr = @countof(what)
     if lengthStr > length do
         return Swag.U64.Max
+    if !lengthStr do
+        return length
+    if comparisonType == .Latin1 or comparisonType == .Unicode do
+        return lastIndexOfSubslice(@dataof(src), length, what)
+    if comparisonType == .Latin1NoCase do
+        return lastIndexOfSubsliceNoCase(@dataof(src), length, what)
 
     var idx    = length - lengthStr
     var dataof = @dataof(src) + idx

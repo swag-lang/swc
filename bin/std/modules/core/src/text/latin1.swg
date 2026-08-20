@@ -70,6 +70,62 @@ private func isUpperUtf8(c: u8)->bool
     return cast(bool) (CharProperties[c] & .UpperUtf8)
 }
 
+private func spaceMaskAt(data: const [*] u8, includeLatin1: bool)->u32
+{
+    let value    = Math.Simd.load(data)
+    let controls = (value >= Math.Simd.splat(9'u8)) & (value <= Math.Simd.splat(13'u8))
+    let ascii    = controls | (value == Math.Simd.splat(32'u8))
+    var mask     = Math.Simd.bitmask(ascii)
+    if includeLatin1 do
+        mask |= Math.Simd.bitmask(value == Math.Simd.splat(0x85'u8)) | Math.Simd.bitmask(value == Math.Simd.splat(0xA0'u8))
+    return mask
+}
+
+private func isSpaceByte(value: u8, includeLatin1: bool)->bool
+{
+    return includeLatin1 ? isSpace(value) : (value >= 9 and value <= 13) or value == 32
+}
+
+#[Swag.Inline]
+internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let data   = @dataof(buffer)
+    let count  = @countof(buffer)
+    var offset = 0'u64
+    while count - offset >= VectorSize
+    {
+        let mask = spaceMaskAt(data + offset, includeLatin1)
+        if mask != 0xFFFF do
+            return offset + Math.trailingZeros((~mask) & 0xFFFF)
+        offset += VectorSize
+    }
+
+    while offset < count and isSpaceByte(data[offset], includeLatin1) do
+        offset += 1
+    return offset
+}
+
+#[Swag.Inline]
+internal func lastNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let data   = @dataof(buffer)
+    var offset = @countof(buffer)
+    while offset >= VectorSize
+    {
+        let block = offset - VectorSize
+        let mask  = spaceMaskAt(data + block, includeLatin1)
+        if mask != 0xFFFF do
+            return block + 32 - Math.leadingZeros((~mask) & 0xFFFF)
+        offset = block
+    }
+
+    while offset and isSpaceByte(data[offset - 1], includeLatin1) do
+        offset -= 1
+    return offset
+}
+
 // Make an utf8 buffer upper case, dealing only with latin1 table
 func makeUpper(buffer: [..] u8)
 {
@@ -333,13 +389,11 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 // Trim the string.
 func trim(str: string)->string
 {
-    var countof = @countof(str)
-    var cpt     = 0'u64
-    while cpt < countof and Latin1.isSpace(str[cpt]) do
-        cpt += 1
-    while countof > cpt and Latin1.isSpace(str[countof - 1]) do
-        countof -= 1
-    if countof <= cpt do
+    let bytes = @mkslice(@dataof(str), @countof(str))
+    let first = firstNonSpace(bytes)
+    if first == @countof(str) do
         return ""
-    return @mkstring(@dataof(str) + cpt, countof - cpt)
+    let tail = bytes[first until @countof(bytes)]
+    let last = first + lastNonSpace(tail)
+    return @mkstring(@dataof(str) + first, last - first)
 }

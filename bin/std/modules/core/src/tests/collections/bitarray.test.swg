@@ -151,3 +151,35 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
             @assert(value[i] == ((i % 3 == 0) != (i % 5 == 0)))
     }
 }
+
+// Equality crosses four-vector batches and checks every scalar tail word.
+#test
+{
+    let lengths: [11] u64 = [0, 1, 31, 32, 33, 127, 128, 129, 511, 512, 513]
+    for length in lengths
+    {
+        var left, right: BitArray
+        left.resize(length)
+        right.resize(length)
+        for index in length
+        {
+            let value = index % 7 == 0
+            left[index]  = value
+            right[index] = value
+        }
+
+        @assert(left == right)
+
+        if length
+        {
+            let positions: [3] u64 = [0, length / 2, length - 1]
+            for position in positions
+            {
+                right.invert(position)
+                @assert(left != right)
+                right.invert(position)
+                @assert(left == right)
+            }
+        }
+    }
+}

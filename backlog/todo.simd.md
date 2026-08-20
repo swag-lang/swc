@@ -217,17 +217,9 @@ The current production baseline consists of the public wrapper in
   checks, and generate masked or peeled tails using the explicit SIMD operation set.
 - Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
   configured feature ceiling with scalar-equivalent results and profitable cost decisions.
-- Related: T-515, T-516, T-526, T-531.
+- Related: T-515, T-516, T-531.
 
 ## Tier B — Runtime and Core bulk primitives
-
-### T-526 — BitArray equality remains word-scalar
-
-- Intent: improve large `BitArray` equality without regressing the compiler-vectorized scalar loop;
-  explicit delegation to `Memory.compare` is currently slower.
-- Complete when: arbitrary word counts and unused tail bits retain their contract and large-array
-  equality throughput improves against the current scalar path.
-- Related: T-515, T-516, T-524.
 
 ### T-528 — PBKDF2 accumulates digest bytes scalarly
 
@@ -236,18 +228,20 @@ The current production baseline consists of the public wrapper in
   throughput improves independently of the HMAC implementation.
 - Related: T-516.
 
-### T-531 — Some UTF-8 scans still lack packed fast paths
+### T-531 — UTF-8 validation still lacks a profitable packed fast path
 
-- Intent: vectorize `isValid`, `indexOf`, and small-set `indexOfAny` fast paths while
-  falling back at the first non-ASCII or structurally interesting byte.
-- Complete when: malformed boundaries, rune counts, search indices, and arbitrary tails match the
-  scalar implementation and ASCII-heavy benchmarks improve.
+- Intent: improve `isValid` beyond its current unrolled scalar ASCII scan; a direct U8x16 bitmask
+  path measured 20.76 to 20.42 GiB/s and was rejected.
+- Complete when: malformed boundaries and arbitrary tails match the scalar implementation and an
+  ASCII-heavy benchmark improves rather than only replacing the load width.
 - Related: T-515, T-516, T-518, T-524.
 
 ### T-534 — Vector4 and Pixel.Color do not use their native packed shape
 
 - Intent: implement component arithmetic, min/max, abs, floor/ceil, lerp, clamp, dot/length support,
-  and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics.
+  and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics;
+  do not wrap the current scalar operators directly, which measured 321 to 637 ms in a Release
+  array-arithmetic benchmark because the backend already vectorizes their contiguous form better.
 - Complete when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
   and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
 - Related: T-511, T-515, T-521, T-552.

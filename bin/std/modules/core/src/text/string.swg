@@ -634,8 +634,10 @@ impl String
         if !.length do
             return
 
-        let buffer = .buffer!
-        var ptr    = buffer
+        let buffer     = .buffer!
+        let asciiBytes = Latin1.firstNonSpace(@mkslice(cast(const [*] u8) buffer, .length), includeLatin1: false)
+        var ptr        = buffer + asciiBytes
+        .length -= asciiBytes
         for
         {
             let sl       = @mkslice(ptr, .length)
@@ -657,6 +659,7 @@ impl String
             return
 
         let buffer = .buffer!
+        .length = Latin1.lastNonSpace(@mkslice(cast(const [*] u8) buffer, .length), includeLatin1: false)
         for
         {
             let sl       = @mkslice(buffer, .length)

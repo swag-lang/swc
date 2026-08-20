@@ -207,10 +207,15 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `line[start until @countof(line)]` at `tools/src/backlog.swg:172`, under the `#code` body passed
   to `Utf8.visitRunes`. The defect has not yet been reduced because the tool combines a slice of a
   `string`, a captured mutable index, and macro-generated traversal; removing one without first
-  identifying the second semantic visit would risk recording the wrong mechanism.
-- Next step: reduce `markdownHeadingAnchor` into a standalone sema input while preserving the
-  `#code` expansion, then trace both calls to `setSemaPayload` for the slice node and add that input
-  to `bin/unittests/sema` before changing payload ownership.
+  identifying the second semantic visit would risk recording the wrong mechanism. A second,
+  macro-free witness was found while optimizing `Latin1.trim`: passing
+  `bytes[first until @countof(bytes)]` directly to `lastNonSpace` triggers the same assertion on
+  `first`, while binding that slice to a local before the call compiles. This removes macro
+  expansion from the minimum mechanism and leaves a slice expression used as a call argument.
+- Next step: reduce the direct-call form into a standalone sema input, trace both calls to
+  `setSemaPayload` for its slice node, and add that input to `bin/unittests/sema` before changing
+  payload ownership; then keep the macro-generated `markdownHeadingAnchor` form as downstream
+  coverage.
 
 ### F-168 — A pointer converts only through 'u64', so every other integer needs two casts
 
@@ -264,3 +269,19 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the diagnostic its missing help line — "an intrinsic cannot start a statement; parenthesize it,
   or bind it to a local first" — then cover the accepted and rejected spellings in
   `bin/unittests/errors/parser`.
+
+### F-171 — A SIMD-valued conditional expression crashes JIT execution
+
+- Area: compiler
+- Found while: sharing the packed Latin-1 whitespace mask between forward and backward scans.
+- Observation: a helper that selects between two `#simd [16] u8` expressions with `condition ?
+  packedA : packedB` compiles and runs in native Release code, but a Core `#test` calling it through
+  the JIT reads address zero inside the helper. Selecting and combining the scalar `@vecmask`
+  results instead preserves the same semantics and passes.
+- Evidence: `Latin1.spaceMaskAt` crashed deterministically at the SIMD-valued conditional while
+  running `latin1.test.swg` in `-bc release`; the reported JIT offset mapped exactly to that line.
+  Replacing it with `var mask = @vecmask(ascii); if includeLatin1 { mask |= ... }` made the same
+  seven focused tests pass without changing the native benchmark result.
+- Next step: reduce a standalone JIT test returning a conditional `U8x16`, compare its true and
+  false branch register/stack locations with the scalar conditional lowering, then add the native
+  twin before fixing conditional-result materialization.

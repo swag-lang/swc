@@ -132,6 +132,8 @@ The '@vec' intrinsic family carries the operations the operators cannot
 express, each mapping to one hardware form: '@vecsplat' broadcasts a scalar
 into every lane, '@vecsatadd' and '@vecsatsub' clamp instead of wrapping,
 '@vecpackus' and '@vecpackss' narrow two vectors with saturation,
+'@vecinterleavelo' and '@vecinterleavehi' alternate lanes from the corresponding
+input halves,
 '@vecwidenlo' and '@vecwidenhi' extend half the lanes to double width,
 '@vecavgr' is the rounding average, '@vecmadd' multiplies 16-bit pairs into
 32-bit sums, '@vecsum' adds the four lanes of an 's32' vector with wrapping
@@ -156,6 +158,10 @@ vectors and compute per lane.
 
     let wide = cast([8] u16) @vecwidenlo(a)
     @assert(wide[0] == 200)
+
+    let indices = cast(#simd [16] u8) [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let zipped  = cast([16] u8) @vecinterleavelo(indices, b)
+    @assert(zipped[0] == 0 and zipped[1] == 100 and zipped[14] == 7 and zipped[15] == 100)
 
     let avg = cast([16] u8) @vecavgr(a, b)
     @assert(avg[0] == 150)

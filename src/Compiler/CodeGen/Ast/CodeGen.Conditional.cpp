@@ -105,7 +105,8 @@ namespace
 
     bool usesAddressBackedSelection(CodeGen& codeGen, TypeRef typeRef)
     {
-        return codeGen.typeMgr().get(typeRef).sizeOf(codeGen.ctx()) > 8;
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        return !typeInfo.isSimd() && typeInfo.sizeOf(codeGen.ctx()) > 8;
     }
 
     void emitSelectedOperand(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, const CodeGenNodePayload& operandPayload, MicroOpBits resultBits)

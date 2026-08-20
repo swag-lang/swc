@@ -122,6 +122,19 @@ namespace Simd
         func packSigned(low, high: S16x8)->S8x16 => @vecpackss(low, high)
         func packSigned(low, high: S32x4)->S16x8 => @vecpackss(low, high)
 
+        // Alternates lanes from the low halves of two vectors.
+        //
+        // The result is `x[0], y[0], x[1], y[1], ...` and discards both high halves.
+        func interleaveLow(x, y: U8x16)->U8x16 => @vecinterleavelo(x, y)
+        func interleaveLow(x, y: U16x8)->U16x8 => @vecinterleavelo(x, y)
+
+        // Alternates lanes from the high halves of two vectors.
+        //
+        // The result starts at the midpoint of each input and alternates in the same order
+        // as [[Core.Math.Simd.interleaveLow]].
+        func interleaveHigh(x, y: U8x16)->U8x16 => @vecinterleavehi(x, y)
+        func interleaveHigh(x, y: U16x8)->U16x8 => @vecinterleavehi(x, y)
+
         // Extends the low half of the lanes to double width, zero-extended for unsigned
         // lanes and sign-extended for signed ones.
         func widenLow(value: U8x16)->U16x8 => @vecwidenlo(value)

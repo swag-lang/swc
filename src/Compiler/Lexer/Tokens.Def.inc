@@ -368,6 +368,8 @@ SWC_TOKEN_DEF(IntrinsicVecSatAdd, "@vecsatadd", TokenIdKindE::Intrinsic | TokenI
 SWC_TOKEN_DEF(IntrinsicVecSatSub, "@vecsatsub", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecPackUS, "@vecpackus", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecPackSS, "@vecpackss", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecInterleaveLo, "@vecinterleavelo", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecInterleaveHi, "@vecinterleavehi", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecWidenLo, "@vecwidenlo", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecWidenHi, "@vecwidenhi", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "@vecavgr", TokenIdKindE::Intrinsic | TokenIdKindE::Return)

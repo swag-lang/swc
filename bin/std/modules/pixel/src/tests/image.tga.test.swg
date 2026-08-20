@@ -47,6 +47,44 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(r)
 }
 
+// Decode every 16-bit word plus an odd tail, with unaligned buffers and sentinels.
+// Both alpha modes must match the scalar expansion exactly.
+#test
+{
+    const Pixels = 65536 + 1
+    var source:   Array'u8
+    var actual:   Array'u8
+    var expected: Array'u8
+    source.resize(1 + Pixels * 2)
+    actual.resize(3 + Pixels * 4 + 1)
+    expected.resize(actual.count)
+
+    for alphaMode in 2
+    {
+        for i in actual.count
+        {
+            actual[i]   = 0xA5
+            expected[i] = 0xA5
+        }
+
+        let alphaFromBit = alphaMode != 0
+        for i in Pixels
+        {
+            let value = cast(u16) (i & 0xFFFF)
+            source[1 + i * 2]       = cast(u8) (value & 0xFF)
+            source[1 + i * 2 + 1]   = cast(u8) (value >> 8)
+            expected[3 + i * 4]     = Tga.expand5(value & 31)
+            expected[3 + i * 4 + 1] = Tga.expand5((value >> 5) & 31)
+            expected[3 + i * 4 + 2] = Tga.expand5((value >> 10) & 31)
+            expected[3 + i * 4 + 3] = alphaFromBit ? (value & 0x8000 ? 255 : 0) : 255
+        }
+
+        Tga.decodeTga16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, alphaFromBit)
+        for i in actual.count do
+            @assert(actual[i] == expected[i])
+    }
+}
+
 // Decode top-origin raw 15-bit rows through the shared BGR555 vector kernel,
 // including a full vector and an odd tail on each row.
 #test

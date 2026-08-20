@@ -2251,6 +2251,16 @@ namespace
             case TokenId::IntrinsicVecPackSS:
                 op = laneBits == 16 ? MicroOp::VecPackSS16 : MicroOp::VecPackSS32;
                 break;
+            case TokenId::IntrinsicVecInterleaveLo:
+                op = laneBits == 8 ? MicroOp::VecUnpackLo8 : laneBits == 16 ? MicroOp::VecUnpackLo16
+                                                                           : laneBits == 32 ? MicroOp::VecUnpackLo32
+                                                                                            : MicroOp::VecUnpackLo64;
+                break;
+            case TokenId::IntrinsicVecInterleaveHi:
+                op = laneBits == 8 ? MicroOp::VecUnpackHi8 : laneBits == 16 ? MicroOp::VecUnpackHi16
+                                                                           : laneBits == 32 ? MicroOp::VecUnpackHi32
+                                                                                            : MicroOp::VecUnpackHi64;
+                break;
             case TokenId::IntrinsicVecWidenHi:
                 isWidenHi = true;
                 [[fallthrough]];

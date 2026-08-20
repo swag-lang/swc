@@ -892,6 +892,8 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecSatSub:
         case TokenId::IntrinsicVecPackUS:
         case TokenId::IntrinsicVecPackSS:
+        case TokenId::IntrinsicVecInterleaveLo:
+        case TokenId::IntrinsicVecInterleaveHi:
         case TokenId::IntrinsicVecAvgR:
         case TokenId::IntrinsicVecMadd:
         case TokenId::IntrinsicVecPerm:

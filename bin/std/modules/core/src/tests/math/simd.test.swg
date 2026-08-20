@@ -66,6 +66,20 @@ using Swag, Math
     @assert(truncated[0] == 1 and truncated[1] == -1 and truncated[2] == 32767 and truncated[3] == -32768)
 }
 
+// Interleaving alternates lanes from the corresponding low or high input halves.
+#test
+{
+    let x    = cast(Simd.U8x16) [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let y    = cast(Simd.U8x16) [100'u8, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115]
+    let low  = Simd.interleaveLow(x, y)
+    let high = Simd.interleaveHigh(x, y)
+    @assert(low[0] == 0 and low[1] == 100 and low[14] == 7 and low[15] == 107)
+    @assert(high[0] == 8 and high[1] == 108 and high[14] == 15 and high[15] == 115)
+
+    let wordLow = Simd.interleaveLow(cast(Simd.U16x8) [0'u16, 1, 2, 3, 4, 5, 6, 7], cast(Simd.U16x8) [10'u16, 11, 12, 13, 14, 15, 16, 17])
+    @assert(wordLow[0] == 0 and wordLow[1] == 10 and wordLow[6] == 3 and wordLow[7] == 13)
+}
+
 // Packs narrow with saturation, and the widening halves extend with the lane's signedness.
 #test
 {

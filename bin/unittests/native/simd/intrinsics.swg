@@ -2,8 +2,8 @@
 using Swag
 
 // The packed intrinsic vocabulary, checked lane by lane: broadcast, saturation,
-// packs, widens, average, multiply-add, horizontal sum, float-to-integer conversion, permute,
-// select, movemask, and the vector overloads of the scalar math intrinsics.
+// packs, interleaves, widens, average, multiply-add, horizontal sum, float-to-integer conversion,
+// permute, select, movemask, and the vector overloads of the scalar math intrinsics.
 
 #[Swag.NoInline]
 func splatS32(value: s32)->#simd [4] s32 => @vecsplat(value)
@@ -76,6 +76,24 @@ func splatU8(value: u8)->#simd [16] u8 => @vecsplat(value)
 
     let rs = cast([8] s16) @vecpackss(cast(#simd [4] s32) [70000, -70000, 5, -5], cast(#simd [4] s32) [1, 2, 3, 4])
     @assert(rs[0] == 32767 and rs[1] == -32768 and rs[2] == 5 and rs[3] == -5 and rs[4] == 1 and rs[7] == 4)
+}
+
+#test
+{
+    // Low and high interleaves alternate the corresponding input halves.
+    let bytes0 = cast(#simd [16] u8) [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let bytes1 = cast(#simd [16] u8) [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115]
+    let low8   = cast([16] u8) @vecinterleavelo(bytes0, bytes1)
+    let high8  = cast([16] u8) @vecinterleavehi(bytes0, bytes1)
+    @assert(low8[0] == 0 and low8[1] == 100 and low8[14] == 7 and low8[15] == 107)
+    @assert(high8[0] == 8 and high8[1] == 108 and high8[14] == 15 and high8[15] == 115)
+
+    let words0 = cast(#simd [8] u16) [0, 1, 2, 3, 4, 5, 6, 7]
+    let words1 = cast(#simd [8] u16) [100, 101, 102, 103, 104, 105, 106, 107]
+    let low16  = cast([8] u16) @vecinterleavelo(words0, words1)
+    let high16 = cast([8] u16) @vecinterleavehi(words0, words1)
+    @assert(low16[0] == 0 and low16[1] == 100 and low16[6] == 3 and low16[7] == 103)
+    @assert(high16[0] == 4 and high16[1] == 104 and high16[6] == 7 and high16[7] == 107)
 }
 
 #test

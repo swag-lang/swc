@@ -1465,6 +1465,10 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @vecpackus(low, high: #simd [4] s32)->#simd [8] u16
     func @vecpackss(low, high: #simd [8] s16)->#simd [16] s8
     func @vecpackss(low, high: #simd [4] s32)->#simd [8] s16
+    func @vecinterleavelo(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @vecinterleavelo(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @vecinterleavehi(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @vecinterleavehi(value1, value2: #simd [8] u16)->#simd [8] u16
 
     // Widening: the low or high half of the lanes extends to double width,
     // zero-extended for unsigned lanes and sign-extended for signed ones.

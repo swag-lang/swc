@@ -209,6 +209,23 @@ var g_Int42:   s32 = 42
     @assert(z == 42.0)
 }
 
+// A SIMD value is register-backed despite its 16-byte size. Treating it like a
+// large address-backed aggregate makes the join load through vector contents.
+#test
+{
+    func ternarySimd(cond: bool)->#simd [16] u8
+    {
+        let bits     = @vecsplat(1'u8)
+        let selected = cond ? bits > @vecsplat(0'u8) : @vecsplat(17'u8)
+        return selected
+    }
+
+    const Left  = cast([16] u8) #run ternarySimd(true)
+    const Right = cast([16] u8) #run ternarySimd(false)
+    #assert(Left[0] == 255 and Left[15] == 255)
+    #assert(Right[0] == 17 and Right[15] == 17)
+}
+
 // Every consumer shape of a cast-wrapped integer selection: variable init with a
 // pointer condition and a field branch, call argument, explicit cast, and return.
 struct CondSt { col: s32 = 200 }

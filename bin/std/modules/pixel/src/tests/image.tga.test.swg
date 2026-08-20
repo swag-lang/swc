@@ -47,6 +47,32 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(r)
 }
 
+// Decode top-origin raw 15-bit rows through the shared BGR555 vector kernel,
+// including a full vector and an odd tail on each row.
+#test
+{
+    const Width  = 17'u16
+    const Height = 2'u16
+    var cb: ConcatBuffer
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 15, TGA_DESC_TOP, Width, Height)
+    for i in cast(u64) Width * Height do
+        cb.addNative(cast(u16) ((i * 1907 + 123) & 0x7FFF))
+
+    let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+    @assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
+    for i in cast(u64) Width * Height
+    {
+        let sourceY = i / Width
+        let x       = i % Width
+        let targetY = Height - sourceY - 1
+        let offset  = (targetY * Width + x) * 3
+        let value   = cast(u32) ((i * 1907 + 123) & 0x7FFF)
+        @assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
+        @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
+        @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
+    }
+}
+
 // Decoder and encoder registries recognise TGA files.
 #test
 {

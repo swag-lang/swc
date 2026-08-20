@@ -403,10 +403,12 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 
 ### T-551 — Packed and indexed pixel formats lack gather/shuffle kernels
 
-- Intent: complete TGA 16-bit expansion, GIF/PNG palette expansion, fixed quantization, and 24/32-bit
-  channel packing using shuffle or gather according to the active target. BMP's default BGR555
-  path now expands 16 pixels per iteration through exact 5-bit lookup tables and BGR shuffles
-  (4.23x over 512 MiB in Release); arbitrary BMP bitfield masks retain the generic scalar path.
+- Intent: complete TGA 16-bit alpha expansion, GIF/PNG palette expansion, fixed quantization, and
+  24/32-bit channel packing using shuffle or gather according to the active target. BMP's default
+  BGR555 path now expands 16 pixels per iteration through exact 5-bit lookup tables and BGR
+  shuffles (4.23x over 512 MiB in Release); raw non-right-origin TGA15 rows reuse the same exact
+  kernel (1.59x over 512 MiB in Release). Arbitrary BMP bitfield masks, right-origin TGA rows, and
+  TGA RLE retain their generic scalar paths.
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
 - Related: T-514, T-517.

@@ -160,6 +160,11 @@ func writeTga16Pixel(dst: [*] u8, value: u16, writeAlpha, alphaFromBit: bool)
         writeBgrPixel(dst, b, g, r)
 }
 
+func decodeTga15Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+{
+    PackedPixel.decodeBgr555Row(source, destination, pixelCount)
+}
+
 func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
 {
     let srcX = cast(s32) (pixelIndex % header.width)
@@ -225,6 +230,19 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
 {
     var p = src
     checkBuffer(p, last, pixelCount * pixelBytes)
+    if header.imageTypeCode == TYPE_RGB and header.bitsPerPixel == 15 and !(header.descriptorByte & DESC_ORIGIN_RIGHT)
+    {
+        for y in result.height
+        {
+            let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
+            let dst  = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
+            decodeTga15Row(p, dst, result.width)
+            p += cast(u64) result.width * 2
+        }
+
+        return
+    }
+
     for i in pixelCount
     {
         writeSourcePixel(result, header, palette, i, p)

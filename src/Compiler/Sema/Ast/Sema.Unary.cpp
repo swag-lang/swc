@@ -617,8 +617,10 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    // Constant folding ('#move' never folds: it needs the operand's storage address)
-    if (view.cstRef().isValid() && opId != TokenId::ModifierMove && opId != TokenId::ModifierFwd)
+    // Constant folding ('#move' never folds: it needs the operand's storage address, and a
+    // packed vector never folds either — the binary operators leave a simd operand to the
+    // backend the same way, so the lanes are computed by the hardware in every path)
+    if (view.cstRef().isValid() && opId != TokenId::ModifierMove && opId != TokenId::ModifierFwd && !aliasType(sema, view).isSimd())
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, opId, *this, view));

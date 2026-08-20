@@ -17,9 +17,9 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
 #test
 {
     // Construction, copies, parameters and returns ride one xmm register.
-    let a = makeS32(1, 2, 3, 4)
-    let b = makeS32(10, 20, 30, 40)
-    let c = a
+    let a   = makeS32(1, 2, 3, 4)
+    let b   = makeS32(10, 20, 30, 40)
+    let c   = a
     var sum = lanesOf(a + b)
     @assert(sum[0] == 11 and sum[1] == 22 and sum[2] == 33 and sum[3] == 44)
     sum = lanesOf(b - c)
@@ -69,6 +69,27 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     @assert(r[0] == -13 and r[2] == 0 and r[3] == -1)
     r = lanesOf(-a)
     @assert(r[0] == -12 and r[2] == 1 and r[3] == 0)
+}
+
+#test
+{
+    // The same unary forms on a compile-time constant vector. A vector never folds:
+    // the lanes are computed by the hardware here exactly as they are on a runtime
+    // value, and the constant operand takes the same path.
+    const Lanes: #simd [4] s32 = [0b1100, 0b1010, -1, 0]
+    var r = lanesOf(-Lanes)
+    @assert(r[0] == -12 and r[2] == 1 and r[3] == 0)
+    r = lanesOf(~Lanes)
+    @assert(r[0] == -13 and r[2] == 0 and r[3] == -1)
+
+    // A splat is a constant too, and so is the result of a constant cast.
+    let splat = cast(#simd [4] s32) 5
+    r = lanesOf(-splat)
+    @assert(r[0] == -5 and r[3] == -5)
+
+    let literal: #simd [4] s32 = [1, 2, 3, 4]
+    r = lanesOf(~literal)
+    @assert(r[0] == -2 and r[3] == -5)
 }
 
 #test

@@ -211,3 +211,57 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: reduce `markdownHeadingAnchor` into a standalone sema input while preserving the
   `#code` expansion, then trace both calls to `setSemaPayload` for the slice node and add that input
   to `bin/unittests/sema` before changing payload ownership.
+
+### F-167 — Unary '+' is rejected on a packed vector while '-' and '~' are accepted
+
+- Area: compiler
+- Found while: auditing the cast and simd surface after the `Core.Math.Simd` pass.
+- Observation: `checkPlus` in `src/Compiler/Sema/Ast/Sema.Unary.cpp` accepts only `isFloat()` or
+  `isIntLike()`, so `+v` on a `#simd` value is rejected with "unary operator '+' cannot be applied
+  to type '#simd [4] s32'". Its siblings `checkMinus` and `checkTilde` both grew an explicit simd
+  branch, so the three unary forms disagree on the same type.
+- Evidence: a standalone input holding `let a: #simd [4] s32 = [1, 2, 3, 4]` rejects `+a` and
+  accepts `-a` and `~a`. Unary plus is an identity on every type that has arithmetic, and a vector
+  has arithmetic, so the rejection is an omission rather than a decision — the hardware-honesty
+  rule that removes packed divide has no equivalent argument here.
+- Next step: decide whether `+v` is an identity worth accepting (add the simd branch to
+  `checkPlus`, mirroring `checkMinus`) or a deliberate refusal (say so in
+  `bin/reference/modules/language/src/004_009_simd.swg`), then cover the chosen behavior in
+  `bin/unittests/native/simd/operators.swg` or `bin/unittests/errors/sema`.
+
+### F-168 — A pointer converts only through 'u64', so every other integer needs two casts
+
+- Area: compiler
+- Found while: auditing the cast surface after the `Core.Math.Simd` pass.
+- Observation: `u64` is the only numeric type that converts to and from a pointer in one explicit
+  cast. `cast(s64) ptr`, `cast(u32) ptr`, `cast([*] u8) someU32`, `cast(*void) someS32`, and
+  `cast(*void) SomeEnum.Case` are all rejected, and `cast #bit` is refused in both directions, so
+  the only spelling is a two-step through `u64`.
+- Evidence: a 24-case standalone probe confirms the split — legal: `cast(u64) ptr`,
+  `cast([*] u8) u64Value`, `cast(*u8) u64Value`, pointer-to-pointer, `*T` ↔ `[*] T`,
+  `cast(u64) SomeEnum.Case`; rejected: the five forms above. In-tree witnesses of the resulting
+  double cast: `bin/apps/modules/sSnapForge/src/propwnd.swg:35`
+  (`cast(*void) cast(u64) value`) and `bin/runtime/os_windows.swg:284-285`
+  (`cast(const *void) cast(u64) @countof(message)`).
+- Next step: decide the rule before touching `Cast::castAllowed`. An explicit cast to a pointer is
+  already an unsafe act, and requiring two of them adds noise rather than proof, so the candidate
+  is: one explicit cast from any integer-like of at most pointer size (enums included,
+  zero-extended), and from a pointer to any integer of at least pointer size — keeping the refusal
+  for a narrowing `cast(u32) ptr`, with a help line naming the widening. Then migrate the in-tree
+  double casts and add the matrix to `bin/unittests/sema/types`.
+
+### F-169 — No indexed reinterpretation: 'p[as T][i]' cannot name the i-th T at a pointer
+
+- Area: compiler
+- Found while: auditing the `[as T]` place syntax against the h264 vector code.
+- Observation: `expr[as T]` opens one place of `T` at a pointer, so a following `[i]` indexes the
+  scalar `T` and fails with "type 'u32' does not support indexing". Reaching element `i` of a
+  reinterpreted buffer therefore needs either `(p + i * #sizeof(T))[as T]` or
+  `(cast([*] T) p)[i]`; both work, neither is the postfix form the rest of the chain uses.
+- Evidence: `p[as [4] u32][1]` is accepted (an array place indexes fine) while `p[as u32][2]` is
+  rejected, so the gap is only the single-element form. `p[2 as u32]` cannot carry the meaning: it
+  already parses as the `as` cast expression applied to the index.
+- Next step: none proposed yet — this is a discoverability gap with two working idioms, not a
+  defect, and the natural syntax slot is taken. Record whether the `(cast([*] T) p)[i]` idiom
+  should become the documented spelling in
+  `bin/reference/modules/language/src/004_007_pointers.swg` before considering new syntax.

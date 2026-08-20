@@ -28,12 +28,17 @@ alias Byte = u8
 var g10: #simd [16] Byte
 #assert(#typeof(g10) == #typeof(g0))
 
+// An alias can name a vector type itself.
+alias Bytes16 = #simd [16] u8
+var g11: Bytes16
+#assert(#typeof(g11) == #typeof(g0))
+
 // Construction folds at compile time: from a full array literal, from a
 // scalar splat, and bit for bit from the matching fixed-size array.
 const FromLiteral: #simd [4] s32 = [1, 2, 3, 4]
 const FromCast                   = cast(#simd [4] s32) [5, 6, 7, 8]
 const Splat                      = cast(#simd [8] s16) 42's16
-const Lanes: [4] s32             = [9, 10, 11, 12]
+const Lanes:       [4] s32       = [9, 10, 11, 12]
 const FromArray                  = cast(#simd [4] s32) Lanes
 const Reshaped                   = cast #bit(#simd [16] u8) FromCast
 const BackToArray                = cast([4] s32) FromArray

@@ -224,10 +224,10 @@ func markdownFixturePath()->String
     let view = Markdown.View.createFile(&host.root, markdownPath)
     view.resize(320, 240)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.hasUnloadedSource() do
         host.fireTimers()
 
-    @assert(!view.isLoading() and view.blocks.count == 1 and view.blocks[0].html != null)
+    @assert(!view.hasUnloadedSource() and view.blocks.count == 1 and view.blocks[0].html != null)
     @assert(view.blocks[0].html!.images.entries.count == 1 and view.blocks[0].html!.images.entries[0].loaded)
     var imageNode = HtmlNoNode
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img do
@@ -363,6 +363,47 @@ func markdownFixturePath()->String
     @assert(hits >= 2)
 }
 
+// An ordinary document stops reporting active work when enough content is resident, even though
+// its lazy source remains available for later wheel navigation.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_markdown_wheel_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for index in 256 do
+        source += Format.toString("## README section %\n\nA paragraph remains available for progressive wheel navigation.\n\n", index)
+    @assert(source.length > 8 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 360)
+    view.applyLayout()
+    host.fireTimer(view.loadTimer)
+
+    for 64 where view.isLoading() do
+        host.fireTimers()
+    @assert(!view.isLoading() and view.hasUnloadedSource())
+
+    for 16 do
+        host.mouseWheel({360, 180}, -1)
+    @assert(view.isLoading())
+
+    var steps = 0'u32
+    while view.isLoading() and steps < 4_000
+    {
+        host.fireTimers()
+        steps += 1
+    }
+
+    @assert(!view.isLoading())
+    @assert(view.hasUnloadedSource())
+    @assert(view.scroll.scrollPosition().y > 0)
+}
+
 // A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
 // boundary through the real focused keyboard path; End still waits for the real EOF.
 #test
@@ -386,7 +427,7 @@ func markdownFixturePath()->String
     view.applyLayout()
     host.fireTimer(view.loadTimer)
 
-    @assert(view.isLoading())
+    @assert(view.hasUnloadedSource())
     @assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
     view.setInitialFocus(view)
     @assert(view.hasFocus())
@@ -424,13 +465,13 @@ func markdownFixturePath()->String
     @assert(view.scroll.scrollPosition() == before)
 
     var steps = 0'u32
-    while view.isLoading() and steps < 4_000
+    while view.hasUnloadedSource() and steps < 4_000
     {
         view.streamStep()
         steps += 1
     }
 
-    @assert(!view.isLoading())
+    @assert(!view.hasUnloadedSource())
     @assert(!view.jumpToEnd)
     @assert(view.scroll.scrollPosition().y > before.y)
     host.keyPress(Input.Key.Home)
@@ -517,9 +558,9 @@ func markdownFixturePath()->String
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_markdown_%.md", Guid64.random()).toString())
     let view = Markdown.View.createFile(&host.root, path)
     @assert(!view.failureReason.isEmpty())
-    for 64 where view.isLoading() do
+    for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    @assert(!view.isLoading())
+    @assert(!view.hasUnloadedSource())
 }
 
 // A decoder failure found by the progressive reader is signaled after construction.

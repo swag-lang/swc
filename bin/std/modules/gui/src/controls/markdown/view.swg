@@ -440,7 +440,7 @@ private impl View
             .appendBlock(#move empty)
         }
 
-        if .hasPendingTarget and (.pendingTarget + .scroll.paddedClientRect().height <= .contentHeight or !.isLoading())
+        if .hasPendingTarget and (.pendingTarget + .scroll.paddedClientRect().height <= .contentHeight or !.hasUnloadedSource())
         {
             .hasPendingTarget    = false
             .pendingTargetOffset = Swag.U64.Max
@@ -451,7 +451,7 @@ private impl View
         if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
             .pendingSearch.clear()
 
-        if .isLoading() do
+        if .hasUnloadedSource() do
             return
 
         if .jumpToEnd
@@ -532,7 +532,7 @@ private impl View
         }
 
         .jumpToEnd = false
-        if forward and .isLoading() and target + viewport.height > .contentHeight
+        if forward and .hasUnloadedSource() and target + viewport.height > .contentHeight
         {
             .hasPendingTarget    = true
             .pendingTarget       = target
@@ -688,8 +688,11 @@ impl View
         applyThemeColors(me, styleSheetColors)
     }
 
-    // Reports whether source remains to be parsed or displayed.
-    mtd const isLoading()->bool
+    // Reports whether progressive file-loading work is currently scheduled.
+    mtd const isLoading()->bool => .loadTimer != null
+
+    // Reports whether file source remains to be read, parsed, or displayed.
+    mtd const hasUnloadedSource()->bool
     {
         return !.sourceDone or !.sourceCarry.isEmpty() or .pendingIndex < .pendingBlocks.count
     }

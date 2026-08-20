@@ -488,7 +488,7 @@ src/encode/mp4.swg       Mp4.Encoder</span></div>
 </section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_Avi_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Avi.EncodeOptions</span> <a class="api-item-permalink" href="#Video_Avi_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/avi.options.swg#L6">src</a></div>
+<div class="api-item api-item-struct"><span id="Video_Avi_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Avi.EncodeOptions</span> <a class="api-item-permalink" href="#Video_Avi_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/avi/options.swg#L6">src</a></div>
 <p>Configures the Motion JPEG frames of an encoded AVI stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
 </section>
@@ -508,7 +508,7 @@ src/encode/mp4.swg       Mp4.Encoder</span></div>
 </section>
 </div>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_Mp4_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.EncodeOptions</span> <a class="api-item-permalink" href="#Video_Mp4_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4.options.swg#L6">src</a></div>
+<div class="api-item api-item-struct"><span id="Video_Mp4_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.EncodeOptions</span> <a class="api-item-permalink" href="#Video_Mp4_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/options.swg#L6">src</a></div>
 <p>Configures the Motion JPEG samples of an encoded MP4 stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
 </section>
@@ -1292,7 +1292,7 @@ src/encode/mp4.swg       Mp4.Encoder</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.155</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.159</div>
 </footer>
 </section>
 </main>
@@ -1564,11 +1564,11 @@ src/encode/mp4.swg       Mp4.Encoder</span></div>
 "v|Video.StreamInfo.height|Video_StreamInfo_height|Frame height, in pixels.",
 "v|Video.StreamInfo.width|Video_StreamInfo_width|Frame width, in pixels.",
 "s|Video.Reader|Video_Reader|Decodes the frames of a video stream without holding the stream in memory.",
+"s|Video.Writer|Video_Writer|Encodes frames into a video stream without holding the stream in memory.",
 "s|Video.Avi.EncodeOptions|Video_Avi_EncodeOptions|Configures the Motion JPEG frames of an encoded AVI stream.",
 "v|Video.Avi.EncodeOptions.quality|Video_Avi_EncodeOptions_quality|Quality of every frame, in 1, 100; higher values preserve more detail and produce",
 "s|Video.Mp4.EncodeOptions|Video_Mp4_EncodeOptions|Configures the Motion JPEG samples of an encoded MP4 stream.",
 "v|Video.Mp4.EncodeOptions.quality|Video_Mp4_EncodeOptions_quality|Quality of every frame, in 1, 100; higher values preserve more detail and produce",
-"s|Video.Writer|Video_Writer|Encodes frames into a video stream without holding the stream in memory.",
 "i|Video.IDecoder|Video_IDecoder|Decodes one video format, one frame at a time, from a byte source.",
 "i|Video.IEncoder|Video_IEncoder|Encodes one video format, one frame at a time, into a byte sink.",
 "f|Video.Clip.addFrame|Video_Clip_addFrame|Adds an owned copy of one frame to the clip.",

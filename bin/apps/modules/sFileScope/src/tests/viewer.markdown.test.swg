@@ -34,7 +34,9 @@ private func markdownWhiteyFixturePath()->String
     let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_markdown_%.md", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
 
-    let source = expect File.readAllText(markdownFixturePath())
+    var source = expect File.readAllText(markdownFixturePath())
+    for 160 do
+        source += "A README paragraph remains available for progressive wheel navigation.\n\n"
     discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
 
     var host: Testing.HeadlessHost
@@ -75,6 +77,12 @@ private func markdownWhiteyFixturePath()->String
     host.keyPress(Input.Key.Escape)
     @assert((cast(*Markdown.View) wnd!).hasFocus())
     host.mouseUp(comboPoint)
+
+    // The application spinner follows scheduled work, not lazy source left on disk.
+    for 64 where result.isLoading!(wnd!) do
+        host.fireTimers()
+    @assert(!result.isLoading!(wnd!))
+    @assert((cast(*Markdown.View) wnd!).hasUnloadedSource())
 }
 
 // Reveals a marker beyond the initial resident window of a multi-megabyte Markdown document while
@@ -108,14 +116,14 @@ private func markdownWhiteyFixturePath()->String
     @assert(view.revealFileOffset(offset, query))
 
     var found: bool
-    for 4_000 where view.isLoading() and !found
+    for 4_000 where view.hasUnloadedSource() and !found
     {
         host.fireTimers()
         found = view.findText(query)
     }
 
     @assert(found)
-    @assert(view.isLoading())
+    @assert(view.hasUnloadedSource())
     @assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
 }
 

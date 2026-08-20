@@ -42,7 +42,7 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group">
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">46</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">47</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Core">Core</a></li>
@@ -67,6 +67,7 @@
 <li><a href="#namespace_Core_Latin1">Core.Latin1</a></li>
 <li><a href="#namespace_Core_Math">Core.Math</a></li>
 <li><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></li>
+<li><a href="#namespace_Core_Math_Simd">Core.Math.Simd</a></li>
 <li><a href="#namespace_Core_Memory">Core.Memory</a></li>
 <li><a href="#namespace_Core_Noise">Core.Noise</a></li>
 <li><a href="#namespace_Core_Parser">Core.Parser</a></li>
@@ -94,7 +95,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">181</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">191</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_CommandLine_FieldResult">CommandLine.FieldResult</a></li>
@@ -256,6 +257,16 @@
 <li><a href="#Core_Serialization_Serializer">Serialization.Serializer</a></li>
 <li><a href="#Core_Hash_Sha1_Digest">Sha1.Digest</a></li>
 <li><a href="#Core_Hash_Sha256_Digest">Sha256.Digest</a></li>
+<li><a href="#Core_Math_Simd_F32x4">Simd.F32x4</a></li>
+<li><a href="#Core_Math_Simd_F64x2">Simd.F64x2</a></li>
+<li><a href="#Core_Math_Simd_S16x8">Simd.S16x8</a></li>
+<li><a href="#Core_Math_Simd_S32x4">Simd.S32x4</a></li>
+<li><a href="#Core_Math_Simd_S64x2">Simd.S64x2</a></li>
+<li><a href="#Core_Math_Simd_S8x16">Simd.S8x16</a></li>
+<li><a href="#Core_Math_Simd_U16x8">Simd.U16x8</a></li>
+<li><a href="#Core_Math_Simd_U32x4">Simd.U32x4</a></li>
+<li><a href="#Core_Math_Simd_U64x2">Simd.U64x2</a></li>
+<li><a href="#Core_Math_Simd_U8x16">Simd.U8x16</a></li>
 <li><a href="#Core_StrConv_ConvertFormat">StrConv.ConvertFormat</a></li>
 <li><a href="#Core_StrConv_ConvertFormatFloat">StrConv.ConvertFormatFloat</a></li>
 <li><a href="#Core_StrConv_ConvertFormatInt">StrConv.ConvertFormatInt</a></li>
@@ -432,7 +443,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1630</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1647</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1550,6 +1561,23 @@
 <li><a href="#Core_Hash_Sha256_finalize">Sha256.finalize</a></li>
 <li><a href="#Core_Hash_Sha256_reset">Sha256.reset</a></li>
 <li><a href="#Core_Hash_Sha256_update">Sha256.update</a></li>
+<li><a href="#Core_Math_Simd_addSaturating">Simd.addSaturating</a></li>
+<li><a href="#Core_Math_Simd_allTrue">Simd.allTrue</a></li>
+<li><a href="#Core_Math_Simd_anyTrue">Simd.anyTrue</a></li>
+<li><a href="#Core_Math_Simd_average">Simd.average</a></li>
+<li><a href="#Core_Math_Simd_bitmask">Simd.bitmask</a></li>
+<li><a href="#Core_Math_Simd_load">Simd.load</a></li>
+<li><a href="#Core_Math_Simd_mulAddPairs">Simd.mulAddPairs</a></li>
+<li><a href="#Core_Math_Simd_packSigned">Simd.packSigned</a></li>
+<li><a href="#Core_Math_Simd_packUnsigned">Simd.packUnsigned</a></li>
+<li><a href="#Core_Math_Simd_select">Simd.select</a></li>
+<li><a href="#Core_Math_Simd_shuffle">Simd.shuffle</a></li>
+<li><a href="#Core_Math_Simd_store">Simd.store</a></li>
+<li><a href="#Core_Math_Simd_storeLow4">Simd.storeLow4</a></li>
+<li><a href="#Core_Math_Simd_storeLow8">Simd.storeLow8</a></li>
+<li><a href="#Core_Math_Simd_subSaturating">Simd.subSaturating</a></li>
+<li><a href="#Core_Math_Simd_widenHigh">Simd.widenHigh</a></li>
+<li><a href="#Core_Math_Simd_widenLow">Simd.widenLow</a></li>
 <li><a href="#Core_Slice_allOf">Slice.allOf</a></li>
 <li><a href="#Core_Slice_anyOf">Slice.anyOf</a></li>
 <li><a href="#Core_Slice_contains">Slice.contains</a></li>
@@ -2329,6 +2357,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#namespace_Core_Latin1">Core.Latin1</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math">Core.Math</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Math_Simd">Core.Math.Simd</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Memory">Core.Memory</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Noise">Core.Noise</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Parser">Core.Parser</a></td></tr>
@@ -2676,6 +2705,26 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Hash_Sha1_Digest">Sha1.Digest</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Stores a SHA-1 digest as five 32-bit words.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Hash_Sha256_Digest">Sha256.Digest</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Stores a SHA-256 digest as eight 32-bit words.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_F32x4">Simd.F32x4</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Four 32-bit float lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_F64x2">Simd.F64x2</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Two 64-bit float lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S16x8">Simd.S16x8</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Eight signed 16-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S32x4">Simd.S32x4</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Four signed 32-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S64x2">Simd.S64x2</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Two signed 64-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S8x16">Simd.S8x16</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Sixteen signed 8-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U16x8">Simd.U16x8</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Eight unsigned 16-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U32x4">Simd.U32x4</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Four unsigned 32-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U64x2">Simd.U64x2</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Two unsigned 64-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U8x16">Simd.U8x16</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Sixteen unsigned 8-bit lanes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_StrConv_ConvertFormat">StrConv.ConvertFormat</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents convert format.</p>
 </td></tr>
@@ -5218,6 +5267,40 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Hash_Sha256_update">Sha256.update</a></td><td><p>Includes <span class="code-inline">buffer</span> in the running digest.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_addSaturating">Simd.addSaturating</a></td><td><p>Adds per lane with saturation: results clamp to the lane range instead of wrapping.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_allTrue">Simd.allTrue</a></td><td><p>Reports whether every mask lane is all-ones.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_anyTrue">Simd.anyTrue</a></td><td><p>Reports whether any mask lane is all-ones.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_average">Simd.average</a></td><td><p>Averages per lane with upward rounding: <span class="code-inline">(x + y + 1) &gt;&gt; 1</span> without intermediate overflow.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_bitmask">Simd.bitmask</a></td><td><p>Gathers the lane sign bits into the low bits of an integer, lane zero in bit zero.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_load">Simd.load</a></td><td><p>Reads one vector from memory; the pointer needs no particular alignment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_mulAddPairs">Simd.mulAddPairs</a></td><td><p>Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_packSigned">Simd.packSigned</a></td><td><p>Narrows two vectors into one with signed saturation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_packUnsigned">Simd.packUnsigned</a></td><td><p>Narrows two vectors into one with unsigned saturation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_select">Simd.select</a></td><td><p>Blends two vectors through a mask: lanes of <span class="code-inline">ifTrue</span> where the mask lane is</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_shuffle">Simd.shuffle</a></td><td><p>Permutes bytes through a dynamic table.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_store">Simd.store</a></td><td><p>Writes one vector to memory; the pointer needs no particular alignment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_storeLow4">Simd.storeLow4</a></td><td><p>Writes the low four bytes of a byte vector to memory, as one 32-bit move.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_storeLow8">Simd.storeLow8</a></td><td><p>Writes the low eight bytes of a byte vector to memory, as one 64-bit move.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_subSaturating">Simd.subSaturating</a></td><td><p>Subtracts per lane with saturation: results clamp to the lane range instead of wrapping.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_widenHigh">Simd.widenHigh</a></td><td><p>Extends the high half of the lanes to double width, zero-extended for unsigned</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_widenLow">Simd.widenLow</a></td><td><p>Extends the low half of the lanes to double width, zero-extended for unsigned</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Slice_allOf">Slice.allOf</a></td><td><p>Returns true if <span class="code-inline">cb</span> returns true for all values</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Slice_anyOf">Slice.anyOf</a></td><td><p>Returns true if <span class="code-inline">cb</span> returns true for at least one value</p>
@@ -7308,6 +7391,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <thead><tr><th>Namespace</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Math_Simd">Core.Math.Simd</a></td></tr>
 </tbody>
 </table>
 <h3 id="namespace_Core_Math_types">Types</h3>
@@ -7537,6 +7621,76 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Math_Geometry_polygonContainsPoint">Geometry.polygonContainsPoint</a></td><td><p>Test if a point is inside a polygon using ray casting algorithm.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Geometry_triangleContainsPoint">Geometry.triangleContainsPoint</a></td><td><p>Test if a point is inside a triangle using cross product method.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Core_Math_Simd" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Core.Math.Simd</span> <a class="api-item-permalink" href="#namespace_Core_Math_Simd" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Core.Math.Simd</span>.</p>
+<h3 id="namespace_Core_Math_Simd_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Math_Simd_F32x4">Simd.F32x4</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Four 32-bit float lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_F64x2">Simd.F64x2</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Two 64-bit float lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S16x8">Simd.S16x8</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Eight signed 16-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S32x4">Simd.S32x4</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Four signed 32-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S64x2">Simd.S64x2</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Two signed 64-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_S8x16">Simd.S8x16</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Sixteen signed 8-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U16x8">Simd.U16x8</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Eight unsigned 16-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U32x4">Simd.U32x4</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Four unsigned 32-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U64x2">Simd.U64x2</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Two unsigned 64-bit lanes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_U8x16">Simd.U8x16</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Sixteen unsigned 8-bit lanes.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Core_Math_Simd_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Math_Simd_addSaturating">Simd.addSaturating</a></td><td><p>Adds per lane with saturation: results clamp to the lane range instead of wrapping.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_allTrue">Simd.allTrue</a></td><td><p>Reports whether every mask lane is all-ones.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_anyTrue">Simd.anyTrue</a></td><td><p>Reports whether any mask lane is all-ones.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_average">Simd.average</a></td><td><p>Averages per lane with upward rounding: <span class="code-inline">(x + y + 1) &gt;&gt; 1</span> without intermediate overflow.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_bitmask">Simd.bitmask</a></td><td><p>Gathers the lane sign bits into the low bits of an integer, lane zero in bit zero.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_load">Simd.load</a></td><td><p>Reads one vector from memory; the pointer needs no particular alignment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_mulAddPairs">Simd.mulAddPairs</a></td><td><p>Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_packSigned">Simd.packSigned</a></td><td><p>Narrows two vectors into one with signed saturation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_packUnsigned">Simd.packUnsigned</a></td><td><p>Narrows two vectors into one with unsigned saturation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_select">Simd.select</a></td><td><p>Blends two vectors through a mask: lanes of <span class="code-inline">ifTrue</span> where the mask lane is</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_shuffle">Simd.shuffle</a></td><td><p>Permutes bytes through a dynamic table.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_store">Simd.store</a></td><td><p>Writes one vector to memory; the pointer needs no particular alignment.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_storeLow4">Simd.storeLow4</a></td><td><p>Writes the low four bytes of a byte vector to memory, as one 32-bit move.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_storeLow8">Simd.storeLow8</a></td><td><p>Writes the low eight bytes of a byte vector to memory, as one 64-bit move.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_subSaturating">Simd.subSaturating</a></td><td><p>Subtracts per lane with saturation: results clamp to the lane range instead of wrapping.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_widenHigh">Simd.widenHigh</a></td><td><p>Extends the high half of the lanes to double width, zero-extended for unsigned</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Simd_widenLow">Simd.widenLow</a></td><td><p>Extends the low half of the lanes to double width, zero-extended for unsigned</p>
 </td></tr>
 </tbody>
 </table>
@@ -13612,6 +13766,56 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">Digest</span> = [<span class="SNum">8</span>] <span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_F32x4" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.F32x4</span> <a class="api-item-permalink" href="#Core_Math_Simd_F32x4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L30">src</a></div>
+<p>Four 32-bit float lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> = <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_F64x2" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.F64x2</span> <a class="api-item-permalink" href="#Core_Math_Simd_F64x2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L31">src</a></div>
+<p>Two 64-bit float lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> = <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_S16x8" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.S16x8</span> <a class="api-item-permalink" href="#Core_Math_Simd_S16x8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L25">src</a></div>
+<p>Eight signed 16-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> = <span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_S32x4" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.S32x4</span> <a class="api-item-permalink" href="#Core_Math_Simd_S32x4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L27">src</a></div>
+<p>Four signed 32-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span> = <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_S64x2" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.S64x2</span> <a class="api-item-permalink" href="#Core_Math_Simd_S64x2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L29">src</a></div>
+<p>Two signed 64-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span> = <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">s64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_S8x16" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.S8x16</span> <a class="api-item-permalink" href="#Core_Math_Simd_S8x16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L23">src</a></div>
+<p>Sixteen signed 8-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span> = <span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">s8</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_U16x8" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.U16x8</span> <a class="api-item-permalink" href="#Core_Math_Simd_U16x8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L24">src</a></div>
+<p>Eight unsigned 16-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> = <span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_U32x4" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.U32x4</span> <a class="api-item-permalink" href="#Core_Math_Simd_U32x4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L26">src</a></div>
+<p>Four unsigned 32-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span> = <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_U64x2" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.U64x2</span> <a class="api-item-permalink" href="#Core_Math_Simd_U64x2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L28">src</a></div>
+<p>Two unsigned 64-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span> = <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Math_Simd_U8x16" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Simd.U8x16</span> <a class="api-item-permalink" href="#Core_Math_Simd_U8x16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L22">src</a></div>
+<p>Sixteen unsigned 8-bit lanes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span> = <span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_StrConv_ConvertFormat" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">StrConv.ConvertFormat</span> <a class="api-item-permalink" href="#Core_StrConv_ConvertFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/convert.swg#L8">src</a></div>
 <p>Represents convert format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_StrConv_ConvertFormat">ConvertFormat</a></span></span></div>
@@ -17210,7 +17414,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Resources_Bundle_isOverridden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bundle.isOverridden</span> <a class="api-item-permalink" href="#Core_Resources_Bundle_isOverridden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/resources/bundle.swg#L80">src</a></div>
 <p>Reports whether a disk folder provides <span class="code-inline">name</span>, hiding any embedded fallback.</p>
-<p>A caller that caches work derived from embedded bytes can use this to know when the cache does not describe what [[load]] would return.</p>
+<p>A caller that caches work derived from embedded bytes can use this to know when the cache does not describe what <a href="#Core_Math_Simd_load">load</a> would return.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOverridden</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -20389,6 +20593,10 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="STpe">s16</span>) =&gt;</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="STpe">s32</span>) =&gt;</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="STpe">s64</span>) =&gt;</span></div>
+<p>Returns the absolute value, per lane.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_acos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.acos</span> <a class="api-item-permalink" href="#Core_Math_acos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L272">src</a></div>
@@ -20437,6 +20645,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Rounds upward to an integer-valued number.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
+<p>Rounds upward to an integer-valued number, per lane.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_ceilS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.ceilS32</span> <a class="api-item-permalink" href="#Core_Math_ceilS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L332">src</a></div>
@@ -20502,6 +20713,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Rounds downward to an integer-valued number.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
+<p>Rounds downward to an integer-valued number, per lane.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_floorS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.floorS32</span> <a class="api-item-permalink" href="#Core_Math_floorS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L326">src</a></div>
@@ -20725,6 +20939,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">mulAdd</span>(x, y, z: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Multiplies two values and adds a third.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">mulAdd</span>(x, y, z: <span class="STpe">f64</span>) =&gt;</span></div>
+<p>Multiplies two values and adds a third, per lane.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">mulAdd</span>(x, y, z: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">mulAdd</span>(x, y, z: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_mulU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.mulU64</span> <a class="api-item-permalink" href="#Core_Math_mulU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/int128.swg#L16">src</a></div>
@@ -20867,6 +21084,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the square root.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
+<p>Returns the square root, per lane.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_tan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.tan</span> <a class="api-item-permalink" href="#Core_Math_tan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L242">src</a></div>
@@ -20909,6 +21129,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trunc</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Removes the fractional part.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trunc</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
+<p>Removes the fractional part, per lane.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trunc</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trunc</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_truncS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.truncS32</span> <a class="api-item-permalink" href="#Core_Math_truncS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L338">src</a></div>
@@ -22804,6 +23027,152 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Hash_Sha256_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Sha256.update</span> <a class="api-item-permalink" href="#Core_Hash_Sha256_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/sha256.swg#L167">src</a></div>
 <p>Includes <span class="code-inline">buffer</span> in the running digest.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">update</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_addSaturating" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.addSaturating</span> <a class="api-item-permalink" href="#Core_Math_Simd_addSaturating" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L69">src</a></div>
+<p>Adds per lane with saturation: results clamp to the lane range instead of wrapping.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_allTrue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.allTrue</span> <a class="api-item-permalink" href="#Core_Math_Simd_allTrue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L155">src</a></div>
+<p>Reports whether every mask lane is all-ones.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_anyTrue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.anyTrue</span> <a class="api-item-permalink" href="#Core_Math_Simd_anyTrue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L149">src</a></div>
+<p>Reports whether any mask lane is all-ones.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">anyTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">anyTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">anyTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">anyTrue</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>)-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_average" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.average</span> <a class="api-item-permalink" href="#Core_Math_Simd_average" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L81">src</a></div>
+<p>Averages per lane with upward rounding: <span class="code-inline">(x + y + 1) &gt;&gt; 1</span> without intermediate overflow.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">average</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">average</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_bitmask" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.bitmask</span> <a class="api-item-permalink" href="#Core_Math_Simd_bitmask" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L143">src</a></div>
+<p>Gathers the lane sign bits into the low bits of an integer, lane zero in bit zero.</p>
+<p>On a comparison mask this is one bit per lane, set where the compare held.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bitmask</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bitmask</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bitmask</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>)-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bitmask</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>)-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.load</span> <a class="api-item-permalink" href="#Core_Math_Simd_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L39">src</a></div>
+<p>Reads one vector from memory; the pointer needs no particular alignment.</p>
+<p>The lane type of the pointer selects the vector shape, so a byte pointer reads a <a href="#Core_Math_Simd_U8x16">Simd.U8x16</a>, a <span class="code-inline">s16</span> pointer a <a href="#Core_Math_Simd_S16x8">Simd.S16x8</a>, and so on.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>  =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">s8</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>  =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">u16</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">s16</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">s64</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>) source)[</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(source: <span class="SKwd">const</span> [*] <span class="STpe">f64</span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt; (<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>) source)[</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_mulAddPairs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.mulAddPairs</span> <a class="api-item-permalink" href="#Core_Math_Simd_mulAddPairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L85">src</a></div>
+<p>Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">mulAddPairs</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_packSigned" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.packSigned</span> <a class="api-item-permalink" href="#Core_Math_Simd_packSigned" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L98">src</a></div>
+<p>Narrows two vectors into one with signed saturation.</p>
+<p>The lanes of <span class="code-inline">low</span> land in the low half of the result and the lanes of <span class="code-inline">high</span> in the high half, each clamped to the destination range.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">packSigned</span>(low, high: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">packSigned</span>(low, high: <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_packUnsigned" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.packUnsigned</span> <a class="api-item-permalink" href="#Core_Math_Simd_packUnsigned" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L91">src</a></div>
+<p>Narrows two vectors into one with unsigned saturation.</p>
+<p>The lanes of <span class="code-inline">low</span> land in the low half of the result and the lanes of <span class="code-inline">high</span> in the high half, each clamped to the destination range.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">packUnsigned</span>(low, high: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">packUnsigned</span>(low, high: <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_select" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.select</span> <a class="api-item-permalink" href="#Core_Math_Simd_select" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L129">src</a></div>
+<p>Blends two vectors through a mask: lanes of <span class="code-inline">ifTrue</span> where the mask lane is all-ones, lanes of <span class="code-inline">ifFalse</span> where it is all-zeros.</p>
+<p>Comparisons produce exactly such masks, in the unsigned geometry of their operands.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>        =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>        =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>        =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>        =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask: <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">select</span>(mask: <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>, ifTrue, ifFalse: <span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_shuffle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.shuffle</span> <a class="api-item-permalink" href="#Core_Math_Simd_shuffle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L123">src</a></div>
+<p>Permutes bytes through a dynamic table.</p>
+<p>Every result byte picks the source byte named by the low four bits of the matching table byte, or zero when the table byte's high bit is set.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">shuffle</span>(value, table: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_store" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.store</span> <a class="api-item-permalink" href="#Core_Math_Simd_store" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L51">src</a></div>
+<p>Writes one vector to memory; the pointer needs no particular alignment.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">u8</span>, value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">s8</span>, value: <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">u16</span>, value: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">s16</span>, value: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">u32</span>, value: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">s32</span>, value: <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">u64</span>, value: <span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">s64</span>, value: <span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">f32</span>, value: <span class="SCst"><a href="#Core_Math_Simd_F32x4">F32x4</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">store</span>(destination: [*] <span class="STpe">f64</span>, value: <span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_storeLow4" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.storeLow4</span> <a class="api-item-permalink" href="#Core_Math_Simd_storeLow4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L66">src</a></div>
+<p>Writes the low four bytes of a byte vector to memory, as one 32-bit move.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">storeLow4</span>(destination: [*] <span class="STpe">u8</span>, value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_storeLow8" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.storeLow8</span> <a class="api-item-permalink" href="#Core_Math_Simd_storeLow8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L63">src</a></div>
+<p>Writes the low eight bytes of a byte vector to memory, as one 64-bit move.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">storeLow8</span>(destination: [*] <span class="STpe">u8</span>, value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_subSaturating" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.subSaturating</span> <a class="api-item-permalink" href="#Core_Math_Simd_subSaturating" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L75">src</a></div>
+<p>Subtracts per lane with saturation: results clamp to the lane range instead of wrapping.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">subSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">subSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">subSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">subSaturating</span>(x, y: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_widenHigh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.widenHigh</span> <a class="api-item-permalink" href="#Core_Math_Simd_widenHigh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L112">src</a></div>
+<p>Extends the high half of the lanes to double width, zero-extended for unsigned lanes and sign-extended for signed ones.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenHigh</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenHigh</span>(value: <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenHigh</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenHigh</span>(value: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenHigh</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenHigh</span>(value: <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Simd_widenLow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Simd.widenLow</span> <a class="api-item-permalink" href="#Core_Math_Simd_widenLow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/simd.swg#L103">src</a></div>
+<p>Extends the low half of the lanes to double width, zero-extended for unsigned lanes and sign-extended for signed ones.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenLow</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U8x16">U8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenLow</span>(value: <span class="SCst"><a href="#Core_Math_Simd_S8x16">S8x16</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenLow</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U16x8">U16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenLow</span>(value: <span class="SCst"><a href="#Core_Math_Simd_S16x8">S16x8</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenLow</span>(value: <span class="SCst"><a href="#Core_Math_Simd_U32x4">U32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_U64x2">U64x2</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">widenLow</span>(value: <span class="SCst"><a href="#Core_Math_Simd_S32x4">S32x4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Slice_allOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Slice.allOf</span> <a class="api-item-permalink" href="#Core_Slice_allOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/slice/treat.swg#L80">src</a></div>
@@ -25635,7 +26004,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.155</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.159</div>
 </footer>
 </section>
 </main>
@@ -25913,6 +26282,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "n|Core.Latin1|namespace_Core_Latin1|",
 "n|Core.Math|namespace_Core_Math|",
 "n|Core.Math.Geometry|namespace_Core_Math_Geometry|",
+"n|Core.Math.Simd|namespace_Core_Math_Simd|",
 "n|Core.Memory|namespace_Core_Memory|",
 "n|Core.Noise|namespace_Core_Noise|",
 "n|Core.Parser|namespace_Core_Parser|",
@@ -27094,6 +27464,16 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "a|Core.Input.VirtualKey|Core_Input_VirtualKey|Represents a virtual system key",
 "a|Core.Math.ConstF32|Core_Math_ConstF32|Aliases for 32-bit and 64-bit floating-point constants",
 "a|Core.Math.ConstF64|Core_Math_ConstF64|Names the const f64 type.",
+"a|Core.Math.Simd.F32x4|Core_Math_Simd_F32x4|Four 32-bit float lanes.",
+"a|Core.Math.Simd.F64x2|Core_Math_Simd_F64x2|Two 64-bit float lanes.",
+"a|Core.Math.Simd.S16x8|Core_Math_Simd_S16x8|Eight signed 16-bit lanes.",
+"a|Core.Math.Simd.S32x4|Core_Math_Simd_S32x4|Four signed 32-bit lanes.",
+"a|Core.Math.Simd.S64x2|Core_Math_Simd_S64x2|Two signed 64-bit lanes.",
+"a|Core.Math.Simd.S8x16|Core_Math_Simd_S8x16|Sixteen signed 8-bit lanes.",
+"a|Core.Math.Simd.U16x8|Core_Math_Simd_U16x8|Eight unsigned 16-bit lanes.",
+"a|Core.Math.Simd.U32x4|Core_Math_Simd_U32x4|Four unsigned 32-bit lanes.",
+"a|Core.Math.Simd.U64x2|Core_Math_Simd_U64x2|Two unsigned 64-bit lanes.",
+"a|Core.Math.Simd.U8x16|Core_Math_Simd_U8x16|Sixteen unsigned 8-bit lanes.",
 "a|Core.Serialization.Read.Buffer|Core_Serialization_Read_Buffer|Names the buffer type.",
 "a|Core.Env.ProcessHandle|Core_Env_ProcessHandle|Names the process handle type.",
 "a|Core.Env.WindowPaintCallback|Core_Env_WindowPaintCallback|Handles a window paint request.",
@@ -27829,6 +28209,23 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Math.roundUpToPowerOf2|Core_Math_roundUpToPowerOf2|Performs the round up to power of2 operation.",
 "f|Core.Math.saturate|Core_Math_saturate|Clamps 'x' between 0 and 1",
 "f|Core.Math.sign|Core_Math_sign|Returns the sign of 'x' (-1 for negative, 0 for zero, and 1 for positive).",
+"f|Core.Math.Simd.addSaturating|Core_Math_Simd_addSaturating|Adds per lane with saturation: results clamp to the lane range instead of wrapping.",
+"f|Core.Math.Simd.allTrue|Core_Math_Simd_allTrue|Reports whether every mask lane is all-ones.",
+"f|Core.Math.Simd.anyTrue|Core_Math_Simd_anyTrue|Reports whether any mask lane is all-ones.",
+"f|Core.Math.Simd.average|Core_Math_Simd_average|Averages per lane with upward rounding: (x + y + 1) >> 1 without intermediate overflow.",
+"f|Core.Math.Simd.bitmask|Core_Math_Simd_bitmask|Gathers the lane sign bits into the low bits of an integer, lane zero in bit zero.",
+"f|Core.Math.Simd.load|Core_Math_Simd_load|Reads one vector from memory; the pointer needs no particular alignment.",
+"f|Core.Math.Simd.mulAddPairs|Core_Math_Simd_mulAddPairs|Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.",
+"f|Core.Math.Simd.packSigned|Core_Math_Simd_packSigned|Narrows two vectors into one with signed saturation.",
+"f|Core.Math.Simd.packUnsigned|Core_Math_Simd_packUnsigned|Narrows two vectors into one with unsigned saturation.",
+"f|Core.Math.Simd.select|Core_Math_Simd_select|Blends two vectors through a mask: lanes of ifTrue where the mask lane is",
+"f|Core.Math.Simd.shuffle|Core_Math_Simd_shuffle|Permutes bytes through a dynamic table.",
+"f|Core.Math.Simd.store|Core_Math_Simd_store|Writes one vector to memory; the pointer needs no particular alignment.",
+"f|Core.Math.Simd.storeLow4|Core_Math_Simd_storeLow4|Writes the low four bytes of a byte vector to memory, as one 32-bit move.",
+"f|Core.Math.Simd.storeLow8|Core_Math_Simd_storeLow8|Writes the low eight bytes of a byte vector to memory, as one 64-bit move.",
+"f|Core.Math.Simd.subSaturating|Core_Math_Simd_subSaturating|Subtracts per lane with saturation: results clamp to the lane range instead of wrapping.",
+"f|Core.Math.Simd.widenHigh|Core_Math_Simd_widenHigh|Extends the high half of the lanes to double width, zero-extended for unsigned",
+"f|Core.Math.Simd.widenLow|Core_Math_Simd_widenLow|Extends the low half of the lanes to double width, zero-extended for unsigned",
 "f|Core.Math.sin|Core_Math_sin|Performs the sin operation.",
 "f|Core.Math.sinh|Core_Math_sinh|Performs the sinh operation.",
 "f|Core.Math.smoothDamp|Core_Math_smoothDamp|Perform smooth damping interpolation towards 'target'.",

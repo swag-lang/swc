@@ -279,7 +279,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   pointers from the frame — every branch is an allocation boundary, so the loop's live set
   flushes at each pixel.
 - Evidence: rewriting the decoder's clamps as sign-bit arithmetic (the
-  `value & ~(value >> 31)` family now in `h264.transform.swg`) took the conversion stage from
+  `value & ~(value >> 31)` family now in `decode/h264/transform.swg`) took the conversion stage from
   1495 ms to about 470 ms over 59 frames — 3.2x from removing branches alone, byte-identical
   output — and the deblocking filters gained another ~30% from the same treatment. Also
   measured: forcing `#[Swag.Inline]` on the ~25-instruction `CabacReader.decision` at its

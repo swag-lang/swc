@@ -370,7 +370,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1133</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1135</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_AboutDlg_create">AboutDlg.create</a></li>
@@ -803,6 +803,7 @@
 <li><a href="#Gui_ImageView_setImage">ImageView.setImage</a></li>
 <li><a href="#Gui_ImageView_setPaused">ImageView.setPaused</a></li>
 <li><a href="#Gui_ImageView_setZoom">ImageView.setZoom</a></li>
+<li><a href="#Gui_ImageView_updateImage">ImageView.updateImage</a></li>
 <li><a href="#Gui_ImageView_zoomIn">ImageView.zoomIn</a></li>
 <li><a href="#Gui_ImageView_zoomOut">ImageView.zoomOut</a></li>
 <li><a href="#Gui_ImageView_zoomToFit">ImageView.zoomToFit</a></li>
@@ -1392,6 +1393,7 @@
 <li><a href="#Gui_Markdown_View_createFile">View.createFile</a></li>
 <li><a href="#Gui_Markdown_View_createText">View.createText</a></li>
 <li><a href="#Gui_Markdown_View_findText">View.findText</a></li>
+<li><a href="#Gui_Markdown_View_hasUnloadedSource">View.hasUnloadedSource</a></li>
 <li><a href="#Gui_Markdown_View_isLoading">View.isLoading</a></li>
 <li><a href="#Gui_Markdown_View_loadedDocumentHeight">View.loadedDocumentHeight</a></li>
 <li><a href="#Gui_Markdown_View_revealFileOffset">View.revealFileOffset</a></li>
@@ -3358,6 +3360,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ImageView_setZoom">ImageView.setZoom</a></td><td><p>Sets an explicit image scale and leaves fitted mode.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_ImageView_updateImage">ImageView.updateImage</a></td><td><p>Updates a still image while reusing its renderer texture and viewing position.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_ImageView_zoomIn">ImageView.zoomIn</a></td><td><p>Increases the current image scale by one viewer step.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ImageView_zoomOut">ImageView.zoomOut</a></td><td><p>Decreases the current image scale by one viewer step.</p>
@@ -4535,7 +4539,9 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Markdown_View_findText">View.findText</a></td><td><p>Scrolls to the next rendered block containing <span class="code-inline">text</span>, wrapping once at the end.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_Markdown_View_isLoading">View.isLoading</a></td><td><p>Reports whether source remains to be parsed or displayed.</p>
+<tr><td class="code-type"><a href="#Gui_Markdown_View_hasUnloadedSource">View.hasUnloadedSource</a></td><td><p>Reports whether file source remains to be read, parsed, or displayed.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Markdown_View_isLoading">View.isLoading</a></td><td><p>Reports whether progressive file-loading work is currently scheduled.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Markdown_View_loadedDocumentHeight">View.loadedDocumentHeight</a></td><td><p>Reports the laid-out height of the source rendered so far.</p>
 </td></tr>
@@ -7998,6 +8004,8 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <tr><td class="code-type"><a href="#Gui_ImageView_setPaused">setPaused</a></td><td><p>Pauses or resumes GIF playback.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ImageView_setZoom">setZoom</a></td><td><p>Sets an explicit image scale and leaves fitted mode.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_ImageView_updateImage">updateImage</a></td><td><p>Updates a still image while reusing its renderer texture and viewing position.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ImageView_zoomIn">zoomIn</a></td><td><p>Increases the current image scale by one viewer step.</p>
 </td></tr>
@@ -13107,7 +13115,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Gui_Markdown_View" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Markdown.View</span> <a class="api-item-permalink" href="#Gui_Markdown_View" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L64">src</a></div>
+<div class="api-item api-item-struct"><span id="Gui_Markdown_View" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Markdown.View</span> <a class="api-item-permalink" href="#Gui_Markdown_View" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L65">src</a></div>
 <p>Displays Markdown as a themed, read-only document with progressive UTF-8 file loading.</p>
 <p><a href="#Gui_Markdown_View_createText">Gui.Markdown.View.createText</a> renders in-memory source, while <a href="#Gui_Markdown_View_createFile">Gui.Markdown.View.createFile</a> streams a file without tying the renderer to an application. Block and inline mathematics use <a href="std.pixel.html#Pixel_MathExpression">Pixel.MathExpression</a> and the active theme font.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Markdown_View">View</a></span></span></div>
@@ -13140,7 +13148,9 @@ busy.<span class="SFct">hide</span>()</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Markdown_View_findText">findText</a></td><td><p>Scrolls to the next rendered block containing <span class="code-inline">text</span>, wrapping once at the end.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_Markdown_View_isLoading">isLoading</a></td><td><p>Reports whether source remains to be parsed or displayed.</p>
+<tr><td class="code-type"><a href="#Gui_Markdown_View_hasUnloadedSource">hasUnloadedSource</a></td><td><p>Reports whether file source remains to be read, parsed, or displayed.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Markdown_View_isLoading">isLoading</a></td><td><p>Reports whether progressive file-loading work is currently scheduled.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Markdown_View_loadedDocumentHeight">loadedDocumentHeight</a></td><td><p>Reports the laid-out height of the source rendered so far.</p>
 </td></tr>
@@ -17940,70 +17950,70 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">theme</span>()-&gt;<span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L741">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L753">src</a></div>
 <p>Empties the selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearSelection</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.copySelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L786">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.copySelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L798">src</a></div>
 <p>Puts the selected text on the clipboard, and reports whether there was one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">copySelection</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1060">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1102">src</a></div>
 <p>Creates a view and progressively loads an HTML file.</p>
 <p>The encoding is decided from the file itself — its byte-order mark, its <span class="code-inline">&lt;meta charset&gt;</span>, or its bytes — so a legacy code page 1252 page reads as the accented text it means. File-open and decoding failures remain visible in the document and are also exposed through <a href="#Gui_HtmlView_failureReason">Gui.HtmlView.failureReason</a> and <a href="#Gui_HtmlView_sigLoadFailed">Gui.HtmlView.sigLoadFailed</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, fileName: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1043">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1071">src</a></div>
 <p>Creates a view and renders the complete in-memory HTML source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createText</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, source: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L555">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L556">src</a></div>
 <p>Returns the element carrying an identifier, or <span class="code-inline">HtmlNoNode</span> when the document has none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">elementById</span>(id: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L684">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L687">src</a></div>
 <p>Scrolls to the next node whose text contains <span class="code-inline">text</span>, wrapping once at the end.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.hasSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L738">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.hasSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L750">src</a></div>
 <p>Reports whether the reader selected something.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasSelection</span>()-&gt;<span class="STpe">bool</span> =&gt; .<span class="SFct">selectionRange</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isLoading</span> <a class="api-item-permalink" href="#Gui_HtmlView_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L255">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isLoading</span> <a class="api-item-permalink" href="#Gui_HtmlView_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L256">src</a></div>
 <p>Reports whether source remains to be read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isLoading</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L568">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L569">src</a></div>
 <p>Scrolls to the element a document-internal reference names.</p>
 <p>Returns false when the reference points outside the document, which is what tells the caller to treat the link as a destination of its own.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">navigateToFragment</span>(url: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L920">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L932">src</a></div>
 <p>Repositions a streamed document on the node a byte offset belongs to.</p>
 <p>The document is read up to that offset first when it is not there yet, so a match reported by a search over the raw file always lands on what draws it. An empty <span class="code-inline">text</span> only scrolls.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealFileOffset</span>(offset: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectAll</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L753">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectAll</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L765">src</a></div>
 <p>Selects the whole document text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectedText</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L777">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectedText</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L789">src</a></div>
 <p>Returns the selected text, one space per soft line break and one line per block.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedText</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L944">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L956">src</a></div>
 <p>Replaces the document defaults and restyles what is already loaded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentStyle</span>(documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span>)</span></div>
 </section>
@@ -18281,7 +18291,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTexture</span>(texture: <span class="SCst"><a href="std.pixel.html#Pixel_Texture">Texture</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_actualSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.actualSize</span> <a class="api-item-permalink" href="#Gui_ImageView_actualSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L313">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_actualSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.actualSize</span> <a class="api-item-permalink" href="#Gui_ImageView_actualSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L337">src</a></div>
 <p>Displays one image pixel per logical unit and recentres it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">actualSize</span>()</span></div>
 </section>
@@ -18297,18 +18307,18 @@ busy.<span class="SFct">hide</span>()</span></div>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_ImageView">ImageView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_effectiveZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.effectiveZoom</span> <a class="api-item-permalink" href="#Gui_ImageView_effectiveZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L271">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_effectiveZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.effectiveZoom</span> <a class="api-item-permalink" href="#Gui_ImageView_effectiveZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L295">src</a></div>
 <p>Returns the scale currently used to paint the image.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">effectiveZoom</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_loadGif" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.loadGif</span> <a class="api-item-permalink" href="#Gui_ImageView_loadGif" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L256">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_loadGif" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.loadGif</span> <a class="api-item-permalink" href="#Gui_ImageView_loadGif" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L280">src</a></div>
 <p>Loads an animated GIF and fits its first frame to the viewport.</p>
 <p>Existing content remains unchanged when decoding fails.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadGif</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_replaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.replaceImage</span> <a class="api-item-permalink" href="#Gui_ImageView_replaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L231">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_replaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.replaceImage</span> <a class="api-item-permalink" href="#Gui_ImageView_replaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L255">src</a></div>
 <p>Replaces the image with another rendering of the same content, keeping the view.</p>
 <p>A viewer whose content is scalable — a document page, a drawing — does not zoom by magnifying pixels: it rasterizes again at the resolution it is now being shown at, so the result stays as sharp as the display allows. What it must not do is lose the reader's place while doing so. <span class="code-inline">scaleRatio</span> is how much larger the new image is than the one it replaces, which is what lets the zoom follow the content instead of the pixel count and leaves the visible region exactly where it was.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> sharper = <span class="SFct">renderPage</span>(pageIndex, newScale)
@@ -18316,13 +18326,13 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">replaceImage</span>(image: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>, scaleRatio: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_rotateClockwise" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.rotateClockwise</span> <a class="api-item-permalink" href="#Gui_ImageView_rotateClockwise" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L322">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_rotateClockwise" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.rotateClockwise</span> <a class="api-item-permalink" href="#Gui_ImageView_rotateClockwise" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L346">src</a></div>
 <p>Rotates a still image clockwise and keeps the current viewing mode.</p>
 <p>Animated sources are left unchanged; their frame sequence remains owned by <a href="#Gui_Movie">Gui.Movie</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateClockwise</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_setFrameIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setFrameIndex</span> <a class="api-item-permalink" href="#Gui_ImageView_setFrameIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L344">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_setFrameIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setFrameIndex</span> <a class="api-item-permalink" href="#Gui_ImageView_setFrameIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L368">src</a></div>
 <p>Selects one GIF frame, clamped to the available frame range.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrameIndex</span>(index: <span class="STpe">s32</span>)</span></div>
 </section>
@@ -18332,27 +18342,33 @@ view.<span class="SFct">replaceImage</span>(sharper, newScale / oldScale)</span>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setImage</span>(image: <span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_setPaused" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setPaused</span> <a class="api-item-permalink" href="#Gui_ImageView_setPaused" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L337">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_setPaused" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setPaused</span> <a class="api-item-permalink" href="#Gui_ImageView_setPaused" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L361">src</a></div>
 <p>Pauses or resumes GIF playback.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPaused</span>(paused: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_setZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setZoom</span> <a class="api-item-permalink" href="#Gui_ImageView_setZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L286">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_setZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.setZoom</span> <a class="api-item-permalink" href="#Gui_ImageView_setZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L310">src</a></div>
 <p>Sets an explicit image scale and leaves fitted mode.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setZoom</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_zoomIn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.zoomIn</span> <a class="api-item-permalink" href="#Gui_ImageView_zoomIn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L292">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_updateImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.updateImage</span> <a class="api-item-permalink" href="#Gui_ImageView_updateImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L223">src</a></div>
+<p>Updates a still image while reusing its renderer texture and viewing position.</p>
+<p><span class="code-inline">image</span> is borrowed for the call and its pixels are copied. When its dimensions or pixel format differ from the current still image, this behaves like <a href="#Gui_ImageView_setImage">Gui.ImageView.setImage</a> and fits the replacement to the viewport. An animated image is replaced by a still one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateImage</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_ImageView_zoomIn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.zoomIn</span> <a class="api-item-permalink" href="#Gui_ImageView_zoomIn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L316">src</a></div>
 <p>Increases the current image scale by one viewer step.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomIn</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_zoomOut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.zoomOut</span> <a class="api-item-permalink" href="#Gui_ImageView_zoomOut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L298">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_zoomOut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.zoomOut</span> <a class="api-item-permalink" href="#Gui_ImageView_zoomOut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L322">src</a></div>
 <p>Decreases the current image scale by one viewer step.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomOut</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ImageView_zoomToFit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.zoomToFit</span> <a class="api-item-permalink" href="#Gui_ImageView_zoomToFit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L304">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ImageView_zoomToFit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageView.zoomToFit</span> <a class="api-item-permalink" href="#Gui_ImageView_zoomToFit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/imageview.swg#L328">src</a></div>
 <p>Fits the complete image inside the viewport and recentres it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomToFit</span>()</span></div>
 </section>
@@ -21432,49 +21448,54 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">undo</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.create</span> <a class="api-item-permalink" href="#Gui_Markdown_View_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L546">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.create</span> <a class="api-item-permalink" href="#Gui_Markdown_View_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L579">src</a></div>
 <p>Creates an empty Markdown document view.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_Markdown_View">View</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createFile</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L622">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createFile</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L655">src</a></div>
 <p>Creates a view and progressively loads a UTF-8 Markdown file.</p>
 <p>File-open and decoding failures remain visible in the document and are also exposed through <a href="#Gui_Markdown_View_failureReason">Gui.Markdown.View.failureReason</a> and <a href="#Gui_Markdown_View_sigLoadFailed">Gui.Markdown.View.sigLoadFailed</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, fileName: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_Markdown_View">View</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L599">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.createText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L632">src</a></div>
 <p>Creates a view and renders the complete Markdown source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createText</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, source: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_Markdown_View">View</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.findText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L669">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.findText</span> <a class="api-item-permalink" href="#Gui_Markdown_View_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L705">src</a></div>
 <p>Scrolls to the next rendered block containing <span class="code-inline">text</span>, wrapping once at the end.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.isLoading</span> <a class="api-item-permalink" href="#Gui_Markdown_View_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L660">src</a></div>
-<p>Reports whether source remains to be parsed or displayed.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isLoading</span>()-&gt;<span class="STpe">bool</span></span></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_hasUnloadedSource" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.hasUnloadedSource</span> <a class="api-item-permalink" href="#Gui_Markdown_View_hasUnloadedSource" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L696">src</a></div>
+<p>Reports whether file source remains to be read, parsed, or displayed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasUnloadedSource</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_loadedDocumentHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.loadedDocumentHeight</span> <a class="api-item-permalink" href="#Gui_Markdown_View_loadedDocumentHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L666">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.isLoading</span> <a class="api-item-permalink" href="#Gui_Markdown_View_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L693">src</a></div>
+<p>Reports whether progressive file-loading work is currently scheduled.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isLoading</span>()-&gt;<span class="STpe">bool</span> =&gt; .loadTimer</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_loadedDocumentHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.loadedDocumentHeight</span> <a class="api-item-permalink" href="#Gui_Markdown_View_loadedDocumentHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L702">src</a></div>
 <p>Reports the laid-out height of the source rendered so far.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">loadedDocumentHeight</span>()-&gt;<span class="STpe">f32</span> =&gt; .contentHeight</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_Markdown_View_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L709">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_Markdown_View_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L749">src</a></div>
 <p>Repositions the streamed document at a byte offset and reveals <span class="code-inline">text</span> as soon as its block is materialized, without parsing the preceding bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealFileOffset</span>(offset: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L645">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L678">src</a></div>
 <p>Replaces the document metrics while keeping colors and font faces bound to the active theme.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentStyle</span>(documentStyle: <span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentThemeColors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentThemeColors</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentThemeColors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L653">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Markdown_View_setDocumentThemeColors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.setDocumentThemeColors</span> <a class="api-item-permalink" href="#Gui_Markdown_View_setDocumentThemeColors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/markdown/view.swg#L686">src</a></div>
 <p>Applies document-local theme colors to the complete view, including blocks created later while a file is streaming. Pass an empty sheet to resume the application theme.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentThemeColors</span>(styleSheetColors: <span class="STpe">string</span>)</span></div>
 </section>
@@ -22061,7 +22082,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.155</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.159</div>
 </footer>
 </section>
 </main>
@@ -25185,7 +25206,8 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.Markdown.View.createFile|Gui_Markdown_View_createFile|Creates a view and progressively loads a UTF-8 Markdown file.",
 "f|Gui.Markdown.View.createText|Gui_Markdown_View_createText|Creates a view and renders the complete Markdown source.",
 "f|Gui.Markdown.View.findText|Gui_Markdown_View_findText|Scrolls to the next rendered block containing text, wrapping once at the end.",
-"f|Gui.Markdown.View.isLoading|Gui_Markdown_View_isLoading|Reports whether source remains to be parsed or displayed.",
+"f|Gui.Markdown.View.hasUnloadedSource|Gui_Markdown_View_hasUnloadedSource|Reports whether file source remains to be read, parsed, or displayed.",
+"f|Gui.Markdown.View.isLoading|Gui_Markdown_View_isLoading|Reports whether progressive file-loading work is currently scheduled.",
 "f|Gui.Markdown.View.loadedDocumentHeight|Gui_Markdown_View_loadedDocumentHeight|Reports the laid-out height of the source rendered so far.",
 "f|Gui.Markdown.View.revealFileOffset|Gui_Markdown_View_revealFileOffset|Repositions the streamed document at a byte offset and reveals text as soon as its block",
 "f|Gui.Markdown.View.setDocumentStyle|Gui_Markdown_View_setDocumentStyle|Replaces the document metrics while keeping colors and font faces bound to the active theme.",
@@ -25526,6 +25548,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.ImageView.setImage|Gui_ImageView_setImage|Displays an owned copy of image and fits it to the viewport.",
 "f|Gui.ImageView.setPaused|Gui_ImageView_setPaused|Pauses or resumes GIF playback.",
 "f|Gui.ImageView.setZoom|Gui_ImageView_setZoom|Sets an explicit image scale and leaves fitted mode.",
+"f|Gui.ImageView.updateImage|Gui_ImageView_updateImage|Updates a still image while reusing its renderer texture and viewing position.",
 "f|Gui.ImageView.zoomIn|Gui_ImageView_zoomIn|Increases the current image scale by one viewer step.",
 "f|Gui.ImageView.zoomOut|Gui_ImageView_zoomOut|Decreases the current image scale by one viewer step.",
 "f|Gui.ImageView.zoomToFit|Gui_ImageView_zoomToFit|Fits the complete image inside the viewport and recentres it.",

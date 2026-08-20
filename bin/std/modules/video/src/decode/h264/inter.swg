@@ -1,7 +1,7 @@
 ﻿#global namespace H264
 #global internal
 
-using Core
+using Core, Core.Math
 
 // Inter prediction, section 8.4.2.2: quarter-sample luma interpolation with the six-tap
 // half-sample filter, eighth-sample bilinear chroma interpolation, and the weighted sample
@@ -19,18 +19,18 @@ func tap6(a, b, c, d, e, f: s32)->s32 => a - 5 * b + 20 * c + 20 * d - 5 * e + f
 // positive taps reach 20 * 510 + 510 = 10710 and the negative ones -2550, so
 // the arithmetic never wraps.
 #[Swag.Inline]
-private func tap6Raw16(a, b, c, d, e, f: #simd [8] u16)->#simd [8] s16
+private func tap6Raw16(a, b, c, d, e, f: Simd.U16x8)->Simd.S16x8
 {
-    let inner = cast #bit(#simd [8] s16) (c + d)
-    let outer = cast #bit(#simd [8] s16) (b + e)
-    let edges = cast #bit(#simd [8] s16) (a + f)
+    let inner = cast #bit(Simd.S16x8) (c + d)
+    let outer = cast #bit(Simd.S16x8) (b + e)
+    let edges = cast #bit(Simd.S16x8) (a + f)
     return edges + inner * 20 - outer * 5
 }
 
 // Eight six-tap half-samples on widened byte lanes; the caller's saturating
 // pack is exactly the scalar clamp.
 #[Swag.Inline]
-private func tap6Half16(a, b, c, d, e, f: #simd [8] u16)->#simd [8] s16
+private func tap6Half16(a, b, c, d, e, f: Simd.U16x8)->Simd.S16x8
 {
     return (tap6Raw16(a, b, c, d, e, f) + 16) >> 5
 }
@@ -39,7 +39,7 @@ private func tap6Half16(a, b, c, d, e, f: #simd [8] u16)->#simd [8] s16
 // The 32-bit intermediates stay far inside the lane range: the sums reach
 // ±10710, so the filtered value reaches about ±470000.
 #[Swag.Inline]
-private func tap6CenterQuad(a, b, c, d, e, f: #simd [4] s32)->#simd [4] s32
+private func tap6CenterQuad(a, b, c, d, e, f: Simd.S32x4)->Simd.S32x4
 {
     let sum = (a + f) + (c + d) * 20 - (b + e) * 5
     return (sum + 512) >> 10
@@ -49,25 +49,11 @@ private func tap6CenterQuad(a, b, c, d, e, f: #simd [4] s32)->#simd [4] s32
 // shifted result reaches about ±460, so the signed pack never saturates and
 // the caller's unsigned pack is exactly the scalar clamp.
 #[Swag.Inline]
-private func tap6Center8(a, b, c, d, e, f: #simd [8] s16)->#simd [8] s16
+private func tap6Center8(a, b, c, d, e, f: Simd.S16x8)->Simd.S16x8
 {
-    let lo = tap6CenterQuad(@vecwidenlo(a), @vecwidenlo(b), @vecwidenlo(c), @vecwidenlo(d), @vecwidenlo(e), @vecwidenlo(f))
-    let hi = tap6CenterQuad(@vecwidenhi(a), @vecwidenhi(b), @vecwidenhi(c), @vecwidenhi(d), @vecwidenhi(e), @vecwidenhi(f))
-    return @vecpackss(lo, hi)
-}
-
-// Stores the low eight lanes of a packed vector.
-#[Swag.Inline]
-private func storeLow8(dst: [*] u8, value: #simd [16] u8)
-{
-    (cast([*] u64) dst)[0] = (cast #bit(#simd [2] u64) value)[0]
-}
-
-// Stores the low four lanes of a packed vector.
-#[Swag.Inline]
-private func storeLow4(dst: [*] u8, value: #simd [16] u8)
-{
-    (cast([*] u32) dst)[0] = (cast #bit(#simd [4] u32) value)[0]
+    let lo = tap6CenterQuad(Simd.widenLow(a), Simd.widenLow(b), Simd.widenLow(c), Simd.widenLow(d), Simd.widenLow(e), Simd.widenLow(f))
+    let hi = tap6CenterQuad(Simd.widenHigh(a), Simd.widenHigh(b), Simd.widenHigh(c), Simd.widenHigh(d), Simd.widenHigh(e), Simd.widenHigh(f))
+    return Simd.packSigned(lo, hi)
 }
 
 // Sixteen six-tap half-samples in one pass: rows spaced by `stride` widen to
@@ -75,34 +61,34 @@ private func storeLow4(dst: [*] u8, value: #simd [16] u8)
 // stride of one this is the horizontal filter, reading the same bytes the
 // scalar loop touches.
 #[Swag.Inline]
-private func tap6Row16(line: const [*] u8, stride: u64)->#simd [16] u8
+private func tap6Row16(line: const [*] u8, stride: u64)->Simd.U8x16
 {
-    let r0 = (cast(const [*] #simd [16] u8) line)[0]
-    let r1 = (cast(const [*] #simd [16] u8) (line + stride))[0]
-    let r2 = (cast(const [*] #simd [16] u8) (line + 2 * stride))[0]
-    let r3 = (cast(const [*] #simd [16] u8) (line + 3 * stride))[0]
-    let r4 = (cast(const [*] #simd [16] u8) (line + 4 * stride))[0]
-    let r5 = (cast(const [*] #simd [16] u8) (line + 5 * stride))[0]
+    let r0 = Simd.load(line)
+    let r1 = Simd.load(line + stride)
+    let r2 = Simd.load(line + 2 * stride)
+    let r3 = Simd.load(line + 3 * stride)
+    let r4 = Simd.load(line + 4 * stride)
+    let r5 = Simd.load(line + 5 * stride)
 
-    let lo = tap6Half16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
-    let hi = tap6Half16(@vecwidenhi(r0), @vecwidenhi(r1), @vecwidenhi(r2), @vecwidenhi(r3), @vecwidenhi(r4), @vecwidenhi(r5))
-    return @vecpackus(lo, hi)
+    let lo = tap6Half16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
+    let hi = tap6Half16(Simd.widenHigh(r0), Simd.widenHigh(r1), Simd.widenHigh(r2), Simd.widenHigh(r3), Simd.widenHigh(r4), Simd.widenHigh(r5))
+    return Simd.packUnsigned(lo, hi)
 }
 
 // Eight six-tap half-samples in the low lanes: one sixteen-byte load per tap
 // covers the thirteen bytes the shifted lanes read.
 #[Swag.Inline]
-private func tap6Row8(line: const [*] u8, stride: u64)->#simd [16] u8
+private func tap6Row8(line: const [*] u8, stride: u64)->Simd.U8x16
 {
-    let r0 = (cast(const [*] #simd [16] u8) line)[0]
-    let r1 = (cast(const [*] #simd [16] u8) (line + stride))[0]
-    let r2 = (cast(const [*] #simd [16] u8) (line + 2 * stride))[0]
-    let r3 = (cast(const [*] #simd [16] u8) (line + 3 * stride))[0]
-    let r4 = (cast(const [*] #simd [16] u8) (line + 4 * stride))[0]
-    let r5 = (cast(const [*] #simd [16] u8) (line + 5 * stride))[0]
+    let r0 = Simd.load(line)
+    let r1 = Simd.load(line + stride)
+    let r2 = Simd.load(line + 2 * stride)
+    let r3 = Simd.load(line + 3 * stride)
+    let r4 = Simd.load(line + 4 * stride)
+    let r5 = Simd.load(line + 5 * stride)
 
-    let lo = tap6Half16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
-    return @vecpackus(lo, lo)
+    let lo = tap6Half16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
+    return Simd.packUnsigned(lo, lo)
 }
 
 // Copies the `width` by `height` window at `x`, `y` with edge clamping, including the two
@@ -126,7 +112,7 @@ private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride:
     if width == 16
     {
         for row in cast(u64) height do
-            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = tap6Row16(src + row * srcStride - 2, 1)
+            Simd.store(dst + row * dstStride, tap6Row16(src + row * srcStride - 2, 1))
         return
     }
 
@@ -136,10 +122,11 @@ private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride:
         {
             let half = tap6Row8(src + row * srcStride - 2, 1)
             if width == 8 do
-                storeLow8(dst + row * dstStride, half)
+                Simd.storeLow8(dst + row * dstStride, half)
             else do
-                storeLow4(dst + row * dstStride, half)
+                Simd.storeLow4(dst + row * dstStride, half)
         }
+
         return
     }
 
@@ -163,9 +150,10 @@ private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
         for row in cast(u64) height
         {
             let half  = tap6Row16(src + row * srcStride - 2, 1)
-            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
-            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = @vecavgr(half, other)
+            let other = Simd.load(anchor + row * anchorStride)
+            Simd.store(dst + row * dstStride, Simd.average(half, other))
         }
+
         return
     }
 
@@ -174,13 +162,14 @@ private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
         for row in cast(u64) height
         {
             let half  = tap6Row8(src + row * srcStride - 2, 1)
-            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
-            let mixed = @vecavgr(half, other)
+            let other = Simd.load(anchor + row * anchorStride)
+            let mixed = Simd.average(half, other)
             if width == 8 do
-                storeLow8(dst + row * dstStride, mixed)
+                Simd.storeLow8(dst + row * dstStride, mixed)
             else do
-                storeLow4(dst + row * dstStride, mixed)
+                Simd.storeLow4(dst + row * dstStride, mixed)
         }
+
         return
     }
 
@@ -204,7 +193,7 @@ private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
     if width == 16
     {
         for row in cast(u64) height do
-            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = tap6Row16(src + row * srcStride - 2 * srcStride, srcStride)
+            Simd.store(dst + row * dstStride, tap6Row16(src + row * srcStride - 2 * srcStride, srcStride))
         return
     }
 
@@ -214,10 +203,11 @@ private func halfVertical(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
         {
             let half = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
             if width == 8 do
-                storeLow8(dst + row * dstStride, half)
+                Simd.storeLow8(dst + row * dstStride, half)
             else do
-                storeLow4(dst + row * dstStride, half)
+                Simd.storeLow4(dst + row * dstStride, half)
         }
+
         return
     }
 
@@ -241,9 +231,10 @@ private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
         for row in cast(u64) height
         {
             let half  = tap6Row16(src + row * srcStride - 2 * srcStride, srcStride)
-            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
-            (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = @vecavgr(half, other)
+            let other = Simd.load(anchor + row * anchorStride)
+            Simd.store(dst + row * dstStride, Simd.average(half, other))
         }
+
         return
     }
 
@@ -252,13 +243,14 @@ private func halfVerticalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
         for row in cast(u64) height
         {
             let half  = tap6Row8(src + row * srcStride - 2 * srcStride, srcStride)
-            let other = (cast(const [*] #simd [16] u8) (anchor + row * anchorStride))[0]
-            let mixed = @vecavgr(half, other)
+            let other = Simd.load(anchor + row * anchorStride)
+            let mixed = Simd.average(half, other)
             if width == 8 do
-                storeLow8(dst + row * dstStride, mixed)
+                Simd.storeLow8(dst + row * dstStride, mixed)
             else do
-                storeLow4(dst + row * dstStride, mixed)
+                Simd.storeLow4(dst + row * dstStride, mixed)
         }
+
         return
     }
 
@@ -318,25 +310,25 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
 // lanes, two vectors per row, and the vertical pass widens them on the fly.
 private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, height: s32)
 {
-    var sums: [21 * 2] #simd [8] s16 = undefined
+    var sums: [21 * 2] Simd.S16x8 = undefined
     for row in cast(u64) (height + 5)
     {
         let line = src + row * srcStride - 2 * srcStride - 2
-        let r0   = (cast(const [*] #simd [16] u8) line)[0]
-        let r1   = (cast(const [*] #simd [16] u8) (line + 1))[0]
-        let r2   = (cast(const [*] #simd [16] u8) (line + 2))[0]
-        let r3   = (cast(const [*] #simd [16] u8) (line + 3))[0]
-        let r4   = (cast(const [*] #simd [16] u8) (line + 4))[0]
-        let r5   = (cast(const [*] #simd [16] u8) (line + 5))[0]
-        sums[row * 2]     = tap6Raw16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
-        sums[row * 2 + 1] = tap6Raw16(@vecwidenhi(r0), @vecwidenhi(r1), @vecwidenhi(r2), @vecwidenhi(r3), @vecwidenhi(r4), @vecwidenhi(r5))
+        let r0   = Simd.load(line)
+        let r1   = Simd.load(line + 1)
+        let r2   = Simd.load(line + 2)
+        let r3   = Simd.load(line + 3)
+        let r4   = Simd.load(line + 4)
+        let r5   = Simd.load(line + 5)
+        sums[row * 2]     = tap6Raw16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
+        sums[row * 2 + 1] = tap6Raw16(Simd.widenHigh(r0), Simd.widenHigh(r1), Simd.widenHigh(r2), Simd.widenHigh(r3), Simd.widenHigh(r4), Simd.widenHigh(r5))
     }
 
     for row in cast(u64) height
     {
         let lo = tap6Center8(sums[row * 2], sums[row * 2 + 2], sums[row * 2 + 4], sums[row * 2 + 6], sums[row * 2 + 8], sums[row * 2 + 10])
         let hi = tap6Center8(sums[row * 2 + 1], sums[row * 2 + 3], sums[row * 2 + 5], sums[row * 2 + 7], sums[row * 2 + 9], sums[row * 2 + 11])
-        (cast([*] #simd [16] u8) (dst + row * dstStride))[0] = @vecpackus(lo, hi)
+        Simd.store(dst + row * dstStride, Simd.packUnsigned(lo, hi))
     }
 }
 
@@ -344,27 +336,27 @@ private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
 // carrying the block.
 private func halfCenter8(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
-    var sums: [21] #simd [8] s16 = undefined
+    var sums: [21] Simd.S16x8 = undefined
     for row in cast(u64) (height + 5)
     {
         let line = src + row * srcStride - 2 * srcStride - 2
-        let r0   = (cast(const [*] #simd [16] u8) line)[0]
-        let r1   = (cast(const [*] #simd [16] u8) (line + 1))[0]
-        let r2   = (cast(const [*] #simd [16] u8) (line + 2))[0]
-        let r3   = (cast(const [*] #simd [16] u8) (line + 3))[0]
-        let r4   = (cast(const [*] #simd [16] u8) (line + 4))[0]
-        let r5   = (cast(const [*] #simd [16] u8) (line + 5))[0]
-        sums[row] = tap6Raw16(@vecwidenlo(r0), @vecwidenlo(r1), @vecwidenlo(r2), @vecwidenlo(r3), @vecwidenlo(r4), @vecwidenlo(r5))
+        let r0   = Simd.load(line)
+        let r1   = Simd.load(line + 1)
+        let r2   = Simd.load(line + 2)
+        let r3   = Simd.load(line + 3)
+        let r4   = Simd.load(line + 4)
+        let r5   = Simd.load(line + 5)
+        sums[row] = tap6Raw16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
     }
 
     for row in cast(u64) height
     {
         let half   = tap6Center8(sums[row], sums[row + 1], sums[row + 2], sums[row + 3], sums[row + 4], sums[row + 5])
-        let packed = @vecpackus(half, half)
+        let packed = Simd.packUnsigned(half, half)
         if width == 8 do
-            storeLow8(dst + row * dstStride, packed)
+            Simd.storeLow8(dst + row * dstStride, packed)
         else do
-            storeLow4(dst + row * dstStride, packed)
+            Simd.storeLow4(dst + row * dstStride, packed)
     }
 }
 
@@ -386,9 +378,9 @@ func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] 
     case 16:
         for cast(u64) height
         {
-            let va = (cast(const [*] #simd [16] u8) pa)[0]
-            let vb = (cast(const [*] #simd [16] u8) pb)[0]
-            (cast([*] #simd [16] u8) pd)[0] = @vecavgr(va, vb)
+            let va = Simd.load(pa)
+            let vb = Simd.load(pb)
+            Simd.store(pd, Simd.average(va, vb))
             pd += dstStride
             pa += aStride
             pb += bStride
@@ -521,7 +513,7 @@ func copyPlane(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
     case 16:
         for cast(u64) height
         {
-            (cast([*] #simd [16] u8) d)[0] = (cast(const [*] #simd [16] u8) s)[0]
+            Simd.store(d, Simd.load(s))
             d += dstStride
             s += srcStride
         }
@@ -598,8 +590,8 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         {
             for cast(u64) height
             {
-                let a = @vecwidenlo((cast(const [*] #simd [16] u8) line)[0])
-                let b = @vecwidenlo((cast(const [*] #simd [16] u8) (line + 1))[0])
+                let a = Simd.widenLow(Simd.load(line))
+                let b = Simd.widenLow(Simd.load(line + 1))
                 storeChromaBlend(out, width, a * cast(u16) wl + b * cast(u16) wr)
                 out  += dstStride
                 line += srcStride
@@ -627,8 +619,8 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         {
             for cast(u64) height
             {
-                let a = @vecwidenlo((cast(const [*] #simd [16] u8) line)[0])
-                let b = @vecwidenlo((cast(const [*] #simd [16] u8) (line + srcStride))[0])
+                let a = Simd.widenLow(Simd.load(line))
+                let b = Simd.widenLow(Simd.load(line + srcStride))
                 storeChromaBlend(out, width, a * cast(u16) wt + b * cast(u16) wb)
                 out  += dstStride
                 line += srcStride
@@ -657,10 +649,10 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
         for cast(u64) height
         {
             let below = line + srcStride
-            let a     = @vecwidenlo((cast(const [*] #simd [16] u8) line)[0])
-            let b     = @vecwidenlo((cast(const [*] #simd [16] u8) (line + 1))[0])
-            let c     = @vecwidenlo((cast(const [*] #simd [16] u8) below)[0])
-            let d     = @vecwidenlo((cast(const [*] #simd [16] u8) (below + 1))[0])
+            let a     = Simd.widenLow(Simd.load(line))
+            let b     = Simd.widenLow(Simd.load(line + 1))
+            let c     = Simd.widenLow(Simd.load(below))
+            let d     = Simd.widenLow(Simd.load(below + 1))
             storeChromaBlend(out, width, a * cast(u16) wlt + b * cast(u16) wrt + c * cast(u16) wlb + d * cast(u16) wrb)
             out  += dstStride
             line += srcStride
@@ -687,14 +679,14 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
 // one blend sum to 64, so the accumulators peak at 64 * 255 + 32, well inside
 // the unsigned lanes, and the shifted lanes are plain bytes.
 #[Swag.Inline]
-private func storeChromaBlend(out: [*] u8, width: s32, value: #simd [8] u16)
+private func storeChromaBlend(out: [*] u8, width: s32, value: Simd.U16x8)
 {
-    let bytes  = cast #bit(#simd [8] s16) ((value + 32) >> 6)
-    let packed = @vecpackus(bytes, bytes)
+    let bytes  = cast #bit(Simd.S16x8) ((value + 32) >> 6)
+    let packed = Simd.packUnsigned(bytes, bytes)
     if width == 8 do
-        storeLow8(out, packed)
+        Simd.storeLow8(out, packed)
     else do
-        storeLow4(out, packed)
+        Simd.storeLow4(out, packed)
 }
 
 // Applies one explicit weight to a predicted block, section 8.4.2.3.2.

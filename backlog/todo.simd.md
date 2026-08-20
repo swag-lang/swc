@@ -255,6 +255,15 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 
 - Intent: vectorize block XOR, BlaMka compression, row/column permutation, and final reduction while
   retaining Argon2id's exact memory-index and synchronization semantics.
+- Evidence (2026-08-20): on eight Argon2id derivations at 4 MiB, three passes, and four lanes, the
+  scalar Release kernel measured 104,661 us. Explicit `U64x2` block XOR measured 107,969 us (3.2%
+  slower) and was reverted. A trial `u32 x u32 -> u64` low-half product lowered directly to
+  `pmuludq` made paired BlaMka exact, but the best eight-vector row/column layout measured 180,000
+  us (72% slower); a sixteen-vector layout measured 190,313 us. The intrinsic, API, and kernel were
+  all reverted because the lane regrouping and state materialization erased the paired arithmetic
+  gain. Revisit only with a lowering that keeps the eight-word state in registers across both G
+  halves and performs the two-source 64-bit lane regroup without scalar extraction, or with a
+  wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
 - Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
   the packed kernel gain from independent-lane parallelism.
 - Related: T-252 in `todo.vaultdrive.md`, T-512, T-513, T-515.

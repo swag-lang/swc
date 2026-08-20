@@ -65,7 +65,7 @@ func deblockPicture(dec: *Decoder)
 }
 
 // Boundary strengths of one macroblock edge, one per 4-sample segment.
-private struct EdgeStrength
+struct EdgeStrength
 {
     bs: [4] u32
 }
@@ -323,19 +323,26 @@ private func deblockMb(dec: *Decoder, mbX, mbY: s32)
             continue
 
         var pix = frame.pixLuma(mbX * 16, mbY * 16 + edge * 4)
-        for segment in 4's32
+        if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
         {
-            let bs = strengths.bs[cast(u64) segment]
-            if bs == 0
+            filterLumaWeakHorizontal(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+        }
+        else
+        {
+            for segment in 4's32
             {
-                pix += 4
-                continue
-            }
+                let bs = strengths.bs[cast(u64) segment]
+                if bs == 0
+                {
+                    pix += 4
+                    continue
+                }
 
-            for 4
-            {
-                filterLuma(pix, frame.strideLuma, 1, bs, indexA, alpha, beta)
-                pix += 1
+                for 4
+                {
+                    filterLuma(pix, frame.strideLuma, 1, bs, indexA, alpha, beta)
+                    pix += 1
+                }
             }
         }
 
@@ -353,25 +360,135 @@ private func deblockMb(dec: *Decoder, mbX, mbY: s32)
                 for plane in 2'u32
                 {
                     var pix = frame.pixChroma(plane, mbX * 8, mbY * 8 + edge * 2)
-                    for segment in 4's32
+                    if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
                     {
-                        let bs = strengths.bs[cast(u64) segment]
-                        if bs == 0
+                        filterChromaWeakHorizontal(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+                    }
+                    else
+                    {
+                        for segment in 4's32
                         {
-                            pix += 2
-                            continue
-                        }
+                            let bs = strengths.bs[cast(u64) segment]
+                            if bs == 0
+                            {
+                                pix += 2
+                                continue
+                            }
 
-                        for 2
-                        {
-                            filterChroma(pix, frame.strideChroma, 1, bs, cIndexA, cAlpha, cBeta)
-                            pix += 1
+                            for 2
+                            {
+                                filterChroma(pix, frame.strideChroma, 1, bs, cIndexA, cAlpha, cBeta)
+                                pix += 1
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+// Filters one complete horizontal weak luma edge. The four strengths apply to four lanes
+// each; zero-strength lanes remain unchanged, while strong edges keep the scalar path.
+func filterLumaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
+{
+    let p0Bytes = Simd.load(pix - stride)
+    let q0Bytes = Simd.load(pix)
+    let p1Bytes = Simd.load(pix - 2 * stride)
+    let q1Bytes = Simd.load(pix + stride)
+    let p2Bytes = Simd.load(pix - 3 * stride)
+    let q2Bytes = Simd.load(pix + 2 * stride)
+
+    let bs0    = cast(s16) strengths.bs[0]
+    let bs1    = cast(s16) strengths.bs[1]
+    let bs2    = cast(s16) strengths.bs[2]
+    let bs3    = cast(s16) strengths.bs[3]
+    let tc0    = bs0 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs0 - 1)]
+    let tc1    = bs1 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs1 - 1)]
+    let tc2    = bs2 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs2 - 1)]
+    let tc3    = bs3 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs3 - 1)]
+    let bsLow  = cast(Simd.S16x8) [bs0, bs0, bs0, bs0, bs1, bs1, bs1, bs1]
+    let bsHigh = cast(Simd.S16x8) [bs2, bs2, bs2, bs2, bs3, bs3, bs3, bs3]
+    let tcLow  = cast(Simd.S16x8) [tc0, tc0, tc0, tc0, tc1, tc1, tc1, tc1]
+    let tcHigh = cast(Simd.S16x8) [tc2, tc2, tc2, tc2, tc3, tc3, tc3, tc3]
+    let zeros  = Simd.splat(0's16)
+    let alphas = Simd.splat(cast(s16) alpha)
+    let betas  = Simd.splat(cast(s16) beta)
+
+    let p0Low     = cast #bit(Simd.S16x8) Simd.widenLow(p0Bytes)
+    let q0Low     = cast #bit(Simd.S16x8) Simd.widenLow(q0Bytes)
+    let p1Low     = cast #bit(Simd.S16x8) Simd.widenLow(p1Bytes)
+    let q1Low     = cast #bit(Simd.S16x8) Simd.widenLow(q1Bytes)
+    let p2Low     = cast #bit(Simd.S16x8) Simd.widenLow(p2Bytes)
+    let q2Low     = cast #bit(Simd.S16x8) Simd.widenLow(q2Bytes)
+    let activeLow = (bsLow > zeros) & (Math.abs(p0Low - q0Low) < alphas) & (Math.abs(p1Low - p0Low) < betas) & (Math.abs(q1Low - q0Low) < betas)
+    let apLow     = Math.abs(p2Low - p0Low) < betas
+    let aqLow     = Math.abs(q2Low - q0Low) < betas
+    let limitLow  = tcLow - cast #bit(Simd.S16x8) apLow - cast #bit(Simd.S16x8) aqLow
+    var deltaLow  = (((q0Low - p0Low) << 2) + (p1Low - q1Low) + 4) >> 3
+    deltaLow = Math.max(Math.min(deltaLow, limitLow), -limitLow)
+    let averageLow = (p0Low + q0Low + 1) >> 1
+    var pAdjustLow = (p2Low + averageLow - 2 * p1Low) >> 1
+    var qAdjustLow = (q2Low + averageLow - 2 * q1Low) >> 1
+    pAdjustLow = Math.max(Math.min(pAdjustLow, tcLow), -tcLow)
+    qAdjustLow = Math.max(Math.min(qAdjustLow, tcLow), -tcLow)
+    let newP0Low = Simd.select(activeLow, p0Low + deltaLow, p0Low)
+    let newQ0Low = Simd.select(activeLow, q0Low - deltaLow, q0Low)
+    let newP1Low = Simd.select(activeLow & apLow, p1Low + pAdjustLow, p1Low)
+    let newQ1Low = Simd.select(activeLow & aqLow, q1Low + qAdjustLow, q1Low)
+
+    let p0High     = cast #bit(Simd.S16x8) Simd.widenHigh(p0Bytes)
+    let q0High     = cast #bit(Simd.S16x8) Simd.widenHigh(q0Bytes)
+    let p1High     = cast #bit(Simd.S16x8) Simd.widenHigh(p1Bytes)
+    let q1High     = cast #bit(Simd.S16x8) Simd.widenHigh(q1Bytes)
+    let p2High     = cast #bit(Simd.S16x8) Simd.widenHigh(p2Bytes)
+    let q2High     = cast #bit(Simd.S16x8) Simd.widenHigh(q2Bytes)
+    let activeHigh = (bsHigh > zeros) & (Math.abs(p0High - q0High) < alphas) & (Math.abs(p1High - p0High) < betas) & (Math.abs(q1High - q0High) < betas)
+    let apHigh     = Math.abs(p2High - p0High) < betas
+    let aqHigh     = Math.abs(q2High - q0High) < betas
+    let limitHigh  = tcHigh - cast #bit(Simd.S16x8) apHigh - cast #bit(Simd.S16x8) aqHigh
+    var deltaHigh  = (((q0High - p0High) << 2) + (p1High - q1High) + 4) >> 3
+    deltaHigh = Math.max(Math.min(deltaHigh, limitHigh), -limitHigh)
+    let averageHigh = (p0High + q0High + 1) >> 1
+    var pAdjustHigh = (p2High + averageHigh - 2 * p1High) >> 1
+    var qAdjustHigh = (q2High + averageHigh - 2 * q1High) >> 1
+    pAdjustHigh = Math.max(Math.min(pAdjustHigh, tcHigh), -tcHigh)
+    qAdjustHigh = Math.max(Math.min(qAdjustHigh, tcHigh), -tcHigh)
+    let newP0High = Simd.select(activeHigh, p0High + deltaHigh, p0High)
+    let newQ0High = Simd.select(activeHigh, q0High - deltaHigh, q0High)
+    let newP1High = Simd.select(activeHigh & apHigh, p1High + pAdjustHigh, p1High)
+    let newQ1High = Simd.select(activeHigh & aqHigh, q1High + qAdjustHigh, q1High)
+
+    Simd.store(pix - stride, Simd.packUnsigned(newP0Low, newP0High))
+    Simd.store(pix, Simd.packUnsigned(newQ0Low, newQ0High))
+    Simd.store(pix - 2 * stride, Simd.packUnsigned(newP1Low, newP1High))
+    Simd.store(pix + stride, Simd.packUnsigned(newQ1Low, newQ1High))
+}
+
+// Filters the eight samples of one horizontal weak chroma edge. Each luma strength maps
+// to two chroma lanes; strong edges retain their separate scalar formula.
+func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
+{
+    let p0         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - stride))
+    let q0         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix))
+    let p1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix - 2 * stride))
+    let q1         = cast #bit(Simd.S16x8) Simd.widenLow(Simd.load(pix + stride))
+    let bs0        = cast(s16) strengths.bs[0]
+    let bs1        = cast(s16) strengths.bs[1]
+    let bs2        = cast(s16) strengths.bs[2]
+    let bs3        = cast(s16) strengths.bs[3]
+    let tc0        = bs0 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs0 - 1)] + 1
+    let tc1        = bs1 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs1 - 1)] + 1
+    let tc2        = bs2 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs2 - 1)] + 1
+    let tc3        = bs3 == 0 ? 0's16 : cast(s16) DeblockTc0[cast(u64) indexA * 3 + cast(u64) (bs3 - 1)] + 1
+    let strengths8 = cast(Simd.S16x8) [bs0, bs0, bs1, bs1, bs2, bs2, bs3, bs3]
+    let limits     = cast(Simd.S16x8) [tc0, tc0, tc1, tc1, tc2, tc2, tc3, tc3]
+    let zeros      = Simd.splat(0's16)
+    let active     = (strengths8 > zeros) & (Math.abs(p0 - q0) < Simd.splat(cast(s16) alpha)) & (Math.abs(p1 - p0) < Simd.splat(cast(s16) beta)) & (Math.abs(q1 - q0) < Simd.splat(cast(s16) beta))
+    var delta      = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
+    delta = Math.max(Math.min(delta, limits), -limits)
+    Simd.storeLow8(pix - stride, Simd.packUnsigned(Simd.select(active, p0 + delta, p0), zeros))
+    Simd.storeLow8(pix, Simd.packUnsigned(Simd.select(active, q0 - delta, q0), zeros))
 }
 
 // Returns the chroma QP of one macroblock, with the blue-difference offset; the two chroma

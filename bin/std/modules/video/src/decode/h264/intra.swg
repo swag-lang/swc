@@ -32,6 +32,31 @@ const IntraChromaHorizontal = 1'u32
 const IntraChromaVertical   = 2'u32
 const IntraChromaPlane      = 3'u32
 
+#[Swag.Inline]
+private func fillIntra16x16(dst: [*] u8, stride: u64, value: u8)
+{
+    let pixels = Simd.splat(value)
+    for row in 16'u64 do
+        Simd.store(dst + row * stride, pixels)
+}
+
+#[Swag.Inline]
+private func copyIntra16x16(dst: [*] u8, stride: u64, pixels: Simd.U8x16)
+{
+    for row in 16'u64 do
+        Simd.store(dst + row * stride, pixels)
+}
+
+#[Swag.Inline]
+func storeIntra8Vertical(dst: [*] u8, stride: u64, top: const [*] s32)
+{
+    for column in 8'u64 do
+        dst[column] = cast(u8) top[column]
+    let pixels = Simd.load(dst)
+    for row in 1'u64 until 8 do
+        Simd.storeLow8(dst + row * stride, pixels)
+}
+
 // Predicts one 4x4 luma block, section 8.3.1.2.
 //
 // `hasTopRight` covers the four samples above and to the right; when they are missing but the
@@ -42,7 +67,7 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     // lp mirrors it for the left edge.
     var tp: [10] s32 = undefined
     var lp: [6] s32  = undefined
-    let corner = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
+    let corner       = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
 
     for row in 4'u64 do
         lp[2 + row] = hasLeft ? cast(s32) (dst - 1)[row * stride] : 128
@@ -84,13 +109,13 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         var count = 0's32
         if hasLeft
         {
-            sum += lp[2] + lp[3] + lp[4] + lp[5]
+            sum   += lp[2] + lp[3] + lp[4] + lp[5]
             count += 4
         }
 
         if hasTop
         {
-            sum += tp[2] + tp[3] + tp[4] + tp[5]
+            sum   += tp[2] + tp[3] + tp[4] + tp[5]
             count += 4
         }
 
@@ -188,7 +213,7 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         {
             for column in 4'u64
             {
-                let k = column + (row >> 1)
+                let k     = column + (row >> 1)
                 let value = row & 1 == 0 ? (tp[2 + k] + tp[3 + k] + 1) >> 1 : (tp[2 + k] + 2 * tp[3 + k] + tp[4 + k] + 2) >> 2
                 dst[row * stride + column] = cast(u8) value
             }
@@ -221,9 +246,9 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
 func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTopLeft, hasTopRight: bool)
 {
     // Raw references.
-    var rawTop: [16] s32 = undefined
-    var rawLeft: [8] s32 = undefined
-    let rawCorner = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
+    var rawTop:  [16] s32 = undefined
+    var rawLeft: [8] s32  = undefined
+    let rawCorner         = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
     for row in 8'u64 do
         rawLeft[row] = hasLeft ? cast(s32) (dst - 1)[row * stride] : 128
     for column in 8'u64 do
@@ -241,7 +266,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     // Filtered references, with the same two-slot lead-in as the 4x4 arrays.
     var tp: [18] s32 = undefined
     var lp: [10] s32 = undefined
-    let corner = (rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2
+    let corner       = (rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2
 
     tp[2] = ((hasTopLeft ? rawCorner : rawTop[0]) + 2 * rawTop[0] + rawTop[1] + 2) >> 2
     for column in 1'u64 until 15 do
@@ -261,11 +286,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     switch mode
     {
     case IntraVertical:
-        for row in 8'u64
-        {
-            for column in 8'u64 do
-                dst[row * stride + column] = cast(u8) tp[2 + column]
-        }
+        storeIntra8Vertical(dst, stride, @dataof(tp) + 2)
 
     case IntraHorizontal:
         for row in 8'u64
@@ -385,7 +406,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         {
             for column in 8'u64
             {
-                let k = column + (row >> 1)
+                let k     = column + (row >> 1)
                 let value = row & 1 == 0 ? (tp[2 + k] + tp[3 + k] + 1) >> 1 : (tp[2 + k] + 2 * tp[3 + k] + tp[4 + k] + 2) >> 2
                 dst[row * stride + column] = cast(u8) value
             }
@@ -418,18 +439,11 @@ func intraPredict16x16(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: boo
     switch mode
     {
     case Intra16Vertical:
-        for row in 16'u64
-        {
-            for column in 16'u64 do
-                dst[row * stride + column] = (dst - stride)[column]
-        }
+        copyIntra16x16(dst, stride, Simd.load(dst - stride))
 
     case Intra16Horizontal:
-        for row in 16'u64
-        {
-            for column in 16'u64 do
-                dst[row * stride + column] = (dst - 1)[row * stride]
-        }
+        for row in 16'u64 do
+            Simd.store(dst + row * stride, Simd.splat((dst - 1)[row * stride]))
 
     case Intra16Dc:
         var sum   = 0's32
@@ -449,11 +463,7 @@ func intraPredict16x16(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: boo
         }
 
         let value = count == 32 ? (sum + 16) >> 5 : (count == 16 ? (sum + 8) >> 4 : 128)
-        for row in 16'u64
-        {
-            for column in 16'u64 do
-                dst[row * stride + column] = cast(u8) value
-        }
+        fillIntra16x16(dst, stride, cast(u8) value)
 
     case Intra16Plane:
         var h = cast(s32) (dst - stride)[8] - cast(s32) (dst - stride)[6]
@@ -490,6 +500,7 @@ func intraPredictChroma(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: bo
     switch mode
     {
     case IntraChromaDc:
+
         // Each 4x4 quadrant has its own average: the corner ones prefer their aligned edge,
         // the top-left and bottom-right ones average both edges when both exist.
         var sumTopLeft    = 0's32
@@ -499,13 +510,13 @@ func intraPredictChroma(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: bo
         {
             if hasTop
             {
-                sumTopLeft += cast(s32) (dst - stride)[index]
+                sumTopLeft  += cast(s32) (dst - stride)[index]
                 sumTopRight += cast(s32) (dst - stride)[4 + index]
             }
 
             if hasLeft
             {
-                sumTopLeft += cast(s32) (dst - 1)[index * stride]
+                sumTopLeft    += cast(s32) (dst - 1)[index * stride]
                 sumBottomLeft += cast(s32) (dst - 1)[(4 + index) * stride]
             }
         }

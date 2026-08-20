@@ -49,10 +49,16 @@ is the layout it does not read yet.
   sixteen pixels per iteration with the exact 32-bit arithmetic and three `@vecperm` spreads
   for the packed stores. On the 300-frame sample, 59 frames went from about 2.5-2.7 s to about
   2.2-2.4 s (best 2498 to 2207 ms, roughly 11%), byte-exact in fast-debug and release.
+- The 2026-08-20 follow-up packed explicit weighted prediction for every H.264 block width
+  (2/4/8/16), the common 16x16 and filtered 8x8 intra stores, and weak horizontal deblocking.
+  Release microkernels improved by 2.46x/1.41x for uni/bi weighting, 2.12x to 3.20x for the 16x16
+  intra modes, 1.43x for the 8x8 vertical store, and 2.66x/2.05x for luma/chroma deblocking. The
+  small 96x64 fixture stayed globally neutral, so a 1080p profile remains necessary to quantify
+  whole-decoder impact; every fixture and differential matrix remained byte-exact.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
   levers, in expected order of value: a byte-run significance fast path in the CABAC engine,
-  packed deblocking filters (the transposed vertical edges are the hard half), and packed
-  weighted prediction (`weightUni`/`weightBi` widen to pairs for `@vecmadd`). Branchful CABAC
+  strong and vertical packed deblocking (the transpose is the hard half), and a profitable packed
+  inverse-transform strategy. Branchful CABAC
   decisions, quotient-based bypass runs, and four-byte row copies in `bookkeepMb` all regressed
   release decoding and were discarded. A 16-bit SWAR six-tap prototype stayed byte-exact but
   regressed this backend by about 13%, because expanding byte inputs cost more than the packed

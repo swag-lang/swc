@@ -690,8 +690,47 @@ private func storeChromaBlend(out: [*] u8, width: s32, value: Simd.U16x8)
 }
 
 // Applies one explicit weight to a predicted block, section 8.4.2.3.2.
+#[Swag.Inline]
+private func storeWeightedRow(dst: [*] u8, width: s32, value: Simd.U8x16)
+{
+    switch width
+    {
+    case 16: Simd.store(dst, value)
+    case 8:  Simd.storeLow8(dst, value)
+    case 4:  Simd.storeLow4(dst, value)
+    case 2:  dst[as u16] = (cast #bit(Simd.U16x8) value)[0]
+    default: Debug.assert(false)
+    }
+}
+
+#[Swag.Inline]
+private func weightUniRow(pixels: Simd.U8x16, logDenom, weight, offset: s32)->Simd.U8x16
+{
+    let rounding = logDenom > 0 ? 1's16 << cast(u32) (logDenom - 1) : 0's16
+    let weights  = Simd.splat(cast(s16) weight)
+    let bias     = Simd.splat(rounding)
+    let offsets  = Simd.splat(cast(s16) offset)
+    let low      = ((cast #bit(Simd.S16x8) Simd.widenLow(pixels)) * weights + bias) >> cast(u32) logDenom
+    let high     = ((cast #bit(Simd.S16x8) Simd.widenHigh(pixels)) * weights + bias) >> cast(u32) logDenom
+    return Simd.packUnsigned(low + offsets, high + offsets)
+}
+
 func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32, logDenom, weight, offset: s32)
 {
+    if srcStride >= 16 and (width == 2 or width == 4 or width == 8 or width == 16)
+    {
+        var out  = dst
+        var line = src
+        for cast(u64) height
+        {
+            storeWeightedRow(out, width, weightUniRow(Simd.load(line), logDenom, weight, offset))
+            out  += dstStride
+            line += srcStride
+        }
+
+        return
+    }
+
     // A zero denominator shifts by nothing with no rounding term, so one expression serves
     // both spellings of section 8.4.2.3.2.
     let rounding = logDenom > 0 ? 1's32 << cast(u32) (logDenom - 1) : 0's32
@@ -707,8 +746,49 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
 }
 
 // Combines two predicted blocks with explicit or implicit weights.
+#[Swag.Inline]
+private func weightBiQuads(a, b: Simd.S32x4, weight0, weight1, rounding, shift, offset: s32)->Simd.S32x4
+{
+    return ((a * weight0 + b * weight1 + rounding) >> cast(u32) shift) + offset
+}
+
+#[Swag.Inline]
+private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight1, offset0, offset1: s32)->Simd.U8x16
+{
+    let rounding = 1's32 << cast(u32) logDenom
+    let offset   = (offset0 + offset1 + 1) >> 1
+    let shift    = logDenom + 1
+    let p0Low    = Simd.widenLow(pixels0)
+    let p0High   = Simd.widenHigh(pixels0)
+    let p1Low    = Simd.widenLow(pixels1)
+    let p1High   = Simd.widenHigh(pixels1)
+    let r0       = weightBiQuads(cast #bit(Simd.S32x4) Simd.widenLow(p0Low), cast #bit(Simd.S32x4) Simd.widenLow(p1Low), weight0, weight1, rounding, shift, offset)
+    let r1       = weightBiQuads(cast #bit(Simd.S32x4) Simd.widenHigh(p0Low), cast #bit(Simd.S32x4) Simd.widenHigh(p1Low), weight0, weight1, rounding, shift, offset)
+    let r2       = weightBiQuads(cast #bit(Simd.S32x4) Simd.widenLow(p0High), cast #bit(Simd.S32x4) Simd.widenLow(p1High), weight0, weight1, rounding, shift, offset)
+    let r3       = weightBiQuads(cast #bit(Simd.S32x4) Simd.widenHigh(p0High), cast #bit(Simd.S32x4) Simd.widenHigh(p1High), weight0, weight1, rounding, shift, offset)
+    let low      = Simd.packUnsigned(r0, r1)
+    let high     = Simd.packUnsigned(r2, r3)
+    return Simd.packUnsigned(cast #bit(Simd.S16x8) low, cast #bit(Simd.S16x8) high)
+}
+
 func weightBi(dst: [*] u8, dstStride: u64, src0, src1: [*] u8, srcStride: u64, width, height: s32, logDenom, weight0, weight1, offset0, offset1: s32)
 {
+    if srcStride >= 16 and (width == 2 or width == 4 or width == 8 or width == 16)
+    {
+        var out   = dst
+        var line0 = src0
+        var line1 = src1
+        for cast(u64) height
+        {
+            storeWeightedRow(out, width, weightBiRow(Simd.load(line0), Simd.load(line1), logDenom, weight0, weight1, offset0, offset1))
+            out   += dstStride
+            line0 += srcStride
+            line1 += srcStride
+        }
+
+        return
+    }
+
     let rounding = 1's32 << cast(u32) logDenom
     let offset   = (offset0 + offset1 + 1) >> 1
     var out      = dst

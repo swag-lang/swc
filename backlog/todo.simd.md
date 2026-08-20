@@ -314,33 +314,32 @@ The current production baseline consists of the public wrapper in
   each encoding has an independently measured fast path.
 - Related: T-511, T-514, T-516.
 
-### T-541 — H.264 deblocking remains scalar
+### T-541 — H.264 vertical and strong deblocking remain scalar
 
-- Intent: vectorize luma and chroma edge filters, including a transpose strategy for vertical edges.
-- Complete when: decoded frames remain byte-exact, horizontal and vertical paths are packed, and
-  the existing 1080p profile shows an end-to-end gain.
+- Intent: complete the packed luma and chroma edge filters with strong filtering and a transpose
+  strategy for vertical edges. The weak horizontal paths now process 16 luma or 8 chroma samples
+  per call; release microkernels improved by 2.66x and 2.05x respectively, byte-exact across the
+  fixture corpus and exhaustive strength combinations.
+- Complete when: decoded frames remain byte-exact, strong and vertical paths are packed, and the
+  existing 1080p profile shows an end-to-end gain.
 - Related: T-514, T-520, T-420 in `todo.video.md`.
 
 ### T-542 — H.264 inverse transforms remain scalar
 
 - Intent: vectorize `addIdct4x4`, `addDc4x4`, `hadamard4x4`, and `addIdct8x8` with packed
-  transposes and saturating output.
+  transposes and saturating output. Direct packed-column and packed-residual prototypes were
+  byte-exact but slower than the scalar kernels and were discarded; a profitable transpose or
+  combined transform/reconstruction strategy is still needed.
 - Complete when: coefficient extremes and conformance streams remain byte-exact and transform time
   decreases in the video profile.
 - Related: T-514, T-520, T-541.
 
-### T-543 — H.264 weighted prediction remains scalar
-
-- Intent: vectorize `weightUni` and `weightBi` by widening pixels, applying packed products and
-  offsets, then narrowing with saturation.
-- Complete when: every legal width, denominator, weight, offset, and tail matches scalar output and
-  weighted prediction improves on representative P/B streams.
-- Related: T-513, T-516, T-520.
-
-### T-544 — H.264 reconstruction and intra prediction remain scalar
+### T-544 — H.264 reconstruction and directional intra prediction remain scalar
 
 - Intent: vectorize dequantization, residual addition, and the DC/horizontal/vertical/plane intra
-  predictors; keep shuffle-heavy directional modes only when profiling supports them.
+  predictors; keep shuffle-heavy directional modes only when profiling supports them. The 16x16
+  vertical, horizontal, and DC stores now run 2.12x to 3.20x faster, and the filtered 8x8 vertical
+  store runs 1.43x faster; narrower dynamic-splat attempts regressed and were discarded.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
 - Related: T-513, T-514, T-516, T-542.

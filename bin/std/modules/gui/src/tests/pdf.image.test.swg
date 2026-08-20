@@ -50,6 +50,103 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     @assert(image.pixelColor(1, 0).r == 0)
 }
 
+// The default eight-bit device-space fast paths match their scalar definitions for every tail.
+#test
+{
+    var graySource:   [80] u8
+    var grayActual:   [240] u8
+    var grayExpected: [240] u8
+    for @countof(graySource) do
+        graySource[@index] = cast(u8) ((cast(u64) @index * 37 + 11) & 0xFF)
+
+    for 65
+    {
+        for @countof(grayActual)
+        {
+            grayActual[@index]   = 0xA5
+            grayExpected[@index] = 0xA5
+        }
+
+        expandGray8(@dataof(grayActual), @dataof(graySource), @index)
+        for i in @index
+        {
+            grayExpected[i * 3 + 0] = graySource[i]
+            grayExpected[i * 3 + 1] = graySource[i]
+            grayExpected[i * 3 + 2] = graySource[i]
+        }
+
+        @assert(Memory.compare(@dataof(grayActual), @dataof(grayExpected), #sizeof(grayActual)) == 0)
+    }
+
+    var cmykSource:   [80] u8
+    var cmykActual:   [64] u8
+    var cmykExpected: [64] u8
+    for @countof(cmykSource) do
+        cmykSource[@index] = cast(u8) ((cast(u64) @index * 53 + 19) & 0xFF)
+
+    for length in 21
+    {
+        for @countof(cmykActual)
+        {
+            cmykActual[@index]   = 0x5A
+            cmykExpected[@index] = 0x5A
+        }
+
+        expandCmyk8(@dataof(cmykActual), @dataof(cmykSource), length)
+        for i in length
+        {
+            let src = i * 4
+            cmykToRgb(cast(f32) cmykSource[src + 0] / 255.0, cast(f32) cmykSource[src + 1] / 255.0, cast(f32) cmykSource[src + 2] / 255.0, cast(f32) cmykSource[src + 3] / 255.0, cmykExpected[i * 3 until i * 3 + 3])
+        }
+
+        @assert(Memory.compare(@dataof(cmykActual), @dataof(cmykExpected), #sizeof(cmykActual)) == 0)
+    }
+}
+
+// Saturating C+K is exactly the scalar floating-point definition for every eight-bit pair.
+#test
+{
+    var source: [16] u8
+    var actual: [12] u8
+    var scalar: [3] u8
+    for component in 256
+    {
+        for black in 256
+        {
+            for pixel in 4
+            {
+                source[pixel * 4 + 0] = cast(u8) component
+                source[pixel * 4 + 1] = cast(u8) component
+                source[pixel * 4 + 2] = cast(u8) component
+                source[pixel * 4 + 3] = cast(u8) black
+            }
+
+            expandCmyk8(@dataof(actual), @dataof(source), 4)
+            cmykToRgb(cast(f32) component / 255.0, cast(f32) component / 255.0, cast(f32) component / 255.0, cast(f32) black / 255.0, scalar)
+            for @countof(actual) do
+                @assert(actual[@index] == scalar[@index % 3])
+        }
+    }
+}
+
+// DeviceCMYK uses four-pixel blocks and preserves the final partial block.
+#test
+{
+    let samples: [20] u8 = [
+        0, 0, 0, 0,
+        0, 0, 0, 255,
+        0, 255, 255, 0,
+        255, 0, 255, 0,
+        255, 255, 0, 0]
+    let document = imageDocument("/Type /XObject /Subtype /Image /Width 5 /Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8", samples)
+    let image    = onlyItem(document.pages[0], .Image).imageValue()!
+    @assert(image.pixelColor(0, 0) == Color.fromRgb(255, 255, 255))
+    @assert(image.pixelColor(1, 0) == Color.fromRgb(0, 0, 0))
+    @assert(image.pixelColor(2, 0) == Color.fromRgb(255, 0, 0))
+    @assert(image.pixelColor(3, 0) == Color.fromRgb(0, 255, 0))
+    @assert(image.pixelColor(4, 0) == Color.fromRgb(0, 0, 255))
+}
+
 // An indexed image reads its colors from the palette its color space carries.
 #test
 {

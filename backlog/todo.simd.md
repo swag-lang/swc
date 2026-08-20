@@ -417,12 +417,12 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   MSDF are benchmarked separately across small and large glyphs.
 - Related: T-517, T-521.
 
-### T-554 — PDF image color and alpha conversion remain scalar
+### T-554 — PDF packed samples and mask composition remain scalar
 
-- Intent: vectorize DeviceGray/RGB/CMYK conversion, color-key comparison, mask scaling, and alpha
-  composition; use gather for indexed spaces only when profitable.
-- Complete when: PDF image fixtures preserve pixels across bit depths, masks, decode arrays, and
-  indexed spaces, with separate conversion benchmarks.
+- Intent: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
+  mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
+- Complete when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
+  arrays, and indexed spaces, with separate conversion benchmarks.
 - Related: T-511, T-517, T-521.
 
 ### T-555 — BMP conversion and bounded UTF-16 terminator search remain scalar

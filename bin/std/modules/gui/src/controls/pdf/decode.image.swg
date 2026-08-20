@@ -36,6 +36,68 @@ struct ImageSpace
     unsupported: bool
 }
 
+private const GrayExpand0 = cast(Math.Simd.U8x16) [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5]
+private const GrayExpand1 = cast(Math.Simd.U8x16) [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10]
+private const GrayExpand2 = cast(Math.Simd.U8x16) [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15]
+private const CmykGather = cast(Math.Simd.U8x16) [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80]
+private const CmykSpreadK = cast(Math.Simd.U8x16) [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80]
+
+private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
+{
+    var src  = source
+    var dst  = destination
+    var left = count
+    while left >= #sizeof(Math.Simd.U8x16)
+    {
+        let values = Math.Simd.load(src)
+        Math.Simd.store(dst, Math.Simd.shuffle(values, GrayExpand0))
+        Math.Simd.store(dst + 16, Math.Simd.shuffle(values, GrayExpand1))
+        Math.Simd.store(dst + 32, Math.Simd.shuffle(values, GrayExpand2))
+        src  += 16
+        dst  += 48
+        left -= 16
+    }
+
+    while left
+    {
+        dst[0], dst[1], dst[2] = src[]
+        src  += 1
+        dst  += 3
+        left -= 1
+    }
+}
+
+private func expandCmyk8(destination: [*] u8, source: const [*] u8, count: u64)
+{
+    var src  = source
+    var dst  = destination
+    var left = count
+    while left >= 4
+    {
+        let values = Math.Simd.load(src)
+        let cmy    = Math.Simd.shuffle(values, CmykGather)
+        let k      = Math.Simd.shuffle(values, CmykSpreadK)
+        let rgb    = Math.Simd.splat(255'u8) - Math.Simd.addSaturating(cmy, k)
+        Math.Simd.storeLow8(dst, rgb)
+        (cast([*] u32) (dst + 8))[0] = (cast #bit(Math.Simd.U32x4) rgb)[2]
+        src  += 16
+        dst  += 12
+        left -= 4
+    }
+
+    var target: [3] u8
+    while left
+    {
+        cmykToRgb(cast(f32) src[0] / 255.0, cast(f32) src[1] / 255.0, cast(f32) src[2] / 255.0, cast(f32) src[3] / 255.0, target)
+        dst[0] = target[0]
+        dst[1] = target[1]
+        dst[2] = target[2]
+        src    += 4
+        dst    += 3
+        left   -= 1
+    }
+}
+
 // One decoded raster, in top-left-first row order, before it becomes a Pixel image.
 private struct SamplePlane
 {
@@ -408,6 +470,27 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
     }
 
     result.rgb.resize(pixelCount * 3)
+    if depth == 8 and decodeId == InvalidNode and space.kind == .Gray and space.components == 1
+    {
+        expandGray8(result.rgb.buffer!, bytes.buffer!, pixelCount)
+        try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
+        return result
+    }
+
+    if depth == 8 and decodeId == InvalidNode and space.kind == .Rgb and space.components == 3
+    {
+        Memory.copy(result.rgb.buffer, @dataof(bytes), result.rgb.count)
+        try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
+        return result
+    }
+
+    if depth == 8 and decodeId == InvalidNode and space.kind == .Cmyk and space.components == 4
+    {
+        expandCmyk8(result.rgb.buffer!, bytes.buffer!, pixelCount)
+        try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
+        return result
+    }
+
     var components: [8] f32
     var target:     [3] u8
     for y in cast(u64) height

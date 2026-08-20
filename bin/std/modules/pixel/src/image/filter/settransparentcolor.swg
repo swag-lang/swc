@@ -17,22 +17,27 @@ public impl Image
         if .pixelFormat != .BGRA8 and .pixelFormat != .RGBA8 do
             return
 
-        var replacement: [3] u8 = undefined
-        if .pixelFormat == .BGRA8 do
-            replacement = [color.b, color.g, color.r]
-        else do
-            replacement = [color.r, color.g, color.b]
-
-        let f = &replacement[0]
-        .visitPixels(f)
+        var replacement = .pixelFormat == .BGRA8 ? cast(u32) color.b | (cast(u32) color.g << 8) | (cast(u32) color.r << 16) : cast(u32) color.r | (cast(u32) color.g << 8) | (cast(u32) color.b << 16)
+        .visitVectorBytes(&replacement) #code(block, data)
         {
-            if pix[3] == 0
+            let replacementWord = cast(*u32) data!
+            let pixels          = Math.Simd.load(cast([*] u32) block)
+            let replaceMask     = (pixels & Math.Simd.splat(0xFF00_0000'u32)) == Math.Simd.splat(0'u32)
+            let result          = (pixels & ~replaceMask) | (Math.Simd.splat(replacementWord[]) & replaceMask)
+            Math.Simd.store(cast([*] u32) block, result)
+        }
+
+        let pixels = cast([*] u32) .pixels.buffer!
+        let count  = .byteCount / 4
+        var offset = (.byteCount - .byteCount % 16) / 4
+        while offset < count
+        {
+            if pixels[offset] >> 24 == 0
             {
-                let src = cast([*] u8) userData!
-                pix[0] = src[0]
-                pix[1] = src[1]
-                pix[2] = src[2]
+                pixels[offset] = replacement
             }
+
+            offset += 1
         }
     }
 }

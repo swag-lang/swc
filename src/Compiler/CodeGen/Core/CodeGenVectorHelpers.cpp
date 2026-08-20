@@ -42,10 +42,22 @@ MicroReg CodeGenVectorHelpers::splatScalarLane(CodeGen& codeGen, MicroReg scalar
         return dstReg;
     }
 
-    // Integers travel through movd/movq, then interleave with themselves
-    // until a 32-bit group carries the value, and one permute finishes.
+    // Narrow integers are repeated into one 32-bit scalar before movd. Keeping
+    // the replication in the integer register file avoids depending on a chain
+    // of self-interleaves whose first result can be coalesced away.
+    MicroReg packedScalarReg = scalarReg;
+    if (laneBits == 8 || laneBits == 16)
+    {
+        packedScalarReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(packedScalarReg, scalarReg, MicroOpBits::B32);
+        const uint64_t laneMask   = laneBits == 8 ? 0xFF : 0xFFFF;
+        const uint64_t multiplier = laneBits == 8 ? 0x01010101 : 0x00010001;
+        builder.emitOpBinaryRegImm(packedScalarReg, ApInt(laneMask, 64), MicroOp::And, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(packedScalarReg, ApInt(multiplier, 64), MicroOp::MultiplySigned, MicroOpBits::B32);
+    }
+
     const MicroReg seedReg = codeGen.nextVirtualFloatRegister();
-    builder.emitLoadRegReg(seedReg, scalarReg, laneBits == 64 ? MicroOpBits::B64 : MicroOpBits::B32);
+    builder.emitLoadRegReg(seedReg, packedScalarReg, laneBits == 64 ? MicroOpBits::B64 : MicroOpBits::B32);
 
     if (laneBits == 64)
     {
@@ -53,21 +65,7 @@ MicroReg CodeGenVectorHelpers::splatScalarLane(CodeGen& codeGen, MicroReg scalar
         return dstReg;
     }
 
-    MicroReg groupReg = seedReg;
-    if (laneBits == 8)
-    {
-        const MicroReg pairReg = codeGen.nextVirtualFloatRegister();
-        builder.emitOpBinaryRegRegReg(pairReg, groupReg, groupReg, MicroOp::VecUnpackLo8, MicroOpBits::B128);
-        groupReg = pairReg;
-    }
-    if (laneBits == 8 || laneBits == 16)
-    {
-        const MicroReg quadReg = codeGen.nextVirtualFloatRegister();
-        builder.emitOpBinaryRegRegReg(quadReg, groupReg, groupReg, MicroOp::VecUnpackLo16, MicroOpBits::B128);
-        groupReg = quadReg;
-    }
-
-    builder.emitVecShuffleRegRegImm(dstReg, groupReg, 0x00, MicroOpBits::B128);
+    builder.emitVecShuffleRegRegImm(dstReg, seedReg, 0x00, MicroOpBits::B128);
     return dstReg;
 }
 

@@ -190,6 +190,18 @@ impl Image
         .workingBuffer = null
     }
 
+    // Visits every complete 16-byte block of the pixel buffer in parallel.
+    #[Swag.Macro]
+    internal mtd visitVectorBytes(contextData: #null *void = null, stmt: #code(var block, data))
+    {
+        const VectorSize = #sizeof(Math.Simd.U8x16)
+        let count = .byteCount - .byteCount % VectorSize
+        Jobs.parallelVisit(@mkslice(cast([*] u8) .pixels.buffer!, count), VectorSize, contextData) #code(buffer, rawData)
+        {
+            #inject(stmt, block = cast([*] u8) buffer, data = rawData)
+        }
+    }
+
     // Swaps the current pixels and geometry with the working image.
     //
     // Working storage must already be allocated. Metadata remains attached to the
@@ -272,6 +284,33 @@ impl Image
 
         default:
             #assert("invalid pixelCopy BPP")
+        }
+    }
+
+    // Writes the low twelve bytes of a packed value without touching adjacent pixels.
+    #[Swag.Inline]
+    internal func storeLow12(destination: [*] u8, value: Math.Simd.U8x16)
+    {
+        (cast([*] u64) destination)[0]       = (cast #bit(Math.Simd.U64x2) value)[0]
+        (cast([*] u32) (destination + 8))[0] = (cast #bit(Math.Simd.U32x4) value)[2]
+    }
+
+    // Applies one lookup table per color channel while preserving any alpha channel.
+    internal mtd applyColorLuts(channel0, channel1, channel2: const [*] u8)
+    {
+        var context = {image: me, channel0: channel0, channel1: channel1, channel2: channel2}
+        Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+        {
+            let params = cast(*#decltype(context)) data!
+            let image  = cast(*Image) params.image
+            let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
+            for x in image.width
+            {
+                let pixel = pixels + cast(u64) x * image.bytesPerPixel
+                pixel[0] = params.channel0[pixel[0]]
+                pixel[1] = params.channel1[pixel[1]]
+                pixel[2] = params.channel2[pixel[2]]
+            }
         }
     }
 

@@ -347,11 +347,11 @@ The current production baseline consists of the public wrapper in
 
 ## Tier C — Pixel processing and image codecs
 
-### T-545 — Simple image filters still dispatch one callback per pixel
+### T-545 — Half-size and simple gradients still dispatch one callback per pixel
 
-- Intent: add row/chunk kernels for invert, lightness, transparent-color replacement, fill,
-  half-size, pixel-format conversion, mirror, simple gradients, channel operations, and source-over
-  mix instead of trying to vectorize inside `Image.visitPixels` callbacks.
+- Intent: add row/chunk kernels for half-size and simple gradients, and assess a packed
+  source-over kernel beyond its row-wise scalar implementation. Fill already copies complete rows;
+  the other original candidates now have measured chunk or row kernels.
 - Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
 - Related: T-511, T-514, T-516, T-520.

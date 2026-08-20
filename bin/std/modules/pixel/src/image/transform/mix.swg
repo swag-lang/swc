@@ -13,72 +13,63 @@ impl Image
     {
         Debug.assert(srcImage.pixelFormat.hasAlpha() or mode != .SourceOver)
 
-        let mec = cast #unconst (*Image) me
-        var f   = {dstImage: dstImage, srcImage: &srcImage, x: x, y: y, mode: mode}
+        Memory.copy(dstImage.pixels.buffer, .pixels.buffer, .byteCount)
 
-        #[Swag.Mixin]
-        func(BPP: u8) doIt()
+        let left   = Math.max(x, 0)
+        let top    = Math.max(y, 0)
+        let right  = Math.min(x + srcImage.width, .width)
+        let bottom = Math.min(y + srcImage.height, .height)
+        if left >= right or top >= bottom do
+            return
+
+        var context = {
+            dst: dstImage,
+            src: &srcImage,
+            dstX: left,
+            dstY: top,
+            srcX: left - x,
+            srcY: top - y,
+            width: right - left,
+            mode: mode}
+
+        Jobs.parallelFor(cast(u32) (bottom - top), &context) #code(row, data)
         {
-            mec.visitPixels(&f)
+            let params = cast(*#decltype(context)) data!
+            let dst    = cast(*Image) params.dst
+            let src    = cast(const *Image) params.src
+            let dstRow = dst.pixels.buffer! + cast(u64) (params.dstY + row) * dst.rowStride + cast(u64) params.dstX * dst.bytesPerPixel
+            let srcRow = src.pixels.buffer! + cast(u64) (params.srcY + row) * src.rowStride + cast(u64) params.srcX * src.bytesPerPixel
+
+            if params.mode == .Copy
             {
-                let params   = cast(*#decltype(f)) userData!
-                let dstImage = cast(*Image) params.dstImage
-                let srcImage = cast(const *Image) params.srcImage
-
-                var pixDst = dstImage.pixels.buffer! + x * image.bytesPerPixel
-                pixDst += cast(u64) (y * (image.width * image.bytesPerPixel))
-
-                // fast path: outside blit rect, keep pixel as-is
-                if x < params.x or y < params.y or x >= params.x + srcImage.width or y >= params.y + srcImage.height
+                Memory.copy(dstRow, srcRow, cast(u64) params.width * dst.bytesPerPixel)
+            }
+            else
+            {
+                for column in params.width
                 {
-                    copyPixelDirect'BPP(cast([*] u8) pixDst!, cast([*] u8) pix)     // copy current dst pixel back (no change)
-                }
-                else
-                {
-                    let x1     = x - params.x
-                    let y1     = y - params.y
-                    var pixSrc = srcImage.pixels.buffer! + x1 * srcImage.bytesPerPixel
-                    pixSrc += cast(u64) (y1 * (srcImage.width * srcImage.bytesPerPixel))
-
-                    switch #complete params.mode
+                    let pixDst           = dstRow + cast(u64) column * 4
+                    let pixSrc           = srcRow + cast(u64) column * 4
+                    let sourceAlpha      = pixSrc[3] / 255.0
+                    let destinationAlpha = pixDst[3] / 255.0
+                    let outputAlpha      = sourceAlpha + destinationAlpha * (1.0 - sourceAlpha)
+                    if Math.isZeroEpsilon(outputAlpha)
                     {
-                    case .Copy:
-                        copyPixelDirect'BPP(pixDst!, pixSrc!)
-
-                    case .SourceOver:
-                        if BPP != 32 do
-                            copyPixelDirect'BPP(pixDst!, pixSrc!)
-                        else
+                        pixDst[as u32] = 0
+                    }
+                    else
+                    {
+                        let destinationFactor = destinationAlpha * (1.0 - sourceAlpha)
+                        for channel in 3
                         {
-                            let sourceAlpha      = pixSrc[3] / 255.0
-                            let destinationAlpha = pix[3] / 255.0
-                            let outputAlpha      = sourceAlpha + destinationAlpha * (1.0 - sourceAlpha)
-                            if Math.isZeroEpsilon(outputAlpha)
-                            {
-                                pixDst[as u32] = 0
-                            }
-                            else
-                            {
-                                let destinationFactor = destinationAlpha * (1.0 - sourceAlpha)
-                                for channel in 3
-                                {
-                                    let value = (pixSrc[channel] * sourceAlpha + pix[channel] * destinationFactor) / outputAlpha
-                                    pixDst[channel] = cast(u8) Math.round(value)
-                                }
-
-                                pixDst[3] = cast(u8) Math.round(outputAlpha * 255.0)
-                            }
+                            let value = (pixSrc[channel] * sourceAlpha + pixDst[channel] * destinationFactor) / outputAlpha
+                            pixDst[channel] = cast(u8) Math.round(value)
                         }
+
+                        pixDst[3] = cast(u8) Math.round(outputAlpha * 255.0)
                     }
                 }
             }
-        }
-
-        switch .bitsPerPixel
-        {
-        case 24: doIt'24()
-        case 32: doIt'32()
-        default: Debug.assert(false)
         }
     }
 

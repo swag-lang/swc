@@ -14,13 +14,7 @@ public impl Image
         for i in 256 do
             convArr[i] = cast(u8) Math.clamp(((cast(f32) i - 128.0) * level) + 128.0, 0.0, 255.0)
 
-        let f = &convArr[0]
-        .visitPixels(f)
-        {
-            let arr = cast([*] u8) userData!
-            pix[0] = arr[pix[0]]
-            pix[1] = arr[pix[1]]
-            pix[2] = arr[pix[2]]
-        }
+        let table = cast(const [*] u8) &convArr[0]
+        .applyColorLuts(table, table, table)
     }
 }

@@ -5,21 +5,35 @@ public impl Image
     // Invert colors
     mtd invert()
     {
-        // unsupported pixel format
         if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
-        var convArr: [256] u8 = undefined
-        for i in 256 do
-            convArr[i] = cast(u8) (255 - i)
-
-        let f = &convArr[0]
-        .visitPixels(f)
+        let keepAlpha = .pixelFormat.hasAlpha()
+        if keepAlpha
         {
-            let arr = cast([*] u8) userData!
-            pix[0] = arr[pix[0]]
-            pix[1] = arr[pix[1]]
-            pix[2] = arr[pix[2]]
+            .visitVectorBytes() #code(block, data)
+            {
+                discard data
+                let invertMask = cast(Math.Simd.U8x16) [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0]
+                Math.Simd.store(block, Math.Simd.load(block) ^ invertMask)
+            }
+        }
+        else
+        {
+            .visitVectorBytes() #code(block, data)
+            {
+                discard data
+                Math.Simd.store(block, Math.Simd.load(block) ^ Math.Simd.splat(255'u8))
+            }
+        }
+
+        let pixels = .pixels.buffer!
+        var offset = .byteCount & ~15'u64
+        while offset < .byteCount
+        {
+            if !keepAlpha or offset & 3 != 3 do
+                pixels[offset] = 255 - pixels[offset]
+            offset += 1
         }
     }
 }

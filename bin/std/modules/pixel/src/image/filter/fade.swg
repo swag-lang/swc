@@ -32,13 +32,6 @@ public impl Image
             }
         }
 
-        var f = {r: cast([*] u8) &convArrR[0], g: cast([*] u8) &convArrG[0], b: cast([*] u8) &convArrB[0]}
-        .visitPixels(&f)
-        {
-            let arr = cast(*#decltype(f)) userData!
-            pix[0] = arr.r[pix[0]]
-            pix[1] = arr.g[pix[1]]
-            pix[2] = arr.b[pix[2]]
-        }
+        .applyColorLuts(&convArrR[0], &convArrG[0], &convArrB[0])
     }
 }

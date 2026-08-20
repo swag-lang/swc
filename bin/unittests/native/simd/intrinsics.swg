@@ -8,6 +8,9 @@ using Swag
 #[Swag.NoInline]
 func splatS32(value: s32)->#simd [4] s32 => @vecsplat(value)
 
+#[Swag.NoInline]
+func splatU8(value: u8)->#simd [16] u8 => @vecsplat(value)
+
 #test
 {
     // The broadcast fills every lane, from a constant and from a runtime value
@@ -31,6 +34,11 @@ func splatS32(value: s32)->#simd [4] s32 => @vecsplat(value)
     @assert(doubles[0] == 2.25 and doubles[1] == 2.25)
 
     // A runtime scalar takes the same path; the value crosses through a register.
+    var byteValue: u8 = 37
+    let liveBytes     = cast([16] u8) splatU8(byteValue)
+    for byte in liveBytes do
+        @assert(byte == byteValue)
+
     var n: s32 = -9
     let live   = cast([4] s32) splatS32(n)
     @assert(live[0] == -9 and live[3] == -9)

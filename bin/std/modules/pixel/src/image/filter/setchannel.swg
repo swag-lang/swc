@@ -29,7 +29,25 @@ public impl Image
     {
         if .pixelFormat != .BGRA8 do
             return
-        .setChannel(Image.ChannelMode.Alpha, Image.ChannelValueMode.Color, value)
+
+        var alphaByte = value
+        .visitVectorBytes(&alphaByte) #code(block, data)
+        {
+            let alphaValue = cast(*u8) data!
+            let alphaWord  = cast(u32) alphaValue[] << 24
+            let pixels     = Math.Simd.load(cast([*] u32) block)
+            Math.Simd.store(cast([*] u32) block, (pixels & Math.Simd.splat(0x00FF_FFFF'u32)) | Math.Simd.splat(alphaWord))
+        }
+
+        let alphaWord = cast(u32) value << 24
+        let pixels    = cast([*] u32) .pixels.buffer!
+        let count     = .byteCount / 4
+        var offset    = (.byteCount - .byteCount % 16) / 4
+        while offset < count
+        {
+            pixels[offset] = (pixels[offset] & 0x00FF_FFFF) | alphaWord
+            offset         += 1
+        }
     }
 
     // Change specified color channels
@@ -47,30 +65,71 @@ public impl Image
                 return
         }
 
-        var f = {rmode: rmode, value: value, color: color}
-        .visitPixels(&f)
+        if value == .Color and .bytesPerPixel == 4
         {
-            let params = cast(*#decltype(f)) userData!
-            let mode   = params.rmode
+            var mask = 0'u32
+            if rmode & .Blue do
+                mask |= 0x0000_00FF
+            if rmode & .Green do
+                mask |= 0x0000_FF00
+            if rmode & .Red do
+                mask |= 0x00FF_0000
+            if rmode & .Alpha do
+                mask |= 0xFF00_0000
 
-            var channelValue: u8 = undefined
-            switch #complete params.value
+            var context = {mask: mask, color: color}
+            .visitVectorBytes(&context) #code(block, data)
             {
-            case .Color:   channelValue = params.color
-            case .MinRGB:  channelValue = Math.min(pix[0], pix[1], pix[2])
-            case .MaxRGB:  channelValue = Math.max(pix[0], pix[1], pix[2])
-            case .MeanRGB: channelValue = cast(u8) ((pix[0] + #prom pix[1] + #prom pix[2]) / 3)
-            case .Alpha:   channelValue = pix[3]
+                let params      = cast(*#decltype(context)) data!
+                let channelMask = Math.Simd.splat(params.mask)
+                let replacement = cast #bit(Math.Simd.U32x4) Math.Simd.splat(params.color)
+                let pixels      = Math.Simd.load(cast([*] u32) block)
+                Math.Simd.store(cast([*] u32) block, (pixels & ~channelMask) | (replacement & channelMask))
             }
 
-            if mode & .Blue do
-                pix[0] = channelValue
-            if mode & .Green do
-                pix[1] = channelValue
-            if mode & .Red do
-                pix[2] = channelValue
-            if mode & .Alpha do
-                pix[3] = channelValue
+            let pixels = cast([*] u32) .pixels.buffer!
+            let count  = .byteCount / 4
+            let word   = cast(u32) color * 0x0101_0101
+            var offset = (.byteCount - .byteCount % 16) / 4
+            while offset < count
+            {
+                pixels[offset] = (pixels[offset] & ~mask) | (word & mask)
+                offset         += 1
+            }
+
+            return
+        }
+
+        var context = {image: me, rmode: rmode, value: value, color: color}
+        Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+        {
+            let params = cast(*#decltype(context)) data!
+            let image  = cast(*Image) params.image
+            let pixels = image.pixels.buffer! + cast(u64) row * image.rowStride
+            for x in image.width
+            {
+                let pix  = pixels + cast(u64) x * image.bytesPerPixel
+                let mode = params.rmode
+
+                var channelValue: u8 = undefined
+                switch #complete params.value
+                {
+                case .Color:   channelValue = params.color
+                case .MinRGB:  channelValue = Math.min(pix[0], pix[1], pix[2])
+                case .MaxRGB:  channelValue = Math.max(pix[0], pix[1], pix[2])
+                case .MeanRGB: channelValue = cast(u8) ((pix[0] + #prom pix[1] + #prom pix[2]) / 3)
+                case .Alpha:   channelValue = pix[3]
+                }
+
+                if mode & .Blue do
+                    pix[0] = channelValue
+                if mode & .Green do
+                    pix[1] = channelValue
+                if mode & .Red do
+                    pix[2] = channelValue
+                if mode & .Alpha do
+                    pix[3] = channelValue
+            }
         }
     }
 }

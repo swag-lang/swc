@@ -110,6 +110,51 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 
 #test
 {
+    // Every pixel stride, vector/tail boundary, unaligned pointer, Paeth tie,
+    // extreme predictor, wrapping subtraction, and sentinel matches scalar.
+    const Capacity = 192
+    var source:   [Capacity] u8
+    var previous: [Capacity] u8
+    var actual:   [Capacity] u8
+    var expected: [Capacity] u8
+    for bytesPerPixelIndex in 8
+    {
+        let bytesPerPixel = bytesPerPixelIndex + 1
+        for count in 162
+        {
+            for i in Capacity
+            {
+                source[i]   = cast(u8) ((cast(u32) i * 37 + cast(u32) count * 11 + cast(u32) bytesPerPixel * 17) & 0xFF)
+                previous[i] = cast(u8) ((cast(u32) i * 53 + cast(u32) count * 7) & 0xFF)
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            source[1]                   = 0
+            source[1 + bytesPerPixel]   = 255
+            previous[2]                 = 255
+            previous[2 + bytesPerPixel] = 0
+            var expectedScore = 0's32
+            for i in count
+            {
+                let left      = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
+                let upLeft    = i >= bytesPerPixel ? previous[2 + i - bytesPerPixel] : 0'u8
+                let predictor = Png.paethScalar(left, previous[2 + i], upLeft)
+                let value     = cast(s32) source[1 + i] - predictor
+                expected[3 + i] = cast #bit(u8) value
+                expectedScore   += 128 - Math.abs(value - 128)
+            }
+
+            Png.filterPaethRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
+            for i in Capacity do
+                @assert(actual[i] == expected[i])
+            @assert(Png.filterSumPaeth(&source[1], &previous[2], count, bytesPerPixel) == expectedScore)
+        }
+    }
+}
+
+#test
+{
     // Every pixel stride, vector/tail boundary, unaligned pointer, odd average,
     // wrapping subtraction, and untouched sentinel matches the scalar form.
     const Capacity = 192

@@ -9,6 +9,8 @@
 
 using Core, Core.Errors
 
+const PaethLowBytes = cast(Math.Simd.U8x16) [0'u8, 2, 4, 6, 8, 10, 12, 14, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80]
+
 func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64)
 {
     const VectorBytes = #sizeof(Math.Simd.U8x16)
@@ -215,6 +217,114 @@ func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)
     return sum
 }
 
+func paethScalar(a, b, c: s32)->s32
+{
+    let p  = cast(s16) (a + b - c)
+    let pa = Math.abs(cast(s16) (p - a))
+    let pb = Math.abs(cast(s16) (p - b))
+    let pc = Math.abs(cast(s16) (p - c))
+
+    if pa <= pb and pa <= pc do
+        return a
+    if pb <= pc do
+        return b
+    return c
+}
+
+#[Swag.Inline]
+func paethPacked(a, b, c: Math.Simd.S16x8)->Math.Simd.S16x8
+{
+    let p     = a + b - c
+    let pa    = Math.abs(p - a)
+    let pb    = Math.abs(p - b)
+    let pc    = Math.abs(p - c)
+    let bestB = Math.Simd.select(pb <= pc, b, c)
+    return Math.Simd.select((pa <= pb) & (pa <= pc), a, bestB)
+}
+
+func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
+{
+    var offset = 0'u64
+    while offset < bytesPerPixel and offset < count
+    {
+        destination[offset] = cast #bit(u8) (source[offset] - #wrap previous[offset])
+        offset              += 1
+    }
+
+    while count - offset >= 16
+    {
+        let sourceBytes  = Math.Simd.load(source + offset)
+        let leftBytes    = Math.Simd.load(source + offset - bytesPerPixel)
+        let upBytes      = Math.Simd.load(previous + offset)
+        let upLeftBytes  = Math.Simd.load(previous + offset - bytesPerPixel)
+        let lowValues    = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(sourceBytes)
+        let highValues   = cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(sourceBytes)
+        let lowPredictor = paethPacked(cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(leftBytes),
+                                       cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(upBytes),
+                                       cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(upLeftBytes))
+        let highPredictor = paethPacked(cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(leftBytes),
+                                        cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(upBytes),
+                                        cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(upLeftBytes))
+        let lowBytes  = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) (lowValues - lowPredictor), PaethLowBytes)
+        let highBytes = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) (highValues - highPredictor), PaethLowBytes)
+        Math.Simd.storeLow8(destination + offset, lowBytes)
+        Math.Simd.storeLow8(destination + offset + 8, highBytes)
+        offset += 16
+    }
+
+    while offset < count
+    {
+        let predictor = paethScalar(source[offset - bytesPerPixel], previous[offset], previous[offset - bytesPerPixel])
+        destination[offset] = cast #bit(u8) (source[offset] - #wrap predictor)
+        offset              += 1
+    }
+}
+
+func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
+{
+    let bias   = Math.Simd.splat(128's16)
+    let ones   = Math.Simd.splat(1's16)
+    let prefix = Math.min(count, bytesPerPixel)
+    var sum    = 0's32
+    for i in prefix
+    {
+        let value = cast(s32) source[i] - previous[i]
+        sum += 128 - Math.abs(value - 128)
+    }
+
+    var offset = prefix
+    while count - offset >= 16
+    {
+        let sourceBytes  = Math.Simd.load(source + offset)
+        let leftBytes    = Math.Simd.load(source + offset - bytesPerPixel)
+        let upBytes      = Math.Simd.load(previous + offset)
+        let upLeftBytes  = Math.Simd.load(previous + offset - bytesPerPixel)
+        let lowValues    = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(sourceBytes)
+        let highValues   = cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(sourceBytes)
+        let lowPredictor = paethPacked(cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(leftBytes),
+                                       cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(upBytes),
+                                       cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(upLeftBytes))
+        let highPredictor = paethPacked(cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(leftBytes),
+                                        cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(upBytes),
+                                        cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(upLeftBytes))
+        let lowScores  = bias - Math.abs(lowValues - lowPredictor - bias)
+        let highScores = bias - Math.abs(highValues - highPredictor - bias)
+        sum    += Math.Simd.sum(Math.Simd.mulAddPairs(lowScores, ones))
+        sum    += Math.Simd.sum(Math.Simd.mulAddPairs(highScores, ones))
+        offset += 16
+    }
+
+    while offset < count
+    {
+        let predictor = paethScalar(source[offset - bytesPerPixel], previous[offset], previous[offset - bytesPerPixel])
+        let value     = cast(s32) source[offset] - predictor
+        sum    += 128 - Math.abs(value - 128)
+        offset += 1
+    }
+
+    return sum
+}
+
 impl Encoder
 {
     mtd getBestFilter(size: u32)->Filter
@@ -257,16 +367,7 @@ impl Encoder
 
     func paeth(a, b, c: s32)->s32
     {
-        let p  = cast(s16) (a + b - c)
-        let pa = Math.abs(cast(s16) (p - a))
-        let pb = Math.abs(cast(s16) (p - b))
-        let pc = Math.abs(cast(s16) (p - c))
-
-        if pa <= pb and pa <= pc do
-            return a
-        elif pb <= pc do
-            return b
-        return c
+        return paethScalar(a, b, c)
     }
 
     mtd filterSum(size: u32, filter: Filter)->s32
@@ -287,6 +388,8 @@ impl Encoder
             return filterSumIndependent(scanline, prevScanline, size, true)
         if filter == .Average do
             return filterSumAverage(scanline, prevScanline, size, .bytesPerPixel)
+        if filter == .Paeth do
+            return filterSumPaeth(scanline, prevScanline, size, .bytesPerPixel)
 
         for i in size
         {
@@ -349,6 +452,12 @@ impl Encoder
         if filter == .Average
         {
             filterAverageRow(scanline, prevScanline, filtered, size, .bytesPerPixel)
+            return
+        }
+
+        if filter == .Paeth
+        {
+            filterPaethRow(scanline, prevScanline, filtered, size, .bytesPerPixel)
             return
         }
 

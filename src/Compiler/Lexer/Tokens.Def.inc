@@ -363,6 +363,7 @@ SWC_TOKEN_DEF(IntrinsicAtomicOr, "@atomor", TokenIdKindE::Intrinsic | TokenIdKin
 SWC_TOKEN_DEF(IntrinsicAtomicXor, "@atomxor", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicAtomicXchg, "@atomxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicAtomicCmpXchg, "@atomcmpxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecSplat, "@vecsplat", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecSatAdd, "@vecsatadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecSatSub, "@vecsatsub", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecPackUS, "@vecpackus", TokenIdKindE::Intrinsic | TokenIdKindE::Return)

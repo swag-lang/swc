@@ -505,42 +505,12 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         return Result::Continue;
     }
 
-    // A scalar broadcasts into every lane. A constant may still convert to the
-    // lane type while folding; a runtime value must already be the lane type,
-    // because the splat lowering converts nothing.
-    if (!castRequest.isConstantFolding())
-    {
-        const TypeInfo& resolvedSrcType = typeMgr.get(typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef));
-        if (!resolvedSrcType.isScalarNumeric() || resolvedSrcType.typeRef() != laneTypeRef)
-            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        return Result::Continue;
-    }
+    // A scalar filling every lane is a broadcast, not a conversion, and '@vecsplat' is
+    // the operation that says so.
+    if (typeMgr.get(typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef)).isScalarNumeric())
+        return castRequest.fail(DiagnosticId::sema_err_simd_scalar_cast, srcTypeRef, dstTypeRef);
 
-    if (!typeMgr.get(typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef)).isScalarNumeric())
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-
-    SWC_RESULT(checkElemCast(args, srcTypeRef, laneTypeRef, {}, castRequest.constantFoldingSrc()));
-    if (!castRequest.materializeConstantResult())
-        return Result::Continue;
-
-    ConstantRef elemRef;
-    SWC_RESULT(foldElemCast(args, srcTypeRef, laneTypeRef, {}, castRequest.constantFoldingSrc(), elemRef));
-    if (elemRef.isInvalid())
-    {
-        castRequest.outConstRef = ConstantRef::invalid();
-        return Result::Continue;
-    }
-
-    ByteArray                  buffer(16);
-    const std::span<std::byte> bytes = buffer.span();
-    for (uint32_t i = 0; i < laneCount; ++i)
-    {
-        const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
-        SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, elemRef, laneTypeRef));
-    }
-    castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, bytes);
-    SWC_ASSERT(castRequest.outConstRef.isValid());
-    return Result::Continue;
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
 Result Cast::castFromSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)

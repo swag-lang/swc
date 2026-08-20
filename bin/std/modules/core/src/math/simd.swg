@@ -11,11 +11,12 @@ using Swag
 // operation maps to one instruction of the baseline instruction set.
 //
 // The rest of the vector vocabulary needs no function at all. Comparisons and the
-// arithmetic, bitwise and shift operators are part of the language and compute per lane, a
-// plain `cast` broadcasts a scalar of the exact lane type, and `cast #bit` reshapes any
-// 16-byte vector into another. The element-wise forms of [[Math.min]], [[Math.max]],
-// [[Math.abs]], [[Math.sqrt]], [[Math.mulAdd]], [[Math.floor]], [[Math.ceil]] and
-// [[Math.trunc]] accept the vector types directly.
+// arithmetic, bitwise and shift operators are part of the language and compute per lane,
+// and a scalar operand of an operator broadcasts over the other side's lanes. A `cast`
+// reshapes 16 bytes — an array of the exact shape into a vector and back — while
+// `cast #bit` reinterprets one vector shape as another. The element-wise forms of
+// [[Math.min]], [[Math.max]], [[Math.abs]], [[Math.sqrt]], [[Math.mulAdd]], [[Math.floor]],
+// [[Math.ceil]] and [[Math.trunc]] accept the vector types directly.
 namespace Simd
 {
     alias U8x16 = #simd [16] u8     // Sixteen unsigned 8-bit lanes.
@@ -31,6 +32,22 @@ namespace Simd
 
     #[Inline]
     {
+        // Fills every lane with one scalar.
+        //
+        // The lane type names the vector, so a `u8` fills sixteen lanes and an `f64` fills
+        // two. A vector is never built by conversion: `cast` reshapes 16 bytes, and this
+        // copies one value across them.
+        func splat(value: u8)->U8x16  => @vecsplat(value)
+        func splat(value: s8)->S8x16  => @vecsplat(value)
+        func splat(value: u16)->U16x8 => @vecsplat(value)
+        func splat(value: s16)->S16x8 => @vecsplat(value)
+        func splat(value: u32)->U32x4 => @vecsplat(value)
+        func splat(value: s32)->S32x4 => @vecsplat(value)
+        func splat(value: u64)->U64x2 => @vecsplat(value)
+        func splat(value: s64)->S64x2 => @vecsplat(value)
+        func splat(value: f32)->F32x4 => @vecsplat(value)
+        func splat(value: f64)->F64x2 => @vecsplat(value)
+
         // Reads one vector from memory; the pointer needs no particular alignment.
         //
         // The lane type of the pointer selects the vector shape, so a byte pointer

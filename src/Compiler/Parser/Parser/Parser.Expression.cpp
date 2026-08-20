@@ -866,6 +866,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicBitCountNz:
         case TokenId::IntrinsicBitCountTz:
         case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicVecSplat:
         case TokenId::IntrinsicVecWidenLo:
         case TokenId::IntrinsicVecWidenHi:
         case TokenId::IntrinsicVecMask:

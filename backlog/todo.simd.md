@@ -1,0 +1,504 @@
+# SIMD Roadmap
+
+This file is the cross-cutting roadmap for explicit `#simd`, the compiler and backend support that
+makes it useful, and the `bin/runtime` and `bin/std` kernels that should consume it. Applications,
+examples, tests, raw native bindings, and GPU shader work are outside this roadmap.
+
+The roadmap is deliberately not bounded by today's 128-bit operation set. A scalar kernel is not
+declared unsuitable merely because the current surface lacks a conversion, reduction, gather,
+rotation, polynomial operation, mask, or wider register. Missing platform capability is tracked
+first; the consuming optimization names it through `Related:`. Portable semantics must remain
+available where the operation can be lowered efficiently on every supported target, while
+target-specific forms require compile-time gating or safe runtime dispatch.
+
+Every optimized consumer keeps a scalar or narrower fallback, proves byte-for-byte or numerically
+specified parity at boundaries and tails, and records a release benchmark against that fallback.
+Every capability entry also owns its declarations in `bin/runtime/api.swg`, the public
+`Core.Math.Simd` family, constant folding, diagnostics, encoder tests, native/JIT tests, and the
+language reference. An implementation that introduces or changes an intrinsic spelling also owns
+the lexer token and editor grammar update required for a surface-syntax change.
+The current production baseline consists of the public wrapper in
+`bin/std/modules/core/src/math/simd.swg` and the H.264 interpolation and YCbCr conversion kernels in
+`video/src/decode/h264/inter.swg` and `frame.swg`; the work below is still outstanding.
+
+## Tier A — Target selection, widths, and calling boundaries
+
+### T-509 — Standard modules cannot dispatch SIMD by host capability
+
+- Intent: add one authoritative CPU-feature query and function-multiversioning mechanism so a
+  distributed standard module can select scalar/SSE2, AVX2, and later AVX-512 implementations
+  without executing an unsupported instruction or duplicating ad-hoc dispatch in every module.
+- Complete when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
+  builds, and one runtime or codec kernel ships scalar, 128-bit, and 256-bit variants through it.
+- Related: T-506, T-510, T-525.
+
+### T-506 — 256-bit vectors are not expressible
+
+- Intent: extend the type constructor to 32-byte geometry (`#simd [32] u8`, `#simd [8] f32`) gated
+  on AVX2, with YMM registers, 32-byte spills/constants/alignment, operators, intrinsics, arguments,
+  returns, type information, cross-module exports, and matching `Math.Simd` aliases.
+- Complete when: every supported 32-byte shape compiles and runs, crosses a module boundary, and
+  128-bit code generation remains byte-identical when the wider path is not selected.
+- Related: T-509, T-505, T-507.
+
+### T-510 — 512-bit vectors and AVX-512 masks have no representation
+
+- Intent: add 64-byte `#simd` shapes, ZMM register allocation, and explicit predicate-mask values
+  for AVX-512 targets without making AVX-512 a baseline requirement.
+- Complete when: arithmetic, comparison, masked load/store, calls, spills, constants, reflection,
+  and cross-module use work behind feature gating, with AVX2 and SSE2 fallbacks still selected on
+  machines that lack the feature.
+- Related: T-509, T-506, T-516, T-517.
+
+### T-505 — A `#simd` argument cannot occupy a stack slot
+
+- Intent: define stack/home-slot passing for packed arguments beyond the register lanes and apply
+  it consistently to caller lowering, callee prologues, the JIT bridge, and pure-call folding.
+- Complete when: fifth-and-later packed arguments work in JIT and native code for every supported
+  vector width and the existing `ABICall` and `SemaJIT` guards disappear.
+- Related: T-506, T-510, T-522.
+
+### T-522 — Foreign vector ABIs are unavailable
+
+- Intent: support explicitly selected platform vector ABIs for foreign declarations where the ABI
+  is stable, while continuing to reject an ambiguous bare C-vector contract.
+- Complete when: supported Windows x64 vector parameters and returns interoperate with a C/C++
+  fixture, unsupported conventions fail semantically, and the contract is documented per target.
+- Related: T-505, T-506.
+
+## Tier A — Missing packed operations
+
+### T-511 — Packed numeric lane conversion is missing
+
+- Intent: add signed and unsigned integer-to-float, float-to-integer with declared rounding, and
+  widening/narrowing numeric conversions distinct from bit reinterpretation and saturating pack.
+- Complete when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
+  runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
+  them.
+- Related: T-540, T-547, T-549, T-552, T-555.
+
+### T-512 — Rotates and several packed shifts are missing
+
+- Intent: provide lane rotates plus portable lowerings for byte shifts, 64-bit arithmetic right
+  shift, and other useful shift shapes that lack a single baseline instruction.
+- Complete when: constant and variable counts have scalar-equivalent masking semantics, use native
+  instructions when available, and otherwise lower to bounded shift/or or widen/pack sequences.
+- Related: T-088, T-251, T-536, T-538.
+
+### T-513 — Packed integer multiplication is incomplete
+
+- Intent: add low and widening products for 8-, 16-, 32-, and 64-bit signed and unsigned lanes,
+  including decomposed baseline lowerings where no one-instruction form exists.
+- Complete when: low and high halves are unambiguous, all shapes have differential tests against
+  scalar arithmetic, and AVX2/AVX-512 forms are selected where profitable.
+- Related: T-251, T-250, T-536, T-537.
+
+### T-556 — Packed integer division and modulo have no portable lowering
+
+- Intent: define integer lane division/remainder semantics and implement constant-divisor strength
+  reduction plus a profitable target-independent sequence or explicit fallback, instead of treating
+  the absence of one machine instruction as a permanent operator restriction.
+- Complete when: signed/unsigned lanes, zero divisors, `Min / -1`, constant and variable divisors,
+  constant folding, and runtime execution have one documented contract and the cost model declines
+  transformations that would lose to scalar code.
+- Related: T-535, T-545, T-547.
+
+### T-557 — Elementary packed min, max, abs, and sign operations are incomplete
+
+- Intent: complete 64-bit integer min/max, 64-bit signed abs, floating abs/copysign, clamp, and
+  related elementary lane operations through native forms or compare/select/bitwise lowerings.
+- Complete when: every numeric lane shape has explicit NaN, signed-zero, and minimum-integer
+  behavior, with constant/runtime parity and no spill-based implementation.
+- Related: T-507, T-534, T-546, T-552.
+
+### T-514 — Shuffle, zip, transpose, and two-source permutation are incomplete
+
+- Intent: add lane splat, immediate lane permutation, zip/unzip, interleave, byte align/extract, and
+  two-source table permutation rather than forcing every transpose through spills or byte masks.
+- Complete when: constant patterns select immediate hardware forms, dynamic patterns retain a
+  defined fallback, and 4x4/8x8 transpose helpers require no scalar lane extraction.
+- Related: T-507, T-542, T-549, T-550, T-551.
+
+### T-515 — Horizontal reductions are not first-class
+
+- Intent: add sum, min, max, bitwise-and/or/xor, and count reductions with widening variants so
+  callers do not open-code shuffle ladders.
+- Complete when: integer and floating reductions document order, overflow, NaN, and signed-zero
+  behavior and lower without memory round-trips.
+- Related: T-520, T-527, T-531, T-534, T-536, T-546.
+
+### T-516 — Vector tails require scalar cleanup
+
+- Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
+  defined non-faulting behavior, and efficient SSE2/AVX2 fallback lowering.
+- Complete when: arbitrary byte counts can be processed without reading or writing outside the
+  slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
+- Related: T-510, T-525, T-529, T-531, T-545.
+
+### T-517 — Gather, scatter, compress, and expand are unavailable
+
+- Intent: add indexed lane loads/stores and mask-based compaction/expansion, with target gating and
+  a cost model that is allowed to choose scalar lane operations when hardware gather is slower.
+- Complete when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
+  compress/expand are encoded, and the fallback never performs an invalid masked access.
+- Related: T-510, T-548, T-551, T-554.
+
+### T-558 — Packed memory access has no alignment or cache policy
+
+- Intent: add aligned load/store assertions or hints, broadcast loads, non-temporal stores, and
+  prefetch controls with semantics that remain safe when a target ignores the hint.
+- Complete when: alignment violations are diagnosed or guarded as declared, large copy/fill and
+  image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
+  remains the default portable operation.
+- Related: T-509, T-525, T-545, T-552.
+
+### T-518 — Packed bit counting and bit scans are unavailable
+
+- Intent: add popcount, leading/trailing-zero count, byte swap, and bit reverse over integer lanes,
+  using native target features or correct SIMD/SWAR lowerings.
+- Complete when: zero-lane behavior matches scalar intrinsics, constant folding agrees with runtime,
+  and UTF/hash consumers no longer reduce masks one scalar lane at a time.
+- Related: T-531, T-538, T-539.
+
+### T-519 — Polynomial and cryptographic instructions have no typed surface
+
+- Intent: expose carry-less multiplication and, separately gated, AES round/key instructions as
+  typed packed operations rather than opaque inline machine code.
+- Complete when: feature gating prevents illegal instructions, known-answer tests cover operands
+  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
+- Related: T-539.
+
+### T-520 — Dot products and sums of absolute differences are missing
+
+- Intent: add unsigned and signed SAD plus common byte/word dot-product forms with declared widening
+  and accumulation widths.
+- Complete when: the backend selects `psadbw`, `pmadd*`, VNNI forms when available, and scalar
+  differential tests cover saturation and overflow boundaries.
+- Related: T-507, T-536, T-546, T-549, T-550.
+
+### T-521 — Core has no vector math implementation
+
+- Intent: implement vector `round`, reciprocal/reciprocal-square-root policy, exp, log, pow, and the
+  trigonometric family with documented accuracy tiers instead of treating absent machine
+  instructions as a permanent reason to keep callers scalar.
+- Complete when: error bounds, exceptional values, determinism policy, and scalar/vector parity are
+  tested, and benchmarks justify the chosen polynomial/table implementations.
+- Related: T-547, T-553, T-554.
+
+### T-508 — Unary plus rejects packed vectors
+
+- Intent: make unary `+` the identity for every numeric `#simd` shape, matching packed unary minus
+  and scalar arithmetic.
+- Complete when: sema, native execution, compile-time execution, the language reference, and the
+  operator suite agree on the accepted form.
+- Related: F-167, retired when this finding became a todo.
+
+## Tier B — Backend quality and automatic vectorization
+
+### T-507 — Packed code generation misses idiomatic hardware forms
+
+- Intent: select immediate shuffles, blends, fused multiply-add, horizontal forms, SAD, and direct
+  lane extract/insert instead of generic sequences and spill-slot lane access.
+- Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
+  kernel and end-to-end benchmarks show no regression on the fallback target.
+- Related: T-514, T-515, T-520.
+
+### T-523 — Unrolling does not expose constant-index SIMD packs
+
+- Intent: fold induction-derived addresses to constant offsets after unrolling and rerun the
+  combining needed for SLP to recognize adjacent loads and stores.
+- Complete when: the ChaCha key-stream XOR and a neutral array kernel become packed after unrolling,
+  with no code-size-only unroll when vectorization does not follow.
+- Related: F-034, T-088.
+
+### T-524 — Loop vectorization cannot form reductions or masked tails
+
+- Intent: teach the loop vectorizer to recognize associative reductions, version alias/alignment
+  checks, and generate masked or peeled tails using the explicit SIMD operation set.
+- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
+  configured feature ceiling with scalar-equivalent results and profitable cost decisions.
+- Related: T-515, T-516, T-525, T-526, T-531.
+
+## Tier B — Runtime and Core bulk primitives
+
+### T-525 — Runtime memory fallbacks are not explicitly SIMD
+
+- Intent: implement `__memoryCopyForward`, `__memoryCopyBackward`, `@memset`, and especially
+  `@memcmp` in `bin/runtime/memory.swg` with raw `#simd` types, without introducing a dependency on
+  `std/core`; retain correct overlap and first-differing-byte semantics.
+- Complete when: sizes, alignments, overlaps, guard-page tails, and comparison ordering pass, while
+  release benchmarks beat or match the current `[2] u64` implementation across size classes.
+- Related: T-509, T-516, T-524.
+
+### T-526 — BitArray bulk operations remain word-scalar
+
+- Intent: vectorize equality, whole-array invert, `andWith`, `orWith`, and `xorWith` in
+  `core/src/collections/bitarray.swg`.
+- Complete when: arbitrary word counts and unused tail bits retain their contract and large-array
+  throughput improves against the scalar path.
+- Related: T-515, T-516, T-524.
+
+### T-527 — Constant-time byte equality is scalar
+
+- Intent: vectorize `constantTimeEqual` while preserving a control-flow and memory-access pattern
+  independent of byte values.
+- Complete when: every length and alignment matches the scalar result, generated code has no
+  data-dependent early exit, and timing-oriented review covers vector and tail paths.
+- Related: T-515, T-516.
+
+### T-528 — PBKDF2 accumulates digest bytes scalarly
+
+- Intent: XOR each 32-byte intermediate HMAC digest into the PBKDF2 accumulator in packed blocks.
+- Complete when: published vectors and every destination tail length match exactly and iteration
+  throughput improves independently of the HMAC implementation.
+- Related: T-516.
+
+### T-529 — Deflate match and RLE scans compare one byte at a time
+
+- Intent: scan match candidates and repeated runs in 16/32/64-byte chunks, using masks to locate the
+  first mismatch without changing match choice or compressed output.
+- Complete when: boundary, window-wrap, and maximum-length cases remain byte-identical and corpus
+  compression throughput improves.
+- Related: T-506, T-515, T-516.
+
+### T-530 — Inflate match copies stop at eight-byte chunks
+
+- Intent: add packed forward-copy paths for legal non-overlapping distances while retaining the
+  exact scalar/word behavior for short overlapping LZ matches.
+- Complete when: every distance and tail passes malformed-stream and differential corpus tests and
+  decompression throughput improves without an out-of-range read.
+- Related: T-516, T-525.
+
+### T-531 — UTF-8 scans do not have packed ASCII and byte-search paths
+
+- Intent: vectorize `isValid`, `countRunes`, `indexOf`, and small-set `indexOfAny` fast paths while
+  falling back at the first non-ASCII or structurally interesting byte.
+- Complete when: malformed boundaries, rune counts, search indices, and arbitrary tails match the
+  scalar implementation and ASCII-heavy benchmarks improve.
+- Related: T-515, T-516, T-518, T-524.
+
+### T-532 — Latin-1 casing and case-insensitive comparison are scalar
+
+- Intent: process ASCII blocks with compares/selects and retain the Latin-1 table path only for
+  blocks containing non-ASCII values.
+- Complete when: all 256 byte values preserve current casing/comparison behavior and mixed-text
+  benchmarks demonstrate the dispatch threshold.
+- Related: T-516.
+
+### T-533 — Base64 encode and decode are scalar
+
+- Intent: add packed block transforms for both accepted alphabets, with scalar handling for
+  whitespace, padding, malformed input, and tails.
+- Complete when: exhaustive short inputs, malformed cases, and large buffers agree with the current
+  codec and both directions show a measured throughput gain.
+- Related: T-514, T-516.
+
+### T-534 — Vector4 and Pixel.Color do not use their native packed shape
+
+- Intent: implement component arithmetic, min/max, abs, floor/ceil, lerp, clamp, dot/length support,
+  and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics.
+- Complete when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
+  and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
+- Related: T-511, T-515, T-521, T-552.
+
+### T-535 — NumericArray cannot specialize legal packed geometries
+
+- Intent: specialize generic equality, arithmetic, fill, copy, and mul-add when the instantiated
+  element/count/operator combination has supported packed semantics.
+- Complete when: specialization is compile-time selected, unsupported shapes remain scalar, and
+  generated-code tests prove no hidden conversion or temporary array.
+- Related: T-506, T-511, T-513, T-515.
+
+## Tier B — Cryptography and checksums
+
+### T-088 — ChaCha20 processes one block per dependency chain
+
+- Intent: process several ChaCha20 blocks per iteration and apply the generated key stream in packed
+  chunks, rather than limiting optimization to the already-vectorized single-block rounds.
+- Complete when: published vectors and overlap rules pass and the block plus end-to-end rates improve
+  under the interleaved benchmark protocol recorded in F-029.
+- Related: F-029, T-512, T-523.
+
+### T-251 — The Argon2 permutation remains scalar
+
+- Intent: vectorize block XOR, BlaMka compression, row/column permutation, and final reduction while
+  retaining Argon2id's exact memory-index and synchronization semantics.
+- Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
+  the packed kernel gain from independent-lane parallelism.
+- Related: T-252 in `todo.vaultdrive.md`, T-512, T-513, T-515.
+
+### T-536 — Blake2b compression remains scalar
+
+- Intent: run paired G functions and message/state permutations in packed 64-bit lanes, using native
+  rotates or defined shift/or lowering.
+- Complete when: incremental, keyed, and boundary-length vectors match and compression throughput
+  improves without changing digest output.
+- Related: T-512, T-513, T-514.
+
+### T-250 — Poly1305 remains scalar
+
+- Intent: implement a packed limb strategy or several-message kernel, selected only where it beats
+  the current scalar carry chain.
+- Complete when: differential vectors cover every block-tail length, carry/reduction boundaries are
+  exact, and authenticated-encryption throughput improves end to end.
+- Related: T-513, T-515.
+
+### T-537 — Adler-32 does not use packed weighted sums
+
+- Intent: process blocks with widening, byte sums, and weighted prefix contributions while keeping
+  modulo reduction bounded and exact.
+- Complete when: every input length and split-update sequence matches the scalar checksum and zlib
+  corpus throughput improves.
+- Related: T-515, T-520.
+
+### T-538 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
+
+- Intent: add batch APIs or internal batching that process independent message blocks across lanes,
+  instead of attempting to vectorize one recurrence-dependent stream.
+- Complete when: one- through lane-width batches preserve streaming/finalization semantics, fall
+  back for a single stream, and improve aggregate hashing throughput.
+- Related: T-512, T-514, T-518.
+
+### T-539 — CRC32 cannot use polynomial folding
+
+- Intent: add a carry-less-multiply folding implementation with feature dispatch and retain the
+  table implementation as the portable fallback.
+- Complete when: incremental CRC values match for every alignment and tail and large-buffer
+  throughput improves on supported machines without illegal-instruction risk.
+- Related: T-509, T-518, T-519.
+
+## Tier B — Audio and video codecs
+
+### T-540 — PCM conversion remains sample-scalar
+
+- Intent: convert PCM8, PCM24, PCM32, and Float32 blocks to signed 16-bit samples with shuffle,
+  numeric conversion, clamping, and packing.
+- Complete when: clipping, sign extension, endianness, all tails, and progress accounting match and
+  each encoding has an independently measured fast path.
+- Related: T-511, T-514, T-516.
+
+### T-541 — H.264 deblocking remains scalar
+
+- Intent: vectorize luma and chroma edge filters, including a transpose strategy for vertical edges.
+- Complete when: decoded frames remain byte-exact, horizontal and vertical paths are packed, and
+  the existing 1080p profile shows an end-to-end gain.
+- Related: T-514, T-520, T-420 in `todo.video.md`.
+
+### T-542 — H.264 inverse transforms remain scalar
+
+- Intent: vectorize `addIdct4x4`, `addDc4x4`, `hadamard4x4`, and `addIdct8x8` with packed
+  transposes and saturating output.
+- Complete when: coefficient extremes and conformance streams remain byte-exact and transform time
+  decreases in the video profile.
+- Related: T-514, T-520, T-541.
+
+### T-543 — H.264 weighted prediction remains scalar
+
+- Intent: vectorize `weightUni` and `weightBi` by widening pixels, applying packed products and
+  offsets, then narrowing with saturation.
+- Complete when: every legal width, denominator, weight, offset, and tail matches scalar output and
+  weighted prediction improves on representative P/B streams.
+- Related: T-513, T-516, T-520.
+
+### T-544 — H.264 reconstruction and intra prediction remain scalar
+
+- Intent: vectorize dequantization, residual addition, and the DC/horizontal/vertical/plane intra
+  predictors; keep shuffle-heavy directional modes only when profiling supports them.
+- Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
+  reconstruction profile.
+- Related: T-513, T-514, T-516, T-542.
+
+## Tier C — Pixel processing and image codecs
+
+### T-545 — Simple image filters still dispatch one callback per pixel
+
+- Intent: add row/chunk kernels for invert, lightness, transparent-color replacement, fill,
+  half-size, pixel-format conversion, mirror, simple gradients, channel operations, and source-over
+  mix instead of trying to vectorize inside `Image.visitPixels` callbacks.
+- Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
+  match existing behavior and each retained kernel beats callback dispatch.
+- Related: T-511, T-514, T-516, T-520.
+
+### T-546 — Convolution, resize, smart-crop, and Haar kernels remain scalar
+
+- Intent: vectorize interior convolution, horizontal/vertical resampling, integral-image box output,
+  Sobel/normalization maps, and contiguous Haar passes while keeping borders and unfavorable gathers
+  scalar.
+- Complete when: golden images remain within the declared numeric tolerance and representative
+  large-image workloads show per-stage gains.
+- Related: T-515, T-517, T-520.
+
+### T-547 — LUT and transcendental image filters have no packed path
+
+- Intent: use gathered tables or vector math to accelerate gamma, contrast, fade, colorize, HSL, and
+  noise kernels without weakening their output contract merely to fit today's instruction set.
+- Complete when: each filter declares exact or bounded-error parity, uses the profitable gather/math
+  path under feature dispatch, and retains a scalar fallback.
+- Related: T-511, T-517, T-521.
+
+### T-548 — PNG packed samples, filters, and color conversion remain scalar
+
+- Intent: vectorize 1/2/4-bit expansion, 16-to-8 reduction, non-paletted color conversion, encoder
+  filters, and decoder filters with prefix-scan strategies where left dependencies require them.
+- Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
+  every filter and bit depth covers odd tails, and encode/decode throughput improves.
+- Related: T-514, T-516, T-517, T-520.
+
+### T-549 — JPEG DCT, IDCT, quantization, and color conversion remain scalar
+
+- Intent: vectorize RGB/YCbCr conversion, chroma upsampling, 8x8 FDCT/IDCT, and quantization with
+  explicit rounding semantics.
+- Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient
+  extremes are covered, and encode/decode stages improve independently.
+- Related: T-511, T-514, T-520.
+
+### T-550 — WebP reconstruction and transforms remain mostly scalar
+
+- Intent: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
+  and lossless subtract-green/cross-color/predictor transforms.
+- Complete when: lossy and lossless fixture pixels remain identical where specified, predictor and
+  boundary modes are exhaustive, and stage benchmarks show the retained gains.
+- Related: T-513, T-514, T-516, T-520.
+
+### T-551 — Packed and indexed pixel formats lack gather/shuffle kernels
+
+- Intent: accelerate BMP/TGA 16-bit expansion, GIF/PNG palette expansion, fixed quantization, and
+  24/32-bit channel packing using shuffle or gather according to the active target.
+- Complete when: every format variant, palette size, transparency case, row padding, and tail matches
+  scalar decoding/encoding and the dispatcher avoids gather where it loses.
+- Related: T-514, T-517.
+
+### T-552 — The CPU renderer has no packed span pipeline
+
+- Intent: process four or more horizontal pixels per iteration for clear, alpha blend, solid and
+  gradient shading, MSDF coverage, and profitable texture paths, with specialized kernels instead
+  of one branch-heavy universal loop.
+- Complete when: command-stream goldens remain stable, clip and layer boundaries are exact, simple
+  spans improve first, and gather-dependent sampling is enabled only by measurement.
+- Related: T-511, T-517, T-521, T-534.
+
+## Tier C — Text, fonts, and PDF
+
+### T-553 — TrueType raster, SDF, and MSDF kernels remain scalar
+
+- Intent: vectorize coverage conversion and process multiple sample points in SDF/MSDF distance
+  evaluation, using vector math and gathers only where edge traversal remains profitable.
+- Complete when: glyph goldens stay within a declared coverage/distance tolerance and raster, SDF,
+  and MSDF are benchmarked separately across small and large glyphs.
+- Related: T-517, T-521.
+
+### T-554 — PDF image color and alpha conversion remain scalar
+
+- Intent: vectorize DeviceGray/RGB/CMYK conversion, color-key comparison, mask scaling, and alpha
+  composition; use gather for indexed spaces only when profitable.
+- Complete when: PDF image fixtures preserve pixels across bit depths, masks, decode arrays, and
+  indexed spaces, with separate conversion benchmarks.
+- Related: T-511, T-517, T-521.
+
+### T-555 — UTF-16 and generic encoding conversion lack packed fast paths
+
+- Intent: add ASCII/BMP block conversion, widening/narrowing, zero-terminator search, and packed
+  text-likeness checks while falling back before surrogates or invalid sequences.
+- Complete when: malformed sequences, endian variants, terminators, destination limits, and tails
+  match scalar behavior and ASCII/BMP-heavy conversions improve.
+- Related: T-511, T-514, T-516.

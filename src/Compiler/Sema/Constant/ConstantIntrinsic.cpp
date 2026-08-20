@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -95,6 +96,38 @@ namespace
         }
         cv.setTypeRef(resultTypeRef);
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
+        sema.setConstant(callRef, cstRef);
+        return Result::Continue;
+    }
+
+    // '@vecsplat' of a constant scalar is the one packed operation with a compile-time
+    // answer: the lane bytes simply repeat. Folding it is what lets a vector constant be
+    // declared, and the result is the same byte payload an aggregate literal produces.
+    Result foldVectorSplat(Sema& sema, AstNodeRef callRef, std::span<AstNodeRef> args)
+    {
+        const SemaNodeView argView(sema, args[0], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (!argView.cstRef().isValid())
+            return Result::Continue;
+
+        const TypeRef   resultTypeRef = sema.viewType(callRef).typeRef();
+        const TypeInfo& resultType    = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), resultTypeRef));
+        if (!resultType.isSimd())
+            return Result::Continue;
+
+        const TypeRef  laneTypeRef = resultType.payloadSimdLaneTypeRef();
+        const uint32_t laneCount   = resultType.payloadSimdLaneCount();
+        const size_t   laneBytes   = 16 / laneCount;
+
+        ByteArray                  buffer(16);
+        const std::span<std::byte> bytes = buffer.span();
+        for (uint32_t i = 0; i < laneCount; ++i)
+        {
+            const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, argView.cstRef(), laneTypeRef));
+        }
+
+        const ConstantRef cstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, resultTypeRef, bytes);
+        SWC_ASSERT(cstRef.isValid());
         sema.setConstant(callRef, cstRef);
         return Result::Continue;
     }
@@ -443,6 +476,10 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 
     switch (tok.id)
     {
+        case TokenId::IntrinsicVecSplat:
+            SWC_ASSERT(args.size() == 1);
+            return foldVectorSplat(sema, sema.curNodeRef(), args);
+
         case TokenId::IntrinsicMin:
         case TokenId::IntrinsicMax:
         {

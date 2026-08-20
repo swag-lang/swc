@@ -212,23 +212,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `#code` expansion, then trace both calls to `setSemaPayload` for the slice node and add that input
   to `bin/unittests/sema` before changing payload ownership.
 
-### F-167 — Unary '+' is rejected on a packed vector while '-' and '~' are accepted
-
-- Area: compiler
-- Found while: auditing the cast and simd surface after the `Core.Math.Simd` pass.
-- Observation: `checkPlus` in `src/Compiler/Sema/Ast/Sema.Unary.cpp` accepts only `isFloat()` or
-  `isIntLike()`, so `+v` on a `#simd` value is rejected with "unary operator '+' cannot be applied
-  to type '#simd [4] s32'". Its siblings `checkMinus` and `checkTilde` both grew an explicit simd
-  branch, so the three unary forms disagree on the same type.
-- Evidence: a standalone input holding `let a: #simd [4] s32 = [1, 2, 3, 4]` rejects `+a` and
-  accepts `-a` and `~a`. Unary plus is an identity on every type that has arithmetic, and a vector
-  has arithmetic, so the rejection is an omission rather than a decision — the hardware-honesty
-  rule that removes packed divide has no equivalent argument here.
-- Next step: decide whether `+v` is an identity worth accepting (add the simd branch to
-  `checkPlus`, mirroring `checkMinus`) or a deliberate refusal (say so in
-  `bin/reference/modules/language/src/004_009_simd.swg`), then cover the chosen behavior in
-  `bin/unittests/native/simd/operators.swg` or `bin/unittests/errors/sema`.
-
 ### F-168 — A pointer converts only through 'u64', so every other integer needs two casts
 
 - Area: compiler

@@ -48,12 +48,12 @@ using Swag, Math
 // Saturating arithmetic clamps instead of wrapping, and the rounding average rounds up.
 #test
 {
-    let big   = cast(Simd.U8x16) 200'u8
-    let small = cast(Simd.U8x16) 100'u8
+    let big   = Simd.splat(200'u8)
+    let small = Simd.splat(100'u8)
     @assert(Simd.addSaturating(big, small)[0] == 255)
     @assert(Simd.subSaturating(small, big)[0] == 0)
     @assert(Simd.average(big, small)[15] == 150)
-    @assert(Simd.average(cast(Simd.U8x16) 1'u8, cast(Simd.U8x16) 2'u8)[0] == 2)
+    @assert(Simd.average(Simd.splat(1'u8), Simd.splat(2'u8))[0] == 2)
 
     let words = cast(Simd.S16x8) [1's16, 2, 3, 4, 5, 6, 7, 8]
     let pairs = Simd.mulAddPairs(words, words)
@@ -69,9 +69,9 @@ using Swag, Math
     let sx = Simd.packSigned(sums, sums)
     @assert(sx[0] == -20 and sx[3] == 127)
 
-    let bytes = cast(Simd.S8x16) (-3's8)
+    let bytes = Simd.splat(-3's8)
     @assert(Simd.widenLow(bytes)[0] == -3 and Simd.widenHigh(bytes)[7] == -3)
-    let wide = Simd.widenHigh(cast(Simd.U8x16) 200'u8)
+    let wide = Simd.widenHigh(Simd.splat(200'u8))
     @assert(wide[0] == 200)
 }
 
@@ -99,8 +99,8 @@ using Swag, Math
     @assert(clamped[0] == 1 and clamped[1] == 20 and clamped[2] == 3 and clamped[3] == 40)
     @assert(Simd.bitmask(mask) == 0b1010)
     @assert(Simd.anyTrue(mask) and !Simd.allTrue(mask))
-    @assert(!Simd.anyTrue(a > cast(Simd.S32x4) 100))
-    @assert(Simd.allTrue(a < cast(Simd.S32x4) 100))
+    @assert(!Simd.anyTrue(a > Simd.splat(100's32)))
+    @assert(Simd.allTrue(a < Simd.splat(100's32)))
 }
 
 // The element-wise Math functions accept the vector types, including the generic min and max.
@@ -113,13 +113,13 @@ using Swag, Math
     let x = cast(Simd.F32x4) [1'f32, 4, 9, 16]
     let s = Math.sqrt(x)
     @assert(s[0] == 1 and s[3] == 4)
-    @assert(Math.floor(cast(Simd.F32x4) 1.5'f32)[0] == 1)
-    @assert(Math.ceil(cast(Simd.F32x4) 1.5'f32)[0] == 2)
-    @assert(Math.trunc(cast(Simd.F64x2) (-1.5'f64))[0] == -1)
+    @assert(Math.floor(Simd.splat(1.5'f32))[0] == 1)
+    @assert(Math.ceil(Simd.splat(1.5'f32))[0] == 2)
+    @assert(Math.trunc(Simd.splat(-1.5'f64))[0] == -1)
     @assert(Math.mulAdd(x, x, x)[1] == 20)
 
-    let lo = Math.min(a, cast(Simd.S16x8) 0's16)
-    let hi = Math.max(a, cast(Simd.S16x8) 0's16)
+    let lo = Math.min(a, Simd.splat(0's16))
+    let hi = Math.max(a, Simd.splat(0's16))
     @assert(lo[0] == -5 and lo[1] == 0)
     @assert(hi[0] == 0 and hi[1] == 10)
 }

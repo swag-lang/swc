@@ -31,8 +31,8 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
 #test
 {
     // Wrapping is the definition, not an error: no overflow guard fires.
-    let big  = cast(#simd [4] s32) 2_147_483_647
-    let one  = cast(#simd [4] s32) 1
+    let big  = @vecsplat(2_147_483_647's32)
+    let one  = @vecsplat(1's32)
     let wrap = lanesOf(big + one)
     @assert(wrap[0] == -2_147_483_648)
     @assert(wrap[3] == -2_147_483_648)
@@ -83,7 +83,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     @assert(r[0] == -13 and r[2] == 0 and r[3] == -1)
 
     // A splat is a constant too, and so is the result of a constant cast.
-    let splat = cast(#simd [4] s32) 5
+    let splat = @vecsplat(5's32)
     r = lanesOf(-splat)
     @assert(r[0] == -5 and r[3] == -5)
 
@@ -114,13 +114,13 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
 #test
 {
     // Sixteen u8 lanes and eight s16 lanes.
-    let a8 = cast(#simd [16] u8) 200'u8
-    let b8 = cast(#simd [16] u8) 100'u8
+    let a8 = @vecsplat(200'u8)
+    let b8 = @vecsplat(100'u8)
     let r8 = cast([16] u8) (a8 + b8)
     @assert(r8[0] == 44 and r8[15] == 44)
 
     let a16 = cast(#simd [8] s16) [1, -2, 3, -4, 5, -6, 7, -8]
-    let b16 = cast(#simd [8] s16) 10's16
+    let b16 = @vecsplat(10's16)
     let r16 = cast([8] s16) (a16 * b16)
     @assert(r16[0] == 10 and r16[1] == -20 and r16[7] == -80)
 }
@@ -129,7 +129,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
 {
     // Float lanes: the four arithmetic operators.
     let a = cast(#simd [4] f32) [1.0, 2.0, 3.0, 4.0]
-    let b = cast(#simd [4] f32) 2.0'f32
+    let b = @vecsplat(2.0'f32)
     var r = cast([4] f32) (a * b)
     @assert(r[0] == 2.0 and r[3] == 8.0)
     r = cast([4] f32) (a / b)
@@ -166,7 +166,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
 
     // Float compares use the hardware predicates.
     let fa = cast(#simd [4] f32) [1.0, 2.0, 3.0, 4.0]
-    let fb = cast(#simd [4] f32) 2.5'f32
+    let fb = @vecsplat(2.5'f32)
     m = cast([4] u32) (fa < fb)
     @assert(m[0] == 0xFFFF_FFFF and m[1] == 0xFFFF_FFFF and m[2] == 0 and m[3] == 0)
 }

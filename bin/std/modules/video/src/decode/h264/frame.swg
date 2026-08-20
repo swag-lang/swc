@@ -200,7 +200,7 @@ private func convertRgb16(destination: [*] u8, luma, cb, cr: const [*] u8)
     // Each chroma byte serves a pair of pixels.
     const DupPairs = cast(Simd.U8x16) [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]
 
-    let y16 = Simd.subSaturating(Simd.load(luma), cast(Simd.U8x16) 16'u8)
+    let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(16'u8))
     let yLo = Simd.widenLow(y16)
     let yHi = Simd.widenHigh(y16)
     let y0  = (cast #bit(Simd.S32x4) Simd.widenLow(yLo)) * 298

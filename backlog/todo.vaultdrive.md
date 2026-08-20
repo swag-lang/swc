@@ -35,39 +35,12 @@ locally.
 
 ## Tier A — Cryptographic throughput
 
-### T-088 — ChaCha20 processes one block per dependency chain
-
-- Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
-- Problem: `chacha20.swg`, although its rounds auto-vectorize, remains one block wide and bounded
-  by its dependency chain and memory traffic.
-- Evidence: ChaCha20's packed state remains one block-wide and its dependency chain still limits
-  throughput; the current measurements and protocol are in
-  [F-029](findings.optimization.md#f-029--chacha20-still-processes-one-block-per-packed-dependency-chain).
-- Fix: process several blocks per loop iteration, which is where the remaining ChaCha SIMD win is.
-- Why it matters: the mount latency a user actually feels is almost entirely this, and every
-  block read and written pays the key-stream rate.
-- Related: T-250, T-251, T-252
-
-### T-250 — Poly1305 remains scalar
-
-- Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
-- Optimize Poly1305 independently of ChaCha20 and retain differential vectors for every block-tail
-  length.
-- Related: T-088
-
-### T-251 — The Argon2 permutation remains scalar
-
-- Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
-- Vectorize the Argon2 compression/permutation with profile benchmarks and unchanged published
-  vectors.
-- Related: T-252
-
 ### T-252 — Independent Argon2 lanes run serially
 
 - Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
 - Run lanes within each legal slice through `Jobs`, respecting Argon2's synchronization points and
   measuring the configured `parallelism` contract.
-- Related: T-251
+- Related: T-251 in [todo.simd.md](todo.simd.md)
 
 ## Tier A — Key and release security
 
@@ -135,7 +108,8 @@ locally.
 - Fix: a key-slot list that can add and revoke passwords and show how many slots are occupied
   without claiming which password maps to which slot.
 - Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
-  multiplies the cost of rejecting a wrong password; see T-088.
+  multiplies the cost of rejecting a wrong password; see T-088 in
+  [todo.simd.md](todo.simd.md).
 - Related: T-259
 
 ### T-259 — No key-derivation cost-profile selector
@@ -143,7 +117,7 @@ locally.
 - Owner: sVaultDrive
 - Expose `Crypto.Argon2Profile` independently of password-slot management, with clear latency and
   memory guidance.
-- Related: T-092, T-251, T-252
+- Related: T-092, T-251 in [todo.simd.md](todo.simd.md), T-252
 
 ## Tier B — Container maintenance
 

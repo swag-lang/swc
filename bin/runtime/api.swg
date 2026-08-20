@@ -565,7 +565,8 @@ namespace Swag
     // Store a 'fail' error information
     struct ErrorValue
     {
-        public value: #null any     // Error value (or null)
+        public
+        value: #null any     // Error value (or null)
 
         // What the error stack must restore when this entry is popped. The runtime writes it
         // when an error is pushed and reads it back on 'catch'.
@@ -1431,6 +1432,20 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @ceil(value: #simd [2] f64)->#simd [2] f64
     func @trunc(value: #simd [4] f32)->#simd [4] f32
     func @trunc(value: #simd [2] f64)->#simd [2] f64
+
+    // Broadcast: every lane of the result takes the value of the scalar. The
+    // lane type names the vector, so a 'u8' fills sixteen lanes and an 'f64'
+    // fills two.
+    func @vecsplat(value: u8)->#simd [16] u8
+    func @vecsplat(value: s8)->#simd [16] s8
+    func @vecsplat(value: u16)->#simd [8] u16
+    func @vecsplat(value: s16)->#simd [8] s16
+    func @vecsplat(value: u32)->#simd [4] u32
+    func @vecsplat(value: s32)->#simd [4] s32
+    func @vecsplat(value: u64)->#simd [2] u64
+    func @vecsplat(value: s64)->#simd [2] s64
+    func @vecsplat(value: f32)->#simd [4] f32
+    func @vecsplat(value: f64)->#simd [2] f64
 
     // Saturating addition and subtraction: results clamp to the lane range
     // instead of wrapping.

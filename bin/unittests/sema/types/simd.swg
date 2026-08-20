@@ -37,7 +37,7 @@ var g11: Bytes16
 // scalar splat, and bit for bit from the matching fixed-size array.
 const FromLiteral: #simd [4] s32 = [1, 2, 3, 4]
 const FromCast                   = cast(#simd [4] s32) [5, 6, 7, 8]
-const Splat                      = cast(#simd [8] s16) 42's16
+const Splat                      = @vecsplat(42's16)
 const Lanes:       [4] s32       = [9, 10, 11, 12]
 const FromArray                  = cast(#simd [4] s32) Lanes
 const Reshaped                   = cast #bit(#simd [16] u8) FromCast

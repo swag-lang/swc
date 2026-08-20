@@ -1,15 +1,51 @@
 #global private
 using Swag
 
-// The packed intrinsic vocabulary, checked lane by lane: saturation, packs,
-// widens, average, multiply-add, permute, select, movemask, and the vector
+// The packed intrinsic vocabulary, checked lane by lane: broadcast, saturation,
+// packs, widens, average, multiply-add, permute, select, movemask, and the vector
 // overloads of the scalar math intrinsics.
+
+#[Swag.NoInline]
+func splatS32(value: s32)->#simd [4] s32 => @vecsplat(value)
+
+#test
+{
+    // The broadcast fills every lane, from a constant and from a runtime value
+    // alike, and the lane type of the scalar names the shape.
+    let bytes = cast([16] u8) @vecsplat(7'u8)
+    @assert(bytes[0] == 7 and bytes[15] == 7)
+
+    let words = cast([8] s16) @vecsplat(-300's16)
+    @assert(words[0] == -300 and words[7] == -300)
+
+    let quads = cast([4] u32) @vecsplat(0xDEAD_BEEF'u32)
+    @assert(quads[0] == 0xDEAD_BEEF and quads[3] == 0xDEAD_BEEF)
+
+    let pairs = cast([2] u64) @vecsplat(0x0102_0304_0506_0708'u64)
+    @assert(pairs[0] == 0x0102_0304_0506_0708 and pairs[1] == 0x0102_0304_0506_0708)
+
+    let floats = cast([4] f32) @vecsplat(-1.5'f32)
+    @assert(floats[0] == -1.5 and floats[3] == -1.5)
+
+    let doubles = cast([2] f64) @vecsplat(2.25'f64)
+    @assert(doubles[0] == 2.25 and doubles[1] == 2.25)
+
+    // A runtime scalar takes the same path; the value crosses through a register.
+    var n: s32 = -9
+    let live   = cast([4] s32) splatS32(n)
+    @assert(live[0] == -9 and live[3] == -9)
+
+    // A broadcast of a constant is itself a constant.
+    const Filled      = @vecsplat(3's32)
+    const FilledLanes = cast([4] s32) Filled
+    #assert(FilledLanes[0] == 3 and FilledLanes[3] == 3)
+}
 
 #test
 {
     // Saturating byte arithmetic clamps instead of wrapping.
-    let a = cast(#simd [16] u8) 200'u8
-    let b = cast(#simd [16] u8) 100'u8
+    let a = @vecsplat(200'u8)
+    let b = @vecsplat(100'u8)
     var r = cast([16] u8) @vecsatadd(a, b)
     @assert(r[0] == 255 and r[15] == 255)
     r = cast([16] u8) @vecsatsub(b, a)
@@ -100,12 +136,12 @@ using Swag
     @assert(@vecmask(none) == 0)
 
     // Byte and word masks route through the byte movemask.
-    let b8 = cast(#simd [16] u8) 1'u8
+    let b8 = @vecsplat(1'u8)
     let m8 = b8 == b8
     @assert(@vecmask(m8) == 0xFFFF)
     @assert(@vecall(m8))
 
-    let w16 = cast(#simd [8] u16) 3'u16
+    let w16 = @vecsplat(3'u16)
     let m16 = w16 == w16
     @assert(@vecmask(m16) == 0xFF)
     @assert(@vecall(m16) and @vecany(m16))
@@ -124,7 +160,7 @@ using Swag
     @assert(r[0] == 5 and r[1] == 3 and r[2] == 100 and r[3] == 100)
 
     let ua = cast(#simd [16] u8) [1, 200, 3, 200, 1, 200, 1, 200, 1, 200, 1, 200, 1, 200, 1, 200]
-    let ub = cast(#simd [16] u8) 100'u8
+    let ub = @vecsplat(100'u8)
     let ur = cast([16] u8) @max(ua, ub)
     @assert(ur[0] == 100 and ur[1] == 200 and ur[2] == 100)
 
@@ -140,7 +176,7 @@ using Swag
     gr = cast([4] f32) @trunc(g)
     @assert(gr[0] == 1.0 and gr[1] == -1.0 and gr[2] == 2.0 and gr[3] == -2.0)
 
-    let h  = cast(#simd [4] f32) 2.0'f32
+    let h  = @vecsplat(2.0'f32)
     let hr = cast([4] f32) @muladd(g, h, f)
     @assert(hr[0] == 4.0 and hr[1] == 1.0 and hr[2] == 14.0 and hr[3] == 11.0)
 }

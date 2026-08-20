@@ -1,4 +1,5 @@
 #global private
+
 using Swag
 
 /**
@@ -27,17 +28,27 @@ alignment are both 16 bytes.
 /**
 # Construction
 
-A vector builds from an array literal with one value per lane, broadcasts
-from a scalar of its exact lane type, or reinterprets the matching fixed-size
-array bit for bit. All three forms fold at compile time when their operands
-are constant, and '#bit' reshapes any 16-byte vector or array into another.
+A vector builds from an array literal with one value per lane, or reinterprets
+the matching fixed-size array bit for bit; both fold at compile time when their
+operands are constant, and '#bit' reshapes any 16-byte vector or array into
+another.
+
+Filling every lane with the same value is a broadcast, not a conversion, so it
+has its own operation: '@vecsplat' takes a scalar and the lane type it carries
+names the vector, so a 'u8' fills sixteen lanes and an 'f64' fills two. It folds
+like the other forms, which is what lets a vector be declared 'const'.
 */
 #test
 {
     let lanes: #simd [4] s32 = [1, 2, 3, 4]
-    let fours                = cast(#simd [4] s32) 4
+    let fours                = @vecsplat(4's32)
     let sum                  = cast([4] s32) (lanes + fours)
     @assert(sum[0] == 5 and sum[3] == 8)
+
+    // A broadcast of a constant is a constant.
+    const Ones     = @vecsplat(1'u8)
+    const OneLanes = cast([16] u8) Ones
+    #assert(OneLanes[0] == 1 and OneLanes[15] == 1)
 
     var raw: [8] u16 = [1, 2, 3, 4, 5, 6, 7, 8]
     let packed       = cast(#simd [8] u16) raw
@@ -69,8 +80,8 @@ arithmetic right shift.
     @assert(r[0] == 16 and r[3] == 64)
 
     // Lanes wrap by definition.
-    let big  = cast(#simd [4] s32) 2_147_483_647
-    let wrap = cast([4] s32) (big + cast(#simd [4] s32) 1)
+    let big  = @vecsplat(2_147_483_647's32)
+    let wrap = cast([4] s32) (big + @vecsplat(1's32))
     @assert(wrap[0] == -2_147_483_648)
 }
 
@@ -118,18 +129,19 @@ time like an array index.
 # Packed Intrinsics
 
 The '@vec' intrinsic family carries the operations the operators cannot
-express, each mapping to one hardware form: '@vecsatadd' and '@vecsatsub'
-clamp instead of wrapping, '@vecpackus' and '@vecpackss' narrow two vectors
-with saturation, '@vecwidenlo' and '@vecwidenhi' extend half the lanes to
-double width, '@vecavgr' is the rounding average, '@vecmadd' multiplies
-16-bit pairs into 32-bit sums, and '@vecperm' permutes bytes through a
-dynamic table. '@min', '@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil'
-and '@trunc' also accept vectors and compute per lane.
+express, each mapping to one hardware form: '@vecsplat' broadcasts a scalar
+into every lane, '@vecsatadd' and '@vecsatsub' clamp instead of wrapping,
+'@vecpackus' and '@vecpackss' narrow two vectors with saturation,
+'@vecwidenlo' and '@vecwidenhi' extend half the lanes to double width,
+'@vecavgr' is the rounding average, '@vecmadd' multiplies 16-bit pairs into
+32-bit sums, and '@vecperm' permutes bytes through a dynamic table. '@min',
+'@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil' and '@trunc' also accept
+vectors and compute per lane.
 */
 #test
 {
-    let a = cast(#simd [16] u8) 200'u8
-    let b = cast(#simd [16] u8) 100'u8
+    let a = @vecsplat(200'u8)
+    let b = @vecsplat(100'u8)
     let r = cast([16] u8) @vecsatadd(a, b)
     @assert(r[0] == 255)
 
@@ -162,6 +174,6 @@ value: struct fields, arrays of vectors, and compile-time execution all work.
     }
 
     var p: Pixels
-    p.row = cast(#simd [16] u8) 7'u8
+    p.row = @vecsplat(7'u8)
     @assert(p.row[15] == 7)
 }

@@ -2038,6 +2038,34 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
 
 namespace
 {
+    // '@vecsplat' fills every lane with one scalar. The result type carries the lane, and
+    // the argument already has that exact type, so nothing converts here.
+    Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
+    {
+        const TypeRef   resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo& resultType    = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), resultTypeRef));
+        if (!resultType.isSimd())
+            return Result::Continue;
+
+        const TypeRef       laneTypeRef = resultType.payloadSimdLaneTypeRef();
+        const TypeInfo&     laneType    = codeGen.typeMgr().get(laneTypeRef);
+        CodeGenNodePayload& srcPayload  = codeGen.payload(srcNodeRef);
+
+        // A scalar living in memory is read into a register first: the broadcast forms
+        // take a register source.
+        MicroReg scalarReg = srcPayload.reg;
+        if (srcPayload.isAddress())
+        {
+            scalarReg = codeGen.nextVirtualRegisterForType(laneTypeRef);
+            codeGen.builder().emitLoadRegMem(scalarReg, srcPayload.reg, 0, CodeGenTypeHelpers::numericBits(laneType));
+        }
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
+        outHandled                        = true;
+        return Result::Continue;
+    }
+
     // Element-wise vector intrinsics: everything routes on the first
     // argument's simd type, so the scalar lowerings below stay untouched.
     Result codeGenVectorIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node, TokenId tokId, bool& outHandled)
@@ -2048,6 +2076,11 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         if (children.empty())
             return Result::Continue;
+
+        // The broadcast is the one vector intrinsic taking a scalar, so it routes on the
+        // result type instead of the argument's.
+        if (tokId == TokenId::IntrinsicVecSplat)
+            return codeGenVectorSplat(codeGen, children[0], outHandled);
 
         const SemaNodeView firstView    = codeGen.viewType(children[0]);
         TypeRef            firstTypeRef = codeGen.payload(children[0]).effectiveTypeRef(firstView.typeRef());

@@ -776,7 +776,7 @@ indent-style = spaces</span></div>
 <p>Packed vector intrinsics:</p>
 <div class="code-block"><span class="SCde"><span class="SItr">@vecall</span>  <span class="SItr">@vecany</span>  <span class="SItr">@vecavgr</span>  <span class="SItr">@vecmadd</span>  <span class="SItr">@vecmask</span>  <span class="SItr">@vecpackss</span>
 <span class="SItr">@vecpackus</span>  <span class="SItr">@vecperm</span>  <span class="SItr">@vecsatadd</span>  <span class="SItr">@vecsatsub</span>  <span class="SItr">@vecselect</span>
-<span class="SItr">@vecwidenhi</span>  <span class="SItr">@vecwidenlo</span></span></div>
+<span class="SItr">@vecsplat</span>  <span class="SItr">@vecwidenhi</span>  <span class="SItr">@vecwidenlo</span></span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>The <span class="code-inline">#</span>-prefixed and <span class="code-inline">@</span>-prefixed names are reserved separately from bare identifiers. The next section explains why Swag uses both namespaces.</p>
@@ -3324,6 +3324,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_004_009_simd_swg">Simd</h3>
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
+
 <span class="SKwd">using</span> <span class="SCst">Swag</span></span></div>
 <h3 id="_004_009_simd_swg_Simd_Vectors">Simd Vectors</h3>
 <p>The <span class="code-inline">#simd</span> modifier turns a one-dimensional fixed-size array shape into a packed vector: one 16-byte value whose lanes compute element-wise, in a single machine register. The shape must total exactly 16 bytes, and the lanes must be a sized native numeric type: <span class="code-inline">u8</span>, <span class="code-inline">s8</span>, <span class="code-inline">u16</span>, <span class="code-inline">s16</span>, <span class="code-inline">u32</span>, <span class="code-inline">s32</span>, <span class="code-inline">u64</span>, <span class="code-inline">s64</span>, <span class="code-inline">f32</span> or <span class="code-inline">f64</span>.</p>
@@ -3338,13 +3339,19 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(<span class="SItr">#sizeof</span>(quads) == <span class="SNum">16</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Construction">Construction</h3>
-<p>A vector builds from an array literal with one value per lane, broadcasts from a scalar of its exact lane type, or reinterprets the matching fixed-size array bit for bit. All three forms fold at compile time when their operands are constant, and <span class="code-inline">#bit</span> reshapes any 16-byte vector or array into another.</p>
+<p>A vector builds from an array literal with one value per lane, or reinterprets the matching fixed-size array bit for bit; both fold at compile time when their operands are constant, and <span class="code-inline">#bit</span> reshapes any 16-byte vector or array into another.</p>
+<p>Filling every lane with the same value is a broadcast, not a conversion, so it has its own operation: <span class="code-inline">@vecsplat</span> takes a scalar and the lane type it carries names the vector, so a <span class="code-inline">u8</span> fills sixteen lanes and an <span class="code-inline">f64</span> fills two. It folds like the other forms, which is what lets a vector be declared <span class="code-inline">const</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> lanes: <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
-    <span class="SKwd">let</span> fours                = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SNum">4</span>
+    <span class="SKwd">let</span> fours                = <span class="SItr">@vecsplat</span>(<span class="SNum">4</span>'<span class="STpe">s32</span>)
     <span class="SKwd">let</span> sum                  = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (lanes + fours)
     <span class="SItr">@assert</span>(sum[<span class="SNum">0</span>] == <span class="SNum">5</span> <span class="SLgc">and</span> sum[<span class="SNum">3</span>] == <span class="SNum">8</span>)
+
+    <span class="SCmt">// A broadcast of a constant is a constant.</span>
+    <span class="SKwd">const</span> <span class="SCst">Ones</span>     = <span class="SItr">@vecsplat</span>(<span class="SNum">1</span>'<span class="STpe">u8</span>)
+    <span class="SKwd">const</span> <span class="SCst">OneLanes</span> = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SCst">Ones</span>
+    <span class="SCmp">#assert</span>(<span class="SCst">OneLanes</span>[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> <span class="SCst">OneLanes</span>[<span class="SNum">15</span>] == <span class="SNum">1</span>)
 
     <span class="SKwd">var</span> raw: [<span class="SNum">8</span>] <span class="STpe">u16</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>]
     <span class="SKwd">let</span> packed       = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>) raw
@@ -3367,8 +3374,8 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">16</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">64</span>)
 
     <span class="SCmt">// Lanes wrap by definition.</span>
-    <span class="SKwd">let</span> big  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SNum">2_147_483_647</span>
-    <span class="SKwd">let</span> wrap = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (big + <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SNum">1</span>)
+    <span class="SKwd">let</span> big  = <span class="SItr">@vecsplat</span>(<span class="SNum">2_147_483_647</span>'<span class="STpe">s32</span>)
+    <span class="SKwd">let</span> wrap = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (big + <span class="SItr">@vecsplat</span>(<span class="SNum">1</span>'<span class="STpe">s32</span>))
     <span class="SItr">@assert</span>(wrap[<span class="SNum">0</span>] == -<span class="SNum">2_147_483_648</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Comparisons_And_Masks">Comparisons And Masks</h3>
@@ -3399,11 +3406,11 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(v[i] == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Packed_Intrinsics">Packed Intrinsics</h3>
-<p>The <span class="code-inline">@vec</span> intrinsic family carries the operations the operators cannot express, each mapping to one hardware form: <span class="code-inline">@vecsatadd</span> and <span class="code-inline">@vecsatsub</span> clamp instead of wrapping, <span class="code-inline">@vecpackus</span> and <span class="code-inline">@vecpackss</span> narrow two vectors with saturation, <span class="code-inline">@vecwidenlo</span> and <span class="code-inline">@vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">@vecavgr</span> is the rounding average, <span class="code-inline">@vecmadd</span> multiplies 16-bit pairs into 32-bit sums, and <span class="code-inline">@vecperm</span> permutes bytes through a dynamic table. <span class="code-inline">@min</span>, <span class="code-inline">@max</span>, <span class="code-inline">@abs</span>, <span class="code-inline">@sqrt</span>, <span class="code-inline">@muladd</span>, <span class="code-inline">@floor</span>, <span class="code-inline">@ceil</span> and <span class="code-inline">@trunc</span> also accept vectors and compute per lane.</p>
+<p>The <span class="code-inline">@vec</span> intrinsic family carries the operations the operators cannot express, each mapping to one hardware form: <span class="code-inline">@vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">@vecsatadd</span> and <span class="code-inline">@vecsatsub</span> clamp instead of wrapping, <span class="code-inline">@vecpackus</span> and <span class="code-inline">@vecpackss</span> narrow two vectors with saturation, <span class="code-inline">@vecwidenlo</span> and <span class="code-inline">@vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">@vecavgr</span> is the rounding average, <span class="code-inline">@vecmadd</span> multiplies 16-bit pairs into 32-bit sums, and <span class="code-inline">@vecperm</span> permutes bytes through a dynamic table. <span class="code-inline">@min</span>, <span class="code-inline">@max</span>, <span class="code-inline">@abs</span>, <span class="code-inline">@sqrt</span>, <span class="code-inline">@muladd</span>, <span class="code-inline">@floor</span>, <span class="code-inline">@ceil</span> and <span class="code-inline">@trunc</span> also accept vectors and compute per lane.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> a = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNum">200</span>'<span class="STpe">u8</span>
-    <span class="SKwd">let</span> b = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNum">100</span>'<span class="STpe">u8</span>
+    <span class="SKwd">let</span> a = <span class="SItr">@vecsplat</span>(<span class="SNum">200</span>'<span class="STpe">u8</span>)
+    <span class="SKwd">let</span> b = <span class="SItr">@vecsplat</span>(<span class="SNum">100</span>'<span class="STpe">u8</span>)
     <span class="SKwd">let</span> r = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SItr">@vecsatadd</span>(a, b)
     <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">255</span>)
 
@@ -3429,7 +3436,7 @@ indent-style = spaces</span></div>
     }
 
     <span class="SKwd">var</span> p: <span class="SCst">Pixels</span>
-    p.row = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNum">7</span>'<span class="STpe">u8</span>
+    p.row = <span class="SItr">@vecsplat</span>(<span class="SNum">7</span>'<span class="STpe">u8</span>)
     <span class="SItr">@assert</span>(p.row[<span class="SNum">15</span>] == <span class="SNum">7</span>)
 }</span></div>
 <h2 id="_005_000_control_flow_swg">Control Flow</h2>
@@ -9174,7 +9181,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.159</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.161</div>
 </footer>
 </section>
 </main>

@@ -3,6 +3,13 @@
 
 using Core.Errors
 
+private func accumulateDigest(result, current: [*] u8)
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    Math.Simd.store(result, Math.Simd.load(result) ^ Math.Simd.load(current))
+    Math.Simd.store(result + VectorSize, Math.Simd.load(result + VectorSize) ^ Math.Simd.load(current + VectorSize))
+}
+
 // Derives `destination` with PBKDF2-HMAC-SHA-256.
 //
 // `iterations` needs at least one iteration. An empty destination succeeds without writing.
@@ -39,8 +46,7 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
         {
             discard iteration
             current = HmacSha256.compute(password, current)
-            for i in digestSize do
-                result[i] ^= current[i]
+            accumulateDigest(@dataof(result), @dataof(current))
         }
 
         let count = Math.min(@countof(destination) - outputOffset, digestSize)

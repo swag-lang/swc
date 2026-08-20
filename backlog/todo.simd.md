@@ -223,13 +223,6 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 
 ## Tier B — Runtime and Core bulk primitives
 
-### T-528 — PBKDF2 accumulates digest bytes scalarly
-
-- Intent: XOR each 32-byte intermediate HMAC digest into the PBKDF2 accumulator in packed blocks.
-- Complete when: published vectors and every destination tail length match exactly and iteration
-  throughput improves independently of the HMAC implementation.
-- Related: T-516.
-
 ### T-531 — UTF-8 validation still lacks a profitable packed fast path
 
 - Intent: improve `isValid` beyond its current unrolled scalar ASCII scan; a direct U8x16 bitmask

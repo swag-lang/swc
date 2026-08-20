@@ -53,6 +53,18 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
     expect Crypto.pbkdf2HmacSha256(password, salt, 2, partial)
     @assert(cryptoBytesEqual(partial, expected[until 40]))
 
+    var tails: [64] u8
+    for length in 65
+    {
+        for @countof(tails) do
+            tails[@index] = 0xA5
+        expect Crypto.pbkdf2HmacSha256(password, salt, 2, @mkslice(@dataof(tails), length))
+        for i in length do
+            @assert(tails[i] == expected[i])
+        for i in length until @countof(tails) do
+            @assert(tails[i] == 0xA5)
+    }
+
     discard catch Crypto.pbkdf2HmacSha256(password, salt, 0, partial) as err
     @assert(err is Errors.BadParameterError)
 }

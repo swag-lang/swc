@@ -265,6 +265,9 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   rotates or defined shift/or lowering.
 - Complete when: incremental, keyed, and boundary-length vectors match and compression throughput
   improves without changing digest output.
+- Evidence: pairing two G functions while packing and extracting scalar state at every half-round
+  measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. A viable
+  kernel needs persistent vector state with cheap lane permutation, or independent messages per lane.
 - Related: T-512, T-513, T-514.
 
 ### T-250 — Poly1305 remains scalar

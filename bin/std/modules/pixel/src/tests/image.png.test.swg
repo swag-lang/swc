@@ -108,6 +108,85 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     }
 }
 
+func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
+{
+    const Capacity = 160
+    let samplesPerByte = 8 / bitDepth
+    let packedCount    = (sampleCount + samplesPerByte - 1) / samplesPerByte
+    let sampleMask     = cast(u8) ((1'u32 << bitDepth) - 1)
+    var packed:   [Capacity] u8
+    var actual:   [Capacity] u8
+    var expected: [Capacity] u8
+    for i in Capacity
+    {
+        packed[i]   = cast(u8) ((cast(u32) i * 41 + cast(u32) sampleCount * 13 + bitDepth) & 0xFF)
+        actual[i]   = 0xA5
+        expected[i] = 0xA5
+    }
+
+    for i in sampleCount
+    {
+        let shift = 8 - bitDepth * cast(u8) (i % samplesPerByte + 1)
+        let value = (packed[1 + i / samplesPerByte] >> shift) & sampleMask
+        expected[3 + i] = value * multiplier
+    }
+
+    switch bitDepth
+    {
+    case 1:  Png.expand1Row(&packed[1], &actual[3], sampleCount, multiplier)
+    case 2:  Png.expand2Row(&packed[1], &actual[3], sampleCount, multiplier)
+    default: unreachable
+    }
+
+    for i in Capacity do
+        @assert(actual[i] == expected[i])
+
+    for i in Capacity
+    {
+        actual[i]   = 0x5A
+        expected[i] = 0x5A
+    }
+
+    let sourceOffset = 3 + sampleCount - packedCount
+    for i in packedCount
+    {
+        actual[sourceOffset + i]   = packed[1 + i]
+        expected[sourceOffset + i] = packed[1 + i]
+    }
+
+    for i in sampleCount
+    {
+        let shift = 8 - bitDepth * cast(u8) (i % samplesPerByte + 1)
+        let value = (packed[1 + i / samplesPerByte] >> shift) & sampleMask
+        expected[3 + i] = value * multiplier
+    }
+
+    switch bitDepth
+    {
+    case 1:  Png.expand1Row(&actual[sourceOffset], &actual[3], sampleCount, multiplier)
+    case 2:  Png.expand2Row(&actual[sourceOffset], &actual[3], sampleCount, multiplier)
+    default: unreachable
+    }
+
+    for i in Capacity do
+        @assert(actual[i] == expected[i])
+}
+
+#test
+{
+    // Palette and grayscale meanings, every vector/tail boundary, unaligned
+    // pointers, sentinels, and the decoder's exact in-place expansion layout.
+    let multipliers1: [2] u8 = [1, 255]
+    let multipliers2: [2] u8 = [1, 85]
+    for sampleCount in 130
+    {
+        for multiplier in multipliers1 do
+            assertPackedPngExpansion(1, multiplier, sampleCount)
+        for multiplier in multipliers2 do
+            assertPackedPngExpansion(2, multiplier, sampleCount)
+    }
+}
+
 #test
 {
     // Every vector boundary, unaligned pointers, modulo-256 overflow, and the

@@ -13,6 +13,9 @@ const Expand4LowBytes  = cast(Math.Simd.U8x16) [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4,
 const Expand4HighBytes = cast(Math.Simd.U8x16) [8'u8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15]
 const Expand4HighMask  = cast(Math.Simd.U8x16) [15'u8, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0]
 const Expand4LowMask   = cast(Math.Simd.U8x16) [0'u8, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15]
+const Expand1Bytes     = cast(Math.Simd.U8x16) [0'u8, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
+const Expand1Bits      = cast(Math.Simd.U8x16) [128'u8, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1]
+const Expand2Bytes     = cast(Math.Simd.U8x16) [0'u8, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15]
 
 #[Swag.Inline]
 func expand4Half(value, table: Math.Simd.U8x16, multiplier: u8)->Math.Simd.U8x16
@@ -81,6 +84,90 @@ func expand4Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
         dst[0] = cast(u8) (src[0] >> 4) * multiplier
 }
 
+func expand1Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, multiplier: u8)
+{
+    var src       = source
+    var dst       = destination
+    var remaining = sampleCount
+    while remaining >= 16
+    {
+        let packed     = cast(u16) src[0] | (cast(u16) src[1] << 8)
+        let duplicated = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) Math.Simd.splat(packed), Expand1Bytes)
+        var expanded   = (duplicated & Expand1Bits) == Expand1Bits
+        if multiplier == 1 do
+            expanded &= Math.Simd.splat(1'u8)
+        Math.Simd.store(dst, expanded)
+        src       += 2
+        dst       += 16
+        remaining -= 16
+    }
+
+    while remaining >= 8
+    {
+        let value = src[0]
+        dst[0]    = cast(u8) (value >> 7) * multiplier
+        dst[1]    = cast(u8) ((value >> 6) & 1) * multiplier
+        dst[2]    = cast(u8) ((value >> 5) & 1) * multiplier
+        dst[3]    = cast(u8) ((value >> 4) & 1) * multiplier
+        dst[4]    = cast(u8) ((value >> 3) & 1) * multiplier
+        dst[5]    = cast(u8) ((value >> 2) & 1) * multiplier
+        dst[6]    = cast(u8) ((value >> 1) & 1) * multiplier
+        dst[7]    = cast(u8) (value & 1) * multiplier
+        src       += 1
+        dst       += 8
+        remaining -= 8
+    }
+
+    if remaining
+    {
+        let value = src[0]
+        for i in remaining do
+            dst[i] = cast(u8) ((value >> (7 - i)) & 1) * multiplier
+    }
+}
+
+func expand2Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, multiplier: u8)
+{
+    var src       = source
+    var dst       = destination
+    var remaining = sampleCount
+    while remaining >= 16
+    {
+        let packed   = cast(u32) src[0] | (cast(u32) src[1] << 8) | (cast(u32) src[2] << 16) | (cast(u32) src[3] << 24)
+        let bytes    = cast #bit(Math.Simd.U8x16) Math.Simd.splat(packed)
+        let words    = cast #bit(Math.Simd.U32x4) Math.Simd.shuffle(bytes, Expand2Bytes)
+        var expanded = ((words >> 6) & 0x0000_0003'u32) |
+                       ((words >> 4) & 0x0000_0300'u32) |
+                       ((words >> 2) & 0x0003_0000'u32) |
+                       (words & 0x0300_0000'u32)
+        if multiplier != 1 do
+            expanded *= cast(u32) multiplier
+        Math.Simd.store(dst, cast #bit(Math.Simd.U8x16) expanded)
+        src       += 4
+        dst       += 16
+        remaining -= 16
+    }
+
+    while remaining >= 4
+    {
+        let value = src[0]
+        dst[0]    = cast(u8) (value >> 6) * multiplier
+        dst[1]    = cast(u8) ((value >> 4) & 3) * multiplier
+        dst[2]    = cast(u8) ((value >> 2) & 3) * multiplier
+        dst[3]    = cast(u8) (value & 3) * multiplier
+        src       += 1
+        dst       += 4
+        remaining -= 4
+    }
+
+    if remaining
+    {
+        let value = src[0]
+        for i in remaining do
+            dst[i] = cast(u8) ((value >> (6 - 2 * i)) & 3) * multiplier
+    }
+}
+
 impl Decoder
 {
     func filterPaeth(left, up, upLeft: u8)->u8
@@ -113,43 +200,9 @@ impl Decoder
             let mul = .paletteCount ? 1 : 255
             for height
             {
-                var dest = orgDest
+                let dest = orgDest
                 orgDest += rowStrideOut
-                var src = dest + srcOffset
-                var k   = rowStrideOut
-                while k >= 8
-                {
-                    let c = src[0]
-                    dest[0] = cast #bit (u8) ((c >> 7) * mul)
-                    dest[1] = cast #bit (u8) (((c >> 6) & 1) * mul)
-                    dest[2] = cast #bit (u8) (((c >> 5) & 1) * mul)
-                    dest[3] = cast #bit (u8) (((c >> 4) & 1) * mul)
-                    dest[4] = cast #bit (u8) (((c >> 3) & 1) * mul)
-                    dest[5] = cast #bit (u8) (((c >> 2) & 1) * mul)
-                    dest[6] = cast #bit (u8) (((c >> 1) & 1) * mul)
-                    dest[7] = cast #bit (u8) ((c & 1) * mul)
-                    dest    += 8
-                    src     += 1
-                    k       -= 8
-                }
-
-                if k > 0
-                {
-                    let c = src[0]
-                    dest[0] = cast #bit (u8) ((c >> 7) * mul)
-                    if k > 1 do
-                        dest[1] = cast #bit (u8) (((c >> 6) & 1) * mul)
-                    if k > 2 do
-                        dest[2] = cast #bit (u8) (((c >> 5) & 1) * mul)
-                    if k > 3 do
-                        dest[3] = cast #bit (u8) (((c >> 4) & 1) * mul)
-                    if k > 4 do
-                        dest[4] = cast #bit (u8) (((c >> 3) & 1) * mul)
-                    if k > 5 do
-                        dest[5] = cast #bit (u8) (((c >> 2) & 1) * mul)
-                    if k > 6 do
-                        dest[6] = cast #bit (u8) (((c >> 1) & 1) * mul)
-                }
+                expand1Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
             }
         }
 
@@ -159,31 +212,9 @@ impl Decoder
             let mul = .paletteCount ? 1 : 85
             for height
             {
-                var dest = orgDest
+                let dest = orgDest
                 orgDest += rowStrideOut
-                var src = dest + srcOffset
-                var k   = rowStrideOut
-                while k >= 2
-                {
-                    let c = src[0]
-                    dest[0] = cast #bit (u8) ((c >> 6) * mul)
-                    dest[1] = cast #bit (u8) (((c >> 4) & 3) * mul)
-                    dest[2] = cast #bit (u8) (((c >> 2) & 3) * mul)
-                    dest[3] = cast #bit (u8) ((c & 3) * mul)
-                    dest    += 4
-                    src     += 1
-                    k       -= 4
-                }
-
-                if k > 0
-                {
-                    let c = src[0]
-                    dest[0] = cast #bit (u8) ((c >> 6) * mul)
-                    if k > 1 do
-                        dest[1] = cast #bit (u8) (((c >> 4) & 3) * mul)
-                    if k > 2 do
-                        dest[2] = cast #bit (u8) (((c >> 2) & 3) * mul)
-                }
+                expand2Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
             }
         }
 

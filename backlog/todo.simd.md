@@ -365,12 +365,13 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 
 ### T-548 — PNG packed samples, filters, and color conversion remain scalar
 
-- Intent: complete 1/2-bit expansion, non-paletted color conversion, encoder filter scoring, and
-  the Sub/Average/Paeth filters with prefix-scan strategies where left dependencies require them.
+- Intent: complete non-paletted color conversion, encoder filter scoring, and the Sub/Average/Paeth
+  filters with prefix-scan strategies where left dependencies require them.
   Decode and encode `Up` now process 64 bytes per iteration (1.59x and 1.27x), exact RGB/RGBA
   16-to-8 reduction processes eight samples per iteration (1.27x), and 4-bit expansion processes
-  32 samples per iteration (1.34x), measured over 512 MiB in Release. The 4-bit rewrite also fixed
-  the scalar 2/3-sample tail writing a complete four-sample group past the row.
+  32 samples per iteration (1.34x). The 1-bit and 2-bit paths now expand 16 samples per iteration
+  (1.27x and 1.46x). Measurements cover 512 MiB in Release. The packed rewrites also fixed the
+  scalar 2-bit and 4-bit 2/3-sample tails writing a complete group past the row.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
 - Related: T-514, T-516, T-517, T-520.

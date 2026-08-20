@@ -2,8 +2,8 @@
 using Swag
 
 // The packed intrinsic vocabulary, checked lane by lane: broadcast, saturation,
-// packs, widens, average, multiply-add, horizontal sum, permute, select, movemask, and the vector
-// overloads of the scalar math intrinsics.
+// packs, widens, average, multiply-add, horizontal sum, float-to-integer conversion, permute,
+// select, movemask, and the vector overloads of the scalar math intrinsics.
 
 #[Swag.NoInline]
 func splatS32(value: s32)->#simd [4] s32 => @vecsplat(value)
@@ -110,6 +110,19 @@ func splatU8(value: u8)->#simd [16] u8 => @vecsplat(value)
 
     @assert(@vecsum(cast(#simd [4] s32) [1, 2, 3, 4]) == 10)
     @assert(@vecsum(cast(#simd [4] s32) [2_147_483_647, 1, 0, 0]) == -2_147_483_648)
+}
+
+#test
+{
+    // Packed float-to-s32 conversion truncates toward zero. Invalid lanes use
+    // the machine integer-indefinite value, 's32.Min'.
+    let finite = cast(#simd [4] f32) [1.9, -1.9, 32767.99, -32768.99]
+    let ints   = cast([4] s32) @vectruncs32(finite)
+    @assert(ints[0] == 1 and ints[1] == -1 and ints[2] == 32767 and ints[3] == -32768)
+
+    let invalid  = cast(#simd [4] f32) [3_000_000_000.0, -3_000_000_000.0, cast #bit(f32) 0x7FC0_0000'u32, 0.0]
+    let fallback = cast([4] s32) @vectruncs32(invalid)
+    @assert(fallback[0] == -2_147_483_648 and fallback[1] == -2_147_483_648 and fallback[2] == -2_147_483_648 and fallback[3] == 0)
 }
 
 #test

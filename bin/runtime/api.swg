@@ -1492,6 +1492,10 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     // Horizontal sum: adds the four lanes with wrapping arithmetic.
     func @vecsum(value: #simd [4] s32)->s32
 
+    // Converts float lanes to signed 32-bit integers by truncating toward
+    // zero. NaN and values outside the destination range become 's32.Min'.
+    func @vectruncs32(value: #simd [4] f32)->#simd [4] s32
+
     // Dynamic byte permute: every result byte picks the source byte named by
     // the low four bits of the matching table byte, or zero when the table
     // byte's high bit is set.

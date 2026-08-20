@@ -364,6 +364,8 @@ namespace
                 return "vec.sqrtf32";
             case MicroOp::VecSqrtF64:
                 return "vec.sqrtf64";
+            case MicroOp::VecTruncF32ToS32:
+                return "vec.truncf32tos32";
             case MicroOp::VecMoveMaskB:
                 return "vec.movemaskb";
             case MicroOp::VecMoveMaskF32:

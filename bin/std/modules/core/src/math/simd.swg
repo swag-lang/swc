@@ -103,6 +103,11 @@ namespace Simd
         // Adds the four lanes with wrapping arithmetic.
         func sum(value: S32x4)->s32 => @vecsum(value)
 
+        // Converts float lanes to signed 32-bit integers by truncating toward zero.
+        //
+        // A NaN or a value outside the `s32` range becomes `s32.Min`.
+        func truncateToS32(value: F32x4)->S32x4 => @vectruncs32(value)
+
         // Narrows two vectors into one with unsigned saturation.
         //
         // The lanes of `low` land in the low half of the result and the lanes of `high` in

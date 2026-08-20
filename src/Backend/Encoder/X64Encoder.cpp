@@ -753,6 +753,7 @@ namespace
             case MicroOp::VecWidenLoU32: return {VEX_MAP_0F38, 0x66, 0x35};
             case MicroOp::VecSqrtF32: return {VEX_MAP_0F, 0x00, 0x51};
             case MicroOp::VecSqrtF64: return {VEX_MAP_0F, 0x66, 0x51};
+            case MicroOp::VecTruncF32ToS32: return {VEX_MAP_0F, 0xF3, 0x5B};
             case MicroOp::VecMoveMaskB: return {VEX_MAP_0F, 0x66, 0xD7};
             case MicroOp::VecMoveMaskF32: return {VEX_MAP_0F, 0x00, 0x50};
             case MicroOp::VecMoveMaskF64: return {VEX_MAP_0F, 0x66, 0x50};

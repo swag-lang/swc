@@ -18,8 +18,9 @@ Every capability entry also owns its declarations in `bin/runtime/api.swg`, the 
 language reference. An implementation that introduces or changes an intrinsic spelling also owns
 the lexer token and editor grammar update required for a surface-syntax change.
 The current production baseline consists of the public wrapper in
-`bin/std/modules/core/src/math/simd.swg` and the H.264 interpolation and YCbCr conversion kernels in
-`video/src/decode/h264/inter.swg` and `frame.swg`; the work below is still outstanding.
+`bin/std/modules/core/src/math/simd.swg`, the PCM conversion kernels in `audio/src/codec/pcm.swg`,
+and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h264/inter.swg` and
+`frame.swg`; the work below is still outstanding.
 
 ## Tier A — Target selection, widths, and calling boundaries
 
@@ -68,14 +69,15 @@ The current production baseline consists of the public wrapper in
 
 ## Tier A — Missing packed operations
 
-### T-511 — Packed numeric lane conversion is missing
+### T-511 — Packed numeric lane conversion is incomplete
 
-- Intent: add signed and unsigned integer-to-float, float-to-integer with declared rounding, and
-  widening/narrowing numeric conversions distinct from bit reinterpretation and saturating pack.
+- Intent: complete signed and unsigned integer-to-float, the float-to-integer directions beyond
+  the existing four-lane `f32` to `s32` truncation, and widening/narrowing numeric conversions
+  distinct from bit reinterpretation and saturating pack.
 - Complete when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
   runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
   them.
-- Related: T-540, T-547, T-549, T-552, T-555.
+- Related: T-547, T-549, T-552, T-555.
 
 ### T-512 — Rotates and several packed shifts are missing
 
@@ -305,14 +307,6 @@ The current production baseline consists of the public wrapper in
 - Related: T-509, T-518, T-519.
 
 ## Tier B — Audio and video codecs
-
-### T-540 — PCM conversion remains sample-scalar
-
-- Intent: convert PCM8, PCM24, PCM32, and Float32 blocks to signed 16-bit samples with shuffle,
-  numeric conversion, clamping, and packing.
-- Complete when: clipping, sign extension, endianness, all tails, and progress accounting match and
-  each encoding has an independently measured fast path.
-- Related: T-511, T-514, T-516.
 
 ### T-541 — H.264 vertical and strong deblocking remain scalar
 

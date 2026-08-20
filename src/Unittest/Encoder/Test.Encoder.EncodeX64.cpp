@@ -485,6 +485,7 @@ namespace
         ENCODE_CASE("vec_widenlou8_ext_src", "C4 C2 79 30 C9", b.emitVecUnaryRegReg(XMM1, XMM9, MicroOp::VecWidenLoU8, MicroOpBits::B128););
         ENCODE_CASE("vec_sqrtf32", "C5 F8 51 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecSqrtF32, MicroOpBits::B128););
         ENCODE_CASE("vec_sqrtf64", "C5 F9 51 CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecSqrtF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_truncf32tos32", "C5 FA 5B CA", b.emitVecUnaryRegReg(XMM1, XMM2, MicroOp::VecTruncF32ToS32, MicroOpBits::B128););
         ENCODE_CASE("vec_movemaskb", "C5 F9 D7 C2", b.emitVecUnaryRegReg(RAX, XMM2, MicroOp::VecMoveMaskB, MicroOpBits::B128););
         ENCODE_CASE("vec_movemaskb_ext_dst", "C5 79 D7 D2", b.emitVecUnaryRegReg(R10, XMM2, MicroOp::VecMoveMaskB, MicroOpBits::B128););
         ENCODE_CASE("vec_movemaskf32", "C5 F8 50 C2", b.emitVecUnaryRegReg(RAX, XMM2, MicroOp::VecMoveMaskF32, MicroOpBits::B128););

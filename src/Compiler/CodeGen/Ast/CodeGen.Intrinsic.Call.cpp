@@ -2213,6 +2213,11 @@ namespace
                 op      = laneBits == 32 ? MicroOp::VecSqrtF32 : MicroOp::VecSqrtF64;
                 isUnary = true;
                 break;
+            case TokenId::IntrinsicVecTruncS32:
+                SWC_ASSERT(floatLanes && laneBits == 32 && laneCount == 4);
+                op      = MicroOp::VecTruncF32ToS32;
+                isUnary = true;
+                break;
             case TokenId::IntrinsicMulAdd:
                 isMulAdd = true;
                 break;

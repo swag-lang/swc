@@ -1432,16 +1432,6 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
 
     const TypeRef    returnTypeRef = calledFn.returnTypeRef();
     const AstNodeRef resultNodeRef = sema.viewZero(sema.curNodeRef()).nodeRef();
-    auto*            payload       = sema.compiler().allocate<SliceSpecOpSemaPayload>();
-    payload->calledFn              = &calledFn;
-    payload->countFn               = countFn;
-    payload->lowerArgRef           = lowerArgRef;
-    payload->upperArgRef           = upperArgRef;
-    payload->lowerBoundRef         = range.nodeExprDownRef;
-    payload->upperBoundRef         = range.nodeExprUpRef;
-    payload->inclusive             = range.hasFlag(AstRangeExprFlagsE::Inclusive);
-    sema.setSemaPayload(sema.curNodeRef(), payload);
-
     sema.setSymbol(sema.curNodeRef(), &calledFn);
     sema.setType(sema.curNodeRef(), returnTypeRef);
     sema.setType(resultNodeRef, returnTypeRef);
@@ -1450,6 +1440,19 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     sema.unsetIsLValue(sema.curNodeRef());
     sema.unsetIsLValue(resultNodeRef);
     SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__spec_op_runtime_storage"));
+
+    auto* payload          = sema.compiler().allocate<SliceSpecOpSemaPayload>();
+    payload->calledFn      = &calledFn;
+    payload->countFn       = countFn;
+    payload->lowerArgRef   = lowerArgRef;
+    payload->upperArgRef   = upperArgRef;
+    payload->lowerBoundRef = range.nodeExprDownRef;
+    payload->upperBoundRef = range.nodeExprUpRef;
+    payload->inclusive     = range.hasFlag(AstRangeExprFlagsE::Inclusive);
+    // Imported macro expansion can re-resolve a detached slice clone carrying the source
+    // lowering payload. The selected special operation is now final and owns fresh argument refs.
+    sema.clearSemaPayload(sema.curNodeRef());
+    sema.setSemaPayload(sema.curNodeRef(), payload);
 
     outHandled = true;
     return Result::Continue;

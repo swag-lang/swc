@@ -233,6 +233,7 @@ enum class MicroOp : uint8_t
     VecWidenLoU32,
     VecSqrtF32,
     VecSqrtF64,
+    VecTruncF32ToS32,
     VecMoveMaskB,
     VecMoveMaskF32,
     VecMoveMaskF64,

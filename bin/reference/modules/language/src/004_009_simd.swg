@@ -135,7 +135,9 @@ into every lane, '@vecsatadd' and '@vecsatsub' clamp instead of wrapping,
 '@vecwidenlo' and '@vecwidenhi' extend half the lanes to double width,
 '@vecavgr' is the rounding average, '@vecmadd' multiplies 16-bit pairs into
 32-bit sums, '@vecsum' adds the four lanes of an 's32' vector with wrapping
-arithmetic, and '@vecperm' permutes bytes through a dynamic table. '@min',
+arithmetic, '@vectruncs32' converts four 'f32' lanes to 's32' by truncating
+toward zero, and '@vecperm' permutes bytes through a dynamic table. NaN and
+values outside the 's32' range become 's32.Min'. '@min',
 '@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil' and '@trunc' also accept
 vectors and compute per lane.
 */
@@ -160,6 +162,10 @@ vectors and compute per lane.
 
     let quads = cast(#simd [4] s32) [1, 2, 3, 4]
     @assert(@vecsum(quads) == 10)
+
+    let samples = cast(#simd [4] f32) [1.9, -1.9, 32767.9, -32768.9]
+    let ints    = cast([4] s32) @vectruncs32(samples)
+    @assert(ints[0] == 1 and ints[1] == -1 and ints[2] == 32767 and ints[3] == -32768)
 }
 
 /**

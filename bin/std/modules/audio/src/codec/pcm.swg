@@ -1,4 +1,4 @@
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 struct CodecPcmToPcm16
 {
@@ -43,15 +43,61 @@ impl ICodec for CodecPcmToPcm16
 
         func(TS: s32, EN: SoundFileEncoding) doIt(destination: [*] void, destinationSize: u64, source: const [*] void, sourceSize: u64)->CodecProgress
         {
-            var dst = cast([*] s16) destination
-            var src = cast(const [*] u8) source
+            var dst         = cast([*] s16) destination
+            var src         = cast(const [*] u8) source
+            let sampleCount = Math.min(sourceSize / TS, destinationSize / #sizeof(s16))
+            var remaining   = sampleCount
 
-            var bytesWritten, bytesRead = 0
-            for i in sourceSize / TS
+            #static switch EN
             {
-                if bytesWritten + #sizeof(s16) > destinationSize do
-                    break
+            case .Pcm8:
+                let bias = Simd.splat(128's16)
+                while remaining >= 16
+                {
+                    let bytes = Simd.load(src)
+                    Simd.store(dst, (cast #bit(Simd.S16x8) Simd.widenLow(bytes) - bias) << 8)
+                    Simd.store(dst + 8, (cast #bit(Simd.S16x8) Simd.widenHigh(bytes) - bias) << 8)
+                    dst       += 16
+                    src       += 16
+                    remaining -= 16
+                }
 
+            case .Pcm24:
+                const KeepHighBytes = cast(Simd.U8x16) [1'u8, 2, 4, 5, 7, 8, 10, 11, 128, 128, 128, 128, 128, 128, 128, 128]
+                while remaining >= 6
+                {
+                    Simd.storeLow8(cast([*] u8) dst, Simd.shuffle(Simd.load(src), KeepHighBytes))
+                    dst       += 4
+                    src       += 12
+                    remaining -= 4
+                }
+
+            case .Pcm32:
+                while remaining >= 8
+                {
+                    let low  = Simd.load(cast(const [*] s32) src) >> 16
+                    let high = Simd.load(cast(const [*] s32) src + 4) >> 16
+                    Simd.store(dst, Simd.packSigned(low, high))
+                    dst       += 8
+                    src       += 32
+                    remaining -= 8
+                }
+
+            case .Float32:
+                let scale = Simd.splat(32768.0'f32)
+                while remaining >= 8
+                {
+                    let low  = Simd.truncateToS32(Simd.load(cast(const [*] f32) src) * scale)
+                    let high = Simd.truncateToS32(Simd.load(cast(const [*] f32) src + 4) * scale)
+                    Simd.store(dst, Simd.packSigned(low, high))
+                    dst       += 8
+                    src       += 32
+                    remaining -= 8
+                }
+            }
+
+            for remaining
+            {
                 #static switch EN
                 {
                 case .Pcm8:
@@ -77,13 +123,11 @@ impl ICodec for CodecPcmToPcm16
                     #assert(false)
                 }
 
-                dst          += 1
-                src          += TS
-                bytesWritten += #sizeof(s16)
-                bytesRead    += TS
+                dst += 1
+                src += TS
             }
 
-            return {bytesWritten, bytesRead}
+            return {sampleCount * #sizeof(s16), sampleCount * TS}
         }
 
         switch .sourceEncoding

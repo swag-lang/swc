@@ -308,22 +308,27 @@ namespace
 
         // A slice asks for a length, so both bounds have to stay in order and inside the source.
         // Element indexing arms the same guard further down; this path returns early and used to
-        // hand out a view built from an unchecked subtraction. Arming it can suspend the node on
-        // the panic dependency, so it comes before the payload below: a resumed node replays this
-        // branch, and setting the payload twice trips an assertion.
+        // hand out a view built from an unchecked subtraction.
         SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, node.codeRef()));
+
+        sema.setType(sema.curNodeRef(), resultTypeRef);
+        sema.setIsValue(sema.node(sema.curNodeRef()));
+
+        // Every dependency that can suspend this node must complete before its unique payload is
+        // published. A resumed slice replays this function; publishing first used to trip the
+        // duplicate-payload assertion when runtime storage was still being declared.
+        SWC_RESULT(completeIndexedValueRuntimeStorage(sema, node.nodeExprRef, nodeExprView));
+        SWC_RESULT(completeSliceRuntimeStorage(sema, sliceRuntimeStorageTypeRef(sema, resultTypeRef, ConstantRef::invalid())));
 
         auto* slicePayload          = sema.compiler().allocate<SliceIndexSemaPayload>();
         slicePayload->lowerBoundRef = range.nodeExprDownRef;
         slicePayload->upperBoundRef = range.nodeExprUpRef;
         slicePayload->inclusive     = range.hasFlag(AstRangeExprFlagsE::Inclusive);
+        // A detached expression cloned through an imported macro can carry the source slice's
+        // lowering payload. This resolution owns different bound refs, so replace that inherited
+        // state only after every dependency has completed and the builtin route is final.
+        sema.clearSemaPayload(sema.curNodeRef());
         sema.setSemaPayload(sema.curNodeRef(), slicePayload);
-
-        sema.setType(sema.curNodeRef(), resultTypeRef);
-        sema.setIsValue(sema.node(sema.curNodeRef()));
-
-        SWC_RESULT(completeIndexedValueRuntimeStorage(sema, node.nodeExprRef, nodeExprView));
-        SWC_RESULT(completeSliceRuntimeStorage(sema, sliceRuntimeStorageTypeRef(sema, resultTypeRef, ConstantRef::invalid())));
         return Result::Continue;
     }
 

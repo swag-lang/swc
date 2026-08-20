@@ -2,6 +2,83 @@
 
 using Swag, Core
 
+private func audioPcmReferenceSample(encoding: SoundFileEncoding, source: const [*] u8)->s16
+{
+    switch encoding
+    {
+    case .Pcm8:
+        return cast(s16) ((cast(s32) source[0] - 128) << 8)
+
+    case .Pcm24:
+        var sample = cast(u32) source[0] | (cast(u32) source[1] << 8) | (cast(u32) source[2] << 16)
+        if sample & 0x00800000 do
+            sample |= 0xFF000000
+        return cast(s16) (cast #wrap (s32) sample >> 8)
+
+    case .Pcm32:
+        return cast(s16) ((cast(const [*] s32) source)[0] >> 16)
+
+    case .Float32:
+        let sample = (cast(const [*] f32) source)[0] * 32768.0
+        return cast(s16) Math.clamp(cast #wrap (s32) sample, -32768, 32767)
+    }
+
+    @assert(false)
+    return 0
+}
+
+private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fail
+{
+    const MaxSamples = 40'u64
+    const Sentinel   = 0xA5'u8
+
+    var source: Array'u8
+    source.resize((MaxSamples + 4) * sampleSize)
+    for index in source.count do
+        source[index] = cast(u8) ((index * 73 + 19) & 255)
+
+    if encoding == .Float32
+    {
+        let values = cast([*] f32) source.buffer!
+        for index in MaxSamples + 4
+        {
+            values[index] = cast(f32) (cast(s64) (index % 23) - 11) / 7.0
+        }
+    }
+
+    var destination: Array'u8
+    destination.resize((MaxSamples + 2) * #sizeof(s16))
+
+    var codec: CodecPcmToPcm16
+    codec.configure(encoding, .Pcm16, #typeof(CodecPcmToPcm16), @getcontext().allocator!)
+    let decoder: ICodec = &codec
+
+    // Every source tail crosses every vector boundary, while every destination byte count
+    // checks truncation to whole samples, including odd capacities and zero space.
+    for sourceSamples in MaxSamples + 1
+    {
+        for destinationBytes in (MaxSamples + 1) * #sizeof(s16)
+        {
+            for index in destination.count do
+                destination[index] = Sentinel
+
+            let progress      = try decoder.decode(destination.buffer!, destinationBytes, source.buffer!, sourceSamples * sampleSize)
+            let expectedCount = Math.min(sourceSamples, destinationBytes / #sizeof(s16))
+            @assert(progress.bytesWritten == expectedCount * #sizeof(s16))
+            @assert(progress.bytesRead == expectedCount * sampleSize)
+
+            for index in expectedCount
+            {
+                let expected = audioPcmReferenceSample(encoding, source.buffer! + index * sampleSize)
+                @assert((cast([*] s16) destination.buffer!)[index] == expected)
+            }
+
+            for index in expectedCount * #sizeof(s16) until destination.count do
+                @assert(destination[index] == Sentinel)
+        }
+    }
+}
+
 #test
 {
     var codec: CodecPcmToPcm16
@@ -69,4 +146,12 @@ using Swag, Core
     @assert(decoded.progress.bytesWritten == @countof(src) * #sizeof(s16))
     @assert(decoded.progress.bytesRead == @countof(src) * #sizeof(f32))
     audioAssertSamples(decoded.destination.toSlice(), [-32768's16, 0's16, 16384's16, 32767's16, 32767's16, -32768's16, 8192's16, -8192's16, 32764's16, -32764's16, 3's16, -3's16])
+}
+
+#test
+{
+    expect audioCheckPcmTails(.Pcm8, 1)
+    expect audioCheckPcmTails(.Pcm24, 3)
+    expect audioCheckPcmTails(.Pcm32, 4)
+    expect audioCheckPcmTails(.Float32, 4)
 }

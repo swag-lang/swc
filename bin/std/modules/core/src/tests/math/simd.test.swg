@@ -61,6 +61,9 @@ using Swag, Math
 
     @assert(Simd.sum(cast(Simd.S32x4) [1's32, 2, 3, 4]) == 10)
     @assert(Simd.sum(cast(Simd.S32x4) [2_147_483_647's32, 1, 0, 0]) == -2_147_483_648)
+
+    let truncated = Simd.truncateToS32(cast(Simd.F32x4) [1.9'f32, -1.9, 32767.9, -32768.9])
+    @assert(truncated[0] == 1 and truncated[1] == -1 and truncated[2] == 32767 and truncated[3] == -32768)
 }
 
 // Packs narrow with saturation, and the widening halves extend with the lane's signedness.

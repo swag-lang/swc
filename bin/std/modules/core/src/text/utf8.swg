@@ -517,8 +517,23 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
     var srcLength  = @countof(src)
     var destLength = @countof(dest)
 
+    const VectorSize = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
     while srcLength
     {
+        if srcLength >= VectorSize and destLength >= VectorSize
+        {
+            let values = Math.Simd.load(srcPtr)
+            if Math.Simd.allTrue(values < Math.Simd.splat(0x80'u16))
+            {
+                let signed = cast #bit(Math.Simd.S16x8) values
+                Math.Simd.storeLow8(destPtr, Math.Simd.packUnsigned(signed, signed))
+                srcPtr, destPtr       += VectorSize
+                count                 += VectorSize
+                srcLength, destLength -= VectorSize
+                continue
+            }
+        }
+
         let {c, eat} = Utf16.decodeRune(@mkslice(srcPtr, srcLength))
 
         Debug.assert(destLength >= 4, "destination buffer is too small")

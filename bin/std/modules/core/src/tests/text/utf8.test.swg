@@ -26,6 +26,27 @@ func firstNonAsciiRune(text: string)->rune
     return 0
 }
 
+func scalarUtf8FromUtf16(dest: [..] u8, src: const [..] u16)->u64
+{
+    var count      = 0'u64
+    var srcPtr     = @dataof(src)
+    var destPtr    = @dataof(dest)
+    var srcLength  = @countof(src)
+    var destLength = @countof(dest)
+    while srcLength
+    {
+        let {c, eat} = Utf16.decodeRune(@mkslice(srcPtr, srcLength))
+        let eatDest  = Utf8.encodeRune(@mkslice(destPtr, destLength), c)
+        srcPtr     += eat
+        srcLength  -= eat
+        destPtr    += eatDest
+        destLength -= eatDest
+        count      += eatDest
+    }
+
+    return count
+}
+
 #test
 {
     var bytes: [4] u8
@@ -82,6 +103,50 @@ func firstNonAsciiRune(text: string)->rune
     @assert(dest[0] == 0xEF)
     @assert(dest[1] == 0xBF)
     @assert(dest[2] == 0xBD)
+}
+
+// Exercise every tail around the eight-lane pack and every possible interruption of a long
+// ASCII run. The untouched sentinel bytes are part of the comparison.
+#test
+{
+    var source:   [80] u16
+    var actual:   [320] u8
+    var expected: [320] u8
+    for @countof(source) do
+        source[@index] = cast(u16) ('a' + @index % 26)
+
+    for 66
+    {
+        for @countof(actual)
+        {
+            actual[@index]   = 0xA5
+            expected[@index] = 0xA5
+        }
+
+        let src           = @mkslice(@dataof(source), @index)
+        let actualCount   = Utf8.fromUtf16(actual, src)
+        let expectedCount = scalarUtf8FromUtf16(expected, src)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
+
+    for 48
+    {
+        for @countof(source) do
+            source[@index] = cast(u16) ('a' + @index % 26)
+        source[@index] = 0x20AC
+        for @countof(actual)
+        {
+            actual[@index]   = 0xA5
+            expected[@index] = 0xA5
+        }
+
+        let src           = @mkslice(@dataof(source), 64)
+        let actualCount   = Utf8.fromUtf16(actual, src)
+        let expectedCount = scalarUtf8FromUtf16(expected, src)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
 }
 
 #test

@@ -425,10 +425,11 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   indexed spaces, with separate conversion benchmarks.
 - Related: T-511, T-517, T-521.
 
-### T-555 — UTF-16 and generic encoding conversion lack packed fast paths
+### T-555 — BMP conversion and bounded UTF-16 terminator search remain scalar
 
-- Intent: add ASCII/BMP block conversion, widening/narrowing, zero-terminator search, and packed
-  text-likeness checks while falling back before surrogates or invalid sequences.
-- Complete when: malformed sequences, endian variants, terminators, destination limits, and tails
-  match scalar behavior and ASCII/BMP-heavy conversions improve.
+- Intent: add packed BMP conversion beyond the existing ASCII fast paths, accelerate endian-aware
+  UTF-16/32 decoding, and provide a length-bounded terminator search so SIMD loads remain inside
+  caller-owned storage. Fall back before surrogates or invalid sequences.
+- Complete when: malformed sequences, endian variants, bounded terminators, destination limits,
+  and tails match scalar behavior and BMP-heavy conversions improve.
 - Related: T-511, T-514, T-516.

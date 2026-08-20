@@ -3,6 +3,20 @@
 
 using Swag
 
+func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
+{
+    var result: retval
+    for value, index in bytes where !value
+    {
+        if index & 1 do
+            result.odd += 1
+        else do
+            result.even += 1
+    }
+
+    return result
+}
+
 // A byte-order mark answers on its own, and UTF-32 LE is not read as UTF-16 LE even though it
 // opens with the same two bytes.
 #test
@@ -22,6 +36,24 @@ using Swag
     @assert(Text.hasBom(utf16le, .Utf16Le) and !Text.hasBom(utf16le, .Utf16Be))
     @assert(Text.bomLength(.Utf8) == 3 and Text.bomLength(.Windows1252) == 0)
     @assert(Text.unitSize(.Utf16Be) == 2 and Text.unitSize(.Utf32Le) == 4 and Text.unitSize(.Windows1252) == 1)
+}
+
+// Compare the vector mask split with the original scalar definition for every tail and for
+// arbitrary zero positions on both parities.
+#test
+{
+    var bytes: [80] u8
+    for @countof(bytes) do
+        bytes[@index] = ((@index * 13 + 5) % 11) ? cast(u8) (@index + 1) : 0
+
+    for 80
+    {
+        let slice    = @mkslice(@dataof(bytes), @index)
+        let actual   = Text.countZeroPositions(slice)
+        let expected = scalarCountZeroPositions(slice)
+        @assert(actual.even == expected.even)
+        @assert(actual.odd == expected.odd)
+    }
 }
 
 // Without a mark the content decides: ASCII stays UTF-8, the zero-byte pattern of Latin text in

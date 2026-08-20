@@ -17,6 +17,27 @@ func assertUtf16(values: Array'u16, expected: const [..] u16)->bool
     return true
 }
 
+func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
+{
+    var count      = 0'u64
+    var srcPtr     = @dataof(src)
+    var destPtr    = @dataof(dest)
+    var srcLength  = @countof(src)
+    var destLength = @countof(dest)
+    while srcLength
+    {
+        let {c, eat} = Utf8.decodeRune(@mkslice(srcPtr, srcLength))
+        let eatDest  = Utf16.encodeRune(@mkslice(destPtr, destLength), c)
+        srcPtr     += eat
+        srcLength  -= eat
+        destPtr    += eatDest
+        destLength -= eatDest
+        count      += eatDest
+    }
+
+    return count
+}
+
 #test
 {
     var buffer: [2] u16
@@ -106,4 +127,49 @@ func assertUtf16(values: Array'u16, expected: const [..] u16)->bool
         @assert(zero[i] == expected[i])
     @assert(zero[6] == 0)
     @assert(Utf16.lengthZeroTerminated(@dataof(zero)) == 6)
+}
+
+// Every length around the vector boundary, and every position where a non-ASCII sequence can
+// interrupt an ASCII run, must stay identical to the scalar conversion.
+#test
+{
+    var source:   [80] u8
+    var actual:   [160] u16
+    var expected: [160] u16
+    for @countof(source) do
+        source[@index] = cast(u8) ('a' + @index % 26)
+
+    for 66
+    {
+        for @countof(actual)
+        {
+            actual[@index]   = 0xBEEF
+            expected[@index] = 0xBEEF
+        }
+
+        let src           = @mkslice(@dataof(source), @index)
+        let actualCount   = Utf16.fromUtf8(actual, src)
+        let expectedCount = scalarUtf16FromUtf8(expected, src)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
+
+    for 48
+    {
+        for @countof(source) do
+            source[@index] = cast(u8) ('a' + @index % 26)
+        source[@index]     = 0xC3
+        source[@index + 1] = 0xA9
+        for @countof(actual)
+        {
+            actual[@index]   = 0xBEEF
+            expected[@index] = 0xBEEF
+        }
+
+        let src           = @mkslice(@dataof(source), 64)
+        let actualCount   = Utf16.fromUtf8(actual, src)
+        let expectedCount = scalarUtf16FromUtf8(expected, src)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
 }

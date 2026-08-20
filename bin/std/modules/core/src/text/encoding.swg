@@ -75,12 +75,28 @@ func hasBom(bytes: const [..] u8, encoding: Encoding)->bool
 private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 {
     var result: retval
-    for value, index in bytes where !value
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let zero  = Math.Simd.splat(0'u8)
+    var index = 0'u64
+    while @countof(bytes) - index >= VectorSize
     {
-        if index & 1 do
-            result.odd += 1
-        else do
-            result.even += 1
+        let mask = Math.Simd.bitmask(Math.Simd.load(@dataof(bytes) + index) == zero)
+        result.even += Math.countOnes(mask & 0x5555)
+        result.odd  += Math.countOnes(mask & 0xAAAA)
+        index       += VectorSize
+    }
+
+    while index < @countof(bytes)
+    {
+        if !bytes[index]
+        {
+            if index & 1 do
+                result.odd += 1
+            else do
+                result.even += 1
+        }
+
+        index += 1
     }
 
     return result

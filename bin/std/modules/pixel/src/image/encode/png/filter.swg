@@ -36,6 +36,39 @@ func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64
     }
 }
 
+func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
+{
+    const VectorBytes = #sizeof(Math.Simd.U8x16)
+    const BatchBytes  = 4 * VectorBytes
+    var offset = 0'u64
+    while offset < bytesPerPixel and offset < count
+    {
+        destination[offset] = source[offset]
+        offset              += 1
+    }
+
+    while count - offset >= BatchBytes
+    {
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) - Math.Simd.load(source + offset - bytesPerPixel))
+        Math.Simd.store(destination + offset + VectorBytes, Math.Simd.load(source + offset + VectorBytes) - Math.Simd.load(source + offset + VectorBytes - bytesPerPixel))
+        Math.Simd.store(destination + offset + 2 * VectorBytes, Math.Simd.load(source + offset + 2 * VectorBytes) - Math.Simd.load(source + offset + 2 * VectorBytes - bytesPerPixel))
+        Math.Simd.store(destination + offset + 3 * VectorBytes, Math.Simd.load(source + offset + 3 * VectorBytes) - Math.Simd.load(source + offset + 3 * VectorBytes - bytesPerPixel))
+        offset += BatchBytes
+    }
+
+    while count - offset >= VectorBytes
+    {
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) - Math.Simd.load(source + offset - bytesPerPixel))
+        offset += VectorBytes
+    }
+
+    while offset < count
+    {
+        destination[offset] = cast #bit(u8) (source[offset] - #wrap source[offset - bytesPerPixel])
+        offset              += 1
+    }
+}
+
 func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)->s32
 {
     let bias   = Math.Simd.splat(128's16)
@@ -81,6 +114,21 @@ func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)-
         offset += 1
     }
 
+    return sum
+}
+
+func filterSumSub(source: const [*] u8, count, bytesPerPixel: u64)->s32
+{
+    let prefix = Math.min(count, bytesPerPixel)
+    var sum    = 0's32
+    for i in prefix
+    {
+        let value = cast(s32) source[i]
+        sum += 128 - Math.abs(value - 128)
+    }
+
+    if count > prefix do
+        sum += filterSumIndependent(source + prefix, source + prefix - bytesPerPixel, count - prefix, true)
     return sum
 }
 
@@ -150,6 +198,8 @@ impl Encoder
         let prevScanline = .prevScanline!
         if filter == .None do
             return filterSumIndependent(scanline, prevScanline, size, false)
+        if filter == .Sub do
+            return filterSumSub(scanline, size, .bytesPerPixel)
         if filter == .Up do
             return filterSumIndependent(scanline, prevScanline, size, true)
 
@@ -199,6 +249,12 @@ impl Encoder
     {
         let scanline     = .scanline!
         let prevScanline = .prevScanline!
+        if filter == .Sub
+        {
+            filterSubRow(scanline, filtered, size, .bytesPerPixel)
+            return
+        }
+
         if filter == .Up
         {
             filterUpRow(scanline, prevScanline, filtered, size)

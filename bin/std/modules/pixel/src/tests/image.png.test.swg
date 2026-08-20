@@ -110,6 +110,45 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 
 #test
 {
+    // Every pixel stride, vector/tail boundary, unaligned pointer, wrapping
+    // subtraction, and untouched destination sentinel matches the scalar form.
+    const Capacity = 192
+    var source:   [Capacity] u8
+    var actual:   [Capacity] u8
+    var expected: [Capacity] u8
+    for bytesPerPixelIndex in 8
+    {
+        let bytesPerPixel = bytesPerPixelIndex + 1
+        for count in 162
+        {
+            for i in Capacity
+            {
+                source[i]   = cast(u8) ((cast(u32) i * 37 + cast(u32) count * 11 + cast(u32) bytesPerPixel * 17) & 0xFF)
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            source[1]                 = 0
+            source[1 + bytesPerPixel] = 255
+            var expectedScore = 0's32
+            for i in count
+            {
+                let left  = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
+                let value = cast(s32) source[1 + i] - left
+                expected[3 + i] = cast #bit(u8) value
+                expectedScore   += 128 - Math.abs(value - 128)
+            }
+
+            Png.filterSubRow(&source[1], &actual[3], count, bytesPerPixel)
+            for i in Capacity do
+                @assert(actual[i] == expected[i])
+            @assert(Png.filterSumSub(&source[1], count, bytesPerPixel) == expectedScore)
+        }
+    }
+}
+
+#test
+{
     // SIMD and scalar definitions agree at every vector/tail boundary, with
     // unaligned pointers and the full positive/negative byte-difference range.
     const Capacity = 192

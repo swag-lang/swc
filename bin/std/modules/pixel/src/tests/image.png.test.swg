@@ -108,6 +108,39 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     }
 }
 
+#test
+{
+    // SIMD and scalar definitions agree at every vector/tail boundary, with
+    // unaligned pointers and the full positive/negative byte-difference range.
+    const Capacity = 192
+    var source:   [Capacity] u8
+    var previous: [Capacity] u8
+    for count in 162
+    {
+        for i in Capacity
+        {
+            source[i]   = cast(u8) ((cast(u32) i * 37 + cast(u32) count * 11) & 0xFF)
+            previous[i] = cast(u8) ((cast(u32) i * 53 + cast(u32) count * 7) & 0xFF)
+        }
+
+        source[1]   = 0
+        previous[2] = 255
+        source[2]   = 255
+        previous[3] = 0
+
+        var expectedNone, expectedUp: s32
+        for i in count
+        {
+            let value = cast(s32) source[1 + i]
+            expectedNone += 128 - Math.abs(value - 128)
+            expectedUp   += 128 - Math.abs(value - previous[2 + i] - 128)
+        }
+
+        @assert(Png.filterSumIndependent(&source[1], &previous[2], count, false) == expectedNone)
+        @assert(Png.filterSumIndependent(&source[1], &previous[2], count, true) == expectedUp)
+    }
+}
+
 func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
 {
     const Capacity = 160

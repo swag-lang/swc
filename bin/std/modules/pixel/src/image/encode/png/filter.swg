@@ -36,6 +36,54 @@ func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64
     }
 }
 
+func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)->s32
+{
+    let bias   = Math.Simd.splat(128's16)
+    let ones   = Math.Simd.splat(1's16)
+    var sum    = 0's32
+    var offset = 0'u64
+    if up
+    {
+        while count - offset >= 16
+        {
+            let sourceBytes   = Math.Simd.load(source + offset)
+            let previousBytes = Math.Simd.load(previous + offset)
+            let lowValues     = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(sourceBytes) - cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(previousBytes)
+            let highValues    = cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(sourceBytes) - cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(previousBytes)
+            let lowScores     = bias - Math.abs(lowValues - bias)
+            let highScores    = bias - Math.abs(highValues - bias)
+            sum    += Math.Simd.sum(Math.Simd.mulAddPairs(lowScores, ones))
+            sum    += Math.Simd.sum(Math.Simd.mulAddPairs(highScores, ones))
+            offset += 16
+        }
+    }
+    else
+    {
+        while count - offset >= 16
+        {
+            let sourceBytes = Math.Simd.load(source + offset)
+            let lowValues   = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(sourceBytes)
+            let highValues  = cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(sourceBytes)
+            let lowScores   = bias - Math.abs(lowValues - bias)
+            let highScores  = bias - Math.abs(highValues - bias)
+            sum    += Math.Simd.sum(Math.Simd.mulAddPairs(lowScores, ones))
+            sum    += Math.Simd.sum(Math.Simd.mulAddPairs(highScores, ones))
+            offset += 16
+        }
+    }
+
+    while offset < count
+    {
+        var value = cast(s32) source[offset]
+        if up do
+            value -= previous[offset]
+        sum    += 128 - Math.abs(value - 128)
+        offset += 1
+    }
+
+    return sum
+}
+
 impl Encoder
 {
     mtd getBestFilter(size: u32)->Filter
@@ -100,6 +148,11 @@ impl Encoder
 
         let scanline     = .scanline!
         let prevScanline = .prevScanline!
+        if filter == .None do
+            return filterSumIndependent(scanline, prevScanline, size, false)
+        if filter == .Up do
+            return filterSumIndependent(scanline, prevScanline, size, true)
+
         for i in size
         {
             if i >= .bytesPerPixel

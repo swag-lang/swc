@@ -28,7 +28,7 @@ private const HtmlCharsetProbeSize = 4 * 1024'u64
 private func htmlDeclaredEncoding(probe: string)->{ encoding: Text.Encoding, matched: bool }
 {
     var result: retval
-    var scan    = 0'u64
+    var scan = 0'u64
     while true
     {
         let found = Utf8.indexOf(probe, "charset", scan, .Latin1NoCase)
@@ -756,7 +756,7 @@ internal impl HtmlView
         .selAnchorNode = HtmlNoNode
         .selCaretNode  = HtmlNoNode
         .selAnchorOffset, .selCaretOffset = 0
-        .selecting = false
+        .selecting     = false
         .canvas.invalidate()
     }
 
@@ -848,7 +848,7 @@ internal impl HtmlView
         }
 
         starts.add(scan)
-        let position = Math.min(offset, @countof(source) - 1)
+        let position  = Math.min(offset, @countof(source) - 1)
         var runeIndex = 0'u64
         for i in words.count where starts[i] <= position do
             runeIndex = i
@@ -898,17 +898,17 @@ internal impl HtmlView
         // offset puts every box into; the scroll position is kept separately because a sticky box
         // needs to know where the document really is.
         var result: retval
-        result.layout         = &.layout
-        result.images         = &.images
-        result.renderer       = .app().renderer
-        result.scrollY        = .scroll.scrollPosition().y
-        result.visible        = .scroll.paddedClientRect()
-        result.hotLink        = .themeColors().url_HotText
-        result.hoverLink      = .linkElementAt(.hovered)
-        result.searchNode     = .searchNode
-        result.searchStart    = .searchStart
-        result.searchEnd      = .searchEnd
-        result.selection      = .styleDefaults().selection
+        result.layout      = &.layout
+        result.images      = &.images
+        result.renderer    = .app().renderer
+        result.scrollY     = .scroll.scrollPosition().y
+        result.visible     = .scroll.paddedClientRect()
+        result.hotLink     = .themeColors().url_HotText
+        result.hoverLink   = .linkElementAt(.hovered)
+        result.searchNode  = .searchNode
+        result.searchStart = .searchStart
+        result.searchEnd   = .searchEnd
+        result.selection   = .styleDefaults().selection
         let range = .selectionRange()
         if range.has
         {
@@ -917,6 +917,7 @@ internal impl HtmlView
             result.selEndNode     = range.endNode
             result.selEndOffset   = range.endOffset
         }
+
         result.scrollTrack    = .themeColors().scrollBar_Bk
         result.scrollThumb    = .themeColors().scrollBar_Box
         result.scrollBarSize  = .themeMetrics().scrollBar_SmallSize
@@ -1002,6 +1003,15 @@ internal impl HtmlView
             discard wnd
             if evt is ResizeEvent do
                 target.placeDocument()
+
+            // An embedded document contributes its complete height to its parent and therefore
+            // has no outer scroll surface of its own. Let an unclaimed wheel continue to that
+            // parent; independently scrollable CSS regions already consume it in HtmlCanvas.
+            if let mouseEvt = evt as MouseEvent where target.embedded and mouseEvt.kind == .Wheel
+            {
+                mouseEvt.accepted = false
+                return true
+            }
 
             return false
         }

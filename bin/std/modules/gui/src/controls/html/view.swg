@@ -1002,6 +1002,7 @@ internal impl HtmlView
             discard wnd
             if evt is ResizeEvent do
                 target.placeDocument()
+
             return false
         }
         result.scroll.sigScrollPositionChanged += func|target = result|(scroll, oldPosition, newPosition)

@@ -201,6 +201,27 @@ func markdownFixturePath()->String
     Testing.assertContentFits(view)
 }
 
+// The scroll surface hidden inside an embedded HTML block must not consume a wheel event that no
+// independently scrollable CSS region claimed; the Markdown document remains the scroll owner.
+#test
+{
+    var source = String.from("<p align=\"center\"><b>Embedded HTML block</b></p>\n\n")
+    for index in 64 do
+        source += Format.toString("Paragraph % remains below the embedded block.\n\n", index)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+    let view = Markdown.View.createText(&host.root, source.toString())
+    view.resize(640, 240)
+    view.applyLayout()
+
+    @assert(view.blocks[0].html != null)
+    let point = view.blocks[0].html!.canvas.surfaceRect().center()
+    host.mouseWheel(point, -1)
+    @assert(view.scroll.scrollPosition().y > 0)
+}
+
 // HTML fragments loaded from a Markdown file resolve local images beside that Markdown file.
 #test
 {

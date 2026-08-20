@@ -24,6 +24,27 @@ using Swag
     @assert(ok)
 }
 
+// Match distances and lengths around the 8/16-byte copy boundaries round-trip
+// through the exact Deflate producer consumed by Inflate.
+#test
+{
+    var input: Array'u8
+    for distance in 1 to 33
+    {
+        input.clear()
+        for i in distance do
+            input.add(cast(u8) ((i * 19 + distance) & 0xFF))
+        for repeat in 300
+        {
+            discard repeat
+            for i in distance do
+                input.add(input[i])
+        }
+
+        roundTrip(input.toSlice(), .Default)
+    }
+}
+
 func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var zl: Compress.ZLib

@@ -58,6 +58,9 @@ using Swag, Math
     let words = cast(Simd.S16x8) [1's16, 2, 3, 4, 5, 6, 7, 8]
     let pairs = Simd.mulAddPairs(words, words)
     @assert(pairs[0] == 1 * 1 + 2 * 2 and pairs[3] == 7 * 7 + 8 * 8)
+
+    @assert(Simd.sum(cast(Simd.S32x4) [1's32, 2, 3, 4]) == 10)
+    @assert(Simd.sum(cast(Simd.S32x4) [2_147_483_647's32, 1, 0, 0]) == -2_147_483_648)
 }
 
 // Packs narrow with saturation, and the widening halves extend with the lane's signedness.

@@ -30,7 +30,7 @@ The current production baseline consists of the public wrapper in
   without executing an unsupported instruction or duplicating ad-hoc dispatch in every module.
 - Complete when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
   builds, and one runtime or codec kernel ships scalar, 128-bit, and 256-bit variants through it.
-- Related: T-506, T-510, T-525.
+- Related: T-506, T-510.
 
 ### T-506 — 256-bit vectors are not expressible
 
@@ -91,7 +91,7 @@ The current production baseline consists of the public wrapper in
   including decomposed baseline lowerings where no one-instruction form exists.
 - Complete when: low and high halves are unambiguous, all shapes have differential tests against
   scalar arithmetic, and AVX2/AVX-512 forms are selected where profitable.
-- Related: T-251, T-250, T-536, T-537.
+- Related: T-251, T-250, T-536.
 
 ### T-556 — Packed integer division and modulo have no portable lowering
 
@@ -125,7 +125,7 @@ The current production baseline consists of the public wrapper in
   callers do not open-code shuffle ladders.
 - Complete when: integer and floating reductions document order, overflow, NaN, and signed-zero
   behavior and lower without memory round-trips.
-- Related: T-520, T-527, T-531, T-534, T-536, T-546.
+- Related: T-520, T-531, T-534, T-536, T-546.
 
 ### T-516 — Vector tails require scalar cleanup
 
@@ -133,7 +133,7 @@ The current production baseline consists of the public wrapper in
   defined non-faulting behavior, and efficient SSE2/AVX2 fallback lowering.
 - Complete when: arbitrary byte counts can be processed without reading or writing outside the
   slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
-- Related: T-510, T-525, T-529, T-531, T-545.
+- Related: T-510, T-531, T-545.
 
 ### T-517 — Gather, scatter, compress, and expand are unavailable
 
@@ -150,7 +150,7 @@ The current production baseline consists of the public wrapper in
 - Complete when: alignment violations are diagnosed or guarded as declared, large copy/fill and
   image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
   remains the default portable operation.
-- Related: T-509, T-525, T-545, T-552.
+- Related: T-509, T-545, T-552.
 
 ### T-518 — Packed bit counting and bit scans are unavailable
 
@@ -217,34 +217,17 @@ The current production baseline consists of the public wrapper in
   checks, and generate masked or peeled tails using the explicit SIMD operation set.
 - Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
   configured feature ceiling with scalar-equivalent results and profitable cost decisions.
-- Related: T-515, T-516, T-525, T-526, T-531.
+- Related: T-515, T-516, T-526, T-531.
 
 ## Tier B — Runtime and Core bulk primitives
 
-### T-525 — Runtime memory fallbacks are not explicitly SIMD
+### T-526 — BitArray equality remains word-scalar
 
-- Intent: implement `__memoryCopyForward`, `__memoryCopyBackward`, `@memset`, and especially
-  `@memcmp` in `bin/runtime/memory.swg` with raw `#simd` types, without introducing a dependency on
-  `std/core`; retain correct overlap and first-differing-byte semantics.
-- Complete when: sizes, alignments, overlaps, guard-page tails, and comparison ordering pass, while
-  release benchmarks beat or match the current `[2] u64` implementation across size classes.
-- Related: T-509, T-516, T-524.
-
-### T-526 — BitArray bulk operations remain word-scalar
-
-- Intent: vectorize equality, whole-array invert, `andWith`, `orWith`, and `xorWith` in
-  `core/src/collections/bitarray.swg`.
+- Intent: improve large `BitArray` equality without regressing the compiler-vectorized scalar loop;
+  explicit delegation to `Memory.compare` is currently slower.
 - Complete when: arbitrary word counts and unused tail bits retain their contract and large-array
-  throughput improves against the scalar path.
+  equality throughput improves against the current scalar path.
 - Related: T-515, T-516, T-524.
-
-### T-527 — Constant-time byte equality is scalar
-
-- Intent: vectorize `constantTimeEqual` while preserving a control-flow and memory-access pattern
-  independent of byte values.
-- Complete when: every length and alignment matches the scalar result, generated code has no
-  data-dependent early exit, and timing-oriented review covers vector and tail paths.
-- Related: T-515, T-516.
 
 ### T-528 — PBKDF2 accumulates digest bytes scalarly
 
@@ -253,45 +236,13 @@ The current production baseline consists of the public wrapper in
   throughput improves independently of the HMAC implementation.
 - Related: T-516.
 
-### T-529 — Deflate match and RLE scans compare one byte at a time
+### T-531 — Some UTF-8 scans still lack packed fast paths
 
-- Intent: scan match candidates and repeated runs in 16/32/64-byte chunks, using masks to locate the
-  first mismatch without changing match choice or compressed output.
-- Complete when: boundary, window-wrap, and maximum-length cases remain byte-identical and corpus
-  compression throughput improves.
-- Related: T-506, T-515, T-516.
-
-### T-530 — Inflate match copies stop at eight-byte chunks
-
-- Intent: add packed forward-copy paths for legal non-overlapping distances while retaining the
-  exact scalar/word behavior for short overlapping LZ matches.
-- Complete when: every distance and tail passes malformed-stream and differential corpus tests and
-  decompression throughput improves without an out-of-range read.
-- Related: T-516, T-525.
-
-### T-531 — UTF-8 scans do not have packed ASCII and byte-search paths
-
-- Intent: vectorize `isValid`, `countRunes`, `indexOf`, and small-set `indexOfAny` fast paths while
+- Intent: vectorize `isValid`, `indexOf`, and small-set `indexOfAny` fast paths while
   falling back at the first non-ASCII or structurally interesting byte.
 - Complete when: malformed boundaries, rune counts, search indices, and arbitrary tails match the
   scalar implementation and ASCII-heavy benchmarks improve.
 - Related: T-515, T-516, T-518, T-524.
-
-### T-532 — Latin-1 casing and case-insensitive comparison are scalar
-
-- Intent: process ASCII blocks with compares/selects and retain the Latin-1 table path only for
-  blocks containing non-ASCII values.
-- Complete when: all 256 byte values preserve current casing/comparison behavior and mixed-text
-  benchmarks demonstrate the dispatch threshold.
-- Related: T-516.
-
-### T-533 — Base64 encode and decode are scalar
-
-- Intent: add packed block transforms for both accepted alphabets, with scalar handling for
-  whitespace, padding, malformed input, and tails.
-- Complete when: exhaustive short inputs, malformed cases, and large buffers agree with the current
-  codec and both directions show a measured throughput gain.
-- Related: T-514, T-516.
 
 ### T-534 — Vector4 and Pixel.Color do not use their native packed shape
 
@@ -342,14 +293,6 @@ The current production baseline consists of the public wrapper in
 - Complete when: differential vectors cover every block-tail length, carry/reduction boundaries are
   exact, and authenticated-encryption throughput improves end to end.
 - Related: T-513, T-515.
-
-### T-537 — Adler-32 does not use packed weighted sums
-
-- Intent: process blocks with widening, byte sums, and weighted prefix contributions while keeping
-  modulo reduction bounded and exact.
-- Complete when: every input length and split-update sequence matches the scalar checksum and zlib
-  corpus throughput improves.
-- Related: T-515, T-520.
 
 ### T-538 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
 

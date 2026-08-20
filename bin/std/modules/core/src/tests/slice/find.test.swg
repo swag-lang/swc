@@ -54,3 +54,40 @@ using Swag
     @assert(!Slice.equals(left, other))
     @assert(!Slice.equals(left, [1, 2, 3]))
 }
+
+// Byte overloads cover every lane, unaligned starts, vector tails, and long
+// candidates without changing the generic operation family.
+#test
+{
+    var values: [96] u8
+    for position in 96
+    {
+        for &value in values do
+            value[] = 0x11
+        values[position] = 0xE7
+        @assert(Slice.findLinear(values, 0xE7'u8) == position)
+    }
+
+    @assert(Slice.findLinear(values, 0xFF'u8) == Swag.U64.Max)
+
+    let needle: [5] u8 = [1, 2, 3, 4, 5]
+    for position in 80
+    {
+        for &value in values do
+            value[] = 0
+        for i in @countof(needle) do
+            values[position + i] = needle[i]
+        @assert(Slice.findSubslice(values, needle) == position)
+    }
+
+    var same = values
+    @assert(Slice.equals(values, same))
+    for position in 96
+    {
+        same[position] ^= 0xFF
+        @assert(!Slice.equals(values, same))
+        same[position] ^= 0xFF
+    }
+
+    @assert(Slice.equals(values[1 until 95], same[1 until 95]))
+}

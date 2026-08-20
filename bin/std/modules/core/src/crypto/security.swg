@@ -9,10 +9,33 @@ func constantTimeEqual(left, right: const [..] u8)->bool
     if @countof(left) != @countof(right) do
         return false
 
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let zero             = Math.Simd.splat(0'u8)
+    var vectorDifference = zero
+    var offset           = 0'u64
+    while @countof(left) - offset >= 4 * VectorSize
+    {
+        vectorDifference |= Math.Simd.load(@dataof(left) + offset) ^ Math.Simd.load(@dataof(right) + offset)
+        vectorDifference |= Math.Simd.load(@dataof(left) + offset + VectorSize) ^ Math.Simd.load(@dataof(right) + offset + VectorSize)
+        vectorDifference |= Math.Simd.load(@dataof(left) + offset + 2 * VectorSize) ^ Math.Simd.load(@dataof(right) + offset + 2 * VectorSize)
+        vectorDifference |= Math.Simd.load(@dataof(left) + offset + 3 * VectorSize) ^ Math.Simd.load(@dataof(right) + offset + 3 * VectorSize)
+        offset           += 4 * VectorSize
+    }
+
+    while @countof(left) - offset >= VectorSize
+    {
+        vectorDifference |= Math.Simd.load(@dataof(left) + offset) ^ Math.Simd.load(@dataof(right) + offset)
+        offset           += VectorSize
+    }
+
     var difference = 0'u8
-    for i in @countof(left) do
-        difference |= left[i] ^ right[i]
-    return difference == 0
+    while offset < @countof(left)
+    {
+        difference |= left[offset] ^ right[offset]
+        offset     += 1
+    }
+
+    return difference == 0 and !Math.Simd.anyTrue(vectorDifference != zero)
 }
 
 // Fills `buffer` completely from the operating system cryptographic random-number source.

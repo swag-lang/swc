@@ -110,3 +110,44 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     values.resize(3, true)
     @assert(values[0] and values[1] and values[2])
 }
+
+// Logic operations cross four-word SIMD batches and preserve the unused bits
+// in the last word for arbitrary logical lengths.
+#test
+{
+    let lengths: [8] u64 = [1, 31, 32, 33, 127, 128, 129, 511]
+    for length in lengths
+    {
+        var left:  BitArray
+        var right: BitArray
+        left.resize(length)
+        right.resize(length)
+        for i in length
+        {
+            left[i]  = i % 3 == 0
+            right[i] = i % 5 == 0
+        }
+
+        let original = left
+        left.invert()
+        for i in length do
+            @assert(left[i] == (i % 3 != 0))
+        left.invert()
+        @assert(left == original)
+
+        var value = original
+        value.orWith(right)
+        for i in length do
+            @assert(value[i] == (i % 3 == 0 or i % 5 == 0))
+
+        value = original
+        value.andWith(right)
+        for i in length do
+            @assert(value[i] == (i % 3 == 0 and i % 5 == 0))
+
+        value = original
+        value.xorWith(right)
+        for i in length do
+            @assert(value[i] == ((i % 3 == 0) != (i % 5 == 0)))
+    }
+}

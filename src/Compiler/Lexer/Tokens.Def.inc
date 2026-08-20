@@ -372,6 +372,7 @@ SWC_TOKEN_DEF(IntrinsicVecWidenLo, "@vecwidenlo", TokenIdKindE::Intrinsic | Toke
 SWC_TOKEN_DEF(IntrinsicVecWidenHi, "@vecwidenhi", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "@vecavgr", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecMadd, "@vecmadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecSum, "@vecsum", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecPerm, "@vecperm", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecSelect, "@vecselect", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecMask, "@vecmask", TokenIdKindE::Intrinsic | TokenIdKindE::Return)

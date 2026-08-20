@@ -134,7 +134,8 @@ into every lane, '@vecsatadd' and '@vecsatsub' clamp instead of wrapping,
 '@vecpackus' and '@vecpackss' narrow two vectors with saturation,
 '@vecwidenlo' and '@vecwidenhi' extend half the lanes to double width,
 '@vecavgr' is the rounding average, '@vecmadd' multiplies 16-bit pairs into
-32-bit sums, and '@vecperm' permutes bytes through a dynamic table. '@min',
+32-bit sums, '@vecsum' adds the four lanes of an 's32' vector with wrapping
+arithmetic, and '@vecperm' permutes bytes through a dynamic table. '@min',
 '@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil' and '@trunc' also accept
 vectors and compute per lane.
 */
@@ -156,6 +157,9 @@ vectors and compute per lane.
 
     let avg = cast([16] u8) @vecavgr(a, b)
     @assert(avg[0] == 150)
+
+    let quads = cast(#simd [4] s32) [1, 2, 3, 4]
+    @assert(@vecsum(quads) == 10)
 }
 
 /**

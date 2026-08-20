@@ -3,6 +3,41 @@
 
 using Swag
 
+func base64Reference(bytes: const [..] u8)->String
+{
+    const Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    var result: retval
+    var index = 0'u64
+    while index + 3 <= @countof(bytes)
+    {
+        let group = (cast(u32) bytes[index] << 16) | (cast(u32) bytes[index + 1] << 8) | bytes[index + 2]
+        result.append(Alphabet[group >> 18])
+        result.append(Alphabet[(group >> 12) & 63])
+        result.append(Alphabet[(group >> 6) & 63])
+        result.append(Alphabet[group & 63])
+        index += 3
+    }
+
+    if @countof(bytes) - index == 1
+    {
+        let group = cast(u32) bytes[index] << 16
+        result.append(Alphabet[group >> 18])
+        result.append(Alphabet[(group >> 12) & 63])
+        result.append('='u8)
+        result.append('='u8)
+    }
+    elif @countof(bytes) - index == 2
+    {
+        let group = (cast(u32) bytes[index] << 16) | (cast(u32) bytes[index + 1] << 8)
+        result.append(Alphabet[group >> 18])
+        result.append(Alphabet[(group >> 12) & 63])
+        result.append(Alphabet[(group >> 6) & 63])
+        result.append('='u8)
+    }
+
+    return result
+}
+
 // Encoding covers every padding shape, and decoding reads its own output back.
 #test
 {
@@ -42,4 +77,27 @@ using Swag
     @assert(truncated != null)
     discard catch Base64.decode("Zg==Zg") as afterPadding
     @assert(afterPadding != null)
+}
+
+// Every short tail crosses the 12/16-byte packed boundaries and round-trips
+// against an independent scalar encoder.
+#test
+{
+    var input: [129] u8
+    for i in 129 do
+        input[i] = cast(u8) ((i * 73 + 19) & 0xFF)
+
+    for length in 130
+    {
+        let expected = base64Reference(input[until length])
+        let encoded  = Base64.encode(input[until length])
+        @assert(encoded == expected)
+        let decoded = expect Base64.decode(encoded)
+        @assert(Slice.equals(decoded.toSlice(), input[until length]))
+    }
+
+    let spaced = expect Base64.decode("QUJDREVGR0hJSktM\r\nTU5PUA==")
+    @assert(cast(string) spaced.toSlice() == "ABCDEFGHIJKLMNOP")
+    let urlSafe = expect Base64.decode("LS0tX19fLS0tX19fLS0tX19f")
+    @assert(cast(string) urlSafe.toSlice() == "---___---___---___")
 }

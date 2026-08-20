@@ -100,6 +100,9 @@ namespace Simd
         // Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.
         func mulAddPairs(x, y: S16x8)->S32x4 => @vecmadd(x, y)
 
+        // Adds the four lanes with wrapping arithmetic.
+        func sum(value: S32x4)->s32 => @vecsum(value)
+
         // Narrows two vectors into one with unsigned saturation.
         //
         // The lanes of `low` land in the low half of the result and the lanes of `high` in

@@ -272,3 +272,18 @@ func firstNonAsciiRune(text: string)->rune
     @assert(firstNonAsciiRune("ASCII") == 0)
     @assert(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9'rune)
 }
+
+// Rune counting crosses packed ASCII blocks without consuming the first byte
+// of a following multi-byte rune.
+#test
+{
+    var ascii: [80] u8
+    for &value in ascii do
+        value[] = 'a'
+    for length in 66 do
+        @assert(Utf8.countRunes(ascii[until length]) == length)
+
+    @assert(Utf8.countRunes("aaaaaaaaaaaaaaa\u00E9") == 16)
+    @assert(Utf8.countRunes("aaaaaaaaaaaaaaaa\u00E9") == 17)
+    @assert(Utf8.countRunes("aaaaaaaaaaaaaaaaa\U0001F642") == 18)
+}

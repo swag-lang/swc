@@ -7,8 +7,7 @@ using Swag
 #[Swag.NoInline]
 func horizontalSum(v: #simd [4] s32)->s32
 {
-    let lanes = cast([4] s32) v
-    return lanes[0] + lanes[1] + lanes[2] + lanes[3]
+    return @vecsum(v)
 }
 
 #[Swag.NoInline]

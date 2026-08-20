@@ -2,7 +2,7 @@
 using Swag
 
 // The packed intrinsic vocabulary, checked lane by lane: broadcast, saturation,
-// packs, widens, average, multiply-add, permute, select, movemask, and the vector
+// packs, widens, average, multiply-add, horizontal sum, permute, select, movemask, and the vector
 // overloads of the scalar math intrinsics.
 
 #[Swag.NoInline]
@@ -99,6 +99,9 @@ func splatS32(value: s32)->#simd [4] s32 => @vecsplat(value)
     let m2 = cast(#simd [8] s16) [10, 10, 10, 10, 10, 10, 300, 300]
     let mr = cast([4] s32) @vecmadd(m1, m2)
     @assert(mr[0] == 30 and mr[1] == 70 and mr[2] == 10 and mr[3] == 60000)
+
+    @assert(@vecsum(cast(#simd [4] s32) [1, 2, 3, 4]) == 10)
+    @assert(@vecsum(cast(#simd [4] s32) [2_147_483_647, 1, 0, 0]) == -2_147_483_648)
 }
 
 #test

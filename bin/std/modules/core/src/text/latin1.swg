@@ -73,15 +73,58 @@ private func isUpperUtf8(c: u8)->bool
 // Make an utf8 buffer upper case, dealing only with latin1 table
 func makeUpper(buffer: [..] u8)
 {
-    for &c in buffer where isLowerUtf8(c[]) do
-        c[] -= 0x20
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let asciiFirst = Math.Simd.splat(0x61'u8)
+    let asciiLast  = Math.Simd.splat(0x7A'u8)
+    let utf8First  = Math.Simd.splat(0xA0'u8)
+    let utf8Last   = Math.Simd.splat(0xBE'u8)
+    let utf8Gap    = Math.Simd.splat(0xB7'u8)
+    let caseBit    = Math.Simd.splat(0x20'u8)
+    var offset     = 0'u64
+    while @countof(buffer) - offset >= VectorSize
+    {
+        let value     = Math.Simd.load(@dataof(buffer) + offset)
+        let asciiMask = (value >= asciiFirst) & (value <= asciiLast)
+        let utf8Mask  = (value >= utf8First) & (value <= utf8Last) & (value != utf8Gap)
+        Math.Simd.store(@dataof(buffer) + offset, value - ((asciiMask | utf8Mask) & caseBit))
+        offset += VectorSize
+    }
+
+    while offset < @countof(buffer)
+    {
+        let c = &buffer[offset]
+        if isLowerUtf8(c[]) do
+            c[] -= 0x20
+        offset += 1
+    }
+}
+
+#[Inline]
+private func toLowerUtf8(value: Math.Simd.U8x16)->Math.Simd.U8x16
+{
+    let asciiMask = (value >= Math.Simd.splat(0x41'u8)) & (value <= Math.Simd.splat(0x5A'u8))
+    let utf8Mask  = (value >= Math.Simd.splat(0x80'u8)) & (value <= Math.Simd.splat(0x9E'u8)) & (value != Math.Simd.splat(0x97'u8))
+    return value + ((asciiMask | utf8Mask) & Math.Simd.splat(0x20'u8))
 }
 
 // Make an utf8 buffer lower case, dealing only with latin1 table
 func makeLower(buffer: [..] u8)
 {
-    for &c in buffer where isUpperUtf8(c[]) do
-        c[] += 0x20
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    var offset = 0'u64
+    while @countof(buffer) - offset >= VectorSize
+    {
+        Math.Simd.store(@dataof(buffer) + offset, toLowerUtf8(Math.Simd.load(@dataof(buffer) + offset)))
+        offset += VectorSize
+    }
+
+    while offset < @countof(buffer)
+    {
+        let c = &buffer[offset]
+        if isUpperUtf8(c[]) do
+            c[] += 0x20
+        offset += 1
+    }
 }
 
 // Compare two utf8 strings, dealing only with latin1 table
@@ -95,8 +138,32 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
     var result: s32
     if ignoreCase
     {
+        const VectorSize = #sizeof(Math.Simd.U8x16)
+        var offset = 0'u64
+        while minLen - offset >= VectorSize
+        {
+            let raw1 = Math.Simd.load(@dataof(src) + offset)
+            let raw2 = Math.Simd.load(@dataof(dst) + offset)
+            if Math.Simd.bitmask(raw1 == raw2) == 0xFFFF
+            {
+                offset += VectorSize
+                continue
+            }
+
+            let c1        = toLowerUtf8(raw1)
+            let c2        = toLowerUtf8(raw2)
+            let equalMask = Math.Simd.bitmask(c1 == c2)
+            if equalMask != 0xFFFF
+            {
+                let lane = Math.trailingZeros((~equalMask) & 0xFFFF)
+                return Math.sign(cast(s32) c1[lane] - cast(s32) c2[lane])
+            }
+
+            offset += VectorSize
+        }
+
         #[Swag.Safety(.BoundCheck, false)]
-        for i in minLen
+        for i in offset until minLen
         {
             var c1 = src[i]
             var c2 = dst[i]

@@ -107,3 +107,36 @@ using Swag
     @assert(Latin1.trim("   ") == "")
     @assert(Latin1.trim("") == "")
 }
+
+// Packed casing stays byte-for-byte identical to the scalar tables for the
+// complete Latin-1 domain, including the multiplication and division signs.
+#test
+{
+    var original: [256] u8
+    var upper:    [256] u8
+    var lower:    [256] u8
+    for i in 256
+    {
+        original[i] = cast(u8) i
+        upper[i]    = cast(u8) i
+        lower[i]    = cast(u8) i
+        Latin1.makeUpper(upper[i until i + 1])
+        Latin1.makeLower(lower[i until i + 1])
+    }
+
+    var transformed = original
+    Latin1.makeUpper(transformed)
+    @assert(Slice.equals(transformed, upper))
+    transformed = original
+    Latin1.makeLower(transformed)
+    @assert(Slice.equals(transformed, lower))
+
+    @assert(Latin1.compare(upper, lower, ignoreCase: true) == 0)
+    for position in 64
+    {
+        var other = lower
+        other[position] = position ? 0 : 1
+        if Latin1.toLower(upper[position]) != Latin1.toLower(other[position]) do
+            @assert(Latin1.compare(upper, other, ignoreCase: true) != 0)
+    }
+}

@@ -306,12 +306,21 @@ impl Deflate
             var q: [*] u8 = &d.dict[0]
             q += probePos
             var probeLen: u32
+            while maxMatchLen - probeLen >= #sizeof(Math.Simd.U8x16)
+            {
+                let equalMask = Math.Simd.bitmask(Math.Simd.load(p + probeLen) == Math.Simd.load(q + probeLen))
+                if equalMask != 0xFFFF
+                {
+                    probeLen += Math.trailingZeros((~equalMask) & 0xFFFF)
+                    break
+                }
+
+                probeLen += #sizeof(Math.Simd.U8x16)
+            }
+
             while probeLen < maxMatchLen
             {
-                let pp = p[]
-                let qq = q[]
-                p, q += 1
-                if pp != qq do
+                if p[probeLen] != q[probeLen] do
                     break
                 probeLen += 1
             }

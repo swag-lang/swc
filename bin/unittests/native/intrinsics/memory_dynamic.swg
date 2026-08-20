@@ -76,3 +76,65 @@ func compareDynamic(left, right: #null const [*] void, size: u64)->s32
     for index in 80 do
         @assert(data[index] == cast(u8) (index + 8))
 }
+
+// Dynamic sizes and every alignment around a vector boundary preserve guards,
+// ordering, and memmove's snapshot semantics.
+#test
+{
+    const Capacity = 160
+    var source:   [Capacity] u8
+    var target:   [Capacity] u8
+    var expected: [Capacity] u8
+
+    for i in Capacity do
+        source[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+
+    for size in 65
+    {
+        for sourceOffset in 16
+        {
+            let targetOffset = 16 - sourceOffset
+            fillDynamic(target, 0xCD, Capacity)
+            copyDynamic(&target[targetOffset], &source[sourceOffset], size)
+            for i in Capacity
+            {
+                let inside = i >= targetOffset and i < targetOffset + size
+                @assert(target[i] == (inside ? source[sourceOffset + i - targetOffset] : 0xCD))
+            }
+
+            @assert(compareDynamic(&target[targetOffset], &source[sourceOffset], size) == 0)
+            if size
+            {
+                target[targetOffset + size - 1] ^= 0xFF
+                @assert(compareDynamic(&target[targetOffset], &source[sourceOffset], size) != 0)
+            }
+        }
+    }
+
+    for distance in 1 to 17
+    {
+        for size in 65
+        {
+            for i in Capacity
+            {
+                target[i]   = cast(u8) i
+                expected[i] = cast(u8) i
+            }
+
+            for i in size do
+                expected[32 + distance + i] = cast(u8) (32 + i)
+            moveDynamic(&target[32 + distance], &target[32], size)
+            @assert(compareDynamic(target, expected, Capacity) == 0)
+
+            for i in Capacity
+            {
+                target[i]   = cast(u8) i
+                expected[i] = cast(u8) i
+            }
+            for i in size do
+                expected[32 + i] = cast(u8) (32 + distance + i)
+            moveDynamic(&target[32], &target[32 + distance], size)
+            @assert(compareDynamic(target, expected, Capacity) == 0)
+        }
+    }
+}

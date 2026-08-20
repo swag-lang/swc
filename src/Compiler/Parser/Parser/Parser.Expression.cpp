@@ -872,6 +872,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecMask:
         case TokenId::IntrinsicVecAny:
         case TokenId::IntrinsicVecAll:
+        case TokenId::IntrinsicVecSum:
             return parseIntrinsicCallExpr(1);
 
         case TokenId::IntrinsicStringCmp:

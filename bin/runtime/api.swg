@@ -1489,6 +1489,9 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     // add into double-width lanes.
     func @vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
 
+    // Horizontal sum: adds the four lanes with wrapping arithmetic.
+    func @vecsum(value: #simd [4] s32)->s32
+
     // Dynamic byte permute: every result byte picks the source byte named by
     // the low four bits of the matching table byte, or zero when the table
     // byte's high bit is set.

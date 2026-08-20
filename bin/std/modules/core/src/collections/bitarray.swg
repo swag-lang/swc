@@ -248,9 +248,22 @@ public impl BitArray
     {
         if !.count do
             return
+        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
         let buffer = .dataPtr()
-        for .wordCount() do
-            buffer[@index] = ~buffer[@index]
+        let words  = .wordCount()
+        var index  = 0'u64
+        while words - index >= VectorWords
+        {
+            Math.Simd.store(buffer + index, ~Math.Simd.load(buffer + index))
+            index += VectorWords
+        }
+
+        while index < words
+        {
+            buffer[index] = ~buffer[index]
+            index         += 1
+        }
+
         .clearUnusedBits()
     }
 
@@ -263,8 +276,21 @@ public impl BitArray
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
-        for .wordCount() do
-            buffer[@index] &= otherBuffer[@index]
+        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        let words = .wordCount()
+        var index = 0'u64
+        while words - index >= VectorWords
+        {
+            Math.Simd.store(buffer + index, Math.Simd.load(buffer + index) & Math.Simd.load(otherBuffer + index))
+            index += VectorWords
+        }
+
+        while index < words
+        {
+            buffer[index] &= otherBuffer[index]
+            index         += 1
+        }
+
         .clearUnusedBits()
     }
 
@@ -277,8 +303,21 @@ public impl BitArray
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
-        for .wordCount() do
-            buffer[@index] |= otherBuffer[@index]
+        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        let words = .wordCount()
+        var index = 0'u64
+        while words - index >= VectorWords
+        {
+            Math.Simd.store(buffer + index, Math.Simd.load(buffer + index) | Math.Simd.load(otherBuffer + index))
+            index += VectorWords
+        }
+
+        while index < words
+        {
+            buffer[index] |= otherBuffer[index]
+            index         += 1
+        }
+
         .clearUnusedBits()
     }
 
@@ -291,8 +330,21 @@ public impl BitArray
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
-        for .wordCount() do
-            buffer[@index] ^= otherBuffer[@index]
+        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        let words = .wordCount()
+        var index = 0'u64
+        while words - index >= VectorWords
+        {
+            Math.Simd.store(buffer + index, Math.Simd.load(buffer + index) ^ Math.Simd.load(otherBuffer + index))
+            index += VectorWords
+        }
+
+        while index < words
+        {
+            buffer[index] ^= otherBuffer[index]
+            index         += 1
+        }
+
         .clearUnusedBits()
     }
 }

@@ -1,6 +1,46 @@
 #global export
 #global namespace Slice
 
+private func findByte(values: const [*] u8, count: u64, value: u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+    let needle = Math.Simd.splat(value)
+    var offset = 0'u64
+    while count - offset >= 4 * VectorSize
+    {
+        let matches0 = Math.Simd.bitmask(Math.Simd.load(values + offset) == needle)
+        let matches1 = Math.Simd.bitmask(Math.Simd.load(values + offset + VectorSize) == needle)
+        let matches2 = Math.Simd.bitmask(Math.Simd.load(values + offset + 2 * VectorSize) == needle)
+        let matches3 = Math.Simd.bitmask(Math.Simd.load(values + offset + 3 * VectorSize) == needle)
+        if matches0 do
+            return offset + Math.trailingZeros(matches0)
+        if matches1 do
+            return offset + VectorSize + Math.trailingZeros(matches1)
+        if matches2 do
+            return offset + 2 * VectorSize + Math.trailingZeros(matches2)
+        if matches3 do
+            return offset + 3 * VectorSize + Math.trailingZeros(matches3)
+        offset += 4 * VectorSize
+    }
+
+    while count - offset >= VectorSize
+    {
+        let matches = Math.Simd.bitmask(Math.Simd.load(values + offset) == needle)
+        if matches do
+            return offset + Math.trailingZeros(matches)
+        offset += VectorSize
+    }
+
+    while offset < count
+    {
+        if values[offset] == value do
+            return offset
+        offset += 1
+    }
+
+    return Swag.U64.Max
+}
+
 // Find 'value' in a slice by performing a binary search.
 // The slice must be sorted in ascending order
 // Returns Swag.U64.Max if not found.
@@ -31,6 +71,14 @@ func(T, V) findSorted(values: #null const [..] T, value: V)->u64
 // Find 'value' in a slice by performing a linear search.
 // O^n, but slice does not have to be sorted.
 // Returns Swag.U64.Max if not found.
+func findLinear(values: #null const [..] u8, value: u8)->u64
+{
+    let count = @countof(values)
+    if !count do
+        return Swag.U64.Max
+    return findByte(@dataof(values!), count, value)
+}
+
 func(T, V) findLinear(values: #null const [..] T, value: V)->u64
 {
     for &v, i in values where v[] == value do
@@ -39,6 +87,33 @@ func(T, V) findLinear(values: #null const [..] T, value: V)->u64
 }
 
 // Returns the first index of `subslice`, or `Swag.U64.Max` when it is absent.
+func findSubslice(values, subslice: const [..] u8)->u64
+{
+    let valueCount = @countof(values)
+    let subCount   = @countof(subslice)
+    if !subCount do
+        return 0
+    if subCount > valueCount do
+        return Swag.U64.Max
+
+    let valueData = @dataof(values)
+    let subData   = @dataof(subslice)
+    let lastStart = valueCount - subCount
+    var offset    = 0'u64
+    while offset <= lastStart
+    {
+        let relative = findByte(valueData + offset, lastStart - offset + 1, subData[0])
+        if relative == Swag.U64.Max do
+            return Swag.U64.Max
+        offset += relative
+        if Memory.compare(valueData + offset, subData, subCount) == 0 do
+            return offset
+        offset += 1
+    }
+
+    return Swag.U64.Max
+}
+
 func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
 {
     if !@countof(subslice) do
@@ -83,6 +158,16 @@ func(T, V) contains(values: #null const [..] T, value: V)->bool
 }
 
 // Returns true if two slices are equal
+#[Swag.ConstExpr]
+func equals(dst, src: #null const [..] u8)->bool
+{
+    if @countof(dst) != @countof(src) do
+        return false
+    if !@countof(dst) do
+        return true
+    return Memory.compare(@dataof(dst!), @dataof(src!), @countof(dst)) == 0
+}
+
 #[Swag.ConstExpr]
 func(T) equals(dst, src: #null const [..] T)->bool
 {

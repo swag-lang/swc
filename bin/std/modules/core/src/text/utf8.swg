@@ -456,6 +456,14 @@ func countRunes(buffer: const [..] u8)->u64
     var cpt = 0'u64
     while countof
     {
+        if countof >= #sizeof(Math.Simd.U8x16) and !Math.Simd.bitmask(Math.Simd.load(dataof))
+        {
+            cpt     += #sizeof(Math.Simd.U8x16)
+            dataof  += #sizeof(Math.Simd.U8x16)
+            countof -= #sizeof(Math.Simd.U8x16)
+            continue
+        }
+
         let val = countBytesAt(@mkslice(dataof, countof))
         Debug.assert(val <= countof)
         cpt     += 1

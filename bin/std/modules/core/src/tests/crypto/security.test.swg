@@ -78,3 +78,30 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
     for byte in random do
         @assert(byte == 0)
 }
+
+#test
+{
+    var left:  [112] u8
+    var right: [112] u8
+    for i in 112
+    {
+        left[i]  = cast(u8) ((i * 29 + 3) & 0xFF)
+        right[i] = left[i]
+    }
+
+    for offset in 16
+    {
+        for length in 81
+        {
+            let a = left[offset until offset + length]
+            let b = right[offset until offset + length]
+            @assert(Crypto.constantTimeEqual(a, b))
+            if length
+            {
+                right[offset + length - 1] ^= 0x80
+                @assert(!Crypto.constantTimeEqual(a, b))
+                right[offset + length - 1] ^= 0x80
+            }
+        }
+    }
+}

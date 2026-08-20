@@ -2099,9 +2099,30 @@ namespace
         const auto     loadArg = [&](size_t index) { return CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(children[index])); };
         const TypeRef  resultTypeRef = codeGen.curViewType().typeRef();
 
-        // The movemask family produces an integer, everything else a vector.
+        // The reductions produce a scalar, everything else a vector.
         switch (tokId)
         {
+            case TokenId::IntrinsicVecSum:
+            {
+                SWC_ASSERT(laneBits == 32 && laneCount == 4 && signedLanes);
+
+                const MicroReg srcReg      = loadArg(0);
+                const MicroReg swappedReg  = codeGen.nextVirtualFloatRegister();
+                const MicroReg pairSumReg  = codeGen.nextVirtualFloatRegister();
+                const MicroReg adjacentReg = codeGen.nextVirtualFloatRegister();
+                const MicroReg totalReg    = codeGen.nextVirtualFloatRegister();
+                builder.emitVecShuffleRegRegImm(swappedReg, srcReg, 0x4E, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(pairSumReg, srcReg, swappedReg, MicroOp::VecAdd32, MicroOpBits::B128);
+                builder.emitVecShuffleRegRegImm(adjacentReg, pairSumReg, 0xB1, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(totalReg, pairSumReg, adjacentReg, MicroOp::VecAdd32, MicroOpBits::B128);
+
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(resultPayload.reg, totalReg, MicroOpBits::B32);
+                outHandled = true;
+                return Result::Continue;
+            }
+
             case TokenId::IntrinsicVecMask:
             case TokenId::IntrinsicVecAny:
             case TokenId::IntrinsicVecAll:

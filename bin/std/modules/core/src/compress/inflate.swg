@@ -365,20 +365,35 @@ impl Inflate
             if !length do
                 continue
 
-            // Eight bytes of slack past the match let the copy below run in whole
-            // words and overshoot the last one; the overshoot is inside the buffer
+            // One vector of slack past the match lets the copy below run in whole
+            // blocks and overshoot the last one; the overshoot is inside the buffer
             // and the next symbol overwrites it.
-            if count + length + 8 > cap
+            if count + length + #sizeof(Math.Simd.U8x16) > cap
             {
                 dest.count = count
-                dest.grow(count + length + 8)
+                dest.grow(count + length + #sizeof(Math.Simd.U8x16))
                 buf = dest.buffer
                 cap = dest.capacity
             }
 
             let obuf = buf!
             var from = count - distance
-            if distance >= 8
+            if distance >= #sizeof(Math.Simd.U8x16)
+            {
+                // A distance of at least one vector makes each unaligned load
+                // independent of the store paired with it.
+                let end = count + length
+                var dst = count
+                while dst < end
+                {
+                    Math.Simd.store(obuf + dst, Math.Simd.load(obuf + from))
+                    dst  += #sizeof(Math.Simd.U8x16)
+                    from += #sizeof(Math.Simd.U8x16)
+                }
+
+                count = end
+            }
+            elif distance >= 8
             {
                 // Non-overlapping in eight-byte steps. The source aliases the output,
                 // which is why this is a raw word copy rather than 'dest.add(slice)':

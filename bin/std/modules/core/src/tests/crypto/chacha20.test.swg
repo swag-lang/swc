@@ -22,6 +22,22 @@ func testNonce()->[Crypto.ChaCha20NonceSize] u8
     return [0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x4A, 0x00, 0x00, 0x00, 0x00]
 }
 
+func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter: u32)
+{
+    var offset  = 0'u64
+    var counter = initialCounter
+    while offset < @countof(source)
+    {
+        let block = expect Crypto.chacha20Block(key, counter, nonce)
+        let count = Math.min(@countof(source) - offset, Crypto.ChaCha20BlockSize)
+        for i in count do
+            destination[offset + i] = source[offset + i] ^ block[i]
+        offset += count
+        if offset < @countof(source) do
+            counter += 1
+    }
+}
+
 // RFC 8439 section 2.3.2.
 #test
 {
@@ -71,6 +87,43 @@ func testNonce()->[Crypto.ChaCha20NonceSize] u8
 
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
     @assert(sameChaChaBytes(data, original))
+}
+
+// Four-block batches, their neighboring tails, and exact in-place operation match the public
+// single-block definition byte for byte.
+#test
+{
+    let key   = testKey()
+    let nonce = testNonce()
+    var source:   [1025] u8
+    var actual:   [1025] u8
+    var expected: [1025] u8
+    for @countof(source) do
+        source[@index] = cast(u8) ((cast(u64) @index * 47 + 13) & 0xFF)
+
+    let lengths: [15] u64 = [0, 1, 63, 64, 65, 255, 256, 257, 511, 512, 513, 767, 768, 1024, 1025]
+    for length in lengths
+    {
+        for @countof(actual)
+        {
+            actual[@index]   = 0xA5
+            expected[@index] = 0xA5
+        }
+
+        scalarChaCha20Xor(key, nonce, @mkslice(@dataof(source), length), @mkslice(@dataof(expected), length), 7)
+        expect Crypto.chacha20Xor(key, nonce, @mkslice(@dataof(source), length), @mkslice(@dataof(actual), length), 7)
+        @assert(sameChaChaBytes(actual, expected))
+
+        Memory.copy(@dataof(actual), @dataof(source), @countof(source))
+        expect Crypto.chacha20Xor(key, nonce, @mkslice(@dataof(actual), length), @mkslice(@dataof(actual), length), 7)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), length) == 0)
+        for i in length until @countof(actual) do
+            @assert(actual[i] == source[i])
+    }
+
+    scalarChaCha20Xor(key, nonce, source[until 256], expected[until 256], Swag.U32.Max - 3)
+    expect Crypto.chacha20Xor(key, nonce, source[until 256], actual[until 256], Swag.U32.Max - 3)
+    @assert(Memory.compare(@dataof(actual), @dataof(expected), 256) == 0)
 }
 
 // The block counter is 32 bits wide. Its last value is usable; asking for one block more than

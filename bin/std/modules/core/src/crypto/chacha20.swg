@@ -41,6 +41,77 @@ private func quarterRound(state: *[16] u32, a, b, c, d: u32)
     state[][b] = @rol(state[][b], 7)
 }
 
+#[Swag.Inline]
+private func rotate32(value: Math.Simd.U32x4, bits: u8)->Math.Simd.U32x4 => (value << bits) | (value >> (32 - bits))
+
+#[Swag.Inline]
+private func quarterRound4(state: *[16] Math.Simd.U32x4, a, b, c, d: u32)
+{
+    state[][a] += state[][b]
+    state[][d] ^= state[][a]
+    state[][d] = rotate32(state[][d], 16)
+    state[][c] += state[][d]
+    state[][b] ^= state[][c]
+    state[][b] = rotate32(state[][b], 12)
+    state[][a] += state[][b]
+    state[][d] ^= state[][a]
+    state[][d] = rotate32(state[][d], 8)
+    state[][c] += state[][d]
+    state[][b] ^= state[][c]
+    state[][b] = rotate32(state[][b], 7)
+}
+
+private func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8)
+{
+    var initial: [16] Math.Simd.U32x4
+    initial[0] = Math.Simd.splat(0x61707865'u32)
+    initial[1] = Math.Simd.splat(0x3320646E'u32)
+    initial[2] = Math.Simd.splat(0x79622D32'u32)
+    initial[3] = Math.Simd.splat(0x6B206574'u32)
+    for i in 8 do
+        initial[4 + i] = Math.Simd.splat(load32(@dataof(key) + i * 4))
+    initial[12] = cast(Math.Simd.U32x4) [counter, counter + 1, counter + 2, counter + 3]
+    initial[13] = Math.Simd.splat(load32(@dataof(nonce)))
+    initial[14] = Math.Simd.splat(load32(@dataof(nonce) + 4))
+    initial[15] = Math.Simd.splat(load32(@dataof(nonce) + 8))
+
+    var state = initial
+    for round in 10
+    {
+        discard round
+        quarterRound4(&state, 0, 4, 8, 12)
+        quarterRound4(&state, 1, 5, 9, 13)
+        quarterRound4(&state, 2, 6, 10, 14)
+        quarterRound4(&state, 3, 7, 11, 15)
+        quarterRound4(&state, 0, 5, 10, 15)
+        quarterRound4(&state, 1, 6, 11, 12)
+        quarterRound4(&state, 2, 7, 8, 13)
+        quarterRound4(&state, 3, 4, 9, 14)
+    }
+
+    var stream: [4 * ChaCha20BlockSize] u8
+    for word in 16
+    {
+        let value = state[word] + initial[word]
+        for lane in 4
+        {
+            let offset = lane * ChaCha20BlockSize + word * 4
+            store32(&stream[offset], value[lane])
+        }
+    }
+
+    var offset = 0
+    while offset < 4 * ChaCha20BlockSize
+    {
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) ^ Math.Simd.load(&stream[offset]))
+        offset += #sizeof(Math.Simd.U8x16)
+    }
+
+    secureClear(initial)
+    secureClear(state)
+    secureClear(stream)
+}
+
 // Produces one IETF ChaCha20 key-stream block for `counter`.
 func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[ChaCha20BlockSize] u8 fail
 {
@@ -101,6 +172,14 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
 
     var offset  = 0'u64
     var counter = initialCounter
+    while @countof(source) - offset >= 4 * ChaCha20BlockSize
+    {
+        chacha20XorFour(key, nonce, counter, @dataof(source) + offset, @dataof(destination) + offset)
+        offset += 4 * ChaCha20BlockSize
+        if offset < @countof(source) do
+            counter += 4
+    }
+
     while offset < @countof(source)
     {
         var block = chacha20Block(key, counter, nonce)

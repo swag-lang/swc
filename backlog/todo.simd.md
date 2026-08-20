@@ -85,7 +85,7 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   shift, and other useful shift shapes that lack a single baseline instruction.
 - Complete when: constant and variable counts have scalar-equivalent masking semantics, use native
   instructions when available, and otherwise lower to bounded shift/or or widen/pack sequences.
-- Related: T-088, T-251, T-536, T-538.
+- Related: T-251, T-536, T-538.
 
 ### T-513 — Packed integer multiplication is incomplete
 
@@ -211,7 +211,7 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   combining needed for SLP to recognize adjacent loads and stores.
 - Complete when: the ChaCha key-stream XOR and a neutral array kernel become packed after unrolling,
   with no code-size-only unroll when vectorization does not follow.
-- Related: F-034, T-088.
+- Related: F-034.
 
 ### T-524 — Loop vectorization cannot form reductions or masked tails
 
@@ -250,14 +250,6 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 - Related: T-506, T-511, T-513, T-515.
 
 ## Tier B — Cryptography and checksums
-
-### T-088 — ChaCha20 processes one block per dependency chain
-
-- Intent: process several ChaCha20 blocks per iteration and apply the generated key stream in packed
-  chunks, rather than limiting optimization to the already-vectorized single-block rounds.
-- Complete when: published vectors and overlap rules pass and the block plus end-to-end rates improve
-  under the interleaved benchmark protocol recorded in F-029.
-- Related: F-029, T-512, T-523.
 
 ### T-251 — The Argon2 permutation remains scalar
 

@@ -108,8 +108,7 @@ locally.
 - Fix: a key-slot list that can add and revoke passwords and show how many slots are occupied
   without claiming which password maps to which slot.
 - Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
-  multiplies the cost of rejecting a wrong password; see T-088 in
-  [todo.simd.md](todo.simd.md).
+  multiplies the cost of rejecting a wrong password.
 - Related: T-259
 
 ### T-259 — No key-derivation cost-profile selector

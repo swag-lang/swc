@@ -8,27 +8,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Loop vectorization
 
-### F-029 — ChaCha20 still processes one block per packed dependency chain
-
-- Area: std/core (crypto), compiler/backend
-- Found while: benchmarking the auto-vectorized ChaCha20 rounds ([T-088](todo.simd.md#t-088--chacha20-processes-one-block-per-dependency-chain))
-- Observation: the rounds are vectorized and remain in registers, but one invocation still carries
-  one block state through one packed dependency chain. Four independent blocks would expose the
-  parallelism a single state cannot provide; the counter is the only lane-varying input.
-- Evidence: measured 2026-08-06 with an interleaved ABBA DLL-swap, 6 pairs and medians of 8
-  in-process samples,
-  every run asserting by file size which core.dll it staged): pure double-rounds kernel
-  121.6 -> 196.6 MQR/s (+62%, the vectorized side won every pair), `chacha20Block` key-stream
-  generation 88.8 -> 113.1 MiB/s (+27%), end-to-end `chacha20Xor` 90.5 -> 109.4 MiB/s (+21%
-  median; +3-4% on the pairs that landed in the machine's stable phase - the block-level
-  plumbing around the rounds still dominates end-to-end). The kernel gain is bounded by the packed
-  dependency chain rather than instruction count: the scalar rounds run four independent chains
-  in parallel on the out-of-order core, so 6x fewer instructions buys about 1.6x, the known
-  single-block ChaCha SIMD profile.
-- Next step: process four blocks per loop iteration, adding splat constants and vector construction
-  for the mixed-source counter chunks, then measure the block and end-to-end rates with the same
-  interleaved protocol.
-
 ### F-034 — Unrolling a loop does not hand it to the vectorizer
 
 - Area: compiler/backend
@@ -217,10 +196,9 @@ Entries are sorted by identifier, ascending; position carries no priority.
   carries the numbers.
 - Next step: this is [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers) seen
   from a second workload, and the case is small enough to drive the fix — a loop whose whole
-  live set fits in registers twice over and is spilled anyway. Same conclusion as
-  [F-029's](#f-029--chacha20-still-processes-one-block-per-packed-dependency-chain) neighbours: the
-  bottleneck is the allocator's policy, local linear scan with furthest-use eviction, and the
-  work that addresses it is the global interval allocator, not another peephole.
+  live set fits in registers twice over and is spilled anyway. The bottleneck is the allocator's
+  policy, local linear scan with furthest-use eviction, and the work that addresses it is the
+  global interval allocator, not another peephole.
 
 ### F-138 — A whole-hull reservation cannot keep a loop's working set in registers
 

@@ -59,6 +59,59 @@ using Swag, Core
     @assert(hasInside)
 }
 
+// The two-pixel SDF kernel must be byte-identical to the scalar distance and winding
+// definitions, including the last pixel of an odd-width row.
+#test
+{
+    var scope: FaceScope
+    scope.init()
+    let face = scope.face!
+
+    var sawOddWidth = false
+    for pixelSize in [17'u32, 31, 64]
+    {
+        discard expect face.setPixelSize(0, pixelSize)
+        for character in ['A'rune, 'W', 'g']
+        {
+            discard expect face.loadChar(character, .Default)
+
+            let spread = 8
+            let bounds = computeOutlineBounds(&face.glyph.outline)
+            let left   = Math.floorS32(bounds.minX / 64.0) - spread
+            let right  = Math.ceilS32(bounds.maxX / 64.0) + spread
+            let bottom = Math.floorS32(bounds.minY / 64.0) - spread
+            let top    = Math.ceilS32(bounds.maxY / 64.0) + spread
+            let width  = Math.max(0, right - left)
+            let rows   = Math.max(0, top - bottom)
+            let edges  = buildEdges(&face.glyph.outline)
+            let scale  = 127.0 / cast(f64) spread
+
+            discard expect face.renderGlyphSdf(spread)
+            let bitmap = &face.glyph.bitmap
+            @assert(bitmap.width == width)
+            @assert(bitmap.rows == rows)
+            if width & 1 do
+                sawOddWidth = true
+
+            for py in rows
+            {
+                for px in width
+                {
+                    let sampleX        = left + cast(f64) px + 0.5
+                    let sampleY        = top - (cast(f64) py + 0.5)
+                    let distance       = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
+                    let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
+                    let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
+                    let expected       = cast(u8) Math.round(value)
+                    @assert(bitmap.buffer![cast(u64) py * bitmap.width + px] == expected)
+                }
+            }
+        }
+    }
+
+    @assert(sawOddWidth)
+}
+
 // The analytic rasterizer must produce true anti-aliasing: fully-outside pixels (0),
 // fully-covered interior pixels (255), and partially-covered edge pixels in between.
 #test

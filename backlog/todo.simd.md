@@ -409,12 +409,12 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 
 ## Tier C — Text, fonts, and PDF
 
-### T-553 — TrueType raster, SDF, and MSDF kernels remain scalar
+### T-553 — TrueType raster and MSDF kernels remain scalar
 
-- Intent: vectorize coverage conversion and process multiple sample points in SDF/MSDF distance
-  evaluation, using vector math and gathers only where edge traversal remains profitable.
-- Complete when: glyph goldens stay within a declared coverage/distance tolerance and raster, SDF,
-  and MSDF are benchmarked separately across small and large glyphs.
+- Intent: vectorize analytic coverage conversion and process multiple sample points in MSDF
+  distance evaluation, using vector math and gathers only where edge traversal remains profitable.
+- Complete when: glyph goldens stay within a declared coverage/distance tolerance and raster and
+  MSDF are benchmarked separately across small and large glyphs.
 - Related: T-517, T-521.
 
 ### T-554 — PDF image color and alpha conversion remain scalar

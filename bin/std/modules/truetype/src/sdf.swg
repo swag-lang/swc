@@ -29,6 +29,68 @@ func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
     return Math.sqrt(distSquared)
 }
 
+func closestEdgeDistances(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->Math.Simd.F64x2
+{
+    var distSquared = Math.Simd.splat(Swag.F64.Max)
+    for edge in edges
+    {
+        let vx         = edge.x1 - edge.x0
+        let vy         = edge.y1 - edge.y0
+        let lenSquared = vx * vx + vy * vy
+        var distance: Math.Simd.F64x2
+        if lenSquared <= 0.0000001
+        {
+            let dx = x - edge.x0
+            let dy = y - edge.y0
+            distance = dx * dx + dy * dy
+        }
+        else
+        {
+            let t  = Math.max(Math.Simd.splat(0.0'f64), Math.min(Math.Simd.splat(1.0'f64), ((x - edge.x0) * vx + (y - edge.y0) * vy) / lenSquared))
+            let dx = x - (edge.x0 + vx * t)
+            let dy = y - (edge.y0 + vy * t)
+            distance = dx * dx + dy * dy
+        }
+
+        distSquared = Math.min(distSquared, distance)
+    }
+
+    return Math.sqrt(distSquared)
+}
+
+func insideMask(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->u32
+{
+    var winding0 = 0
+    var winding1 = 0
+    for edge in edges
+    {
+        if y < edge.minY or y >= edge.maxY do
+            continue
+
+        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
+        var mask  = 0'u32
+        if edge.y0 <= y and edge.y1 > y
+        {
+            mask     = Math.Simd.bitmask(cross > Math.Simd.splat(0.0'f64))
+            winding0 += mask & 1
+            winding1 += (mask >> 1) & 1
+        }
+        elif edge.y1 <= y and edge.y0 > y
+        {
+            mask     = Math.Simd.bitmask(cross < Math.Simd.splat(0.0'f64))
+            winding0 -= mask & 1
+            winding1 -= (mask >> 1) & 1
+        }
+    }
+
+    var result = 0'u32
+    if winding0 do
+        result |= 1
+    if winding1 do
+        result |= 2
+    return result
+}
+
 func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
 {
     let faceData = getSlotImpl(slot)
@@ -68,15 +130,33 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
 
     for py in rows
     {
-        for px in width
+        let sampleY = top - (cast(f64) py + 0.5)
+        var px      = 0
+        while px + 2 <= width
+        {
+            let sampleX   = left + cast(f64) px + 0.5
+            let samples   = cast(Math.Simd.F64x2) [sampleX, sampleX + 1.0]
+            let distances = closestEdgeDistances(edges.toSlice(), samples, sampleY)
+            let inside    = insideMask(edges.toSlice(), samples, sampleY)
+            for lane in 2
+            {
+                let signedDistance = inside & (1'u32 << lane) ? distances[lane] : -distances[lane]
+                let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
+                dst[] = cast(u8) Math.round(value)
+                dst   += 1
+            }
+
+            px += 2
+        }
+
+        while px < width
         {
             let sampleX        = left + cast(f64) px + 0.5
-            let sampleY        = top - (cast(f64) py + 0.5)
             let distance       = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
             let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
             let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
-            dst[] = cast(u8) Math.round(value)
-            dst   += 1
+            dst[]   = cast(u8) Math.round(value)
+            dst, px += 1
         }
     }
 

@@ -9,6 +9,78 @@
 
 using Core, Core.Errors
 
+const Expand4LowBytes  = cast(Math.Simd.U8x16) [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]
+const Expand4HighBytes = cast(Math.Simd.U8x16) [8'u8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15]
+const Expand4HighMask  = cast(Math.Simd.U8x16) [15'u8, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0]
+const Expand4LowMask   = cast(Math.Simd.U8x16) [0'u8, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15]
+
+#[Swag.Inline]
+func expand4Half(value, table: Math.Simd.U8x16, multiplier: u8)->Math.Simd.U8x16
+{
+    let duplicated = Math.Simd.shuffle(value, table)
+    let shifted    = cast #bit(Math.Simd.U8x16) (cast #bit(Math.Simd.U16x8) duplicated >> 4)
+    let nibbles    = (shifted & Expand4HighMask) | (duplicated & Expand4LowMask)
+    if multiplier == 1 do
+        return nibbles
+    return cast #bit(Math.Simd.U8x16) (cast #bit(Math.Simd.U16x8) nibbles * cast(u16) multiplier)
+}
+
+func defilterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64)
+{
+    const VectorBytes = #sizeof(Math.Simd.U8x16)
+    const BatchBytes  = 4 * VectorBytes
+    var offset = 0'u64
+    while count - offset >= BatchBytes
+    {
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) + Math.Simd.load(previous + offset))
+        Math.Simd.store(destination + offset + VectorBytes, Math.Simd.load(source + offset + VectorBytes) + Math.Simd.load(previous + offset + VectorBytes))
+        Math.Simd.store(destination + offset + 2 * VectorBytes, Math.Simd.load(source + offset + 2 * VectorBytes) + Math.Simd.load(previous + offset + 2 * VectorBytes))
+        Math.Simd.store(destination + offset + 3 * VectorBytes, Math.Simd.load(source + offset + 3 * VectorBytes) + Math.Simd.load(previous + offset + 3 * VectorBytes))
+        offset += BatchBytes
+    }
+
+    while count - offset >= VectorBytes
+    {
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) + Math.Simd.load(previous + offset))
+        offset += VectorBytes
+    }
+
+    while offset < count
+    {
+        destination[offset] = cast #bit(u8) (source[offset] + #wrap previous[offset])
+        offset              += 1
+    }
+}
+
+func expand4Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, multiplier: u8)
+{
+    var src       = source
+    var dst       = destination
+    var remaining = sampleCount
+    while remaining >= 32
+    {
+        let value = Math.Simd.load(src)
+        Math.Simd.store(dst, expand4Half(value, Expand4LowBytes, multiplier))
+        Math.Simd.store(dst + 16, expand4Half(value, Expand4HighBytes, multiplier))
+        src       += 16
+        dst       += 32
+        remaining -= 32
+    }
+
+    while remaining >= 2
+    {
+        let value = src[0]
+        dst[0]    = cast(u8) (value >> 4) * multiplier
+        dst[1]    = cast(u8) (value & 15) * multiplier
+        src       += 1
+        dst       += 2
+        remaining -= 2
+    }
+
+    if remaining do
+        dst[0] = cast(u8) (src[0] >> 4) * multiplier
+}
+
 impl Decoder
 {
     func filterPaeth(left, up, upLeft: u8)->u8
@@ -121,24 +193,9 @@ impl Decoder
             let mul = .paletteCount ? 1 : 17
             for height
             {
-                var dest = orgDest
+                let dest = orgDest
                 orgDest += rowStrideOut
-                var src = dest + srcOffset
-                var k   = rowStrideOut
-                while k >= 2
-                {
-                    let c = src[0]
-                    dest[0] = cast #bit (u8) ((c >> 4) * mul)
-                    dest[1] = cast #bit (u8) ((c & 15) * mul)
-                    dest    += 2
-                    src     += 1
-                    k       -= 2
-                }
-
-                if k > 0
-                {
-                    dest[0] = cast #bit (u8) ((src[0] >> 4) * mul)
-                }
+                expand4Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
             }
         }
     }
@@ -204,12 +261,7 @@ impl Decoder
                 }
 
             case .Up:
-                var k = 0'u64
-                while k < rowStrideIn
-                {
-                    destOff[k] = cast #bit (u8) (src[k] + #wrap up[k])
-                    k          += 1
-                }
+                defilterUpRow(src, up, destOff, rowStrideIn)
 
             case .Average:
                 var i = 0'u64

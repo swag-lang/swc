@@ -9,6 +9,36 @@
 
 using Core, Core.Errors
 
+const Swap16Bytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
+
+func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
+{
+    var src   = source
+    var dst   = destination
+    var count = sampleCount
+    while count >= 8
+    {
+        let words    = cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(Math.Simd.load(src), Swap16Bytes)
+        let low      = ((Math.Simd.widenLow(words) + 129'u32) * 255'u32) >> 16
+        let high     = ((Math.Simd.widenHigh(words) + 129'u32) * 255'u32) >> 16
+        let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4) low, cast #bit(Math.Simd.S32x4) high)
+        let packed8  = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) packed16, cast #bit(Math.Simd.S16x8) packed16)
+        Math.Simd.storeLow8(dst, packed8)
+        src   += 16
+        dst   += 8
+        count -= 8
+    }
+
+    while count
+    {
+        let value = (cast(u16) src[0] << 8) | src[1]
+        dst[0] = cast(u8) ((cast(u32) value + 128) / 257)
+        src    += 2
+        dst    += 1
+        count  -= 1
+    }
+}
+
 impl Decoder
 {
     func read16(src: const [*] u8)->u16
@@ -56,18 +86,24 @@ impl Decoder
                 transparentB = read16(key + 4)
             }
 
-            for result.width * result.height
+            if !.seenTRSN
             {
-                let r = read16(src)
-                let g = read16(src + 2)
-                let b = read16(src + 4)
-                dst[0] = reduce16(r)
-                dst[1] = reduce16(g)
-                dst[2] = reduce16(b)
-                if .seenTRSN do
+                reduce16Samples(src, dst, cast(u64) result.width * result.height * 3)
+            }
+            else
+            {
+                for result.width * result.height
+                {
+                    let r = read16(src)
+                    let g = read16(src + 2)
+                    let b = read16(src + 4)
+                    dst[0] = reduce16(r)
+                    dst[1] = reduce16(g)
+                    dst[2] = reduce16(b)
                     dst[3] = r == transparentR and g == transparentG and b == transparentB ? 0'u8 : 255'u8
-                src += 6
-                dst += result.bytesPerPixel
+                    src    += 6
+                    dst    += result.bytesPerPixel
+                }
             }
 
         case 4:
@@ -83,15 +119,7 @@ impl Decoder
             }
 
         case 6:
-            for result.width * result.height
-            {
-                dst[0] = reduce16(read16(src))
-                dst[1] = reduce16(read16(src + 2))
-                dst[2] = reduce16(read16(src + 4))
-                dst[3] = reduce16(read16(src + 6))
-                src    += 8
-                dst    += 4
-            }
+            reduce16Samples(src, dst, cast(u64) result.width * result.height * 4)
         }
     }
 

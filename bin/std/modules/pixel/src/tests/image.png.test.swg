@@ -108,6 +108,154 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     }
 }
 
+#test
+{
+    // Every vector boundary, unaligned pointers, modulo-256 overflow, and the
+    // untouched bytes around the destination agree with the scalar definition.
+    const Capacity = 96
+    var source:   [Capacity] u8
+    var previous: [Capacity] u8
+    var actual:   [Capacity] u8
+    var expected: [Capacity] u8
+    for count in 81
+    {
+        for i in Capacity
+        {
+            source[i]   = cast(u8) ((cast(u32) i * 17 + cast(u32) count * 3) & 0xFF)
+            previous[i] = cast(u8) ((cast(u32) i * 29 + cast(u32) count * 5) & 0xFF)
+            actual[i]   = 0xA5
+            expected[i] = 0xA5
+        }
+
+        source[1]   = 255
+        previous[2] = 255
+
+        for i in count do
+            expected[3 + i] = cast(u8) ((cast(u16) source[1 + i] + previous[2 + i]) & 0xFF)
+        Png.defilterUpRow(&source[1], &previous[2], &actual[3], count)
+        for i in Capacity do
+            @assert(actual[i] == expected[i])
+    }
+}
+
+#test
+{
+    // Both PNG meanings of a nibble, every vector/tail boundary, and the real
+    // in-place expansion layout agree with a non-overlapping scalar oracle.
+    const Capacity = 80
+    let multipliers: [2] u8 = [1, 17]
+    for multiplier in multipliers
+    {
+        for sampleCount in 66
+        {
+            let packedCount = (sampleCount + 1) / 2
+            var packed:   [Capacity] u8
+            var actual:   [Capacity] u8
+            var expected: [Capacity] u8
+            for i in Capacity
+            {
+                packed[i]   = cast(u8) ((cast(u32) i * 41 + cast(u32) sampleCount * 13) & 0xFF)
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            for i in sampleCount
+            {
+                let nibble = i % 2 ? packed[1 + i / 2] & 15 : packed[1 + i / 2] >> 4
+                expected[3 + i] = nibble * multiplier
+            }
+
+            Png.expand4Row(&packed[1], &actual[3], sampleCount, multiplier)
+            for i in Capacity do
+                @assert(actual[i] == expected[i])
+
+            for i in Capacity
+            {
+                actual[i]   = 0x5A
+                expected[i] = 0x5A
+            }
+
+            let sourceOffset = 3 + sampleCount - packedCount
+            for i in packedCount
+            {
+                actual[sourceOffset + i]   = packed[1 + i]
+                expected[sourceOffset + i] = packed[1 + i]
+            }
+
+            for i in sampleCount
+            {
+                let nibble = i % 2 ? packed[1 + i / 2] & 15 : packed[1 + i / 2] >> 4
+                expected[3 + i] = nibble * multiplier
+            }
+
+            Png.expand4Row(&actual[sourceOffset], &actual[3], sampleCount, multiplier)
+            for i in Capacity do
+                @assert(actual[i] == expected[i])
+        }
+    }
+}
+
+#test
+{
+    // Enumerate every 16-bit sample exactly once, then add an odd tail pixel.
+    // Offsets and sentinels also exercise unaligned loads and the bounded store.
+    const ValueCount = 65536
+    const Pixels     = ValueCount / 4 + 1
+    var source:   Array'u8
+    var actual:   Array'u8
+    var expected: Array'u8
+    source.resize(1 + Pixels * 8)
+    actual.resize(3 + Pixels * 4 + 1)
+    expected.resize(actual.count)
+    for i in actual.count
+    {
+        actual[i]   = 0xA5
+        expected[i] = 0xA5
+    }
+
+    for channel in Pixels * 4
+    {
+        let value = cast(u16) (channel & 0xFFFF)
+        source[1 + 2 * channel]     = cast(u8) (value >> 8)
+        source[1 + 2 * channel + 1] = cast(u8) (value & 0xFF)
+        expected[3 + channel]       = cast(u8) ((cast(u32) value + 128) / 257)
+    }
+
+    Png.reduce16Samples(source.buffer! + 1, actual.buffer! + 3, Pixels * 4)
+    for i in actual.count do
+        @assert(actual[i] == expected[i])
+}
+
+#test
+{
+    // The encoder's inverse operation has the same vector and tail boundaries,
+    // but wraps subtraction in the other direction.
+    const Capacity = 96
+    var source:   [Capacity] u8
+    var previous: [Capacity] u8
+    var actual:   [Capacity] u8
+    var expected: [Capacity] u8
+    for count in 81
+    {
+        for i in Capacity
+        {
+            source[i]   = cast(u8) ((cast(u32) i * 31 + cast(u32) count * 7) & 0xFF)
+            previous[i] = cast(u8) ((cast(u32) i * 19 + cast(u32) count * 11) & 0xFF)
+            actual[i]   = 0x5A
+            expected[i] = 0x5A
+        }
+
+        source[1]   = 0
+        previous[2] = 255
+
+        for i in count do
+            expected[3 + i] = cast #bit(u8) (source[1 + i] - #wrap previous[2 + i])
+        Png.filterUpRow(&source[1], &previous[2], &actual[3], count)
+        for i in Capacity do
+            @assert(actual[i] == expected[i])
+    }
+}
+
 func addPngU16Be(result: *ConcatBuffer, value: u16)
 {
     result.addNative(cast(u8) ((value >> 8) & 0xFF))

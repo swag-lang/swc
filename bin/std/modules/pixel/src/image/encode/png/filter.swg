@@ -9,6 +9,33 @@
 
 using Core, Core.Errors
 
+func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64)
+{
+    const VectorBytes = #sizeof(Math.Simd.U8x16)
+    const BatchBytes  = 4 * VectorBytes
+    var offset = 0'u64
+    while count - offset >= BatchBytes
+    {
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) - Math.Simd.load(previous + offset))
+        Math.Simd.store(destination + offset + VectorBytes, Math.Simd.load(source + offset + VectorBytes) - Math.Simd.load(previous + offset + VectorBytes))
+        Math.Simd.store(destination + offset + 2 * VectorBytes, Math.Simd.load(source + offset + 2 * VectorBytes) - Math.Simd.load(previous + offset + 2 * VectorBytes))
+        Math.Simd.store(destination + offset + 3 * VectorBytes, Math.Simd.load(source + offset + 3 * VectorBytes) - Math.Simd.load(previous + offset + 3 * VectorBytes))
+        offset += BatchBytes
+    }
+
+    while count - offset >= VectorBytes
+    {
+        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) - Math.Simd.load(previous + offset))
+        offset += VectorBytes
+    }
+
+    while offset < count
+    {
+        destination[offset] = cast #bit(u8) (source[offset] - #wrap previous[offset])
+        offset              += 1
+    }
+}
+
 impl Encoder
 {
     mtd getBestFilter(size: u32)->Filter
@@ -119,6 +146,12 @@ impl Encoder
     {
         let scanline     = .scanline!
         let prevScanline = .prevScanline!
+        if filter == .Up
+        {
+            filterUpRow(scanline, prevScanline, filtered, size)
+            return
+        }
+
         for i in size
         {
             var a, b, c: s32
@@ -143,7 +176,7 @@ impl Encoder
                 x = x - a
 
             case .Up:
-                x = x - b
+                unreachable
 
             case .Average:
                 let avg = (a + b) / 2

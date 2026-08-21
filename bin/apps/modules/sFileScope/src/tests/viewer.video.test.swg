@@ -20,6 +20,16 @@ func videoPreviewFile(name: string)->String fail
     return fileName
 }
 
+func waitForVideoFrame(view: *VideoViewer)
+{
+    // A completion can immediately launch the most recent seek that arrived while it was running.
+    while view.decodeScheduled
+    {
+        Jobs.wait(&view.decodeJob)
+        discard view.finishDecode()
+    }
+}
+
 #test
 {
     let fileName = expect videoPreviewFile(Format.toString("filescope-video-%.mp4", Guid64.random()).toString())
@@ -35,20 +45,24 @@ func videoPreviewFile(name: string)->String fail
     createVideoViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
     @assert(view.video.frameCount() == 4)
     @assert(view.frameIndex == 0 and !view.playing)
     @assert(view.details.indexOf("160") != Swag.U64.Max)
     @assert(view.details.indexOf("4 frames") != Swag.U64.Max)
 
     view.seekFrame(2)
+    waitForVideoFrame(view)
     @assert(view.frameIndex == 2)
     view.timeline.setValue(3)
+    waitForVideoFrame(view)
     @assert(view.frameIndex == 3)
     view.togglePlayback()
     @assert(view.playing)
     view.togglePlayback()
     @assert(!view.playing)
     view.stopPlayback()
+    waitForVideoFrame(view)
     @assert(view.frameIndex == 0 and view.elapsed == 0)
 }
 
@@ -74,9 +88,11 @@ func videoPreviewFile(name: string)->String fail
     createVideoViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Right
     view.seekFrame(2)
+    waitForVideoFrame(view)
 
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)

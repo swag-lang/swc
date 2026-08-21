@@ -43,6 +43,10 @@ private func registerViewerFileTypes(index: const *ViewerIndex)
         return
     }
 
+    // Large image, audio, and video viewers fan their independent work through the shared
+    // scheduler. Without workers those paths silently execute on the GUI thread in serial.
+    try Jobs.initialize()
+
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)
     registerAppStrings(&g_App.resources)

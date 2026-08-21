@@ -78,7 +78,12 @@ is the layout it does not read yet.
   release frames fell from 166,779 us to 66,339 us (2.51x); the IDR frame fell from 559,007 us to
   181,884 us (3.07x). Byte-exact Baseline/Main/High, P/B, seek, and reorder fixtures pass in both
   fast-debug and release. The 4K stream is now about 15 fps rather than 5-7 fps, so it is materially
-  faster but not yet real time at its 25 fps rate. Scheduling each completed CABAC row for
+  faster but not yet real time at its 25 fps rate. sFileScope had also never initialized
+  `Core.Jobs`, so all of this decoder parallelism silently ran on the GUI thread in the shipped
+  application. The application now initializes the scheduler and owns frame decoding in one
+  background job, coalescing seeks received while that job runs. During active playback of this
+  exact 4K file, 50 consecutive window probes had a 0.25 ms median, 9.9 ms p95, 18.8 ms maximum,
+  and no timeout. Scheduling each completed CABAC row for
   reconstruction remained byte-exact but regressed the warm median from 66,339 us to 68,921 us;
   it was discarded because the two stages contend for memory bandwidth without FFmpeg-style
   fine-grained reference progress.

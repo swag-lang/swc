@@ -328,6 +328,165 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.folderLabel.text() == appStrings().ui_Folder)
 }
 
+// The history is a list the reader owns: one file leaves it, or all of them do, and the section
+// closes itself once it has nothing left to offer.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_history_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    var names: Array'String
+    for i in 3'u32
+    {
+        let one = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
+        discard expect File.writeAllBytes(one.toString(), cast(const [..] u8) "a readable line\n")
+        names.add(one)
+    }
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+
+    for one in names do
+        window.openFile(one[].toString())
+    window.setFilePanelVisible(true)
+    @assert(window.recent.count == 3 and window.recentList.lineCount() == 3)
+
+    // The most recent file is at the head, and forgetting one leaves the others in their order.
+    window.forgetRecent(names[2].toString())
+    @assert(window.recent.count == 2 and window.recentList.lineCount() == 2)
+    @assert(window.recent[0] == names[1] and window.recent[1] == names[0])
+
+    // Forgetting what the history does not hold changes nothing, and the file stays open.
+    window.forgetRecent(Path.combine(folder.toString(), "absent.txt").toString())
+    @assert(window.recent.count == 2 and window.currentFile == names[2])
+
+    window.clearRecent()
+    @assert(window.recent.isEmpty() and window.recentList.lineCount() == 0)
+    @assert(!window.filePanel.isPaneVisible(0) and !window.recentPane.isLocallyVisible())
+    @assert(window.currentFile == names[2] and window.folderList.lineCount() == 3)
+}
+
+// The history row menu offers what that file can do, and the two entries only the history can
+// answer for take one file out of the list, then all of them.
+//
+// The folder list is not a list the reader owns, so the same menu there stops at the actions that
+// do not touch the history.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_menu_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    var names: Array'String
+    for i in 3'u32
+    {
+        let one = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
+        discard expect File.writeAllBytes(one.toString(), cast(const [..] u8) "a readable line\n")
+        names.add(one)
+    }
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+
+    for one in names do
+        window.openFile(one[].toString())
+    window.setFilePanelVisible(true)
+    window.applyLayout()
+
+    let list = window.recentList
+    @assert(list.lineCount() == 3)
+
+    // The row naming the file read before the one that is open, which the panel opens on its own
+    // when it is picked: what the menu acts on is the row, not the document.
+    list.selectLine(1)
+    @assert(window.currentFile == names[1])
+
+    host.clickPopupMenuItemWhenShown("sFileScope.file.forget")
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    host.pump()
+    @assert(host.autoHandled)
+    @assert(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
+    @assert(list.lineCount() == 2 and window.currentFile == names[1])
+
+    // A folder row names a file the folder holds, and nothing offers to take it out of a list it
+    // was never in: the armed step finds no such entry and dismisses the menu instead.
+    window.folderList.selectLine(0)
+    host.clickPopupMenuItemWhenShown("sFileScope.file.forget", maxFrames: 4)
+    window.showFileMenu(window.folderList, window.siblings.toSlice(), {120, 120})
+    host.pump()
+    @assert(!host.autoHandled)
+
+    list.selectLine(0)
+    host.clickPopupMenuItemWhenShown("sFileScope.file.clearHistory")
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    host.pump()
+    @assert(host.autoHandled)
+    @assert(window.recent.isEmpty() and list.lineCount() == 0)
+    @assert(!window.filePanel.isPaneVisible(0))
+    @assert(window.folderList.lineCount() == 3)
+}
+
+// The viewer a reader picks for one file becomes the viewer that kind of file opens in, and
+// choosing the ordinary one back is the removal of that decision rather than one more.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let folder        = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_preferred_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    let first  = Path.combine(folder.toString(), "notes.txt")
+    let second = Path.combine(folder.toString(), "other.txt")
+    for one in [first, second] do
+        discard expect File.writeAllBytes(one[].toString(), cast(const [..] u8) "a readable line\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+
+    window.openFile(first.toString())
+    @assert(window.choices.count == 2 and window.choices[0].key == BasicTextViewerKey)
+    @assert(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
+
+    // Every entry of the selector says which viewer it is before its name is read.
+    @assert(window.viewerCombo.items.count == window.choices.count)
+    for item in window.viewerCombo.items do
+        @assert(item!.icon.isValid())
+
+    window.selectViewer(1)
+    @assert(window.choices[window.activeChoiceIndex].key == "hex")
+    @assert(window.preferences.count == 1 and window.preferences[0].kind == BasicTextViewerKey and window.preferences[0].viewer == "hex")
+
+    // The next file of the same kind opens where the reader left the previous one.
+    window.openFile(second.toString())
+    @assert(window.choices[window.activeChoiceIndex].key == "hex")
+
+    // The decision crosses a session with the other panel choices.
+    let state = saveViewerState(window)
+    window.preferences.clear()
+    loadViewerState(window, state.toSlice())
+    @assert(window.preferences.count == 1 and window.preferences[0].viewer == "hex")
+
+    window.selectViewer(0)
+    @assert(window.preferences.isEmpty())
+    window.openFile(first.toString())
+    @assert(window.choices[window.activeChoiceIndex].key == BasicTextViewerKey)
+}
+
 // Pins the file panel: two named sections share the left edge, the row naming the open file is
 // the selected one, and the document keeps the rest of the surface.
 #test

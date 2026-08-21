@@ -141,6 +141,29 @@ public func showInFileExplorer(path: string)->bool
     return err == null
 }
 
+// Asks the platform to let the user pick which application opens `path`.
+//
+// The chooser is the shell's own, so it offers the same applications, the same default-handler
+// checkbox and the same store lookup the file explorer offers. It runs in its own process: the
+// call returns as soon as the request is handed over, long before the user has chosen anything,
+// and reports only whether the chooser could be started.
+#[Swag.Discardable]
+public func openFileWith(path: string)->bool
+{
+    var x: String = path
+    x.replace("/", "\\")
+
+    // The chooser is a shell entry point rather than an executable, and everything after the
+    // entry-point name is one single argument: the path needs no quoting, and quoting it would
+    // become part of the name the chooser looks for.
+    x = Format.toString("shell32.dll,OpenAs_RunDLL %", x)
+
+    let host   = Utf16.toZeroTerminated("rundll32.exe")
+    let params = Utf16.toZeroTerminated(x)
+    discard catch ShellExecuteW(null, null, @dataof(host), @dataof(params), null, SW_SHOW) as err
+    return err == null
+}
+
 // Opens `url` with the system's default handler.
 public func openUrl(url: string)
 {

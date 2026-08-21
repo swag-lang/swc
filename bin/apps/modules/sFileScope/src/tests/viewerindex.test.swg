@@ -50,6 +50,34 @@ using Core
     @assert(mp4Choices[0].name == "Video" and mp4Choices[1].name == "Binary" and mp4Choices[2].name == "Hexadecimal")
 }
 
+// Every viewer carries the stable identity a remembered choice is written under, and the glyph
+// the selector shows beside its name. Neither is ever shared: the persisted state names exactly
+// one viewer, and so does the mark a reader picks the viewer by.
+#test
+{
+    let index = createViewerIndex()
+    for spec, i in index.specs
+    {
+        @assert(!spec.key.isEmpty() and spec.key != BasicTextViewerKey)
+        @assert(spec.key == spec.key.toLower())
+        for other, j in index.specs where j > i do
+            @assert(spec.key != other.key and spec.icon != other.icon)
+    }
+
+    let movie = index.choices("movie.mp4")
+    @assert(movie[0].key == "video" and movie[0].icon == .Video)
+    @assert(movie[1].key == "binary" and movie[1].icon == .Binary)
+    @assert(movie[2].key == "hex" and movie[2].icon == .Hex)
+
+    // The host's own surface answers for a readable file, under a key of the same vocabulary.
+    let plain = Gui.Testing.tempFilePath("filescope-keys-", ".unknown")
+    defer discard catch File.delete(plain)
+    expect File.writeAllBytes(plain, "plain UTF-8 text")
+    let readable = index.choices(plain)
+    @assert(readable[0].kind == .BasicText)
+    @assert(readable[0].key == BasicTextViewerKey and readable[0].icon == .Text)
+}
+
 // "The same kind" to folder navigation means one format viewer claims both files, or neither
 // file is claimed and the extensions agree.
 #test

@@ -200,11 +200,13 @@ hold it. The interface must read as an instrument at arm's length, never as a to
   when it is needed at all, on the same line and starting right after it — a word pushed to the
   far edge of a wide cell reads as a second column, not as the name of the glyph.
 - **A small horizontal icon bar frames its active cell.** Use
-  `IconButtonCheckIndicator.Frame`: its slight themed fill and rounded hairline surround the glyph
-  without looking like part of it. A vertical tool rail may instead keep a leading `Left` rule,
-  as sSnapForge does, because the rule then reads beside the column. Make the indicator an
-  explicit choice; never use a bottom underline on compact horizontal icons, and reserve the
-  rail's lane in every state so vertical content never moves when it is checked.
+  `IconButtonCheckIndicator.Frame`: its slight themed fill and a hairline on the button's own
+  corner surround the glyph without looking like part of it — the frame takes the form's radius,
+  so a square tool is marked square and a rounded one is marked rounded, and the mark never cuts
+  across the fill the hovered state leaves under it. A vertical tool rail may instead keep a
+  leading `Left` rule, as sSnapForge does, because the rule then reads beside the column. Make
+  the indicator an explicit choice; never use a bottom underline on compact horizontal icons, and
+  reserve the rail's lane in every state so vertical content never moves when it is checked.
 - **Nothing sits against the edge of its cell.** A glyph flush with the window edge and a label
   flush with the other side is not a dense toolbar, it is an unfinished one. Give every cell of a
   rail or a command bar the same padding on both sides, and let the column be as wide as that

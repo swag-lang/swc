@@ -192,8 +192,41 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     var framed = host.render()
     let border = host.theme.colors.btnIcon_CheckedFrameBorder
     @assert(iconButtonColorCount(&framed, border) > 0)
+}
+
+// The checked frame is drawn on the shape of the button it marks, not on a shape of its own.
+//
+// It lands over the fill the hovered state leaves under it, so a rounded hairline around a square
+// tool crosses the ground it is standing on at four places, and the pair reads as two controls
+// stacked rather than as one that is picked.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(80, 80)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    btn.setCheckIndicator(.Frame)
+    btn.setChecked(true)
+
+    let border = host.theme.colors.btnIcon_CheckedFrameBorder
+
+    // A rounded tool cuts its own corner, so the pixel of the cell's corner is left to the ground.
+    btn.setForm(.RoundedRectangle)
+    host.finishAnimations()
+    var rounded = host.render()
+    @assert(iconButtonColorCount(&rounded, border) > 0)
     @assert(btn.focusRingRadius == host.theme.rects.btnIcon_RoundSquareBk.radius)
-    @assert(framed.pixelColor(20, 20) != border)
+    @assert(rounded.pixelColor(20, 20) != border)
+
+    // A square one keeps that corner, and the ring it publishes says the same thing.
+    btn.setForm(.Rectangle)
+    host.finishAnimations()
+    var squared = host.render()
+    @assert(iconButtonColorCount(&squared, border) > iconButtonColorCount(&rounded, border))
+    @assert(btn.focusRingRadius == host.theme.rects.btnIcon_SquareBk.radius)
 }
 
 // The two indicator-less placements differ by what they leave the state colors saying: `None`

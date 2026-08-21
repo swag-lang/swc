@@ -3,6 +3,10 @@
 
 using Core, Pixel
 
+// How far a justified space may grow, in line heights. It is the bound Pixel's own justified text
+// uses, so a line one engine leaves ragged is left ragged by the other for the same reason.
+private const JustifyLimit = 2.0
+
 #[Swag.EnumFlags]
 private enum InlineFlags
 {
@@ -529,7 +533,12 @@ impl InlineView
         atom.descent         = -font.descent
     }
 
-    mtd finishLine(first, last: u64, top, left, right: f32)->f32
+    // Places one finished line of atoms and returns the height it takes.
+    //
+    // `wrapped` says the line ended because the next word did not fit, which is the only line a
+    // justified paragraph stretches: a line the author ended and the last line of a block keep
+    // their natural width.
+    mtd finishLine(first, last: u64, top, left, right: f32, wrapped: bool)->f32
     {
         if first >= last do
             return .theme().createDefaultFont(.fontSize()).height * .owner.documentStyle.lineHeight
@@ -553,17 +562,71 @@ impl InlineView
             shift = Math.max(right - lineRight, 0) * 0.5
         elif .horizontalAlignment == .Right do
             shift = Math.max(right - lineRight, 0)
+
+        let stretch = .measureJustification(first, last, right, line, wrapped)
+        var advance = shift
         for index in first until last where .atoms[index].visible
         {
-            .atoms[index].position.x += shift
+            .atoms[index].position.x += advance
             .atoms[index].position.y = top + offset + ascent - .atoms[index].ascent
             if .atoms[index].flags.has(.Superscript) do
                 .atoms[index].position.y -= ascent * 0.28
             elif .atoms[index].flags.has(.Subscript) do
                 .atoms[index].position.y += descent * 0.55
+            if .atoms[index].isSpace and index > stretch.firstInk and index < stretch.lastInk do
+                advance += stretch.step
         }
 
         return line
+    }
+
+    // Returns how much every interior space of one wrapped line has to grow to reach `right`.
+    //
+    // A space is interior when ink stands on both sides of it: the space a wrap leaves at the end
+    // of a line is what would otherwise absorb the whole stretch and leave the last word short of
+    // the edge. The bound is the one Pixel's own justified text uses, so a line the two engines
+    // both refuse to stretch is refused for the same reason.
+    private mtd measureJustification(first, last: u64, right, line: f32, wrapped: bool)->{ step: f32, firstInk: u64, lastInk: u64 }
+    {
+        var result: retval
+        result.firstInk = Swag.U64.Max
+        if !wrapped or .horizontalAlignment != .Justify do
+            return result
+
+        var gaps     = 0'u64
+        var gapWidth = 0'f32
+        var inkEnd   = 0'f32
+        var spaceAt  = Swag.U64.Max
+
+        for index in first until last where .atoms[index].visible
+        {
+            if .atoms[index].isSpace
+            {
+                if result.firstInk != Swag.U64.Max and spaceAt == Swag.U64.Max do
+                    spaceAt = index
+                continue
+            }
+
+            if result.firstInk == Swag.U64.Max do
+                result.firstInk = index
+            elif spaceAt != Swag.U64.Max
+            {
+                gaps     += 1
+                gapWidth = Math.max(gapWidth, .atoms[spaceAt].position.width)
+            }
+
+            spaceAt        = Swag.U64.Max
+            result.lastInk = index
+            inkEnd         = .atoms[index].position.right()
+        }
+
+        if !gaps do
+            return result
+
+        let step = Math.max(right - inkEnd, 0) / cast(f32) gaps
+        if gapWidth + step < line * JustifyLimit do
+            result.step = step
+        return result
     }
 
     mtd layout(width: f32)->f32
@@ -597,7 +660,7 @@ impl InlineView
             .measureAtom(atom)
             if atom.isBreak
             {
-                y                += .finishLine(first, index, y, lineLeft, right)
+                y                += .finishLine(first, index, y, lineLeft, right, wrapped: false)
                 x                = left
                 first            = index + 1
                 lineLeft         = left
@@ -613,7 +676,7 @@ impl InlineView
                 continue
             if !atom.isSpace and x > lineLeft and x + atom.position.width > right
             {
-                y        += .finishLine(first, index, y, lineLeft, right)
+                y        += .finishLine(first, index, y, lineLeft, right, wrapped: true)
                 x        = continuationLeft
                 first    = index
                 lineLeft = continuationLeft
@@ -633,7 +696,7 @@ impl InlineView
         }
 
         if first < .atoms.count or .atoms.isEmpty() do
-            y += .finishLine(first, .atoms.count, y, lineLeft, right)
+            y += .finishLine(first, .atoms.count, y, lineLeft, right, wrapped: false)
         .layoutWidth  = width
         .layoutHeight = y + inset.w
         return .layoutHeight
@@ -700,6 +763,8 @@ impl InlineView
         result.backgroundStyle = .View
         if kind >= .Heading1 and kind <= .Heading6 do
             result.horizontalAlignment = owner.documentStyle.headingAlignment
+        elif kind == .Paragraph do
+            result.horizontalAlignment = owner.documentStyle.paragraphAlignment
         result.parse(source)
         return result
     }

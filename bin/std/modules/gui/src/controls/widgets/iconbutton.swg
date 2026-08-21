@@ -254,8 +254,13 @@ impl IWnd for IconButton
         // The form is the shape, so the focus ring follows it and a circular tool is never
         // marked with a box. It is published even for a flat button, which paints no box: the
         // ring is the only edge such a button has, and it stands for the form all the same.
-        let framedRadius = Math.max(rects.btnIcon_RoundSquareBk.radius - 0.5, 0)
-        .focusRingRadius = .isChecked and .checkIndicator == .Frame ? rects.btnIcon_RoundSquareBk.radius : subRectBk!.radius
+        //
+        // The checked frame answers to the form for the same reason. It is drawn over the fill the
+        // hovered state leaves under it, so a corner the two do not share is a corner where the
+        // mark cuts across its own button: a square tool marked with a rounded hairline reads as
+        // two controls stacked rather than as one that is picked.
+        let framedRadius = Math.max(subRectBk!.radius - 0.5, 0)
+        .focusRingRadius = subRectBk!.radius
 
         var paintFlags: PaintItemFlags = .None
         switch

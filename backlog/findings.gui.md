@@ -404,3 +404,43 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: cache parsed sheets keyed by the style node's text identity (offset and length are
   stable once a `<style>` element closed), append only sheets not seen yet, and re-evaluate
   media queries instead of re-parsing on a theme change.
+
+### F-172 — A denser monitor frees the frames every stored icon points at
+
+- Area: bin/std
+- Found while: giving sFileScope's viewer selector one glyph per viewer (2026-08-21), which stores
+  an `Icon` per combo entry the way every toolbar already stores one per button.
+- Observation: `Gui.Icon` borrows `imageList`, and `Gui.IconSet.list` drops every list it owns
+  (`free`, which `Memory.delete`s each `ImageList`) as soon as it is asked for a scale sharper
+  than the one it built. `Surface.setDpiScaleRaw` raises `Theme.res.atlasScale` when a window
+  moves to a denser monitor, so the first `Theme.icon` call after that move frees the lists that
+  every previously handed-out `Icon` still points at — including the one inside every
+  `IconButton`, `MenuCtrl` item, `ListCtrl` row and `ComboBox` entry created before the move.
+- Evidence: code reading of `paint/iconset.swg` (`list`, `free`), `paint/icon.swg` (`imageList`
+  is a borrowed pointer painted through without a validity check), `paint/theme.swg`
+  (`ensureAtlasScale`) and `surface.swg` (`setDpiScaleRaw`). Nothing re-fetches a stored icon on
+  `NotifyKind.ThemeChanged`, and no notification is sent for the scale change at all.
+- Next step: reproduce by moving a surface holding icon-bearing controls from a 100% to a 150%
+  monitor and painting, under `-bc debug` so the freed list is caught rather than read back; then
+  either keep retired lists alive until the frame ends, or make `Icon` name its set and size and
+  resolve the list at paint time.
+
+### F-174 — A splitter's first pane silently ignores the size it is added with
+
+- Area: bin/std
+- Found while: the sFileScope history panel opened one row tall (2026-08-21), although it declares
+  `addPane(recentPane, ViewerRecentHeight)` with 188.
+- Observation: `SplitterCtrl.addPane` takes `paneSize` and uses it only from the second pane on.
+  For the first one it writes `item.size = paddedClientRect().height` instead — which is the right
+  answer for a splitter that already has a size, and zero for one built before its window has been
+  laid out once. The next `addPane` then transfers out of a pane holding nothing, the first layout
+  clamps it to `minimumSize`, and `preserveSize` freezes it there for the rest of the session. The
+  argument is never read, so nothing reports that the declared height was dropped.
+- Evidence: sFileScope built its panel that way and got 88 (its `minimumSize`) where it asked for
+  188, both in the running application and in `sfilescope.panel`'s golden. The application now
+  re-applies the height in `setFilePanelVisible` after an explicit `applyLayout`, which is the
+  workaround this entry exists to remove.
+- Next step: either honor `paneSize` for the first pane when the splitter has no size yet and let
+  the first real layout distribute from it, or keep the size the caller asked for on the item and
+  apply it on the first resize that has room. Cover it with a splitter test that adds two panes
+  before the control is ever laid out and then resizes.

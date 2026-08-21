@@ -285,3 +285,54 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: reduce a standalone JIT test returning a conditional `U8x16`, compare its true and
   false branch register/stack locations with the scalar conditional lowering, then add the native
   twin before fixing conditional-result materialization.
+
+### F-173 — An untyped string constant reaches a nullable `opSet` parameter empty inside an aggregate literal
+
+- Area: compiler
+- Found while: giving sFileScope's viewer table a stable key per viewer (2026-08-21). The host's
+  own text surface got `ViewerChoice{.BasicText, Swag.U64.Max, BasicTextViewerKey, ...}` and its
+  `key: String` came out empty, so the persisted viewer choice never matched. Writing
+  `String.from(BasicTextViewerKey)` in the same slot fixes it, which is what the application
+  ships.
+- Observation: the value is the *untyped constant* itself. The same constant assigned to a
+  `String`, the same text written as a literal in the same literal slot, and the same constant
+  bound to a `string` local first all produce a correct `String`. Only the constant used directly
+  as an aggregate-literal field value is wrong, and it is wrong the same way in the positional and
+  the named form. The conversion does run — `opSet` is entered — and it is entered with an empty
+  string, so the failure is in what reaches the parameter, not in whether the conversion is found.
+- Evidence: reduced standalone, no `Core` needed. The trigger is the parameter being **nullable**:
+  with `mtd opSet(value: string)` all four spellings answer 4, and adding `#null` makes exactly the
+  aggregate-literal-from-a-constant case answer 0.
+
+  ```swag
+  const KEY = "text"
+
+  struct Name { len: u64 }
+  impl Name
+  {
+      #[Implicit]
+      mtd opSet(value: #null string) { .len = @countof(value) }     // `string` here: no failure
+  }
+
+  struct Row { id: u64 = 99; name: Name }
+
+  #test
+  {
+      var assigned: Name = KEY
+      @assert(assigned.len == 4)        // passes
+
+      var typed: string = KEY
+      @assert(Row{1, typed}.name.len == 4)     // passes
+      @assert(Row{1, "text"}.name.len == 4)    // passes
+      @assert(Row{1, KEY}.name.len == 4)       // FAILS, len is 0
+  }
+  ```
+
+  `Core.String` is the shipped type with that exact signature
+  (`#[Implicit] mtd opSet(value: #null string)`), which is why every `String` field of every
+  aggregate literal in `bin/` is exposed to it.
+- Next step: compare how the aggregate-literal path materializes an untyped string constant for a
+  nullable parameter against the assignment path, which is correct — the constant is most likely
+  handed over as a null data pointer, since the `@dataof(value) == null` branch of
+  `Core.String.opSet` is what produces exactly this result. Then add the case above to
+  `bin/unittests/sema` beside the other `opSet` coverage, and its native twin.

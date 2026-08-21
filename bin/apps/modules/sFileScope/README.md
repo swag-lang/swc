@@ -7,14 +7,20 @@ document keeps the clear majority of the window.
 
 ## Integrated viewer registry
 
-`src/viewerindex.swg` is the only registry. It binds each display name and set of lowercase
-extensions or exact file names directly to a `ViewerCreate` function compiled into sFileScope.
-There is no runtime index, dynamic library, exported entry point, or versioned ABI.
+`src/viewerindex.swg` is the only registry. It binds each stable key, display name, glyph, and set
+of lowercase extensions or exact file names directly to a `ViewerCreate` function compiled into
+sFileScope. There is no runtime index, dynamic library, exported entry point, or versioned ABI.
 
 Several viewers may claim the same extension. The selector lists format-specific viewers first,
-`Basic text` next when the file is readable UTF-8, then every viewer registered for `*`. The first
-choice is the default. Changing the selector reuses a view already opened for the current file or
-creates it on demand; it does not reopen the window.
+`Basic text` next when the file is readable UTF-8, then every viewer registered for `*`, each
+beside the glyph its viewer owns. Changing the selector reuses a view already opened for the
+current file or creates it on demand; it does not reopen the window.
+
+The first choice is the default, and choosing another one is remembered for that kind of file: the
+choice is kept against the viewer the file would have opened in, so turning one video into bytes
+opens the next video in bytes whatever container it arrives in. Choosing the ordinary viewer back
+removes the decision rather than recording one more. The stable key, not the display name, is what
+the persisted state carries.
 
 Basic text is available for every readable text file. It loads small UTF-8 segments on demand and
 stays about two viewports ahead, so a large source file does not need to fit in memory before its
@@ -57,16 +63,24 @@ offset. Ctrl+F scans in asynchronous 256 KiB chunks, while viewers such as PDF c
 scan with format-aware search. The information band shows a spinner while the active viewer is
 still producing visible content, and switching viewers retires hidden progressive work.
 
-The application stores its palette, language, window state, and recent files in the user's
-application-data folder. It navigates the current folder with Left/Right, reloads with F5, opens
-with Ctrl+O, and accepts one file dropped anywhere on the surface. An installer may run
-`sFileScope.exe --register-file-types`; normal launches never write the registry.
+The application stores its palette, language, window state, recent files, and remembered viewer
+choices in the user's application-data folder. It navigates the current folder with Left/Right,
+reloads with F5, opens with Ctrl+O, and accepts one file dropped anywhere on the surface. An
+installer may run `sFileScope.exe --register-file-types`; normal launches never write the registry.
+
+A right click names what a file offers. On the band under the document it answers for the open
+file, and on a panel row for the file that row names: show it in the system file explorer, or hand
+it to the system chooser of applications. A row of the history offers two more, because the
+history is the one list the reader owns: drop that file from it, or clear it entirely. Nothing
+here writes to the file, and the chooser runs in its own process.
 
 ## Adding a viewer
 
 Add implementation files under `src/viewers/<format>/`, expose one internal
 `func create<Format>Viewer(const *ViewerRequest, *ViewerResult)`, and add that function with its
-selectors to `createViewerIndex`. Create the document under `request.contentParent` and optional
+key, name, glyph, and selectors to `createViewerIndex`. The key is lowercase, never translated,
+and never reused: it is the spelling a reader's remembered choice is stored under. The glyph is a
+new 24-unit cell appended to `datas/icons.svg` with a matching `ViewerIcons` case in grid order. Create the document under `request.contentParent` and optional
 compact commands under `request.commandParent`. On decode failure, leave `result.view` null and
 return the exact reason through `result.failureReason`; the application presents every failure on
 the same error surface. A viewer may also provide format details, byte-offset reveal, format-aware

@@ -1,9 +1,19 @@
 using Core, Core.Errors, Gui
 
+// The stable identity of the host's own text surface, in the persisted vocabulary its
+// registered neighbours use.
+const BasicTextViewerKey = "text"
+
 // One integrated viewer associated with lowercase extensions or exact file names.
 struct ViewerSpec
 {
-    displayName: String     // Name shown in the viewer selector.
+    // Stable identity of the viewer, written into the persisted state. It is the name a reader's
+    // viewer choice is remembered under, so it outlives the display name and the registration
+    // order and is never translated.
+    key: String
+
+    displayName: String          // Name shown in the viewer selector.
+    icon:        ViewerIcons     // Glyph shown beside that name.
     create:      ViewerCreate = undefined
     extensions:  Array'String     // Lowercase extensions or file names, or `*` for every file.
 }
@@ -20,7 +30,9 @@ struct ViewerChoice
 {
     kind:      ViewerChoiceKind
     specIndex: u64 = Swag.U64.Max     // Index in [[ViewerIndex.specs]] for a format-specific viewer.
+    key:       String                 // Stable identity of the viewer, as [[ViewerSpec.key]] defines it.
     name:      String                 // Name shown in the action-bar selector.
+    icon:      ViewerIcons            // Glyph shown beside that name.
 }
 
 // The format viewers compiled into sFileScope, in selection order.
@@ -29,10 +41,12 @@ struct ViewerIndex
     specs: Array'ViewerSpec
 }
 
-private func addViewer(index: *ViewerIndex, name: string, create: ViewerCreate, selectors: string)
+private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons, create: ViewerCreate, selectors: string)
 {
     var spec: ViewerSpec
+    spec.key         = String.from(key)
     spec.displayName = String.from(name)
+    spec.icon        = icon
     spec.create      = create
     for selector in Tokenize.split(selectors, ';'u8) do
         spec.extensions.add(String.from(selector))
@@ -43,16 +57,16 @@ private func addViewer(index: *ViewerIndex, name: string, create: ViewerCreate, 
 func createViewerIndex()->ViewerIndex
 {
     var result: retval
-    addViewer(&result, "HTML", &createHtmlViewer, ".htm;.html;.shtml;.xht;.xhtml")
-    addViewer(&result, "Code", &createCodeViewer, ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;.nix")
-    addViewer(&result, "Markdown", &createMarkdownViewer, ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
-    addViewer(&result, "Image", &createImageViewer, ".bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp")
-    addViewer(&result, "Video", &createVideoViewer, ".y4m;.avi;.mp4;.m4v;.mov")
-    addViewer(&result, "PDF", &createPdfViewer, ".pdf")
-    addViewer(&result, "Sound", &createSoundViewer, ".wav")
-    addViewer(&result, "Font", &createFontViewer, ".ttf;.ttc")
-    addViewer(&result, "Binary", &createBinaryViewer, ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm")
-    addViewer(&result, "Hexadecimal", &createHexViewer, "*")
+    addViewer(&result, "html", "HTML", .Html, &createHtmlViewer, ".htm;.html;.shtml;.xht;.xhtml")
+    addViewer(&result, "code", "Code", .Code, &createCodeViewer, ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;.nix")
+    addViewer(&result, "markdown", "Markdown", .Markdown, &createMarkdownViewer, ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
+    addViewer(&result, "image", "Image", .Image, &createImageViewer, ".bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp")
+    addViewer(&result, "video", "Video", .Video, &createVideoViewer, ".y4m;.avi;.mp4;.m4v;.mov")
+    addViewer(&result, "pdf", "PDF", .Pdf, &createPdfViewer, ".pdf")
+    addViewer(&result, "sound", "Sound", .Sound, &createSoundViewer, ".wav")
+    addViewer(&result, "font", "Font", .Font, &createFontViewer, ".ttf;.ttc")
+    addViewer(&result, "binary", "Binary", .Binary, &createBinaryViewer, ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm")
+    addViewer(&result, "hex", "Hexadecimal", .Hex, &createHexViewer, "*")
     return result
 }
 
@@ -90,13 +104,15 @@ impl ViewerIndex
         baseName = baseName.toLower()
 
         for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: false) do
-            result.add(ViewerChoice{.Viewer, index, spec.displayName})
+            result.add(ViewerChoice{.Viewer, index, spec.key, spec.displayName, spec.icon})
 
+        // The key is converted explicitly: an untyped string constant used directly as an
+        // aggregate-literal field of type String arrives empty (F-173).
         if BasicTextView.supports(fileName) do
-            result.add(ViewerChoice{.BasicText, Swag.U64.Max, appStrings().ui_BasicText})
+            result.add(ViewerChoice{.BasicText, Swag.U64.Max, String.from(BasicTextViewerKey), appStrings().ui_BasicText, .Text})
 
         for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: true) do
-            result.add(ViewerChoice{.Viewer, index, spec.displayName})
+            result.add(ViewerChoice{.Viewer, index, spec.key, spec.displayName, spec.icon})
         return result
     }
 

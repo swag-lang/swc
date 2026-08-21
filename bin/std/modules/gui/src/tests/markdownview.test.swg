@@ -306,6 +306,71 @@ func markdownFixturePath()->String
     @assert(zeroX >= 0 and fourX > zeroX)
 }
 
+// Returns the right edge of the last ink of every laid-out line of the first block.
+func paragraphLineEdges(view: *Markdown.View)->Array'f32
+{
+    var result: retval
+    var line = -1'f32
+    for &atom in view.blocks[0].inline!.atoms where atom.visible and !atom.isSpace
+    {
+        if atom.position.y != line
+        {
+            line = atom.position.y
+            result.add(atom.position.right())
+        }
+        else do
+            result[result.count - 1] = Math.max(result[result.count - 1], atom.position.right())
+    }
+
+    return result
+}
+
+// A justified paragraph reaches the far edge of its column on every line a wrap ended, and leaves
+// the line the paragraph ends on at its natural width.
+//
+// The space a wrap leaves at the end of a line is what makes this worth pinning: counted as one
+// more gap it absorbs the whole stretch, and the last word of every line stops short of the edge
+// while the paragraph still measures as justified.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 320)
+    defer host.shutdown()
+
+    var style = Markdown.Style.theme()
+    style.maxContentWidth = 280
+    style.horizontalInset = 20
+
+    let source = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen"
+    let ragged = Markdown.View.createText(&host.root, source, style)
+    ragged.resize(420, 320)
+    ragged.applyLayout()
+    ragged.layoutDocument()
+
+    style.paragraphAlignment = .Justify
+    let flush = Markdown.View.createText(&host.root, source, style)
+    flush.resize(420, 320)
+    flush.applyLayout()
+    flush.layoutDocument()
+
+    let raggedEdges = paragraphLineEdges(ragged)
+    let flushEdges  = paragraphLineEdges(flush)
+    @assert(raggedEdges.count == flushEdges.count and flushEdges.count >= 3)
+
+    // Justification moves no word to another line: the wrap is decided before the stretch.
+    @assert(ragged.blocks[0].inline!.layoutHeight == flush.blocks[0].inline!.layoutHeight)
+
+    let last = flushEdges.count - 1
+    for index in last
+    {
+        @assert(flushEdges[index] > raggedEdges[index])
+        @assert(Math.abs(flushEdges[index] - flushEdges[0]) < 0.5)
+    }
+
+    @assert(flushEdges[last] == raggedEdges[last])
+    @assert(flushEdges[last] < flushEdges[0] - 1)
+}
+
 // Every occurrence of a find highlights, not only the first one.
 #test
 {

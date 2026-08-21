@@ -7,6 +7,12 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     var result = Markdown.Style.theme()
     switch themeIndex
     {
+    // The application's own theme and Whitey set their body column flush on both edges. The four
+    // themes between them are imported, and each is read with the ragged edge its original has:
+    // a justified GitHub page is not a GitHub page.
+    case 0:
+        result.paragraphAlignment = .Justify
+
     case 2:
         result.maxContentWidth  = 640
         result.horizontalInset  = 40
@@ -47,21 +53,22 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.lineHeight       = 1.8
 
     case 5:
-        result.maxContentWidth  = 960
-        result.horizontalInset  = 52
-        result.topInset         = 40
-        result.bottomInset      = 48
-        result.bodyFontSize     = 19
-        result.codeFontSize     = 17
-        result.mathFontSize     = 25
-        result.heading1FontSize = 48
-        result.heading2FontSize = 30
-        result.heading3FontSize = 23
-        result.heading4FontSize = 20
-        result.heading5FontSize = 19
-        result.heading6FontSize = 19
-        result.lineHeight       = 1.53
-        result.headingAlignment = .Center
+        result.maxContentWidth    = 960
+        result.horizontalInset    = 52
+        result.topInset           = 40
+        result.bottomInset        = 48
+        result.bodyFontSize       = 19
+        result.codeFontSize       = 17
+        result.mathFontSize       = 25
+        result.heading1FontSize   = 48
+        result.heading2FontSize   = 30
+        result.heading3FontSize   = 23
+        result.heading4FontSize   = 20
+        result.heading5FontSize   = 19
+        result.heading6FontSize   = 19
+        result.lineHeight         = 1.53
+        result.headingAlignment   = .Center
+        result.paragraphAlignment = .Justify
     }
 
     switch widthIndex

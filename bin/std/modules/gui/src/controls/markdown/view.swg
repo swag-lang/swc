@@ -36,6 +36,15 @@ struct Style
         heading6FontSize: u32                 = 16        // Level-six heading draw size, in logical pixels.
         lineHeight:       f32                 = 1.6       // Minimum body line height, relative to the active font.
         headingAlignment: StringHorzAlignment = .Left     // Horizontal alignment of headings.
+
+        // Horizontal alignment of body paragraphs.
+        //
+        // `Justify` spreads the spaces of every wrapped line so both edges of the column are
+        // flush. A line the author ended, and the last line of a paragraph, keep their natural
+        // width; a line whose spaces would have to stretch past twice the line height is left
+        // ragged rather than pulled apart. Headings, lists, quotes, tables and code are never
+        // justified.
+        paragraphAlignment: StringHorzAlignment = .Left
     }
 }
 
@@ -558,6 +567,8 @@ private impl View
                 block.inline!.layoutWidth = 0
                 if block.kind >= .Heading1 and block.kind <= .Heading6 do
                     block.inline!.horizontalAlignment = .documentStyle.headingAlignment
+                elif block.kind == .Paragraph do
+                    block.inline!.horizontalAlignment = .documentStyle.paragraphAlignment
             }
 
             if block.table do

@@ -3,7 +3,8 @@ using Core, Pixel, Gui
 const ViewerBarHeight       = 48.0
 const ViewerInfoHeight      = 36.0
 const ViewerGlyphSize       = 20.0
-const ViewerMinWidth        = 1200
+const ViewerRowGlyphSize    = 16.0
+const ViewerMinWidth        = 1224
 const ViewerSearchChunkSize = 256 * 1024'u64
 const ViewerErrorTextWidth  = 512.0
 
@@ -16,6 +17,18 @@ const ViewerPaneMinSize  = 88.0
 // Files the recent list keeps. Long enough to cross a working session, short enough that the list
 // stays something a reader scans rather than searches.
 const ViewerRecentCount = 12'u64
+
+// One remembered answer to "which viewer opens a file of this kind".
+//
+// A reader who turns to the bytes of one picture is telling the application what to do with the
+// next one, so the choice is kept against the viewer the file would have opened in rather than
+// against its extension: every video reaches the byte view through one decision, not one per
+// container.
+struct ViewerPreference
+{
+    kind:   String     // Stable key of the viewer a file of this kind opens in by default.
+    viewer: String     // Stable key of the viewer the reader chose for it instead.
+}
 
 struct ViewerInstance
 {
@@ -90,6 +103,32 @@ impl ViewerErrorView
     }
 }
 
+// The band under the document that names the open file, and answers for it.
+//
+// A reader points at a file to act on it, and the name under the document is where the open file
+// is. The panel is closed by default and the file being read is the one an action is wanted for
+// most, so the band carries the same menu a panel row does.
+struct ViewerInfoBar
+{
+    using wnd: Wnd
+}
+
+impl IWnd for ViewerInfoBar
+{
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        // The labels the band holds decline the button, so the press arrives here having crossed
+        // whichever one the pointer was over.
+        if evt.kind != .Released or evt.button != .Right
+        {
+            evt.accepted = false
+            return
+        }
+
+        (cast(*ViewerWindow) .parent!).showCurrentFileActions(evt.surfacePos)
+    }
+}
+
 func reportViewerFailure(view: *Wnd, reason: string)
 {
     let window = cast(*ViewerWindow) view.parent!
@@ -111,7 +150,7 @@ struct ViewerWindow
         searchBox:        *EditBox
         viewerCombo:      *ComboBox
         appearanceButton: *AppearanceButton
-        infoBar:          *Wnd
+        infoBar:          *ViewerInfoBar
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
         loadingSpinner:   *Spinner
@@ -126,6 +165,7 @@ struct ViewerWindow
     }
 
     index:           ViewerIndex
+    icons:           IconSet
     currentView:     #null *Wnd
     currentCommands: #null *Wnd
     choices:         Array'ViewerChoice
@@ -155,6 +195,7 @@ struct ViewerWindow
     // declines falls back to file navigation instead of being offered again.
     forwardingViewerKey: bool
     recent:              Array'String
+    preferences:         Array'ViewerPreference
     panelVisible:        bool
     recentPaneSize = ViewerRecentHeight
     refreshingLists:     bool
@@ -241,6 +282,7 @@ impl IWnd for ViewerWindow
         catch g_App.saveState()
         .stopSearch()
         .stopLoadingIndicator()
+        .icons.free()
         if .startupTimer
         {
             .removeTimer(.startupTimer!)
@@ -274,6 +316,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
         catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
+        catch evt.serializer.serialize("ViewerWindow.preferences", &me.preferences)
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
         catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
@@ -304,6 +347,12 @@ impl IWnd for ViewerWindow
 
 impl ViewerWindow
 {
+    // Creates an icon descriptor for an application glyph at `size` logical pixels.
+    mtd icon(idx: ViewerIcons, size = ViewerRowGlyphSize)->Icon
+    {
+        return .icons.icon(cast(s32) idx, size, .theme().res.atlasScale)
+    }
+
     mtd applyTheme(index: u32)
     {
         .themeIndex = Math.min(index, 1)
@@ -323,6 +372,7 @@ impl ViewerWindow
         result.backgroundStyle  = .View
         result.index            = #move index
         result.language         = Gui.ReferenceLanguage
+        result.icons.setup(result.app().renderer, viewerIcons())
 
         result.appearanceButton                 = AppearanceButton.create(result.surface!, "sFileScope.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
@@ -413,9 +463,11 @@ impl ViewerWindow
             }
         }
 
-        // Wide enough for the longest viewer name a shipped viewer registers, so the selector
-        // never cuts the one word that says which viewer is showing the file.
-        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 156, 36})
+        // Wide enough for the longest viewer name a shipped viewer registers, beside the glyph
+        // column every entry carries, so the selector never cuts the one word that says which
+        // viewer is showing the file. That column is what the window's minimum width grew by:
+        // the widest contextual bar a viewer brings still has to start after this field.
+        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 180, 36})
         {
             .dockStyle = .Left
             .margin.x  = 12
@@ -430,7 +482,7 @@ impl ViewerWindow
 
         // File identity belongs to a quiet, compact band under the document. The only band above
         // the content is the contextual action bar shared by navigation, viewer choice and tools.
-        with result.infoBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerInfoHeight})
+        with result.infoBar = Wnd.create'ViewerInfoBar(result, {0, 0, 0, ViewerInfoHeight})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Window
@@ -495,6 +547,10 @@ impl ViewerWindow
             {
                 window.openListSelection(list, window.recent.toSlice())
             }
+            .sigRightClicked += func|window = result|(list, position)
+            {
+                window.showFileMenu(list, window.recent.toSlice(), list.listView.localToSurface(position))
+            }
         }
 
         with result.folderPane = Wnd.create'Wnd(result.filePanel)
@@ -538,6 +594,10 @@ impl ViewerWindow
             .sigSelectionChanged += func|window = result|(list)
             {
                 window.openListSelection(list, window.siblings.toSlice())
+            }
+            .sigRightClicked += func|window = result|(list, position)
+            {
+                window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position))
             }
         }
 
@@ -1025,8 +1085,65 @@ impl ViewerWindow
     {
         if index == .activeChoiceIndex do
             return
-        if !.activateChoice(index) and .activeChoiceIndex != Swag.U32.Max do
-            .viewerCombo.setSelectedIndex(.activeChoiceIndex, notify: false)
+        if !.activateChoice(index)
+        {
+            if .activeChoiceIndex != Swag.U32.Max do
+                .viewerCombo.setSelectedIndex(.activeChoiceIndex, notify: false)
+            return
+        }
+
+        .rememberPreferredViewer(index)
+    }
+
+    // Records which viewer the reader picked for the kind of file that is open.
+    //
+    // Only a choice made at the selector reaches this: a viewer the application fell back to
+    // because the preferred one refused the file is an accident of that file, and remembering it
+    // would answer for every file of the kind.
+    private mtd rememberPreferredViewer(index: u32)
+    {
+        if index >= .choices.count do
+            return
+
+        // A kind opening in its own viewer is what the application does anyway, so choosing it
+        // back is the removal of a decision rather than one more.
+        let kind      = .choices[0].key.toString()
+        let viewer    = .choices[index].key.toString()
+        let isDefault = kind == viewer
+
+        for &one, entry in .preferences where one.kind == kind
+        {
+            if one.viewer == viewer do
+                return
+            if isDefault do
+                .preferences.removeAtOrdered(entry)
+            else do
+                one.viewer = viewer
+            catch g_App.saveState()
+            return
+        }
+
+        if isDefault do
+            return
+        .preferences.add(ViewerPreference{String.from(kind), String.from(viewer)})
+        catch g_App.saveState()
+    }
+
+    // Returns the viewer the reader last chose for the kind of the open file, or the first one.
+    private mtd preferredChoiceIndex()->u32
+    {
+        if .choices.isEmpty() do
+            return 0
+
+        let kind = .choices[0].key.toString()
+        for one in .preferences where one.kind == kind
+        {
+            for choice, index in .choices where choice.key == one.viewer do
+                return cast(u32) index
+            break
+        }
+
+        return 0
     }
 
     mtd openFile(fileName: string, remember = true)
@@ -1049,10 +1166,10 @@ impl ViewerWindow
         .instances.resize(.choices.count)
         .viewerCombo.clear()
         for choice in .choices do
-            .viewerCombo.addItem(choice.name.toString())
+            .viewerCombo.addItem(choice.name.toString(), icon: .icon(choice.icon))
         .viewerCombo.show()
 
-        var selected = 0'u32
+        var selected = .preferredChoiceIndex()
         if !.activateChoice(selected)
         {
             selected = Swag.U32.Max
@@ -1124,6 +1241,14 @@ impl ViewerWindow
         {
             .refreshFileLists()
             .filePanel.show()
+
+            // A splitter's first pane takes the whole client height it is added into, which is
+            // nothing at all before the window has been laid out once, and a preserved pane then
+            // holds that nothing for the rest of the session. The history section takes the height
+            // it was given here instead, once the panel is on screen with a size to divide.
+            .applyLayout()
+            if .filePanel.isPaneVisible(0) and .filePanel.items[0]!.size != .recentPaneSize do
+                .filePanel.setPaneSize(0, .recentPaneSize)
         }
         else do
             .filePanel.hide()
@@ -1186,6 +1311,88 @@ impl ViewerWindow
         .filePanel.setPaneVisible(0, hasRecent)
         .folderLabel.setText(Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder)
         .filePanel.applyLayout()
+    }
+
+    // Shows what a panel row offers for the file it names.
+    //
+    // The right click has already put the row under the pointer in the selection, silently: the
+    // list moves its own selection for the button without announcing a choice, so pointing at a
+    // file to act on it never opens it.
+    mtd showFileMenu(list: *ListCtrl, files: const [..] String, position: Math.Point)
+    {
+        let line = list.selectedLine()
+        if !line do
+            return
+        let index = line!.index
+        if index >= @countof(files) do
+            return
+
+        // The actions below outlive the list they were asked from: forgetting a file rebuilds
+        // both lists, and the row that named it is gone by then.
+        let fileName = String.from(files[index].toString())
+
+        // Only the history is a list the reader owns. The folder list is what the folder holds,
+        // and an entry leaves it by leaving the disk.
+        .showFileActions(fileName.toString(), position, history: list == .recentList)
+    }
+
+    // Shows what the open file offers, from the band that names it.
+    //
+    // The history entries stay out: the band says what is being read, and a file is not taken out
+    // of the list of what was read from the place that is reading it.
+    mtd showCurrentFileActions(position: Math.Point)
+    {
+        if .currentFile.isEmpty() do
+            return
+        .showFileActions(.currentFile.toString(), position, history: false)
+    }
+
+    // Shows what one file offers, wherever the reader pointed at it.
+    private mtd showFileActions(fileName: string, position: Math.Point, history: bool)
+    {
+        let texts = appStrings()
+        let menu  = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(texts.ui_MenuLocate, "sFileScope.file.locate", .theme().icon(.OpenFile, ViewerRowGlyphSize))
+        menu.addItem(texts.ui_MenuOpenWith, "sFileScope.file.openWith", .theme().icon(.Export, ViewerRowGlyphSize))
+        if history
+        {
+            menu.addSeparator()
+            menu.addItem(texts.ui_MenuForget, "sFileScope.file.forget", .theme().icon(.Remove, ViewerRowGlyphSize))
+            menu.addItem(texts.ui_MenuClearHistory, "sFileScope.file.clearHistory", .theme().icon(.RemoveAll, ViewerRowGlyphSize))
+        }
+
+        let chosen = menu.doModal(position, .TopLeft, autoDestroy: true)
+        if !chosen do
+            return
+
+        switch chosen!
+        {
+        case "sFileScope.file.locate":       Env.showInFileExplorer(fileName)
+        case "sFileScope.file.openWith":     Env.openFileWith(fileName)
+        case "sFileScope.file.forget":       .forgetRecent(fileName)
+        case "sFileScope.file.clearHistory": .clearRecent()
+        }
+    }
+
+    // Drops one file from the history, keeping the rest of it in order.
+    mtd forgetRecent(fileName: string)
+    {
+        for one, index in .recent where one[] == fileName
+        {
+            .recent.removeAtOrdered(index)
+            break
+        }
+
+        .refreshFileLists()
+        catch g_App.saveState()
+    }
+
+    // Empties the history. What is open stays open: the list says what was read, not what is.
+    mtd clearRecent()
+    {
+        .recent.clear()
+        .refreshFileLists()
+        catch g_App.saveState()
     }
 
     // Opens the file a panel row names, unless the row was selected by the refresh itself.

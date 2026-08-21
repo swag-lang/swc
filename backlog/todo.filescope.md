@@ -83,12 +83,14 @@ where files are actually selected, and the format table below is what a reader c
 - Complete when: case sensitivity and whole-word are togglable, Shift+F3 walks backwards, the status
   bar reports the match ordinal, and the chosen semantics are documented in the README.
 
-### T-393 — The file being viewed cannot be acted on
+### T-393 — The file being viewed cannot be handed to its own application
 
-- Intent: after looking at a file, the next action is always outside the viewer — open it in its
-  real application, show it in Explorer, or copy its path.
-- Complete when: open-with-default, reveal-in-folder, copy-full-path and copy-name are available
-  from the action bar and from a context menu on the status bar.
+- Intent: after looking at a file, the next action is always outside the viewer. Showing it in the
+  file explorer and handing it to the system application chooser now answer from the context menu
+  of the status bar and of both panel lists; what is still missing is opening it with its
+  *default* application, and taking its path or its name out as text.
+- Complete when: open-with-default, copy-full-path and copy-name join that menu, and the actions a
+  reader uses most are reachable from the action bar rather than only from a right click.
 
 ### T-394 — No zoom or text-size control
 

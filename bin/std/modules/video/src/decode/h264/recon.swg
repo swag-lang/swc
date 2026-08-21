@@ -3,7 +3,15 @@
 
 using Core, Core.Errors
 
-private const ReconstructionBands = 4'u32
+const ReconstructionBands = 12'u32
+
+struct ReconstructionJob
+{
+    using base: Jobs.Job
+    decoder:    #null *Decoder
+    first:      u32
+    end:        u32
+}
 
 private struct ReconstructionContext
 {
@@ -14,6 +22,36 @@ private struct ReconstructionContext
 
 impl Decoder
 {
+    // Starts every fully parsed row band without making the entropy thread wait for it.
+    mtd scheduleParsedRows(parsedRows: u32)
+    {
+        while .pipelineScheduled < .pipelineBandCount
+        {
+            let band   = .pipelineScheduled
+            let endRow = cast(u32) .sps!.mbHeight * (band + 1) / .pipelineBandCount
+            if parsedRows < endRow do
+                break
+
+            let firstRow = cast(u32) .sps!.mbHeight * band / .pipelineBandCount
+            let job      = &.pipelineJobs[band]
+            job.decoder = me
+            job.first   = firstRow * cast(u32) .sps!.mbWidth
+            job.end     = endRow * cast(u32) .sps!.mbWidth
+            job.lambda  = &runReconstructionJob
+            job.data    = job
+            Jobs.schedule(job)
+            .pipelineScheduled += 1
+        }
+    }
+
+    // The parser can fail after earlier bands have already started. Always join borrowed jobs
+    // before decodeAccessUnit unwinds and its decoder storage can be reused or released.
+    mtd waitReconstructionJobs()
+    {
+        for index in .pipelineScheduled do
+            Jobs.wait(&.pipelineJobs[index])
+    }
+
     // Reconstructs inter macroblocks in a few long row bands. Entropy parsing has already
     // published every motion and residual context, and inter prediction reads reference
     // pictures only, so bands write disjoint parts of the current picture. Intra blocks stay
@@ -24,7 +62,13 @@ impl Decoder
         let mbCount   = cast(u32) (sps.mbWidth * sps.mbHeight)
         let bandCount = Math.min(Math.min(Jobs.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight)
 
-        if bandCount <= 1
+        if .pipelineBandCount > 0
+        {
+            .waitReconstructionJobs()
+            if Atomic.get(&.pipelineFailed) != 0 do
+                fail InvalidFormatError{"H.264 inter block has no reference picture"}
+        }
+        elif bandCount <= 1
         {
             for index in mbCount
             {
@@ -523,5 +567,19 @@ impl Slice
         }
 
         averagePlanes(dst, dstStride, src0, 16, src1, 16, width, height)
+    }
+}
+
+private func runReconstructionJob(data: #null *void)
+{
+    let job = cast(*ReconstructionJob) data!
+    for index in job.first until job.end
+    {
+        let mb = &job.decoder!.parsedMbs[index]
+        if mb.class != MbClassInter do
+            continue
+        catch job.decoder!.pictureSlices[mb.sliceIndex].reconstructMb(mb) as reconstructionError
+        if reconstructionError != null do
+            Atomic.exchange(&job.decoder!.pipelineFailed, 1)
     }
 }

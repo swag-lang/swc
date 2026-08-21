@@ -113,19 +113,24 @@ impl CabacReader
         let pState = cast(u64) (state >> 1)
         let mps    = state & 1
         let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((.range >> 6) & 3)]
-
-        // Branchless select between the two outcomes: `mask` is all ones on the MPS path.
         .range -= lps
-        let diff = cast(s32) .low - cast(s32) .range
-        let mask = cast #wrap (u32) (diff >> 31)
-        .low   = (.low & mask) | ((cast #wrap (u32) diff) & ~mask)
-        .range = (.range & mask) | (lps & ~mask)
-        let lpsMps   = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
-        let mpsState = (cast(u32) CabacTransMps[pState] << 1) | mps
-        let lpsState = (cast(u32) CabacTransLps[pState] << 1) | lpsMps
-        .contexts[contextIndex] = cast(u8) ((mpsState & mask) | (lpsState & ~mask))
+        if .low < .range
+        {
+            .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransMps[pState] << 1) | mps)
+            let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
+            if shift != 0
+            {
+                .range <<= cast(u32) shift
+                .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
+            }
 
-        // Renormalize in one step.
+            return mps
+        }
+
+        .low   -= .range
+        .range = lps
+        let lpsMps = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
+        .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransLps[pState] << 1) | lpsMps)
         let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
         if shift != 0
         {
@@ -133,7 +138,7 @@ impl CabacReader
             .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
         }
 
-        return mps ^ (1 & ~mask)
+        return mps ^ 1
     }
 
     // Kept separate from the generic decision so only the significance-map loop pays the code
@@ -235,9 +240,8 @@ impl Slice
     // Decodes the skip flag of the macroblock at the current address, section 9.3.3.1.1.1.
     mtd decodeSkipFlagCabac(mb: *Mb)->bool
     {
-        let dec = .dec!
-        let mbX = cast(s32) (.mbAddr % cast(u32) dec.sps!.mbWidth)
-        let mbY = cast(s32) (.mbAddr / cast(u32) dec.sps!.mbWidth)
+        let mbX = .mbX
+        let mbY = .mbY
         var ctx = 0'u32
         if .mbAvailable(mbX - 1, mbY) and !.mbInfoAt(mbX - 1, mbY).skipped do
             ctx += 1
@@ -570,7 +574,10 @@ impl Slice
 
         if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
             return false
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].class != MbClassInter do
+        let info = &dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)]
+        if info.class != MbClassInter do
+            return false
+        if .header.type == SliceTypeP and info.skipped do
             return false
 
         let index = cast(u64) (y4 * gw + x4)
@@ -831,6 +838,8 @@ impl Slice
         if !.mbAvailable(mb.mbX + dx, mb.mbY + dy) do
             return -1
         let index = cast(u64) ((mb.mbY + dy) * dec.sps!.mbWidth + mb.mbX + dx)
+        if dec.mbInfo[index].skipped do
+            return 0
         return cast(s32) dec.dcFlags[index * 3 + cast(u64) which]
     }
 }

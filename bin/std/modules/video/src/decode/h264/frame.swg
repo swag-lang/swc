@@ -9,7 +9,7 @@ using Core, Core.Errors, Core.Math
 // just outside the frame stays inside the padded storage once the edges are replicated. Longer
 // excursions go through the bounded fallback of the interpolator instead.
 const FramePadding = 32's32
-private const ConversionBands = 4'u32
+private const ConversionBands = 12'u32
 
 // One decoded picture: padded 4:2:0 planes plus the reference and motion state the rest of
 // the stream needs from it.

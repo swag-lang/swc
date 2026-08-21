@@ -3,16 +3,17 @@
 
 using Core, Pixel, Gui, Video
 
-func videoPreviewFile(name: string)->String fail
+func videoPreviewFile(name: string, frameCount = 4'u32)->String fail
 {
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
     let rate     = try FrameRate.create(4, 1)
     var clip     = try Clip.create(160, 90, rate)
 
-    for index in 4
+    for index in frameCount
     {
-        var frame = Image.create(160, 90, .RGB8)
-        frame.fill(index == 0 ? Color.fromRgb(18, 24, 32) : (index == 1 ? Color.fromRgb(56, 189, 248) : (index == 2 ? Color.fromRgb(247, 249, 0) : Color.fromRgb(130, 70, 180))))
+        var frame      = Image.create(160, 90, .RGB8)
+        let colorIndex = index % 4
+        frame.fill(colorIndex == 0 ? Color.fromRgb(18, 24, 32) : (colorIndex == 1 ? Color.fromRgb(56, 189, 248) : (colorIndex == 2 ? Color.fromRgb(247, 249, 0) : Color.fromRgb(130, 70, 180))))
         try clip.addFrame(frame)
     }
 
@@ -28,6 +29,33 @@ func waitForVideoFrame(view: *VideoViewer)
         Jobs.wait(&view.decodeJob)
         discard view.finishDecode()
     }
+}
+
+#test
+{
+    let fileName = expect videoPreviewFile(Format.toString("filescope-video-clock-%.mp4", Guid64.random()).toString(), 12)
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+
+    // A late decoder follows the presentation clock directly. The old catch-up cap decoded
+    // frame 4 here and permanently slowed the clock instead of dropping six obsolete frames.
+    view.playing = true
+    view.elapsed = view.frameSeconds(10)
+    view.clock.reset()
+    view.updatePlayback()
+    waitForVideoFrame(view)
+    @assert(view.frameIndex == 10)
 }
 
 #test

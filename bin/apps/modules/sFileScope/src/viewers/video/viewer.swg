@@ -215,27 +215,16 @@ internal impl VideoViewer
         if target == .frameIndex do
             return
 
-        // Decoding straight to a distant clock target would freeze the interface for longer
-        // and longer bursts on a stream the machine cannot decode in real time. Advance by a
-        // bounded number of frames and re-anchor the clock on what was actually shown, so a
-        // slow decode plays smoothly below real time instead of stalling.
-        const MaxCatchUpFrames = 4'u64
-        var wanted = target
-        if target > .frameIndex + MaxCatchUpFrames do
-            wanted = .frameIndex + MaxCatchUpFrames
-
-        if !.showFrame(wanted)
+        // Keep presentation tied to the playback clock. The decoder can omit non-reference
+        // pictures while seeking forward, and can restart at a later sync sample when it falls
+        // a whole group behind, so slow content drops late pictures instead of playing in slow
+        // motion forever.
+        if !.showFrame(target)
         {
             .playing = false
             .clock.reset()
             .refreshTransport()
             return
-        }
-
-        if wanted != target
-        {
-            .elapsed = .frameSeconds(wanted)
-            .clock.restart()
         }
     }
 }

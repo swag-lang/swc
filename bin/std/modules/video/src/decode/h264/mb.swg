@@ -162,6 +162,21 @@ impl Slice
             return result
         }
 
+        let neighborIndex = cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)
+        if (nMbX != mb.mbX or nMbY != mb.mbY) and .header.type == SliceTypeP and dec.mbInfo[neighborIndex].skipped
+        {
+            let job = &dec.parsedMbs[neighborIndex].firstJob
+            result.available = true
+            result.intra     = false
+            result.isDirect  = false
+            result.refIdx    = job.refIdx[list]
+            result.mvX       = job.mv[list, 0]
+            result.mvY       = job.mv[list, 1]
+            result.mvdX      = 0
+            result.mvdY      = 0
+            return result
+        }
+
         let index = cast(u64) (y4 * gw + x4)
         result.available = true
         if list == 0
@@ -684,6 +699,8 @@ impl Slice
         let sps     = dec.sps!
         let mbCount = cast(u32) (sps.mbWidth * sps.mbHeight)
         .mbAddr = .header.firstMb
+        .mbX    = cast(s32) (.mbAddr % cast(u32) sps.mbWidth)
+        .mbY    = cast(s32) (.mbAddr / cast(u32) sps.mbWidth)
         if .mbAddr >= mbCount do
             fail InvalidFormatError{"H.264 slice starts past the end of the picture"}
 
@@ -734,7 +751,7 @@ impl Slice
                     .parseMbCavlc(mb)
                 .bookkeepMb(mb)
                 dec.decodedMbs += 1
-                .mbAddr        += 1
+                .advanceMb()
             }
 
             if .isCabac
@@ -758,8 +775,8 @@ impl Slice
     mtd prepareMb(mb: *Mb, clearResiduals: bool = true)
     {
         let dec = .dec!
-        mb.mbX           = cast(s32) (.mbAddr % cast(u32) dec.sps!.mbWidth)
-        mb.mbY           = cast(s32) (.mbAddr / cast(u32) dec.sps!.mbWidth)
+        mb.mbX           = .mbX
+        mb.mbY           = .mbY
         mb.sliceIndex    = cast(u32) .sliceId - 1
         mb.class         = MbClassInter
         mb.skipped       = false
@@ -800,19 +817,55 @@ impl Slice
     mtd decodeSkipMb(mb: *Mb) fail
     {
         let dec = .dec!
-        .prepareMb(mb, clearResiduals: false)
-        mb.skipped   = true
-        mb.shape     = Shape16x16
-        mb.qp        = .qp
-        .lastQpDelta = 0
-        if .header.type == SliceTypeP do
+        if .header.type == SliceTypeP
+        {
+            // A P-skip never reads residual, intra, sub-partition, or per-block bookkeeping
+            // from the parsed macroblock. Initialize only the compact state its motion,
+            // reconstruction, and summary paths consume.
+            mb.mbX           = .mbX
+            mb.mbY           = .mbY
+            mb.sliceIndex    = cast(u32) .sliceId - 1
+            mb.class         = MbClassInter
+            mb.skipped       = true
+            mb.transform8x8  = false
+            mb.directMb      = false
+            mb.chromaMode    = 0
+            mb.shape         = Shape16x16
+            mb.motionMask[0] = 0
+            mb.motionMask[1] = 0
+            mb.extraJobs     = &dec.parsedExtraJobs[.mbAddr]
+            mb.jobCount      = 0
+            mb.cbpLuma       = 0
+            mb.cbpChroma     = 0
+            mb.qp            = .qp
             .deriveSkipP(mb)
-        else do
+        }
+        else
+        {
+            .prepareMb(mb, clearResiduals: false)
+            mb.skipped = true
+            mb.shape   = Shape16x16
+            mb.qp      = .qp
             .deriveDirect(mb, -1)
+        }
 
+        .lastQpDelta = 0
         .bookkeepMb(mb)
         dec.decodedMbs += 1
-        .mbAddr        += 1
+        .advanceMb()
+    }
+
+    #[Swag.Inline]
+    mtd advanceMb()
+    {
+        .mbAddr += 1
+        .mbX    += 1
+        if .mbX == .dec!.sps!.mbWidth
+        {
+            .mbX = 0
+            .mbY += 1
+            .dec!.scheduleParsedRows(cast(u32) .mbY)
+        }
     }
 
     // Parses one full macroblock with CAVLC entropy coding.
@@ -1816,6 +1869,8 @@ impl Slice
             return cast(s32) mb.nzLuma[cast(u64) ((y4 & 3) * 4 + (x4 & 3))]
         if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
             return -1
+        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].skipped do
+            return 0
         return cast(s32) dec.nonZeroLuma[cast(u64) (y4 * gw + x4)]
     }
 
@@ -1850,6 +1905,8 @@ impl Slice
 
         if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId do
             return -1
+        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].skipped do
+            return 0
         let index = cast(u64) (y2 * cw + x2)
         return cast(s32) (plane == 0 ? dec.nonZeroCb[index] : dec.nonZeroCr[index])
     }

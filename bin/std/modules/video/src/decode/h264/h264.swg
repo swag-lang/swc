@@ -93,6 +93,14 @@ struct Decoder
     decodedMbs: u64
     sliceCount: u32
 
+    // A single inter slice can reconstruct completed row bands while CABAC continues below.
+    // The jobs and their contexts live in the decoder until finishPicture joins them.
+    pipelineSingleSlice: bool
+    pipelineBandCount:   u32
+    pipelineScheduled:   u32
+    pipelineFailed:      u32
+    pipelineJobs:        [ReconstructionBands] ReconstructionJob
+
     // Picture order state carried between pictures.
     prevPocMsb:         s32
     prevPocLsb:         s32
@@ -194,6 +202,11 @@ impl Decoder
         .current       = null
         .markingParsed = false
         .mmcoOps.clear()
+        .pipelineSingleSlice = .hasSinglePictureSlice(sample)
+        .pipelineBandCount   = 0
+        .pipelineScheduled   = 0
+        .pipelineFailed      = 0
+        defer .waitReconstructionJobs()
         var offset = 0'u64
         while offset < @countof(sample)
         {
@@ -219,6 +232,39 @@ impl Decoder
         result.heldByCaller = true
         .current            = null
         return result
+    }
+
+    // Reports whether the access unit has exactly one coded-picture NAL. Multiple slices can
+    // grow pictureSlices while parsing, so they keep the post-parse reconstruction path.
+    private mtd const hasSinglePictureSlice(sample: const [..] u8)->bool
+    {
+        var count  = 0'u32
+        var offset = 0'u64
+        while offset < @countof(sample)
+        {
+            if offset + .nalLengthSize > @countof(sample) do
+                return false
+            var size = 0'u64
+            for .nalLengthSize
+            {
+                size   = (size << 8) | cast(u64) sample[offset]
+                offset += 1
+            }
+
+            if size < 1 or size > @countof(sample) - offset do
+                return false
+            let nalType = sample[offset] & 0x1F
+            if nalType == 1 or nalType == 5
+            {
+                count += 1
+                if count > 1 do
+                    return false
+            }
+
+            offset += size
+        }
+
+        return count == 1
     }
 
     // Returns the first stored sequence parameter set, which carries the stream geometry.
@@ -312,6 +358,9 @@ impl Decoder
         var slice: Slice
         if !slice.parseHeader(me, refIdc, isIdr) do
             return
+
+        if slice.header.type == SliceTypeI do
+            .pipelineSingleSlice = false
 
         if !.current
         {
@@ -424,6 +473,9 @@ impl Decoder
         .decodedMbs = 0
         .sliceCount = 0
         .pictureSlices.clear()
+        .pipelineBandCount = .pipelineSingleSlice ? Math.min(Math.min(Jobs.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight) : 0
+        .pipelineScheduled = 0
+        .pipelineFailed    = 0
     }
 
     // Completes the current picture: filters it, publishes its edges, and applies its

@@ -391,7 +391,11 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   variants now write prepacked RGBA words above 512 and 256 pixels. Their 16 Mi-pixel kernels
   improve from 26,647 to 8,582 us (3.10x) and from 13,109 to 10,571 us (1.24x); five complete
   2048x2048 decodes improve from 371,154 to 292,555 us (1.27x) and from 416,515 to 357,417 us
-  (1.17x), respectively.
+  (1.17x), respectively. True-color `tRNS` expansion now shuffles four RGB pixels into RGBA and
+  compares their packed colors in parallel above 4,096 pixels. Its 16 Mi-pixel kernel improves
+  from 17,092 to 15,748 us (1.09x), and five complete 2048x2048 decodes improve from 314,387 to
+  296,702 us (1.06x); the 32x32 fixture remains on the scalar path. A scalar packed-`u32` rewrite
+  regressed the same kernel from 17,681 to 24,856 us (1.41x slower) and was rejected.
   Encoder `Sub` generation processes 64 bytes per iteration (1.69x), while its score reuses the
   packed independent-byte reducer after the first pixel (1.59x). Encoder `Average` uses exact
   downward-rounded packed averages for row generation (2.25x) and scoring (1.63x). Encoder Paeth

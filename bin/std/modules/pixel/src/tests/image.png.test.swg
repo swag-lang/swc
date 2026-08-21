@@ -655,6 +655,33 @@ func buildGrayscaleAlphaPng(width: u32)->Array'u8
     return cbToArray(&result)
 }
 
+func buildRgbTransparencyPng(width: u32)->Array'u8
+{
+    const KeyR = 37'u8
+    const KeyG = 91'u8
+    const KeyB = 173'u8
+    var raw: ConcatBuffer
+    raw.addNative(0'u8)
+    for i in width
+    {
+        let matches = i == 17 or i + 1 == width
+        raw.addNative(matches ? KeyR : 1'u8)
+        raw.addNative(matches ? KeyG : 2'u8)
+        raw.addNative(matches ? KeyB : 3'u8)
+    }
+
+    raw.makeLinear()
+
+    const transparency: [6] u8 = [0, KeyR, 0, KeyG, 0, KeyB]
+    var result: ConcatBuffer
+    addPngSignature(&result)
+    addPngHeader(&result, width, 1, 8, 2)
+    addPngChunk(&result, "tRNS", transparency)
+    addPngImageData(&result, nnBytes(raw.toSlice()))
+    addPngChunk(&result, "IEND", "")
+    return cbToArray(&result)
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = cbToArray(encoded)
@@ -885,6 +912,22 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(packedImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
     assertPngPixelAt(packedImage, 119, 0, 119'u8, 119'u8, 119'u8, 136'u8)
     assertPngPixelAt(packedImage, 255, 0, 255'u8, 255'u8, 255'u8, 0'u8)
+}
+
+// RGB transparency expansion preserves scalar and SIMD boundary pixels, including the tail.
+#test
+{
+    let scalarBytes = buildRgbTransparencyPng(4095)
+    let scalarImage = expect Image.decode("rgb-trns-scalar.png", nnBytes(scalarBytes.toSlice()), {})
+    assertPngPixelAt(scalarImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 17, 0, 37'u8, 91'u8, 173'u8, 0'u8)
+    assertPngPixelAt(scalarImage, 4094, 0, 37'u8, 91'u8, 173'u8, 0'u8)
+
+    let simdBytes = buildRgbTransparencyPng(4096)
+    let simdImage = expect Image.decode("rgb-trns-simd.png", nnBytes(simdBytes.toSlice()), {})
+    assertPngPixelAt(simdImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
+    assertPngPixelAt(simdImage, 17, 0, 37'u8, 91'u8, 173'u8, 0'u8)
+    assertPngPixelAt(simdImage, 4095, 0, 37'u8, 91'u8, 173'u8, 0'u8)
 }
 
 // Decode Adam7-interlaced grayscale, true-color, and alpha PNGs.

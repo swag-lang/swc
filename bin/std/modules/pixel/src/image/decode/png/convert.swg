@@ -9,7 +9,8 @@
 
 using Core, Core.Errors
 
-const Swap16Bytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
+const Swap16Bytes           = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
+const ExpandRgbTransparency = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80]
 
 // Building the packed table breaks even at 512 pixels on the supported x64 baseline.
 const PackedPaletteThreshold = 512'u64
@@ -22,6 +23,9 @@ const PackedGrayscaleTransparencyThreshold = 512'u64
 
 // Direct grayscale-plus-alpha packing wins from 256 pixels.
 const PackedGrayscaleAlphaThreshold = 256'u64
+
+// RGB transparency expansion amortizes its shuffle and masks on image-sized inputs.
+const SimdRgbTransparencyThreshold = 4096'u64
 
 func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
@@ -258,6 +262,39 @@ impl Decoder
         }
     }
 
+    mtd convertRgbTransparencyRgba(result: *Image, key0, key1, key2: u8)
+    {
+        let key       = Math.Simd.splat(cast(u32) key0 | (cast(u32) key1 << 8) | (cast(u32) key2 << 16))
+        let colorMask = Math.Simd.splat(0x00FFFFFF'u32)
+        let alphaMask = Math.Simd.splat(0xFF000000'u32)
+        var src       = .safeDstPixels()
+        var dst       = cast([*] u8) result.pixels.buffer!
+        var remaining = cast(u64) result.width * result.height
+        if remaining >= SimdRgbTransparencyThreshold
+        {
+            while remaining >= 8
+            {
+                let pixels  = cast #bit(Math.Simd.U32x4) Math.Simd.shuffle(Math.Simd.load(src), ExpandRgbTransparency)
+                let matches = (pixels & colorMask) == key
+                Math.Simd.store(cast([*] u32) dst, pixels | (~matches & alphaMask))
+                src       += 12
+                dst       += 16
+                remaining -= 4
+            }
+        }
+
+        while remaining
+        {
+            dst[0]    = src[0]
+            dst[1]    = src[1]
+            dst[2]    = src[2]
+            dst[3]    = src[0] == key0 and src[1] == key1 and src[2] == key2 ? 0 : 255
+            src       += 3
+            dst       += 4
+            remaining -= 1
+        }
+    }
+
     mtd convert16(result: *Image)
     {
         var src = cast(const [*] u8) .safeDstPixels()
@@ -380,20 +417,7 @@ impl Decoder
             let key0 = key[1]
             let key1 = key[3]
             let key2 = key[5]
-            var src  = .safeDstPixels()
-            var dst  = cast([*] u8) result.pixels.buffer!
-            for result.width * result.height
-            {
-                dst[0] = src[0]
-                dst[1] = src[1]
-                dst[2] = src[2]
-                if src[0] == key0 and src[1] == key1 and src[2] == key2 do
-                    dst[3] = 0
-                else do
-                    dst[3] = 255
-                src += 3
-                dst += result.bytesPerPixel
-            }
+            .convertRgbTransparencyRgba(result, key0, key1, key2)
         }
     }
 }

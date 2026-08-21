@@ -14,6 +14,9 @@ const Swap16Bytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 
 // Building the packed table breaks even at 512 pixels on the supported x64 baseline.
 const PackedPaletteThreshold = 512'u64
 
+// Keep tiny icon decode on the lower-overhead path; large images amortize packed expansion.
+const PackedGrayscaleThreshold = 4096'u64
+
 func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
     var src   = source
@@ -142,6 +145,44 @@ impl Decoder
         }
     }
 
+    mtd convertGrayscaleRgb(result: *Image)
+    {
+        let pixelCount = cast(u64) result.width * result.height
+        if pixelCount < PackedGrayscaleThreshold
+        {
+            var src = .safeDstPixels()
+            var dst = cast([*] u8) result.pixels.buffer!
+            for pixelCount
+            {
+                dst[0] = src[0]
+                dst[1] = src[0]
+                dst[2] = src[0]
+                src    += 1
+                dst    += 3
+            }
+
+            return
+        }
+
+        var src       = .safeDstPixels()
+        var dst       = cast([*] u8) result.pixels.buffer!
+        var remaining = pixelCount
+
+        // The fourth byte is overwritten by the next pixel. Leave the final pixel scalar
+        // so no wide store reaches beyond the exact-size RGB buffer.
+        while remaining > 1
+        {
+            (cast([*] u32) dst)[0] = cast(u32) src[0] * 0x010101
+            src                    += 1
+            dst                    += 3
+            remaining              -= 1
+        }
+
+        dst[0] = src[0]
+        dst[1] = src[0]
+        dst[2] = src[0]
+    }
+
     mtd convert16(result: *Image)
     {
         var src = cast(const [*] u8) .safeDstPixels()
@@ -239,16 +280,7 @@ impl Decoder
         // Grayscale without alpha channel, no transparency
         elif .inChannels == 1 and !.seenTRSN
         {
-            var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
-            for result.width * result.height
-            {
-                dst[0] = src[0]
-                dst[1] = src[0]
-                dst[2] = src[0]
-                src    += 1
-                dst    += result.bytesPerPixel
-            }
+            .convertGrayscaleRgb(result)
         }
 
         // Grayscale without alpha channel, but transparency

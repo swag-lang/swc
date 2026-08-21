@@ -385,7 +385,10 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   scalar 2-bit and 4-bit 2/3-sample tails writing a complete group past the row. Encoder `None`
   and `Up` scoring now reduce 16 bytes per iteration (2.70x and 1.92x). Explicit four- and
   sixteen-pixel shuffle layouts for grayscale RGB/RGBA conversion regressed native Release by
-  54-76% and were rejected; those conversions remain scalar pending a more suitable lowering.
+  54-76% and were rejected. Opaque grayscale-to-RGB now uses bounded overlapping `u32` stores
+  above 4,096 pixels: its 16 Mi-pixel kernel improves from 17,551 to 9,849 us (1.78x), and ten
+  complete 2048x2048 decodes improve from 509,191 to 408,989 us (1.25x). Transparent and alpha
+  variants remain scalar pending a profitable packed layout.
   Encoder `Sub` generation processes 64 bytes per iteration (1.69x), while its score reuses the
   packed independent-byte reducer after the first pixel (1.59x). Encoder `Average` uses exact
   downward-rounded packed averages for row generation (2.25x) and scoring (1.63x). Encoder Paeth

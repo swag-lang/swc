@@ -601,6 +601,22 @@ func buildPalettedPng(width: u32, transparency = true)->Array'u8
     return cbToArray(&result)
 }
 
+func buildGrayscalePng(width: u32)->Array'u8
+{
+    var raw: ConcatBuffer
+    raw.addNative(0'u8)
+    for i in width do
+        raw.addNative(cast(u8) (i & 0xFF))
+    raw.makeLinear()
+
+    var result: ConcatBuffer
+    addPngSignature(&result)
+    addPngHeader(&result, width, 1, 8, 0)
+    addPngImageData(&result, nnBytes(raw.toSlice()))
+    addPngChunk(&result, "IEND", "")
+    return cbToArray(&result)
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = cbToArray(encoded)
@@ -785,6 +801,22 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertLoadedPng("basn0g02.png", 32, 32, .RGB8, 255'u8, 255'u8, 255'u8, 255'u8)
     assertLoadedPng("basn0g04.png", 32, 32, .RGB8, 119'u8, 119'u8, 119'u8, 255'u8)
     assertLoadedPng("basn4a08.png", 32, 32, .RGBA8, 0'u8, 0'u8, 0'u8, 0'u8)
+}
+
+// Grayscale RGB expansion preserves the final pixel on both sides of its packed-store threshold.
+#test
+{
+    let scalarBytes = buildGrayscalePng(4095)
+    let scalarImage = expect Image.decode("gray-rgb-scalar.png", nnBytes(scalarBytes.toSlice()), {})
+    assertPngPixelAt(scalarImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 4094, 0, 254'u8, 254'u8, 254'u8, 255'u8)
+
+    let packedBytes = buildGrayscalePng(4096)
+    let packedImage = expect Image.decode("gray-rgb-packed.png", nnBytes(packedBytes.toSlice()), {})
+    assertPngPixelAt(packedImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
+    assertPngPixelAt(packedImage, 255, 0, 255'u8, 255'u8, 255'u8, 255'u8)
+    assertPngPixelAt(packedImage, 256, 0, 0'u8, 0'u8, 0'u8, 255'u8)
+    assertPngPixelAt(packedImage, 4095, 0, 255'u8, 255'u8, 255'u8, 255'u8)
 }
 
 // Decode Adam7-interlaced grayscale, true-color, and alpha PNGs.

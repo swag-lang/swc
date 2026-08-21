@@ -1500,6 +1500,10 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     // zero. NaN and values outside the destination range become 's32.Min'.
     func @vectruncs32(value: #simd [4] f32)->#simd [4] s32
 
+    // Indexed memory load: result lane i reads base[indices[i]]. Every index
+    // must be at most 's32.Max' and designate a readable element.
+    func @vecgather(base: const [*] s32, indices: #simd [4] u32)->#simd [4] s32
+
     // Dynamic byte permute: every result byte picks the source byte named by
     // the low four bits of the matching table byte, or zero when the table
     // byte's high bit is set.

@@ -129,7 +129,7 @@ time like an array index.
 # Packed Intrinsics
 
 The '@vec' intrinsic family carries the operations the operators cannot
-express, each mapping to one hardware form: '@vecsplat' broadcasts a scalar
+express: '@vecsplat' broadcasts a scalar
 into every lane, '@vecsatadd' and '@vecsatsub' clamp instead of wrapping,
 '@vecpackus' and '@vecpackss' narrow two vectors with saturation,
 '@vecinterleavelo' and '@vecinterleavehi' alternate lanes from the corresponding
@@ -138,10 +138,13 @@ input halves,
 '@vecavgr' is the rounding average, '@vecmadd' multiplies 16-bit pairs into
 32-bit sums, '@vecsum' adds the four lanes of an 's32' vector with wrapping
 arithmetic, '@vectruncs32' converts four 'f32' lanes to 's32' by truncating
-toward zero, and '@vecperm' permutes bytes through a dynamic table. NaN and
+toward zero, '@vecgather' loads four 's32' values through four 'u32' indices,
+and '@vecperm' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. '@min',
 '@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil' and '@trunc' also accept
-vectors and compute per lane.
+vectors and compute per lane. A gather uses 'vpgatherdd' when AVX2 is selected
+and a portable four-load lowering otherwise; every index must designate a
+readable table element and be at most 's32.Max'.
 */
 #test
 {
@@ -172,6 +175,10 @@ vectors and compute per lane.
     let samples = cast(#simd [4] f32) [1.9, -1.9, 32767.9, -32768.9]
     let ints    = cast([4] s32) @vectruncs32(samples)
     @assert(ints[0] == 1 and ints[1] == -1 and ints[2] == 32767 and ints[3] == -32768)
+
+    var lookup: [5] s32 = [10, 20, 30, 40, 50]
+    let found           = cast([4] s32) @vecgather(@dataof(lookup), cast(#simd [4] u32) [4, 0, 3, 1])
+    @assert(found[0] == 50 and found[1] == 10 and found[2] == 40 and found[3] == 20)
 }
 
 /**

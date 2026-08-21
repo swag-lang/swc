@@ -486,6 +486,15 @@ void MicroBuilder::emitVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uin
     ops[3].valueU64         = control;
 }
 
+void MicroBuilder::emitVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg indicesReg)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::VecGatherS32, 3);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = regDst;
+    ops[1].reg              = baseReg;
+    ops[2].reg              = indicesReg;
+}
+
 void MicroBuilder::emitVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::VecUnaryRegReg, 4);

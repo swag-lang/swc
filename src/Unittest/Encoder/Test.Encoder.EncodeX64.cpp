@@ -54,6 +54,7 @@ namespace
     constexpr MicroReg XMM2 = MicroReg::floatReg(2);
     constexpr MicroReg XMM3 = MicroReg::floatReg(3);
     constexpr MicroReg XMM9 = MicroReg::floatReg(9);
+    constexpr MicroReg XMM10 = MicroReg::floatReg(10);
 
 #define ENCODE_CASE(__name, __hex, ...)                                     \
     do                                                                      \
@@ -273,6 +274,8 @@ namespace
         ENCODE_CASE("vec_shl32_vex_xmm1_xmm9_12", "C4 C1 71 72 F1 0C", b.emitOpBinaryRegRegImm(XMM1, XMM9, ApInt(12, 8), MicroOp::VecShiftLeft32, MicroOpBits::B128););
         ENCODE_CASE("vec_shuffle32_xmm1_xmm2", "66 0F 70 CA 39", b.emitVecShuffleRegRegImm(XMM1, XMM2, 0x39, MicroOpBits::B128););
         ENCODE_CASE("vec_shuffle32_xmm9_xmm1", "66 44 0F 70 C9 93", b.emitVecShuffleRegRegImm(XMM9, XMM1, 0x93, MicroOpBits::B128););
+        ENCODE_CASE("vec_gathers32_xmm1_rax_xmm2", "C4 41 01 76 FF C4 E2 01 90 0C 90", b.emitVecGatherS32(XMM1, RAX, XMM2););
+        ENCODE_CASE("vec_gathers32_xmm9_r13_xmm10", "C4 41 01 76 FF C4 02 01 90 4C 95 00", b.emitVecGatherS32(XMM9, R13, XMM10););
         ENCODE_CASE("op_binary_reg_reg_shl_rcx", "49 D3 E2", b.emitOpBinaryRegReg(R10, RCX, MicroOp::ShiftLeft, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_rol", "49 D3 C2", b.emitOpBinaryRegReg(R10, RCX, MicroOp::RotateLeft, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_ror", "49 D3 CA", b.emitOpBinaryRegReg(R10, RCX, MicroOp::RotateRight, MicroOpBits::B64););

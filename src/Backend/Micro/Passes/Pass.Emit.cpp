@@ -183,6 +183,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::VecShuffleRegRegImm:
             encoder.encodeVecShuffleRegRegImm(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;
+        case MicroInstrOpcode::VecGatherS32:
+            encoder.encodeVecGatherS32(ops[0].reg, ops[1].reg, ops[2].reg);
+            break;
         case MicroInstrOpcode::LoadSignedExtRegMem:
             encoder.encodeLoadSignedExtendRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[2].opBits, ops[3].opBits);
             break;

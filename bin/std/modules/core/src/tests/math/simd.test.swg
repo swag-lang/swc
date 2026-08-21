@@ -66,6 +66,17 @@ using Swag, Math
     @assert(truncated[0] == 1 and truncated[1] == -1 and truncated[2] == 32767 and truncated[3] == -32768)
 }
 
+// Gather follows four independent indices, including repeats and non-monotonic order.
+#test
+{
+    var table: [17] s32
+    for i in 17 do
+        table[i] = cast(s32) i * cast(s32) i - 31
+
+    let gathered = Simd.gather(@dataof(table), cast(Simd.U32x4) [16'u32, 3, 3, 9])
+    @assert(gathered[0] == 225 and gathered[1] == -22 and gathered[2] == -22 and gathered[3] == 50)
+}
+
 // Interleaving alternates lanes from the corresponding low or high input halves.
 #test
 {

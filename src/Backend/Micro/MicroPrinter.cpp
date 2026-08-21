@@ -819,6 +819,8 @@ namespace
                 return std::format("{} = vec128 {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::VecShuffleRegRegImm:
                 return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("vec.shuffle32"), regName(ops[1].reg, regPrintMode, encoder), hexU64(ops[3].valueU64));
+            case MicroInstrOpcode::VecGatherS32:
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("vec.gather.s32"), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
             case MicroInstrOpcode::OpBinaryRegRegImm:
                 return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[3].microOp)), regName(ops[1].reg, regPrintMode, encoder), hexU64(ops[4].valueU64));
             case MicroInstrOpcode::VecUnaryRegReg:
@@ -1769,6 +1771,14 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
             case MicroInstrOpcode::LoadRegReg:
                 appendRegRegBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::VecGatherS32:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadRegImm:

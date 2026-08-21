@@ -8,7 +8,8 @@ using Swag
 // The aliases name every legal 16-byte vector shape, lane type by lane count, and the
 // functions give the packed hardware intrinsics their product spelling: memory transfers,
 // saturating arithmetic, narrowing and widening, byte shuffles, and mask handling. Every
-// operation maps to one instruction of the baseline instruction set.
+// operation maps directly to packed backend operations. A gather can use several indexed
+// loads when the baseline instruction set has no native gather instruction.
 //
 // The rest of the vector vocabulary needs no function at all. Comparisons and the
 // arithmetic, bitwise and shift operators are part of the language and compute per lane,
@@ -107,6 +108,14 @@ namespace Simd
         //
         // A NaN or a value outside the `s32` range becomes `s32.Min`.
         func truncateToS32(value: F32x4)->S32x4 => @vectruncs32(value)
+
+        // Reads four signed 32-bit values through four unsigned indices.
+        //
+        // Result lane `i` is `base[indices[i]]`. The caller owns the bounds contract:
+        // every index must be at most `s32.Max` and designate a readable element of
+        // `base`. AVX2 targets use a hardware gather; portable targets assemble four
+        // scalar indexed loads.
+        func gather(base: const [*] s32, indices: U32x4)->S32x4 => @vecgather(base, indices)
 
         // Narrows two vectors into one with unsigned saturation.
         //

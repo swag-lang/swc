@@ -139,7 +139,7 @@ Memory, atomic, and C variadic intrinsics:
 Packed vector intrinsics:
 
 ```swag
-@vecall  @vecany  @vecavgr  @vecinterleavehi  @vecinterleavelo
+@vecall  @vecany  @vecavgr  @vecgather  @vecinterleavehi  @vecinterleavelo
 @vecmadd  @vecmask  @vecpackss  @vecpackus  @vecperm  @vecsatadd
 @vecsatsub  @vecselect  @vecsplat  @vecsum  @vectruncs32  @vecwidenhi
 @vecwidenlo

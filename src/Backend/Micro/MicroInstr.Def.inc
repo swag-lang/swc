@@ -673,3 +673,18 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// AVX2 four-dword gather: dst = base[indices], with the scale fixed at four.
+// The x64 encoder owns the destructive all-ones mask register. Layout
+// [dst, base, indices].
+SWC_MICRO_INSTR_DEF(
+    VecGatherS32,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

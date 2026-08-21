@@ -145,6 +145,10 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 
 - Intent: add indexed lane loads/stores and mask-based compaction/expansion, with target gating and
   a cost model that is allowed to choose scalar lane operations when hardware gather is slower.
+  The JPEG-driven `s32x4` gather is now available with an AVX2 `vpgatherdd` lowering and a portable
+  four-load fallback. Over 64 million hot-LUT reads, the fallback measured 9,952 to 13,646 us
+  (1.37x slower than scalar) and AVX2 measured 11,804 to 15,360 us (1.30x slower), so consumers
+  still need an end-to-end win from the vector work surrounding the lookup.
 - Complete when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
   compress/expand are encoded, and the fallback never performs an invalid masked access.
 - Related: T-510, T-548, T-551, T-554.

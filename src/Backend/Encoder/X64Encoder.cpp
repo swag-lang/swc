@@ -1015,6 +1015,14 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     if (!ops)
         return;
 
+    if (inst.op == MicroInstrOpcode::VecGatherS32)
+    {
+        // VPGATHERDD destroys its mask. XMM15 is a late encoder scratch, and
+        // announcing the clobber makes register allocation preserve any live value.
+        info.addDef(x64RegToMicroReg(X64Reg::Xmm15));
+        return;
+    }
+
     const MicroReg stackReg = stackPointerReg();
     switch (inst.op)
     {
@@ -2020,6 +2028,44 @@ namespace
 void X64Encoder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc)
 {
     return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsSrc, MicroOp::Move, false);
+}
+
+void X64Encoder::encodeVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg indicesReg)
+{
+    SWC_ASSERT(regDst.isFloat());
+    SWC_ASSERT(baseReg.isInt());
+    SWC_ASSERT(indicesReg.isFloat());
+
+    const X64Reg dstX64     = microRegToX64Reg(regDst);
+    const X64Reg baseX64    = microRegToX64Reg(baseReg);
+    const X64Reg indicesX64 = microRegToX64Reg(indicesReg);
+    constexpr X64Reg K_MASK = X64Reg::Xmm15;
+    SWC_ASSERT(dstX64 != K_MASK && indicesX64 != K_MASK && dstX64 != indicesX64);
+
+    // VPGATHERDD clears every mask lane it consumes, so rebuild an all-ones
+    // mask for each operation: vpcmpeqd xmm15, xmm15, xmm15.
+    emitVex(store_, 0x66, VEX_MAP_0F, K_MASK, K_MASK, K_MASK);
+    store_.pushU8(0x76);
+    emitModRm(store_, x64RegToMicroReg(K_MASK), x64RegToMicroReg(K_MASK));
+
+    // VEX.128.66.0F38.W0 90 /r with VSIB addressing. Unlike an ordinary
+    // ModRM/SIB load, VEX.X extends the vector index and VEX.B extends the
+    // integer base.
+    const uint8_t pp   = vexPrefixBits(0x66);
+    const uint8_t vvvv = static_cast<uint8_t>(~x64RegNumber(K_MASK) & 0x0F);
+    store_.pushU8(0xC4);
+    store_.pushU8(static_cast<uint8_t>((isExtendedReg(dstX64) ? 0 : 0x80) |
+                                       (isExtendedReg(indicesX64) ? 0 : 0x40) |
+                                       (isExtendedReg(baseX64) ? 0 : 0x20) |
+                                       VEX_MAP_0F38));
+    store_.pushU8(static_cast<uint8_t>((vvvv << 3) | pp));
+    store_.pushU8(0x90);
+
+    const bool needsDisplacement = (encodeReg(baseX64) & 0b111) == 0b101;
+    emitModRm(store_, needsDisplacement ? ModRmMode::Displacement8 : ModRmMode::Memory, encodeReg(dstX64), MODRM_RM_SIB);
+    emitSib(store_, 2, encodeReg(indicesX64) & 0b111, encodeReg(baseX64) & 0b111);
+    if (needsDisplacement)
+        store_.pushU8(0);
 }
 
 void X64Encoder::encodeLoadSignedExtendAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)

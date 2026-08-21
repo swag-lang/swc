@@ -3,13 +3,26 @@ using Swag
 
 // The packed intrinsic vocabulary, checked lane by lane: broadcast, saturation,
 // packs, interleaves, widens, average, multiply-add, horizontal sum, float-to-integer conversion,
-// permute, select, movemask, and the vector overloads of the scalar math intrinsics.
+// gather, permute, select, movemask, and the vector overloads of the scalar math intrinsics.
 
 #[Swag.NoInline]
 func splatS32(value: s32)->#simd [4] s32 => @vecsplat(value)
 
 #[Swag.NoInline]
 func splatU8(value: u8)->#simd [16] u8 => @vecsplat(value)
+
+#test
+{
+    // Four independent unsigned indices gather signed dwords in lane order.
+    var table: [257] s32
+    for i in 257 do
+        table[i] = cast(s32) i * 13 - 1000
+
+    let base     = @dataof(table)
+    let indices  = cast(#simd [4] u32) [256, 0, 127, 5]
+    let gathered = cast([4] s32) @vecgather(base, indices)
+    @assert(gathered[0] == 2328 and gathered[1] == -1000 and gathered[2] == 651 and gathered[3] == -935)
+}
 
 #test
 {

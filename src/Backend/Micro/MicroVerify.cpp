@@ -214,6 +214,7 @@ namespace
             case MicroInstrOpcode::CmpRegReg:
             case MicroInstrOpcode::CmpRegImm:
             case MicroInstrOpcode::OpUnaryReg:
+            case MicroInstrOpcode::VecGatherS32:
                 return 3;
 
             case MicroInstrOpcode::LoadRegMem:

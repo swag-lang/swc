@@ -89,6 +89,54 @@ impl Encoder
         return cast(u8) (1 + r * 25 + g * 5 + b)
     }
 
+    #[Swag.Inline]
+    func divideBy255(value: Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        let adjusted = value + 1'u32
+        return (adjusted + (adjusted >> 8)) >> 8
+    }
+
+    func(BLUE_FIRST: bool, HAS_TRANSPARENCY: bool) quantizeRow4(source: const [*] u8, destination: [*] u8, pixelCount: u32)
+    {
+        var src    = source
+        var dst    = destination
+        var count  = pixelCount
+        let zero32 = Math.Simd.splat(0's32)
+        let zero16 = Math.Simd.splat(0's16)
+        while count >= 4
+        {
+            let pixels = Math.Simd.load(cast(const [*] u32) src)
+            let low    = pixels & 255'u32
+            let green  = (pixels >> 8) & 255'u32
+            let high   = (pixels >> 16) & 255'u32
+            let red    = BLUE_FIRST ? high : low
+            let blue   = BLUE_FIRST ? low : high
+            var indexes: Math.Simd.U32x4
+            #static if HAS_TRANSPARENCY
+            {
+                let redLevel   = divideBy255(red * 4'u32)
+                let greenLevel = divideBy255(green * 4'u32)
+                let blueLevel  = divideBy255(blue * 4'u32)
+                indexes = 1'u32 + (redLevel << 4) + (redLevel << 3) + redLevel + (greenLevel << 2) + greenLevel + blueLevel
+                indexes = Math.Simd.select((pixels >> 24) < Math.Simd.splat(128'u32), Math.Simd.splat(0'u32), indexes)
+            }
+            else
+            {
+                let redLevel   = divideBy255(red * 3'u32)
+                let greenLevel = divideBy255(green * 7'u32)
+                let blueLevel  = divideBy255(blue * 3'u32)
+                indexes = (redLevel << 5) + (greenLevel << 2) + blueLevel
+            }
+
+            let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4) indexes, zero32)
+            let packed8  = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) packed16, zero16)
+            Math.Simd.storeLow4(dst, packed8)
+            src   += 16
+            dst   += 4
+            count -= 4
+        }
+    }
+
     func fillOpaqueQuantizedPalette(data: *PaletteData)
     {
         data.count = 128
@@ -215,7 +263,33 @@ impl Encoder
         for y in image.height
         {
             var pix = cast([*] u8) image.pixels.buffer! + cast(u64) (image.height - y - 1) * image.rowStride
-            for image.width
+            var x   = 0
+            if image.bytesPerPixel == 4
+            {
+                let vectorWidth = cast(u32) image.width & ~3'u32
+                let destination = data.indexes.buffer! + dstIndex
+                let blueFirst   = image.pixelFormat == .BGRA8
+                if blueFirst
+                {
+                    if hasTransparent do
+                        quantizeRow4'(true, true)(pix, destination, vectorWidth)
+                    else do
+                        quantizeRow4'(true, false)(pix, destination, vectorWidth)
+                }
+                else
+                {
+                    if hasTransparent do
+                        quantizeRow4'(false, true)(pix, destination, vectorWidth)
+                    else do
+                        quantizeRow4'(false, false)(pix, destination, vectorWidth)
+                }
+
+                x        = cast(s32) vectorWidth
+                pix      += cast(u64) vectorWidth * 4
+                dstIndex += vectorWidth
+            }
+
+            while x < image.width
             {
                 let col = readPixelColor(image, pix)
                 if hasTransparent and col.a < 128 do
@@ -227,6 +301,7 @@ impl Encoder
 
                 dstIndex += 1
                 pix      += image.bytesPerPixel
+                x        += 1
             }
         }
 

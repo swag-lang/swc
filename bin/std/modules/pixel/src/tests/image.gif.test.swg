@@ -12,6 +12,54 @@ func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
         @assert(img.pixels.buffer![idx + 3] == a)
 }
 
+func quantizedGifChannel(value: u8, maxLevel: u32)->u8
+{
+    let level = cast(u32) value * maxLevel / 255
+    return cast(u8) ((level * 255 + maxLevel / 2) / maxLevel)
+}
+
+func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
+{
+    const Width = 523
+    var source    = Image.create(Width, 1, pixelFormat)
+    var pix       = source.pixels.buffer!
+    let blueFirst = pixelFormat == .BGRA8
+    for i in Width
+    {
+        let r = cast(u8) (i & 0xFF)
+        let g = cast(u8) ((i * 37 + 11) & 0xFF)
+        let b = cast(u8) ((i * 73 + 19) & 0xFF)
+        let a = withTransparency ? cast(u8) ((i * 53 + 7) & 0xFF) : 255'u8
+        pix[0] = blueFirst ? b : r
+        pix[1] = g
+        pix[2] = blueFirst ? r : b
+        pix[3] = a
+        pix    += 4
+    }
+
+    var encoded = expect source.encode("memory.gif")
+    encoded.makeLinear()
+    let decoded = expect Image.decode("quantized.gif", nnBytes(encoded.toSlice()), {})
+    @assert(decoded.pixelFormat == (withTransparency ? .RGBA8 : .RGB8))
+    for i in Width
+    {
+        let r = cast(u8) (i & 0xFF)
+        let g = cast(u8) ((i * 37 + 11) & 0xFF)
+        let b = cast(u8) ((i * 73 + 19) & 0xFF)
+        let a = withTransparency ? cast(u8) ((i * 53 + 7) & 0xFF) : 255'u8
+        if withTransparency and a < 128
+        {
+            assertGifPixelAt(decoded, i, 0, 0, 0, 0, 0)
+        }
+        else
+        {
+            let rbLevels = withTransparency ? 4'u32 : 3'u32
+            let gLevels  = withTransparency ? 4'u32 : 7'u32
+            assertGifPixelAt(decoded, i, 0, quantizedGifChannel(r, rbLevels), quantizedGifChannel(g, gLevels), quantizedGifChannel(b, rbLevels), 255)
+        }
+    }
+}
+
 func assertGifHeader(bytes: const [..] u8, width, height: u16)
 {
     @assert(@countof(bytes) > 20)
@@ -206,6 +254,15 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(img.height == 17)
     @assert(img.pixelFormat == .RGB8)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
+}
+
+// Quantize 32-bit red-first and blue-first sources with exact opaque and transparent levels.
+#test
+{
+    expect assertQuantizedGif32(.RGBA8, false)
+    expect assertQuantizedGif32(.BGRA8, false)
+    expect assertQuantizedGif32(.RGBA8, true)
+    expect assertQuantizedGif32(.BGRA8, true)
 }
 
 // Encode to a file path and reload through the registry.

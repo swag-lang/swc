@@ -401,9 +401,16 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 ### T-549 — JPEG DCT, IDCT, quantization, and color conversion remain scalar
 
 - Intent: vectorize RGB/YCbCr conversion, chroma upsampling, 8x8 FDCT/IDCT, and quantization with
-  explicit rounding semantics. The common subsampled color paths still need indexed LUT gathers.
-  A six-shuffle prototype for the eight-pixel direct-RGB planar pack regressed 192 MiB in native
-  Release from 62,379 to 224,940 us (3.61x slower), so it was discarded.
+  explicit rounding semantics. A six-shuffle prototype for the eight-pixel direct-RGB planar pack
+  regressed 192 MiB in native Release from 62,379 to 224,940 us (3.61x slower), so it was discarded.
+  The common H2V2 YCbCr path was then tried with the new `s32x4` gather, amortizing four chroma
+  lookups over sixteen output pixels. Forty 1024x768 decodes regressed from 682,359 to 752,853 us
+  on the portable target (1.10x slower) and from 612,948 to 791,885 us with AVX2 (1.29x slower).
+  Recomputing the LUT coefficients as packed fixed-point arithmetic regressed portable decoding
+  to 2,362,812 us (3.46x slower), and replacing the eight contiguous IDCT DC stores by one SIMD
+  splat/store regressed a 32 MiB microkernel from 5,650 to 5,760 us (1.02x slower). All three
+  prototypes were discarded; JPEG needs a lower-shuffle combined conversion/packing layout or a
+  persistently packed IDCT rather than isolated gathers, multiplies, or stores.
 - Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient
   extremes are covered, and encode/decode stages improve independently.
 - Related: T-511, T-514, T-520.

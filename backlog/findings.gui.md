@@ -444,3 +444,27 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the first real layout distribute from it, or keep the size the caller asked for on the item and
   apply it on the first resize that has room. Cover it with a splitter test that adds two panes
   before the control is ever laid out and then resizes.
+
+### F-175 — Copying a window by value silently releases the theme every other window is using
+
+- Area: bin/std
+- Found while: giving the Markdown view a document-wide selection (2026-08-21). A hit test wrote
+  `let view = one[]` while walking an `Array'(*InlineView)`, where the element already *is* the
+  pointer. The dereference copied the whole window; the copy's `opDrop` then ran
+  `ThemeStyle.free`, and after enough iterations the shared `ThemeStyleRef` reached count zero and
+  `Memory.delete(refr.theme)` freed a theme five live windows still pointed at.
+- Observation: `Gui.Wnd` embeds a `ThemeStyle`, which owns a counted reference and releases it in
+  `opDrop`. Nothing marks either type as an exclusive owner, so any accidental value copy of a
+  window compiles, takes no reference, and gives one back when it dies. The failure surfaces
+  arbitrarily later and nowhere near its cause: here it was a fault inside
+  `Theme.createDefaultFont`, reading `defaultTypeFaceR` out of freed memory during a relayout that
+  had nothing to do with the hit test.
+- Evidence: printing `.style.refr.count` at the top of `InlineView.layout` showed `count 1` on
+  every pass before the drag and `count 0` with a garbage `theme` pointer on the pass that
+  faulted. `-bc debug` reproduces it identically; the freed-memory fill is what makes the faulting
+  address read as `0xFFFFFFFFFFFFFFFF`.
+- Next step: mark `ThemeStyle` `#[Swag.NoCopy]`, which makes `Wnd` non-copyable with it, and see
+  what the toolkit does with that — windows are always used through pointers, so the surviving
+  copies are likely to be exactly this kind of accident. If a legitimate copy exists, give it an
+  explicit `share` instead. The rule it enforces is already written down: *design-swag-bin-modules*
+  says to mark exclusive owners `#[Swag.NoCopy]`.

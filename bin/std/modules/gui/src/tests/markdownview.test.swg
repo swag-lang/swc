@@ -371,6 +371,164 @@ func paragraphLineEdges(view: *Markdown.View)->Array'f32
     @assert(flushEdges[last] < flushEdges[0] - 1)
 }
 
+// Returns the laid-out rectangle of one word of one block, in that block's own coordinates.
+func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rectangle
+{
+    for &atom in view.blocks[block].inline!.atoms where atom.visible and atom.text == word do
+        return atom.position
+    return {}
+}
+
+// The document lets its text out: select all, copy, and give it back in reading order.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+    expect Clipboard.resetFake()
+
+    let view = Markdown.View.createText(&host.root, "alpha beta\n\ngamma delta")
+    view.resize(640, 480)
+    view.applyLayout()
+    view.layoutDocument()
+
+    @assert(!view.hasSelection())
+    view.selectAll()
+    @assert(view.hasSelection())
+    @assert(view.selectedText() == "alpha beta\ngamma delta")
+    @assert(view.copySelection())
+    @assert(Clipboard.getString() == "alpha beta\ngamma delta")
+
+    view.clearSelection()
+    @assert(!view.hasSelection())
+    @assert(!view.copySelection())
+}
+
+// A drag selects what it crosses, blocks included, and stops on the byte it was released on
+// rather than on the word holding it.
+//
+// The two ends are a block and an offset in that block's text, never a laid-out position, so the
+// same selection survives the relayout a narrower reading measure forces.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    let view = Markdown.View.createText(&host.root, "alpha beta\n\ngamma delta")
+    view.resize(640, 480)
+    view.applyLayout()
+    view.layoutDocument()
+
+    let alpha = markdownAtomRect(view, 0, "alpha")
+    let beta  = markdownAtomRect(view, 0, "beta")
+    let delta = markdownAtomRect(view, 1, "delta")
+    @assert(alpha.width > 0 and beta.width > 0 and delta.width > 0)
+
+    let first  = view.blocks[0].inline!
+    let second = view.blocks[1].inline!
+    host.drag(first.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()}), second.localToSurface(Math.Point{delta.right(), delta.vertCenter()}))
+    @assert(view.selectedText() == "alpha beta\ngamma delta")
+
+    // The reading measure changes what the words sit on, not what was selected.
+    var narrower = view.documentStyle
+    narrower.maxContentWidth = 320
+    view.setDocumentStyle(narrower)
+    @assert(view.selectedText() == "alpha beta\ngamma delta")
+
+    // A drag from the end of one word to the end of the next takes the space between them.
+    host.drag(first.localToSurface(Math.Point{alpha.right(), alpha.vertCenter()}), first.localToSurface(Math.Point{markdownAtomRect(view, 0, "beta").right(), beta.vertCenter()}))
+    @assert(view.selectedText() == " beta")
+
+    host.doubleClick(first.localToSurface(Math.Point{alpha.horzCenter(), alpha.vertCenter()}))
+    @assert(view.selectedText() == "alpha")
+
+    // Pressing somewhere else drops it, the way every document viewer reads.
+    host.click(first.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()}))
+    @assert(!view.hasSelection())
+}
+
+// A table copies as a table: one line per row, one tab between cells.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    let source = "| A | B |\n| --- | --- |\n| x | y |"
+    let view   = Markdown.View.createText(&host.root, source)
+    view.resize(640, 480)
+    view.applyLayout()
+    view.layoutDocument()
+
+    @assert(view.blocks.count == 1 and view.blocks[0].table != null)
+    view.selectAll()
+    @assert(view.selectedText() == "A\tB\nx\ty")
+}
+
+// A block a selection runs across, but that owns no text of its own, is taken whole: a formula
+// comes out as the mathematics that produced it, since nothing else stands for it in plain text.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(760, 620)
+    defer host.shutdown()
+
+    let source = expect File.readAllText(markdownFixturePath())
+    let view   = Markdown.View.createText(&host.root, source.toString())
+    view.resize(760, 620)
+    view.applyLayout()
+    view.layoutDocument()
+
+    view.selectAll()
+    let text = view.selectedText()
+    @assert(Utf8.contains(text.toString(), "Markdown viewer fixture"))
+    @assert(Utf8.contains(text.toString(), "\\frac{x}{2}"))
+    @assert(Utf8.contains(text.toString(), "\\int_0^1 x^2"))
+    @assert(Utf8.contains(text.toString(), "Independent scrolling"))
+    @assert(Utf8.contains(text.toString(), "func answer()->u32 => 42"))
+
+    // Nothing of the marked-up source reaches the clipboard: what comes out is what is read.
+    @assert(!Utf8.contains(text.toString(), "<b>"))
+    @assert(!Utf8.contains(text.toString(), "**bold**"))
+}
+
+// The context menu and the keyboard reach the same two commands.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+    expect Clipboard.resetFake()
+
+    let view = Markdown.View.createText(&host.root, "menu content")
+    view.resize(640, 480)
+    view.applyLayout()
+    view.layoutDocument()
+
+    host.clickPopupMenuItemWhenShown(Markdown.View.CtxSelectAll)
+    view.showContextMenu({50, 50})
+    host.pump()
+    @assert(view.selectedText() == "menu content")
+
+    host.clickPopupMenuItemWhenShown(Markdown.View.CtxCopy)
+    view.showContextMenu({50, 50})
+    host.pump()
+    @assert(Clipboard.getString() == "menu content")
+
+    view.clearSelection()
+    view.setFocus()
+    host.keyPress(.A, .Control)
+    @assert(view.selectedText() == "menu content")
+
+    expect Clipboard.resetFake()
+    host.keyPress(.C, .Control)
+    @assert(Clipboard.getString() == "menu content")
+
+    host.keyPress(.Escape)
+    @assert(!view.hasSelection())
+}
+
 // Every occurrence of a find highlights, not only the first one.
 #test
 {

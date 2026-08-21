@@ -31,6 +31,7 @@ private struct InlineAtom
     target:     String
     expression: MathExpression
     position:   Math.Rectangle
+    textStart:  u64     // Byte offset of this atom in the view's text, which is what a search and a selection address.
     ascent:     f32
     descent:    f32
     colorIndex: u32
@@ -40,6 +41,28 @@ private struct InlineAtom
     isBreak:    bool
     visible:    bool
     searchHit:  bool
+}
+
+// Returns how many bytes one atom contributes to the view's text.
+//
+// A run of whitespace and a line ending are each rendered, searched, and copied as one character
+// whatever the author wrote, so both count as one; every other atom counts its own text, which is
+// the mathematical source for a formula.
+private func atomTextLength(atom: const *InlineAtom)->u64
+{
+    if atom.isBreak or atom.isSpace do
+        return 1
+    return @countof(atom.text)
+}
+
+// Returns the text one atom contributes to the view's text.
+private func atomText(atom: const *InlineAtom)->string
+{
+    if atom.isBreak do
+        return "\n"
+    if atom.isSpace do
+        return " "
+    return atom.text.toString()
 }
 
 private struct InlineState
@@ -97,9 +120,14 @@ public struct InlineView
 {
     using wnd: Wnd
 
-    owner:        *View = undefined
-    kind:         BlockKind
-    atoms:        Array'InlineAtom
+    owner: *View = undefined
+    kind:  BlockKind
+    atoms: Array'InlineAtom
+
+    // Where this view sits in the reading order of every text view the document owns, which is
+    // the coordinate a document-wide selection is expressed in. Assigned once, at creation.
+    orderIndex:   u64
+    textLength:   u64     // Total bytes of the view's text, the upper bound of every offset into it.
     layoutWidth:  f32
     layoutHeight: f32
     hotAtom:      #null *InlineAtom
@@ -121,20 +149,45 @@ impl InlineView
             .invalidate()
     }
 
+    // Returns the whole text of the view: what a search matches against, and what a selection
+    // spanning it copies.
+    mtd text()->String
+    {
+        var result: retval
+        for &atom in .atoms do
+            result += atomText(atom)
+        return result
+    }
+
+    // Returns the part of the view's text between two byte offsets.
+    mtd textSlice(start, end: u64)->String
+    {
+        var result: retval
+        for &atom in .atoms
+        {
+            let atomEnd = atom.textStart + atomTextLength(atom)
+            if atomEnd <= start do
+                continue
+            if atom.textStart >= end do
+                break
+
+            let source = atomText(atom)
+            let low    = Math.max(start, atom.textStart) - atom.textStart
+            let high   = Math.min(end, atomEnd) - atom.textStart
+            if low == 0 and high >= @countof(source) do
+                result += source
+            elif low < @countof(source) do
+                result += source[low until Math.min(high, @countof(source))]
+        }
+
+        return result
+    }
+
     // Highlights every rendered atom touched by a case-insensitive match, for all matches.
     mtd highlightText(text: string)->bool
     {
         .clearSearchHighlight()
-        var source: String
-        for &atom in .atoms
-        {
-            if atom.isBreak do
-                source += "\n"
-            elif atom.isSpace do
-                source += " "
-            elif !atom.isMath do
-                source += atom.text
-        }
+        let source = .text()
 
         var found      = false
         var searchFrom = 0'u64
@@ -146,16 +199,8 @@ impl InlineView
 
             found = true
             let matchEnd = match + @countof(text)
-            var start    = 0'u64
-            for &atom in .atoms
-            {
-                let length = atom.isBreak or atom.isSpace ? 1 : (atom.isMath ? 0 : @countof(atom.text))
-                let end    = start + length
-                if end > match and start < matchEnd do
-                    atom.searchHit = true
-                start = end
-            }
-
+            for &atom in .atoms where atom.textStart < matchEnd and atom.textStart + atomTextLength(atom) > match do
+                atom.searchHit = true
             searchFrom = match + Math.max(@countof(text), 1)
         }
 
@@ -237,7 +282,11 @@ impl InlineView
             return
         }
 
+        // The formula keeps its source beside its parsed form: it is what a search matches and
+        // what a selection crossing it copies, since nothing else can stand for a rendered
+        // formula in plain text.
         var atom: InlineAtom
+        atom.text       = source
         atom.expression = #move expression
         atom.flags      = state.flags()
         atom.colorIndex = state.colorIndex
@@ -432,6 +481,16 @@ impl InlineView
 
         if textStart < @countof(text) do
             .appendText(text[textStart to], state)
+
+        // Every atom takes its place in the view's text now, once, so a search, a hit test, a
+        // selection and a copy all address the same coordinate without walking the atoms again.
+        .textLength = 0
+        for &atom in .atoms
+        {
+            atom.textStart = .textLength
+            .textLength    += atomTextLength(atom)
+        }
+
         .layoutWidth = 0
     }
 
@@ -732,6 +791,142 @@ impl InlineView
         return null
     }
 
+    // Reports whether an atom is drawn as a shape rather than as its own glyphs.
+    //
+    // A bullet, a task box and a formula all stand for their text without being it, so a point
+    // inside one names its start or its end and never a position between two of its bytes.
+    private func isAtomOpaque(atom: const *InlineAtom)->bool
+    {
+        return atom.isMath or atom.flags.has(.ListBullet) or atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
+    }
+
+    // Returns how wide the first `bytes` of one atom are drawn.
+    private mtd prefixWidth(atom: const *InlineAtom, bytes: u64)->f32
+    {
+        let length = atomTextLength(atom)
+        if bytes >= length do
+            return atom.position.width
+        if !bytes do
+            return 0
+        if atom.isBreak or atom.isSpace or isAtomOpaque(atom) do
+            return atom.position.width
+        return Painter.measureString(atom.text.toString()[0 until bytes], .font(atom)).width
+    }
+
+    // Returns the byte offset inside one atom nearest to `x`, measured from the atom's left edge.
+    private mtd byteAtWidth(atom: const *InlineAtom, x: f32)->u64
+    {
+        let length = atomTextLength(atom)
+        if atom.isBreak or atom.isSpace or isAtomOpaque(atom) do
+            return x < atom.position.width * 0.5 ? 0 : length
+
+        // The boundary the pointer is closest to wins, so a click on the left half of a glyph
+        // puts the caret before it and one on the right half puts it after.
+        let source = atom.text.toString()
+        let font   = .font(atom)
+        var scan   = 0'u64
+        var before = 0'f32
+        while scan < @countof(source)
+        {
+            let {?, eat} = Utf8.decodeRune(source[scan to])
+            let after    = Painter.measureString(source[0 until scan + eat], font).width
+            if x < (before + after) * 0.5 do
+                return scan
+            before = after
+            scan   += eat
+        }
+
+        return length
+    }
+
+    // Returns the text offset nearest to a point in this view's coordinates.
+    //
+    // `distance` is zero when the point landed inside a rendered atom. A point beside a line
+    // answers with that line's nearest atom, so a drag leaving the text keeps selecting the line
+    // it travels along rather than jumping to another block.
+    mtd textPositionAt(point: Math.Point)->{ offset: u64, distance: f32 }
+    {
+        var result: retval
+        result.distance = Swag.F32.Max
+
+        for &atom in .atoms where atom.visible
+        {
+            let frame = atom.position
+            if frame.contains(point)
+            {
+                result.offset   = atom.textStart + .byteAtWidth(atom, point.x - frame.x)
+                result.distance = 0
+                return result
+            }
+
+            var dx = 0'f32
+            if point.x < frame.x do
+                dx = frame.x - point.x
+            elif point.x > frame.right() do
+                dx = point.x - frame.right()
+
+            var dy = 0'f32
+            if point.y < frame.y do
+                dy = frame.y - point.y
+            elif point.y > frame.bottom() do
+                dy = point.y - frame.bottom()
+
+            // An atom on the pointed line beats every atom of another line, however close.
+            let score = dy * 4096 + dx
+            if score >= result.distance do
+                continue
+            result.distance = score
+            result.offset   = point.x <= frame.x ? atom.textStart : atom.textStart + atomTextLength(atom)
+        }
+
+        if result.distance == Swag.F32.Max do
+            result.distance = 0
+        return result
+    }
+
+    // Returns the run of the view's text one word around `offset` covers.
+    mtd wordRangeAt(offset: u64)->{ start: u64, end: u64 }
+    {
+        var result: retval
+        let source = .text()
+        let length = source.length
+        if !length do
+            return result
+
+        // One pass records where each rune starts and whether it belongs to a word; the word is
+        // then the run of word runes around the rune holding the offset, or that rune alone.
+        var starts: Array'u64
+        var words:  Array'bool
+        var scan = 0'u64
+        while scan < length
+        {
+            let {value, eat} = Utf8.decodeRune(source.toString()[scan to])
+            starts.add(scan)
+            words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
+            scan += eat
+        }
+
+        starts.add(scan)
+        let position  = Math.min(offset, length - 1)
+        var runeIndex = 0'u64
+        for i in words.count where starts[i] <= position do
+            runeIndex = i
+
+        var lo = runeIndex
+        var hi = runeIndex
+        if words[runeIndex]
+        {
+            while lo and words[lo - 1] do
+                lo -= 1
+            while hi + 1 < words.count and words[hi + 1] do
+                hi += 1
+        }
+
+        result.start = starts[lo]
+        result.end   = starts[hi + 1]
+        return result
+    }
+
     mtd preferredHeight(width: f32)->f32 => .layout(width)
 
     // Width of the longest line when nothing wraps, used by tables to size columns from content.
@@ -761,6 +956,11 @@ impl InlineView
         result.owner           = owner
         result.kind            = kind
         result.backgroundStyle = .View
+
+        // Views are created in reading order — a block after the block before it, a table cell
+        // after the cell to its left — so registering here is what puts the document in order.
+        result.orderIndex = owner.registerInline(result)
+
         if kind >= .Heading1 and kind <= .Heading6 do
             result.horizontalAlignment = owner.documentStyle.headingAlignment
         elif kind == .Paragraph do
@@ -813,6 +1013,8 @@ impl IWnd for InlineView
             return
         }
 
+        let selection = .owner.selectionInInline(.orderIndex)
+
         for &atom in .atoms where atom.visible
         {
             let color = .color(atom)
@@ -825,6 +1027,20 @@ impl IWnd for InlineView
                 background.y      -= 1
                 background.height += 2
                 painter.fillRect(background, ground)
+            }
+
+            // The reader's own selection is drawn last of the grounds and to the byte, so a drag
+            // that stopped inside a word covers exactly the glyphs it took.
+            if selection.has
+            {
+                let atomEnd = atom.textStart + atomTextLength(atom)
+                if selection.end > atom.textStart and selection.start < atomEnd
+                {
+                    let left  = .prefixWidth(atom, Math.max(selection.start, atom.textStart) - atom.textStart)
+                    let right = .prefixWidth(atom, Math.min(selection.end, atomEnd) - atom.textStart)
+                    if right > left do
+                        painter.fillRect({atom.position.x + left, atom.position.y - 1, right - left, atom.position.height + 2}, .themeColors().edit_SelectedBk)
+                }
             }
 
             if atom.isMath
@@ -871,6 +1087,17 @@ impl IWnd for InlineView
         switch evt.kind
         {
         case .Move:
+
+            // A drag owns the pointer wherever it has travelled to, so the document resolves the
+            // position rather than this view: the run under the pointer usually belongs to
+            // another block by now.
+            if .owner.isSelecting()
+            {
+                .owner.extendSelection(evt.surfacePos)
+                .app().setFrameCursor(Cursor.from(.IBeam))
+                return
+            }
+
             let atom = .atomAt(.surfaceToLocal(evt.surfacePos))
             if atom != .hotAtom
             {
@@ -880,6 +1107,8 @@ impl IWnd for InlineView
 
             if atom do
                 .app().setFrameCursor(Cursor.from(.Hand))
+            else do
+                .app().setFrameCursor(Cursor.from(.IBeam))
 
         case .Leave:
             if .hotAtom
@@ -889,11 +1118,33 @@ impl IWnd for InlineView
             }
 
         case .Pressed where evt.button == .Left:
-            let atom = .atomAt(.surfaceToLocal(evt.surfacePos))
-            if atom and !atom!.target.isEmpty() do
+            let local = .surfaceToLocal(evt.surfacePos)
+            let atom  = .atomAt(local)
+            if atom and !atom!.target.isEmpty()
+            {
                 .owner.sigLinkActivated.call(.owner, atom!.target.toString())
-            else do
+                return
+            }
+
+            .owner.beginSelection(me, .textPositionAt(local).offset)
+            .captureMouse()
+
+        case .Released where evt.button == .Left:
+            if !.owner.isSelecting()
+            {
                 evt.accepted = false
+                return
+            }
+
+            .owner.endSelection()
+            if .mouseCapture() == cast(*Wnd) me do
+                .releaseMouse()
+
+        case .DoubleClick where evt.button == .Left:
+            .owner.selectWordAt(me, .textPositionAt(.surfaceToLocal(evt.surfacePos)).offset)
+
+        case .Pressed where evt.button == .Right:
+            .owner.showContextMenu(evt.surfacePos)
 
         default:
             evt.accepted = false

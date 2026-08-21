@@ -63,7 +63,9 @@ where files are actually selected, and the format table below is what a reader c
   it carried, the way the `Hexadecimal` viewer names its own 1 MiB bound on the command itself.
 - Complete when: select-all reaches the whole file or the command that copies it says how much of
   it is leaving, and a reader can tell the two apart before pasting.
-- Related: T-419
+- Note: the `Markdown` viewer now selects and copies too, and its select-all has exactly the same
+  bound — it reaches the blocks the stream has materialized and no further — so whatever answer
+  this entry settles on has to cover it.
 
 ### T-389 — Nothing appears in the Explorer preview pane
 

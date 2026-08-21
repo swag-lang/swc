@@ -9,8 +9,7 @@ them are: an offline, script-free, network-free document viewer.
 It is not the repository's discovery backlog. Defects and leads belong in the `findings.*`
 files; where a document engine lives is decided — beside its widget, inside `gui`, as
 [todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family;
-the view selects and copies, and the Markdown side of that story stays in
-[T-419](todo.gui.md#t-419--the-markdown-view-cannot-select-or-copy-text). This file holds
+the view selects and copies, as the Markdown one now does too. This file holds
 intent about the HTML engine itself. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -279,8 +278,8 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: a search runs over a concatenated text with a map back to node-and-offset
   ranges, a match spanning markup highlights each covered run, and case folding goes through
   Unicode rather than `Latin1NoCase`.
-- Related: [T-419](todo.gui.md#t-419--the-markdown-view-cannot-select-or-copy-text),
-  which needs the same position model for selection.
+- Note: the Markdown view solved the same problem with a position model of its own — a text view
+  plus a byte offset into its text — which is the shape this entry needs here.
 
 ---
 

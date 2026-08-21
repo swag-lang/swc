@@ -143,19 +143,6 @@ accessibility, input and system-event contracts above rather than merely open a 
 therefore names the smallest coherent version that can ship and the existing controls or
 applications that would prove it.
 
-### T-419 — The Markdown view cannot select or copy text
-
-[[Gui.Markdown.View]] renders a document and lets none of it out: there is no selection, no
-select-all, and no clipboard path, so a reader can see a code block or a table and has no way to
-take it. [[Gui.HtmlView]] and [[Gui.PdfView]] now select, copy, and offer the shared `edit_*`
-context menu; the Markdown view is the one rendered document left out, and it is the harder one:
-its blocks are separate child windows, so a selection crossing blocks has to be coordinated at the
-[[Gui.Markdown.View]] level, over document positions rather than laid-out atoms, with copy
-producing the source text of the range. The HTML view's model — per-item source offsets, a
-measure-based hit test, one painter walk for highlight and extraction — is the shape to follow.
-
-- Related: T-388
-
 ### T-042 — Focused controls are not scrolled into view
 
 Tab can focus a descendant of `ScrollWnd` without revealing it. Add `Wnd.ensureVisible`, walking

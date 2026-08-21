@@ -63,6 +63,22 @@ struct VisualBlock
     html:       #null *HtmlView
     kind:       BlockKind
     searchText: String
+
+    // Where this block starts in the reading order of the document's text views. A block that
+    // owns none — a formula, an embedded page — sits between the view before it and this index,
+    // which is how a selection crossing it knows it was crossed.
+    orderIndex: u64
+}
+
+// One end of a document selection: a rendered text view, and a byte offset into its text.
+//
+// The pair is a document position rather than a laid-out one, so it survives a relayout, a theme
+// change and a reading-width change; only rebuilding the blocks retires it.
+#[Swag.NoDoc]
+struct SelectionPoint
+{
+    view = Swag.U64.Max
+    offset: u64
 }
 
 // Displays Markdown as a themed, read-only document with progressive UTF-8 file loading.
@@ -115,6 +131,14 @@ struct View
     searchBlockIndex:    u64 = Swag.U64.Max
     documentThemeColors: String
     blocks:              Array'VisualBlock
+
+    // Every text view of the document in reading order, and the two ends of the reader's
+    // selection over them. The anchor is where the press landed and the caret follows the
+    // pointer; normalization into reading order happens on read.
+    inlineOrder: Array'(*InlineView)
+    selAnchor:   SelectionPoint
+    selCaret:    SelectionPoint
+    selecting:   bool
 }
 
 private func applyThemeColors(wnd: *Wnd, colors: string)
@@ -280,6 +304,7 @@ private impl View
         var visual: VisualBlock
         visual.kind       = block.kind
         visual.searchText = block.text
+        visual.orderIndex = .inlineOrder.count
         if block.kind == .Math
         {
             let math = MathView.create(me, .body, block.text.toString())
@@ -487,6 +512,22 @@ private impl View
         if evt.kind != .Pressed do
             return false
 
+        // What a read-only document can give the clipboard comes first: the same three keys every
+        // other rendered document in the toolkit binds.
+        if evt.key == .C and evt.modifiers == .Control do
+            return .copySelection()
+        if evt.key == .A and evt.modifiers == .Control
+        {
+            .selectAll()
+            return true
+        }
+
+        if evt.key == .Escape and evt.modifiers == .None and .hasSelection()
+        {
+            .clearSelection()
+            return true
+        }
+
         let position = .scroll.scrollPosition()
         let viewport = .scroll.paddedClientRect()
         let page     = Math.max(viewport.height - .scroll.verticalScrollStep, .scroll.verticalScrollStep)
@@ -553,6 +594,67 @@ private impl View
         .hasPendingTarget = false
         .scroll.setScrollPos(position.x, target)
         return true
+    }
+
+    // Adds one text view to the reading order and returns the index it took.
+    mtd registerInline(view: *InlineView)->u64
+    {
+        .inlineOrder.add(view)
+        return .inlineOrder.count - 1
+    }
+
+    // Repaints every text view between two reading-order positions, inclusive.
+    mtd invalidateInlines(one, other: u64)
+    {
+        if .inlineOrder.isEmpty() do
+            return
+        let first = Math.min(one, other)
+        if first >= .inlineOrder.count do
+            return
+        let last = Math.min(Math.max(one, other), .inlineOrder.count - 1)
+        for index in first to last do
+            .inlineOrder[index].invalidate()
+    }
+
+    // Returns the document position nearest to a surface point.
+    //
+    // Every text view competes for the point, and the one whose rectangle the pointer is inside —
+    // or vertically nearest to — wins, so a drag that leaves the column keeps extending along the
+    // block it is beside rather than snapping to the top of the document.
+    mtd documentPositionAt(surfacePos: Math.Point)->{ view: u64, offset: u64, has: bool }
+    {
+        var result: retval
+        var best = Swag.F32.Max
+
+        // The element is the view: dereferencing it would copy the window, and a window
+        // holds a counted reference on its theme that the copy would release on the way out.
+        for view, index in .inlineOrder
+        {
+            let rect = view.surfaceRect()
+
+            var dx = 0'f32
+            if surfacePos.x < rect.x do
+                dx = rect.x - surfacePos.x
+            elif surfacePos.x > rect.right() do
+                dx = surfacePos.x - rect.right()
+
+            var dy = 0'f32
+            if surfacePos.y < rect.y do
+                dy = rect.y - surfacePos.y
+            elif surfacePos.y > rect.bottom() do
+                dy = surfacePos.y - rect.bottom()
+
+            let score = dy * 4096 + dx
+            if score >= best do
+                continue
+
+            best          = score
+            result.view   = index
+            result.offset = view.textPositionAt({surfacePos.x - rect.x, surfacePos.y - rect.y}).offset
+            result.has    = true
+        }
+
+        return result
     }
 
     mtd applyDocumentStyle()
@@ -711,6 +813,134 @@ impl View
     // Reports the laid-out height of the source rendered so far.
     mtd const loadedDocumentHeight()->f32 => .contentHeight + .documentStyle.bottomInset
 
+    // Reports whether the reader selected something.
+    mtd const hasSelection()->bool => .selectionRange().has
+
+    // Empties the selection.
+    mtd clearSelection()
+    {
+        let range = .selectionRange()
+        .selAnchor = {}
+        .selCaret  = {}
+        .selecting = false
+        if range.has do
+            .invalidateInlines(range.startView, range.endView)
+    }
+
+    // Selects the whole rendered document.
+    //
+    // What is rendered is what a streamed file has materialized so far, which is what the reader
+    // can see; the rest of the file has no position to select.
+    mtd selectAll()
+    {
+        if .inlineOrder.isEmpty() do
+            return
+        .selAnchor = {0, 0}
+        .selCaret  = {.inlineOrder.count - 1, .inlineOrder[.inlineOrder.count - 1].textLength}
+        .selecting = false
+        .invalidateInlines(0, .inlineOrder.count - 1)
+    }
+
+    // Returns the selected text, as one line per block and one tab between table cells.
+    //
+    // Inline formatting resolves to the words it decorated, a formula to its mathematical source,
+    // and an embedded page to its text. What comes back is the document as it reads, not the
+    // Markdown that produced it.
+    mtd selectedText()->String
+    {
+        var result: retval
+        let range = .selectionRange()
+        if !range.has do
+            return result
+
+        var started: bool
+        for &block in .blocks
+        {
+            if block.inline
+            {
+                let piece = .selectionInInline(block.inline!.orderIndex)
+                if !piece.has do
+                    continue
+                if started do
+                    result += "\n"
+                result  += block.inline!.textSlice(piece.start, piece.end)
+                started = true
+                continue
+            }
+
+            if block.table
+            {
+                var lastRow = Swag.U32.Max
+                for &cell in block.table!.cells
+                {
+                    let piece = .selectionInInline(cell.view.orderIndex)
+                    if !piece.has do
+                        continue
+                    if lastRow == Swag.U32.Max
+                    {
+                        if started do
+                            result += "\n"
+                    }
+                    elif cell.row != lastRow do
+                        result += "\n"
+                    else do
+                        result += "\t"
+
+                    result  += cell.view.textSlice(piece.start, piece.end)
+                    lastRow = cell.row
+                    started = true
+                }
+
+                continue
+            }
+
+            // A block with no text view of its own — a formula, an embedded page — is taken whole
+            // when the selection runs across it, and left alone when it merely touches an edge.
+            if range.startView < block.orderIndex and range.endView >= block.orderIndex and !block.searchText.isEmpty()
+            {
+                if started do
+                    result += "\n"
+                result  += block.searchText
+                started = true
+            }
+        }
+
+        return result
+    }
+
+    // Puts the selected text on the clipboard, and reports whether there was one.
+    mtd copySelection()->bool
+    {
+        if !.hasSelection() do
+            return false
+        let text = .selectedText()
+        if text.isEmpty() do
+            return false
+        Clipboard.addString(text.toString())
+        return true
+    }
+
+    const CtxCopy      = "Markdown.CtxCopy"          // Command the context menu's copy entry posts.
+    const CtxSelectAll = "Markdown.CtxSelectAll"     // Command the context menu's select-all entry posts.
+
+    // Offers the reading vocabulary at `surfacePos`: what a read-only document can give the
+    // clipboard, with the same shortcuts the keyboard already binds.
+    mtd showContextMenu(surfacePos: Math.Point)
+    {
+        .setFocus()
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl+C", disabled: !.hasSelection())
+        menu.addSeparator()
+        menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl+A")
+
+        let picked = menu.doModal(surfacePos, .TopLeft, autoDestroy: true) orelse ""
+        switch picked
+        {
+        case CtxCopy:      discard .copySelection()
+        case CtxSelectAll: .selectAll()
+        }
+    }
+
     // Scrolls to the next rendered block containing `text`, wrapping once at the end.
     mtd findText(text: string)->bool
     {
@@ -759,6 +989,14 @@ impl View
     mtd revealFileOffset(offset: u64, text: string)->bool
     {
         .stopLoading()
+
+        // The positions a selection is expressed in name views that are about to be destroyed,
+        // and the document they addressed is being rebuilt from another offset of the file.
+        .selAnchor = {}
+        .selCaret  = {}
+        .selecting = false
+        .inlineOrder.clear()
+
         for &block in .blocks do
             block.wnd.destroy()
         .blocks.clear()
@@ -817,6 +1055,95 @@ impl View
     }
 }
 
+// What the pointer gesture drives, and what a text view paints its own selection from.
+//
+// A selection spans windows, so the document owns both ends of it while each text view owns
+// the glyphs: these are the two halves talking to each other, not a surface a consumer uses.
+internal impl View
+{
+    // Reports whether a selection drag is in flight.
+    mtd const isSelecting()->bool => .selecting
+
+    // Starts a selection drag at one position of one text view.
+    mtd beginSelection(view: *InlineView, offset: u64)
+    {
+        .setFocus()
+        .clearSelection()
+        .selAnchor = {view.orderIndex, offset}
+        .selCaret  = .selAnchor
+        .selecting = true
+    }
+
+    // Moves the free end of the drag to the document position under a surface point.
+    mtd extendSelection(surfacePos: Math.Point)
+    {
+        if !.selecting do
+            return
+        let hit = .documentPositionAt(surfacePos)
+        if !hit.has or (hit.view == .selCaret.view and hit.offset == .selCaret.offset) do
+            return
+
+        // Both the range the caret left and the range it now covers have to be repainted, so the
+        // union of where it was, where it is, and the anchor is what the drag touches.
+        let previous = .selCaret
+        .selCaret = {hit.view, hit.offset}
+        let low  = Math.min(Math.min(previous.view, hit.view), .selAnchor.view)
+        let high = Math.max(Math.max(previous.view, hit.view), .selAnchor.view)
+        .invalidateInlines(low, high)
+    }
+
+    // Ends a selection drag, keeping what it selected.
+    mtd endSelection()
+    {
+        .selecting = false
+    }
+
+    // Selects the word around one position, the double-click gesture.
+    mtd selectWordAt(view: *InlineView, offset: u64)
+    {
+        .setFocus()
+        .clearSelection()
+        let word = view.wordRangeAt(offset)
+        .selAnchor = {view.orderIndex, word.start}
+        .selCaret  = {view.orderIndex, word.end}
+        .selecting = false
+        view.invalidate()
+    }
+
+    // Returns the selection normalized to reading order, or `has == false` when it is empty.
+    mtd const selectionRange()->{ startView: u64, startOffset: u64, endView: u64, endOffset: u64, has: bool }
+    {
+        var result: retval
+        if .selAnchor.view == Swag.U64.Max or .selCaret.view == Swag.U64.Max do
+            return result
+        if .selAnchor.view == .selCaret.view and .selAnchor.offset == .selCaret.offset do
+            return result
+
+        let anchorFirst = .selAnchor.view < .selCaret.view or (.selAnchor.view == .selCaret.view and .selAnchor.offset < .selCaret.offset)
+        result.startView   = anchorFirst ? .selAnchor.view : .selCaret.view
+        result.startOffset = anchorFirst ? .selAnchor.offset : .selCaret.offset
+        result.endView     = anchorFirst ? .selCaret.view : .selAnchor.view
+        result.endOffset   = anchorFirst ? .selCaret.offset : .selAnchor.offset
+        result.has         = true
+        return result
+    }
+
+    // Returns the part of the selection falling inside one text view, in that view's own text
+    // coordinates. This is what a view paints its selection from.
+    mtd const selectionInInline(orderIndex: u64)->{ start: u64, end: u64, has: bool }
+    {
+        var result: retval
+        let range = .selectionRange()
+        if !range.has or orderIndex < range.startView or orderIndex > range.endView do
+            return result
+
+        result.start = orderIndex == range.startView ? range.startOffset : 0
+        result.end   = orderIndex == range.endView ? range.endOffset : .inlineOrder[orderIndex].textLength
+        result.has   = result.end > result.start
+        return result
+    }
+}
+
 internal impl IWnd for View
 {
     mtd impl onThemeEvent(evt: *ThemeEvent)
@@ -829,6 +1156,25 @@ internal impl IWnd for View
     {
         if !.handleDocumentKey(evt) do
             evt.accepted = false
+    }
+
+    // The ground between and around the blocks answers for the document as a whole: a press on it
+    // drops the selection the way every document viewer reads, and the menu is the same one a
+    // block offers.
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        switch evt.kind
+        {
+        case .Pressed where evt.button == .Left:
+            .setFocus()
+            .clearSelection()
+
+        case .Pressed where evt.button == .Right:
+            .showContextMenu(evt.surfacePos)
+
+        default:
+            evt.accepted = false
+        }
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)

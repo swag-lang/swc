@@ -8,9 +8,7 @@ what the whole document family is: an offline, script-free, network-free viewer.
 
 It is not the repository's discovery backlog. Defects and leads belong in the `findings.*` files;
 where a document engine lives is decided — beside its widget, inside `gui`, as
-[todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family; selection
-and copy — shipped by `HtmlView`, still missing here — stay in
-[T-419](todo.gui.md#t-419--the-markdown-view-cannot-select-or-copy-text), and the
+[todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family; and the
 application-level affordances an integrated viewer adds — zoom, printing, thumbnails — stay in
 [todo.filescope.md](todo.filescope.md). This file holds intent about the Markdown engine itself.
 [README.md](README.md) has the whole layout.
@@ -50,7 +48,6 @@ bitmap arrives, without disturbing the byte-to-height estimate.
 - Intent: Markdown documents show their images instead of naming them
 - Complete when: a fixture with a local image and a `data:` image paints both through `createText`
   and `createFile`, and a remote URL still renders as today's link
-- Related: T-419
 
 ### T-492 — Block structure is flat: containers do not nest
 

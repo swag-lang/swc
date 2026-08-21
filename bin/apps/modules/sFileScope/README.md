@@ -37,7 +37,11 @@ guessing an encoding.
 - `Markdown` adapts the reusable GUI `Markdown.View`. It supports headings, prose, GFM alerts,
   nested lists and tasks, fenced code, aligned tables, metadata, footnotes, references, a table of
   contents, inline formatting, and native mathematical layout. Reader themes and reading widths
-  are selectable. Rendering is offline and executes no embedded HTML or script.
+  are selectable, and the two of them that set their own reading measure justify their body
+  column. Text selects across blocks with the pointer or Ctrl+A and copies with Ctrl+C, as plain
+  text: inline formatting resolves to the words it decorated, a table to tabs and lines, and a
+  formula to its mathematical source. Rendering is offline and executes no embedded HTML or
+  script.
 - `HTML` adapts the reusable GUI `HtmlView`. It streams document blocks into a centered page,
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
   script, style, template, and embedded-document content never executes.

@@ -8,6 +8,27 @@ private const RepeatBgr24 = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2,
 private const SwapRedBlue24 = cast(Math.Simd.U8x16) [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128]
 private const SwapRedBlue32 = cast(Math.Simd.U8x16) [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15]
 
+func countSame32(pixel, source: const [*] u8, pixelCount: u64)->u64
+{
+    let pattern = Math.Simd.splat(pixel[as u32])
+    var x       = 0'u64
+    while pixelCount - x >= 4
+    {
+        if !Math.Simd.allTrue(Math.Simd.load(cast(const [*] u32) source + x) == pattern) do
+            break
+        x += 4
+    }
+
+    while x < pixelCount
+    {
+        if (cast(const [*] u32) source)[x] != pixel[as u32] do
+            break
+        x += 1
+    }
+
+    return x
+}
+
 func swapRedBlue24Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
     var x = 0'u64

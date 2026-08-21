@@ -49,9 +49,21 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 {
     var result: retval = 1
     let first          = src + index * bytesPerPixel
-    while result < 128 and index + result < pixelCount
+    let limit          = Math.min(128'u64, pixelCount - index)
+    if limit == 1 or !sameTgaPixel(first, first + bytesPerPixel, bytesPerPixel) do
+        return result
+
+    result = 2
+    let remaining = limit - result
+    if bytesPerPixel == 4
     {
-        if !sameTgaPixel(first, src + (index + result) * bytesPerPixel, bytesPerPixel) do
+        result += PackedPixel.countSame32(first, first + result * 4, remaining)
+        return result
+    }
+
+    while result < limit
+    {
+        if !sameTgaPixel(first, first + result * bytesPerPixel, bytesPerPixel) do
             break
         result += 1
     }

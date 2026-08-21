@@ -202,6 +202,31 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     }
 }
 
+// Find every possible first mismatch around the four-pixel SIMD boundary.
+#test
+{
+    const Candidates = 130'u64
+    var pixel:      Array'u8
+    var candidates: Array'u8
+    pixel.resize(5)
+    candidates.resize(1 + Candidates * 4 + 1)
+    for channel in 4 do
+        pixel[1 + channel] = cast(u8) (channel * 53 + 17)
+
+    for mismatch in Candidates + 1
+    {
+        for candidate in Candidates
+        {
+            for channel in 4 do
+                candidates[1 + candidate * 4 + channel] = pixel[1 + channel]
+        }
+
+        if mismatch < Candidates do
+            candidates[1 + mismatch * 4 + 2] ^= 0xFF
+        @assert(PackedPixel.countSame32(pixel.buffer! + 1, candidates.buffer! + 1, Candidates) == mismatch)
+    }
+}
+
 // Decode top-origin raw 15-bit rows through the shared BGR555 vector kernel,
 // including a full vector and an odd tail on each row.
 #test
@@ -885,6 +910,32 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.pixels.buffer[1] == 2'u8)
     @assert(img.pixels.buffer[2] == 1'u8)
     @assert(img.pixels.buffer[3] == 4'u8)
+}
+
+// Split uniform input at the 128-pixel RLE limit in every channel order.
+#test
+{
+    const Width = 257
+    var options: Tga.EncodeOptions
+    options.rle = true
+    for pixelFormat in [PixelFormat.BGR8, PixelFormat.RGB8, PixelFormat.BGRA8, PixelFormat.RGBA8]
+    {
+        var src = Image.create(Width, 1, pixelFormat)
+        Memory.set(src.pixels.buffer!, 73, src.pixels.count)
+
+        var cb = expect src.encode("memory.tga", options)
+        cb.makeLinear()
+        let bytes         = nnBytes(cb.toSlice())
+        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        @assert(@countof(bytes) == #sizeof(TgaH) + 3 * (1 + bytesPerPixel))
+        @assert(bytes[#sizeof(TgaH)] == 0xFF)
+        @assert(bytes[#sizeof(TgaH) + 1 + bytesPerPixel] == 0xFF)
+        @assert(bytes[#sizeof(TgaH) + 2 + 2 * bytesPerPixel] == 0)
+
+        let img = expect Image.decode("memory.tga", bytes, {})
+        for i in img.pixels.count do
+            @assert(img.pixels.buffer![i] == 73)
+    }
 }
 
 // Encode a full 128-pixel literal packet and a tail in every channel order.

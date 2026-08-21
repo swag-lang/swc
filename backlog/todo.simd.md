@@ -430,7 +430,10 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   blue-first spans directly and shuffle red-first spans into a fixed scratch block. Over 64 MiB
   in native Release, BGR improves from 459,142 to 98,627 us (4.66x), RGB from 494,237 to
   123,278 us (4.01x), BGRA from 355,013 to 80,932 us (4.39x), and RGBA from 460,670 to
-  103,347 us (4.46x). Right-origin TGA15/16 rows
+  103,347 us (4.46x). Four-pixel run detection is retained for 32-bit TGA RLE: over 64 MiB
+  of uniform input, BGRA improves from 61,720 to 23,549 us (2.62x) and RGBA from 56,684 to
+  26,544 us (2.14x). The 24-bit prototype was rejected after improving BGR only from 61,260
+  to 60,605 us (1.01x) and RGB from 62,595 to 57,510 us (1.09x). Right-origin TGA15/16 rows
   reverse 16 packed pixels per iteration; over 256 MiB in native Release, TGA15 improves from
   1,657,107 to 364,168 us (4.55x) and TGA16 from 1,750,620 to 306,748 us (5.71x). Raw TGA24/32
   now dispatches left-origin rows to the runtime SIMD copy and right-origin rows to shared packed

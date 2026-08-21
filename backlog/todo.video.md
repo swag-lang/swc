@@ -62,11 +62,17 @@ is the layout it does not read yet.
   existing flat-add kernel, instead of dequantizing and running the complete inverse transform.
   Seven pinned samples of a complete 60-frame 1080p High/CABAC decode improve from a 2,015,365 us
   median to 1,934,459 us (1.04x), with identical frame checksums. Packing the flat-add kernel's
-  four-pixel rows was globally neutral within 0.5% and was rejected.
+  four-pixel rows was globally neutral within 0.5% and was rejected. Mirroring FFmpeg's residual
+  decoder, only the two significance-map CABAC decisions now inline; four stable alternating
+  pinned pairs improve from a 1,750,839 us median to 1,696,958 us (1.03x), byte-exact. Inlining
+  every CABAC decision remains rejected because the extra pressure regresses the parser. The
+  coefficient sign now uses a dedicated branchless bypass operation, like FFmpeg's
+  `get_cabac_bypass_sign`; seven pinned 1080p samples improve from a 1,901,861 us median to
+  1,830,319 us (1.04x), with identical frame checksums.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
-  levers, in expected order of value: a byte-run significance fast path in the CABAC engine,
-  strong and vertical packed deblocking (the transpose is the hard half), and a profitable packed
-  inverse-transform strategy. Branchful CABAC
+  levers, in expected order of value: a true byte-run significance decoder beyond the targeted
+  inlining, strong and vertical packed deblocking (the transpose is the hard half), and a
+  profitable packed inverse-transform strategy. Branchful CABAC
   decisions, quotient-based bypass runs, and four-byte row copies in `bookkeepMb` all regressed
   release decoding and were discarded. A 16-bit SWAR six-tap prototype stayed byte-exact but
   regressed this backend by about 13%, because expanding byte inputs cost more than the packed

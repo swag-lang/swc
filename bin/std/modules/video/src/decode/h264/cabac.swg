@@ -136,6 +136,36 @@ impl CabacReader
         return mps ^ (1 & ~mask)
     }
 
+    // Kept separate from the generic decision so only the significance-map loop pays the code
+    // growth needed to keep the arithmetic state in registers.
+    #[Swag.Inline]
+    private mtd significanceDecision(contextIndex: u32)->u32
+    {
+        let state  = cast(u32) .contexts[contextIndex]
+        let pState = cast(u64) (state >> 1)
+        let mps    = state & 1
+        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((.range >> 6) & 3)]
+
+        .range -= lps
+        let diff = cast(s32) .low - cast(s32) .range
+        let mask = cast #wrap (u32) (diff >> 31)
+        .low   = (.low & mask) | ((cast #wrap (u32) diff) & ~mask)
+        .range = (.range & mask) | (lps & ~mask)
+        let lpsMps   = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
+        let mpsState = (cast(u32) CabacTransMps[pState] << 1) | mps
+        let lpsState = (cast(u32) CabacTransLps[pState] << 1) | lpsMps
+        .contexts[contextIndex] = cast(u8) ((mpsState & mask) | (lpsState & ~mask))
+
+        let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
+        if shift != 0
+        {
+            .range <<= cast(u32) shift
+            .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
+        }
+
+        return mps ^ (1 & ~mask)
+    }
+
     // Decodes one bypass bin, section 9.3.3.2.3.
     mtd bypass()->u32
     {
@@ -147,6 +177,19 @@ impl CabacReader
         }
 
         return 0
+    }
+
+    // Decodes a bypass sign and applies it without branching.
+    #[Swag.Inline]
+    private mtd bypassSign(magnitude: s32)->s32
+    {
+        let low  = (.low << 1) | .takeBits(1)
+        let diff = cast(s32) low - cast(s32) .range
+        let keep = cast #wrap (u32) (diff >> 31)
+        .low = (low & keep) | ((cast #wrap (u32) diff) & ~keep)
+
+        let sign = cast #bit(s32) ~keep
+        return (magnitude ^ sign) - sign
     }
 
     // Decodes the end-of-slice bin, section 9.3.3.2.4.
@@ -627,12 +670,12 @@ impl Slice
         while scan < maxCoeffs - 1
         {
             let sigCtx = cat == 5 ? cast(u32) SigCoeffCtx8x8[scan] : scan
-            if .cabac.decision(sigBase + sigCtx) != 0
+            if .cabac.significanceDecision(sigBase + sigCtx) != 0
             {
                 indices[count] = scan
                 count          += 1
                 let lastCtx = cat == 5 ? cast(u32) LastCoeffCtx8x8[scan] : scan
-                if .cabac.decision(lastBase + lastCtx) != 0
+                if .cabac.significanceDecision(lastBase + lastCtx) != 0
                 {
                     foundLast = true
                     break
@@ -689,8 +732,7 @@ impl Slice
                 }
             }
 
-            if .cabac.bypass() != 0 do
-                magnitude = -magnitude
+            magnitude        = .cabac.bypassSign(magnitude)
             coeffs[position] = cast(s16) clampS32(magnitude, -32768, 32767)
         }
 

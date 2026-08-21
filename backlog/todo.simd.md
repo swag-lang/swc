@@ -388,7 +388,10 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   54-76% and were rejected. Opaque grayscale-to-RGB now uses bounded overlapping `u32` stores
   above 4,096 pixels: its 16 Mi-pixel kernel improves from 17,551 to 9,849 us (1.78x), and ten
   complete 2048x2048 decodes improve from 509,191 to 408,989 us (1.25x). Transparent and alpha
-  variants remain scalar pending a profitable packed layout.
+  variants now write prepacked RGBA words above 512 and 256 pixels. Their 16 Mi-pixel kernels
+  improve from 26,647 to 8,582 us (3.10x) and from 13,109 to 10,571 us (1.24x); five complete
+  2048x2048 decodes improve from 371,154 to 292,555 us (1.27x) and from 416,515 to 357,417 us
+  (1.17x), respectively.
   Encoder `Sub` generation processes 64 bytes per iteration (1.69x), while its score reuses the
   packed independent-byte reducer after the first pixel (1.59x). Encoder `Average` uses exact
   downward-rounded packed averages for row generation (2.25x) and scoring (1.63x). Encoder Paeth

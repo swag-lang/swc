@@ -17,6 +17,12 @@ const PackedPaletteThreshold = 512'u64
 // Keep tiny icon decode on the lower-overhead path; large images amortize packed expansion.
 const PackedGrayscaleThreshold = 4096'u64
 
+// A transparency lookup table pays for itself from 512 grayscale pixels.
+const PackedGrayscaleTransparencyThreshold = 512'u64
+
+// Direct grayscale-plus-alpha packing wins from 256 pixels.
+const PackedGrayscaleAlphaThreshold = 256'u64
+
 func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
     var src   = source
@@ -183,6 +189,75 @@ impl Decoder
         dst[2] = src[0]
     }
 
+    mtd convertGrayscaleTransparencyRgba(result: *Image, key: u8)
+    {
+        let pixelCount = cast(u64) result.width * result.height
+        if pixelCount < PackedGrayscaleTransparencyThreshold
+        {
+            var src = .safeDstPixels()
+            var dst = cast([*] u8) result.pixels.buffer!
+            for pixelCount
+            {
+                let gray = src[0]
+                dst[0] = gray
+                dst[1] = gray
+                dst[2] = gray
+                dst[3] = gray == key ? 0 : 255
+                src    += 1
+                dst    += 4
+            }
+
+            return
+        }
+
+        var packed: [256] u32
+        for i in 256
+        {
+            let gray  = cast(u32) i
+            let alpha = i == key ? 0'u32 : 255'u32
+            packed[i] = gray * 0x010101 | (alpha << 24)
+        }
+
+        var src = .safeDstPixels()
+        var dst = cast([*] u32) result.pixels.buffer!
+        for pixelCount
+        {
+            dst[0] = packed[src[0]]
+            src    += 1
+            dst    += 1
+        }
+    }
+
+    mtd convertGrayscaleAlphaRgba(result: *Image)
+    {
+        let pixelCount = cast(u64) result.width * result.height
+        if pixelCount < PackedGrayscaleAlphaThreshold
+        {
+            var src = .safeDstPixels()
+            var dst = cast([*] u8) result.pixels.buffer!
+            for pixelCount
+            {
+                dst[0] = src[0]
+                dst[1] = src[0]
+                dst[2] = src[0]
+                dst[3] = src[1]
+                src    += 2
+                dst    += 4
+            }
+
+            return
+        }
+
+        var src = .safeDstPixels()
+        var dst = cast([*] u32) result.pixels.buffer!
+        for pixelCount
+        {
+            dst[0] = cast(u32) src[0] * 0x010101 | (cast(u32) src[1] << 24)
+            src    += 2
+            dst    += 1
+        }
+    }
+
     mtd convert16(result: *Image)
     {
         var src = cast(const [*] u8) .safeDstPixels()
@@ -287,35 +362,15 @@ impl Decoder
         elif .inChannels == 1 and .seenTRSN
         {
             var key   = .safeTRNSData()[1]
-            let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
+            let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : .header.bitDepth == 4 ? 17'u8 : 1'u8
             key *= scale
-            var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
-            for result.width * result.height
-            {
-                dst[0] = src[0]
-                dst[1] = src[0]
-                dst[2] = src[0]
-                dst[3] = src[0] == key ? 0 : 255
-                src    += 1
-                dst    += result.bytesPerPixel
-            }
+            .convertGrayscaleTransparencyRgba(result, key)
         }
 
         // Grayscale with alpha channel
         elif .inChannels == 2
         {
-            var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
-            for result.width * result.height
-            {
-                dst[0] = src[0]
-                dst[1] = src[0]
-                dst[2] = src[0]
-                dst[3] = src[1]
-                src    += 2
-                dst    += result.bytesPerPixel
-            }
+            .convertGrayscaleAlphaRgba(result)
         }
 
         // Color without alpha but transparency

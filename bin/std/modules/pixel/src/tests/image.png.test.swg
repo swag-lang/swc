@@ -617,6 +617,44 @@ func buildGrayscalePng(width: u32)->Array'u8
     return cbToArray(&result)
 }
 
+func buildGrayscaleTransparencyPng(width: u32, key: u8)->Array'u8
+{
+    var raw: ConcatBuffer
+    raw.addNative(0'u8)
+    for i in width do
+        raw.addNative(cast(u8) (i & 0xFF))
+    raw.makeLinear()
+
+    let transparency: [2] u8 = [0, key]
+    var result:       ConcatBuffer
+    addPngSignature(&result)
+    addPngHeader(&result, width, 1, 8, 0)
+    addPngChunk(&result, "tRNS", transparency)
+    addPngImageData(&result, nnBytes(raw.toSlice()))
+    addPngChunk(&result, "IEND", "")
+    return cbToArray(&result)
+}
+
+func buildGrayscaleAlphaPng(width: u32)->Array'u8
+{
+    var raw: ConcatBuffer
+    raw.addNative(0'u8)
+    for i in width
+    {
+        raw.addNative(cast(u8) (i & 0xFF))
+        raw.addNative(cast(u8) (255 - (i & 0xFF)))
+    }
+
+    raw.makeLinear()
+
+    var result: ConcatBuffer
+    addPngSignature(&result)
+    addPngHeader(&result, width, 1, 8, 4)
+    addPngImageData(&result, nnBytes(raw.toSlice()))
+    addPngChunk(&result, "IEND", "")
+    return cbToArray(&result)
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = cbToArray(encoded)
@@ -817,6 +855,36 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(packedImage, 255, 0, 255'u8, 255'u8, 255'u8, 255'u8)
     assertPngPixelAt(packedImage, 256, 0, 0'u8, 0'u8, 0'u8, 255'u8)
     assertPngPixelAt(packedImage, 4095, 0, 255'u8, 255'u8, 255'u8, 255'u8)
+}
+
+// Grayscale transparency uses the unscaled 8-bit key and matches around its packed-table threshold.
+#test
+{
+    let scalarBytes = buildGrayscaleTransparencyPng(511, 119)
+    let scalarImage = expect Image.decode("gray-trns-scalar.png", nnBytes(scalarBytes.toSlice()), {})
+    assertPngPixelAt(scalarImage, 119, 0, 119'u8, 119'u8, 119'u8, 0'u8)
+    assertPngPixelAt(scalarImage, 120, 0, 120'u8, 120'u8, 120'u8, 255'u8)
+
+    let packedBytes = buildGrayscaleTransparencyPng(512, 119)
+    let packedImage = expect Image.decode("gray-trns-packed.png", nnBytes(packedBytes.toSlice()), {})
+    assertPngPixelAt(packedImage, 119, 0, 119'u8, 119'u8, 119'u8, 0'u8)
+    assertPngPixelAt(packedImage, 120, 0, 120'u8, 120'u8, 120'u8, 255'u8)
+    assertPngPixelAt(packedImage, 511, 0, 255'u8, 255'u8, 255'u8, 255'u8)
+}
+
+// Grayscale-plus-alpha packing preserves both channels around its direct-store threshold.
+#test
+{
+    let scalarBytes = buildGrayscaleAlphaPng(255)
+    let scalarImage = expect Image.decode("gray-alpha-scalar.png", nnBytes(scalarBytes.toSlice()), {})
+    assertPngPixelAt(scalarImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 254, 0, 254'u8, 254'u8, 254'u8, 1'u8)
+
+    let packedBytes = buildGrayscaleAlphaPng(256)
+    let packedImage = expect Image.decode("gray-alpha-packed.png", nnBytes(packedBytes.toSlice()), {})
+    assertPngPixelAt(packedImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
+    assertPngPixelAt(packedImage, 119, 0, 119'u8, 119'u8, 119'u8, 136'u8)
+    assertPngPixelAt(packedImage, 255, 0, 255'u8, 255'u8, 255'u8, 0'u8)
 }
 
 // Decode Adam7-interlaced grayscale, true-color, and alpha PNGs.

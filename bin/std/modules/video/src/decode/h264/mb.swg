@@ -41,7 +41,25 @@ struct McJob
     mv:     [2, 2] s16
 }
 
-// One parsed macroblock, whatever the entropy coding.
+// Extra motion regions are cold for the overwhelmingly common one-job macroblock.
+struct MbExtraJobs
+{
+    jobs: [15] McJob
+}
+
+// Coefficients live outside the hot macroblock record. Inter skip macroblocks never touch this
+// storage, while coded macroblocks index the matching entry in Decoder.parsedResiduals.
+struct MbResidual
+{
+    lumaDc:   [16] s16
+    lumaAc:   [256] s16     // Sixteen coefficients per raster 4x4 block.
+    luma8:    [256] s16     // Sixty-four coefficients per 8x8 quadrant.
+    chromaDc: [8] s16       // Four per plane.
+    chromaAc: [128] s16     // Sixteen per chroma block, scan positions 1..15.
+}
+
+// One parsed macroblock, whatever the entropy coding. Its frequently scanned control and motion
+// state remains compact; the large residual payload is cold for skipped inter macroblocks.
 struct Mb
 {
     mbX, mbY:     s32
@@ -61,18 +79,14 @@ struct Mb
     refIdx:       [2, 4] s8     // Per 8x8 quadrant; -1 when the list is unused.
     decodedMask:  u32           // Raster 4x4 blocks already reconstructed, for intra prediction.
     motionMask:   [2] u32       // Raster 4x4 blocks whose motion is assigned, per reference list.
-    jobs:         [16] McJob
+    firstJob:     McJob
+    extraJobs:    #null *MbExtraJobs
     jobCount:     u32
     cbpLuma:      u32
     cbpChroma:    u32
     qp:           s32
 
-    // Residual coefficients in scan order, flattened.
-    lumaDc:   [16] s16
-    lumaAc:   [256] s16     // Sixteen coefficients per raster 4x4 block.
-    luma8:    [256] s16     // Sixty-four coefficients per 8x8 quadrant.
-    chromaDc: [8] s16       // Four per plane.
-    chromaAc: [128] s16     // Sixteen per chroma block, scan positions 1..15.
+    residual: #null *MbResidual
 
     // Nonzero bookkeeping, CAVLC count semantics.
     nzLuma:      [16] u8     // Per raster 4x4 block.
@@ -290,6 +304,35 @@ impl Slice
         let gw   = dec.sps!.mbWidth * 4
         let poc0 = refIdx[0] >= 0 ? .refs[0, cast(u64) refIdx[0]].poc : NoRefPoc
         let poc1 = refIdx[1] >= 0 ? .refs[1, cast(u64) refIdx[1]].poc : NoRefPoc
+        if x4 == 0 and y4 == 0 and w4 == 4 and h4 == 4
+        {
+            let refs0   = Simd.splat(cast #bit (u8) refIdx[0])
+            let refs1   = Simd.splat(cast #bit (u8) refIdx[1])
+            let motion0 = cast(Simd.S16x8) [mv0[0], mv0[1], mv0[0], mv0[1], mv0[0], mv0[1], mv0[0], mv0[1]]
+            let motion1 = cast(Simd.S16x8) [mv1[0], mv1[1], mv1[0], mv1[1], mv1[0], mv1[1], mv1[0], mv1[1]]
+            let zeros16 = Simd.splat(0's16)
+            let pocs0   = Simd.splat(poc0)
+            let pocs1   = Simd.splat(poc1)
+            let direct  = Simd.splat(isDirect ? 1'u8 : 0)
+            for row in 4'u64
+            {
+                let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
+                Simd.storeLow4(cast([*] u8) dec.refIdxL0.buffer! + index, refs0)
+                Simd.storeLow4(cast([*] u8) dec.refIdxL1.buffer! + index, refs1)
+                Simd.store(dec.mvL0.buffer! + index * 2, motion0)
+                Simd.store(dec.mvL1.buffer! + index * 2, motion1)
+                Simd.store(dec.mvdL0.buffer! + index * 2, zeros16)
+                Simd.store(dec.mvdL1.buffer! + index * 2, zeros16)
+                Simd.store(dec.refPocL0.buffer! + index, pocs0)
+                Simd.store(dec.refPocL1.buffer! + index, pocs1)
+                Simd.storeLow4(dec.directFlags.buffer! + index, direct)
+            }
+
+            mb.motionMask[0] |= 0xFFFF
+            mb.motionMask[1] |= 0xFFFF
+            return
+        }
+
         for row in cast(u64) h4
         {
             for column in cast(u64) w4
@@ -323,7 +366,7 @@ impl Slice
     // Adds one motion-compensation job.
     mtd addJob(mb: *Mb, x4, y4, w4, h4: s32, refIdx: [2] s8, mv0, mv1: [2] s16)
     {
-        let job = &mb.jobs[mb.jobCount]
+        let job = .jobAt(mb, mb.jobCount)
         job.x        = x4 * 4
         job.y        = y4 * 4
         job.width    = w4 * 4
@@ -334,6 +377,14 @@ impl Slice
         job.mv[1, 0] = mv1[0]
         job.mv[1, 1] = mv1[1]
         mb.jobCount  += 1
+    }
+
+    // Returns one motion region, keeping the common first region in the hot macroblock record.
+    mtd jobAt(mb: *Mb, index: u32)->*McJob
+    {
+        if index == 0 do
+            return &mb.firstJob
+        return &mb.extraJobs!.jobs[index - 1]
     }
 
     // Derives the motion of a P-skip macroblock, section 8.4.1.1.
@@ -347,7 +398,7 @@ impl Slice
         if a.available and b.available and !zeroA and !zeroB do
             mv = .predictMv(mb, 0, 0, 0, 4, 0, 0)
 
-        var zero: [2] s16
+        var zero:  [2] s16
         var noRef: [2] s8 = [0, -1]
         .assignSkipMotion(mb, 0, 0, 4, 4, noRef, mv, zero, false)
         .addJob(mb, 0, 0, 4, 4, noRef, mv, zero)
@@ -704,7 +755,7 @@ impl Slice
     }
 
     // Resets the parse state for the macroblock at the current address.
-    mtd prepareMb(mb: *Mb)
+    mtd prepareMb(mb: *Mb, clearResiduals: bool = true)
     {
         let dec = .dec!
         mb.mbX           = cast(s32) (.mbAddr % cast(u32) dec.sps!.mbWidth)
@@ -717,6 +768,7 @@ impl Slice
         mb.decodedMask   = 0
         mb.motionMask[0] = 0
         mb.motionMask[1] = 0
+        mb.extraJobs     = &dec.parsedExtraJobs[.mbAddr]
         mb.jobCount      = 0
         mb.cbpLuma       = 0
         mb.cbpChroma     = 0
@@ -733,21 +785,22 @@ impl Slice
         Memory.clear(&mb.subShape, #sizeof(mb.subShape))
         Memory.clear(&mb.subDirect, #sizeof(mb.subDirect))
 
-        // The residual arrays must clear even for blocks the entropy decoders skip: the
-        // Intra_16x16 reconstruction and the chroma path read every block of the macroblock.
-        Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
-        Memory.clear(&mb.lumaDc, #sizeof(mb.lumaDc))
-        Memory.clear(&mb.lumaAc, #sizeof(mb.lumaAc))
-        Memory.clear(&mb.luma8, #sizeof(mb.luma8))
-        Memory.clear(&mb.chromaDc, #sizeof(mb.chromaDc))
-        Memory.clear(&mb.chromaAc, #sizeof(mb.chromaAc))
+        if clearResiduals
+        {
+            // Full macroblocks can leave uncoded blocks untouched while parsing, and intra
+            // reconstruction reads those blocks later. Skipped inter macroblocks have no
+            // residual by definition, so their zero bookkeeping keeps these arrays unreachable.
+            mb.residual = &dec.parsedResiduals[.mbAddr]
+            Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
+            Memory.clear(mb.residual!, #sizeof(MbResidual))
+        }
     }
 
     // Decodes one skipped macroblock.
     mtd decodeSkipMb(mb: *Mb) fail
     {
         let dec = .dec!
-        .prepareMb(mb)
+        .prepareMb(mb, clearResiduals: false)
         mb.skipped   = true
         mb.shape     = Shape16x16
         mb.qp        = .qp
@@ -1178,12 +1231,13 @@ impl Slice
         // Jobs merge the two lists: the first list to arrive creates the job, the second
         // completes it.
         var found = false
-        for index in mb.jobCount where mb.jobs[index].x == geometry.x4 * 4 and mb.jobs[index].y == geometry.y4 * 4
+        for index in mb.jobCount where .jobAt(mb, index).x == geometry.x4 * 4 and .jobAt(mb, index).y == geometry.y4 * 4
         {
-            mb.jobs[index].refIdx[list] = cast(s8) refIdx
-            mb.jobs[index].mv[list, 0]  = mv[0]
-            mb.jobs[index].mv[list, 1]  = mv[1]
-            found = true
+            let job = .jobAt(mb, index)
+            job.refIdx[list] = cast(s8) refIdx
+            job.mv[list, 0]  = mv[0]
+            job.mv[list, 1]  = mv[1]
+            found            = true
             break
         }
 
@@ -1341,12 +1395,13 @@ impl Slice
             else
             {
                 var found = false
-                for index in mb.jobCount where mb.jobs[index].x == x4 * 4 and mb.jobs[index].y == y4 * 4 and mb.jobs[index].width == w4 * 4 and mb.jobs[index].height == h4 * 4
+                for index in mb.jobCount where .jobAt(mb, index).x == x4 * 4 and .jobAt(mb, index).y == y4 * 4 and .jobAt(mb, index).width == w4 * 4 and .jobAt(mb, index).height == h4 * 4
                 {
-                    mb.jobs[index].refIdx[1] = cast(s8) refIdx
-                    mb.jobs[index].mv[1, 0]  = mv[0]
-                    mb.jobs[index].mv[1, 1]  = mv[1]
-                    found = true
+                    let job = .jobAt(mb, index)
+                    job.refIdx[1] = cast(s8) refIdx
+                    job.mv[1, 0]  = mv[0]
+                    job.mv[1, 1]  = mv[1]
+                    found         = true
                     break
                 }
 
@@ -1472,6 +1527,12 @@ impl Slice
         info.betaOffset   = cast(s8) .header.betaOffset
         info.uniform      = mb.class == MbClassInter and mb.jobCount == 1 and mb.cbpLuma == 0
 
+        if mb.skipped and .header.type == SliceTypeP
+        {
+            .bookkeepSkippedPMb(mb)
+            return
+        }
+
         let gw    = dec.sps!.mbWidth * 4
         let mbIdx = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
         for block in 16's32
@@ -1520,7 +1581,7 @@ impl Slice
         let frame = dec.current!
         if mb.class == MbClassInter and mb.jobCount == 1
         {
-            let job = &mb.jobs[0]
+            let job = &mb.firstJob
             var ref:   s8
             var mvX:   s16
             var mvY:   s16
@@ -1593,6 +1654,45 @@ impl Slice
         }
     }
 
+    // Publishes the uniform metadata of a P-skip macroblock four blocks at a time.
+    mtd bookkeepSkippedPMb(mb: *Mb)
+    {
+        let dec       = .dec!
+        let gw        = dec.sps!.mbWidth * 4
+        let job       = &mb.firstJob
+        let ref       = job.refIdx[0]
+        let motion    = cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], job.mv[0, 0], job.mv[0, 1], job.mv[0, 0], job.mv[0, 1], job.mv[0, 0], job.mv[0, 1]]
+        let modes     = Simd.splat(cast(u8) IntraDc)
+        let zeros     = Simd.splat(0'u8)
+        let refs      = Simd.splat(cast #bit (u8) ref)
+        let poc       = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
+        let pocs      = Simd.splat(poc)
+        let shortRefs = Simd.splat(ref >= 0 and !.refs[0, cast(u64) ref].isLong ? 1'u8 : 0)
+        for row in 4'u64
+        {
+            let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
+            Simd.storeLow4(dec.intraModes.buffer! + index, modes)
+            Simd.storeLow4(dec.nonZeroLuma.buffer! + index, zeros)
+            Simd.storeLow4(dec.codedLuma.buffer! + index, zeros)
+            Simd.storeLow4(cast([*] u8) dec.current!.colRef.buffer! + index, refs)
+            Simd.store(dec.current!.colMv.buffer! + index * 2, motion)
+            Simd.store(dec.current!.colPoc.buffer! + index, pocs)
+            Simd.storeLow4(dec.current!.colShort.buffer! + index, shortRefs)
+        }
+
+        let cw = dec.sps!.mbWidth * 2
+        for row in 2'u64
+        {
+            let index = cast(u64) ((mb.mbY * 2 + cast(s32) row) * cw + mb.mbX * 2)
+            (cast([*] u16) (dec.nonZeroCb.buffer! + index))[0] = 0
+            (cast([*] u16) (dec.nonZeroCr.buffer! + index))[0] = 0
+        }
+
+        let mbIndex = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX) * 3
+        (cast([*] u16) (dec.dcFlags.buffer! + mbIndex))[0] = 0
+        dec.dcFlags[mbIndex + 2] = 0
+    }
+
     // Parses every residual block of the macroblock with CAVLC coding, section 7.3.5.3.
     mtd parseResidualCavlc(mb: *Mb) fail
     {
@@ -1600,7 +1700,7 @@ impl Slice
         if isIntra16
         {
             let nC    = .lumaNc(mb, 0, 0)
-            let count = residualCavlc(&.bits, nC, 16, @dataof(mb.lumaDc))
+            let count = residualCavlc(&.bits, nC, 16, @dataof(mb.residual!.lumaDc))
             mb.dcFlags[0] = count > 0 ? 1 : 0
             if count > 0
             {
@@ -1624,7 +1724,7 @@ impl Slice
                 var count: u32
                 if isIntra16
                 {
-                    count = residualCavlc(&.bits, nC, 15, @dataof(mb.lumaAc) + cast(u64) raster * 16 + 1)
+                    count = residualCavlc(&.bits, nC, 15, @dataof(mb.residual!.lumaAc) + cast(u64) raster * 16 + 1)
                 }
                 elif mb.transform8x8
                 {
@@ -1632,11 +1732,11 @@ impl Slice
                     var cell16: [16] s16 = undefined
                     count = residualCavlc(&.bits, nC, 16, @dataof(cell16))
                     for coefficient in 16'u64 do
-                        mb.luma8[cast(u64) quad * 64 + coefficient * 4 + cast(u64) cell] = cell16[coefficient]
+                        mb.residual!.luma8[cast(u64) quad * 64 + coefficient * 4 + cast(u64) cell] = cell16[coefficient]
                 }
                 else
                 {
-                    count = residualCavlc(&.bits, nC, 16, @dataof(mb.lumaAc) + cast(u64) raster * 16)
+                    count = residualCavlc(&.bits, nC, 16, @dataof(mb.residual!.lumaAc) + cast(u64) raster * 16)
                 }
 
                 mb.nzLuma[cast(u64) raster] = cast(u8) count
@@ -1664,7 +1764,7 @@ impl Slice
         {
             for plane in 2'u64
             {
-                let count = residualCavlc(&.bits, -1, 4, @dataof(mb.chromaDc) + plane * 4)
+                let count = residualCavlc(&.bits, -1, 4, @dataof(mb.residual!.chromaDc) + plane * 4)
                 mb.dcFlags[1 + plane] = count > 0 ? 1 : 0
             }
         }
@@ -1677,7 +1777,7 @@ impl Slice
                 for block in 4's32
                 {
                     let nC    = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
-                    let count = residualCavlc(&.bits, nC, 15, @dataof(mb.chromaAc) + plane * 64 + cast(u64) block * 16 + 1)
+                    let count = residualCavlc(&.bits, nC, 15, @dataof(mb.residual!.chromaAc) + plane * 64 + cast(u64) block * 16 + 1)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
                     else do

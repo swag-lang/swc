@@ -69,12 +69,25 @@ is the layout it does not read yet.
   coefficient sign now uses a dedicated branchless bypass operation, like FFmpeg's
   `get_cabac_bypass_sign`; seven pinned 1080p samples improve from a 1,901,861 us median to
   1,830,319 us (1.04x), with identical frame checksums.
+- A later 2026-08-21 pass profiled a 3840x2160 Filmora High/CABAC screen recording whose P frames
+  contain 75% to 94% skipped macroblocks. The decoder still cleared roughly 1.3 KiB of residual
+  coefficients and carried sixteen motion jobs in every parsed macroblock, including each skip.
+  Residuals now live in a cold parallel array, the common first motion job stays inline while the
+  other fifteen live in cold storage, and P-skip metadata publishes four 4x4 blocks per SIMD store.
+  Skipped reconstruction also returns immediately after compensation. The median of the same warm
+  release frames fell from 166,779 us to 66,339 us (2.51x); the IDR frame fell from 559,007 us to
+  181,884 us (3.07x). Byte-exact Baseline/Main/High, P/B, seek, and reorder fixtures pass in both
+  fast-debug and release. The 4K stream is now about 15 fps rather than 5-7 fps, so it is materially
+  faster but not yet real time at its 25 fps rate. Scheduling each completed CABAC row for
+  reconstruction remained byte-exact but regressed the warm median from 66,339 us to 68,921 us;
+  it was discarded because the two stages contend for memory bandwidth without FFmpeg-style
+  fine-grained reference progress.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
-  levers, in expected order of value: a true byte-run significance decoder beyond the targeted
-  inlining, strong and vertical packed deblocking (the transpose is the hard half), and a
-  profitable packed inverse-transform strategy. Branchful CABAC
-  decisions, quotient-based bypass runs, and four-byte row copies in `bookkeepMb` all regressed
-  release decoding and were discarded. A 16-bit SWAR six-tap prototype stayed byte-exact but
+  levers, in expected order of value: fine-grained frame/slice threading, a true byte-run
+  significance decoder beyond the targeted inlining, strong and vertical packed deblocking (the
+  transpose is the hard half), and a profitable packed inverse-transform strategy.
+  Branchful CABAC decisions, quotient-based bypass runs, and four-byte row copies in `bookkeepMb`
+  all regressed release decoding and were discarded. A 16-bit SWAR six-tap prototype stayed byte-exact but
   regressed this backend by about 13%, because expanding byte inputs cost more than the packed
   arithmetic saved — the `#simd` lanes do not pay that expansion. A trap for the parse/recon
   split: the Intra_16x16 and chroma reconstruction read residual blocks the entropy decoders

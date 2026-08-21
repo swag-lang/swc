@@ -751,7 +751,7 @@ impl Slice
         {
             let nzA   = .dcFlagNeighbor(mb, -1, 0, 0)
             let nzB   = .dcFlagNeighbor(mb, 0, -1, 0)
-            let count = .residualCabac(mb, 0, @dataof(mb.lumaDc), 16, nzA, nzB)
+            let count = .residualCabac(mb, 0, @dataof(mb.residual!.lumaDc), 16, nzA, nzB)
             mb.dcFlags[0] = count > 0 ? 1 : 0
             if count > 0
             {
@@ -766,7 +766,7 @@ impl Slice
                 continue
             if mb.transform8x8 and mb.class != MbClassIntra16x16
             {
-                let count = .residualCabac(mb, 5, @dataof(mb.luma8) + cast(u64) quad * 64, 64, 0, 0)
+                let count = .residualCabac(mb, 5, @dataof(mb.residual!.luma8) + cast(u64) quad * 64, 64, 0, 0)
                 for cell in 4's32
                 {
                     let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
@@ -786,9 +786,9 @@ impl Slice
                 let nzB    = .blockNz(mb, mb.mbX * 4 + bx, mb.mbY * 4 + by - 1)
                 var count: u32
                 if mb.class == MbClassIntra16x16 do
-                    count = .residualCabac(mb, 1, @dataof(mb.lumaAc) + cast(u64) raster * 16 + 1, 15, nzA, nzB)
+                    count = .residualCabac(mb, 1, @dataof(mb.residual!.lumaAc) + cast(u64) raster * 16 + 1, 15, nzA, nzB)
                 else do
-                    count = .residualCabac(mb, 2, @dataof(mb.lumaAc) + cast(u64) raster * 16, 16, nzA, nzB)
+                    count = .residualCabac(mb, 2, @dataof(mb.residual!.lumaAc) + cast(u64) raster * 16, 16, nzA, nzB)
                 mb.nzLuma[cast(u64) raster]      = cast(u8) count
                 mb.codedBlocks[cast(u64) raster] = count > 0 ? 1 : 0
             }
@@ -800,7 +800,7 @@ impl Slice
             {
                 let nzA   = .dcFlagNeighbor(mb, -1, 0, 1 + plane)
                 let nzB   = .dcFlagNeighbor(mb, 0, -1, 1 + plane)
-                let count = .residualCabac(mb, 3, @dataof(mb.chromaDc) + cast(u64) plane * 4, 4, nzA, nzB)
+                let count = .residualCabac(mb, 3, @dataof(mb.residual!.chromaDc) + cast(u64) plane * 4, 4, nzA, nzB)
                 mb.dcFlags[cast(u64) (1 + plane)] = count > 0 ? 1 : 0
             }
         }
@@ -813,7 +813,7 @@ impl Slice
                 {
                     let nzA   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1) - 1, mb.mbY * 2 + (block >> 1))
                     let nzB   = .chromaBlockNz(mb, cast(u32) plane, mb.mbX * 2 + (block & 1), mb.mbY * 2 + (block >> 1) - 1)
-                    let count = .residualCabac(mb, 4, @dataof(mb.chromaAc) + cast(u64) plane * 64 + cast(u64) block * 16 + 1, 15, nzA, nzB)
+                    let count = .residualCabac(mb, 4, @dataof(mb.residual!.chromaAc) + cast(u64) plane * 64 + cast(u64) block * 16 + 1, 15, nzA, nzB)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
                     else do

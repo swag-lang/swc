@@ -38,7 +38,7 @@ impl Decoder
             var context = ReconstructionContext{me, bandCount}
             Jobs.parallelFor(bandCount, &context)
             {
-                let state = cast(*ReconstructionContext) data!
+                let state    = cast(*ReconstructionContext) data!
                 let firstRow = cast(u32) state.decoder.sps!.mbHeight * index / state.bandCount
                 let endRow   = cast(u32) state.decoder.sps!.mbHeight * (index + 1) / state.bandCount
                 let first    = firstRow * cast(u32) state.decoder.sps!.mbWidth
@@ -82,8 +82,12 @@ impl Slice
 
         if mb.class == MbClassIntra16x16 or mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8 do
             .predictIntraLuma(mb, frame)
-        else do
+        else
+        {
             .compensate(mb, frame)
+            if mb.skipped do
+                return
+        }
 
         if mb.class != MbClassIntra4x4 and mb.class != MbClassIntra8x8 do
             .addLumaResidual(mb, frame)
@@ -213,7 +217,7 @@ impl Slice
         let start = hasDc ? 1'u64 : 0'u64
         for scan in start until 16
         {
-            let coeff = cast(s32) mb.lumaAc[base + scan]
+            let coeff = cast(s32) mb.residual!.lumaAc[base + scan]
             if coeff == 0 do
                 continue
             let position = cast(u64) Zigzag4[scan]
@@ -235,7 +239,7 @@ impl Slice
         let base = cast(u64) quad * 64
         for scan in 64'u64
         {
-            let coeff = cast(s32) mb.luma8[base + scan]
+            let coeff = cast(s32) mb.residual!.luma8[base + scan]
             if coeff == 0 do
                 continue
             let position = cast(u64) Zigzag8[scan]
@@ -248,10 +252,10 @@ impl Slice
     mtd addLuma4x4Residual(mb: *Mb, raster: s32, destination: [*] u8, stride: u64)
     {
         let base = cast(u64) raster * 16
-        if mb.nzLuma[cast(u64) raster] == 1 and mb.lumaAc[base] != 0
+        if mb.nzLuma[cast(u64) raster] == 1 and mb.residual!.lumaAc[base] != 0
         {
             let list  = mb.class == MbClassInter ? 3'u64 : 0'u64
-            let coeff = cast(s32) mb.lumaAc[base]
+            let coeff = cast(s32) mb.residual!.lumaAc[base]
             let dc    = clampS32((coeff * cast(s32) .pps!.dequant4[list, cast(u64) mb.qp, 0] + 8) >> 4, -32768, 32767)
             addDc4x4(destination, stride, dc)
             return
@@ -275,7 +279,7 @@ impl Slice
             // block's AC residual.
             var dcBlock: [16] s16
             for scan in 16'u64 do
-                dcBlock[cast(u64) Zigzag4[scan]] = mb.lumaDc[scan]
+                dcBlock[cast(u64) Zigzag4[scan]] = mb.residual!.lumaDc[scan]
             hadamard4x4(@dataof(dcBlock))
 
             for raster in 16's32
@@ -331,7 +335,7 @@ impl Slice
 
         var dc: [4] s16
         for index in 4'u64 do
-            dc[index] = mb.chromaDc[cast(u64) plane * 4 + index]
+            dc[index] = mb.residual!.chromaDc[cast(u64) plane * 4 + index]
         hadamard2x2(@dataof(dc))
 
         for block in 4's32
@@ -348,7 +352,7 @@ impl Slice
                 let base = cast(u64) plane * 64 + cast(u64) block * 16
                 for scan in 1'u64 until 16
                 {
-                    let coeff = cast(s32) mb.chromaAc[base + scan]
+                    let coeff = cast(s32) mb.residual!.chromaAc[base + scan]
                     if coeff == 0 do
                         continue
                     let position = cast(u64) Zigzag4[scan]
@@ -373,11 +377,11 @@ impl Slice
         // a macroblock always tile it, so the merged job covers exactly the same samples.
         if mb.jobCount > 1
         {
-            let first   = &mb.jobs[0]
+            let first   = &mb.firstJob
             var uniform = true
             for jobIndex in 1'u32 until mb.jobCount
             {
-                let job = &mb.jobs[jobIndex]
+                let job = .jobAt(mb, jobIndex)
                 if job.refIdx[0] != first.refIdx[0] or job.refIdx[1] != first.refIdx[1] or job.mv[0, 0] != first.mv[0, 0] or job.mv[0, 1] != first.mv[0, 1] or job.mv[1, 0] != first.mv[1, 0] or job.mv[1, 1] != first.mv[1, 1]
                 {
                     uniform = false
@@ -397,7 +401,7 @@ impl Slice
 
         for jobIndex in mb.jobCount
         {
-            let job  = &mb.jobs[jobIndex]
+            let job  = .jobAt(mb, jobIndex)
             let ref0 = job.refIdx[0] >= 0 ? .refs[0, cast(u64) job.refIdx[0]].frame : null
             let ref1 = job.refIdx[1] >= 0 ? .refs[1, cast(u64) job.refIdx[1]].frame : null
             if !ref0 and !ref1 do

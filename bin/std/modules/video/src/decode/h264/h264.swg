@@ -85,8 +85,10 @@ struct Decoder
 
     // Entropy parsing stays serial inside a slice. Parsed macroblocks and their immutable
     // slice contexts remain here until inter reconstruction fans out through Core.Jobs.
-    parsedMbs:     Array'Mb
-    pictureSlices: Array'Slice
+    parsedMbs:       Array'Mb
+    parsedResiduals: Array'MbResidual
+    parsedExtraJobs: Array'MbExtraJobs
+    pictureSlices:   Array'Slice
 
     decodedMbs: u64
     sliceCount: u32
@@ -411,6 +413,8 @@ impl Decoder
             .mvdL1.resize(blocks * 2)
             .directFlags.resize(blocks)
             .parsedMbs.resize(mbCount)
+            .parsedResiduals.resize(mbCount)
+            .parsedExtraJobs.resize(mbCount)
         }
 
         // A stale slice id would make a mb from the previous picture look like a neighbor.

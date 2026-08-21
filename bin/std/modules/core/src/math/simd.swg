@@ -1,3 +1,4 @@
+#global export
 #global namespace Math
 #global public
 

@@ -298,6 +298,26 @@ stuck at the boundary.
 
 ## Tier C — Concurrency and asynchronous I/O
 
+### T-559 — A parallel stage keeps only a fraction of the cores it asks for
+
+- Problem: `Jobs.parallelFor` splits a stage into one job per worker, yet a stage measured alone
+  gains far less than the worker count. The H.264 decoder's YUV-to-RGB conversion of a 4K picture
+  costs about 19 ms on one worker and about 5 ms over twelve bands, its inter reconstruction about
+  20 ms and 8, and its deblocking wavefront 8 ms and 3.2. Two mechanisms are visible in the
+  scheduler: `Jobs.wait` polls `peekExecJob` in a tight loop, taking the one global mutex on every
+  turn — the same mutex the workers need to pick up work and to publish a completed job — and it
+  holds a core doing so, which is one core too many when the pool already covers every processor.
+- Consequence: a stage that could hide behind the entropy parse of a video frame, or behind the
+  layout pass of a window, instead lands on the critical path, and the parallel half of every
+  `bin/std` module is capped well below the machine.
+- A lock-free `Atomic.get` on a published queue size answers the common empty case without the
+  mutex, and a bounded spin followed by `Threading.Thread.yield()` hands the core to whichever
+  worker the answer depends on. Both were prototyped in this repository and measured neutral on a
+  thermally saturated laptop, which is evidence about the bench, not about the change: measure on
+  an idle machine with a fixed-work calibration loop beside the stage, and measure the stages
+  alone rather than a whole decode.
+- Related: T-036, T-504
+
 ### T-036 — No future or task abstraction
 
 `Jobs` gives parallel visiting and loops, but no value-bearing or failing asynchronous task that a

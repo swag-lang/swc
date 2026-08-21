@@ -87,6 +87,27 @@ is the layout it does not read yet.
   reconstruction remained byte-exact but regressed the warm median from 66,339 us to 68,921 us;
   it was discarded because the two stages contend for memory bandwidth without FFmpeg-style
   fine-grained reference progress.
+- A 2026-08-21 pass measured the 3840x2160 25 fps Filmora recording against FFmpeg on the same
+  laptop, both pinned to the performance cores: FFmpeg decodes it in about 27 ms of processor time
+  per frame single-threaded and about 3 ms of wall time with frame threading, while this decoder
+  spends about 111 ms of processor time — entropy parse 44, inter reconstruction 26, YUV-to-RGB
+  34, deblocking 8 — for about 55-70 ms of wall time over twenty-two workers. The conversion was
+  the surprise: every `Core.Math.Simd` operation was a call into `core.dll`, because an inline
+  function does not inline across a module boundary (F-176). Publishing that file, and the integer
+  intrinsic wrappers beside it, with `#global export` removed all of them; the conversion stage
+  halved and the serial decode fell to about 91 ms. The deblocking wavefront also waited on the
+  row above with a bare spin, which turned into a 230 ms per-frame stall whenever its lane held no
+  core; it now yields after a bounded wait. What did not pay: publishing the co-located motion in
+  a parallel pass instead of on the entropy thread moved about a megabyte of scattered writes off
+  the critical path and measured neutral to slightly worse, so it was dropped.
+- The critical path is now the entropy parse, about 38 ms of the 55, and it is serial by
+  construction: this stream carries one slice per picture. Fine-grained frame threading is what
+  FFmpeg answers with, and it is the only lever left that changes the order of magnitude. It needs
+  two sets of per-picture state — the parsed macroblocks, their residuals, and the per-4x4-block
+  grids, about 85 MB at this resolution — so that picture N reconstructs, deblocks and converts
+  while picture N+1 parses. The parse itself does not read reference pixels, so the pipeline is
+  legal; what it needs is the reference marking applied at the end of each parse rather than at
+  the end of each picture.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
   levers, in expected order of value: fine-grained frame/slice threading, a true byte-run
   significance decoder beyond the targeted inlining, strong and vertical packed deblocking (the

@@ -1,5 +1,6 @@
 // Some magical integer tricks comes from https://graphics.stanford.edu/~seander/bithacks.html#ValueInWord
 
+#global export
 #global public
 #global namespace Math
 

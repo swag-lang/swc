@@ -51,8 +51,21 @@ func deblockPicture(dec: *Decoder)
             {
                 if mbY > 0
                 {
+                    // The row above is normally one macroblock ahead, so this waits a few
+                    // hundred cycles and the spin is what it should be. A wait far longer than
+                    // that means the lane holding the answer has no core of its own, and
+                    // spinning is what keeps it from getting one, so hand this one over.
                     let required = cast(u32) Math.min(mbX + 2, width)
-                    while Atomic.get(state.rowProgress + cast(u64) mbY - 1) < required {}
+                    var spins    = 0'u32
+                    while Atomic.get(state.rowProgress + cast(u64) mbY - 1) < required
+                    {
+                        spins += 1
+                        if spins == 4096
+                        {
+                            Threading.Thread.yield()
+                            spins = 0
+                        }
+                    }
                 }
 
                 deblockMb(state.decoder, mbX, mbY)

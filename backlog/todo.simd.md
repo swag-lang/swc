@@ -387,7 +387,9 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   downward-rounded packed averages for row generation (2.25x) and scoring (1.63x). Encoder Paeth
   evaluates eight S16 lanes per half-vector for row generation (3.24x) and scoring (3.55x).
   Decoder `Sub` uses packed prefix scans for 2/4/8-byte pixels (1.33x/1.44x/1.67x); the four-shuffle
-  one-byte scan regressed 18-27% and was rejected, while 3/6-byte layouts remain scalar.
+  one-byte scan regressed 18-27% and was rejected. Three- and six-byte carry-shuffle prototypes
+  also regressed 256 MiB in native Release from 226,957 to 276,945 us (1.22x slower) and from
+  222,110 to 236,188 us (1.06x slower), so those layouts remain scalar.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
 - Related: T-514, T-516, T-517, T-520.

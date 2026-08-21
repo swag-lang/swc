@@ -432,6 +432,8 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   were discarded. Grayscale MCU-row copies now move each eight-pixel block with one `u64`
   load/store; 100 complete 660x441 decodes improve from 767,355 to 720,712 us (1.06x). Pairing two
   blocks into one `U64x2` store regressed that result to 760,409 us (1.06x slower) and was rejected.
+  Replacing the fixed 128-byte coefficient `Memory.copy` before each IDCT with eight explicit
+  vector transfers also regressed 20,000,000 hot copies from 201,741 to 464,830 us (2.30x slower).
   JPEG still needs a lower-shuffle combined conversion/packing layout, narrower IDCT arithmetic,
   or cheaper backend packed multiply/narrow sequences rather than isolated SIMD work.
 - Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient

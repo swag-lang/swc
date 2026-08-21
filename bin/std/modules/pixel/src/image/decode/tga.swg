@@ -170,6 +170,16 @@ func decodeTga16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, 
     PackedPixel.decodeBgra5551Row(source, destination, pixelCount, alphaFromBit)
 }
 
+func decodeTga15RowReversed(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+{
+    PackedPixel.decodeBgr555RowReversed(source, destination, pixelCount)
+}
+
+func decodeTga16RowReversed(source: const [*] u8, destination: [*] u8, pixelCount: u64, alphaFromBit: bool)
+{
+    PackedPixel.decodeBgra5551RowReversed(source, destination, pixelCount, alphaFromBit)
+}
+
 func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
 {
     let srcX = cast(s32) (pixelIndex % header.width)
@@ -235,16 +245,29 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
 {
     var p = src
     checkBuffer(p, last, pixelCount * pixelBytes)
-    if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 15 or header.bitsPerPixel == 16) and !(header.descriptorByte & DESC_ORIGIN_RIGHT)
+    if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 15 or header.bitsPerPixel == 16)
     {
+        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
         for y in result.height
         {
             let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
             let dst  = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
-            if header.bitsPerPixel == 15 do
-                decodeTga15Row(p, dst, result.width)
-            else do
-                decodeTga16Row(p, dst, result.width, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
+            if header.bitsPerPixel == 15
+            {
+                if rightOrigin do
+                    decodeTga15RowReversed(p, dst, result.width)
+                else do
+                    decodeTga15Row(p, dst, result.width)
+            }
+            else
+            {
+                let alphaFromBit = (header.descriptorByte & DESC_ALPHA_MASK) != 0
+                if rightOrigin do
+                    decodeTga16RowReversed(p, dst, result.width, alphaFromBit)
+                else do
+                    decodeTga16Row(p, dst, result.width, alphaFromBit)
+            }
+
             p += cast(u64) result.width * 2
         }
 

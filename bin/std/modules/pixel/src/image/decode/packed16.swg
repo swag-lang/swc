@@ -4,6 +4,7 @@ using Core
 
 const Expand5Low  = cast(Math.Simd.U8x16) [0'u8, 8, 16, 25, 33, 41, 49, 58, 66, 74, 82, 90, 99, 107, 115, 123]
 const Expand5High = cast(Math.Simd.U8x16) [132'u8, 140, 148, 156, 165, 173, 181, 189, 197, 206, 214, 222, 230, 239, 247, 255]
+const ReverseU16  = cast(Math.Simd.U8x16) [14'u8, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1]
 const BgrB0       = cast(Math.Simd.U8x16) [0'u8, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80, 0x80, 5]
 const BgrG0       = cast(Math.Simd.U8x16) [0x80'u8, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80, 0x80]
 const BgrR0       = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80]
@@ -21,17 +22,29 @@ func expand5(value: Math.Simd.U8x16)->Math.Simd.U8x16
     return Math.Simd.select(high, Math.Simd.shuffle(Expand5High, value), Math.Simd.shuffle(Expand5Low, value))
 }
 
-func decodeBgr555Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+func(REVERSE: bool) decodeBgr555RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    var src   = source
+    var src   = REVERSE ? source + pixelCount * 2 : source
     var dst   = destination
     var count = pixelCount
     while count >= 16
     {
-        let lowPixels  = Math.Simd.load(cast(const [*] u16) src)
-        let highPixels = Math.Simd.load(cast(const [*] u16) (src + 16))
-        let b          = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) (lowPixels & 31'u16),
-                                                        cast #bit(Math.Simd.S16x8) (highPixels & 31'u16)))
+        var lowPixels, highPixels: Math.Simd.U16x8
+        #static if REVERSE
+        {
+            src        -= 32
+            lowPixels  = cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) Math.Simd.load(cast(const [*] u16) (src + 16)), ReverseU16)
+            highPixels = cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) Math.Simd.load(cast(const [*] u16) src), ReverseU16)
+        }
+        else
+        {
+            lowPixels  = Math.Simd.load(cast(const [*] u16) src)
+            highPixels = Math.Simd.load(cast(const [*] u16) (src + 16))
+            src        += 32
+        }
+
+        let b = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) (lowPixels & 31'u16),
+                                               cast #bit(Math.Simd.S16x8) (highPixels & 31'u16)))
         let g = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> 5) & 31'u16),
                                                cast #bit(Math.Simd.S16x8) ((highPixels >> 5) & 31'u16)))
         let r = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> 10) & 31'u16),
@@ -39,34 +52,58 @@ func decodeBgr555Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
         Math.Simd.store(dst, Math.Simd.shuffle(b, BgrB0) | Math.Simd.shuffle(g, BgrG0) | Math.Simd.shuffle(r, BgrR0))
         Math.Simd.store(dst + 16, Math.Simd.shuffle(b, BgrB1) | Math.Simd.shuffle(g, BgrG1) | Math.Simd.shuffle(r, BgrR1))
         Math.Simd.store(dst + 32, Math.Simd.shuffle(b, BgrB2) | Math.Simd.shuffle(g, BgrG2) | Math.Simd.shuffle(r, BgrR2))
-        src   += 32
         dst   += 48
         count -= 16
     }
 
     while count
     {
+        #static if REVERSE do
+            src -= 2
         let pixel = cast(u32) src[as u16]
         dst[0] = cast(u8) (((pixel & 0x1F) * 255 + 15) / 31)
         dst[1] = cast(u8) ((((pixel >> 5) & 0x1F) * 255 + 15) / 31)
         dst[2] = cast(u8) ((((pixel >> 10) & 0x1F) * 255 + 15) / 31)
-        src    += 2
-        dst    += 3
-        count  -= 1
+        #static if !REVERSE do
+            src += 2
+        dst   += 3
+        count -= 1
     }
 }
 
-func decodeBgra5551Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, alphaFromBit: bool)
+func decodeBgr555Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    var src   = source
+    decodeBgr555RowImpl'(false)(source, destination, pixelCount)
+}
+
+func decodeBgr555RowReversed(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+{
+    decodeBgr555RowImpl'(true)(source, destination, pixelCount)
+}
+
+func(REVERSE: bool) decodeBgra5551RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64, alphaFromBit: bool)
+{
+    var src   = REVERSE ? source + pixelCount * 2 : source
     var dst   = destination
     var count = pixelCount
     while count >= 16
     {
-        let lowPixels  = Math.Simd.load(cast(const [*] u16) src)
-        let highPixels = Math.Simd.load(cast(const [*] u16) (src + 16))
-        let b          = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) (lowPixels & 31'u16),
-                                                        cast #bit(Math.Simd.S16x8) (highPixels & 31'u16)))
+        var lowPixels, highPixels: Math.Simd.U16x8
+        #static if REVERSE
+        {
+            src        -= 32
+            lowPixels  = cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) Math.Simd.load(cast(const [*] u16) (src + 16)), ReverseU16)
+            highPixels = cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) Math.Simd.load(cast(const [*] u16) src), ReverseU16)
+        }
+        else
+        {
+            lowPixels  = Math.Simd.load(cast(const [*] u16) src)
+            highPixels = Math.Simd.load(cast(const [*] u16) (src + 16))
+            src        += 32
+        }
+
+        let b = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) (lowPixels & 31'u16),
+                                               cast #bit(Math.Simd.S16x8) (highPixels & 31'u16)))
         let g = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> 5) & 31'u16),
                                                cast #bit(Math.Simd.S16x8) ((highPixels >> 5) & 31'u16)))
         let r = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> 10) & 31'u16),
@@ -84,20 +121,32 @@ func decodeBgra5551Row(source: const [*] u8, destination: [*] u8, pixelCount: u6
         Math.Simd.store(dst + 16, cast #bit(Math.Simd.U8x16) Math.Simd.interleaveHigh(cast #bit(Math.Simd.U16x8) bgLow, cast #bit(Math.Simd.U16x8) raLow))
         Math.Simd.store(dst + 32, cast #bit(Math.Simd.U8x16) Math.Simd.interleaveLow(cast #bit(Math.Simd.U16x8) bgHigh, cast #bit(Math.Simd.U16x8) raHigh))
         Math.Simd.store(dst + 48, cast #bit(Math.Simd.U8x16) Math.Simd.interleaveHigh(cast #bit(Math.Simd.U16x8) bgHigh, cast #bit(Math.Simd.U16x8) raHigh))
-        src   += 32
         dst   += 64
         count -= 16
     }
 
     while count
     {
+        #static if REVERSE do
+            src -= 2
         let pixel = cast(u32) src[as u16]
         dst[0] = cast(u8) (((pixel & 0x1F) * 255 + 15) / 31)
         dst[1] = cast(u8) ((((pixel >> 5) & 0x1F) * 255 + 15) / 31)
         dst[2] = cast(u8) ((((pixel >> 10) & 0x1F) * 255 + 15) / 31)
         dst[3] = alphaFromBit ? (pixel & 0x8000 ? 255'u8 : 0'u8) : 255'u8
-        src    += 2
-        dst    += 4
-        count  -= 1
+        #static if !REVERSE do
+            src += 2
+        dst   += 4
+        count -= 1
     }
+}
+
+func decodeBgra5551Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, alphaFromBit: bool)
+{
+    decodeBgra5551RowImpl'(false)(source, destination, pixelCount, alphaFromBit)
+}
+
+func decodeBgra5551RowReversed(source: const [*] u8, destination: [*] u8, pixelCount: u64, alphaFromBit: bool)
+{
+    decodeBgra5551RowImpl'(true)(source, destination, pixelCount, alphaFromBit)
 }

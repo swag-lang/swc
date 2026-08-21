@@ -418,7 +418,9 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   output in native Release, opaque conversion improves from 3,919,498 to 830,869 us (4.72x) and
   transparent conversion from 3,718,998 to 1,167,242 us (3.19x); over 64 MiB of 24-bit output,
   opaque conversion improves from 3,763,685 to 281,324 us (13.38x). Arbitrary BMP bitfield masks,
-  right-origin TGA rows, and TGA RLE retain their generic scalar paths.
+  right-origin TGA24/32 rows, and TGA RLE retain their generic scalar paths. Right-origin TGA15/16
+  rows reverse 16 packed pixels per iteration; over 256 MiB in native Release, TGA15 improves
+  from 1,657,107 to 364,168 us (4.55x) and TGA16 from 1,750,620 to 306,748 us (5.71x).
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
 - Related: T-514, T-517.

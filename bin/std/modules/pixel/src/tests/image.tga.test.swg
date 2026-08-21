@@ -48,7 +48,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 }
 
 // Decode every 16-bit word plus an odd tail, with unaligned buffers and sentinels.
-// Both alpha modes must match the scalar expansion exactly.
+// Both directions and alpha modes must match the scalar expansion exactly.
 #test
 {
     const Pixels = 65536 + 1
@@ -82,7 +82,46 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         Tga.decodeTga16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, alphaFromBit)
         for i in actual.count do
             @assert(actual[i] == expected[i])
+
+        for i in actual.count
+        {
+            actual[i]   = 0xA5
+            expected[i] = 0xA5
+        }
+
+        for i in Pixels
+        {
+            let value = cast(u16) ((Pixels - i - 1) & 0xFFFF)
+            expected[3 + i * 4]     = Tga.expand5(value & 31)
+            expected[3 + i * 4 + 1] = Tga.expand5((value >> 5) & 31)
+            expected[3 + i * 4 + 2] = Tga.expand5((value >> 10) & 31)
+            expected[3 + i * 4 + 3] = alphaFromBit ? (value & 0x8000 ? 255 : 0) : 255
+        }
+
+        Tga.decodeTga16RowReversed(source.buffer! + 1, actual.buffer! + 3, Pixels, alphaFromBit)
+        for i in actual.count do
+            @assert(actual[i] == expected[i])
     }
+
+    actual.resize(3 + Pixels * 3 + 1)
+    expected.resize(actual.count)
+    for i in actual.count
+    {
+        actual[i]   = 0xA5
+        expected[i] = 0xA5
+    }
+
+    for i in Pixels
+    {
+        let value = cast(u16) ((Pixels - i - 1) & 0xFFFF)
+        expected[3 + i * 3]     = Tga.expand5(value & 31)
+        expected[3 + i * 3 + 1] = Tga.expand5((value >> 5) & 31)
+        expected[3 + i * 3 + 2] = Tga.expand5((value >> 10) & 31)
+    }
+
+    Tga.decodeTga15RowReversed(source.buffer! + 1, actual.buffer! + 3, Pixels)
+    for i in actual.count do
+        @assert(actual[i] == expected[i])
 }
 
 // Decode top-origin raw 15-bit rows through the shared BGR555 vector kernel,
@@ -108,6 +147,57 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         @assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
         @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
         @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
+    }
+}
+
+// Decode right-origin packed rows through a full vector and an odd tail on each row.
+#test
+{
+    const Width  = 17'u16
+    const Height = 2'u16
+    {
+        var cb: ConcatBuffer
+        addTgaImageHeader(&cb, TGA_TYPE_RGB, 15, TGA_DESC_TOP | TGA_DESC_RIGHT, Width, Height)
+        for i in cast(u64) Width * Height do
+            cb.addNative(cast(u16) ((i * 1907 + 123) & 0x7FFF))
+
+        let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+        @assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
+        for i in cast(u64) Width * Height
+        {
+            let sourceY = i / Width
+            let sourceX = i % Width
+            let targetY = Height - sourceY - 1
+            let targetX = Width - sourceX - 1
+            let offset  = (targetY * Width + targetX) * 3
+            let value   = cast(u32) ((i * 1907 + 123) & 0x7FFF)
+            @assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
+            @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
+            @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
+        }
+    }
+
+    {
+        var cb: ConcatBuffer
+        addTgaImageHeader(&cb, TGA_TYPE_RGB, 16, TGA_DESC_TOP | TGA_DESC_RIGHT | 1, Width, Height)
+        for i in cast(u64) Width * Height do
+            cb.addNative(cast(u16) (i * 1907 + 123))
+
+        let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+        @assert(img.width == Width and img.height == Height and img.pixelFormat == .BGRA8)
+        for i in cast(u64) Width * Height
+        {
+            let sourceY = i / Width
+            let sourceX = i % Width
+            let targetY = Height - sourceY - 1
+            let targetX = Width - sourceX - 1
+            let offset  = (targetY * Width + targetX) * 4
+            let value   = cast(u32) ((i * 1907 + 123) & 0xFFFF)
+            @assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
+            @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
+            @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
+            @assert(img.pixels.buffer![offset + 3] == (value & 0x8000 ? 255'u8 : 0'u8))
+        }
     }
 }
 

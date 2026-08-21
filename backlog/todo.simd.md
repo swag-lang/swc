@@ -408,9 +408,13 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   on the portable target (1.10x slower) and from 612,948 to 791,885 us with AVX2 (1.29x slower).
   Recomputing the LUT coefficients as packed fixed-point arithmetic regressed portable decoding
   to 2,362,812 us (3.46x slower), and replacing the eight contiguous IDCT DC stores by one SIMD
-  splat/store regressed a 32 MiB microkernel from 5,650 to 5,760 us (1.02x slower). All three
-  prototypes were discarded; JPEG needs a lower-shuffle combined conversion/packing layout or a
-  persistently packed IDCT rather than isolated gathers, multiplies, or stores.
+  splat/store regressed a 32 MiB microkernel from 5,650 to 5,760 us (1.02x slower). A byte-exact
+  second IDCT pass that kept four columns packed through the complete `s32` butterfly regressed the
+  measured transform stage from 80,085 to 132,055 us (1.65x slower). A block-level DC fast path
+  applied to 32.6% of the H2V2 fixture but still regressed paired median IDCT time by 10.9% and
+  end-to-end decode by 1.8%, because its seven-row zero test ran on every block. All prototypes
+  were discarded; JPEG now needs a lower-shuffle combined conversion/packing layout, narrower IDCT
+  arithmetic, or cheaper backend packed multiply/narrow sequences rather than isolated SIMD work.
 - Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient
   extremes are covered, and encode/decode stages improve independently.
 - Related: T-511, T-514, T-520.

@@ -209,6 +209,18 @@ namespace
         // starts at zero and the runtime reads "not claimed yet" from it.
         if (!isCompilerGlobal && symVar.attributes().hasRtFlag(RtAttributeFlagsE::Tls))
         {
+            // The per-thread block is released by the thread-exit destructor, which frees bytes
+            // without knowing their type, and shutdown cannot stand in for it: it runs on one
+            // thread and would drop an arbitrary copy. A value with a drop lifecycle would
+            // therefore leak once per thread, silently.
+            if (ctx.typeMgr().hasLifecycleOperator(ctx, storageTypeRef, &SymbolStruct::opDrop))
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_tls_global_with_drop, sema.curNodeRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, storageTypeRef);
+                diag.report(ctx);
+                return Result::Error;
+            }
+
             const auto [tlsIdOffset, tlsIdStorage] = ctx.compiler().globalZeroSegment().reserve<uint64_t>();
             if (tlsIdStorage)
                 *tlsIdStorage = 0;

@@ -14,7 +14,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: 22-logical-processor machine saturated by an unbounded `/MP` compile plus unbounded `swc` job managers; caps added 2026-08-13.
 - Next step: when the machine stops hosting several concurrent agents, or when the tools run on a dedicated CI machine, re-evaluate both caps — remove them so builds and campaigns take the whole machine again, or keep them behind an explicit opt-in.
 
-### F-166 — The sVaultDrive surface golden fails under the DevMode configuration
+### F-166 — The sVaultDrive surface golden no longer matches what the app paints
 
 - Area: tooling
 - Found while: running the full `tests.swgs dm` campaign on the `#simd` worktree.
@@ -27,7 +27,11 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the golden's recording (`08800359f`, same day) and that base adds an `ImageView` method that
   sVaultDrive never calls.
 - Evidence: `swc tools/apps.swgs dm test sVaultDrive`; the differing image is written next to
-  the golden as `vaultdrive.surface.actual.png`.
-- Next step: run the same test with the Release-built compiler; if it passes there, the golden
-  was recorded under a configuration whose float folding rounds differently from `fast-debug`,
-  and either the recording flow or the tolerance must pick one configuration to trust.
+  the golden as `vaultdrive.surface.actual.png`. The compiler's own configuration is not the
+  cause: `swc tools/apps.swgs test sVaultDrive`, driven by the Release-built compiler from the
+  same sources, produces the identical difference — 852 pixels, maximum channel difference 51,
+  first at (482, 766) — so the two builds of `swc` agree and the golden disagrees with both.
+- Next step: compare the recorded golden against the current one pixel by pixel on the disabled
+  button face and decide which is right, then either re-record with `swc tools/goldens.swgs`
+  or find the `bin/std` change that moved the disabled-face blend. Comparing configurations is
+  finished; what is left is deciding whether the paint or the recording is stale.

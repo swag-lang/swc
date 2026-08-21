@@ -763,10 +763,18 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
             return Result::Continue;
     }
 
-    const bool         isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
-    const SemaNodeView constView         = isConstantBinding
-                                               ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant)
-                                               : codeGen.curViewTypeConstant();
+    const bool   isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
+    SemaNodeView constView         = isConstantBinding
+                                         ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant)
+                                         : codeGen.curViewTypeConstant();
+
+    // A conversion that runs an operator keeps no constant form, so the cast substituted for
+    // this identifier carries none and the resolved view describes that cast instead of what
+    // this node yields. The constant a named 'const' carries is then the only value there is
+    // to materialize; a cast that did fold keeps its own folded result, read above.
+    if (!isConstantBinding && !constView.hasConstant() && codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
+        constView = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
     if (constView.hasConstant())
     {
         CodeGenNodePayload constantPayload;

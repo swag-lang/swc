@@ -1165,18 +1165,20 @@ Result Cast::castToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcType
     if (srcType.isFloat())
         return castFloatToIntLike(sema, castRequest, srcTypeRef, dstTypeRef);
 
-    if (castRequest.kind == CastKind::Explicit)
+    // From pointer: an address reads as an integer wide enough to hold it. Narrowing is
+    // refused on its own, because it would silently drop the high half of the address.
+    if (castRequest.kind == CastKind::Explicit && srcType.isAnyPointer())
     {
-        // From pointer
-        if (srcType.isAnyPointer() && dstTypeRef == sema.typeMgr().typeU64())
+        if (typeMgr.get(dstTypeRef).sizeOf(sema.ctx()) < sizeof(void*))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_pointer_narrowing, srcTypeRef, dstTypeRef);
+
+        if (castRequest.isConstantFolding())
         {
-            if (castRequest.isConstantFolding())
-            {
-                if (!foldConstantPointerToIntLike(sema, castRequest, dstTypeRef))
-                    return Result::Error;
-            }
-            return Result::Continue;
+            if (!foldConstantPointerToIntLike(sema, castRequest, dstTypeRef))
+                return Result::Error;
         }
+
+        return Result::Continue;
     }
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -1703,10 +1705,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     {
         const auto& autoCast = view.node()->cast<AstAutoCastExpr>();
         effectiveKind        = CastKind::Explicit;
-        if (autoCast.modifierFlags.has(AstModifierFlagsE::Bit))
-            effectiveFlags.add(CastFlagsE::BitCast);
-        if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))
-            effectiveFlags.add(CastFlagsE::UnConst);
+        effectiveFlags.add(autoCastFlags(autoCast.modifierFlags));
         if (autoCast.modifierFlags.has(AstModifierFlagsE::Wrap))
             effectiveFlags.add(CastFlagsE::NoOverflow);
     }
@@ -1784,27 +1783,28 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
             AstNodeRef runtimeCastNodeRef = view.nodeRef();
 
-            // A flow-narrowed value meeting its own declared nullable type is not a real
-            // conversion: the node's stored type already IS the destination and the
-            // representation is identical. Materializing a cast here would change the
-            // expression's shape for downstream consumers (inline argument substitution,
-            // escape analysis) for no runtime effect.
-            bool narrowedIdentityWiden = false;
+            // Widening a value to the nullable spelling of its own type is not a real
+            // conversion: the two share one representation, and only the rule about what may
+            // be null differs. Materializing a cast here would change the expression's shape
+            // for downstream consumers (inline argument substitution, escape analysis) for no
+            // runtime effect, and it gives the source node a second identity that code
+            // generation cannot tell apart from the cast that consumes it.
+            bool nullableIdentityWiden = false;
             if (srcTypeRef != dstTypeRef && dstTypeRef.isValid())
             {
                 const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-                if (dstType.isNullable() && sema.viewStored(view.nodeRef(), SemaNodeViewPartE::Type).typeRef() == dstTypeRef)
+                if (dstType.isNullable())
                 {
                     TypeInfo nonNullType = dstType;
                     nonNullType.removeFlag(TypeInfoFlagsE::Nullable);
-                    narrowedIdentityWiden = sema.typeMgr().addType(nonNullType) == srcTypeRef;
+                    nullableIdentityWiden = sema.typeMgr().addType(nonNullType) == srcTypeRef;
                 }
             }
 
             // A contextual cast can carry flags like `UfcsArgument` even when the
             // source is already of the requested type. Re-wrapping the same node
             // in that case causes reentrant cast growth on revisits.
-            if (srcTypeRef == dstTypeRef || narrowedIdentityWiden)
+            if (srcTypeRef == dstTypeRef || nullableIdentityWiden)
             {
                 if (castFlags.has(CastFlagsE::FromExplicitNode))
                     sema.setType(view.nodeRef(), dstTypeRef);

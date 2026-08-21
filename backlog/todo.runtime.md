@@ -57,9 +57,10 @@ The remaining work below is what turns that into a measured allocator contract.
   global read); the `IAllocator` interface dispatch and the `AllocatorRequest` the caller fills;
   the block-address validation on free; the diagnostic-mode test at every entry point.
 - Real thread-local storage would remove most of the first item. `#[Swag.Tls]` now lowers to a
-  per-thread copy, so the mechanism is there; what it still cannot hold is a value with a drop
-  ([F-019](findings.compiler.md#f-019--a-thread-local-global-cannot-hold-a-droppable-type)).
-  Sequence that decision before micro-tuning anything else here.
+  per-thread copy, so the mechanism is there; what it cannot hold is a value with a drop, which
+  the compiler now refuses at the declaration: the per-thread block is released by the
+  thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
+  keeps in thread-local storage has to be a plain value.
 - Measure with T-019 before and after, not with a probe written for the occasion.
 
 ### T-021 — Return idle memory without being asked

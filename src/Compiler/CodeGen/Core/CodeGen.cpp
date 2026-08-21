@@ -235,22 +235,27 @@ namespace
     }
 #endif
 
+    TypeManager::LifecycleOperator lifecycleOperator(const CodeGenLifecycleKind lifecycleKind)
+    {
+        switch (lifecycleKind)
+        {
+            case CodeGenLifecycleKind::Drop:
+                return &SymbolStruct::opDrop;
+            case CodeGenLifecycleKind::PostCopy:
+                return &SymbolStruct::opPostCopy;
+            case CodeGenLifecycleKind::PostMove:
+                return &SymbolStruct::opPostMove;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
     const SymbolFunction* resolveDirectLifecycleFunction(const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
     {
         if (!typeInfo.isStruct())
             return nullptr;
 
-        switch (lifecycleKind)
-        {
-            case CodeGenLifecycleKind::Drop:
-                return typeInfo.payloadSymStruct().opDrop();
-            case CodeGenLifecycleKind::PostCopy:
-                return typeInfo.payloadSymStruct().opPostCopy();
-            case CodeGenLifecycleKind::PostMove:
-                return typeInfo.payloadSymStruct().opPostMove();
-        }
-
-        return nullptr;
+        return (typeInfo.payloadSymStruct().*lifecycleOperator(lifecycleKind))();
     }
 
     const SymbolFunction* resolveEffectiveLifecycleFunction(const CodeGen& codeGen, const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
@@ -278,36 +283,6 @@ namespace
         for (const uint64_t dim : typeInfo.payloadArrayDims())
             total *= dim;
         return total;
-    }
-
-    bool hasLifecycleRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGenLifecycleKind lifecycleKind)
-    {
-        typeRef = normalizeLifecycleTypeRef(codeGen, typeRef);
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (typeInfo.isArray())
-        {
-            if (!arrayTotalElementCount(typeInfo))
-                return false;
-
-            return hasLifecycleRec(codeGen, typeInfo.payloadArrayElemTypeRef(), lifecycleKind);
-        }
-
-        if (!typeInfo.isStruct())
-            return false;
-
-        if (resolveDirectLifecycleFunction(typeInfo, lifecycleKind))
-            return true;
-
-        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
-        {
-            if (field && hasLifecycleRec(codeGen, field->typeRef(), lifecycleKind))
-                return true;
-        }
-
-        return false;
     }
 
     bool tryBuildLifecycleActionRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGen::LifecycleKind lifecycleKind, const SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount)
@@ -1017,7 +992,7 @@ bool CodeGen::tryBuildLifecycleAction(const TypeRef typeRef, const LifecycleKind
 
 bool CodeGen::hasLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind) const
 {
-    return hasLifecycleRec(*this, typeRef, lifecycleKind);
+    return typeMgr().hasLifecycleOperator(ctx(), typeRef, lifecycleOperator(lifecycleKind));
 }
 
 Result CodeGen::emitLifecycleAction(const SymbolFunction& calledFunction, const MicroReg addressReg)

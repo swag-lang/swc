@@ -33,7 +33,8 @@ enum class CastFlagsE : uint32_t
     LiteralSuffixConsume = 1 << 6,
     ConstSource          = 1 << 7,
     ForceConstEval       = 1 << 8,
-    AllowCopyToMoveRef   = 1 << 9, // call argument: a plain value may bind a '#move' parameter via a temporary copy
+    AllowCopyToMoveRef   = 1 << 9,  // call argument: a plain value may bind a '#move' parameter via a temporary copy
+    DeducedDestination   = 1 << 10, // 'cast()': explicit, but the destination comes from the context instead of the source
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 

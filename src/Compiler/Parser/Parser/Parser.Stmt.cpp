@@ -1056,8 +1056,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::Identifier:
         case TokenId::SymDot:
         case TokenId::SymLeftParen:
-        case TokenId::IntrinsicGetContext:
-        case TokenId::IntrinsicProcessInfos:
         case TokenId::KwdMe:
         case TokenId::CompilerUniq0:
         case TokenId::CompilerUniq1:
@@ -1072,6 +1070,12 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseAssignStmt();
 
         default:
+            // An '@' intrinsic that yields a value is a primary expression like any other, so it
+            // opens a statement the same way: '@dataof(buf)[as u32] = 1'. The statement-only
+            // intrinsics carry no 'Return' kind and are handled above.
+            if (Token::isIntrinsicReturn(id()) && !Token::isCompiler(id()))
+                return parseAssignStmt();
+
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();

@@ -7,6 +7,8 @@
 SWC_BEGIN_NAMESPACE();
 
 class Sema;
+class SymbolFunction;
+class SymbolStruct;
 struct SemaNodeView;
 class TaskContext;
 class CompilerInstance;
@@ -113,6 +115,15 @@ public:
         const TypeRef unwrappedTypeRef = get(typeRef).unwrapAliasEnum(ctx, typeRef);
         return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
     }
+
+    // Selects one of 'SymbolStruct::opDrop', 'opPostCopy' or 'opPostMove'.
+    using LifecycleOperator = const SymbolFunction* (SymbolStruct::*)() const;
+
+    // True when the type, or anything inside it, declares that lifecycle operator directly.
+    // Aliases and array element types are transparent, and a struct is also reached through
+    // its fields. Generated wrappers are deliberately not consulted, so the answer never
+    // depends on when they were built.
+    bool hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, LifecycleOperator lifecycleOperator) const;
 
     bool    isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
     bool    isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const;

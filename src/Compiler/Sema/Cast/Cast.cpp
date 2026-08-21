@@ -426,6 +426,16 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
     return true;
 }
 
+CastFlags Cast::autoCastFlags(const AstModifierFlags modifierFlags)
+{
+    CastFlags castFlags = CastFlagsE::DeducedDestination;
+    if (modifierFlags.has(AstModifierFlagsE::Bit))
+        castFlags.add(CastFlagsE::BitCast);
+    if (modifierFlags.has(AstModifierFlagsE::UnConst))
+        castFlags.add(CastFlagsE::UnConst);
+    return castFlags;
+}
+
 AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags)
 {
     const AstNode& node               = sema.node(nodeRef);

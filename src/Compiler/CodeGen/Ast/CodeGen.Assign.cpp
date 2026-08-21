@@ -642,7 +642,42 @@ namespace
         return storageReg;
     }
 
-    Result emitAssignDestructuringList(CodeGen& codeGen, const AstAssignList& assignList, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, ConstantRef rightCstRef, TokenId assignOp)
+    // A destructured field overwrites a live target, so the old value has to die before the
+    // new bits land, and the payload both sides now share has to be repaired afterwards.
+    // 'postKind' is PostMove when the whole right side is a consumed temporary, PostCopy when
+    // it outlives the statement.
+    Result emitAssignDestructuringField(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& fieldPayload, TypeRef fieldTypeRef, CodeGen::LifecycleKind postKind)
+    {
+        AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, fieldPayload, fieldTypeRef, TokenId::SymEqual);
+
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
+        if (!targetType.isStruct() && !targetType.isArray())
+            return emitAssignEncoded(codeGen, encodeCtx, TokenId::SymEqual);
+
+        const bool hasTargetDrop    = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
+        const bool hasPostLifecycle = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
+        if (!hasTargetDrop && !hasPostLifecycle)
+            return emitAssignEncoded(codeGen, encodeCtx, TokenId::SymEqual);
+
+        // The source is the private copy of the right side, never the target itself, so the
+        // self-assignment guard a plain assignment needs has nothing to protect here.
+        CodeGenNodePayload stableField = fieldPayload;
+        stabilizeAssignAddressPayload(codeGen, encodeCtx.target.payload);
+        stabilizeAssignAddressPayload(codeGen, stableField);
+        encodeCtx.rightPayload = &stableField;
+
+        if (hasTargetDrop)
+            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop, encodeCtx.target.payload.reg));
+
+        SWC_RESULT(emitAssignEncoded(codeGen, encodeCtx, TokenId::SymEqual));
+
+        if (hasPostLifecycle)
+            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, postKind, encodeCtx.target.payload.reg));
+
+        return Result::Continue;
+    }
+
+    Result emitAssignDestructuringList(CodeGen& codeGen, const AstAssignList& assignList, AstNodeRef rightRef, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, ConstantRef rightCstRef, TokenId assignOp)
     {
         SmallVector<AstNodeRef> leftRefs;
         codeGen.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
@@ -670,6 +705,18 @@ namespace
         if (!aggregateCst)
             sourceReg = materializeDestructuringSourceCopy(codeGen, rightPayload, rightTypeRef);
 
+        // That private copy now holds every byte of the right side. When the right side was a
+        // call-result temporary, its whole-value cleanup stands down and this list becomes the
+        // owner: each named field is moved into its target, and each field the pattern skips is
+        // dropped out of the copy instead of leaking.
+        const SymbolVariable*        sourceStorage  = sourceReg.isValid() ? codeGen.runtimeStorageSymbol(rightRef) : nullptr;
+        const bool                   movesTemporary = sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage);
+        const CodeGen::LifecycleKind postKind       = movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+
+        const size_t      fieldCount = CodeGenStructHelpers::structLikeFieldCount(codeGen, rightTypeRef);
+        SmallVector<bool> boundFields;
+        boundFields.resize(fieldCount, false);
+
         for (size_t i = 0; i < leftRefs.size(); i++)
         {
             const AstNodeRef leftRef = leftRefs[i];
@@ -678,10 +725,13 @@ namespace
             if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            const size_t fieldIndex  = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
-                                           ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightTypeRef, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
-                                           : i;
-            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
+            const size_t fieldIndex = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
+                                          ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightTypeRef, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
+                                          : i;
+            const auto fieldLayout  = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
+
+            SWC_ASSERT(fieldIndex < boundFields.size());
+            boundFields[fieldIndex] = true;
 
             CodeGenNodePayload fieldPayload;
             if (aggregateCst)
@@ -697,9 +747,26 @@ namespace
                 fieldPayload.reg = fieldLayout.offset ? codeGen.offsetAddressReg(sourceReg, fieldLayout.offset) : sourceReg;
             }
 
-            SWC_RESULT(emitAssign(codeGen, leftRef, fieldPayload, fieldLayout.typeRef, assignOp));
+            SWC_RESULT(emitAssignDestructuringField(codeGen, leftRef, fieldPayload, fieldLayout.typeRef, postKind));
         }
 
+        if (!movesTemporary)
+            return Result::Continue;
+
+        for (size_t fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++)
+        {
+            if (boundFields[fieldIndex])
+                continue;
+
+            const auto fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
+            if (!codeGen.hasLifecycle(fieldLayout.typeRef, CodeGen::LifecycleKind::Drop))
+                continue;
+
+            const MicroReg fieldReg = fieldLayout.offset ? codeGen.offsetAddressReg(sourceReg, fieldLayout.offset) : sourceReg;
+            SWC_RESULT(codeGen.emitLifecycle(fieldLayout.typeRef, CodeGen::LifecycleKind::Drop, fieldReg));
+        }
+
+        codeGen.cancelTemporaryDrop(*sourceStorage);
         return Result::Continue;
     }
 }
@@ -732,7 +799,8 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         const auto& assignList = codeGen.node(leftRef).cast<AstAssignList>();
         if (assignList.hasFlag(AstAssignListFlagsE::Destructuring))
-            return emitAssignDestructuringList(codeGen, assignList, rightPayload, rightTypeRef, rightView.cstRef(), tok.id);
+            return emitAssignDestructuringList(codeGen, assignList, nodeRightRef, rightPayload, rightTypeRef, rightView.cstRef(), tok.id);
+
         return emitAssignList(codeGen, assignList, rightPayload, rightTypeRef, tok.id);
     }
 

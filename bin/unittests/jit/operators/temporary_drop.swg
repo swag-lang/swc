@@ -49,6 +49,12 @@ struct OwnerPair
     second: TemporaryOwner
 }
 
+struct TransferPair
+{
+    first:  TransferOwner
+    second: TransferOwner
+}
+
 impl TransferOwner
 {
     mtd opDrop()
@@ -108,6 +114,15 @@ func makeTransferOwner(value: s32)->TransferOwner
 
 #[Swag.NoInline]
 func makeOwnerPair(first, second: s32)->OwnerPair
+{
+    var result: retval
+    result.first.value  = first
+    result.second.value = second
+    return result
+}
+
+#[Swag.NoInline]
+func makeTransferPair(first, second: s32)->TransferPair
 {
     var result: retval
     result.first.value  = first
@@ -323,6 +338,72 @@ func visitFailureTemporary() fail
         @assert(owner.value == 7)
     }
     @assert(DropCount == 2)
+}
+
+// Destructuring assignment drops each old target value before the matching field of the
+// call result lands on it, and the temporary never drops what it handed over. The trace,
+// not the count, is what tells a correct transfer from a swapped one.
+#test
+{
+    var pair = makeOwnerPair(8, 9)
+    DropCount = 0
+    DropTrace = 0
+    {pair.first, pair.second} = makeOwnerPair(4, 5)
+    @assert(DropCount == 2)
+    @assert(DropTrace == 89)
+    @assert(pair.first.value == 4)
+    @assert(pair.second.value == 5)
+}
+
+// A field the pattern skips still belongs to the call result, so it dies with the statement
+// instead of leaking, and the target it does not name keeps its own value.
+#test
+{
+    var pair = makeOwnerPair(8, 9)
+    DropCount = 0
+    DropTrace = 0
+    {pair.first, ?} = makeOwnerPair(4, 5)
+    @assert(DropCount == 2)
+    @assert(DropTrace == 85)
+    @assert(pair.first.value == 4)
+    @assert(pair.second.value == 9)
+}
+
+// A right side that outlives the statement is copied, not moved: every target repairs the
+// payload it now shares through post-copy.
+#test
+{
+    var source = makeTransferPair(4, 5)
+    var target = makeTransferPair(8, 9)
+    DropCount     = 0
+    PostCopyCount = 0
+    PostMoveCount = 0
+    {target.first, target.second} = source
+    @assert(DropCount == 2)
+    @assert(PostCopyCount == 2)
+    @assert(PostMoveCount == 0)
+    @assert(target.first.value == 4)
+    @assert(target.second.value == 5)
+}
+
+// A consumed call result is moved instead, so every target repairs through post-move.
+#test
+{
+    var target = makeTransferPair(8, 9)
+    PostCopyCount = 0
+    PostMoveCount = 0
+    discard makeTransferPair(0, 0)
+    let callPostCopyCount = PostCopyCount
+    let callPostMoveCount = PostMoveCount
+    DropCount     = 0
+    PostCopyCount = 0
+    PostMoveCount = 0
+    {target.first, target.second} = makeTransferPair(4, 5)
+    @assert(DropCount == 2)
+    @assert(PostCopyCount == callPostCopyCount)
+    @assert(PostMoveCount == callPostMoveCount + 2)
+    @assert(target.first.value == 4)
+    @assert(target.second.value == 5)
 }
 
 // Returning through an inline result transfers the call temporary to the caller.

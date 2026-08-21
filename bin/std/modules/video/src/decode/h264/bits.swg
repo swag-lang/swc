@@ -132,14 +132,38 @@ impl BitReader
 // across NAL units, so a decoder unescapes a whole stream with one allocation.
 func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
 {
-    destination.clear()
-    destination.reserve(@countof(data))
-
     let count = @countof(data)
-    var index = 0'u64
-    var zeros = 0
+    destination.clear()
+    if !count do
+        return
+    destination.resize(count)
+    let output             = destination.buffer!
+    var index, outputIndex = 0'u64
+    var zeros              = 0'u32
+    let threes             = Math.Simd.splat(3'u8)
     while index < count
     {
+        if count - index >= 16
+        {
+            let bytes = Math.Simd.load(@dataof(data) + index)
+            if !Math.Simd.anyTrue(bytes == threes)
+            {
+                Math.Simd.store(output + outputIndex, bytes)
+                outputIndex += 16
+                index       += 16
+                if data[index - 1] == 0
+                {
+                    zeros = data[index - 2] == 0 ? 2 : 1
+                }
+                else
+                {
+                    zeros = 0
+                }
+
+                continue
+            }
+        }
+
         let value = data[index]
         if zeros >= 2 and value == 3
         {
@@ -148,8 +172,11 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
             continue
         }
 
-        zeros = value == 0 ? zeros + 1 : 0
-        destination.add(value)
-        index += 1
+        zeros               = value == 0 ? zeros + 1 : 0
+        output[outputIndex] = value
+        outputIndex         += 1
+        index               += 1
     }
+
+    destination.resize(outputIndex)
 }

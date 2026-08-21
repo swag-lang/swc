@@ -20,7 +20,9 @@ the lexer token and editor grammar update required for a surface-syntax change.
 The current production baseline consists of the public wrapper in
 `bin/std/modules/core/src/math/simd.swg`, the PCM conversion kernels in `audio/src/codec/pcm.swg`,
 and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h264/inter.swg` and
-`frame.swg`; the work below is still outstanding.
+`frame.swg`. H.264 RBSP unescaping now copies escape-free 16-byte blocks directly: over 512 MiB
+in native Release it improves from 1,910,646 to 528,998 us (3.61x), and the complete 3,000-frame
+MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is still outstanding.
 
 ## Tier A — Target selection, widths, and calling boundaries
 
@@ -312,7 +314,10 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 - Intent: complete the packed luma and chroma edge filters with strong filtering and a transpose
   strategy for vertical edges. The weak horizontal paths now process 16 luma or 8 chroma samples
   per call; release microkernels improved by 2.66x and 2.05x respectively, byte-exact across the
-  fixture corpus and exhaustive strength combinations.
+  fixture corpus and exhaustive strength combinations. A byte-exact 8x8-transpose prototype for
+  weak vertical luma regressed the deblocking stage from 189,600 to 243,128 us (1.28x slower), and
+  a mixed weak/strong horizontal prototype regressed 2,000,000 calls from 142,362 to 333,897 us
+  (2.35x slower); both were discarded.
 - Complete when: decoded frames remain byte-exact, strong and vertical paths are packed, and the
   existing 1080p profile shows an end-to-end gain.
 - Related: T-514, T-520, T-420 in `todo.video.md`.

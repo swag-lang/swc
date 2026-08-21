@@ -195,32 +195,30 @@ internal struct Decoder
         hasJfifMarker:   bool
         adobeTransform:  u8
 
-        inBuf:          [InBufSize + 128] u8
-        compSampH:      [MaxComponents] s32
-        compSampV:      [MaxComponents] s32
-        compQuant:      [MaxComponents] u32
-        compIdent:      [MaxComponents] s32
-        blockMaxZagSet: [MaxBlocksPerRow] s32
-        blockSeg:       [MaxBlocksPerRow] #null [*] s16
-        compList:       [MaxCompsInScan] u32
-        compDcTab:      [MaxComponents] s32
-        compAcTab:      [MaxComponents] s32
-        compBlocksH:    [MaxComponents] s32
-        compBlocksV:    [MaxComponents] s32
-        mcuOrg:         [MaxBocksPerMcu] u32
-        h:              [MaxHuffTables] HuffTables
-        dcHuffSeg:      [MaxBocksPerMcu] #null *HuffTables
-        acHuffSeg:      [MaxBocksPerMcu] #null *HuffTables
-        blockMcuY:      [MaxComponents] s32
-        component:      [MaxBocksPerMcu] #null *u32
-        lastDcVal:      [MaxComponents] s32
-        dcCoeffs:       [MaxComponents] CoeffBuf
-        acCoeffs:       [MaxComponents] CoeffBuf
-        tempBlock:      [64] s16
-        crr:            [256] s32
-        cbb:            [256] s32
-        crg:            [256] s32
-        cbg:            [256] s32
+        inBuf:       [InBufSize + 128] u8
+        compSampH:   [MaxComponents] s32
+        compSampV:   [MaxComponents] s32
+        compQuant:   [MaxComponents] u32
+        compIdent:   [MaxComponents] s32
+        blockSeg:    [MaxBlocksPerRow] #null [*] s16
+        compList:    [MaxCompsInScan] u32
+        compDcTab:   [MaxComponents] s32
+        compAcTab:   [MaxComponents] s32
+        compBlocksH: [MaxComponents] s32
+        compBlocksV: [MaxComponents] s32
+        mcuOrg:      [MaxBocksPerMcu] u32
+        h:           [MaxHuffTables] HuffTables
+        dcHuffSeg:   [MaxBocksPerMcu] #null *HuffTables
+        acHuffSeg:   [MaxBocksPerMcu] #null *HuffTables
+        blockMcuY:   [MaxComponents] s32
+        component:   [MaxBocksPerMcu] #null *u32
+        lastDcVal:   [MaxComponents] s32
+        dcCoeffs:    [MaxComponents] CoeffBuf
+        acCoeffs:    [MaxComponents] CoeffBuf
+        crr:         [256] s32
+        cbb:         [256] s32
+        crg:         [256] s32
+        cbg:         [256] s32
 
         huffNum:    [MaxHuffTables] Array'u8
         huffVal:    [MaxHuffTables] Array'u8
@@ -250,9 +248,6 @@ impl Decoder
         .bitsLeft = 16
         .getBits1(16)
         .getBits1(16)
-        for i in MaxBlocksPerRow do
-            .blockMaxZagSet[i] = 64
-
         .locateSofMarker()
     }
 

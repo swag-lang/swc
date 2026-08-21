@@ -434,6 +434,11 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   blocks into one `U64x2` store regressed that result to 760,409 us (1.06x slower) and was rejected.
   Replacing the fixed 128-byte coefficient `Memory.copy` before each IDCT with eight explicit
   vector transfers also regressed 20,000,000 hot copies from 201,741 to 464,830 us (2.30x slower).
+  The coefficient row is disposable, so the IDCT now runs in place and clears each block afterward;
+  as in libjpeg-turbo, baseline Huffman decoding can then rely on pre-zeroed blocks and drops its
+  stale-coefficient bounds and sparse clearing. Seven pinned samples of twenty complete 2048x2048
+  H2V2 decodes improve from a 1,652,390 us median to 1,553,230 us (1.06x), with identical pixel
+  checksums.
   JPEG still needs a lower-shuffle combined conversion/packing layout, narrower IDCT arithmetic,
   or cheaper backend packed multiply/narrow sequences rather than isolated SIMD work.
 - Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient

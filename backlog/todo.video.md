@@ -58,6 +58,11 @@ is the layout it does not read yet.
   intra modes, 1.43x for the 8x8 vertical store, and 2.66x/2.05x for luma/chroma deblocking. The
   small 96x64 fixture stayed globally neutral, so a 1080p profile remains necessary to quantify
   whole-decoder impact; every fixture and differential matrix remained byte-exact.
+- The 2026-08-21 pass now routes 4x4 luma blocks whose sole nonzero coefficient is DC through the
+  existing flat-add kernel, instead of dequantizing and running the complete inverse transform.
+  Seven pinned samples of a complete 60-frame 1080p High/CABAC decode improve from a 2,015,365 us
+  median to 1,934,459 us (1.04x), with identical frame checksums. Packing the flat-add kernel's
+  four-pixel rows was globally neutral within 0.5% and was rejected.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
   levers, in expected order of value: a byte-run significance fast path in the CABAC engine,
   strong and vertical packed deblocking (the transpose is the hard half), and a profitable packed

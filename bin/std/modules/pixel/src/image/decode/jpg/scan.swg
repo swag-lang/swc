@@ -162,8 +162,7 @@ impl Decoder
                 .lastDcVal[componentId] = s
 
                 p[0] = cast(s16) (s * q[0])
-                let prevNumSet = .blockMaxZagSet[rowBlock]
-                let ph         = &.h[.compAcTab[componentId]]
+                let ph = &.h[.compAcTab[componentId]]
 
                 var k = 1
                 while k < 64
@@ -178,18 +177,6 @@ impl Decoder
                         {
                             if (k + r) > 63 do
                                 fail InvalidFormatError{"decode error"}
-                            if k < prevNumSet
-                            {
-                                var n  = Math.min(r, prevNumSet - k)
-                                var kt = k
-                                while n
-                                {
-                                    p[Zag[kt]] = 0
-                                    n          -= 1
-                                    kt         += 1
-                                }
-                            }
-
                             k += r
                         }
 
@@ -206,19 +193,6 @@ impl Decoder
                         {
                             if (k + 15) > 63 do
                                 fail InvalidFormatError{"decode error"}
-
-                            if k < prevNumSet
-                            {
-                                var n  = Math.min(16'u32, cast(u32) (prevNumSet - k))
-                                var kt = k
-                                while n
-                                {
-                                    p[Zag[kt]] = 0
-                                    n          -= 1
-                                    kt         += 1
-                                }
-                            }
-
                             k += 15
                         }
                         else
@@ -230,17 +204,6 @@ impl Decoder
                     k += 1
                 }
 
-                if k < prevNumSet
-                {
-                    var kt = k
-                    while kt < prevNumSet
-                    {
-                        p[Zag[kt]] = 0
-                        kt         += 1
-                    }
-                }
-
-                .blockMaxZagSet[rowBlock] = k
                 rowBlock += 1
             }
 
@@ -402,10 +365,10 @@ impl Decoder
             fail InvalidFormatError{"assertion error"}
 
         .quantBuf.resize(cast(u64) .maxBlocksPerRow * 64 * #sizeof(s16) + 8)
+        Memory.clear(.quantBuf.buffer!, .quantBuf.count)
         for i in .maxBlocksPerRow
         {
-            .blockSeg[i]       = cast([*] s16) (cast([*] u8) .quantBuf.buffer! + i * 64 * #sizeof(s16))
-            .blockMaxZagSet[i] = 64
+            .blockSeg[i] = cast([*] s16) (cast([*] u8) .quantBuf.buffer! + i * 64 * #sizeof(s16))
         }
 
         .sampleBuf.resize(cast(u64) .maxBlocksPerRow * 64 + 8)

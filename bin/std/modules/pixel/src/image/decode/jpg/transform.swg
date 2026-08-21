@@ -194,8 +194,11 @@ impl Decoder
 
         for .maxBlocksPerRow
         {
-            Memory.copy(.tempBlock, psrcPtr, 64'u64 * #sizeof(s16))
-            idct(.tempBlock, pdstPtr)
+            idct(psrcPtr, pdstPtr)
+
+            // Baseline Huffman decoding skips zero coefficients, so leave each disposable block
+            // clear for the next MCU row instead of tracking and clearing stale coefficients.
+            Memory.clear(psrcPtr, 64'u64 * #sizeof(s16))
             psrcPtr += 64
             pdstPtr += 64
         }

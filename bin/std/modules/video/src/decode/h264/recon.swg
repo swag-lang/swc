@@ -192,12 +192,8 @@ impl Slice
             let mode = cast(u32) mb.intraModes[cast(u64) raster]
             intraPredict4x4(mode, dst, stride, hasLeft, hasTop, hasTopLeft, hasTopRight)
 
-            if mb.nzLuma[cast(u64) raster] != 0
-            {
-                var block: [16] s16 = undefined
-                .dequant4x4(mb, raster, 0, false, @dataof(block))
-                addIdct4x4(dst, stride, @dataof(block))
-            }
+            if mb.nzLuma[cast(u64) raster] != 0 do
+                .addLuma4x4Residual(mb, raster, dst, stride)
 
             mb.decodedMask |= 1'u32 << cast(u32) raster
         }
@@ -247,6 +243,25 @@ impl Slice
         }
     }
 
+    // Adds one dequantized 4x4 luma block to its prediction.
+    #[Swag.Inline]
+    mtd addLuma4x4Residual(mb: *Mb, raster: s32, destination: [*] u8, stride: u64)
+    {
+        let base = cast(u64) raster * 16
+        if mb.nzLuma[cast(u64) raster] == 1 and mb.lumaAc[base] != 0
+        {
+            let list  = mb.class == MbClassInter ? 3'u64 : 0'u64
+            let coeff = cast(s32) mb.lumaAc[base]
+            let dc    = clampS32((coeff * cast(s32) .pps!.dequant4[list, cast(u64) mb.qp, 0] + 8) >> 4, -32768, 32767)
+            addDc4x4(destination, stride, dc)
+            return
+        }
+
+        var block: [16] s16 = undefined
+        .dequant4x4(mb, raster, 0, false, @dataof(block))
+        addIdct4x4(destination, stride, @dataof(block))
+    }
+
     // Adds the luma residual of a macroblock whose prediction is already in place.
     mtd addLumaResidual(mb: *Mb, frame: *Frame)
     {
@@ -294,11 +309,9 @@ impl Slice
         {
             if mb.nzLuma[cast(u64) raster] == 0 do
                 continue
-            let bx              = raster & 3
-            let by              = raster >> 2
-            var block: [16] s16 = undefined
-            .dequant4x4(mb, raster, 0, false, @dataof(block))
-            addIdct4x4(frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, @dataof(block))
+            let bx = raster & 3
+            let by = raster >> 2
+            .addLuma4x4Residual(mb, raster, frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride)
         }
     }
 

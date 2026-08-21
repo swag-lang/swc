@@ -18,6 +18,36 @@ func quantizedGifChannel(value: u8, maxLevel: u32)->u8
     return cast(u8) ((level * 255 + maxLevel / 2) / maxLevel)
 }
 
+func assertQuantizedGif24(pixelFormat: PixelFormat) fail
+{
+    const Width = 523
+    var source    = Image.create(Width, 1, pixelFormat)
+    var pix       = source.pixels.buffer!
+    let blueFirst = pixelFormat == .BGR8
+    for i in Width
+    {
+        let r = cast(u8) (i & 0xFF)
+        let g = cast(u8) ((i * 37 + 11) & 0xFF)
+        let b = cast(u8) ((i * 73 + 19) & 0xFF)
+        pix[0] = blueFirst ? b : r
+        pix[1] = g
+        pix[2] = blueFirst ? r : b
+        pix    += 3
+    }
+
+    var encoded = expect source.encode("memory.gif")
+    encoded.makeLinear()
+    let decoded = expect Image.decode("quantized.gif", nnBytes(encoded.toSlice()), {})
+    @assert(decoded.pixelFormat == .RGB8)
+    for i in Width
+    {
+        let r = cast(u8) (i & 0xFF)
+        let g = cast(u8) ((i * 37 + 11) & 0xFF)
+        let b = cast(u8) ((i * 73 + 19) & 0xFF)
+        assertGifPixelAt(decoded, i, 0, quantizedGifChannel(r, 3), quantizedGifChannel(g, 7), quantizedGifChannel(b, 3), 255)
+    }
+}
+
 func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
 {
     const Width = 523
@@ -256,9 +286,11 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
 }
 
-// Quantize 32-bit red-first and blue-first sources with exact opaque and transparent levels.
+// Quantize red-first and blue-first sources with exact channel levels and scalar tails.
 #test
 {
+    expect assertQuantizedGif24(.RGB8)
+    expect assertQuantizedGif24(.BGR8)
     expect assertQuantizedGif32(.RGBA8, false)
     expect assertQuantizedGif32(.BGRA8, false)
     expect assertQuantizedGif32(.RGBA8, true)

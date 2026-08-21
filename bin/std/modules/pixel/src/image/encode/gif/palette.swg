@@ -2,6 +2,8 @@
 
 using Swag, Core, Core.Errors
 
+private const QuantizePack24 = cast(Math.Simd.U8x16) [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
+
 impl Encoder
 {
     func colorKey(col: Color)->u32
@@ -96,42 +98,62 @@ impl Encoder
         return (adjusted + (adjusted >> 8)) >> 8
     }
 
-    func(BLUE_FIRST: bool, HAS_TRANSPARENCY: bool) quantizeRow4(source: const [*] u8, destination: [*] u8, pixelCount: u32)
+    #[Swag.Inline]
+    func(BLUE_FIRST: bool, HAS_TRANSPARENCY: bool) quantizePixels4(pixels: Math.Simd.U32x4)->Math.Simd.U8x16
     {
-        var src    = source
-        var dst    = destination
-        var count  = pixelCount
         let zero32 = Math.Simd.splat(0's32)
         let zero16 = Math.Simd.splat(0's16)
+        let low    = pixels & 255'u32
+        let green  = (pixels >> 8) & 255'u32
+        let high   = (pixels >> 16) & 255'u32
+        let red    = BLUE_FIRST ? high : low
+        let blue   = BLUE_FIRST ? low : high
+        var indexes: Math.Simd.U32x4
+        #static if HAS_TRANSPARENCY
+        {
+            let redLevel   = divideBy255(red * 4'u32)
+            let greenLevel = divideBy255(green * 4'u32)
+            let blueLevel  = divideBy255(blue * 4'u32)
+            indexes = 1'u32 + (redLevel << 4) + (redLevel << 3) + redLevel + (greenLevel << 2) + greenLevel + blueLevel
+            indexes = Math.Simd.select((pixels >> 24) < Math.Simd.splat(128'u32), Math.Simd.splat(0'u32), indexes)
+        }
+        else
+        {
+            let redLevel   = divideBy255(red * 3'u32)
+            let greenLevel = divideBy255(green * 7'u32)
+            let blueLevel  = divideBy255(blue * 3'u32)
+            indexes = (redLevel << 5) + (greenLevel << 2) + blueLevel
+        }
+
+        let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4) indexes, zero32)
+        return Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) packed16, zero16)
+    }
+
+    func(BLUE_FIRST: bool, HAS_TRANSPARENCY: bool) quantizeRow4(source: const [*] u8, destination: [*] u8, pixelCount: u32)
+    {
+        var src   = source
+        var dst   = destination
+        var count = pixelCount
         while count >= 4
         {
             let pixels = Math.Simd.load(cast(const [*] u32) src)
-            let low    = pixels & 255'u32
-            let green  = (pixels >> 8) & 255'u32
-            let high   = (pixels >> 16) & 255'u32
-            let red    = BLUE_FIRST ? high : low
-            let blue   = BLUE_FIRST ? low : high
-            var indexes: Math.Simd.U32x4
-            #static if HAS_TRANSPARENCY
-            {
-                let redLevel   = divideBy255(red * 4'u32)
-                let greenLevel = divideBy255(green * 4'u32)
-                let blueLevel  = divideBy255(blue * 4'u32)
-                indexes = 1'u32 + (redLevel << 4) + (redLevel << 3) + redLevel + (greenLevel << 2) + greenLevel + blueLevel
-                indexes = Math.Simd.select((pixels >> 24) < Math.Simd.splat(128'u32), Math.Simd.splat(0'u32), indexes)
-            }
-            else
-            {
-                let redLevel   = divideBy255(red * 3'u32)
-                let greenLevel = divideBy255(green * 7'u32)
-                let blueLevel  = divideBy255(blue * 3'u32)
-                indexes = (redLevel << 5) + (greenLevel << 2) + blueLevel
-            }
-
-            let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4) indexes, zero32)
-            let packed8  = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) packed16, zero16)
-            Math.Simd.storeLow4(dst, packed8)
+            Math.Simd.storeLow4(dst, quantizePixels4'(BLUE_FIRST, HAS_TRANSPARENCY)(pixels))
             src   += 16
+            dst   += 4
+            count -= 4
+        }
+    }
+
+    func(BLUE_FIRST: bool) quantizeRow3(source: const [*] u8, destination: [*] u8, pixelCount: u32)
+    {
+        var src   = source
+        var dst   = destination
+        var count = pixelCount
+        while count >= 4
+        {
+            let pixels = cast #bit(Math.Simd.U32x4) Math.Simd.shuffle(Math.Simd.load(src), QuantizePack24)
+            Math.Simd.storeLow4(dst, quantizePixels4'(BLUE_FIRST, false)(pixels))
+            src   += 12
             dst   += 4
             count -= 4
         }
@@ -286,6 +308,18 @@ impl Encoder
 
                 x        = cast(s32) vectorWidth
                 pix      += cast(u64) vectorWidth * 4
+                dstIndex += vectorWidth
+            }
+            elif image.bytesPerPixel == 3
+            {
+                let vectorWidth = image.width >= 6 ? (cast(u32) image.width - 2) & ~3'u32 : 0'u32
+                let destination = data.indexes.buffer! + dstIndex
+                if image.pixelFormat == .BGR8 do
+                    quantizeRow3'(true)(pix, destination, vectorWidth)
+                else do
+                    quantizeRow3'(false)(pix, destination, vectorWidth)
+                x        = cast(s32) vectorWidth
+                pix      += cast(u64) vectorWidth * 3
                 dstIndex += vectorWidth
             }
 

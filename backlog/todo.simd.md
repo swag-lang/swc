@@ -413,11 +413,12 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   the shuffle-only prototype). A 16-entry SSSE3 shuffle prototype for low-bit PNG palettes was
   rejected: over 512 MiB in native Release, RGB regressed from 109,065 to 324,334 us (2.97x
   slower) and RGBA from 143,141 to 262,360 us (1.83x slower). Palette expansion remains scalar
-  until a target-gated gather or packed lookup wins. GIF's fixed RGBA/BGRA quantizer now processes
-  four pixels per iteration with exact packed division by 255: over 256 MiB of output in native
-  Release, opaque conversion improves from 3,919,498 to 830,869 us (4.72x) and transparent
-  conversion from 3,718,998 to 1,167,242 us (3.19x). Three-byte GIF sources, arbitrary BMP
-  bitfield masks, right-origin TGA rows, and TGA RLE retain their generic scalar paths.
+  until a target-gated gather or packed lookup wins. GIF's fixed RGB/BGR/RGBA/BGRA quantizer now
+  processes four pixels per iteration with exact packed division by 255. Over 256 MiB of 32-bit
+  output in native Release, opaque conversion improves from 3,919,498 to 830,869 us (4.72x) and
+  transparent conversion from 3,718,998 to 1,167,242 us (3.19x); over 64 MiB of 24-bit output,
+  opaque conversion improves from 3,763,685 to 281,324 us (13.38x). Arbitrary BMP bitfield masks,
+  right-origin TGA rows, and TGA RLE retain their generic scalar paths.
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
 - Related: T-514, T-517.

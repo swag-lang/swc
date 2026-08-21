@@ -140,6 +140,14 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 #test
 {
     assertLoadedJpg("gray.jpg", 660, 441, 202'u8, 202'u8, 202'u8)
+    let gray = expect Image.load(getTestDataPath("gray.jpg"))
+    for pixel in cast(u64) gray.width * gray.height
+    {
+        let offset = pixel * 3
+        @assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 1])
+        @assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 2])
+    }
+
     assertLoadedJpg("progh1v1.jpg", 660, 441, 202'u8, 206'u8, 195'u8)
     assertLoadedJpg("testA.jpg", 1200, 704, 30'u8, 30'u8, 30'u8)
 }

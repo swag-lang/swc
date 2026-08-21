@@ -429,8 +429,11 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   measured transform stage from 80,085 to 132,055 us (1.65x slower). A block-level DC fast path
   applied to 32.6% of the H2V2 fixture but still regressed paired median IDCT time by 10.9% and
   end-to-end decode by 1.8%, because its seven-row zero test ran on every block. All prototypes
-  were discarded; JPEG now needs a lower-shuffle combined conversion/packing layout, narrower IDCT
-  arithmetic, or cheaper backend packed multiply/narrow sequences rather than isolated SIMD work.
+  were discarded. Grayscale MCU-row copies now move each eight-pixel block with one `u64`
+  load/store; 100 complete 660x441 decodes improve from 767,355 to 720,712 us (1.06x). Pairing two
+  blocks into one `U64x2` store regressed that result to 760,409 us (1.06x slower) and was rejected.
+  JPEG still needs a lower-shuffle combined conversion/packing layout, narrower IDCT arithmetic,
+  or cheaper backend packed multiply/narrow sequences rather than isolated SIMD work.
 - Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient
   extremes are covered, and encode/decode stages improve independently.
 - Related: T-511, T-514, T-520.

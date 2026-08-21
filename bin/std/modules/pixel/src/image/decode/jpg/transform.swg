@@ -221,14 +221,7 @@ impl Decoder
         var s   = .safeSampleBuf() + row * 8
         for i in rangeTo(1, .maxMcusPerRow).reversed()
         {
-            d[0] = s[0]
-            d[1] = s[1]
-            d[2] = s[2]
-            d[3] = s[3]
-            d[4] = s[4]
-            d[5] = s[5]
-            d[6] = s[6]
-            d[7] = s[7]
+            (cast([*] u64) d)[0] = (cast(const [*] u64) s)[0]
 
             s += 64
             d += 8

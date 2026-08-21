@@ -395,7 +395,9 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 ### T-549 — JPEG DCT, IDCT, quantization, and color conversion remain scalar
 
 - Intent: vectorize RGB/YCbCr conversion, chroma upsampling, 8x8 FDCT/IDCT, and quantization with
-  explicit rounding semantics.
+  explicit rounding semantics. The common subsampled color paths still need indexed LUT gathers.
+  A six-shuffle prototype for the eight-pixel direct-RGB planar pack regressed 192 MiB in native
+  Release from 62,379 to 224,940 us (3.61x slower), so it was discarded.
 - Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient
   extremes are covered, and encode/decode stages improve independently.
 - Related: T-511, T-514, T-520.

@@ -410,7 +410,10 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   16 pixels per iteration through exact 5-bit lookup tables and BGR shuffles (4.23x over 512 MiB
   in Release); the common BGR565 bitfield layout reuses that packing with exact 6-bit integer
   expansion and improves from 1,541,725 to 288,495 us over 256 MiB in native Release (5.34x).
-  Raw non-right-origin TGA15 rows reuse the same exact 5-bit kernel (1.59x). TGA16 adds
+  Other contiguous 16-bit masks with one to eight bits per RGB channel use a shared exact
+  multiply/shift normalizer; BGR444 improves from 1,551,093 to 237,259 us over 256 MiB in native
+  Release (6.54x). Wider and non-contiguous channel masks retain the scalar fallback. Raw
+  non-right-origin TGA15 rows reuse the same exact 5-bit kernel (1.59x). TGA16 adds
   alpha and packs BGRA through the new low/high interleave operations (1.97x overall; 1.12x over
   the shuffle-only prototype). A 16-entry SSSE3 shuffle prototype for low-bit PNG palettes was
   rejected: over 512 MiB in native Release, RGB regressed from 109,065 to 324,334 us (2.97x
@@ -432,7 +435,7 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   on right-origin rows; raw packets improve from 303,191 to 8,428 us (35.97x) and from 307,714
   to 33,097 us (9.30x). Repeated TGA32 improves from 229,474 to 14,081 us (16.30x) and from
   231,657 to 15,492 us (14.95x); raw packets improve from 233,690 to 7,706 us (30.33x) and
-  from 236,496 to 33,536 us (7.05x). Arbitrary BMP bitfield masks retain their generic scalar path.
+  from 236,496 to 33,536 us (7.05x).
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
 - Related: T-514, T-517.

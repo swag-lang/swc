@@ -101,6 +101,99 @@ func decodeBgr565Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
     decodeBgr16RowImpl'(false, true)(source, destination, pixelCount)
 }
 
+private struct Normalize16
+{
+    mask:        u16
+    sourceShift: u8
+    scale:       u16
+    bias:        u16
+    resultShift: u8
+}
+
+private func makeNormalize16(mask: u16, sourceShift, bits: u8)->Normalize16
+{
+    var result: retval
+    result.mask        = mask
+    result.sourceShift = sourceShift
+    switch bits
+    {
+    case 1:
+        result.scale = 255
+
+    case 2:
+        result.scale = 85
+
+    case 3:
+        result.scale       = 73
+        result.resultShift = 1
+
+    case 4:
+        result.scale = 17
+
+    case 5:
+        result.scale       = 527
+        result.bias        = 23
+        result.resultShift = 6
+
+    case 6:
+        result.scale       = 259
+        result.bias        = 33
+        result.resultShift = 6
+
+    case 7:
+        result.scale       = 129
+        result.resultShift = 6
+
+    case 8:
+        result.scale = 1
+    }
+
+    return result
+}
+
+#[Swag.Inline]
+private func normalize16(lowPixels, highPixels: Math.Simd.U16x8, params: Normalize16)->Math.Simd.U8x16
+{
+    let lowValues  = (((lowPixels & params.mask) >> params.sourceShift) * params.scale + params.bias) >> params.resultShift
+    let highValues = (((highPixels & params.mask) >> params.sourceShift) * params.scale + params.bias) >> params.resultShift
+    return Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) lowValues, cast #bit(Math.Simd.S16x8) highValues)
+}
+
+func decodeBgrMasked16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, bMask: u16, bShift, bBits: u8, gMask: u16, gShift, gBits: u8, rMask: u16, rShift, rBits: u8)
+{
+    let bParams = makeNormalize16(bMask, bShift, bBits)
+    let gParams = makeNormalize16(gMask, gShift, gBits)
+    let rParams = makeNormalize16(rMask, rShift, rBits)
+    var src     = source
+    var dst     = destination
+    var count   = pixelCount
+    while count >= 16
+    {
+        let lowPixels  = Math.Simd.load(cast(const [*] u16) src)
+        let highPixels = Math.Simd.load(cast(const [*] u16) (src + 16))
+        let b          = normalize16(lowPixels, highPixels, bParams)
+        let g          = normalize16(lowPixels, highPixels, gParams)
+        let r          = normalize16(lowPixels, highPixels, rParams)
+        Math.Simd.store(dst, Math.Simd.shuffle(b, BgrB0) | Math.Simd.shuffle(g, BgrG0) | Math.Simd.shuffle(r, BgrR0))
+        Math.Simd.store(dst + 16, Math.Simd.shuffle(b, BgrB1) | Math.Simd.shuffle(g, BgrG1) | Math.Simd.shuffle(r, BgrR1))
+        Math.Simd.store(dst + 32, Math.Simd.shuffle(b, BgrB2) | Math.Simd.shuffle(g, BgrG2) | Math.Simd.shuffle(r, BgrR2))
+        src   += 32
+        dst   += 48
+        count -= 16
+    }
+
+    while count
+    {
+        let pixel = src[as u16]
+        dst[0] = cast(u8) ((((pixel & bParams.mask) >> bParams.sourceShift) * bParams.scale + bParams.bias) >> bParams.resultShift)
+        dst[1] = cast(u8) ((((pixel & gParams.mask) >> gParams.sourceShift) * gParams.scale + gParams.bias) >> gParams.resultShift)
+        dst[2] = cast(u8) ((((pixel & rParams.mask) >> rParams.sourceShift) * rParams.scale + rParams.bias) >> rParams.resultShift)
+        src    += 2
+        dst    += 3
+        count  -= 1
+    }
+}
+
 func(REVERSE: bool) decodeBgra5551RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64, alphaFromBit: bool)
 {
     var src   = REVERSE ? source + pixelCount * 2 : source

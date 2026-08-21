@@ -2,7 +2,7 @@
 
 using Swag, Core
 
-#test
+private func checkBmp16Masks(masks: Bmp.Masks)
 {
     // Every source word, unaligned pointers, the SIMD/tail boundary, and
     // untouched sentinels match the generic mask normalization exactly.
@@ -19,7 +19,6 @@ using Swag, Core
         expected[i] = 0xA5
     }
 
-    var masks = Bmp.makeDefaultMasks(16, 0)
     for i in Pixels
     {
         let value = cast(u16) (i & 0xFFFF)
@@ -33,27 +32,43 @@ using Swag, Core
     Bmp.decode16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, masks)
     for i in actual.count do
         @assert(actual[i] == expected[i])
+}
 
-    for i in actual.count
-    {
-        actual[i]   = 0xA5
-        expected[i] = 0xA5
-    }
+#test
+{
+    checkBmp16Masks(Bmp.makeDefaultMasks(16, 0))
 
+    var masks: Bmp.Masks
     masks.r = Bmp.readMask(0xF800)
     masks.g = Bmp.readMask(0x07E0)
     masks.b = Bmp.readMask(0x001F)
-    for i in Pixels
-    {
-        let value = cast(u16) (i & 0xFFFF)
-        expected[3 + 3 * i]     = Bmp.maskToByte(value, masks.b)
-        expected[3 + 3 * i + 1] = Bmp.maskToByte(value, masks.g)
-        expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
-    }
+    checkBmp16Masks(masks)
 
-    Bmp.decode16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, masks)
-    for i in actual.count do
-        @assert(actual[i] == expected[i])
+    masks.r = Bmp.readMask(0x0F00)
+    masks.g = Bmp.readMask(0x00F0)
+    masks.b = Bmp.readMask(0x000F)
+    checkBmp16Masks(masks)
+
+    masks.r = Bmp.readMask(0x8000)
+    masks.g = Bmp.readMask(0x7F00)
+    masks.b = Bmp.readMask(0x00FF)
+    checkBmp16Masks(masks)
+
+    masks.r = Bmp.readMask(0x0003)
+    masks.g = Bmp.readMask(0xFC00)
+    masks.b = Bmp.readMask(0x00F0)
+    checkBmp16Masks(masks)
+
+    masks.r = Bmp.readMask(0x00E0)
+    masks.g = Bmp.readMask(0x001F)
+    masks.b = Bmp.readMask(0xF000)
+    checkBmp16Masks(masks)
+
+    // A channel wider than eight bits must retain the scalar fallback.
+    masks.r = Bmp.readMask(0x01FF)
+    masks.g = Bmp.readMask(0x3E00)
+    masks.b = Bmp.readMask(0xC000)
+    checkBmp16Masks(masks)
 }
 
 // Create an image in memory and verify its metadata.

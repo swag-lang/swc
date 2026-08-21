@@ -580,7 +580,7 @@ func addPngImageData(result: *ConcatBuffer, raw: const [..] u8)
     addPngChunk(result, "IDAT", nnBytes(compressed.toSlice()))
 }
 
-func buildPalettedPng(width: u32)->Array'u8
+func buildPalettedPng(width: u32, transparency = true)->Array'u8
 {
     const palette: [9] u8 = [1, 2, 3, 10, 20, 30, 200, 150, 100]
     const alpha:   [2] u8 = [4, 40]
@@ -594,7 +594,8 @@ func buildPalettedPng(width: u32)->Array'u8
     addPngSignature(&result)
     addPngHeader(&result, width, 1, 8, 3)
     addPngChunk(&result, "PLTE", palette)
-    addPngChunk(&result, "tRNS", alpha)
+    if transparency do
+        addPngChunk(&result, "tRNS", alpha)
     addPngImageData(&result, nnBytes(raw.toSlice()))
     addPngChunk(&result, "IEND", "")
     return cbToArray(&result)
@@ -910,6 +911,25 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(packedImage, 1, 0, 10'u8, 20'u8, 30'u8, 40'u8)
     assertPngPixelAt(packedImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
     assertPngPixelAt(packedImage, 511, 0, 10'u8, 20'u8, 30'u8, 40'u8)
+}
+
+// Opaque RGB palette expansion preserves three-byte packing around the overlapping-store threshold.
+#test
+{
+    let scalarBytes = buildPalettedPng(511, false)
+    let scalarImage = expect Image.decode("palette-rgb-scalar.png", nnBytes(scalarBytes.toSlice()), {})
+    @assert(scalarImage.pixelFormat == .RGB8)
+    assertPngPixelAt(scalarImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 1, 0, 10'u8, 20'u8, 30'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
+
+    let packedBytes = buildPalettedPng(512, false)
+    let packedImage = expect Image.decode("palette-rgb-packed.png", nnBytes(packedBytes.toSlice()), {})
+    @assert(packedImage.pixelFormat == .RGB8)
+    assertPngPixelAt(packedImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
+    assertPngPixelAt(packedImage, 1, 0, 10'u8, 20'u8, 30'u8, 255'u8)
+    assertPngPixelAt(packedImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
+    assertPngPixelAt(packedImage, 511, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.

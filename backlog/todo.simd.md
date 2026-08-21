@@ -446,8 +446,10 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   Release improved from 30,113 to 16,662 us (1.81x) and AVX2 from 35,784 to 17,311 us (2.07x),
   while gather reached only 27,310 and 33,441 us. A 512-pixel dispatch threshold keeps table setup
   out of tiny images; 10,000 complete 34x24 decodes improved from 327,233 to 218,321 us (1.50x).
-  RGB palette expansion remains scalar because its three-byte output still lacks a profitable
-  packed layout. GIF's fixed RGB/BGR/RGBA/BGRA quantizer now
+  RGB palette expansion uses bounded overlapping `u32` stores above the same threshold, leaving
+  its final pixel to exact three-byte stores. Over 16 Mi pixels it improves from 34,475 to 12,643
+  us (2.73x); ten complete 2048x2048 decodes improve from 435,350 to 428,298 us (1.02x) because
+  Inflate dominates that fixture. GIF's fixed RGB/BGR/RGBA/BGRA quantizer now
   processes four pixels per iteration with exact packed division by 255. Over 256 MiB of 32-bit
   output in native Release, opaque conversion improves from 3,919,498 to 830,869 us (4.72x) and
   transparent conversion from 3,718,998 to 1,167,242 us (3.19x); over 64 MiB of 24-bit output,

@@ -54,6 +54,53 @@ impl Decoder
         return cast(u8) ((cast(u32) value + 128) / 257)
     }
 
+    mtd convertPaletteRgb(result: *Image)
+    {
+        let pixelCount = cast(u64) result.width * result.height
+        if pixelCount < PackedPaletteThreshold
+        {
+            var src = .safeDstPixels()
+            var dst = cast([*] u8) result.pixels.buffer!
+            for pixelCount
+            {
+                let color = .palette[src[0]]
+                dst[0] = cast() ((color >> 16) & 0xFF)
+                dst[1] = cast() ((color >> 8) & 0xFF)
+                dst[2] = cast() (color & 0xFF)
+                src    += 1
+                dst    += 3
+            }
+
+            return
+        }
+
+        var packedPalette: [256] u32
+        for i in 256
+        {
+            let color = .palette[i]
+            packedPalette[i] = ((color >> 16) & 0xFF) | (color & 0xFF00) | ((color & 0xFF) << 16)
+        }
+
+        var src       = .safeDstPixels()
+        var dst       = cast([*] u8) result.pixels.buffer!
+        var remaining = pixelCount
+
+        // The fourth byte lands on the next pixel and is overwritten there. Stop before
+        // the final pixel so every wide store remains inside the exact-size image buffer.
+        while remaining > 1
+        {
+            (cast([*] u32) dst)[0] = packedPalette[src[0]]
+            src                    += 1
+            dst                    += 3
+            remaining              -= 1
+        }
+
+        let color = packedPalette[src[0]]
+        dst[0] = cast(u8) (color & 0xFF)
+        dst[1] = cast(u8) ((color >> 8) & 0xFF)
+        dst[2] = cast(u8) ((color >> 16) & 0xFF)
+    }
+
     mtd convertPaletteRgba(result: *Image)
     {
         let pixelCount = cast(u64) result.width * result.height
@@ -180,18 +227,7 @@ impl Decoder
         // Paletted, no transparency
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
-            var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
-            for result.width * result.height
-            {
-                let pal   = src[0]
-                let color = .palette[pal]
-                dst[0] = cast() ((color >> 16) & 0xFF)
-                dst[1] = cast() ((color >> 8) & 0xFF)
-                dst[2] = cast() (color & 0xFF)
-                src    += 1
-                dst    += result.bytesPerPixel
-            }
+            .convertPaletteRgb(result)
         }
 
         // Paletted, transparency

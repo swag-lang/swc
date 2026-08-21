@@ -887,6 +887,47 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.pixels.buffer[3] == 4'u8)
 }
 
+// Encode a full 128-pixel literal packet and a tail in every channel order.
+#test
+{
+    const Width = 131
+    var options: Tga.EncodeOptions
+    options.rle = true
+    for pixelFormat in [PixelFormat.BGR8, PixelFormat.RGB8, PixelFormat.BGRA8, PixelFormat.RGBA8]
+    {
+        var src = Image.create(Width, 1, pixelFormat)
+        for i in src.pixels.count do
+            src.pixels.buffer![i] = cast(u8) ((i * 37 + 19) & 0xFF)
+
+        var cb = expect src.encode("memory.tga", options)
+        cb.makeLinear()
+        let bytes         = nnBytes(cb.toSlice())
+        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        @assert(bytes[#sizeof(TgaH)] == 0x7F)
+        @assert(bytes[#sizeof(TgaH) + 1 + 128 * bytesPerPixel] == 2)
+
+        let img = expect Image.decode("memory.tga", bytes, {})
+        @assert(img.pixelFormat == (pixelFormat == .BGR8 or pixelFormat == .RGB8 ? .BGR8 : .BGRA8))
+        for pixel in cast(u64) Width
+        {
+            let offset = pixel * bytesPerPixel
+            if pixelFormat == .BGR8 or pixelFormat == .BGRA8
+            {
+                for channel in bytesPerPixel do
+                    @assert(img.pixels.buffer![offset + channel] == src.pixels.buffer![offset + channel])
+            }
+            else
+            {
+                @assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
+                @assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
+                @assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
+                if bytesPerPixel == 4 do
+                    @assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
+            }
+        }
+    }
+}
+
 // Encode RLE packets for repeated and literal BGR pixels, then decode them
 // without changing the bottom-up pixel buffer.
 #test

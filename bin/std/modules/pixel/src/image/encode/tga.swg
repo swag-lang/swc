@@ -61,9 +61,10 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 
 func writeTgaRle(result: *ConcatBuffer, image: Image)
 {
-    let src           = cast(const [*] u8) image.pixels.buffer!
-    let bytesPerPixel = cast(u64) image.bytesPerPixel
-    let pixelCount    = cast(u64) image.width * cast(u64) image.height
+    let src                 = cast(const [*] u8) image.pixels.buffer!
+    let bytesPerPixel       = cast(u64) image.bytesPerPixel
+    let pixelCount          = cast(u64) image.width * cast(u64) image.height
+    var converted: [512] u8 = undefined
 
     var index: u64
     while index < pixelCount
@@ -88,8 +89,20 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
 
         let rawCount = index - rawStart
         result.addNative(cast(u8) (rawCount - 1))
-        for i in rawCount do
-            writeTgaPixel(result, src + (rawStart + i) * bytesPerPixel, image.pixelFormat)
+        let rawSource = src + rawStart * bytesPerPixel
+        switch image.pixelFormat
+        {
+        case .BGR8, .BGRA8:
+            result.addBytes(@mkslice(rawSource, rawCount * bytesPerPixel))
+
+        case .RGB8:
+            PackedPixel.swapRedBlue24Row(rawSource, @dataof(converted), rawCount)
+            result.addBytes(@mkslice(@dataof(converted), rawCount * bytesPerPixel))
+
+        case .RGBA8:
+            PackedPixel.swapRedBlue32Row(rawSource, @dataof(converted), rawCount)
+            result.addBytes(@mkslice(@dataof(converted), rawCount * bytesPerPixel))
+        }
     }
 }
 

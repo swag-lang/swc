@@ -426,7 +426,11 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   now feed uncompressed TGA and BMP encoding through contiguous appends instead of per-channel
   buffer writes. Over 64 MiB in native Release, TGA RGB improves from 435,321 to 56,059 us
   (7.77x) and RGBA from 434,613 to 55,755 us (7.80x); BMP RGB improves from 391,184 to 53,262 us
-  (7.34x) and RGBA from 421,889 to 54,080 us (7.80x). Right-origin TGA15/16 rows
+  (7.34x) and RGBA from 421,889 to 54,080 us (7.80x). TGA RLE literal packets now append
+  blue-first spans directly and shuffle red-first spans into a fixed scratch block. Over 64 MiB
+  in native Release, BGR improves from 459,142 to 98,627 us (4.66x), RGB from 494,237 to
+  123,278 us (4.01x), BGRA from 355,013 to 80,932 us (4.39x), and RGBA from 460,670 to
+  103,347 us (4.46x). Right-origin TGA15/16 rows
   reverse 16 packed pixels per iteration; over 256 MiB in native Release, TGA15 improves from
   1,657,107 to 364,168 us (4.55x) and TGA16 from 1,750,620 to 306,748 us (5.71x). Raw TGA24/32
   now dispatches left-origin rows to the runtime SIMD copy and right-origin rows to shared packed

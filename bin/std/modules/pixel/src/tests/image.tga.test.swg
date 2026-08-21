@@ -124,6 +124,46 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         @assert(actual[i] == expected[i])
 }
 
+// Reverse unaligned packed rows across every SIMD tail width without touching sentinels.
+#test
+{
+    for bytesPerPixel in [3'u64, 4'u64]
+    {
+        for width in 20'u64
+        {
+            let pixelCount = width + 1
+            var source:   Array'u8
+            var actual:   Array'u8
+            var expected: Array'u8
+            source.resize(1 + pixelCount * bytesPerPixel + 1)
+            actual.resize(3 + pixelCount * bytesPerPixel + 1)
+            expected.resize(actual.count)
+            for i in source.count do
+                source[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+            for i in actual.count
+            {
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            for x in pixelCount
+            {
+                let sourceOffset = 1 + (pixelCount - x - 1) * bytesPerPixel
+                let targetOffset = 3 + x * bytesPerPixel
+                for channel in bytesPerPixel do
+                    expected[targetOffset + channel] = source[sourceOffset + channel]
+            }
+
+            if bytesPerPixel == 3 do
+                PackedPixel.reverseBgr24Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+            else do
+                PackedPixel.reverseBgra32Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+            for i in actual.count do
+                @assert(actual[i] == expected[i])
+        }
+    }
+}
+
 // Decode top-origin raw 15-bit rows through the shared BGR555 vector kernel,
 // including a full vector and an odd tail on each row.
 #test
@@ -197,6 +237,41 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
             @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
             @assert(img.pixels.buffer![offset + 3] == (value & 0x8000 ? 255'u8 : 0'u8))
+        }
+    }
+}
+
+// Decode raw BGR/BGRA rows through the direct-copy and reversed SIMD paths.
+#test
+{
+    const Width  = 17'u16
+    const Height = 2'u16
+    for bpp in [24'u8, 32'u8]
+    {
+        let bytesPerPixel = cast(u64) (bpp / 8)
+        for rightMode in 2
+        {
+            var cb: ConcatBuffer
+            addTgaImageHeader(&cb, TGA_TYPE_RGB, bpp, TGA_DESC_TOP | (rightMode ? TGA_DESC_RIGHT : 0), Width, Height)
+            for pixel in cast(u64) Width * Height
+            {
+                for channel in bytesPerPixel do
+                    cb.addNative(cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF))
+            }
+
+            let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+            @assert(img.width == Width and img.height == Height)
+            @assert(img.pixelFormat == (bpp == 24 ? .BGR8 : .BGRA8))
+            for pixel in cast(u64) Width * Height
+            {
+                let sourceY = pixel / Width
+                let sourceX = pixel % Width
+                let targetY = Height - sourceY - 1
+                let targetX = rightMode ? Width - sourceX - 1 : sourceX
+                let offset  = (targetY * Width + targetX) * bytesPerPixel
+                for channel in bytesPerPixel do
+                    @assert(img.pixels.buffer![offset + channel] == cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF))
+            }
         }
     }
 }

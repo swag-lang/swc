@@ -274,6 +274,32 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
         return
     }
 
+    if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 24 or header.bitsPerPixel == 32)
+    {
+        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+        let rowBytes    = cast(u64) result.width * pixelBytes
+        for y in result.height
+        {
+            let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
+            let dst  = cast([*] u8) result.pixels.buffer! + cast(u64) dstY * result.rowStride
+            if rightOrigin
+            {
+                if header.bitsPerPixel == 24 do
+                    PackedPixel.reverseBgr24Row(p, dst, result.width)
+                else do
+                    PackedPixel.reverseBgra32Row(p, dst, result.width)
+            }
+            else
+            {
+                Memory.copy(dst, p, rowBytes)
+            }
+
+            p += rowBytes
+        }
+
+        return
+    }
+
     for i in pixelCount
     {
         writeSourcePixel(result, header, palette, i, p)

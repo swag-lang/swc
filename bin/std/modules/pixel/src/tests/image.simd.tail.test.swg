@@ -173,6 +173,48 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
 
 #test
 {
+    for bytesPerPixel in [3'u64, 4'u64]
+    {
+        for width in 20'u64
+        {
+            let pixelCount = width + 1
+            var source:   Array'u8
+            var actual:   Array'u8
+            var expected: Array'u8
+            source.resize(1 + pixelCount * bytesPerPixel + 1)
+            actual.resize(3 + pixelCount * bytesPerPixel + 1)
+            expected.resize(actual.count)
+            for i in source.count do
+                source[i] = cast(u8) ((i * 31 + 7) & 0xFF)
+            for i in actual.count
+            {
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            for pixel in pixelCount
+            {
+                let srcOffset = 1 + pixel * bytesPerPixel
+                let dstOffset = 3 + pixel * bytesPerPixel
+                expected[dstOffset]     = source[srcOffset + 2]
+                expected[dstOffset + 1] = source[srcOffset + 1]
+                expected[dstOffset + 2] = source[srcOffset]
+                if bytesPerPixel == 4 do
+                    expected[dstOffset + 3] = source[srcOffset + 3]
+            }
+
+            if bytesPerPixel == 3 do
+                PackedPixel.swapRedBlue24Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+            else do
+                PackedPixel.swapRedBlue32Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+            for i in actual.count do
+                @assert(actual[i] == expected[i])
+        }
+    }
+}
+
+#test
+{
     for width in 19
     {
         let actualWidth = width + 1

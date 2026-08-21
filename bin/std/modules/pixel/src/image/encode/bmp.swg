@@ -39,6 +39,29 @@ internal impl IImageEncoder for Encoder
         header.biSizeImage   = cast(u32) imageSize
         result.addStruct(header)
 
+        if image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8
+        {
+            var converted: Array'u8
+            converted.resize(imageSize)
+            let src = image.pixels.buffer!
+            for y in image.height
+            {
+                let srcRow = src + cast(u64) y * rowBytes
+                let dstRow = converted.buffer! + cast(u64) y * stride
+                if image.pixelFormat == .RGB8 do
+                    PackedPixel.swapRedBlue24Row(srcRow, dstRow, image.width)
+                else do
+                    PackedPixel.swapRedBlue32Row(srcRow, dstRow, image.width)
+
+                let padding = stride - rowBytes
+                if padding do
+                    Memory.set(dstRow + rowBytes, 0, padding)
+            }
+
+            result.addBytes(converted.toSlice())
+            return
+        }
+
         var psrc = image.pixels.buffer
         for image.height
         {
@@ -47,25 +70,6 @@ internal impl IImageEncoder for Encoder
             case .BGR8, .BGRA8:
                 result.addBytes(@mkslice(psrc, rowBytes))
                 psrc += rowBytes
-
-            case .RGB8:
-                for image.width
-                {
-                    result.addNative(psrc[2])
-                    result.addNative(psrc[1])
-                    result.addNative(psrc[0])
-                    psrc += 3
-                }
-
-            case .RGBA8:
-                for image.width
-                {
-                    result.addNative(psrc[2])
-                    result.addNative(psrc[1])
-                    result.addNative(psrc[0])
-                    result.addNative(psrc[3])
-                    psrc += 4
-                }
             }
 
             let padding = stride - rowBytes

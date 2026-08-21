@@ -830,6 +830,47 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 // The encoder is called directly (not through Image.save) to test BMP encoding
 // logic independently of the encoder registry.
 
+// Encode full SIMD blocks and tails from RGB/RGBA, including 24-bit row padding.
+#test
+{
+    const Width  = 19
+    const Height = 2
+    for pixelFormat in [PixelFormat.RGB8, PixelFormat.RGBA8]
+    {
+        var src = Image.create(Width, Height, pixelFormat)
+        for i in src.pixels.count do
+            src.pixels.buffer![i] = cast(u8) ((i * 37 + 19) & 0xFF)
+
+        var cb       = expect src.encode("memory.bmp")
+        let rowBytes = cast(u64) Width * src.bytesPerPixel
+        let stride   = Bmp.rowStride(Width, src.bitsPerPixel)
+        @assert(@countof(cb) == #sizeof(BmpFH) + #sizeof(Bmp.Header) + stride * Height)
+        cb.makeLinear()
+        let bytes = nnBytes(cb.toSlice())
+        if pixelFormat == .RGB8
+        {
+            for y in Height
+            {
+                for offset in rowBytes until stride do
+                    @assert(bytes[#sizeof(BmpFH) + #sizeof(Bmp.Header) + cast(u64) y * stride + offset] == 0)
+            }
+        }
+
+        let img           = expect Image.decode("memory.bmp", bytes, {})
+        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        @assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
+        for pixel in cast(u64) Width * Height
+        {
+            let offset = pixel * bytesPerPixel
+            @assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
+            @assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
+            @assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
+            if bytesPerPixel == 4 do
+                @assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
+        }
+    }
+}
+
 // Encode a BGR8 4x4 image (row stride 12 bytes - already 4-byte aligned, no padding needed).
 #test
 {

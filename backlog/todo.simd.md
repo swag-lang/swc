@@ -422,7 +422,11 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   processes four pixels per iteration with exact packed division by 255. Over 256 MiB of 32-bit
   output in native Release, opaque conversion improves from 3,919,498 to 830,869 us (4.72x) and
   transparent conversion from 3,718,998 to 1,167,242 us (3.19x); over 64 MiB of 24-bit output,
-  opaque conversion improves from 3,763,685 to 281,324 us (13.38x). Right-origin TGA15/16 rows
+  opaque conversion improves from 3,763,685 to 281,324 us (13.38x). Shared RGB/BGR row shuffles
+  now feed uncompressed TGA and BMP encoding through contiguous appends instead of per-channel
+  buffer writes. Over 64 MiB in native Release, TGA RGB improves from 435,321 to 56,059 us
+  (7.77x) and RGBA from 434,613 to 55,755 us (7.80x); BMP RGB improves from 391,184 to 53,262 us
+  (7.34x) and RGBA from 421,889 to 54,080 us (7.80x). Right-origin TGA15/16 rows
   reverse 16 packed pixels per iteration; over 256 MiB in native Release, TGA15 improves from
   1,657,107 to 364,168 us (4.55x) and TGA16 from 1,750,620 to 306,748 us (5.71x). Raw TGA24/32
   now dispatches left-origin rows to the runtime SIMD copy and right-origin rows to shared packed

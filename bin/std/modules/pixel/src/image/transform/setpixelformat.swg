@@ -1,11 +1,9 @@
 using Core
 
-private const Swap32 = [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15]
 private const DropKeep = [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128]
 private const DropSwap = [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128]
 private const ExpandKeep = [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
 private const ExpandSwap = [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128]
-private const Swap24 = [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128]
 
 impl Image
 {
@@ -26,14 +24,8 @@ impl Image
 
             if src.bytesPerPixel == 4 and dst.bytesPerPixel == 4
             {
-                let shuffle = Math.Simd.load(@dataof(Swap32))
-                while src.width - x >= 4
-                {
-                    let source = srcRow + cast(u64) x * 4
-                    let target = dstRow + cast(u64) x * 4
-                    Math.Simd.store(target, Math.Simd.shuffle(Math.Simd.load(source), shuffle))
-                    x += 4
-                }
+                PackedPixel.swapRedBlue32Row(srcRow, dstRow, src.width)
+                x = src.width
             }
             elif src.bytesPerPixel == 4
             {
@@ -62,14 +54,8 @@ impl Image
             }
             else
             {
-                let shuffle = Math.Simd.load(@dataof(Swap24))
-                while src.width - x >= 6
-                {
-                    let source = srcRow + cast(u64) x * 3
-                    let target = dstRow + cast(u64) x * 3
-                    Image.storeLow12(target, Math.Simd.shuffle(Math.Simd.load(source), shuffle))
-                    x += 4
-                }
+                PackedPixel.swapRedBlue24Row(srcRow, dstRow, src.width)
+                x = src.width
             }
 
             while x < src.width

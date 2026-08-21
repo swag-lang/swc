@@ -785,6 +785,34 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err29 != null)
 }
 
+// Encode full SIMD blocks and tails from RGB/RGBA into TGA's BGR/BGRA order.
+#test
+{
+    const Width  = 19
+    const Height = 2
+    for pixelFormat in [PixelFormat.RGB8, PixelFormat.RGBA8]
+    {
+        var src = Image.create(Width, Height, pixelFormat)
+        for i in src.pixels.count do
+            src.pixels.buffer![i] = cast(u8) ((i * 37 + 19) & 0xFF)
+
+        let cb            = expect src.encode("memory.tga")
+        let img           = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        @assert(@countof(cb) == #sizeof(TgaH) + src.pixels.count)
+        @assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
+        for pixel in cast(u64) Width * Height
+        {
+            let offset = pixel * bytesPerPixel
+            @assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
+            @assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
+            @assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
+            if bytesPerPixel == 4 do
+                @assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
+        }
+    }
+}
+
 // Encode BGR8 and round-trip through the decoder.
 #test
 {

@@ -137,7 +137,12 @@ internal impl IImageEncoder for Encoder
             return
         }
 
-        for i in pixelCount do
-            writeTgaPixel(result, src + i * bytesPerPixel, image.pixelFormat)
+        var converted: Array'u8
+        converted.resize(pixelCount * bytesPerPixel)
+        if image.pixelFormat == .RGB8 do
+            PackedPixel.swapRedBlue24Row(src, converted.buffer!, pixelCount)
+        else do
+            PackedPixel.swapRedBlue32Row(src, converted.buffer!, pixelCount)
+        result.addBytes(converted.toSlice())
     }
 }

@@ -424,7 +424,13 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
   reversal kernels. Over 128 MiB in native Release, TGA24 improves from 733,271 to 6,348 us
   (115.51x) on left-origin rows and from 715,535 to 56,519 us (12.66x) on right-origin rows;
   TGA32 improves from 570,873 to 7,186 us (79.44x) and from 526,046 to 55,211 us (9.53x),
-  respectively. Arbitrary BMP bitfield masks and TGA RLE retain their generic scalar paths.
+  respectively. True-color TGA RLE now splits packets at row boundaries and reuses SIMD copy,
+  reversal, and packed-pixel fill kernels. Over 64 MiB in native Release, repeated TGA24 improves
+  from 328,404 to 11,858 us (27.69x) on left-origin rows and from 344,228 to 12,501 us (27.54x)
+  on right-origin rows; raw packets improve from 303,191 to 8,428 us (35.97x) and from 307,714
+  to 33,097 us (9.30x). Repeated TGA32 improves from 229,474 to 14,081 us (16.30x) and from
+  231,657 to 15,492 us (14.95x); raw packets improve from 233,690 to 7,706 us (30.33x) and
+  from 236,496 to 33,536 us (7.05x). Arbitrary BMP bitfield masks retain their generic scalar path.
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
 - Related: T-514, T-517.

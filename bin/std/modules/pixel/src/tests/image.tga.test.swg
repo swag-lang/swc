@@ -124,6 +124,44 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         @assert(actual[i] == expected[i])
 }
 
+// Fill unaligned packed rows across every SIMD tail width without touching sentinels.
+#test
+{
+    for bytesPerPixel in [3'u64, 4'u64]
+    {
+        for width in 20'u64
+        {
+            let pixelCount = width + 1
+            var source:   Array'u8
+            var actual:   Array'u8
+            var expected: Array'u8
+            source.resize(1 + bytesPerPixel + 1)
+            actual.resize(3 + pixelCount * bytesPerPixel + 1)
+            expected.resize(actual.count)
+            for i in source.count do
+                source[i] = cast(u8) ((i * 43 + 17) & 0xFF)
+            for i in actual.count
+            {
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            for x in pixelCount
+            {
+                for channel in bytesPerPixel do
+                    expected[3 + x * bytesPerPixel + channel] = source[1 + channel]
+            }
+
+            if bytesPerPixel == 3 do
+                PackedPixel.fillBgr24Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+            else do
+                PackedPixel.fillBgra32Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
+            for i in actual.count do
+                @assert(actual[i] == expected[i])
+        }
+    }
+}
+
 // Reverse unaligned packed rows across every SIMD tail width without touching sentinels.
 #test
 {
@@ -583,6 +621,74 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.pixels.buffer[9] == 1'u8)
     @assert(img.pixels.buffer[10] == 2'u8)
     @assert(img.pixels.buffer[11] == 3'u8)
+}
+
+// Decode mixed raw and repeated packets that cross rows in every origin mode.
+#test
+{
+    const Width  = 17'u16
+    const Height = 3'u16
+    const Pixels = cast(u64) Width * Height
+    for bpp in [24'u8, 32'u8]
+    {
+        let bytesPerPixel = cast(u64) (bpp / 8)
+        for topMode in 2
+        {
+            for rightMode in 2
+            {
+                let descriptor = (topMode ? TGA_DESC_TOP : 0) | (rightMode ? TGA_DESC_RIGHT : 0)
+                var cb:       ConcatBuffer
+                var expected: Array'u8
+                expected.resize(Pixels * bytesPerPixel)
+                addTgaImageHeader(&cb, TGA_TYPE_RLE_RGB, bpp, descriptor, Width, Height)
+
+                cb.addNative(19'u8)
+                for pixel in 20'u64
+                {
+                    for channel in bytesPerPixel
+                    {
+                        let value = cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF)
+                        cb.addNative(value)
+                        expected[pixel * bytesPerPixel + channel] = value
+                    }
+                }
+
+                cb.addNative(0x91'u8)
+                for channel in bytesPerPixel do
+                    cb.addNative(cast(u8) ((channel * 53 + 91) & 0xFF))
+                for pixel in 18'u64
+                {
+                    for channel in bytesPerPixel do
+                        expected[(20 + pixel) * bytesPerPixel + channel] = cast(u8) ((channel * 53 + 91) & 0xFF)
+                }
+
+                cb.addNative(12'u8)
+                for packetPixel in 13'u64
+                {
+                    let pixel = 38 + packetPixel
+                    for channel in bytesPerPixel
+                    {
+                        let value = cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF)
+                        cb.addNative(value)
+                        expected[pixel * bytesPerPixel + channel] = value
+                    }
+                }
+
+                let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+                @assert(img.pixelFormat == (bpp == 24 ? .BGR8 : .BGRA8))
+                for pixel in Pixels
+                {
+                    let sourceY = pixel / Width
+                    let sourceX = pixel % Width
+                    let targetY = topMode ? Height - sourceY - 1 : sourceY
+                    let targetX = rightMode ? Width - sourceX - 1 : sourceX
+                    let offset  = (targetY * Width + targetX) * bytesPerPixel
+                    for channel in bytesPerPixel do
+                        @assert(img.pixels.buffer![offset + channel] == expected[pixel * bytesPerPixel + channel])
+                }
+            }
+        }
+    }
 }
 
 // Decode RLE color-mapped packets.

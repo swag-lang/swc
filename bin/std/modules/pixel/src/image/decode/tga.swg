@@ -312,6 +312,63 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
     var index: u64
     var p = src
 
+    if header.imageTypeCode == TYPE_RLE_RGB and (header.bitsPerPixel == 24 or header.bitsPerPixel == 32)
+    {
+        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+        while index < pixelCount
+        {
+            checkBuffer(p, last, 1)
+            let packet = p[0]
+            p += 1
+
+            let count = cast(u64) ((packet & 0x7F) + 1)
+            if index + count > pixelCount do
+                fail InvalidFormatError{"invalid source buffer"}
+
+            let repeated = (packet & 0x80) != 0
+            checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
+            var remaining = count
+            var source    = p
+            while remaining
+            {
+                let rowRemaining = cast(u64) header.width - index % header.width
+                let segmentCount = Math.min(remaining, rowRemaining)
+                let dstIndex     = rightOrigin ? index + segmentCount - 1 : index
+                let dst          = dstPixel(result, header, dstIndex)
+                if repeated
+                {
+                    if header.bitsPerPixel == 24 do
+                        PackedPixel.fillBgr24Row(source, dst, segmentCount)
+                    else do
+                        PackedPixel.fillBgra32Row(source, dst, segmentCount)
+                }
+                else
+                {
+                    if rightOrigin
+                    {
+                        if header.bitsPerPixel == 24 do
+                            PackedPixel.reverseBgr24Row(source, dst, segmentCount)
+                        else do
+                            PackedPixel.reverseBgra32Row(source, dst, segmentCount)
+                    }
+                    else
+                    {
+                        Memory.copy(dst, source, segmentCount * pixelBytes)
+                    }
+
+                    source += segmentCount * pixelBytes
+                }
+
+                index     += segmentCount
+                remaining -= segmentCount
+            }
+
+            p += repeated ? pixelBytes : count * pixelBytes
+        }
+
+        return
+    }
+
     while index < pixelCount
     {
         checkBuffer(p, last, 1)

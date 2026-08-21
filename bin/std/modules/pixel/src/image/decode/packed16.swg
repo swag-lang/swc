@@ -22,7 +22,7 @@ func expand5(value: Math.Simd.U8x16)->Math.Simd.U8x16
     return Math.Simd.select(high, Math.Simd.shuffle(Expand5High, value), Math.Simd.shuffle(Expand5Low, value))
 }
 
-func(REVERSE: bool) decodeBgr555RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+func(REVERSE: bool, GREEN6: bool) decodeBgr16RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
     var src   = REVERSE ? source + pixelCount * 2 : source
     var dst   = destination
@@ -45,10 +45,22 @@ func(REVERSE: bool) decodeBgr555RowImpl(source: const [*] u8, destination: [*] u
 
         let b = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) (lowPixels & 31'u16),
                                                cast #bit(Math.Simd.S16x8) (highPixels & 31'u16)))
-        let g = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> 5) & 31'u16),
+        var g: Math.Simd.U8x16
+        #static if GREEN6
+        {
+            let lowGreen  = ((((lowPixels >> 5) & 63'u16) * 259'u16) + 33'u16) >> 6
+            let highGreen = ((((highPixels >> 5) & 63'u16) * 259'u16) + 33'u16) >> 6
+            g = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) lowGreen, cast #bit(Math.Simd.S16x8) highGreen)
+        }
+        else
+        {
+            g = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> 5) & 31'u16),
                                                cast #bit(Math.Simd.S16x8) ((highPixels >> 5) & 31'u16)))
-        let r = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> 10) & 31'u16),
-                                               cast #bit(Math.Simd.S16x8) ((highPixels >> 10) & 31'u16)))
+        }
+
+        let redShift = GREEN6 ? 11 : 10
+        let r        = expand5(Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) ((lowPixels >> redShift) & 31'u16),
+                                                      cast #bit(Math.Simd.S16x8) ((highPixels >> redShift) & 31'u16)))
         Math.Simd.store(dst, Math.Simd.shuffle(b, BgrB0) | Math.Simd.shuffle(g, BgrG0) | Math.Simd.shuffle(r, BgrR0))
         Math.Simd.store(dst + 16, Math.Simd.shuffle(b, BgrB1) | Math.Simd.shuffle(g, BgrG1) | Math.Simd.shuffle(r, BgrR1))
         Math.Simd.store(dst + 32, Math.Simd.shuffle(b, BgrB2) | Math.Simd.shuffle(g, BgrG2) | Math.Simd.shuffle(r, BgrR2))
@@ -62,8 +74,11 @@ func(REVERSE: bool) decodeBgr555RowImpl(source: const [*] u8, destination: [*] u
             src -= 2
         let pixel = cast(u32) src[as u16]
         dst[0] = cast(u8) (((pixel & 0x1F) * 255 + 15) / 31)
-        dst[1] = cast(u8) ((((pixel >> 5) & 0x1F) * 255 + 15) / 31)
-        dst[2] = cast(u8) ((((pixel >> 10) & 0x1F) * 255 + 15) / 31)
+        #static if GREEN6 do
+            dst[1] = cast(u8) (((((pixel >> 5) & 0x3F) * 259) + 33) >> 6)
+        else do
+            dst[1] = cast(u8) ((((pixel >> 5) & 0x1F) * 255 + 15) / 31)
+        dst[2] = cast(u8) ((((pixel >> (GREEN6 ? 11 : 10)) & 0x1F) * 255 + 15) / 31)
         #static if !REVERSE do
             src += 2
         dst   += 3
@@ -73,12 +88,17 @@ func(REVERSE: bool) decodeBgr555RowImpl(source: const [*] u8, destination: [*] u
 
 func decodeBgr555Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr555RowImpl'(false)(source, destination, pixelCount)
+    decodeBgr16RowImpl'(false, false)(source, destination, pixelCount)
 }
 
 func decodeBgr555RowReversed(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr555RowImpl'(true)(source, destination, pixelCount)
+    decodeBgr16RowImpl'(true, false)(source, destination, pixelCount)
+}
+
+func decodeBgr565Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+{
+    decodeBgr16RowImpl'(false, true)(source, destination, pixelCount)
 }
 
 func(REVERSE: bool) decodeBgra5551RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64, alphaFromBit: bool)

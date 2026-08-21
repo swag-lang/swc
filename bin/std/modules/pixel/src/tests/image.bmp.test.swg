@@ -19,12 +19,33 @@ using Swag, Core
         expected[i] = 0xA5
     }
 
-    let masks = Bmp.makeDefaultMasks(16, 0)
+    var masks = Bmp.makeDefaultMasks(16, 0)
     for i in Pixels
     {
         let value = cast(u16) (i & 0xFFFF)
         source[1 + 2 * i]       = cast(u8) (value & 0xFF)
         source[1 + 2 * i + 1]   = cast(u8) (value >> 8)
+        expected[3 + 3 * i]     = Bmp.maskToByte(value, masks.b)
+        expected[3 + 3 * i + 1] = Bmp.maskToByte(value, masks.g)
+        expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
+    }
+
+    Bmp.decode16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, masks)
+    for i in actual.count do
+        @assert(actual[i] == expected[i])
+
+    for i in actual.count
+    {
+        actual[i]   = 0xA5
+        expected[i] = 0xA5
+    }
+
+    masks.r = Bmp.readMask(0xF800)
+    masks.g = Bmp.readMask(0x07E0)
+    masks.b = Bmp.readMask(0x001F)
+    for i in Pixels
+    {
+        let value = cast(u16) (i & 0xFFFF)
         expected[3 + 3 * i]     = Bmp.maskToByte(value, masks.b)
         expected[3 + 3 * i + 1] = Bmp.maskToByte(value, masks.g)
         expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)

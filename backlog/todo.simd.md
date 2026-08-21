@@ -408,7 +408,9 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 - Intent: complete GIF/PNG palette expansion, fixed quantization, and 24/32-bit channel packing
   using shuffle or gather according to the active target. BMP's default BGR555 path now expands
   16 pixels per iteration through exact 5-bit lookup tables and BGR shuffles (4.23x over 512 MiB
-  in Release); raw non-right-origin TGA15 rows reuse the same exact kernel (1.59x). TGA16 adds
+  in Release); the common BGR565 bitfield layout reuses that packing with exact 6-bit integer
+  expansion and improves from 1,541,725 to 288,495 us over 256 MiB in native Release (5.34x).
+  Raw non-right-origin TGA15 rows reuse the same exact 5-bit kernel (1.59x). TGA16 adds
   alpha and packs BGRA through the new low/high interleave operations (1.97x overall; 1.12x over
   the shuffle-only prototype). A 16-entry SSSE3 shuffle prototype for low-bit PNG palettes was
   rejected: over 512 MiB in native Release, RGB regressed from 109,065 to 324,334 us (2.97x

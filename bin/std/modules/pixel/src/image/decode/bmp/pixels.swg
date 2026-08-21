@@ -92,6 +92,12 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, mas
         return
     }
 
+    if masks.r.value == 0xF800 and masks.g.value == 0x07E0 and masks.b.value == 0x001F and !masks.a.value
+    {
+        PackedPixel.decodeBgr565Row(source, destination, pixelCount)
+        return
+    }
+
     var src = source
     var dst = destination
     for pixelCount

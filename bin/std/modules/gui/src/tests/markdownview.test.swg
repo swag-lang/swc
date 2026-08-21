@@ -493,6 +493,48 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     @assert(!Utf8.contains(text.toString(), "**bold**"))
 }
 
+// The selection is one band per line, not one per word.
+//
+// Painting it from each glyph's own box is what makes a selection look hatched: it breaks at every
+// space, and every change of size inside a sentence gives its own height. The bands are taken from
+// the line boxes instead, so consecutive lines abut exactly and a column crossing that boundary
+// never shows the page through it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 260)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    var style = Markdown.Style.theme()
+    style.maxContentWidth = 300
+    style.horizontalInset = 20
+
+    let view = Markdown.View.createText(&host.root, "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen", style)
+    view.resize(420, 260)
+    view.applyLayout()
+    view.layoutDocument()
+    view.selectAll()
+
+    let inline = view.blocks[0].inline!
+    @assert(inline.lines.count >= 3)
+    for index in inline.lines.count - 1 do
+        @assert(Math.abs(inline.lines[index].top + inline.lines[index].height - inline.lines[index + 1].top) < 0.01)
+
+    host.settleAnimations(&host.root, 4)
+    var image = host.render(&host.root)
+
+    // A column an early word stands in, walked across the boundary between the first two lines.
+    let ground = view.themeColors().view_Bk
+    let column = inline.localToSurface(Math.Point{inline.atoms[0].position.x + 2, 0})
+    let above  = inline.localToSurface(Math.Point{0, inline.lines[0].top + inline.lines[0].height - 3})
+    let below  = inline.localToSurface(Math.Point{0, inline.lines[1].top + 3})
+    @assert(below.y > above.y)
+    for y in cast(s32) above.y to cast(s32) below.y do
+        @assert(image.pixelColor(cast(s32) column.x, y) != ground)
+}
+
 // The context menu and the keyboard reach the same two commands.
 #test
 {

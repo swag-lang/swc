@@ -65,6 +65,19 @@ private func atomText(atom: const *InlineAtom)->string
     return atom.text.toString()
 }
 
+// One laid-out line of the view, and the run of atoms it holds.
+//
+// The layout produces these on its way through the atoms. A selection is drawn from them rather
+// than from the atoms themselves: a band that follows each glyph's own box breaks at every word,
+// every space and every change of size, which reads as hatching rather than as one selection.
+private struct InlineLine
+{
+    top:    f32     // Top of the line box, in the view's coordinates.
+    height: f32     // Full height of the line box, so consecutive lines abut exactly.
+    first:  u64     // First atom of the line.
+    last:   u64     // One past the last atom of the line.
+}
+
 private struct InlineState
 {
     bold:          u32
@@ -123,6 +136,7 @@ public struct InlineView
     owner: *View = undefined
     kind:  BlockKind
     atoms: Array'InlineAtom
+    lines: Array'InlineLine
 
     // Where this view sits in the reading order of every text view the document owns, which is
     // the coordinate a document-wide selection is expressed in. Assigned once, at creation.
@@ -636,6 +650,7 @@ impl InlineView
                 advance += stretch.step
         }
 
+        .lines.add(InlineLine{top, line, first, last})
         return line
     }
 
@@ -701,6 +716,8 @@ impl InlineView
             .layoutHeight = 24
             return .layoutHeight
         }
+
+        .lines.clear()
 
         let inset            = .padding()
         let left             = inset.x
@@ -837,6 +854,39 @@ impl InlineView
         }
 
         return length
+    }
+
+    // Fills the reader's selection, one band per line of the view.
+    //
+    // A line is filled once, from the first selected glyph to the last, at the full height of the
+    // line box: the band then runs unbroken through the spaces between words and through a change
+    // of size or family inside a sentence, and the band of one line meets the band of the next
+    // exactly, because consecutive line boxes abut.
+    private mtd paintSelection(painter: *Painter)
+    {
+        let selection = .owner.selectionInInline(.orderIndex)
+        if !selection.has do
+            return
+
+        for &line in .lines
+        {
+            var left  = Swag.F32.Max
+            var right = Swag.F32.Min
+
+            for index in line.first until line.last where .atoms[index].visible
+            {
+                let atom    = &.atoms[index]
+                let atomEnd = atom.textStart + atomTextLength(atom)
+                if selection.end <= atom.textStart or selection.start >= atomEnd do
+                    continue
+
+                left  = Math.min(left, atom.position.x + .prefixWidth(atom, Math.max(selection.start, atom.textStart) - atom.textStart))
+                right = Math.max(right, atom.position.x + .prefixWidth(atom, Math.min(selection.end, atomEnd) - atom.textStart))
+            }
+
+            if right > left do
+                painter.fillRect({left, line.top, right - left, line.height}, .themeColors().edit_SelectedBk)
+        }
     }
 
     // Returns the text offset nearest to a point in this view's coordinates.
@@ -1013,36 +1063,25 @@ impl IWnd for InlineView
             return
         }
 
-        let selection = .owner.selectionInInline(.orderIndex)
+        // What a word carries under it comes first, then the reader's selection over all of it,
+        // then the glyphs. Painting the selection per atom instead would break it at every word,
+        // every space and every change of size, which reads as hatching rather than as a selection.
+        for &atom in .atoms where atom.visible and (atom.flags.has(.Code) or atom.flags.has(.Highlight) or atom.searchHit)
+        {
+            let ground     = atom.flags.has(.Highlight) or atom.searchHit ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
+            var background = atom.position
+            background.x      -= 2
+            background.width  += 4
+            background.y      -= 1
+            background.height += 2
+            painter.fillRect(background, ground)
+        }
+
+        .paintSelection(painter)
 
         for &atom in .atoms where atom.visible
         {
             let color = .color(atom)
-            if atom.flags.has(.Code) or atom.flags.has(.Highlight) or atom.searchHit
-            {
-                let ground     = atom.flags.has(.Highlight) or atom.searchHit ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
-                var background = atom.position
-                background.x      -= 2
-                background.width  += 4
-                background.y      -= 1
-                background.height += 2
-                painter.fillRect(background, ground)
-            }
-
-            // The reader's own selection is drawn last of the grounds and to the byte, so a drag
-            // that stopped inside a word covers exactly the glyphs it took.
-            if selection.has
-            {
-                let atomEnd = atom.textStart + atomTextLength(atom)
-                if selection.end > atom.textStart and selection.start < atomEnd
-                {
-                    let left  = .prefixWidth(atom, Math.max(selection.start, atom.textStart) - atom.textStart)
-                    let right = .prefixWidth(atom, Math.min(selection.end, atomEnd) - atom.textStart)
-                    if right > left do
-                        painter.fillRect({atom.position.x + left, atom.position.y - 1, right - left, atom.position.height + 2}, .themeColors().edit_SelectedBk)
-                }
-            }
-
             if atom.isMath
             {
                 var options: MathLayoutOptions

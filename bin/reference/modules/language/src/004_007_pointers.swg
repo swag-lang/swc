@@ -388,6 +388,29 @@ without a chain of pointer casts.
 }
 
 /**
+`[as T]` opens **one** place, so a following index applies to that `T` and not to a
+buffer of them: `p[as u32][2]` asks a `u32` to be indexed. To walk a buffer under a
+different lane type, reinterpret the pointer instead — `(cast([*] T) p)[i]` is the
+spelling to use. An array shape works too, and keeps the reinterpretation postfix when
+the element count is known: `p[as [4] u32][1]` names the second word of the first four.
+*/
+#test
+{
+    var bytes: [16] u8
+    for i in 16 do
+        bytes[i] = cast(u8) i
+
+    // Walk the same storage as four words.
+    let words = cast([*] u32) @dataof(bytes)
+    @assert(words[0] == 0x0302_0100)
+    @assert(words[1] == 0x0706_0504)
+
+    // Or name a fixed shape in one postfix step.
+    let p = @dataof(bytes)
+    @assert(p[as [4] u32][1] == 0x0706_0504)
+}
+
+/**
 # Pointers to Const Data
 
 `const` qualifies the **pointed-to data**, never the pointer itself. Written just before

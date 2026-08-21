@@ -336,6 +336,49 @@ TypeRef TypeManager::unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) co
     return get(typeRef).unwrapAliasEnum(ctx, typeRef);
 }
 
+bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, const LifecycleOperator lifecycleOperator) const
+{
+    while (typeRef.isValid())
+    {
+        const TypeInfo& typeInfo   = get(typeRef);
+        const TypeRef   rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+        {
+            typeRef = rawTypeRef;
+            continue;
+        }
+
+        if (typeInfo.isArray())
+        {
+            uint64_t elementCount = 1;
+            for (const uint64_t dim : typeInfo.payloadArrayDims())
+                elementCount *= dim;
+            if (!elementCount)
+                return false;
+
+            typeRef = typeInfo.payloadArrayElemTypeRef();
+            continue;
+        }
+
+        if (!typeInfo.isStruct())
+            return false;
+
+        const SymbolStruct& structSym = typeInfo.payloadSymStruct();
+        if ((structSym.*lifecycleOperator)())
+            return true;
+
+        for (const SymbolVariable* field : structSym.fields())
+        {
+            if (field && hasLifecycleOperator(ctx, field->typeRef(), lifecycleOperator))
+                return true;
+        }
+
+        return false;
+    }
+
+    return false;
+}
+
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const
 {
     if (lhs == rhs && !force32BitInts)

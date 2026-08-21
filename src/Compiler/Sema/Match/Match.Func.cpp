@@ -1225,10 +1225,7 @@ namespace
         {
             const auto& autoCast = argNodeView.node()->cast<AstAutoCastExpr>();
             castKind             = CastKind::Explicit;
-            if (autoCast.modifierFlags.has(AstModifierFlagsE::Bit))
-                castFlags.add(CastFlagsE::BitCast);
-            if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))
-                castFlags.add(CastFlagsE::UnConst);
+            castFlags.add(Cast::autoCastFlags(autoCast.modifierFlags));
         }
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);

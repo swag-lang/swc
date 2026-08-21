@@ -80,6 +80,11 @@ struct Cast
     static Result  concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
     static TypeRef indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef);
 
+    // What a 'cast()' contributes to a cast request. It is explicit, but its destination comes
+    // from the context instead of being written down, and both the cast path and the overload
+    // matcher have to say so identically.
+    static CastFlags autoCastFlags(AstModifierFlags modifierFlags);
+
     static AstNodeRef createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags = AstCastExprFlagsE::Zero);
     static AstNodeRef createCastNode(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags = AstCastExprFlagsE::Zero);
     static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& view);

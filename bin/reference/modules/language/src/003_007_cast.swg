@@ -129,3 +129,45 @@ acknowledge potential data loss.
     let large_float:   f64 = 1.23456789012345611111
     let smaller_float: f32 = cast(f32) large_float
 }
+
+/**
+# Casting Between Pointers and Integers
+
+An address is an integer, so one explicit cast crosses in either direction. Towards a
+pointer, any integer type that fits in an address is accepted, and a narrower one is
+zero-extended; an enum crosses through its underlying type. Towards an integer, the
+destination has to be able to hold an address: 'u64' and 's64' do, and a narrower type
+is refused rather than silently losing the high half of the address.
+
+Naming the destination is part of it. A 'cast()' takes its destination from the context,
+and only 'u64' reaches a pointer that way: an integer that could bind any pointer
+parameter would let overload resolution pick a call nobody wrote.
+*/
+enum CastPointerTag: u64
+{
+    First  = 7
+    Second = 9
+}
+
+#test
+{
+    var storage: [16] u8
+    let base = @dataof(storage)
+
+    let address = cast(u64) base
+    @assert(cast([*] u8) address == base)
+    @assert(cast(s64) base == cast(s64) address)
+
+    // A narrower integer needs no second step towards a pointer.
+    @assert(cast(*void) 0xBEEF'u16 == cast(*void) 0xBEEF'u64)
+    @assert(cast(*void) CastPointerTag.First == cast(*void) 7'u64)
+    @assert(cast(CastPointerTag) cast(*void) 9'u64 == CastPointerTag.Second)
+
+    // 'cast(u32) base' is refused. Widen the address first, then narrow that value with
+    // '#wrap' to say that dropping its high half is intended.
+    @assert(cast #wrap (u32) address == cast #wrap (u32) cast(u64) base)
+
+    // A deduced destination reaches a pointer from 'u64' only.
+    let deduced: [*] u8 = cast() address
+    @assert(deduced == base)
+}

@@ -540,7 +540,15 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         }
     }
 
-    if (srcTypeRef == sema.typeMgr().typeU64())
+    // Any integer that fits in an address becomes one in a single explicit cast, zero-extended
+    // when it is narrower. An enum reaches this through its underlying type. A 'cast()' names
+    // no destination, and overload resolution would then let any integer bind a pointer
+    // parameter — displacing the receiver of a method call whose arguments are written that
+    // way — so a deduced destination keeps the narrow rule it always had.
+    const bool integerFitsAddress = castRequest.flags.has(CastFlagsE::DeducedDestination)
+                                        ? srcTypeRef == sema.typeMgr().typeU64()
+                                        : srcType.isIntLike() && srcType.sizeOf(sema.ctx()) <= sizeof(void*);
+    if (integerFitsAddress)
     {
         if (castRequest.kind == CastKind::Explicit)
         {

@@ -9,29 +9,6 @@ are [findings.safety.md](findings.safety.md); the `doc` and `format` commands ha
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
-## Global initialization and storage
-
-### F-019 — A thread-local global cannot hold a droppable type
-
-- Area: compiler
-- Found while: implementing `#[Swag.Tls]`, which until then was parsed and then ignored
-- Observation: a thread-local global now has one copy per thread, created from the declared value on
-  first access and released when the thread ends. What is released is the storage, not the value:
-  nothing calls `opDrop` on it. Shutdown cannot stand in for that either, because it runs on one
-  thread and dropping only that thread's copy would pick an arbitrary one, so thread-local globals
-  are excluded from the shutdown drop list on purpose. A `#[Swag.Tls] var s: String` therefore leaks
-  every thread's buffer, silently.
-- Evidence: `collectGvtdEntriesRec` skips `symVar->isThreadLocal()`
-  ([CodeGen.Function.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Function.cpp)), and the fiber-local
-  destructor `__releaseTlsVar` ([os_windows.swg](../bin/runtime/os_windows.swg)) frees the block
-  without knowing its type. The three users in `bin/` — `Random.shared()`, and the generator behind
-  `Guid64`/`Guid128` — are plain value types, so nothing leaks today.
-- Next step: decide whether to reject the combination or support it. Rejecting is one diagnostic on
-  a global that carries `Swag.Tls` and a type with a lifecycle, and it is honest. Supporting it
-  means the per-thread block has to carry a drop hook the destructor can call, which is the same
-  type-erased drop the `@gvtd` table already builds — reuse that shape rather than inventing a
-  second one.
-
 ## Published symbols, imports, and name resolution
 
 ### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
@@ -147,54 +124,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
 
-### F-163 — Destructuring assignment into fields leaks the old values and double-drops the temporary
-
-- Area: compiler (Sema/CodeGen of `{a.x, a.y} = call()` — the assignment form, not the declaration)
-- Found while: adding a context menu to RichEdit; the `ClipboardCut` path corrupted the heap and
-  the debug allocator reported "memory block is freed twice" when the undo record was released.
-- Observation: `{holder.first, holder.second} = makeTuple(...)` with droppable field types gets
-  the ownership wrong twice. The old target values are never dropped (leak), and the temporary's
-  fields are dropped after their bits were bit-copied into the targets, so target and temporary
-  own the same payload. A later drop of the receiver frees that payload a second time. With
-  `Core.Array` fields the debug allocator panics; the declaration form (`var {a, b} = call()`,
-  covered by `bin/unittests/jit/operators/temporary_drop.swg`) transfers correctly.
-- Evidence: standalone reproducer, fails in JIT with the release 0.1.153 compiler (`swc test -d`),
-  no Core needed. Drop-count assertions alone cannot see it — the wrong values die with the right
-  count — the per-value trace is what discriminates:
-
-  ```swag
-  var DropTrace: s64
-  struct Owner { value: s32, pad: [3] s64 }
-  impl Owner { mtd opDrop() { DropTrace = DropTrace * 10 + cast(s64) .value } }
-  struct Holder { first: Owner, second: Owner }
-  #[Swag.NoInline]
-  func makeTuple(first, second: s32)->{ x: Owner, y: Owner }
-  {
-      var result: retval
-      result.x.value = first
-      result.y.value = second
-      return result
-  }
-  #test
-  {
-      var holder: Holder
-      holder.first.value  = 8
-      holder.second.value = 9
-      {holder.first, holder.second} = makeTuple(4, 5)
-      @assert(DropTrace == 89 or DropTrace == 98)     // FAILS: the temporary's 4/5 die instead
-  }
-  ```
-
-  In-tree witness: `bin/std/modules/gui/src/controls/richedit/selection.swg`
-  `deleteSelectionPrivate` used `{undo.runes, undo.styles} = .textRangeData(...)`; running
-  `richedit.test.swg` in `-bc debug` panicked "memory block is freed twice" in `clearUndo`. It now
-  uses `var range = ...; undo.runes = #move range.text` as the correct spelling, which also keeps
-  working after the fix.
-- Next step: route the assignment form through the same per-field transfer the declaration form
-  uses (drop the old target, move the field out of the temporary, neutralize the temporary's
-  field), then land the reproducer as `bin/unittests/jit/operators/temporary_drop.swg`'s missing
-  case plus its `native` twin, asserting the drop *trace*, not the drop count.
-
 ### F-164 — DevMode assigns a semantic payload to the same slice node twice
 
 - Area: compiler
@@ -212,63 +141,16 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `bytes[first until @countof(bytes)]` directly to `lastNonSpace` triggers the same assertion on
   `first`, while binding that slice to a local before the call compiles. This removes macro
   expansion from the minimum mechanism and leaves a slice expression used as a call argument.
-- Next step: reduce the direct-call form into a standalone sema input, trace both calls to
-  `setSemaPayload` for its slice node, and add that input to `bin/unittests/sema` before changing
-  payload ownership; then keep the macro-generated `markdownHeadingAnchor` form as downstream
-  coverage.
-
-### F-168 — A pointer converts only through 'u64', so every other integer needs two casts
-
-- Area: compiler
-- Found while: auditing the cast surface after the `Core.Math.Simd` pass.
-- Observation: `u64` is the only numeric type that converts to and from a pointer in one explicit
-  cast. `cast(s64) ptr`, `cast(u32) ptr`, `cast([*] u8) someU32`, `cast(*void) someS32`, and
-  `cast(*void) SomeEnum.Case` are all rejected, and `cast #bit` is refused in both directions, so
-  the only spelling is a two-step through `u64`.
-- Evidence: a 24-case standalone probe confirms the split — legal: `cast(u64) ptr`,
-  `cast([*] u8) u64Value`, `cast(*u8) u64Value`, pointer-to-pointer, `*T` ↔ `[*] T`,
-  `cast(u64) SomeEnum.Case`; rejected: the five forms above. In-tree witnesses of the resulting
-  double cast: `bin/apps/modules/sSnapForge/src/propwnd.swg:35`
-  (`cast(*void) cast(u64) value`) and `bin/runtime/os_windows.swg:284-285`
-  (`cast(const *void) cast(u64) @countof(message)`).
-- Next step: decide the rule before touching `Cast::castAllowed`. An explicit cast to a pointer is
-  already an unsafe act, and requiring two of them adds noise rather than proof, so the candidate
-  is: one explicit cast from any integer-like of at most pointer size (enums included,
-  zero-extended), and from a pointer to any integer of at least pointer size — keeping the refusal
-  for a narrowing `cast(u32) ptr`, with a help line naming the widening. Then migrate the in-tree
-  double casts and add the matrix to `bin/unittests/sema/types`.
-
-### F-169 — No indexed reinterpretation: 'p[as T][i]' cannot name the i-th T at a pointer
-
-- Area: compiler
-- Found while: auditing the `[as T]` place syntax against the h264 vector code.
-- Observation: `expr[as T]` opens one place of `T` at a pointer, so a following `[i]` indexes the
-  scalar `T` and fails with "type 'u32' does not support indexing". Reaching element `i` of a
-  reinterpreted buffer therefore needs either `(p + i * #sizeof(T))[as T]` or
-  `(cast([*] T) p)[i]`; both work, neither is the postfix form the rest of the chain uses.
-- Evidence: `p[as [4] u32][1]` is accepted (an array place indexes fine) while `p[as u32][2]` is
-  rejected, so the gap is only the single-element form. `p[2 as u32]` cannot carry the meaning: it
-  already parses as the `as` cast expression applied to the index.
-- Next step: none proposed yet — this is a discoverability gap with two working idioms, not a
-  defect, and the natural syntax slot is taken. Record whether the `(cast([*] T) p)[i]` idiom
-  should become the documented spelling in
-  `bin/reference/modules/language/src/004_007_pointers.swg` before considering new syntax.
-
-### F-170 — An intrinsic cannot start a statement, and the diagnostic does not say so
-
-- Area: compiler
-- Found while: writing `@dataof(target)[as Simd.U8x16] = value` in a `bin/std` test.
-- Observation: an assignment whose target begins with an intrinsic is rejected with "intrinsic
-  '@dataof' does not belong here". The restriction is the statement position alone, not the
-  postfix chain: the same expression is accepted everywhere else.
-- Evidence: `@dataof(buf)[as u32] = 1` and `@dataof(buf)[0] = 1` are both rejected as statements,
-  while `(@dataof(buf))[as u32] = 1` and `let p = @dataof(buf); p[as u32] = 1` compile, and
-  `use(@dataof(buf)[as u32])` compiles as a sub-expression. So the parser refuses an intrinsic as
-  the first token of a statement and the message names the intrinsic instead of the position.
-- Next step: either accept an intrinsic-rooted assignment target, or keep the restriction and give
-  the diagnostic its missing help line — "an intrinsic cannot start a statement; parenthesize it,
-  or bind it to a local first" — then cover the accepted and rejected spellings in
-  `bin/unittests/errors/parser`.
+  It no longer reproduces at 0.1.167: the macro-free witness — a standalone `#test` passing
+  `bytes[first until @countof(bytes)]` straight into a `const [..] u8` parameter — compiles and
+  runs, every `tools/*.swgs` invocation checks `backlog.swg` without asserting, and two
+  consecutive `bin/swc_devmode.exe tools/apps.swgs dm build sFileScope` runs are green. Nothing
+  in that release targeted payload ownership, so the double visit is more likely scheduling
+  dependent than deterministic, and the "deterministic" wording above describes one machine
+  state rather than the defect.
+- Next step: re-evaluate on the next occurrence. Persist the failing module when one happens and
+  capture both `setSemaPayload` calls for the slice node before changing payload ownership; a
+  reduction that does not fail on demand cannot be turned into a `bin/unittests/sema` case.
 
 ### F-171 — A SIMD-valued conditional expression crashes JIT execution
 
@@ -282,57 +164,12 @@ Entries are sorted by identifier, ascending; position carries no priority.
   running `latin1.test.swg` in `-bc release`; the reported JIT offset mapped exactly to that line.
   Replacing it with `var mask = @vecmask(ascii); if includeLatin1 { mask |= ... }` made the same
   seven focused tests pass without changing the native benchmark result.
-- Next step: reduce a standalone JIT test returning a conditional `U8x16`, compare its true and
-  false branch register/stack locations with the scalar conditional lowering, then add the native
-  twin before fixing conditional-result materialization.
+  It no longer reproduces at 0.1.167. Restoring the conditional spelling in `Latin1.spaceMaskAt`
+  and running `swc tools/std.swgs dm test core --test-file latin1.test.swg -bc release` passes,
+  with the pre-fix Release compiler as well. Standalone probes returning a conditional
+  `#simd [16] u8` — from parameters, and from `@vecsplat` comparison chains — pass in `debug`,
+  `fast-debug` and `release`, under the JIT and from the forged binary.
+- Next step: re-evaluate on the next occurrence. The conditional alone is not the trigger, so a
+  recurrence has to be captured with the exact module and configuration that produced it before
+  the lowering is compared against the scalar one.
 
-### F-173 — An untyped string constant reaches a nullable `opSet` parameter empty inside an aggregate literal
-
-- Area: compiler
-- Found while: giving sFileScope's viewer table a stable key per viewer (2026-08-21). The host's
-  own text surface got `ViewerChoice{.BasicText, Swag.U64.Max, BasicTextViewerKey, ...}` and its
-  `key: String` came out empty, so the persisted viewer choice never matched. Writing
-  `String.from(BasicTextViewerKey)` in the same slot fixes it, which is what the application
-  ships.
-- Observation: the value is the *untyped constant* itself. The same constant assigned to a
-  `String`, the same text written as a literal in the same literal slot, and the same constant
-  bound to a `string` local first all produce a correct `String`. Only the constant used directly
-  as an aggregate-literal field value is wrong, and it is wrong the same way in the positional and
-  the named form. The conversion does run — `opSet` is entered — and it is entered with an empty
-  string, so the failure is in what reaches the parameter, not in whether the conversion is found.
-- Evidence: reduced standalone, no `Core` needed. The trigger is the parameter being **nullable**:
-  with `mtd opSet(value: string)` all four spellings answer 4, and adding `#null` makes exactly the
-  aggregate-literal-from-a-constant case answer 0.
-
-  ```swag
-  const KEY = "text"
-
-  struct Name { len: u64 }
-  impl Name
-  {
-      #[Implicit]
-      mtd opSet(value: #null string) { .len = @countof(value) }     // `string` here: no failure
-  }
-
-  struct Row { id: u64 = 99; name: Name }
-
-  #test
-  {
-      var assigned: Name = KEY
-      @assert(assigned.len == 4)        // passes
-
-      var typed: string = KEY
-      @assert(Row{1, typed}.name.len == 4)     // passes
-      @assert(Row{1, "text"}.name.len == 4)    // passes
-      @assert(Row{1, KEY}.name.len == 4)       // FAILS, len is 0
-  }
-  ```
-
-  `Core.String` is the shipped type with that exact signature
-  (`#[Implicit] mtd opSet(value: #null string)`), which is why every `String` field of every
-  aggregate literal in `bin/` is exposed to it.
-- Next step: compare how the aggregate-literal path materializes an untyped string constant for a
-  nullable parameter against the assignment path, which is correct — the constant is most likely
-  handed over as a null data pointer, since the `@dataof(value) == null` branch of
-  `Core.String.opSet` is what produces exactly this result. Then add the case above to
-  `bin/unittests/sema` beside the other `opSet` coverage, and its native twin.

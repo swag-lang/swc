@@ -24,6 +24,7 @@ namespace CodeGenStructHelpers
     const SymbolVariable* tryResolveConcreteReceiverFieldSymbol(CodeGen& codeGen, const SymbolVariable& fieldSym);
     const SymbolVariable* tryResolveSameGenericFamilyFieldSymbol(const SymbolStruct& runtimeStruct, const SymbolVariable& fieldSym);
     size_t                structLikeFieldIndex(CodeGen& codeGen, TypeRef typeRef, const SourceCodeRef& fieldNameRef);
+    size_t                structLikeFieldCount(CodeGen& codeGen, TypeRef typeRef);
     StructLikeFieldLayout structLikeFieldLayout(CodeGen& codeGen, TypeRef typeRef, size_t fieldIndex);
 }
 

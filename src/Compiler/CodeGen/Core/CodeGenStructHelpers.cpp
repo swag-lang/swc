@@ -169,6 +169,16 @@ size_t CodeGenStructHelpers::structLikeFieldIndex(CodeGen& codeGen, TypeRef type
     return fieldIndex;
 }
 
+size_t CodeGenStructHelpers::structLikeFieldCount(CodeGen& codeGen, TypeRef typeRef)
+{
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    if (typeInfo.isStruct())
+        return typeInfo.payloadSymStruct().fields().size();
+
+    SWC_ASSERT(typeInfo.isAggregateStruct());
+    return typeInfo.payloadAggregate().types.size();
+}
+
 CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFieldLayout(CodeGen& codeGen, TypeRef typeRef, size_t fieldIndex)
 {
     const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);

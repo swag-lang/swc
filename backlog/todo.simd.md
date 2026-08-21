@@ -321,7 +321,11 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   fixture corpus and exhaustive strength combinations. A byte-exact 8x8-transpose prototype for
   weak vertical luma regressed the deblocking stage from 189,600 to 243,128 us (1.28x slower), and
   a mixed weak/strong horizontal prototype regressed 2,000,000 calls from 142,362 to 333,897 us
-  (2.35x slower); both were discarded.
+  (2.35x slower); both were discarded. On 3,000 High Profile frames, 1,665,000 of 2,059,400
+  vertical luma calls were weak. A four-line prototype driven by two `s32x4` gathers was
+  byte-exact, but 30,000 portable decodes regressed from 7,877,846 to 8,263,310 us (1.05x slower),
+  while 3,000 AVX2 decodes regressed from 700,991 to 747,769 us (1.07x slower). The remaining
+  shuffle and scattered-store cost still requires a different layout.
 - Complete when: decoded frames remain byte-exact, strong and vertical paths are packed, and the
   existing 1080p profile shows an end-to-end gain.
 - Related: T-514, T-520, T-420 in `todo.video.md`.
@@ -341,7 +345,9 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 - Intent: vectorize dequantization, residual addition, and the DC/horizontal/vertical/plane intra
   predictors; keep shuffle-heavy directional modes only when profiling supports them. The 16x16
   vertical, horizontal, and DC stores now run 2.12x to 3.20x faster, and the filtered 8x8 vertical
-  store runs 1.43x faster; narrower dynamic-splat attempts regressed and were discarded.
+  store runs 1.43x faster; narrower dynamic-splat attempts regressed and were discarded. Replacing
+  the 4x4 and 8x8 dequantization zero loops with two and eight vector stores regressed 30,000 High
+  Profile decodes from 7,877,846 to 8,032,948 us (1.02x slower), so the scalar loops remain.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
 - Related: T-513, T-514, T-516, T-542.

@@ -742,6 +742,9 @@ namespace ModuleApiExport
 
             if (symbolFunction->supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
             {
+                if (symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Inline))
+                    return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
+
                 outSnippet = buildFunctionSnippet(ctx, root, eol);
                 return Result::Continue;
             }

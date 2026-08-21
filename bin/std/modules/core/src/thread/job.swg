@@ -59,6 +59,7 @@ var g_mustEnd:          bool
 var g_workerCount:      s32
 var g_workers:          Array'Thread
 var g_pendingJobs:      Array'(*Job)
+var g_pendingJobCount:  u32
 var g_mutexPendingJobs: Sync.Mutex
 var g_eventPendingJobs: Sync.Event
 var g_eventDone:        Sync.Event
@@ -120,10 +121,14 @@ func peekExecJob()->bool
 
 func getJobToExec()->#null *Job
 {
+    if Atomic.get(&g_pendingJobCount) == 0 do
+        return null
+
     Sync.scopedLock(&g_mutexPendingJobs)
     if g_pendingJobs.isEmpty() do
         return null
     let job = g_pendingJobs.popBack()
+    Atomic.exchange(&g_pendingJobCount, cast(u32) g_pendingJobs.count)
     Debug.assert(job.testState(.Pending))
     job.clearState(.Pending)
     return job
@@ -132,6 +137,7 @@ func getJobToExec()->#null *Job
 func removeJobNoLock(job: *Job)
 {
     g_pendingJobs.removeAt(cast(u64) job.pendingIndex)
+    Atomic.exchange(&g_pendingJobCount, cast(u32) g_pendingJobs.count)
     if job.pendingIndex < g_pendingJobs.count do
         g_pendingJobs[job.pendingIndex].pendingIndex = job.pendingIndex
     job.pendingIndex = Swag.U32.Max
@@ -189,6 +195,7 @@ public func schedule(job: *Job)
     g_eventDone.reset()
     job.pendingIndex = cast(u32) g_pendingJobs.count
     g_pendingJobs.add(job)
+    Atomic.exchange(&g_pendingJobCount, cast(u32) g_pendingJobs.count)
     g_eventPendingJobs.signal()
 }
 
@@ -228,9 +235,21 @@ public func wait(job: *Job)
     // Here, job is being processed by another thread, so we participate
     // to job execution until done flag is set
     g_mutexPendingJobs.unlock()
+    var spins = 0'u32
     while !job.testState(.Done)
     {
-        discard peekExecJob()
+        if peekExecJob()
+        {
+            spins = 0
+            continue
+        }
+
+        spins += 1
+        if spins == 4096
+        {
+            Thread.yield()
+            spins = 0
+        }
     }
 }
 

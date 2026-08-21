@@ -5,6 +5,23 @@ using Core, Pixel, Gui, Video
 private const VideoGlyphSize = 18.0
 private const VideoCommandWidth = 350.0
 
+// How far ahead of the picture on screen the playback clock may ask the decoder to go.
+//
+// An inter-coded picture is decoded from the one before it, so a target further ahead skips no
+// work at all: it piles the cost of every picture in between onto a single step. That step lets
+// the clock run further ahead, which asks for a target further still, and a stream the machine
+// cannot quite sustain collapses within seconds into one picture every second or two. One is the
+// only value that presents every picture the decoder is paid to produce.
+private const VideoCatchUpLimit = 1'u64
+
+// How far behind the clock playback is allowed to fall before it gives up and jumps.
+//
+// Walking one picture at a time keeps motion smooth, but on a stream the machine cannot sustain
+// it also falls behind for as long as it plays. Past this much, the jump earns its cost: the
+// target is far enough ahead that the decoder restarts at a clean decode point instead of
+// walking to it, so the picture arrives at once and the clock is honest again.
+private const VideoResyncSeconds = 2.0
+
 internal struct VideoViewer
 {
     using wnd: Wnd
@@ -201,7 +218,7 @@ internal impl VideoViewer
 
         let seconds = .currentSeconds()
         let rate    = .video.frameRate()
-        let target  = cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator())
+        var target  = cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator())
         if target >= .video.frameCount()
         {
             .playing = false
@@ -215,10 +232,15 @@ internal impl VideoViewer
         if target == .frameIndex do
             return
 
-        // Keep presentation tied to the playback clock. The decoder can omit non-reference
-        // pictures while seeking forward, and can restart at a later sync sample when it falls
-        // a whole group behind, so slow content drops late pictures instead of playing in slow
-        // motion forever.
+        // Presentation follows the clock for as long as the decoder keeps up. Once it does not,
+        // walking one picture at a time shows every picture the decode pays for, rather than
+        // spending that same second of work reaching a distant target and discarding everything
+        // decoded on the way. Only a gap wide enough to restart at a clean decode point is
+        // jumped, which is what keeps the clock honest without stuttering through the rest.
+        let resyncLag = cast(u64) (rate.framesPerSecond() * VideoResyncSeconds)
+        if target > .frameIndex + VideoCatchUpLimit and target - .frameIndex < resyncLag do
+            target = .frameIndex + VideoCatchUpLimit
+
         if !.showFrame(target)
         {
             .playing = false

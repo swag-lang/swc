@@ -215,8 +215,12 @@ impl IWnd for ViewerWindow
             return
         }
 
+        // The system holds the whole drag — the source window's own loop included — until this
+        // returns, so a drop only records the file. Reading a header, building a viewer and
+        // decoding a first picture happen on the next turn of the event loop, by which time the
+        // drag is over and both windows can paint again.
         if evt.kind == .Drop do
-            .openFile(fileName)
+            .queueFile(fileName)
         evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
     }
 

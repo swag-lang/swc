@@ -10,6 +10,8 @@ using ExportApi, StaticApi, RuntimeCtxDll, RuntimeCtxBase, RuntimeCtxDirect
 #assert(#alignof(CtxAbiFloatPack) == 8)
 #assert(#sizeof(CtxAbiFloatPair) == 8)
 #assert(#alignof(CtxAbiFloatPair) == 4)
+#assert(depInlineConstexpr(20) == 42)
+#assert(depInlineIncrement(41) == 42)
 
 struct DepSelfBufferWrapper
 {

@@ -89,17 +89,30 @@ is the layout it does not read yet.
   fine-grained reference progress.
 - A 2026-08-21 pass measured the 3840x2160 25 fps Filmora recording against FFmpeg on the same
   laptop, both pinned to the performance cores: FFmpeg decodes it in about 27 ms of processor time
-  per frame single-threaded and about 3 ms of wall time with frame threading, while this decoder
-  spends about 111 ms of processor time — entropy parse 44, inter reconstruction 26, YUV-to-RGB
-  34, deblocking 8 — for about 55-70 ms of wall time over twenty-two workers. The conversion was
-  the surprise: every `Core.Math.Simd` operation was a call into `core.dll`, because an inline
-  function does not inline across a module boundary (F-176). Publishing that file, and the integer
-  intrinsic wrappers beside it, with `#global export` removed all of them; the conversion stage
-  halved and the serial decode fell to about 91 ms. The deblocking wavefront also waited on the
-  row above with a bare spin, which turned into a 230 ms per-frame stall whenever its lane held no
-  core; it now yields after a bounded wait. What did not pay: publishing the co-located motion in
-  a parallel pass instead of on the entropy thread moved about a megabyte of scattered writes off
-  the critical path and measured neutral to slightly worse, so it was dropped.
+  per frame single-threaded and about 3 ms of wall time with frame threading. With explicitly
+  inline module functions published with their bodies, the packed conversion wrappers no longer
+  cross `core.dll`; the conversion stage halved and the serial decode fell to about 91 ms. The
+  decoder still takes about 55-70 ms of wall time over twenty-two workers. The deblocking
+  wavefront now yields after a bounded wait instead of turning a starved lane into a 230 ms stall.
+  What did not pay: publishing the co-located motion in a parallel pass instead of on the entropy
+  thread moved about a megabyte of scattered writes off the critical path and measured neutral to
+  slightly worse, so it was dropped.
+- Measured in the shipped player rather than in a bench, the same stream behaved far worse than
+  any of the numbers above: sFileScope asked the decoder for the frame the wall clock was on, and
+  since an inter-coded picture is decoded from the one before it, a distant target piled every
+  picture in between onto a single step. Two seconds into playback the step had grown from one
+  picture to thirty-two and a picture reached the screen every 0.6 to 2.5 seconds. The player now
+  walks one picture at a time and only jumps when the clock is more than two seconds ahead, which
+  is far enough for the decoder to restart at a sync sample: over the same seventy seconds of
+  playback, alternated twice against the old behavior, 753-764 pictures reach the screen instead
+  of 409-546, with 18 jumps instead of 125-146 and 15 steps over 300 ms instead of about 50,
+  reaching the same point in the timeline. A bench that decodes frames in order cannot see any of
+  this; measure the application.
+- In that application a frame costs 100-130 ms against about 50 ms for the same frames decoded
+  from the main thread with an idle pool. The decode runs inside a `Core.Jobs` job and fans its
+  bands out from there, so a worker sits in `Jobs.wait` while twelve more run: 23 runnable threads
+  on 22 processors, with the GUI thread among them. Frame threading has to answer this too — the
+  fan-out belongs to whichever thread owns the picture, not nested inside another job.
 - The critical path is now the entropy parse, about 38 ms of the 55, and it is serial by
   construction: this stream carries one slice per picture. Fine-grained frame threading is what
   FFmpeg answers with, and it is the only lever left that changes the order of magnitude. It needs

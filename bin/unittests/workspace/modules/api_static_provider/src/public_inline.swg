@@ -15,3 +15,9 @@ func depMixinAccumulateTwice(value: s32)
 }
 
 func(T) depMirror(value: T)->T => value
+
+#[Swag.Inline, Swag.ConstExpr]
+{
+    func depInlineConstexpr(value: s32)->s32 => value * 2 + 2
+    func depInlineIncrement(value: s32)->s32 => value + 1
+}

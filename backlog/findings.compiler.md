@@ -172,26 +172,3 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: re-evaluate on the next occurrence. The conditional alone is not the trigger, so a
   recurrence has to be captured with the exact module and configuration that produced it before
   the lowering is compared against the scalar one.
-
-
-### F-176 — An inline function called across a module boundary is a real call
-
-- Area: compiler
-- Found while: profiling the H.264 decoder's YUV-to-RGB conversion on a 3840x2160 stream.
-- Observation: `#[Swag.Inline]` is honored inside a module, including across its files, but a call
-  into an imported module always lowers to `call_extern`. A published module interface carries
-  declarations without bodies, so `SemaInline::resolveFunctionDecl` finds nothing to materialize
-  and `tryInlineCall` returns. `#global export`, which publishes a file's whole source into the
-  interface, is what makes such a callee inlinable, and it is used today for generic roots.
-- Evidence: `Core.Math.Simd` is a file of one-line wrappers over the packed intrinsics, every one
-  of them under `#[Inline]`. Before `#global export`, the sixteen-pixel conversion kernel of
-  `video/src/decode/h264/frame.swg` lowered to 771 machine instructions carrying 46 calls into
-  `core.dll`; after it, to 494 carrying none, and the conversion stage of a 4K decode fell from
-  about 10-13 ms per frame to about 5-6 (eight interleaved samples, the two sets disjoint). A
-  probe declaring the same wrapper in another file of the same module inlines; the same wrapper
-  reached through `Core.Math.Simd` does not.
-- Next step: `core/src/math/float.swg` and `core/src/math/bits.swg` have the same shape and are
-  still imported as calls — `pixel.dll` alone imports about ninety of them, `math__sqrt___f32`,
-  `math__floor___f32` and `math__abs___f32` among them, on the paths that rasterize. Either every
-  intrinsic-wrapper file is published the same way, or the exporter carries the body of any
-  `#[Inline]` function so that the marker means across a module what it means inside one.

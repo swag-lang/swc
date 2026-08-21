@@ -580,6 +580,26 @@ func addPngImageData(result: *ConcatBuffer, raw: const [..] u8)
     addPngChunk(result, "IDAT", nnBytes(compressed.toSlice()))
 }
 
+func buildPalettedPng(width: u32)->Array'u8
+{
+    const palette: [9] u8 = [1, 2, 3, 10, 20, 30, 200, 150, 100]
+    const alpha:   [2] u8 = [4, 40]
+
+    var raw: ConcatBuffer
+    raw.addNative(0'u8)
+    for i in width do
+        raw.addNative(cast(u8) (i % 3))
+
+    var result: ConcatBuffer
+    addPngSignature(&result)
+    addPngHeader(&result, width, 1, 8, 3)
+    addPngChunk(&result, "PLTE", palette)
+    addPngChunk(&result, "tRNS", alpha)
+    addPngImageData(&result, nnBytes(raw.toSlice()))
+    addPngChunk(&result, "IEND", "")
+    return cbToArray(&result)
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = cbToArray(encoded)
@@ -873,6 +893,23 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let rgbKey = expect Image.load(getTestDataPath("tbrn2c08.png"))
     @assert(rgbKey.pixelFormat == .RGBA8)
     assertPngPixelAt(rgbKey, 0, 0, 255'u8, 255'u8, 255'u8, 0'u8)
+}
+
+// Palette RGBA expansion preserves byte order and implicit opaque alpha on both sides of its packed-table threshold.
+#test
+{
+    let scalarBytes = buildPalettedPng(511)
+    let scalarImage = expect Image.decode("palette-scalar.png", nnBytes(scalarBytes.toSlice()), {})
+    assertPngPixelAt(scalarImage, 0, 0, 1'u8, 2'u8, 3'u8, 4'u8)
+    assertPngPixelAt(scalarImage, 1, 0, 10'u8, 20'u8, 30'u8, 40'u8)
+    assertPngPixelAt(scalarImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
+
+    let packedBytes = buildPalettedPng(512)
+    let packedImage = expect Image.decode("palette-packed.png", nnBytes(packedBytes.toSlice()), {})
+    assertPngPixelAt(packedImage, 0, 0, 1'u8, 2'u8, 3'u8, 4'u8)
+    assertPngPixelAt(packedImage, 1, 0, 10'u8, 20'u8, 30'u8, 40'u8)
+    assertPngPixelAt(packedImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
+    assertPngPixelAt(packedImage, 511, 0, 10'u8, 20'u8, 30'u8, 40'u8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.

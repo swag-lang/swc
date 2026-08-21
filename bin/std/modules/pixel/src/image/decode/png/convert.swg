@@ -11,6 +11,9 @@ using Core, Core.Errors
 
 const Swap16Bytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
 
+// Building the packed table breaks even at 512 pixels on the supported x64 baseline.
+const PackedPaletteThreshold = 512'u64
+
 func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
     var src   = source
@@ -49,6 +52,47 @@ impl Decoder
     func reduce16(value: u16)->u8
     {
         return cast(u8) ((cast(u32) value + 128) / 257)
+    }
+
+    mtd convertPaletteRgba(result: *Image)
+    {
+        let pixelCount = cast(u64) result.width * result.height
+        if pixelCount < PackedPaletteThreshold
+        {
+            var src = .safeDstPixels()
+            var dst = cast([*] u8) result.pixels.buffer!
+            for pixelCount
+            {
+                let index = src[0]
+                let color = .palette[index]
+                dst[0] = cast() ((color >> 16) & 0xFF)
+                dst[1] = cast() ((color >> 8) & 0xFF)
+                dst[2] = cast() (color & 0xFF)
+                dst[3] = index < @countof(.safeTRNSData()) ? .safeTRNSData()[index] : 255
+                src    += 1
+                dst    += 4
+            }
+
+            return
+        }
+
+        let alpha = .safeTRNSData()
+        var packedPalette: [256] u32
+        for i in 256
+        {
+            let color      = .palette[i]
+            let alphaValue = i < @countof(alpha) ? cast(u32) alpha[i] : 255'u32
+            packedPalette[i] = ((color >> 16) & 0xFF) | (color & 0xFF00) | ((color & 0xFF) << 16) | (alphaValue << 24)
+        }
+
+        var src = .safeDstPixels()
+        var dst = cast([*] u32) result.pixels.buffer!
+        for pixelCount
+        {
+            dst[0] = packedPalette[src[0]]
+            src    += 1
+            dst    += 1
+        }
     }
 
     mtd convert16(result: *Image)
@@ -153,19 +197,7 @@ impl Decoder
         // Paletted, transparency
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
-            var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
-            for result.width * result.height
-            {
-                let pal   = src[0]
-                let color = .palette[pal]
-                dst[0] = cast() ((color >> 16) & 0xFF)
-                dst[1] = cast() ((color >> 8) & 0xFF)
-                dst[2] = cast() (color & 0xFF)
-                dst[3] = pal < @countof(.safeTRNSData()) ? .safeTRNSData()[pal] : 255
-                src    += 1
-                dst    += result.bytesPerPixel
-            }
+            .convertPaletteRgba(result)
         }
 
         // Grayscale without alpha channel, no transparency

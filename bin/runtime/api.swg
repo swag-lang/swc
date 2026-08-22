@@ -1084,6 +1084,7 @@ namespace Swag
             moduleNamespace: #null string     // The namespace name of the module
             embeddedImports      = false      // Module should embed all its dependencies
             ignoreInWorkspace    = false      // Skip this module when building a workspace
+            publishDependencies  = false      // Place the shared libraries an executable needs beside it, so it runs without the compiler
 
             tempAllocatorCapacity     = 4'u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
             errorAllocatorCapacity    = 16'u32 * 1024           // Default capacity of the 'error' allocator (in bytes)

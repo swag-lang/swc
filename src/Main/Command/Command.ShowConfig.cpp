@@ -58,7 +58,6 @@ namespace
         addInfoEntry(entries, "Warnings disabled", Utf8Helper::join(cmdLine.warnDisabled, "|"));
         addBoolEntry(entries, "Silent", cmdLine.silent);
         addBoolEntry(entries, "Stats", cmdLine.stats);
-        addBoolEntry(entries, "Publish", cmdLine.publish);
         addBoolEntry(entries, "Rebuild", cmdLine.rebuild);
         addBoolEntry(entries, "Dry run", cmdLine.dryRun);
         addBoolEntry(entries, "Show config", cmdLine.showConfig);

@@ -254,11 +254,10 @@ swc tools/scripts.swgs [dm] run <script>
 ```
 
 The same rule holds when driving a program from a helper script, a debugger, or a screenshot
-harness: point it at the tool, not at the `.exe`. An application packaged by
-`swc tools/apps.swgs build <module>` is the one exception — packaging copies its dependencies beside
-it, so the packaged executable runs on its own, which is what makes it shippable. That state is
-fragile: a later `apps.swgs test <module>` strips those files again, so re-run the build before
-any visual session that follows a test pass.
+harness: point it at the tool, not at the `.exe`. An application under `bin/apps` is the one
+exception: its module file sets `publishDependencies`, so every link places the shared libraries it
+needs beside it and the executable runs on its own. That state no longer depends on which command
+ran last.
 
 ## Measure Windows From A DPI-Aware Probe
 

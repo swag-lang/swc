@@ -307,8 +307,8 @@ namespace
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
-                    if (cmdLine.publish && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("copy dependency DLLs/PDBs into {}", Utf8(nativePreview.paths.artifactPath.parent_path())));
+                    if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
+                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
                     if (isRunLikeCommand(cmdLine.command) && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
@@ -328,8 +328,8 @@ namespace
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
-                    if (cmdLine.publish && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {}", Utf8(nativePreview.paths.artifactPath.parent_path())));
+                    if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
+                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
                     if (nativePreview.mayRunArtifact)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }

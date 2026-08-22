@@ -156,9 +156,6 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "test smoke", "--run-timeout", nullptr,
         &cmdLine_->runTimeoutSeconds,
         "Fail a test or smoke run whose executable has not finished after this many seconds");
-    add(HelpOptionGroup::Compiler, "test build run smoke", "--publish", nullptr,
-        &cmdLine_->publish,
-        "Copy executable dependency DLLs and PDBs to the artifact output directory after a successful native link");
     add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--rebuild", nullptr,
         &cmdLine_->rebuild,
         "Recompile every selected module even when all generated outputs are up to date, and rebuild the standard-library modules a script imports");
@@ -255,7 +252,7 @@ void CommandLineParser::registerCommands()
         &cmdLine_->dumpFormatConfig,
         "Print the resolved formatting configuration as a complete `.swc-format` file, then exit without rewriting anything");
 
-    add(HelpOptionGroup::Development, "all", "--dry-run smoke", "-dr",
+    add(HelpOptionGroup::Development, "all", "--dry-run", "-dr",
         &cmdLine_->dryRun,
         "Preview planned stages, outputs, and external commands without executing compile-time code, native tools, tests, or emitted artifacts");
     add(HelpOptionGroup::Development, "all", "--show-config", nullptr,

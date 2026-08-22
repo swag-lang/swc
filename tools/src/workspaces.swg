@@ -111,9 +111,8 @@ public func runExamples(context: *Context, options: *Options)->s32 fail
 
 // Builds, runs, tests, or smokes one or every module in the applications workspace.
 //
-// Every command publishes the standard library beside the artifact it links. That is not a
-// build-only concern: a link without it *removes* the libraries a previous link published, so a
-// test pass would otherwise leave the application unlaunchable.
+// Each application asks for its dependencies beside its executable through
+// `publishDependencies` in its own module file, so every command leaves it launchable.
 public func runApps(context: *Context, options: *Options)->s32 fail
 {
     var command = options.command
@@ -137,7 +136,7 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
 {
     var arguments: Arguments
     arguments.add([command, "--workspace", applicationWorkspace(context).toString()])
-    arguments.add(["--build-cfg", options.buildCfg.toString(), "--publish"])
+    arguments.add(["--build-cfg", options.buildCfg.toString()])
     if @countof(name) do
         arguments.add(["--workspace-module", name])
 
@@ -203,9 +202,8 @@ private func applicationWorkspace(context: *Context)->String
 
 // Copies the runtime files one application owns beside its built executable.
 //
-// The standard library is not copied here: the compiler publishes it itself when the tools pass
-// `--publish`, and it removes any it did not publish, so a copy made here would only be deleted
-// by the next link.
+// The standard library is not copied here: the link publishes it itself, and removes any library
+// it did not publish, so a copy made here would only be deleted by the next link.
 private func packageApplication(context: *Context, options: *Options, name: string)->s32 fail
 {
     let appDir     = applicationDirectory(context, options, name)

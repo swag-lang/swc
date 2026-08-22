@@ -69,6 +69,39 @@ scope; use qualified names or a targeted 'using' declaration in source files.
 */
 
 /**
+# Where a Dependency Lives
+
+A workspace keeps the same dependency in more than one place, and each answers a
+question the others cannot:
+
+| Directory | Holds |
+|---|---|
+| '<workspace>/.output/<module>' | what building that module produced; the original |
+| '<workspace>/.dep/<module>' | the copy the workspace compiles and links against |
+| beside the executable | the copy that lets the program run with nothing else present |
+
+The '.dep' copy exists because compile-time execution loads a dependency's shared
+library and holds it open, and a held file cannot be replaced: reading the
+original would stop the very build that has to rewrite it.
+
+An executable asks for the third copy itself:
+
+```swag
+#run
+{
+    let cfg = @compiler.getBuildCfg()!
+    cfg.backendKind         = .Executable
+    cfg.publishDependencies = true
+}
+```
+
+The link then places every shared library the program needs beside it, so it runs
+from its own directory without the compiler. Whether a program has to stand on its
+own is a fact about the program, so it is stated in 'module.swg' and not on the
+command line: no later command can take it away.
+*/
+
+/**
 # Sharing Source Between Modules
 
 '#load' belongs in 'module.swg' too, and names one extra source file by path. The

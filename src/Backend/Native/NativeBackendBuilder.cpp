@@ -892,7 +892,7 @@ Result NativeBackendBuilder::buildObject(const uint32_t objIndex)
 Result NativeBackendBuilder::publishExistingArtifact()
 {
     SWC_ASSERT(compiler_ != nullptr);
-    if (!ctx_.cmdLine().publish || compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+    if (!compiler_->buildCfg().publishDependencies || compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
 
     SWC_RESULT(validateTarget());
@@ -916,7 +916,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
     if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
 
-    const bool     publishDependencies = ctx_.cmdLine().publish;
+    const bool     publishDependencies = compiler_->buildCfg().publishDependencies;
     const fs::path artifactDir         = artifactPath.parent_path();
     if (artifactDir.empty())
         return Result::Continue;

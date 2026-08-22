@@ -6,6 +6,26 @@ SWC_BEGIN_NAMESPACE();
 // Where the compiler writes what it did not receive: the artifacts of a build, and the caches it
 // keeps between runs. A build fills these directories and `swc clean` empties them, so both read
 // the layout from here rather than each spelling the names again.
+//
+// A dependency exists in more than one place, and each copy answers a question the others cannot:
+//
+//   `<ws>/.output/<module>/...`   what building that module produced. This is the original, and
+//                                 the only one anything is ever built from.
+//   `<ws>/.dep/<module>/...`      the copy the workspace consumes. A compile-time execution loads
+//                                 a dependency's shared library and holds it open for the rest of
+//                                 the process, and Windows will not let a held file be replaced;
+//                                 reading the original would therefore stop the very build that
+//                                 has to rewrite it. It is also what the compiler puts on the
+//                                 PATH of an artifact it launches itself.
+//   beside the executable         the copy that lets the program run with nothing else present.
+//                                 A module asks for it with `publishDependencies`, because
+//                                 whether a program has to stand on its own is a fact about the
+//                                 program and not about the command that happened to build it.
+//   `<temp>/swag/dep/<hash>/`     the same copy as `.dep`, for a script, which owns no directory
+//                                 to keep one in. Named after the bytes it holds, so scripts that
+//                                 import the same build share one.
+//
+// So: `.output` is written, `.dep` is read, and a published copy is what ships.
 namespace WorkspaceLayout
 {
     // Artifacts a workspace build publishes, and the intermediate files it does not.
@@ -19,8 +39,8 @@ namespace WorkspaceLayout
         return (workspacePath / ".tmp").lexically_normal();
     }
 
-    // Private copy of every dependency a workspace imports from outside itself, so that a build
-    // consumes something it owns rather than a directory somebody else may rewrite under it.
+    // Private copy of every dependency a workspace imports from outside itself. See the note
+    // above the namespace for why reading the original instead is not an option.
     inline fs::path workspaceDependencyDirectory(const fs::path& workspacePath)
     {
         return (workspacePath / ".dep").lexically_normal();

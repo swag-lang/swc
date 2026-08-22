@@ -18,5 +18,9 @@
         .resAppDescription = "Fast universal file viewer"
         .resAppIcoFileName = "datas/appicon.ico"
         .ignoreInWorkspace = false
+
+        // A shipped application is launched from its own directory, so the link places the
+        // shared libraries it needs beside it.
+        .publishDependencies = true
     }
 }

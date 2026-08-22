@@ -2023,7 +2023,6 @@ CommandLine ModuleSetupInputApplier::makeSwagStdBuildCommandLine(const fs::path&
     stdCmdLine.commandExplicit       = true;
     stdCmdLine.scriptMode            = false;
     stdCmdLine.sourceDrivenTest      = false;
-    stdCmdLine.publish               = false;
     stdCmdLine.workspacePath         = workspacePath;
     stdCmdLine.workspaceModuleFilter = moduleFilter;
     stdCmdLine.moduleFilePath.clear();
@@ -2828,7 +2827,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
             bool           moduleSetupApplied = false;
-            if (moduleCmdLine.publish && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+            if (moduleBuild.setup.buildCfg.publishDependencies && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
                 if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
                     return Result::Error;
@@ -2843,7 +2842,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             {
                 if (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
                 {
-                    if (!moduleCmdLine.publish && probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
+                    if (!moduleSetupApplied && probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
                         return Result::Error;
 
                     NativeBackendBuilder runBuilder(probeCompiler, true);

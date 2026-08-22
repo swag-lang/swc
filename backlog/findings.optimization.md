@@ -264,7 +264,17 @@ Entries are sorted by identifier, ascending; position carries no priority.
   ~40 call sites regressed the parse stage ~10% — inlining raised pressure and the allocator
   spilled more, the same mechanism as
   [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers).
+- The exporter change of 2026-08-21 widened the blast radius. `Math.min`, `Math.max` and `Math.abs`
+  on a concrete integer or float type used to reach a `bin/std` consumer as one call into
+  `core.dll`; they now inline, so their compare-and-branch pairs land directly in the loops of the
+  consumer. `Math.clamp` and the generic forms always inlined — a generic root publishes its
+  source — so the pixel loops that hurt most never had a call to hide behind in the first
+  place. The packed forms are not affected at all: `@min`, `@max` and `@abs` on a `#simd` value
+  select packed instructions with no branch, which is why the deblocking and conversion kernels
+  that moved to `Core.Math.Simd` never needed the sign-bit rewrite.
 - Next step: lower integer `cond ? a : b` — and through it the Math min/max/clamp/abs family —
   to a compare-and-select without a branch in the backend, then re-measure the decoder's
   deblock and conversion loops and retire the hand-written sign-bit forms if the select
-  matches them.
+  matches them. Re-measure the `bin/std` consumers with it and not only the decoder: they now
+  carry these branches inline instead of a call, so the lowering is worth more across `bin/` than
+  the original H.264 measurement suggested.

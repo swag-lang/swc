@@ -24,6 +24,26 @@ and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h2
 in native Release it improves from 1,910,646 to 528,998 us (3.61x), and the complete 3,000-frame
 MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is still outstanding.
 
+Every packed measurement recorded between 2026-08-20 07:58 and 2026-08-21 21:55 was taken while
+most of `Core.Math.Simd` cost a call into `core.dll`. The wrapper was created at the start of that
+window, `video` adopted it at 13:17 the same day and `pixel` at 20:13, and the window closes with
+the two commits that let an inline callee inline across a module boundary: `#global export` on
+`simd.swg` and `integer.swg` at 21:18, then the module-API exporter publishing the body of every
+public `#[Inline]` function at 21:55, which also reached `float.swg` and `bits.swg`. What was a
+call: `load`, `store`, `splat`, `shuffle`, `select`, `widenLow`, `widenHigh`, `packUnsigned`,
+`packSigned`, `interleaveLow`, `interleaveHigh`, `average`, `mulAddPairs`, `gather`, `bitmask`, the
+vector form of `Math.abs`, and the concrete integer and float `Math.min`, `Math.max` and
+`Math.abs`. What was not, and never has been: the operators on `#simd` — arithmetic, bitwise,
+shift, comparison — and every generic function, `Math.clamp` and the vector forms of `Math.min`
+and `Math.max` among them, because a generic root always publishes its source. An arithmetic-bound
+kernel was therefore unaffected while a data-movement-bound one paid one call per operation, and
+the scalar kernels those prototypes were measured against usually paid none: the H.264 and JPEG
+sample paths use in-module branchless helpers instead of the `Math` family. So the bias usually
+understates the packed side, and where it does not — PNG Paeth scoring, T-548 — it inflates it
+instead. It applies to the accepted kernels as much as to the discarded ones: every number dated
+inside that window has to be re-baselined before it is trusted, and the entries below name their
+own. Work dated before the window used the raw `@vec*` intrinsics directly and is unaffected.
+
 ## Tier A — Target selection, widths, and calling boundaries
 
 ### T-509 — Standard modules cannot dispatch SIMD by host capability
@@ -101,9 +121,13 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 
 - Intent: add low and widening products for 8-, 16-, 32-, and 64-bit signed and unsigned lanes,
   including decomposed baseline lowerings where no one-instruction form exists.
+- Measured application: the JPEG color LUT holds 16-bit fixed-point coefficients scaled past the
+  `s16` range — 45941 and 58982 in `pixel/src/image/decode/jpg/scan.swg` — so a byte-exact
+  packed YCbCr conversion has no 16-bit high or widening product to reach for and has to widen to
+  `s32` and multiply there.
 - Complete when: low and high halves are unambiguous, all shapes have differential tests against
   scalar arithmetic, and AVX2/AVX-512 forms are selected where profitable.
-- Related: T-251, T-250, T-536.
+- Related: T-251, T-250, T-536, T-549.
 
 ### T-556 — Packed integer division and modulo have no portable lowering
 
@@ -127,8 +151,10 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 
 - Intent: add immediate lane permutation, zip/unzip, byte align/extract, and two-source table
   permutation rather than forcing every transpose through spills or byte masks. Low/high
-  interleave now exists for `u8x16` and `u16x8`; extend it only when another lane shape has a
-  measured application.
+  interleave now exists for `u8x16` and `u16x8`, and three consumers now need the 32- and 64-bit
+  shapes: a 4x4 `s16` transpose finishes on `punpckldq` and `punpcklqdq`, and their absence is what
+  leaves the inverse transforms of T-542, the IDCT column pass of T-549 and the vertical edges of
+  T-541 without a transpose strategy. Extend it there first.
 - Complete when: constant patterns select immediate hardware forms, dynamic patterns retain a
   defined fallback, and 4x4/8x8 transpose helpers require no scalar lane extraction.
 - Related: T-507, T-542, T-549, T-550, T-551.
@@ -145,9 +171,12 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 
 - Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
   defined non-faulting behavior, and efficient SSE2/AVX2 fallback lowering.
+  `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so every 4x4 and
+  8x8 block kernel either over-reads sixteen bytes or routes four and eight bytes through a scalar
+  splat.
 - Complete when: arbitrary byte counts can be processed without reading or writing outside the
   slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
-- Related: T-510, T-531, T-545.
+- Related: T-510, T-531, T-542, T-544, T-545.
 
 ### T-517 — Gather, scatter, compress, and expand are unavailable
 
@@ -157,6 +186,10 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   four-load fallback. Over 64 million hot-LUT reads, the fallback measured 9,952 to 13,646 us
   (1.37x slower than scalar) and AVX2 measured 11,804 to 15,360 us (1.30x slower), so consumers
   still need an end-to-end win from the vector work surrounding the lookup.
+  Both of those numbers were taken inside the call window described in the introduction, with the
+  gather itself lowered as a call, so the cost of the operation is not established. Re-measure it
+  before concluding anything about gather, and before reading the gather-driven rejections of
+  T-549 and T-541 as evidence against it.
 - Complete when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
   compress/expand are encoded, and the fallback never performs an invalid masked access.
 - Related: T-510, T-548, T-551, T-554.
@@ -334,6 +367,12 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   byte-exact, but 30,000 portable decodes regressed from 7,877,846 to 8,263,310 us (1.05x slower),
   while 3,000 AVX2 decodes regressed from 700,991 to 747,769 us (1.07x slower). The remaining
   shuffle and scattered-store cost still requires a different layout.
+  Every number above predates the close of the call window. The accepted horizontal filter carries
+  about forty-seven wrapper calls per sixteen luma samples — six loads, three splats, twelve
+  widens, ten `Math.abs`, eight selects, four packs, four stores — and still measured 2.66x,
+  and the discarded transpose adds roughly twenty-four interleaves on top of that, which makes it
+  the most call-dense prototype in this file. Re-baseline the accepted kernels first, then
+  re-measure the three rejected ones before designing another layout.
 - Complete when: decoded frames remain byte-exact, strong and vertical paths are packed, and the
   existing 1080p profile shows an end-to-end gain.
 - Related: T-514, T-520, T-420 in `todo.video.md`.
@@ -344,6 +383,9 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   transposes and saturating output. Direct packed-column and packed-residual prototypes were
   byte-exact but slower than the scalar kernels and were discarded; a profitable transpose or
   combined transform/reconstruction strategy is still needed.
+  Those prototypes date from inside the call window and are worth re-measuring, but the missing 32-
+  and 64-bit lane interleave (T-514) is a real obstacle that inlining does not remove: without it a
+  4x4 transpose costs a shuffle and a select per output vector.
 - Complete when: coefficient extremes and conformance streams remain byte-exact and transform time
   decreases in the video profile.
 - Related: T-514, T-520, T-541.
@@ -356,6 +398,9 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   store runs 1.43x faster; narrower dynamic-splat attempts regressed and were discarded. Replacing
   the 4x4 and 8x8 dequantization zero loops with two and eight vector stores regressed 30,000 High
   Profile decodes from 7,877,846 to 8,032,948 us (1.02x slower), so the scalar loops remain.
+  All three discarded results — the 1.02x zero loops, the narrower dynamic splats, and the
+  flat-add four-pixel rows recorded as neutral within 0.5% in `todo.video.md` — sit inside the
+  call window and within its margin, which makes them the cheapest re-measures in this file.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
 - Related: T-513, T-514, T-516, T-542.
@@ -418,6 +463,15 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   one-byte scan regressed 18-27% and was rejected. Three- and six-byte carry-shuffle prototypes
   also regressed 256 MiB in native Release from 226,957 to 276,945 us (1.22x slower) and from
   222,110 to 236,188 us (1.06x slower), so those layouts remain scalar.
+  Those rejections and the grayscale shuffle layouts all date from inside the call window, and the
+  three-byte stride they leave scalar is the commonest PNG pixel layout. PNG is also the one place
+  where the window biased the other way: the encoder Paeth figures were measured against a scalar
+  `filterPaeth` calling `Math.abs` three times per byte, against roughly a quarter of a call per
+  byte on the packed side, so 3.24x and 3.55x are inflated. Decoder `Average` and `Paeth` are
+  still byte-at-a-time and have never been measured at all; the libpng SSE2 kernels carry the left
+  dependency in a register rather than through memory, which is exactly the shape a call made
+  hopeless. Note the ceiling before spending: Inflate dominates the large fixtures, so a 2x filter
+  or conversion kernel shows as 1.02x end to end.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
 - Related: T-514, T-516, T-517, T-520.
@@ -449,6 +503,12 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   checksums.
   JPEG still needs a lower-shuffle combined conversion/packing layout, narrower IDCT arithmetic,
   or cheaper backend packed multiply/narrow sequences rather than isolated SIMD work.
+  There is no packed code in `pixel/src/image/decode/jpg` at all, and every prototype above was
+  measured inside the call window — including the six-shuffle planar pack and the packed
+  fixed-point conversion, which are pure data movement and therefore the two worst served by it.
+  The conclusion just above was drawn from those numbers and does not survive them. The entry also
+  has no stage profile: measure the Huffman, IDCT and conversion split of a baseline decode before
+  choosing which one to pack.
 - Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient
   extremes are covered, and encode/decode stages improve independently.
 - Related: T-511, T-514, T-520.
@@ -512,6 +572,9 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
   to 33,097 us (9.30x). Repeated TGA32 improves from 229,474 to 14,081 us (16.30x) and from
   231,657 to 15,492 us (14.95x); raw packets improve from 233,690 to 7,706 us (30.33x) and
   from 236,496 to 33,536 us (7.05x).
+  The 16-entry SSSE3 palette prototype was also rejected inside the call window, but its margin is
+  wide and the prepacked `u32` table already beats it on the same fixtures, so it has the weakest
+  claim on a re-measure in this file.
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
 - Related: T-514, T-517.

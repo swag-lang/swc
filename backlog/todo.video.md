@@ -52,6 +52,12 @@ is the layout it does not read yet.
   the conversion as sixteen `pmaddwd` pair sums removed the twenty `s32x4` multiplies but required
   sixteen lane interleaves; over 3,000 small High-profile frames it remained byte-exact and
   regressed release decoding from 1,117,447 to 1,340,193 us (1.20x slower), so it was discarded.
+  That measurement, and the 2026-08-20 and 2026-08-21 packed results below, were taken while most
+  of `Core.Math.Simd` lowered to a call into `core.dll`. The `pmaddwd` recast is the clearest case
+  in the repository: it removed twenty free operators and added about thirty-two calls, sixteen
+  lane interleaves and sixteen pair sums, so its verdict says nothing about the layout. Re-measure
+  it first. The window, and what it does and does not cover, is in the introduction of
+  `todo.simd.md`.
 - The 2026-08-20 follow-up packed explicit weighted prediction for every H.264 block width
   (2/4/8/16), the common 16x16 and filtered 8x8 intra stores, and weak horizontal deblocking.
   Release microkernels improved by 2.46x/1.41x for uni/bi weighting, 2.12x to 3.20x for the 16x16

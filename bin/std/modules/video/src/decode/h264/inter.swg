@@ -19,29 +19,26 @@ func tap6(a, b, c, d, e, f: s32)->s32 => a - 5 * b + 20 * c + 20 * d - 5 * e + f
 // positive taps reach 20 * 510 + 510 = 10710 and the negative ones -2550, so
 // the arithmetic never wraps.
 #[Swag.Inline]
-private func tap6Raw16(a, b, c, d, e, f: Simd.U16x8)->Simd.S16x8
+private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8
 {
-    let inner = cast #bit(Simd.S16x8) (c + d)
-    let outer = cast #bit(Simd.S16x8) (b + e)
-    let edges = cast #bit(Simd.S16x8) (a + f)
-    return edges + inner * 20 - outer * 5
+    return cast #bit(Simd.S16x8) edges + cast #bit(Simd.S16x8) inner * 20 - cast #bit(Simd.S16x8) outer * 5
 }
 
 // Eight six-tap half-samples on widened byte lanes; the caller's saturating
 // pack is exactly the scalar clamp.
 #[Swag.Inline]
-private func tap6Half16(a, b, c, d, e, f: Simd.U16x8)->Simd.S16x8
+private func tap6Half16(inner, outer, edges: Simd.U16x8)->Simd.S16x8
 {
-    return (tap6Raw16(a, b, c, d, e, f) + 16) >> 5
+    return (tap6Raw16(inner, outer, edges) + 16) >> 5
 }
 
 // One vertical six-tap over four widened sums, with the center rounding shift.
 // The 32-bit intermediates stay far inside the lane range: the sums reach
 // ±10710, so the filtered value reaches about ±470000.
 #[Swag.Inline]
-private func tap6CenterQuad(a, b, c, d, e, f: Simd.S32x4)->Simd.S32x4
+private func tap6CenterQuad(inner, outer, edges: Simd.S32x4)->Simd.S32x4
 {
-    let sum = (a + f) + (c + d) * 20 - (b + e) * 5
+    let sum = edges + inner * 20 - outer * 5
     return (sum + 512) >> 10
 }
 
@@ -49,10 +46,10 @@ private func tap6CenterQuad(a, b, c, d, e, f: Simd.S32x4)->Simd.S32x4
 // shifted result reaches about ±460, so the signed pack never saturates and
 // the caller's unsigned pack is exactly the scalar clamp.
 #[Swag.Inline]
-private func tap6Center8(a, b, c, d, e, f: Simd.S16x8)->Simd.S16x8
+private func tap6Center8(inner, outer, edges: Simd.S16x8)->Simd.S16x8
 {
-    let lo = tap6CenterQuad(Simd.widenLow(a), Simd.widenLow(b), Simd.widenLow(c), Simd.widenLow(d), Simd.widenLow(e), Simd.widenLow(f))
-    let hi = tap6CenterQuad(Simd.widenHigh(a), Simd.widenHigh(b), Simd.widenHigh(c), Simd.widenHigh(d), Simd.widenHigh(e), Simd.widenHigh(f))
+    let lo = tap6CenterQuad(Simd.widenLow(inner), Simd.widenLow(outer), Simd.widenLow(edges))
+    let hi = tap6CenterQuad(Simd.widenHigh(inner), Simd.widenHigh(outer), Simd.widenHigh(edges))
     return Simd.packSigned(lo, hi)
 }
 
@@ -70,8 +67,8 @@ private func tap6Row16(line: const [*] u8, stride: u64)->Simd.U8x16
     let r4 = Simd.load(line + 4 * stride)
     let r5 = Simd.load(line + 5 * stride)
 
-    let lo = tap6Half16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
-    let hi = tap6Half16(Simd.widenHigh(r0), Simd.widenHigh(r1), Simd.widenHigh(r2), Simd.widenHigh(r3), Simd.widenHigh(r4), Simd.widenHigh(r5))
+    let lo = tap6Half16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
+    let hi = tap6Half16(Simd.widenHigh(r2) + Simd.widenHigh(r3), Simd.widenHigh(r1) + Simd.widenHigh(r4), Simd.widenHigh(r0) + Simd.widenHigh(r5))
     return Simd.packUnsigned(lo, hi)
 }
 
@@ -87,7 +84,7 @@ private func tap6Row8(line: const [*] u8, stride: u64)->Simd.U8x16
     let r4 = Simd.load(line + 4 * stride)
     let r5 = Simd.load(line + 5 * stride)
 
-    let lo = tap6Half16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
+    let lo = tap6Half16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
     return Simd.packUnsigned(lo, lo)
 }
 
@@ -320,14 +317,14 @@ private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
         let r3   = Simd.load(line + 3)
         let r4   = Simd.load(line + 4)
         let r5   = Simd.load(line + 5)
-        sums[row * 2]     = tap6Raw16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
-        sums[row * 2 + 1] = tap6Raw16(Simd.widenHigh(r0), Simd.widenHigh(r1), Simd.widenHigh(r2), Simd.widenHigh(r3), Simd.widenHigh(r4), Simd.widenHigh(r5))
+        sums[row * 2]     = tap6Raw16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
+        sums[row * 2 + 1] = tap6Raw16(Simd.widenHigh(r2) + Simd.widenHigh(r3), Simd.widenHigh(r1) + Simd.widenHigh(r4), Simd.widenHigh(r0) + Simd.widenHigh(r5))
     }
 
     for row in cast(u64) height
     {
-        let lo = tap6Center8(sums[row * 2], sums[row * 2 + 2], sums[row * 2 + 4], sums[row * 2 + 6], sums[row * 2 + 8], sums[row * 2 + 10])
-        let hi = tap6Center8(sums[row * 2 + 1], sums[row * 2 + 3], sums[row * 2 + 5], sums[row * 2 + 7], sums[row * 2 + 9], sums[row * 2 + 11])
+        let lo = tap6Center8(sums[row * 2 + 4] + sums[row * 2 + 6], sums[row * 2 + 2] + sums[row * 2 + 8], sums[row * 2] + sums[row * 2 + 10])
+        let hi = tap6Center8(sums[row * 2 + 5] + sums[row * 2 + 7], sums[row * 2 + 3] + sums[row * 2 + 9], sums[row * 2 + 1] + sums[row * 2 + 11])
         Simd.store(dst + row * dstStride, Simd.packUnsigned(lo, hi))
     }
 }
@@ -346,12 +343,12 @@ private func halfCenter8(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u6
         let r3   = Simd.load(line + 3)
         let r4   = Simd.load(line + 4)
         let r5   = Simd.load(line + 5)
-        sums[row] = tap6Raw16(Simd.widenLow(r0), Simd.widenLow(r1), Simd.widenLow(r2), Simd.widenLow(r3), Simd.widenLow(r4), Simd.widenLow(r5))
+        sums[row] = tap6Raw16(Simd.widenLow(r2) + Simd.widenLow(r3), Simd.widenLow(r1) + Simd.widenLow(r4), Simd.widenLow(r0) + Simd.widenLow(r5))
     }
 
     for row in cast(u64) height
     {
-        let half   = tap6Center8(sums[row], sums[row + 1], sums[row + 2], sums[row + 3], sums[row + 4], sums[row + 5])
+        let half   = tap6Center8(sums[row + 2] + sums[row + 3], sums[row + 1] + sums[row + 4], sums[row] + sums[row + 5])
         let packed = Simd.packUnsigned(half, half)
         if width == 8 do
             Simd.storeLow8(dst + row * dstStride, packed)

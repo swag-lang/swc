@@ -34,6 +34,8 @@ namespace __Win32RT
     const PAGE_READWRITE       = 0x0000_0004'u32
     const PAGE_NOACCESS        = 0x0000_0001'u32
 
+    const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
+
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func RtlCaptureContext(contextRecord: *void)
@@ -62,6 +64,7 @@ namespace __Win32RT
         func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK)
         func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->#null *void
         func VirtualFree(lpAddress: #null *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL
+        func IsProcessorFeaturePresent(processorFeature: DWORD)->BOOL
     }
 
     #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
@@ -243,6 +246,10 @@ func __osCommandLine()->#null string
         return null
     return @mkstring(cmdLine!, @countof(cast(const cstring) cmdLine!))
 }
+
+// Windows answers this only once the operating system has enabled YMM state, which is exactly
+// what the VEX-encoded forms the backend emits depend on. A CPUID bit alone would not prove it.
+func __hostHasAvx2()->bool => __Win32RT.IsProcessorFeaturePresent(__Win32RT.PF_AVX2_INSTRUCTIONS_AVAILABLE) != __Win32RT.FALSE
 
 ////////////////////////////////////////////////////////////
 func __printString(message: #null string)

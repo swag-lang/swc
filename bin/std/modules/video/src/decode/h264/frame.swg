@@ -10,6 +10,7 @@ using Core, Core.Errors, Core.Math
 // excursions go through the bounded fallback of the interpolator instead.
 const FramePadding = 32's32
 private const ConversionBands = 16'u32
+var PerfRgbUs: u64
 
 // One decoded picture: padded 4:2:0 planes plus the reference and motion state the rest of
 // the stream needs from it.
@@ -92,6 +93,14 @@ impl Frame
     // limited-range BT.601 arithmetic every decoder of this module uses.
     mtd const toRgb(target: *Pixel.Image, width, height, cropLeft, cropTop: s32)
     {
+        var perfClock: Time.Stopwatch
+        perfClock.start()
+        defer
+        {
+            perfClock.stop()
+            Atomic.add(&PerfRgbUs, perfClock.elapsedMicroseconds())
+        }
+
         if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
             target[] = Pixel.Image.create(width, height, .RGB8)
 

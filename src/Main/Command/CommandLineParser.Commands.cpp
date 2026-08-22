@@ -118,16 +118,6 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--optimize", "-o",
         &cmdLine_->backendOptimize,
         "Enable backend optimization for JIT folding and native code generation");
-    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--cpu-vectorize", nullptr,
-            &cmdLine_->cpuVectorize,
-            {
-                {"none", Runtime::BuildCfgBackendCpuVectorize::None},
-                {"sse2", Runtime::BuildCfgBackendCpuVectorize::Sse2},
-                {"avx2", Runtime::BuildCfgBackendCpuVectorize::Avx2},
-            },
-            "Override the highest SIMD instruction set the auto-vectorizer may target, replacing the build configuration's setting",
-            true,
-            {&StructConfigAssignHook::setBoolTrue, &cmdLine_->cpuVectorizeExplicit});
     add(HelpOptionGroup::Target, "doc", "--doc-output-dir", nullptr,
         &cmdLine_->docOutputDir,
         "Write generated documentation to this directory");

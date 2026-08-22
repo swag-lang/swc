@@ -477,8 +477,8 @@ namespace
     void buildReturnZeroAfterSlpVectorizedLanes(MicroBuilder& builder, const CallConv& callConv)
     {
         Runtime::BuildCfgBackend buildCfg{};
-        buildCfg.optimize     = true;
-        buildCfg.cpuVectorize = Runtime::BuildCfgBackendCpuVectorize::Sse2;
+        buildCfg.optimize  = true;
+        buildCfg.vectorize = true;
         builder.setBackendBuildCfg(buildCfg);
 
         constexpr MicroReg rdx      = MicroReg::intReg(3);

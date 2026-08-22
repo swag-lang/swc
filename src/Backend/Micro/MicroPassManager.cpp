@@ -515,8 +515,8 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreRaLoopPass(*loopUnrollPass_);
 
         // Runs once after the loop above has converged, on the canonical
-        // scalar IR. Self-gated on the build configuration's cpuVectorize
-        // setting; when it rewrites something, the pre-RA loop runs again to
+        // scalar IR. Self-gated on the build configuration's vectorization
+        // policy; when it rewrites something, the pre-RA loop runs again to
         // clean up the dead scalar chains.
         addVectorizePass(*slpVectorizePass_);
     }

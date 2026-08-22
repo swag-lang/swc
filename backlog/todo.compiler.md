@@ -273,6 +273,23 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - The DevMode `Link` block uses `UseFastLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again, with conventional incremental linking disabled.
 - The resulting DevMode and Release builds pass their compiler validation workflows.
 
+### T-560 — `swc.exe` is still built for the pre-baseline instruction set
+
+**Intent.** `swc.vcxproj` sets no `EnableEnhancedInstructionSet`, so MSVC compiles the compiler itself at the x64 default (SSE2) even though everything it emits, and everything its JIT executes, is now `x86-64-v3`. Raising the compiler's own build to `/arch:AVX2` lets MSVC use the same baseline for `swc`, which is a plain speedup of the compiler.
+
+The order matters. `hostCpuMeetsBaseline()` in `src/main.cpp` is what turns a missing baseline into a message instead of an illegal-instruction crash, and it stops being reachable the moment the translation unit holding it — or any static initializer running before `main` — is itself compiled to AVX2. Raising `/arch` therefore requires first moving the guard into a translation unit pinned to `EnableEnhancedInstructionSet=NotSet`; done in the other order, the change silently deletes the diagnostic it depends on.
+
+This is a compiler-performance change, not part of the baseline contract: it moves compile time and `swc.exe` size, so it needs its own measured A/B rather than riding along with the baseline work.
+
+**Complete when.**
+
+- The CPU guard lives in a translation unit pinned to the pre-baseline instruction set, and runs before any static initializer that could execute AVX2.
+- `swc.vcxproj` sets `AdvancedVectorExtensions2` for Release and DevMode.
+- A host reporting no AVX2 still gets the diagnostic instead of a fault.
+- Compile time and `swc.exe` size are measured before and after, alternating order, and recorded.
+
+**Related:** T-385.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

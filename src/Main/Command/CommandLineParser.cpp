@@ -269,13 +269,13 @@ namespace
             buildCfg.allocatorFillMemory        = false;
             buildCfg.errorStackTrace            = false;
             buildCfg.backend.optimize           = true;
+            buildCfg.backend.vectorize          = true;
             buildCfg.backend.debugInfo          = true;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
             buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::Auto;
-            buildCfg.backend.cpuVectorize       = Runtime::BuildCfgBackendCpuVectorize::Sse2;
         }
         else
         {
@@ -298,8 +298,6 @@ namespace
 
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
-        if (cmdLine.cpuVectorizeExplicit)
-            buildCfg.backend.cpuVectorize = cmdLine.cpuVectorize;
 
         buildCfg.backendKind = cmdLine.backendKind;
 
@@ -357,8 +355,6 @@ namespace
         {
             if (t->target == &cmdLine.backendKind)
                 cmdLine.artifactKindExplicit = true;
-            else if (t->target == &cmdLine.cpuVectorize)
-                cmdLine.cpuVectorizeExplicit = true;
         }
     }
 }

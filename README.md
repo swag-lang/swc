@@ -34,7 +34,7 @@ moving with it.
 * **Low level** (I have been a C++ guy for 20+ years, so I had no choice). No garbage collector like `C#`, `Go`, or `D`, no automatic pointer management like `Swift`, no ownership like `Rust`.
 * **Statically typed** (what else), with as much type inference as you want.
 * **Inspired** by a lot of things out there: `Swift` for the syntax, `Jai` (Jonathan Blow) for the great ideas, `Go` for its simplicity and its interfaces, `C#` for `.NET`, `Zig` (Andrew Kelley) for the error system, `Rust` for the `impl` thing, and so on.
-* Only for **Windows 10/11** and **x86-64** so far, because this is already a crazy amount of work.
+* Only for **Windows 10/11** and **x86-64** so far, because this is already a crazy amount of work. The baseline is **`x86-64-v3`** (AVX2, FMA, BMI1/2): `swc` and everything it emits refuse to start on an older CPU, and say so. There is no runtime dispatch to a lower instruction set, and no build option to ask for one.
 
 ### Swag is not...
 

@@ -47,11 +47,30 @@ namespace
         (void) std::fflush(stderr);
         return EXCEPTION_CONTINUE_SEARCH;
     }
+
+    // swc does not only emit x86-64-v3 code, it runs it: '#run', constant folding, and every
+    // other compile-time execution goes through the JIT, on this machine rather than on the
+    // target's. Report the missing baseline here, before the first VEX-encoded instruction
+    // turns it into an illegal-instruction crash carrying no explanation.
+    bool hostCpuMeetsBaseline()
+    {
+        if (IsProcessorFeaturePresent(PF_AVX2_INSTRUCTIONS_AVAILABLE))
+            return true;
+        std::print(stderr, "fatal error: swc needs a CPU with AVX2 (x86-64-v3)\n");
+        std::print(stderr, "note: swc emits x86-64-v3 code and executes it in its own JIT, so the host CPU needs it too\n");
+        (void) std::fflush(stderr);
+        return false;
+    }
 #endif
 }
 
 int main(int argc, char* argv[])
 {
+#ifdef _WIN32
+    if (!hostCpuMeetsBaseline())
+        return static_cast<int>(swc::ExitCode::ErrorCommand);
+#endif
+
     swc::MemoryProfile::configureAllocator();
 
 #ifdef _WIN32

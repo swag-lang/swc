@@ -950,20 +950,13 @@ namespace Swag
         Auto       = 2     // MarkedOnly plus compiler-chosen small/cheap callees.
     }
 
-    // Highest SIMD instruction set the auto-vectorizer may target.
-    enum BuildCfgBackendCpuVectorize: u8
-    {
-        None = 0     // No auto-vectorization.
-        SSE2 = 1     // Allow 128-bit SSE2 packed vectorization.
-        AVX2 = 2     // Allow 256-bit AVX2 packed vectorization.
-    }
-
     // Backend options
     struct BuildCfgBackend
     {
         public
         {
             optimize:           bool
+            vectorize:          bool     // Auto-vectorize; true in 'release'
             debugInfo        = false     // Output debug information if 'true'
             enableExceptions = true      // Generate unwind info for JIT code and register SEH function tables
             fpMathFma:          bool     // true in 'release'
@@ -974,7 +967,6 @@ namespace Swag
             fpMathApproxFunc:   bool
             unrollMemLimit:     u32                                     // Maximum number of bytes to unroll memset/cpy in optimize mode
             inlineMode       = BuildCfgBackendInlineMode.MarkedOnly     // Inlining policy (set per build config)
-            cpuVectorize     = BuildCfgBackendCpuVectorize.None         // Auto-vectorization policy (set per build config)
         }
     }
 

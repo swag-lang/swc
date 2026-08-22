@@ -439,29 +439,20 @@ namespace Runtime
         Auto       = 2,
     };
 
-    // Highest SIMD instruction set the auto-vectorizer may target. Gated by the
-    // build config (and, ultimately, the target CPU). None disables vectorization.
-    enum class BuildCfgBackendCpuVectorize : uint8_t
-    {
-        None = 0,
-        Sse2 = 1,
-        Avx2 = 2,
-    };
-
     struct BuildCfgBackend
     {
-        bool                        optimize;
-        bool                        debugInfo;
-        bool                        enableExceptions;
-        bool                        fpMathFma;
-        bool                        fpMathNoNaN;
-        bool                        fpMathNoInf;
-        bool                        fpMathNoSignedZero;
-        bool                        fpMathUnsafe;
-        bool                        fpMathApproxFunc;
-        uint32_t                    unrollMemLimit;
-        BuildCfgBackendInlineMode   inlineMode   = BuildCfgBackendInlineMode::MarkedOnly;
-        BuildCfgBackendCpuVectorize cpuVectorize = BuildCfgBackendCpuVectorize::None;
+        bool                      optimize;
+        bool                      vectorize;
+        bool                      debugInfo;
+        bool                      enableExceptions;
+        bool                      fpMathFma;
+        bool                      fpMathNoNaN;
+        bool                      fpMathNoInf;
+        bool                      fpMathNoSignedZero;
+        bool                      fpMathUnsafe;
+        bool                      fpMathApproxFunc;
+        uint32_t                  unrollMemLimit;
+        BuildCfgBackendInlineMode inlineMode = BuildCfgBackendInlineMode::MarkedOnly;
     };
 
     enum class BuildCfgBackendKind

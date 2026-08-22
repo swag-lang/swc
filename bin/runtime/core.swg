@@ -293,8 +293,31 @@ func __resetRuntimeContext()
     cxt.defaultAllocator = allocator
 }
 
+// Every artifact is x86-64-v3 code: the backend emits VEX-encoded forms unconditionally, so a
+// host without AVX2 faults on an illegal instruction somewhere inside the program instead of
+// saying why. This runs first in the startup path and touches nothing but the operating system,
+// so it stays reachable on the very CPU that cannot execute the rest.
+//
+// Only a standalone program reaches an unchecked host. Under the compiler the answer is already
+// known -- 'swc' refused to start below the baseline before it could run any of this -- and the
+// compiler is reached three ways: JIT code, the JIT-run test entry (which carries no flag of its
+// own), and the native modules the compiler loads. Ending the process in any of them would kill
+// the compiler instead of reporting.
+#[Swag.Optimize(false)]
+func __checkCpuBaseline(flags: RuntimeFlags)
+{
+    if @jit or (flags & .FromCompiler) do
+        return
+    if __hostHasAvx2() do
+        return
+
+    __printString("fatal error: this program needs a CPU with AVX2 (x86-64-v3)\n")
+    __exitError()
+}
+
 func __setupRuntime(flags: RuntimeFlags)
 {
+    __checkCpuBaseline(flags)
     __resetRuntimeContext()
 
     let cxt = @getcontext()

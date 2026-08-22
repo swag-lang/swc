@@ -43,7 +43,7 @@ namespace
         addInfoEntry(entries, "Work directory", Utf8(buildCfg.workDir));
         addBoolEntry(entries, "Backend optimization", buildCfg.backend.optimize);
         addInfoEntry(entries, "Inline mode", inlineModeName(buildCfg.backend.inlineMode));
-        addInfoEntry(entries, "CPU vectorization", cpuVectorizeName(buildCfg.backend.cpuVectorize));
+        addBoolEntry(entries, "Vectorization", buildCfg.backend.vectorize);
         Logger::printFieldGroup(ctx, "Command Line", entries, nextInfoGroupStyle(hasPrintedGroup));
 
         entries.clear();

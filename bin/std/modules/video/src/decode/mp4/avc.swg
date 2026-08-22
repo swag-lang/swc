@@ -2,10 +2,33 @@
 
 using Core, Core.Errors, Pixel
 
+var PerfWaitParseUs: u64
+var PerfUseInterPicture = true
+
 // One decoded H.264 frame waiting for its display turn.
 private struct PendingFrame
 {
     frame: #null *H264.Frame
+    rank:  u64
+}
+
+// One access-unit parser running ahead of picture reconstruction.
+struct AvcParseJob
+{
+    using base: Jobs.Job
+
+    decoder:    #null *H264.Decoder
+    payload:    #null *Array'u8
+    errorText:  String
+    started:    u32
+    hasPicture: bool
+    scheduled:  bool
+}
+
+// One reconstructed frame paired with its display rank.
+private struct DecodedAvcSample
+{
+    frame: *H264.Frame
     rank:  u64
 }
 
@@ -18,13 +41,17 @@ private struct PendingFrame
 // the frames that only exist to rebuild the references.
 struct AvcStream
 {
-    decoder:      H264.Decoder
+    decoders:     [2] H264.Decoder
     frames:       Array'FrameEntry     // Sample offsets and sizes, in decode order.
     rankOfSample: Array'u32            // Display rank of each decode-order sample.
     sampleAtRank: Array'u32            // Decode-order sample of each display rank.
     syncFlags:    Array'u8             // Whether each sample starts a clean decode.
     pending:      Array'PendingFrame
-    payload:      Array'u8
+    payloads:     [2] Array'u8
+    parseJobs:    [2] AvcParseJob
+    parsedLane:   u32
+    parsedRank:   u64
+    hasParsed:    bool
     nextDecode:   u64     // Next sample to hand the decoder.
     nextRank:     u64     // Display rank the next decode call returns.
     width:        s32
@@ -40,9 +67,10 @@ impl AvcStream
     {
         if !track.avcConfig.count do
             fail InvalidFormatError{"MP4 AVC track has no decoder configuration"}
-        .decoder.configure(track.avcConfig.toSlice())
+        .decoders[0].configure(track.avcConfig.toSlice())
+        .decoders[1].configure(track.avcConfig.toSlice())
 
-        let sps = .decoder.firstSps()
+        let sps = .decoders[0].firstSps()
         if !sps do
             fail InvalidFormatError{"MP4 AVC configuration carries no sequence parameter set"}
         .width    = sps.width()
@@ -100,6 +128,11 @@ impl AvcStream
         .nextRank   = 0
     }
 
+    mtd opDrop()
+    {
+        .stopParse()
+    }
+
     // Returns the first display rank at or after `rank` whose sample starts a clean decode.
     //
     // Returns the stream length when no sync sample remains past `rank`.
@@ -138,8 +171,11 @@ impl AvcStream
         // decode position. This avoids decoding an ever-growing prefix while scrubbing.
         if rank < .nextRank or (!alreadyPending and sync > .nextDecode)
         {
+            .stopParse()
             .releasePending()
-            .decoder.restart()
+            for &decoder in .decoders do
+                decoder.restart()
+            .hasParsed  = false
             .nextDecode = sync
         }
         else
@@ -160,13 +196,128 @@ impl AvcStream
         {
             if .pending[index].rank < rank
             {
-                .decoder.releaseFrame(.pending[index].frame!)
+                .decoders[0].releaseFrame(.pending[index].frame!)
                 .pending.removeAt(index)
                 continue
             }
 
             index += 1
         }
+    }
+
+    // Waits for and forgets an access-unit parse that the caller no longer needs.
+    mtd stopParse()
+    {
+        if !.hasParsed do
+            return
+
+        let job = &.parseJobs[.parsedLane]
+        if job.scheduled
+        {
+            var perfClock: Time.Stopwatch
+            perfClock.start()
+            Jobs.wait(job)
+            perfClock.stop()
+            Atomic.add(&PerfWaitParseUs, perfClock.elapsedMicroseconds())
+        }
+        job.scheduled = false
+        .hasParsed    = false
+    }
+
+    // Waits until the selected lane has parsed its access unit.
+    mtd waitParse() fail
+    {
+        let job = &.parseJobs[.parsedLane]
+        if job.scheduled
+        {
+            var perfClock: Time.Stopwatch
+            perfClock.start()
+            Jobs.wait(job)
+            perfClock.stop()
+            Atomic.add(&PerfWaitParseUs, perfClock.elapsedMicroseconds())
+        }
+        job.scheduled = false
+
+        if job.errorText.length do
+            fail InvalidFormatError{Errors.mkString(job.errorText.toString())}
+        if !job.hasPicture do
+            fail InvalidFormatError{"MP4 video sample carries no picture"}
+    }
+
+    // Reads and starts the next access unit that cannot be omitted for `wanted`.
+    mtd startParse(source: *Source, lane: u32, wanted: u64, previous: #null *H264.Decoder, asynchronous: bool)->bool fail
+    {
+        let decoder = &.decoders[lane]
+        if previous do
+            decoder.inheritPredictionState(previous!)
+
+        let payload = &.payloads[lane]
+        while .nextDecode < .frames.count
+        {
+            let entry = .frames[.nextDecode]
+            if payload.count != entry.size do
+                payload.resize(entry.size)
+            source.seek(entry.offset)
+            source.readExact(payload.toSlice())
+
+            let rank = cast(u64) .rankOfSample[.nextDecode]
+            .nextDecode += 1
+            if rank < wanted and decoder.canSkipWhileSeeking(payload.toSlice()) do
+                continue
+
+            let job = &.parseJobs[lane]
+            job.decoder    = decoder
+            job.payload    = payload
+            job.errorText  = ""
+            job.started    = 0
+            job.hasPicture = false
+            job.scheduled  = asynchronous
+
+            .parsedLane = lane
+            .parsedRank = rank
+            .hasParsed  = true
+            if asynchronous
+            {
+                job.lambda = &runAvcParse
+                job.data   = job
+                Jobs.schedule(job)
+
+                // Starting the entropy parser before reconstruction fans out prevents the
+                // scheduler's LIFO queue from burying it under the reconstruction bands.
+                while Atomic.get(&job.started) == 0 do
+                    Threading.Thread.yield()
+            }
+            else do
+                runAvcParse(job)
+            return true
+        }
+
+        .hasParsed = false
+        return false
+    }
+
+    // Reconstructs the next decode-order sample while parsing its successor on another lane.
+    mtd decodeStoredSample(source: *Source, wanted: u64)->DecodedAvcSample fail
+    {
+        if !.hasParsed
+        {
+            if !try .startParse(source, 0, wanted, null, false) do
+                fail InvalidFormatError{"MP4 stream ends before the requested frame"}
+        }
+
+        .waitParse()
+        let lane    = .parsedLane
+        let rank    = .parsedRank
+        let decoder = &.decoders[lane]
+        .hasParsed = false
+
+        // Two scheduler workers are the minimum useful pipeline: one parses while the caller
+        // and the remaining workers reconstruct the preceding picture.
+        if Jobs.workerCount() > 1 and PerfUseInterPicture do
+            discard try .startParse(source, 1 - lane, wanted, decoder, true)
+
+        let frame = try decoder.finishAccessUnit()
+        return {frame, rank}
     }
 
     // Decodes until the frame with the current display rank exists, then emits it.
@@ -181,7 +332,7 @@ impl AvcStream
             {
                 let frame = .pending[index].frame!
                 frame.toRgb(target, .width, .height, .cropLeft, .cropTop)
-                .decoder.releaseFrame(frame)
+                .decoders[0].releaseFrame(frame)
                 .pending.removeAt(index)
                 found = true
                 break
@@ -190,35 +341,18 @@ impl AvcStream
             if found do
                 break
 
-            if .nextDecode >= .frames.count do
+            if !.hasParsed and .nextDecode >= .frames.count do
                 fail InvalidFormatError{"MP4 stream ends before the requested frame"}
 
-            let entry = .frames[.nextDecode]
-            if .payload.count != entry.size do
-                .payload.resize(entry.size)
-            source.seek(entry.offset)
-            source.readExact(.payload.toSlice())
-
-            let rank = cast(u64) .rankOfSample[.nextDecode]
-            if rank < wanted and .decoder.canSkipWhileSeeking(.payload.toSlice())
-            {
-                .nextDecode += 1
-                continue
-            }
-
-            let decoded = .decoder.decodeAccessUnit(.payload.toSlice())
-            if !decoded do
-                fail InvalidFormatError{"MP4 video sample carries no picture"}
-
-            .nextDecode += 1
-            if rank < wanted
+            let decoded = try .decodeStoredSample(source, wanted)
+            if decoded.rank < wanted
             {
                 // Only decoded to rebuild the reference chain.
-                .decoder.releaseFrame(decoded!)
+                .decoders[0].releaseFrame(decoded.frame)
                 continue
             }
 
-            .pending.add({decoded, rank})
+            .pending.add({decoded.frame, decoded.rank})
             if .pending.count > 34 do
                 fail InvalidFormatError{"MP4 stream reorders more frames than a valid stream can"}
         }
@@ -230,7 +364,22 @@ impl AvcStream
     mtd releasePending()
     {
         for entry in .pending do
-            .decoder.releaseFrame(entry.frame!)
+            .decoders[0].releaseFrame(entry.frame!)
         .pending.clear()
     }
+}
+
+// Parses one complete access unit on a scheduler worker.
+private func runAvcParse(data: #null *void)
+{
+    let job = cast(*AvcParseJob) data!
+    Atomic.exchange(&job.started, 1)
+    let hasPicture = catch job.decoder!.parseAccessUnit(job.payload!.toSlice(), true) as parseError
+    if parseError != null
+    {
+        job.errorText = Errors.message(parseError)
+        return
+    }
+
+    job.hasPicture = hasPicture
 }

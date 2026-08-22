@@ -20,6 +20,13 @@ struct CabacReader
     contexts:  [1024] u8     // Packed state: `(pStateIdx << 1) | valMPS`.
 }
 
+// Arithmetic registers kept local across a complete significance-map run.
+private struct CabacArithmetic
+{
+    low:   u32
+    range: u32
+}
+
 impl CabacReader
 {
     // Initializes the contexts for one slice, section 9.3.1.1.
@@ -144,28 +151,28 @@ impl CabacReader
     // Kept separate from the generic decision so only the significance-map loop pays the code
     // growth needed to keep the arithmetic state in registers.
     #[Swag.Inline]
-    private mtd significanceDecision(contextIndex: u32)->u32
+    private mtd significanceDecision(contextIndex: u32, arithmetic: *CabacArithmetic)->u32
     {
         let state  = cast(u32) .contexts[contextIndex]
         let pState = cast(u64) (state >> 1)
         let mps    = state & 1
-        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((.range >> 6) & 3)]
+        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((arithmetic.range >> 6) & 3)]
 
-        .range -= lps
-        let diff = cast(s32) .low - cast(s32) .range
+        arithmetic.range -= lps
+        let diff = cast(s32) arithmetic.low - cast(s32) arithmetic.range
         let mask = cast #wrap (u32) (diff >> 31)
-        .low   = (.low & mask) | ((cast #wrap (u32) diff) & ~mask)
-        .range = (.range & mask) | (lps & ~mask)
+        arithmetic.low   = (arithmetic.low & mask) | ((cast #wrap (u32) diff) & ~mask)
+        arithmetic.range = (arithmetic.range & mask) | (lps & ~mask)
         let lpsMps   = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
         let mpsState = (cast(u32) CabacTransMps[pState] << 1) | mps
         let lpsState = (cast(u32) CabacTransLps[pState] << 1) | lpsMps
         .contexts[contextIndex] = cast(u8) ((mpsState & mask) | (lpsState & ~mask))
 
-        let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
+        let shift = max0S32(cast(s32) @bitcountlz(arithmetic.range) - 23)
         if shift != 0
         {
-            .range <<= cast(u32) shift
-            .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
+            arithmetic.range <<= cast(u32) shift
+            arithmetic.low = (arithmetic.low << cast(u32) shift) | .takeBits(cast(u32) shift)
         }
 
         return mps ^ (1 & ~mask)
@@ -674,15 +681,16 @@ impl Slice
         let lastBase          = CabacLastBase[cat]
         var scan              = 0'u32
         var foundLast         = false
+        var arithmetic        = CabacArithmetic{.cabac.low, .cabac.range}
         while scan < maxCoeffs - 1
         {
             let sigCtx = cat == 5 ? cast(u32) SigCoeffCtx8x8[scan] : scan
-            if .cabac.significanceDecision(sigBase + sigCtx) != 0
+            if .cabac.significanceDecision(sigBase + sigCtx, &arithmetic) != 0
             {
                 indices[count] = scan
                 count          += 1
                 let lastCtx = cat == 5 ? cast(u32) LastCoeffCtx8x8[scan] : scan
-                if .cabac.significanceDecision(lastBase + lastCtx) != 0
+                if .cabac.significanceDecision(lastBase + lastCtx, &arithmetic) != 0
                 {
                     foundLast = true
                     break
@@ -691,6 +699,9 @@ impl Slice
 
             scan += 1
         }
+
+        .cabac.low   = arithmetic.low
+        .cabac.range = arithmetic.range
 
         if !foundLast and scan == maxCoeffs - 1
         {

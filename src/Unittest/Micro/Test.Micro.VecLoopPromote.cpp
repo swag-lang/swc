@@ -17,8 +17,8 @@ namespace
     {
         // The pass shares the vectorizer's build-configuration gate.
         Runtime::BuildCfgBackend backendCfg{};
-        backendCfg.optimize     = true;
-        backendCfg.cpuVectorize = Runtime::BuildCfgBackendCpuVectorize::Sse2;
+        backendCfg.optimize  = true;
+        backendCfg.vectorize = true;
         builder.setBackendBuildCfg(backendCfg);
 
         MicroVecLoopPromotePass pass;

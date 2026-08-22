@@ -14,8 +14,10 @@ SWC_BEGIN_NAMESPACE();
 // code. The scalar computation is left in place and dies in the cleanup sweep
 // that follows.
 //
-// Gated by the build configuration: it only fires when backend optimization is
-// on and cpuVectorize allows at least the SSE2 128-bit instruction set.
+// Gated by the build configuration: it only fires when backend optimization and
+// vectorization are both on, which is the 'release' preset. The 128-bit packed
+// forms it emits are part of the x86-64-v3 baseline every target provides, so
+// there is no instruction-set gate on top of that policy.
 class MicroSlpVectorizePass final : public MicroPass
 {
 public:

@@ -1646,7 +1646,7 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
         return Result::Continue;
 
     const Runtime::BuildCfgBackend& backendCfg = context.builder->backendBuildCfg();
-    if (!backendCfg.optimize || backendCfg.cpuVectorize == Runtime::BuildCfgBackendCpuVectorize::None)
+    if (!backendCfg.optimize || !backendCfg.vectorize)
         return Result::Continue;
 
     SlpFunctionContext fn;

@@ -3,6 +3,20 @@
 
 using Core, Core.Errors
 
+var PerfParseUs:   u64
+var PerfReconUs:   u64
+var PerfDeblockUs: u64
+var PerfEdgesUs:   u64
+
+func resetPerfCounters()
+{
+    Atomic.exchange(&PerfParseUs, 0)
+    Atomic.exchange(&PerfReconUs, 0)
+    Atomic.exchange(&PerfDeblockUs, 0)
+    Atomic.exchange(&PerfEdgesUs, 0)
+    Atomic.exchange(&PerfRgbUs, 0)
+}
+
 // Macroblock classes stored per decoded macroblock for neighbor prediction and deblocking.
 const MbClassIntra4x4   = 0'u8
 const MbClassIntra8x8   = 1'u8
@@ -193,16 +207,59 @@ impl Decoder
         .prevFrameNumOffset = 0
     }
 
+    // Starts from the prediction state produced by the preceding decoder lane.
+    //
+    // Frame storage stays owned by the lane that allocated it. The copied lists only borrow
+    // those frames, as slice reference lists already do, and both lanes live for the complete
+    // stream. Per-picture arrays remain lane-local so two consecutive pictures can be in flight.
+    mtd inheritPredictionState(previous: *Decoder)
+    {
+        .shortRefs.clear()
+        .shortRefs.reserve(previous.shortRefs.count)
+        for reference in previous.shortRefs do
+            .shortRefs.add(reference)
+
+        .longRefs.clear()
+        .longRefs.reserve(previous.longRefs.count)
+        for reference in previous.longRefs do
+            .longRefs.add(reference)
+
+        .prevPocMsb         = previous.prevPocMsb
+        .prevPocLsb         = previous.prevPocLsb
+        .prevFrameNum       = previous.prevFrameNum
+        .prevFrameNumOffset = previous.prevFrameNumOffset
+    }
+
     // Decodes one access unit and returns its frame, or null when the unit carries no picture.
     //
     // The returned frame stays valid until it is both released with [[releaseFrame]] and no
     // longer referenced by the stream itself.
     mtd decodeAccessUnit(sample: const [..] u8)->#null *Frame fail
     {
+        if !try .parseAccessUnit(sample, false) do
+            return null
+        return try .finishAccessUnit()
+    }
+
+    // Parses one access unit and applies its reference marking without reconstructing it.
+    //
+    // Entropy parsing only reads reference metadata. Keeping reconstruction for
+    // [[finishAccessUnit]] lets a second decoder lane parse the following picture while this
+    // lane reconstructs, filters, and pads the current one.
+    mtd parseAccessUnit(sample: const [..] u8, deferReconstruction: bool)->bool fail
+    {
+        var perfClock: Time.Stopwatch
+        perfClock.start()
+        defer
+        {
+            perfClock.stop()
+            Atomic.add(&PerfParseUs, perfClock.elapsedMicroseconds())
+        }
+
         .current       = null
         .markingParsed = false
         .mmcoOps.clear()
-        .pipelineSingleSlice = .hasSinglePictureSlice(sample)
+        .pipelineSingleSlice = !deferReconstruction and .hasSinglePictureSlice(sample)
         .pipelineBandCount   = 0
         .pipelineScheduled   = 0
         .pipelineFailed      = 0
@@ -226,9 +283,32 @@ impl Decoder
         }
 
         if !.current do
-            return null
-        .finishPicture()
+            return false
+        .validatePicture()
+        .applyMarking(.current!)
+        return true
+    }
+
+    // Reconstructs, filters, and pads the access unit left by [[parseAccessUnit]].
+    mtd finishAccessUnit()->*Frame fail
+    {
+        Debug.assert(.current != null)
+        var perfClock: Time.Stopwatch
+        perfClock.start()
+        .reconstructPicture()
+        perfClock.stop()
+        Atomic.add(&PerfReconUs, perfClock.elapsedMicroseconds())
+
+        perfClock.restart()
+        deblockPicture(me)
+        perfClock.stop()
+        Atomic.add(&PerfDeblockUs, perfClock.elapsedMicroseconds())
+
         let result = .current!
+        perfClock.restart()
+        result.extendEdges()
+        perfClock.stop()
+        Atomic.add(&PerfEdgesUs, perfClock.elapsedMicroseconds())
         result.heldByCaller = true
         .current            = null
         return result
@@ -478,20 +558,13 @@ impl Decoder
         .pipelineFailed    = 0
     }
 
-    // Completes the current picture: filters it, publishes its edges, and applies its
-    // reference marking.
-    private mtd finishPicture() fail
+    // Verifies that the parsed slices cover the complete current picture.
+    private mtd validatePicture() fail
     {
         let sps     = .sps!
         let mbCount = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight
         if .decodedMbs != mbCount do
             fail InvalidFormatError{"H.264 access unit does not cover the whole picture"}
-
-        .reconstructPicture()
-        deblockPicture(me)
-        let frame = .current!
-        frame.extendEdges()
-        .applyMarking(frame)
     }
 
     // Applies the reference-picture marking of the finished picture, section 8.2.5.

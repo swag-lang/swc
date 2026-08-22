@@ -2082,8 +2082,8 @@ namespace
         if (tokId == TokenId::IntrinsicVecSplat)
             return codeGenVectorSplat(codeGen, children[0], outHandled);
 
-        // Gather four signed dwords through four unsigned indices. AVX2 targets use
-        // VPGATHERDD; the portable target assembles indexed scalar loads into one vector.
+        // Gather four signed dwords through four unsigned indices, through the
+        // baseline's VPGATHERDD.
         if (tokId == TokenId::IntrinsicVecGather)
         {
             SWC_ASSERT(children.size() == 2);
@@ -2102,49 +2102,15 @@ namespace
             CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
             resultPayload.reg                 = codeGen.nextVirtualFloatRegister();
 
-            if (builder.backendBuildCfg().cpuVectorize == Runtime::BuildCfgBackendCpuVectorize::Avx2)
-            {
-                // VPGATHERDD requires destination, index, and destructive mask to be
-                // pairwise distinct. Making the destination use-def keeps it distinct
-                // from the live index; XMM15 is the encoder-owned mask scratch.
-                const MicroReg maskScratchReg = MicroReg::floatReg(15);
-                builder.addVirtualRegForbiddenPhysReg(resultPayload.reg, maskScratchReg);
-                if (indicesReg.isVirtual())
-                    builder.addVirtualRegForbiddenPhysReg(indicesReg, maskScratchReg);
-                builder.emitOpBinaryRegRegReg(resultPayload.reg, indicesReg, indicesReg, MicroOp::VecXor, MicroOpBits::B128);
-                builder.emitVecGatherS32(resultPayload.reg, baseReg, indicesReg);
-
-                outHandled = true;
-                return Result::Continue;
-            }
-
-            std::array<MicroReg, 4>          laneRegs{};
-            constexpr std::array<uint8_t, 4> K_LANE_SHUFFLES = {0x00, 0x55, 0xAA, 0xFF};
-            for (uint32_t lane = 0; lane < 4; ++lane)
-            {
-                MicroReg selectedIndexReg = indicesReg;
-                if (lane != 0)
-                {
-                    selectedIndexReg = codeGen.nextVirtualFloatRegister();
-                    builder.emitVecShuffleRegRegImm(selectedIndexReg, indicesReg, K_LANE_SHUFFLES[lane], MicroOpBits::B128);
-                }
-
-                const MicroReg indexReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(indexReg, selectedIndexReg, MicroOpBits::B32);
-
-                const MicroReg valueReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadAmcRegMem(valueReg, MicroOpBits::B32, baseReg, indexReg, 4, 0, MicroOpBits::B64);
-
-                laneRegs[lane] = codeGen.nextVirtualFloatRegister();
-                builder.emitLoadRegReg(laneRegs[lane], valueReg, MicroOpBits::B32);
-            }
-
-            const MicroReg lowPairReg  = codeGen.nextVirtualFloatRegister();
-            const MicroReg highPairReg = codeGen.nextVirtualFloatRegister();
-            builder.emitOpBinaryRegRegReg(lowPairReg, laneRegs[0], laneRegs[1], MicroOp::VecUnpackLo32, MicroOpBits::B128);
-            builder.emitOpBinaryRegRegReg(highPairReg, laneRegs[2], laneRegs[3], MicroOp::VecUnpackLo32, MicroOpBits::B128);
-
-            builder.emitOpBinaryRegRegReg(resultPayload.reg, lowPairReg, highPairReg, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+            // VPGATHERDD requires destination, index, and destructive mask to be
+            // pairwise distinct. Making the destination use-def keeps it distinct
+            // from the live index; XMM15 is the encoder-owned mask scratch.
+            const MicroReg maskScratchReg = MicroReg::floatReg(15);
+            builder.addVirtualRegForbiddenPhysReg(resultPayload.reg, maskScratchReg);
+            if (indicesReg.isVirtual())
+                builder.addVirtualRegForbiddenPhysReg(indicesReg, maskScratchReg);
+            builder.emitOpBinaryRegRegReg(resultPayload.reg, indicesReg, indicesReg, MicroOp::VecXor, MicroOpBits::B128);
+            builder.emitVecGatherS32(resultPayload.reg, baseReg, indicesReg);
 
             outHandled = true;
             return Result::Continue;

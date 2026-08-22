@@ -151,3 +151,64 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: re-evaluate on the next occurrence. Persist the failing module when one happens and
   capture both `setSemaPayload` calls for the slice node before changing payload ownership; a
   reduction that does not fail on demand cannot be turned into a `bin/unittests/sema` case.
+
+### F-182 — A JIT '#test' can silently compute a wrong value in a release run
+
+- Area: compiler
+- Found while: validating the `x86-64-v3` baseline change with
+  `swc tools/unittests.swgs dm native -bc release`, on the first run after a `SWC_BUILD_NUM` bump
+  had invalidated every cache.
+- Observation: `bin/unittests/native/casts/autocast_pointer_receiver.swg:35` reported
+  `assertion does not hold: AutoCastStorage.lo == 16` from the JIT `#test` at line 31, which writes
+  a file-scope struct through a pointer receiver. Nothing faulted: the global simply did not hold
+  what the call had written. This widens the class F-124 and F-125 describe -- both of those
+  manifest as a hardware exception, so a run that survives is trusted; here a run survived and the
+  data was wrong, which no `#test` outside this one would have noticed.
+- Evidence: the failure reproduced twice in a row -- once in the full suite, once with
+  `--file-filter autocast_pointer_receiver` -- then never again. The same filtered command passed
+  5/5, the full suite passed, and a full cold-cache `--rebuild` of the same suite passed 2_919/2_919.
+  Stashing the change and running the same filtered test on the pre-change `bin/swc.exe` also
+  passed, so the two failures sit on the changed tree and the eight successes sit on the same
+  changed tree; the discriminator is not the diff. Both failures were on caches invalidated by the
+  version bump, which is the one condition the eight green runs did not share.
+- Next step: loop `swc tools/unittests.swgs dm native -bc release --rebuild` with the version bumped
+  between iterations, to test whether cold-cache artifact regeneration is the trigger rather than
+  ordinary scheduling jitter. If it reproduces, capture the emitted code for `setRange` and compare
+  it against a warm-cache run of the same function before looking any further at the allocator or
+  at global-segment publication.
+
+### F-183 — A multi-dimensional float array literal does not encode in the debug configuration
+
+- Area: compiler
+- Found while: running `swc tools/unittests.swgs dm native -bc debug` while validating an unrelated
+  change. `-bc debug` is not part of the routine campaigns, which is why this has gone unseen.
+- Observation: filling a multi-dimensional `f32` array from one literal drives a float register
+  into the integer zero-extend encoder. `swc_devmode` panics in `Codegen parsing` with
+  `expression: !(regDst.isFloat() || regSrc.isFloat())` at `X64Encoder.cpp:1671`, through
+  `X64Encoder::encodeLoadZeroExtendRegReg` <- `MicroEmitPass::encodeInstruction`. The Release
+  compiler has no assertion there, so the same lowering silently encodes an integer widening over
+  a float register instead of stopping.
+- Evidence: reduced to six lines, failing on its own with `swc_devmode test -d <dir> -bc debug`:
+
+  ```swag
+  #global private
+
+  #test
+  {
+      var a: [2, 3] f32 = 1.5
+      @assert(a[0, 0] == 1.5)
+      @assert(a[1, 2] == 1.5)
+  }
+  ```
+
+  `bin/unittests/native/literals/array.swg:123` is the same case already in the suite, and it is
+  what surfaced this. The configuration is what selects the defect: the same probe passes under
+  `fast-debug` and `release`, where the whole `native` suite is green (2_919 passed in both). It is
+  not a regression from the change it was found under -- a `swc_devmode` built from a pristine
+  worktree panics identically on the same probe.
+- Next step: dump the pre-emit Micro IR for that `#test` under `debug` and under `fast-debug`, and
+  compare which pass leaves the widening on a float register. Debug is the configuration with no
+  backend optimization and `inlineMode = Never`, so the likely origin is the unoptimized array-fill
+  lowering emitting a zero-extend that the optimizing pipeline rewrites away before it reaches the
+  encoder. Then promote the probe into `bin/unittests/native/literals/array.swg` coverage that runs
+  under `debug`.

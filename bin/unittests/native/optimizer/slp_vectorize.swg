@@ -2,10 +2,9 @@
 using Swag
 
 // Superword-level auto-vectorization regression coverage. Every function is
-// forced to the optimizing backend; in build configurations whose
-// cpuVectorize setting allows SSE2, the adjacent 32-bit store groups below
-// become packed code, and the asserted results must match the scalar
-// semantics either way. The ChaCha20 round structure is the reference
+// forced to the optimizing backend; in build configurations that vectorize,
+// the adjacent 32-bit store groups below become packed code, and the asserted
+// results must match the scalar semantics either way. The ChaCha20 round structure is the reference
 // workload: interleaved add/xor/rotate lanes, store-forwarded reloads, and
 // the diagonal rounds that exercise the lane-permutation path.
 

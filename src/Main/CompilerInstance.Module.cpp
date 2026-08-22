@@ -68,8 +68,8 @@ namespace
         buildCfg.allocatorFillMemory        = explicitBuildCfg.allocatorFillMemory;
         buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
         buildCfg.backend.optimize           = explicitBuildCfg.backend.optimize;
+        buildCfg.backend.vectorize          = explicitBuildCfg.backend.vectorize;
         buildCfg.backend.inlineMode         = explicitBuildCfg.backend.inlineMode;
-        buildCfg.backend.cpuVectorize       = explicitBuildCfg.backend.cpuVectorize;
         buildCfg.backend.debugInfo          = explicitBuildCfg.backend.debugInfo;
         buildCfg.backend.fpMathFma          = explicitBuildCfg.backend.fpMathFma;
         buildCfg.backend.fpMathNoNaN        = explicitBuildCfg.backend.fpMathNoNaN;
@@ -85,8 +85,6 @@ namespace
         buildCfg.backendKind = effectiveBackendKind(cmdLine, buildCfg.backendKind);
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
-        if (cmdLine.cpuVectorizeExplicit)
-            buildCfg.backend.cpuVectorize = cmdLine.cpuVectorize;
 
         if (cmdLine.artifactNameExplicit)
             buildCfg.name = cmdLine.defaultBuildCfg.name;

@@ -219,19 +219,26 @@ private func deblockMb(dec: *Decoder, mbX, mbY: s32)
             continue
 
         var pix = frame.pixLuma(mbX * 16 + edge * 4, mbY * 16)
-        for segment in 4's32
+        if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
         {
-            let bs = strengths.bs[cast(u64) segment]
-            if bs == 0
+            filterLumaWeakVertical(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
+        }
+        else
+        {
+            for segment in 4's32
             {
-                pix += 4 * frame.strideLuma
-                continue
-            }
+                let bs = strengths.bs[cast(u64) segment]
+                if bs == 0
+                {
+                    pix += 4 * frame.strideLuma
+                    continue
+                }
 
-            for 4
-            {
-                filterLuma(pix, 1, frame.strideLuma, bs, indexA, alpha, beta)
-                pix += frame.strideLuma
+                for 4
+                {
+                    filterLuma(pix, 1, frame.strideLuma, bs, indexA, alpha, beta)
+                    pix += frame.strideLuma
+                }
             }
         }
 
@@ -250,6 +257,12 @@ private func deblockMb(dec: *Decoder, mbX, mbY: s32)
                 for plane in 2'u32
                 {
                     var pix = frame.pixChroma(plane, mbX * 8 + edge * 2, mbY * 8)
+                    if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+                    {
+                        filterChromaWeakVertical(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+                        continue
+                    }
+
                     for segment in 4's32
                     {
                         let bs = strengths.bs[cast(u64) segment]
@@ -504,6 +517,147 @@ func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     Simd.storeLow8(pix, Simd.packUnsigned(Simd.select(active, q0 - delta, q0), zeros))
 }
 
+// Stores the four 32-bit lanes of `columns` to four consecutive lines: lane `i` lands at
+// `dst + i * stride`. This is the write-back of a transposed edge, four lines per vector.
+#[Swag.Inline]
+private func storeLines4(dst: [*] u8, stride: u64, columns: Simd.U32x4)
+{
+    (cast([*] u32) dst)[0]                = columns[0]
+    (cast([*] u32) (dst + stride))[0]     = columns[1]
+    (cast([*] u32) (dst + 2 * stride))[0] = columns[2]
+    (cast([*] u32) (dst + 3 * stride))[0] = columns[3]
+}
+
+// Filters one complete vertical weak luma edge: the sixteen lines crossing the edge are
+// transposed through a tile so that every sample position p3..q3 becomes one sixteen-lane
+// row, the horizontal kernel filters that tile in place, and the four rows it changed are
+// transposed back into the lines. `pix` sits on the first q sample of the first line.
+func filterLumaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
+{
+    const TileStride = 16'u64
+    var tile: [8 * TileStride] u8 = undefined
+
+    // Line k holds p3 p2 p1 p0 q0 q1 q2 q3 in its low eight bytes; the loads read eight more
+    // bytes of the same line, which the padding of every plane keeps inside the row.
+    let r0  = Simd.load(pix - 4)
+    let r1  = Simd.load(pix - 4 + stride)
+    let r2  = Simd.load(pix - 4 + 2 * stride)
+    let r3  = Simd.load(pix - 4 + 3 * stride)
+    let r4  = Simd.load(pix - 4 + 4 * stride)
+    let r5  = Simd.load(pix - 4 + 5 * stride)
+    let r6  = Simd.load(pix - 4 + 6 * stride)
+    let r7  = Simd.load(pix - 4 + 7 * stride)
+    let r8  = Simd.load(pix - 4 + 8 * stride)
+    let r9  = Simd.load(pix - 4 + 9 * stride)
+    let r10 = Simd.load(pix - 4 + 10 * stride)
+    let r11 = Simd.load(pix - 4 + 11 * stride)
+    let r12 = Simd.load(pix - 4 + 12 * stride)
+    let r13 = Simd.load(pix - 4 + 13 * stride)
+    let r14 = Simd.load(pix - 4 + 14 * stride)
+    let r15 = Simd.load(pix - 4 + 15 * stride)
+
+    // Bytes pair the lines, words group four, dwords eight, qwords all sixteen; each level
+    // keeps p3..p0 in the low half of the interleave and q0..q3 in the high half.
+    let a0 = cast #bit(Simd.U16x8) Simd.interleaveLow(r0, r1)
+    let a1 = cast #bit(Simd.U16x8) Simd.interleaveLow(r2, r3)
+    let a2 = cast #bit(Simd.U16x8) Simd.interleaveLow(r4, r5)
+    let a3 = cast #bit(Simd.U16x8) Simd.interleaveLow(r6, r7)
+    let a4 = cast #bit(Simd.U16x8) Simd.interleaveLow(r8, r9)
+    let a5 = cast #bit(Simd.U16x8) Simd.interleaveLow(r10, r11)
+    let a6 = cast #bit(Simd.U16x8) Simd.interleaveLow(r12, r13)
+    let a7 = cast #bit(Simd.U16x8) Simd.interleaveLow(r14, r15)
+
+    let b0 = cast #bit(Simd.U32x4) Simd.interleaveLow(a0, a1)
+    let b1 = cast #bit(Simd.U32x4) Simd.interleaveHigh(a0, a1)
+    let b2 = cast #bit(Simd.U32x4) Simd.interleaveLow(a2, a3)
+    let b3 = cast #bit(Simd.U32x4) Simd.interleaveHigh(a2, a3)
+    let b4 = cast #bit(Simd.U32x4) Simd.interleaveLow(a4, a5)
+    let b5 = cast #bit(Simd.U32x4) Simd.interleaveHigh(a4, a5)
+    let b6 = cast #bit(Simd.U32x4) Simd.interleaveLow(a6, a7)
+    let b7 = cast #bit(Simd.U32x4) Simd.interleaveHigh(a6, a7)
+
+    let c0 = cast #bit(Simd.U64x2) Simd.interleaveLow(b0, b2)
+    let c1 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b0, b2)
+    let c2 = cast #bit(Simd.U64x2) Simd.interleaveLow(b4, b6)
+    let c3 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b4, b6)
+    let c4 = cast #bit(Simd.U64x2) Simd.interleaveLow(b1, b3)
+    let c5 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b1, b3)
+    let c6 = cast #bit(Simd.U64x2) Simd.interleaveLow(b5, b7)
+    let c7 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b5, b7)
+
+    let rows = @dataof(tile)
+    Simd.store(rows, cast #bit(Simd.U8x16) Simd.interleaveLow(c0, c2))
+    Simd.store(rows + TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c2))
+    Simd.store(rows + 2 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveLow(c1, c3))
+    Simd.store(rows + 3 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c1, c3))
+    Simd.store(rows + 4 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveLow(c4, c6))
+    Simd.store(rows + 5 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c4, c6))
+    Simd.store(rows + 6 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveLow(c5, c7))
+    Simd.store(rows + 7 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c5, c7))
+
+    filterLumaWeakHorizontal(rows + 4 * TileStride, TileStride, strengths, indexA, alpha, beta)
+
+    // Only p1 p0 q0 q1 change: interleave those four rows back into one dword per line.
+    let p1 = Simd.load(rows + 2 * TileStride)
+    let p0 = Simd.load(rows + 3 * TileStride)
+    let q0 = Simd.load(rows + 4 * TileStride)
+    let q1 = Simd.load(rows + 5 * TileStride)
+    let x0 = cast #bit(Simd.U16x8) Simd.interleaveLow(p1, p0)
+    let x1 = cast #bit(Simd.U16x8) Simd.interleaveHigh(p1, p0)
+    let y0 = cast #bit(Simd.U16x8) Simd.interleaveLow(q0, q1)
+    let y1 = cast #bit(Simd.U16x8) Simd.interleaveHigh(q0, q1)
+    storeLines4(pix - 2, stride, cast #bit(Simd.U32x4) Simd.interleaveLow(x0, y0))
+    storeLines4(pix - 2 + 4 * stride, stride, cast #bit(Simd.U32x4) Simd.interleaveHigh(x0, y0))
+    storeLines4(pix - 2 + 8 * stride, stride, cast #bit(Simd.U32x4) Simd.interleaveLow(x1, y1))
+    storeLines4(pix - 2 + 12 * stride, stride, cast #bit(Simd.U32x4) Simd.interleaveHigh(x1, y1))
+}
+
+// Filters one complete vertical weak chroma edge the same way: eight lines of p1 p0 q0 q1
+// become the four rows of a tile, the horizontal chroma kernel filters it, and the two
+// rows it changed come back as one word per line.
+func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
+{
+    const TileStride = 16'u64
+    var tile:  [4 * TileStride] u8 = undefined
+    var pairs: [8] u16             = undefined
+
+    let r0 = Simd.load(pix - 2)
+    let r1 = Simd.load(pix - 2 + stride)
+    let r2 = Simd.load(pix - 2 + 2 * stride)
+    let r3 = Simd.load(pix - 2 + 3 * stride)
+    let r4 = Simd.load(pix - 2 + 4 * stride)
+    let r5 = Simd.load(pix - 2 + 5 * stride)
+    let r6 = Simd.load(pix - 2 + 6 * stride)
+    let r7 = Simd.load(pix - 2 + 7 * stride)
+
+    let a0 = cast #bit(Simd.U16x8) Simd.interleaveLow(r0, r1)
+    let a1 = cast #bit(Simd.U16x8) Simd.interleaveLow(r2, r3)
+    let a2 = cast #bit(Simd.U16x8) Simd.interleaveLow(r4, r5)
+    let a3 = cast #bit(Simd.U16x8) Simd.interleaveLow(r6, r7)
+    let b0 = cast #bit(Simd.U32x4) Simd.interleaveLow(a0, a1)
+    let b1 = cast #bit(Simd.U32x4) Simd.interleaveLow(a2, a3)
+
+    // c0 carries p1 then p0 in its two halves, c1 carries q0 then q1; the kernel reads eight
+    // lanes from the low half of each tile row, so each half lands in a row of its own.
+    let c0 = cast #bit(Simd.U64x2) Simd.interleaveLow(b0, b1)
+    let c1 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b0, b1)
+
+    let rows = @dataof(tile)
+    Simd.store(rows, cast #bit(Simd.U8x16) c0)
+    Simd.store(rows + TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c0))
+    Simd.store(rows + 2 * TileStride, cast #bit(Simd.U8x16) c1)
+    Simd.store(rows + 3 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c1, c1))
+
+    filterChromaWeakHorizontal(rows + 2 * TileStride, TileStride, strengths, indexA, alpha, beta)
+
+    // Only p0 q0 change: one word per line.
+    let p0 = Simd.load(rows + TileStride)
+    let q0 = Simd.load(rows + 2 * TileStride)
+    Simd.store(cast([*] u8) @dataof(pairs), Simd.interleaveLow(p0, q0))
+    for line in 8'u64 do
+        (cast([*] u16) (pix - 1 + line * stride))[0] = pairs[line]
+}
+
 // Returns the chroma QP of one macroblock, with the blue-difference offset; the two chroma
 // planes filter with the same strength, so one offset serves both.
 private func chromaQpAt(dec: *Decoder, mbX, mbY: s32)->s32
@@ -515,7 +669,7 @@ private func chromaQpAt(dec: *Decoder, mbX, mbY: s32)->s32
 // Filters one luma line across an edge; `pix` sits on the first q sample, `step` walks
 // across the edge and `lineStride` along it.
 #[Swag.Inline]
-private func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta: s32)
+func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta: s32)
 {
     discard lineStride
     let p0 = cast(s32) (pix - step)[0]
@@ -586,7 +740,7 @@ private func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alp
 
 // Filters one chroma line across an edge.
 #[Swag.Inline]
-private func filterChroma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta: s32)
+func filterChroma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta: s32)
 {
     discard lineStride
     let p0 = cast(s32) (pix - step)[0]

@@ -1132,6 +1132,14 @@ namespace
         auto [nodeRef, nodePtr]      = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()             = node.flags();
         nodePtr->setCodeRef(node.codeRef());
+        // An intrinsic name (@min, @vecsplat, ...) resolves by name in every scope and picks its
+        // overload from the call's argument types, and its identifier only ever stores the first
+        // overload of the set. Carrying that symbol pins a cloned call on the wrong overload when
+        // the source call was folded to a constant and so kept no selected function of its own
+        // to override the pin with (an auto-inlined `v + @vecsplat(1'u32)` came back as sixteen
+        // bytes). Leave the name to re-resolve; the call pins its selected function afterwards
+        // whenever the source kept one.
+        const bool intrinsicName = nodeTokInRange && Token::isIntrinsic(sema.token(node.codeRef()).id);
         const bool sourceSymbolOwnedByFunction = storedView &&
                                                  storedView->sym &&
                                                  storedView->sym->ownerSymMap() &&
@@ -1152,7 +1160,7 @@ namespace
                                                      sourceFunctionLocalIdentifier ||
                                                      sourceLexicalLocalIdentifier;
         const bool sourceLocalIdentifierPinned = pinResolvedSymbol && (sourceSymbolOwnedByFunction || sourceFunctionLocalIdentifier || sourceLexicalLocalIdentifier);
-        const bool preserveSyntheticSymbol     = storedView && storedView->sym &&
+        const bool preserveSyntheticSymbol     = storedView && storedView->sym && !intrinsicName &&
                                              ((node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) && !sourceLocalIdentifierPinned && !sourceRebindableLocalIdentifier) ||
                                               (!sourceLocalIdentifierPinned &&
                                                !sourceRebindableLocalIdentifier &&

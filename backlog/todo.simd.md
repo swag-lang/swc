@@ -225,8 +225,12 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 
 ### T-507 — Packed code generation misses idiomatic hardware forms
 
-- Intent: select immediate shuffles, blends, fused multiply-add, horizontal forms, SAD, and direct
-  lane extract/insert instead of generic sequences and spill-slot lane access.
+- Intent: select immediate shuffles, fused multiply-add, horizontal forms, SAD, and direct lane
+  insert instead of generic sequences. Landed 2026-08-22: `@vecselect` is one `vpblendvb` (the
+  mask's byte sign bits carry a whole-lane compare mask exactly), and a constant 32- or 64-bit
+  lane read of a register-resident vector is a `movd`/`movq` — lane zero directly, another lane
+  through one `pshufd` — instead of a spill and a reload, which is what `storeLow4`/`storeLow8`
+  and every transposed store compile to. Narrow lanes and dynamic indices still take the spill.
 - Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
   kernel and end-to-end benchmarks show no regression on the fallback target.
 - Related: T-514, T-515, T-520.
@@ -331,40 +335,40 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 
 ## Tier B — Audio and video codecs
 
-### T-541 — H.264 vertical and strong deblocking remain scalar
+### T-541 — H.264 strong deblocking remains scalar
 
-- Intent: complete the packed luma and chroma edge filters with strong filtering and a transpose
-  strategy for vertical edges. The weak horizontal paths now process 16 luma or 8 chroma samples
-  per call; release microkernels improved by 2.66x and 2.05x respectively, byte-exact across the
-  fixture corpus and exhaustive strength combinations. A byte-exact 8x8-transpose prototype for
-  weak vertical luma regressed the deblocking stage from 189,600 to 243,128 us (1.28x slower), and
-  a mixed weak/strong horizontal prototype regressed 2,000,000 calls from 142,362 to 333,897 us
-  (2.35x slower); both were discarded. On 3,000 High Profile frames, 1,665,000 of 2,059,400
-  vertical luma calls were weak. A four-line prototype driven by two `s32x4` gathers was
-  byte-exact, but 30,000 portable decodes regressed from 7,877,846 to 8,263,310 us (1.05x slower),
-  while 3,000 AVX2 decodes regressed from 700,991 to 747,769 us (1.07x slower). The remaining
-  shuffle and scattered-store cost still requires a different layout.
-  Every number above predates the close of the call window. The accepted horizontal filter carries
-  about forty-seven wrapper calls per sixteen luma samples — six loads, three splats, twelve
-  widens, ten `Math.abs`, eight selects, four packs, four stores — and still measured 2.66x,
-  and the discarded transpose adds roughly twenty-four interleaves on top of that, which makes it
-  the most call-dense prototype in this file. Re-baseline the accepted kernels first, then
-  re-measure the three rejected ones before designing another layout.
-- Complete when: decoded frames remain byte-exact, strong and vertical paths are packed, and the
-  existing 1080p profile shows an end-to-end gain.
+- Intent: pack the strong (bS = 4) luma and chroma filters, horizontal and vertical. The weak
+  paths are done: horizontal since 2026-08-20 (16 luma or 8 chroma samples per call, 2.66x and
+  2.05x on release microkernels), vertical since 2026-08-22 — `filterLumaWeakVertical` and
+  `filterChromaWeakVertical` transpose the sixteen (eight) lines through a tile with the
+  interleave tree (32 interleaves for luma), run the horizontal kernel on the tile, and transpose
+  the four (two) changed rows back with lane-extraction stores. Exhaustive differential test
+  against the scalar per-line filters (16 seeds, 5 `indexA`, every strength combination) and the
+  whole fixture corpus stay byte-exact. Measured once `Core.Math.Simd` inlined across modules and
+  the lane reads stopped spilling: on a generated 1080p High/CABAC clip of 120 frames the complete
+  release decode went from a 5,061 ms to a 4,953 ms mean (2.1%) over six alternated runs, a 60-frame
+  Main clip from 2,518 to 2,513 ms — the earlier transpose prototypes had been measured with every
+  wrapper a call into `core.dll`, which is what made them lose. The strong filter still runs one
+  line at a time; intra macroblock edges carry it on every I picture.
+- Complete when: decoded frames remain byte-exact, the strong paths are packed horizontally and
+  vertically, and the 1080p profile shows the gain.
 - Related: T-514, T-520, T-420 in `todo.video.md`.
 
-### T-542 — H.264 inverse transforms remain scalar
+### T-542 — The H.264 Hadamard transforms remain scalar
 
-- Intent: vectorize `addIdct4x4`, `addDc4x4`, `hadamard4x4`, and `addIdct8x8` with packed
-  transposes and saturating output. Direct packed-column and packed-residual prototypes were
-  byte-exact but slower than the scalar kernels and were discarded; a profitable transpose or
-  combined transform/reconstruction strategy is still needed.
-  Those prototypes date from inside the call window and are worth re-measuring. The 32- and 64-bit
-  lane interleaves now exist, so the next attempt can build a 4x4 transpose without scalar lane
-  extraction and measure the combined transform/reconstruction strategy directly.
-- Complete when: coefficient extremes and conformance streams remain byte-exact and transform time
-  decreases in the video profile.
+- Intent: vectorize `hadamard4x4` (and the 2x2 chroma one if it ever shows). `addIdct4x4`,
+  `addDc4x4` and `addIdct8x8` are packed since 2026-08-22, in 16-bit lanes: the 4x4 holds its
+  columns two per vector, regroups the butterfly halves through 64-bit interleaves and swaps
+  halves with one `pshufb`, adds two prediction rows per vector; the 8x8 runs two 8x8 16-bit
+  transposes and the eight-point butterfly as mixins over eight register vectors (a callee taking
+  their addresses would pin them to the stack); the flat add clamps its value to ±256 before
+  broadcasting. A conforming stream bounds every intermediate to 16 bits (8.5.12, 8.5.13), so the
+  lanes never wrap where the 32-bit scalar forms — kept as `addIdct4x4Scalar`, `addDc4x4Scalar`,
+  `addIdct8x8Scalar` — would not; 512-seed differential tests and the fixture corpus are
+  byte-exact. With the vertical deblocking of T-541 the generated 1080p High clip went from a
+  4,612 ms to a 4,261 ms mean (7.6%) over six alternated runs and the Main clip from 2,442 to
+  2,313 ms (5.3%), every frame checksum identical.
+- Complete when: the Hadamard transforms are packed and the conformance streams stay byte-exact.
 - Related: T-514, T-520, T-541.
 
 ### T-544 — H.264 reconstruction and directional intra prediction remain scalar

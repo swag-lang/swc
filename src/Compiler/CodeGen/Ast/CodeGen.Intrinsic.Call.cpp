@@ -2365,16 +2365,16 @@ namespace
 
         if (isSelect)
         {
-            // select(mask, a, b) = (a & mask) | (b & ~mask); vpandn
-            // complements its FIRST source.
-            const MicroReg maskReg    = loadArg(0);
-            const MicroReg trueReg    = loadArg(1);
-            const MicroReg falseReg   = loadArg(2);
-            const MicroReg keptReg    = codeGen.nextVirtualFloatRegister();
-            const MicroReg droppedReg = codeGen.nextVirtualFloatRegister();
-            builder.emitOpBinaryRegRegReg(keptReg, trueReg, maskReg, MicroOp::VecAnd, MicroOpBits::B128);
-            builder.emitOpBinaryRegRegReg(droppedReg, maskReg, falseReg, MicroOp::VecAndNot, MicroOpBits::B128);
-            builder.emitOpBinaryRegRegReg(resultPayload.reg, keptReg, droppedReg, MicroOp::VecOr, MicroOpBits::B128);
+            // select(mask, a, b): one byte blend on the mask sign bits. A
+            // comparison mask is all-ones or all-zeros per lane, so every byte
+            // of a lane carries the lane's verdict. The blend keeps its
+            // destination where the mask is clear, so the false operand is
+            // copied in first; the allocator folds that copy when it dies here.
+            const MicroReg maskReg  = loadArg(0);
+            const MicroReg trueReg  = loadArg(1);
+            const MicroReg falseReg = loadArg(2);
+            builder.emitLoadRegReg(resultPayload.reg, falseReg, MicroOpBits::B128);
+            builder.emitOpTernaryRegRegReg(resultPayload.reg, trueReg, maskReg, MicroOp::VecBlendVB, MicroOpBits::B128);
             outHandled = true;
             return Result::Continue;
         }
@@ -2388,11 +2388,8 @@ namespace
             const TokenId  cmpTok   = tokId == TokenId::IntrinsicMin ? TokenId::SymLess : TokenId::SymGreater;
             const MicroReg maskReg  = CodeGenVectorHelpers::emitCompare(codeGen, cmpTok, leftReg, rightReg, laneType);
 
-            const MicroReg keptReg    = codeGen.nextVirtualFloatRegister();
-            const MicroReg droppedReg = codeGen.nextVirtualFloatRegister();
-            builder.emitOpBinaryRegRegReg(keptReg, leftReg, maskReg, MicroOp::VecAnd, MicroOpBits::B128);
-            builder.emitOpBinaryRegRegReg(droppedReg, maskReg, rightReg, MicroOp::VecAndNot, MicroOpBits::B128);
-            builder.emitOpBinaryRegRegReg(resultPayload.reg, keptReg, droppedReg, MicroOp::VecOr, MicroOpBits::B128);
+            builder.emitLoadRegReg(resultPayload.reg, rightReg, MicroOpBits::B128);
+            builder.emitOpTernaryRegRegReg(resultPayload.reg, leftReg, maskReg, MicroOp::VecBlendVB, MicroOpBits::B128);
             outHandled = true;
             return Result::Continue;
         }

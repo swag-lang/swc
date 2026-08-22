@@ -611,6 +611,55 @@ namespace
     }
 }
 
+namespace
+{
+    // A constant lane read of a vector that lives in a register: lane zero of a
+    // 32- or 64-bit lane is one move out of the float register file, and any
+    // other lane first rides to position zero through the four-lane permute.
+    // Narrow lanes and dynamic indices keep the spill-and-load path. Reading
+    // the low lane this way is what `storeLow4`/`storeLow8` and every lane
+    // extraction of a transpose compile to, so it is worth a direct form.
+    bool tryEmitSimdLaneRead(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
+    {
+        if (!indexedType.isSimd() || indexedPayload.isAddress())
+            return false;
+
+        const SemaNodeView indexView = codeGen.viewConstant(indexRef);
+        if (indexView.cstRef().isInvalid())
+            return false;
+        const ConstantValue& indexCst = codeGen.cstMgr().get(indexView.cstRef());
+        if (!codeGen.typeMgr().get(indexCst.typeRef()).isIntLike())
+            return false;
+        const int64_t lane = indexCst.getIntLike().asI64();
+        if (lane < 0 || std::cmp_greater_equal(lane, indexedType.payloadSimdLaneCount()))
+            return false;
+
+        const TypeRef   laneTypeRef = indexedType.payloadSimdLaneTypeRef();
+        const TypeInfo& laneType    = codeGen.typeMgr().get(laneTypeRef);
+        const uint32_t  laneBits    = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
+        if (laneBits != 32 && laneBits != 64)
+            return false;
+
+        MicroBuilder& builder = codeGen.builder();
+        MicroReg      srcReg  = indexedPayload.reg;
+        if (lane != 0)
+        {
+            // pshufd control: every 32-bit position takes the lane's dword(s).
+            const uint8_t  first   = static_cast<uint8_t>(laneBits == 32 ? lane : lane * 2);
+            const uint8_t  second  = static_cast<uint8_t>(laneBits == 32 ? lane : lane * 2 + 1);
+            const uint8_t  control = static_cast<uint8_t>(first | (second << 2) | (first << 4) | (second << 6));
+            const MicroReg slidReg = codeGen.nextVirtualFloatRegister();
+            builder.emitVecShuffleRegRegImm(slidReg, srcReg, control, MicroOpBits::B128);
+            srcReg = slidReg;
+        }
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), laneTypeRef);
+        resultPayload.reg                 = laneType.isFloat() ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(resultPayload.reg, srcReg, laneBits == 32 ? MicroOpBits::B32 : MicroOpBits::B64);
+        return true;
+    }
+}
+
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const auto* payloadBase = codeGen.sema().semaPayload<IndexSpecOpPayloadBase>(codeGen.curNodeRef());
@@ -668,6 +717,9 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, indexedResultPayload.typeRef);
         return Result::Continue;
     }
+
+    if (tryEmitSimdLaneRead(codeGen, nodeArgRef, indexedType, indexedPayload))
+        return Result::Continue;
 
     const TypeRef      resultTypeRef = resolveIndexedResultTypeRef(codeGen, indexedType);
     CodeGenNodePayload indexedResultPayload;

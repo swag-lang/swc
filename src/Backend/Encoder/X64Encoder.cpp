@@ -731,6 +731,7 @@ namespace
             case MicroOp::VecUnpackHi32: return {VEX_MAP_0F, 0x66, 0x6A};
             case MicroOp::VecUnpackHi64: return {VEX_MAP_0F, 0x66, 0x6D};
             case MicroOp::VecPermB: return {VEX_MAP_0F38, 0x66, 0x00};
+            case MicroOp::VecBlendVB: return {VEX_MAP_0F3A, 0x66, 0x4C};
             case MicroOp::VecAddF32: return {VEX_MAP_0F, 0x00, 0x58};
             case MicroOp::VecAddF64: return {VEX_MAP_0F, 0x66, 0x58};
             case MicroOp::VecSubF32: return {VEX_MAP_0F, 0x00, 0x5C};
@@ -3691,6 +3692,22 @@ void X64Encoder::encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, 
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
 {
+    // vpblendvb xmm1, xmm2, xmm3, xmm4 (VEX.128.66.0F3A 4C /r /is4): the
+    // destination doubles as the first source in vvvv, the second source
+    // rides in r/m, and the mask register sits in the high nibble of the
+    // trailing immediate.
+    if (isVecMicroOp(op))
+    {
+        SWC_ASSERT(op == MicroOp::VecBlendVB);
+        SWC_ASSERT(opBits == MicroOpBits::B128 && reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
+        const VecOpEncoding enc = vecOpEncoding(op);
+        emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(reg0), microRegToX64Reg(reg0), microRegToX64Reg(reg1));
+        emitCpuOp(store_, enc.opcode);
+        emitModRm(store_, reg0, reg1);
+        emitValue(store_, static_cast<uint64_t>(x64RegNumber(microRegToX64Reg(reg2))) << 4, MicroOpBits::B8);
+        return;
+    }
+
     ///////////////////////////////////////////
 
     if (op == MicroOp::MultiplyAdd)

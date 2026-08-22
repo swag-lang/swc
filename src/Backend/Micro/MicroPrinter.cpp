@@ -320,6 +320,8 @@ namespace
                 return "vec.unpackhi64";
             case MicroOp::VecPermB:
                 return "vec.permb";
+            case MicroOp::VecBlendVB:
+                return "vec.blendvb";
             case MicroOp::VecAddF32:
                 return "vec.addf32";
             case MicroOp::VecAddF64:

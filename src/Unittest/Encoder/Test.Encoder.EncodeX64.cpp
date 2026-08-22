@@ -455,6 +455,9 @@ namespace
         ENCODE_CASE("vec_cmpgts64_vex", "C4 E2 69 37 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecCmpGtS64, MicroOpBits::B128););
         ENCODE_CASE("vec_packus32_vex", "C4 E2 69 2B CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecPackUS32, MicroOpBits::B128););
         ENCODE_CASE("vec_permb_vex", "C4 E2 69 00 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecPermB, MicroOpBits::B128););
+        // vpblendvb: the destination repeats in vvvv, the mask rides in the immediate's high nibble.
+        ENCODE_CASE("vec_blendvb_vex", "C4 E3 71 4C CA 30", b.emitOpTernaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecBlendVB, MicroOpBits::B128););
+        ENCODE_CASE("vec_blendvb_vex_ext", "C4 43 31 4C CA 30", b.emitOpTernaryRegRegReg(XMM9, XMM10, XMM3, MicroOp::VecBlendVB, MicroOpBits::B128););
         // Extended registers across the three positions of the 0F38 shape.
         ENCODE_CASE("vec_mins8_vex_ext_dst", "C4 62 69 38 CB", b.emitOpBinaryRegRegReg(XMM9, XMM2, XMM3, MicroOp::VecMinS8, MicroOpBits::B128););
         ENCODE_CASE("vec_mins8_vex_ext_src1", "C4 E2 31 38 CB", b.emitOpBinaryRegRegReg(XMM1, XMM9, XMM3, MicroOp::VecMinS8, MicroOpBits::B128););

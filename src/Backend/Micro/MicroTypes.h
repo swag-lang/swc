@@ -205,6 +205,11 @@ enum class MicroOp : uint8_t
     VecUnpackHi32,
     VecUnpackHi64,
     VecPermB,
+    // Byte blend through the sign bit of every mask byte (vpblendvb): an
+    // OpTernaryRegRegReg whose first register is both the destination and the
+    // lanes kept where the mask is clear, the second the lanes taken where it
+    // is set, and the third the mask.
+    VecBlendVB,
 
     // Packed float arithmetic (OpBinaryRegRegReg).
     VecAddF32,

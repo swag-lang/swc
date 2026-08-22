@@ -276,15 +276,14 @@ namespace
                 return;
 
             case 4:
-                builder.emitLoadRegReg(outReg, fillValueReg, MicroOpBits::B32);
+                builder.emitLoadZeroExtendRegReg(outReg, fillValueReg, MicroOpBits::B64, MicroOpBits::B32);
                 builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
                 builder.emitOpBinaryRegImm(scratchReg, ApInt(32, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
                 builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
                 return;
 
             case 2:
-                builder.emitClearReg(outReg, MicroOpBits::B64);
-                builder.emitLoadRegReg(outReg, fillValueReg, MicroOpBits::B16);
+                builder.emitLoadZeroExtendRegReg(outReg, fillValueReg, MicroOpBits::B64, MicroOpBits::B16);
                 builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
                 builder.emitOpBinaryRegImm(scratchReg, ApInt(16, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
                 builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
@@ -294,8 +293,7 @@ namespace
                 return;
 
             case 1:
-                builder.emitClearReg(outReg, MicroOpBits::B64);
-                builder.emitLoadRegReg(outReg, fillValueReg, MicroOpBits::B8);
+                builder.emitLoadZeroExtendRegReg(outReg, fillValueReg, MicroOpBits::B64, MicroOpBits::B8);
                 builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
                 builder.emitOpBinaryRegImm(scratchReg, ApInt(8, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
                 builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
@@ -846,24 +844,11 @@ void CodeGenMemoryHelpers::emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroRe
     const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
 
     const MicroReg dstRegTmp  = codeGen.nextVirtualIntRegister();
-    const MicroReg fillByte   = codeGen.nextVirtualIntRegister();
     const MicroReg fillReg    = codeGen.nextVirtualIntRegister();
     const MicroReg fillRegTmp = codeGen.nextVirtualIntRegister();
 
     builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
-    builder.emitClearReg(fillByte, MicroOpBits::B64);
-    builder.emitLoadRegReg(fillByte, fillValueReg, MicroOpBits::B8);
-
-    builder.emitLoadRegReg(fillReg, fillByte, MicroOpBits::B64);
-    builder.emitLoadRegReg(fillRegTmp, fillReg, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(fillRegTmp, ApInt(8, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegReg(fillReg, fillRegTmp, MicroOp::Or, MicroOpBits::B64);
-    builder.emitLoadRegReg(fillRegTmp, fillReg, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(fillRegTmp, ApInt(16, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegReg(fillReg, fillRegTmp, MicroOp::Or, MicroOpBits::B64);
-    builder.emitLoadRegReg(fillRegTmp, fillReg, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(fillRegTmp, ApInt(32, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegReg(fillReg, fillRegTmp, MicroOp::Or, MicroOpBits::B64);
+    emitBuildRepeatedFillReg64(builder, fillReg, fillRegTmp, fillValueReg, 1);
 
     if (!optimize)
     {

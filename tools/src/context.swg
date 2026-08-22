@@ -2,12 +2,7 @@
 
 using Core
 
-// Where the repository is, which compiler the tools drive, and how to start it.
-//
-// The compiler named here is the one under test, which is not necessarily the one running the
-// tool: a tool is a script, so it runs on whichever compiler was asked to run it, and it drives
-// `bin/swc.exe` as a child process. That separation is what lets a tool report that a freshly
-// built compiler is broken.
+// Where the repository is, which compiler the tools run under and drive, and how to start it.
 public struct Context
 {
     root:       String                     // Repository root, from the launcher.
@@ -160,6 +155,38 @@ public impl Context
 
         return result
     }
+}
+
+// Reports whether a tool was relaunched and the exit code of that selected-compiler run.
+struct RelaunchResult
+{
+    didRun:   bool
+    exitCode: s32
+}
+
+// Relaunches a tool when the compiler hosting its script is not the one its arguments selected.
+//
+// A script resolves its imports before its entry point runs. Rebuilding on the selected compiler
+// is therefore required even though the first host has already loaded Core: it makes that same
+// compiler generate the dependency APIs which the tool's child commands will consume.
+func relaunchToolIfNeeded(context: *Context, script: string, tokens: const [..] string)->RelaunchResult fail
+{
+    var running  = try Env.Process.currentExecutablePath()
+    var selected = String.from(context.compiler.toString())
+    Path.normalize(&running)
+    Path.normalize(&selected)
+
+    var result: retval
+    if Utf8.compare(cast(const [..] u8) running.toString(), cast(const [..] u8) selected.toString(), .Latin1NoCase) == 0 do
+        return result
+
+    var arguments: Arguments
+    arguments.add(["--rebuild", script])
+    arguments.add(tokens)
+
+    result.didRun   = true
+    result.exitCode = try context.runProgram(selected.toString(), withCoreBound(arguments))
+    return result
 }
 
 // Names the two directories one built artifact owns.

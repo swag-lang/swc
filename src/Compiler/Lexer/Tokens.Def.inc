@@ -350,14 +350,10 @@ SWC_TOKEN_DEF(IntrinsicMulAdd, "@muladd", TokenIdKindE::Intrinsic | TokenIdKindE
 
 // INTRINSICS - MEMORY
 //
-// These compute from their operands alone, but they are deliberately not 'Portable': publishing
-// an inline body that uses one changes what a consumer decodes (F-178), so they stay behind the
-// foreign call until that is explained.
-
-SWC_TOKEN_DEF(IntrinsicMemCpy, "@memcpy", TokenIdKindE::Intrinsic)
-SWC_TOKEN_DEF(IntrinsicMemMove, "@memmove", TokenIdKindE::Intrinsic)
-SWC_TOKEN_DEF(IntrinsicMemSet, "@memset", TokenIdKindE::Intrinsic)
-SWC_TOKEN_DEF(IntrinsicMemCmp, "@memcmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicMemCpy, "@memcpy", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicMemMove, "@memmove", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicMemSet, "@memset", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicMemCmp, "@memcmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 
 // INTRINSICS - ATOMIC
 

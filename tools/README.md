@@ -8,7 +8,7 @@ Every tool takes the same shape:
 swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 ```
 
-- `dm` uses `bin/swc_devmode.exe`; without it the tools drive `bin/swc.exe`.
+- `dm` runs the tool under and drives `bin/swc_devmode.exe`; without it the tool uses `bin/swc.exe`.
 - `<command>` is `build`, `run`, `test`, or `smoke`, when the tool has more than one.
 - `<name>` is the module, suite, or script to act on; without it the tool acts on everything.
 - Positionals come first and options after, so an option value is never read as a name.
@@ -25,10 +25,10 @@ is forwarded to the compiler.
 A tool is an ordinary Swag script. It states the sources it is made of, and calls into the
 shared implementation under [src/](src), one file per family. There is no launcher, no wrapper,
 and no environment protocol: the compiler hands a script everything after its own path, and a
-script finds the repository from its own location.
-
-The compiler a tool *drives* is `bin/swc.exe`, started as a child process and never the one that
-ran the tool. That is what lets a tool say that a freshly built compiler is broken.
+script finds the repository from its own location. If `dm` selects a compiler other than the one
+that first received the script, the tool relaunches itself under that compiler before doing any
+work. The selected compiler therefore builds the tool's dependencies and drives every child
+command, so one run cannot generate module APIs with one binary and consume them with another.
 
 Run a checkout's tools with that checkout's compiler — `bin\swc.exe tools\tests.swgs` — whenever
 more than one working tree exists. `swc` on the path belongs to whichever tree was registered

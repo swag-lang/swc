@@ -20,7 +20,7 @@ public func launch(name: string, loc = #callerlocation)->s32
     let toolsDir = Path.directoryName(script) orelse ""
     let root     = Path.directoryName(toolsDir) orelse ""
 
-    let code = catch dispatch(name, root, scriptArguments()) as err
+    let code = catch dispatch(name, root, script, scriptArguments()) as err
     if err != null
     {
         Console.println("error: ", Errors.message(err))
@@ -43,7 +43,7 @@ private func scriptArguments()->const [..] string
 }
 
 // Runs the tool `name` against `root` and returns the exit code it produced.
-private func dispatch(name: string, root: string, tokens: const [..] string)->s32 fail
+private func dispatch(name: string, root: string, script: string, tokens: const [..] string)->s32 fail
 {
     let accepted = acceptedCommands(name)
 
@@ -64,6 +64,9 @@ private func dispatch(name: string, root: string, tokens: const [..] string)->s3
     }
 
     var context = try Context.create(root, options)
+    let relaunch = try relaunchToolIfNeeded(&context, script, tokens)
+    if relaunch.didRun do
+        return relaunch.exitCode
 
     switch name
     {

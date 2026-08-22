@@ -1,5 +1,5 @@
 #global private
 #global if #os == Swag.TargetOs.Windows
 
-#[Swag.Foreign("kernel32", "GetCurrentProcessId")]
+#[Swag.Foreign("kernel32", "GetCurrentProcessId", callconv: Swag.CallConv.C)]
 func GetPidWithBody()->u32 { return 0; }     // swc-expected-error {{sema_err_foreign_cannot_have_body}}

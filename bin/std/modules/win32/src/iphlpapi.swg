@@ -57,7 +57,7 @@ struct IP_ADAPTER_INFO
     }
 }
 
-#[Foreign("iphlpapi")]
+#[Foreign("iphlpapi", callconv: Swag.CallConv.C)]
 {
     func GetAdaptersInfo(adapterInfo: *IP_ADAPTER_INFO, sizePointer: *ULONG)->ULONG
 }

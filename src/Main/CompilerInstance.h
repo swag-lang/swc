@@ -385,9 +385,10 @@ private:
 
     SourceFile&       addResolvedFile(fs::path path, FileFlags flags);
     SourceFile&       addResolvedLoadedFile(fs::path path, FileFlags flags, std::string_view content);
-    void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
+    void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags, std::string_view apiModuleName = {});
     void              collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
-    void              collectImportedApiFolderFiles(const fs::path& folder);
+    void              collectImportedApiFolderFiles(const fs::path& folder, std::string_view moduleName);
+    static Utf8       apiModuleNameFromPath(const fs::path& file);
     Result            collectImportedApiFiles(TaskContext& ctx);
     Result            resolveModuleInputPaths(TaskContext& ctx);
     bool              hasResolvedFilePath(const fs::path& path) const;

@@ -55,7 +55,7 @@ struct XINPUT_VIBRATION
 #assert(#sizeof(XINPUT_STATE) == 16)
 #assert(#sizeof(XINPUT_VIBRATION) == 4)
 
-#[Foreign(module: "xinput1_4", link: "xinput")]
+#[Foreign(module: "xinput1_4", link: "xinput", callconv: Swag.CallConv.C)]
 {
     func XInputGetState(dwUserIndex: DWORD, pState: *XINPUT_STATE)->DWORD
     func XInputSetState(dwUserIndex: DWORD, pVibration: *XINPUT_VIBRATION)->DWORD

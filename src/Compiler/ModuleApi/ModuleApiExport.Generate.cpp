@@ -15,7 +15,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using ModuleApiExport::appendGeneratedRootUnique;
-    using ModuleApiExport::buildModuleArtifactName;
     using ModuleApiExport::buildModuleNamespaceName;
     using ModuleApiExport::buildSanitizedModuleApiSnippet;
     using ModuleApiExport::extractPublicNamespacePath;
@@ -61,29 +60,44 @@ namespace
         {
             if (variable->isFunctionLocalVariable(function) || function.containsLocalVariable(*variable))
                 return true;
+        }
 
-            const SymbolMap* owner = variable->ownerSymMap();
-            while (owner)
+        // A field, a member constant and an enum value travel with the type that declares them,
+        // and the body is re-emitted in that same generated file, so it reads them exactly as it
+        // did in the module it came from: the access rules answer with the file the code was
+        // written in, not with the one that ends up calling it. An opaque type publishes storage
+        // instead of members, so nothing a body names inside one can bind again.
+        if (symbol.isValueExpr())
+        {
+            bool ownedByExportedType = false;
+            for (const SymbolMap* owner = symbol.ownerSymMap(); owner; owner = owner->ownerSymMap())
             {
-                if (owner->isStruct() && isModuleApiOpaqueType(owner->cast<SymbolStruct>()))
+                if (!owner->isStruct() && !owner->isEnum())
+                    continue;
+                if (!owner->isPublic() || isModuleApiOpaqueType(*owner))
                     return false;
-                owner = owner->ownerSymMap();
+
+                ownedByExportedType = true;
             }
+
+            if (ownedByExportedType)
+                return true;
         }
 
         return symbol.isPublic();
     }
 
-    bool isGeneratedInlineBodyIntrinsicExportable(const AstNode& node)
+    bool isGeneratedInlineBodyIntrinsicExportable(TaskContext& ctx, const Ast& ast, const AstNodeRef nodeRef, const AstNode& node)
     {
         if (node.isNot(AstNodeId::IntrinsicCallExpr))
             return true;
 
-        // Generated APIs do not carry an intrinsic's lowering and effect contract. Re-emitting
-        // one in a consumer can therefore differ from calling the provider's compiled entry;
-        // atomics in particular need the foreign call's cross-module memory boundary. Keep the
-        // declaration foreign until that contract is represented explicitly in the API.
-        return false;
+        // A generated API carries the body, not the intrinsic's effect contract. One that
+        // computes from its operands alone means the same thing wherever it is re-emitted; an
+        // atomic, a context query, or a report about the running program answers about the
+        // module it runs in, and stays behind the foreign call that owns that boundary.
+        const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
+        return Token::isPortableIntrinsic(srcView.token(node.tokRef()).id);
     }
 
     bool canExportGeneratedInlineBody(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const SymbolFunction& function)
@@ -95,7 +109,7 @@ namespace
         bool       canExport = true;
         const Ast& ast       = root.file->ast();
         Ast::visit(ast, functionDecl->nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
-            if (!isGeneratedInlineBodyIntrinsicExportable(node))
+            if (!isGeneratedInlineBodyIntrinsicExportable(ctx, ast, nodeRef, node))
             {
                 canExport = false;
                 return Ast::VisitResult::Stop;
@@ -310,12 +324,17 @@ namespace
         trimTrailingModuleApiWhitespace(text);
     }
 
-    void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, Utf8& ioSnippet)
+    void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody, Utf8& ioSnippet)
     {
         Utf8 prefix;
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Macro, "Macro", "#[Swag.Macro]");
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Mixin, "Mixin", "#[Swag.Mixin]");
-        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
+
+        // 'Inline' asks the consumer to expand the body, so it only means something where the
+        // body travels with the declaration. Publishing it on an entry the API reduced to a
+        // foreign call promises an expansion that cannot happen.
+        if (hasExportedBody)
+            appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::ConstExpr, "ConstExpr", "#[Swag.ConstExpr]");
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Implicit, "Implicit", "#[Swag.Implicit]");
 
@@ -579,33 +598,71 @@ namespace
         return !outPrefix.empty();
     }
 
+    // An entry of a generated module API states only what an importer cannot recompute.
+    // The module is the one the API file describes, the calling convention is Swag, and
+    // the flattened symbol name is the scoped declaration name; each of those is the
+    // default an importer applies on its own. Only an overload carries a name, because
+    // its disambiguating suffix depends on the whole overload set.
     Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction, const std::string_view eol)
     {
-        std::string_view callConvName = "Swag.CallConv.C";
-        switch (symbolFunction.callConvKind())
+        SWC_ASSERT(symbolFunction.callConvKind() == CallConvKind::Swag);
+
+        Utf8       result  = "#[Swag.Foreign";
+        const Utf8 apiName = symbolFunction.computePublicApiSymbolName(ctx);
+        if (apiName != symbolFunction.computePublicApiBaseSymbolName(ctx))
         {
-            case CallConvKind::C:
-                callConvName = "Swag.CallConv.C";
-                break;
-            case CallConvKind::WindowsX64:
-                callConvName = "Swag.CallConv.WindowsX64";
-                break;
-            case CallConvKind::Swag:
-                callConvName = "Swag.CallConv.Swag";
-                break;
-            default:
-                SWC_UNREACHABLE();
+            result += "(function: \"";
+            result += apiName;
+            result += "\")";
         }
 
-        Utf8 result = "#[Swag.Foreign(module: \"";
-        result += buildModuleArtifactName(ctx.compiler());
-        result += "\", function: \"";
-        result += symbolFunction.computePublicApiSymbolName(ctx);
-        result += "\", callconv: ";
-        result += callConvName;
-        result += ")]";
+        result += "]";
         result += eol;
         return result;
+    }
+
+    // 'Inline' asks the consumer to expand the body. An entry the API reduced to a foreign
+    // declaration carries no body, so a copied attribute line saying otherwise describes an
+    // expansion that cannot happen. Only a line that says nothing else is dropped: an attribute
+    // written alongside another one keeps whatever the declaration also stated.
+    void dropInlineAttributeLine(const std::string_view eol, Utf8& ioPrefix)
+    {
+        static constexpr std::string_view INLINE_ATTRIBUTES[] = {"#[Swag.Inline]", "#[Inline]"};
+
+        size_t pos = 0;
+        while (pos < ioPrefix.size())
+        {
+            while (pos < ioPrefix.size() && std::isspace(static_cast<unsigned char>(ioPrefix[pos])))
+                ++pos;
+            if (pos >= ioPrefix.size() || ioPrefix[pos] != '#')
+                return;
+
+            const std::string_view rest = ioPrefix.subView(pos, ioPrefix.size() - pos);
+            size_t                 attributeSize = 0;
+            for (const std::string_view attribute : INLINE_ATTRIBUTES)
+            {
+                if (rest.starts_with(attribute))
+                    attributeSize = attribute.size();
+            }
+
+            if (attributeSize == 0)
+            {
+                const size_t groupEnd = ioPrefix.find(']', pos);
+                if (groupEnd == Utf8::npos)
+                    return;
+                pos = groupEnd + 1;
+                continue;
+            }
+
+            size_t lineEnd = pos + attributeSize;
+            while (lineEnd < ioPrefix.size() && (ioPrefix[lineEnd] == ' ' || ioPrefix[lineEnd] == '\t'))
+                ++lineEnd;
+            if (ioPrefix.subView(lineEnd, eol.size()) == eol)
+                lineEnd += eol.size();
+
+            ioPrefix.erase(pos, lineEnd - pos);
+            return;
+        }
     }
 
     Utf8 buildFunctionSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol)
@@ -618,7 +675,8 @@ namespace
         if (!tryBuildFunctionDeclPrefix(ctx, root, eol, prefix))
             return {};
 
-        prependMissingFunctionAttributes(*symbolFunction, eol, prefix);
+        dropInlineAttributeLine(eol, prefix);
+        prependMissingFunctionAttributes(*symbolFunction, eol, false, prefix);
         trimTrailingModuleApiDeclarationSeparator(prefix);
         if (prefix.empty())
             return {};
@@ -752,7 +810,7 @@ namespace
 
         outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
-            prependMissingFunctionAttributes(*symbolFunction, eol, outSnippet);
+            prependMissingFunctionAttributes(*symbolFunction, eol, true, outSnippet);
         return Result::Continue;
     }
 }

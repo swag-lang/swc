@@ -429,20 +429,19 @@ namespace
 
     Result collectForeignOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
     {
-        SWC_ASSERT(!args.empty());
-
         Utf8                        moduleName;
         Utf8                        functionName;
         Utf8                        linkModuleName;
         std::optional<CallConvKind> callConvKind;
-        SWC_RESULT(collectForeignStringValue(sema, moduleName, args[0]));
+        if (!args.empty())
+            SWC_RESULT(collectForeignStringValue(sema, moduleName, args[0]));
         if (args.size() > 1)
             SWC_RESULT(collectForeignStringValue(sema, functionName, args[1]));
         if (args.size() > 2)
             SWC_RESULT(collectForeignStringValue(sema, linkModuleName, args[2]));
         if (args.size() > 3 && args[3].argRef.isValid())
         {
-            auto explicitCallConvKind = CallConvKind::C;
+            auto explicitCallConvKind = CallConvKind::Swag;
             SWC_RESULT(collectForeignCallConvValue(sema, explicitCallConvKind, args[3]));
             callConvKind = explicitCallConvKind;
         }

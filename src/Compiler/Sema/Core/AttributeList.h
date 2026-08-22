@@ -205,9 +205,12 @@ struct AttributeList
         backendOptimize = value;
     }
 
+    // A Swag declaration is Swag-convention unless it says otherwise, and 'Swag.Foreign'
+    // only states where a function comes from. A foreign function of a native library
+    // therefore names 'Swag.CallConv.C' explicitly.
     CallConvKind resolvedForeignCallConvKind() const
     {
-        return foreignCallConvKind.value_or(CallConvKind::C);
+        return foreignCallConvKind.value_or(CallConvKind::Swag);
     }
 
     void setForeign(std::string_view moduleName, std::string_view functionName, std::string_view linkModuleName = {}, std::optional<CallConvKind> callConvKind = std::nullopt)

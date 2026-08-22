@@ -29,7 +29,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
         const INFINITE = 0xFFFF_FFFF'u32
 
-        #[Swag.Foreign("kernel32")]
+        #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
         {
             func CreateThread(lpThreadAttributes: #null *void, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
             func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD

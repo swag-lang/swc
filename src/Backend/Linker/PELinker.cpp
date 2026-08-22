@@ -34,7 +34,7 @@ namespace
 
     // Gathers the link library required by every foreign function referenced by a code block. The
     // dependency-module hooks are themselves foreign functions, so this also pulls in dependency libs.
-    void collectForeignLibs(std::set<Utf8>& outLibNames, const CompilerInstance& compiler, const MachineCode& code)
+    void collectForeignLibs(std::set<Utf8>& outLibNames, const TaskContext& ctx, const MachineCode& code)
     {
         for (const MicroRelocation& relocation : code.codeRelocations)
         {
@@ -46,11 +46,15 @@ namespace
 
             // An explicit link module wins; otherwise the origin module name maps to the
             // link artifact dependency resolution selected ('core.test' in a test compile).
-            std::string_view moduleName = function->foreignLinkModuleName();
+            Utf8 moduleName{function->foreignLinkModuleName()};
             if (moduleName.empty())
-                moduleName = compiler.runtimeImportLinkName(function->foreignModuleName());
+            {
+                const Utf8 originModule = function->resolveForeignModuleName(ctx);
+                moduleName              = Utf8{ctx.compiler().runtimeImportLinkName(originModule.view())};
+            }
+
             if (!moduleName.empty())
-                outLibNames.insert(normalizedLibName(moduleName));
+                outLibNames.insert(normalizedLibName(moduleName.view()));
         }
     }
 
@@ -547,9 +551,9 @@ namespace
             outLibNames.insert(normalizedLibName(library.view()));
         for (const NativeFunctionInfo& info : builder.functionInfos)
             if (info.machineCode)
-                collectForeignLibs(outLibNames, builder.compiler(), *info.machineCode);
+                collectForeignLibs(outLibNames, builder.ctx(), *info.machineCode);
         if (builder.startup)
-            collectForeignLibs(outLibNames, builder.compiler(), builder.startup->code);
+            collectForeignLibs(outLibNames, builder.ctx(), builder.startup->code);
 
         // Search directories: the SDK/MSVC library directories, then dependency link dirs and the folders
         // that hold imported-API artifacts.

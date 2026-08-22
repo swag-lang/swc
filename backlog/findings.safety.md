@@ -146,3 +146,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `bin/unittests/sanity`, next to the pointer cases that already pass.
 - Related: the reference now states on both the `any` page and the intrinsics page that an `any` is
   a non-owning view, so what is missing here is the rule that enforces it.
+
+### F-179 — Null narrowing does not survive a receiver the caller wrote as an index
+
+- Area: safety
+- Found while: publishing the inline bodies a generated module API used to drop, so a consumer can
+  expand them instead of calling across the module boundary.
+- Observation: `if .buffer do .buffer[0] = 0` narrows inside the method that declares it, and stops
+  narrowing once that body is expanded at a call site whose receiver is an array element. `me`
+  becomes `lines[lip]`, both occurrences of `.buffer` become `lines[lip].buffer`, and the guard no
+  longer covers the access: an indexed base is not a path narrowing follows. The same source is
+  accepted or rejected depending on how the caller spelled the receiver, and the caller has no way
+  to see why.
+- Evidence: with `Core.String.clear` publishing its body,
+  `swc tools/examples.swgs dm build -m aoc2020` reports "indexing into '#null [*] u8' dereferences a
+  value that can still be null" inside the generated `core.swg`, from the three `lines[lip].clear()`
+  call sites in `8A.swg` and `8B.swg`. Calling `s.clear()` on a plain local compiles. `String.clear`
+  now binds the pointer to a local before the guard, which narrows whatever the receiver is.
+- Next step: decide whether narrowing should accept an indexed base when no assignment to the index
+  or the container separates the guard from the use, or whether the rule should stay path-based and
+  the diagnostic should say that the receiver is what stops it. The second is cheap and removes the
+  mystery; the first removes the workaround. Either way a `bin/unittests/sanity` case belongs here:
+  the same guarded access reached through a local, a field, and an array element.

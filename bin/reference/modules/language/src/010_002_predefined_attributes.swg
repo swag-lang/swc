@@ -141,7 +141,8 @@ func localName(value: u32)->u32
 ```
 
 'function' defaults to the local declaration name, 'link' defaults to the
-module name, and 'callconv' defaults to the target C ABI.
+module name, and 'callconv' defaults to the Swag ABI, so a native library
+names 'Swag.CallConv.C' itself.
 
 # Documentation
 

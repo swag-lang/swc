@@ -24,25 +24,25 @@ private struct LastInputInfo
 
 private alias AutoUnmountSubclassProc = func(NativeWindow, u32, u64, s64, u64, u64)->s64
 
-private #[Swag.Foreign("comctl32")]
+private #[Swag.Foreign("comctl32", callconv: Swag.CallConv.C)]
 {
     func SetWindowSubclass(hwnd: NativeWindow, callback: AutoUnmountSubclassProc, id, data: u64)->s32
     func RemoveWindowSubclass(hwnd: NativeWindow, callback: AutoUnmountSubclassProc, id: u64)->s32
     func DefSubclassProc(hwnd: NativeWindow, message: u32, wParam: u64, lParam: s64)->s64
 }
 
-private #[Swag.Foreign("wtsapi32")]
+private #[Swag.Foreign("wtsapi32", callconv: Swag.CallConv.C)]
 {
     func WTSRegisterSessionNotification(hwnd: NativeWindow, flags: u32)->s32
     func WTSUnRegisterSessionNotification(hwnd: NativeWindow)->s32
 }
 
-private #[Swag.Foreign("user32")]
+private #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
 {
     func GetLastInputInfo(info: *LastInputInfo)->s32
 }
 
-private #[Swag.Foreign("kernel32")]
+private #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
     func GetTickCount()->u32
 }

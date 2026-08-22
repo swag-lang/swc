@@ -541,12 +541,12 @@ const FIND_FIRST_EX_CASE_SENSITIVE       = 1
 const FIND_FIRST_EX_LARGE_FETCH          = 2
 const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
-#[Foreign("kernel32"), Discardable]
+#[Foreign("kernel32", callconv: Swag.CallConv.C), Discardable]
 {
     func SwitchToThread()->BOOL
 }
 
-#[Foreign("kernel32")]
+#[Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
     func GetLastError()->DWORD
     func FormatMessageA(dwFlags: DWORD, lpSource: LPCVOID, dwMessageId: DWORD, dwLanguageId: DWORD, lpBuffer: LPCSTR, nSize: DWORD, Arguments: #null *va_list)->DWORD
@@ -618,7 +618,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
 internal namespace Win32Priv
 {
-    #[Foreign("kernel32")]
+    #[Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func AllocConsole()->BOOL
         func FreeConsole()->BOOL

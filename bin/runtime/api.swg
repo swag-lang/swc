@@ -180,9 +180,12 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr CalleeReturn()
 
-    // The following function is foreign (imported)
+    // The following function is foreign (imported).
+    // 'module' defaults to the module the declaring file belongs to, which only a generated
+    // module API leaves out. 'function' defaults to the flattened public API name there, and
+    // to the declaration name for a function of a native library.
     #[AttrUsage(AttributeUsage.Function)]
-    attr Foreign(module: string, function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.C)
+    attr Foreign(module: string = "", function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.Swag)
 
     // The following function accepts that the called does not use its return value
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]

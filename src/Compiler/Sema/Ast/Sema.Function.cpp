@@ -1667,6 +1667,11 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
         sym.setVariadicParamFlag(sema.ctx());
 
+        // Only a generated module API leaves the module out: it is the one the API file
+        // describes. Anywhere else the declaration has nothing to bind to.
+        if (sym.isForeign() && sym.resolveForeignModuleName(sema.ctx()).empty())
+            return SemaError::raise(sema, DiagnosticId::sema_err_foreign_needs_module, sema.curNodeRef(), SemaError::ReportLocation::Token);
+
         // A simd value rides a float register only in the Swag calling
         // convention, so a C-convention foreign boundary rejects it.
         if (sym.isForeign() && sym.callConvKind() != CallConvKind::Swag)

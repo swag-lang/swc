@@ -14,16 +14,16 @@ struct Triple64
     c: u64
 }
 
-#[Swag.Foreign("kernel32", "GetTickCount")]
+#[Swag.Foreign("kernel32", "GetTickCount", callconv: Swag.CallConv.C)]
 func ForeignTakePair(value: Pair32)->u32
 
-#[Swag.Foreign("kernel32", "GetTickCount")]
+#[Swag.Foreign("kernel32", "GetTickCount", callconv: Swag.CallConv.C)]
 func ForeignTakeTriple(value: Triple64)->u32
 
-#[Swag.Foreign("kernel32", "GetTickCount")]
+#[Swag.Foreign("kernel32", "GetTickCount", callconv: Swag.CallConv.C)]
 func ForeignReturnPair()->Pair32
 
-#[Swag.Foreign("kernel32", "GetTickCount")]
+#[Swag.Foreign("kernel32", "GetTickCount", callconv: Swag.CallConv.C)]
 func ForeignReturnTriple()->Triple64
 
 func semaTest001()

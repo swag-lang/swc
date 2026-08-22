@@ -47,7 +47,7 @@ const REG_RESOURCE_REQUIREMENTS_LIST = 10'u32
 const REG_QWORD                      = 11'u32     // 64-bit number
 const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_QWORD)
 
-#[Foreign("advapi32"), Swag.Discardable]
+#[Foreign("advapi32", callconv: Swag.CallConv.C), Swag.Discardable]
 {
     func RegCreateKeyExA(hKey: HKEY, lpSubKey: LPCSTR, reserved: DWORD, lpClass: #null LPSTR, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
     func RegCreateKeyExW(hKey: HKEY, lpSubKey: LPCWSTR, reserved: DWORD, lpClass: #null LPWSTR, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
@@ -60,5 +60,5 @@ const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_
 
 // `RtlGenRandom` has never had an export of that name: `advapi32.dll` publishes it as
 // `SystemFunction036`, which is what `ntsecapi.h` declares it as too.
-#[Foreign("advapi32", "SystemFunction036")]
+#[Foreign("advapi32", "SystemFunction036", callconv: Swag.CallConv.C)]
 func RtlGenRandom(RandomBuffer: [*] u8, RandomBufferLength: ULONG)->BOOLEAN

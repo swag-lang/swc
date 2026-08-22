@@ -1050,7 +1050,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     return cast(s32) (cast(s64) value - 0x1_0000)
 }
 
-#[Foreign("user32")]
+#[Foreign("user32", callconv: Swag.CallConv.C)]
 {
     func GetAsyncKeyState(vKey: s32)->SHORT
     func GetKeyboardState(lpKeystate: *u8)->BOOL
@@ -1111,7 +1111,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func GetSystemMetrics(nIndex: s32)->s32
 }
 
-#[Foreign("user32"), Discardable]
+#[Foreign("user32", callconv: Swag.CallConv.C), Discardable]
 {
     func GetCursorPos(lpPoint: *POINT)->BOOL
     func GetCursorInfo(pci: *CURSORINFO)->BOOL
@@ -1157,7 +1157,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 
 internal namespace User32Priv
 {
-    #[Foreign("user32")]
+    #[Foreign("user32", callconv: Swag.CallConv.C)]
     {
         func RegisterClassA(lpWndClass: const *WNDCLASSA)->ATOM
         func RegisterClassW(lpWndClass: const *WNDCLASSW)->ATOM

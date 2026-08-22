@@ -87,15 +87,21 @@ namespace
 
     void appendPublicApiTypeFragment(Utf8& out, const TaskContext& ctx, TypeRef typeRef);
 
-    const SymbolNamespace* publicApiModuleNamespace(const TaskContext& ctx, const Symbol& symbol)
+    // The module namespace is the public boundary: paths above it are local to the
+    // build/import context and must not leak into exported symbol names. The module
+    // being compiled owns its namespace directly, while an imported module API
+    // re-declares that same namespace under the import root. Recognizing both shapes
+    // is what makes an importer flatten a name exactly as its exporter did, so a
+    // generated module API can leave the flattened name out of 'Swag.Foreign'.
+    bool isPublicApiModuleRootNamespace(const TaskContext& ctx, const SymbolMap& scope)
     {
-        if (!symbol.srcViewRef().isValid())
-            return nullptr;
+        if (!scope.isNamespace())
+            return false;
 
-        // The module namespace is the public boundary: paths above it are local to
-        // the build/import context and must not leak into exported symbol names.
-        const SourceFile* sourceFile = ctx.compiler().srcView(symbol.srcViewRef()).file();
-        return sourceFile ? sourceFile->moduleNamespace() : nullptr;
+        const SymbolMap* owner = scope.ownerSymMap();
+        if (!owner || owner->isModule())
+            return true;
+        return owner == ctx.compiler().importRootNamespace();
     }
 
     void appendPublicApiScopedSymbolPath(Utf8& out, const TaskContext& ctx, const Symbol& symbol, bool includeSymbol)
@@ -104,11 +110,10 @@ namespace
         if (includeSymbol)
             scopeChain.push_back(&symbol);
 
-        const SymbolNamespace* moduleNamespace = publicApiModuleNamespace(ctx, symbol);
-        const SymbolMap*       scope           = symbol.ownerSymMap();
+        const SymbolMap* scope = symbol.ownerSymMap();
         while (scope)
         {
-            if (scope != moduleNamespace && !scope->isModule() && !scope->isImpl())
+            if (!scope->isModule() && !scope->isImpl() && !isPublicApiModuleRootNamespace(ctx, *scope))
                 scopeChain.push_back(scope);
             scope = scope->ownerSymMap();
         }
@@ -668,7 +673,7 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     return out;
 }
 
-Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
+Utf8 SymbolFunction::computePublicApiBaseSymbolName(const TaskContext& ctx) const
 {
     Utf8 apiName;
     appendPublicApiFunctionScope(apiName, ctx, *this);
@@ -676,6 +681,12 @@ Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
 
     if (apiName.empty())
         apiName = "fn";
+    return apiName;
+}
+
+Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
+{
+    Utf8 apiName = computePublicApiBaseSymbolName(ctx);
     if (publicApiNeedsOverloadSuffix(*this, ctx))
         appendPublicApiOverloadSuffix(apiName, ctx, *this);
     return apiName;
@@ -827,6 +838,20 @@ void SymbolFunction::setPure(bool value) noexcept
         removeExtraFlag(SymbolFunctionFlagsE::Pure);
 }
 
+Utf8 SymbolFunction::resolveForeignModuleName(const TaskContext& ctx) const
+{
+    if (!isForeign())
+        return {};
+
+    if (!foreignModuleName().empty())
+        return Utf8{foreignModuleName()};
+
+    // A 'Swag.Foreign' that names no module belongs to the module its file describes,
+    // which is what a generated module API writes for every entry it exports.
+    const SourceFile* sourceFile = ctx.compiler().sourceViewFile(*this);
+    return sourceFile ? sourceFile->apiModuleName() : Utf8{};
+}
+
 Utf8 SymbolFunction::resolveForeignFunctionName(const TaskContext& ctx) const
 {
     if (!isForeign())
@@ -834,6 +859,12 @@ Utf8 SymbolFunction::resolveForeignFunctionName(const TaskContext& ctx) const
 
     if (!foreignFunctionName().empty())
         return Utf8{foreignFunctionName()};
+
+    // An entry of a generated module API links against the flattened public API name
+    // its exporter emitted, and both sides compute it the same way. A foreign function
+    // from a native library keeps the name it is declared with.
+    if (foreignModuleName().empty())
+        return computePublicApiBaseSymbolName(ctx);
 
     return Utf8{name(ctx)};
 }

@@ -34,7 +34,7 @@ namespace __Win32RT
     const PAGE_READWRITE       = 0x0000_0004'u32
     const PAGE_NOACCESS        = 0x0000_0001'u32
 
-    #[Swag.Foreign("kernel32")]
+    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func RtlCaptureContext(contextRecord: *void)
         func RtlRestoreContext(contextRecord: *void, exceptionRecord: #null *void)
@@ -64,7 +64,7 @@ namespace __Win32RT
         func VirtualFree(lpAddress: #null *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL
     }
 
-    #[Swag.Foreign("user32")]
+    #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
     {
         func MessageBoxA(hWnd: #null const *void, lpText: const *void, lpCaption: const *void, uType: u32)->s32
     }
@@ -149,7 +149,7 @@ impl MutexRW
 // LIBC
 ////////////////////////////////////////////////////////////
 
-#[Swag.Foreign(module: "ucrtbase", link: "ucrt")]
+#[Swag.Foreign(module: "ucrtbase", link: "ucrt", callconv: Swag.CallConv.C)]
 {
     func sinf(val: f32)->f32
     func cosf(val: f32)->f32

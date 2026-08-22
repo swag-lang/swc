@@ -459,13 +459,13 @@ func RGB(r, g, b: s32)->COLORREF
     return r | g << 8 | b << 16
 }
 
-#[Foreign("Gdi32")]
+#[Foreign("Gdi32", callconv: Swag.CallConv.C)]
 {
     func GetPixel(hdc: HDC, x, y: s32)->COLORREF
     func GetStockObject(i: s32)->HGDIOBJ
 }
 
-#[Foreign("Gdi32"), Discardable]
+#[Foreign("Gdi32", callconv: Swag.CallConv.C), Discardable]
 {
     func SelectObject(hdc: HDC, h: HGDIOBJ)->HGDIOBJ
     func GetDeviceCaps(hdc: HDC, index: s32)->s32
@@ -489,7 +489,7 @@ func RGB(r, g, b: s32)->COLORREF
 
 internal namespace Gdi32Priv
 {
-    #[Foreign("Gdi32")]
+    #[Foreign("Gdi32", callconv: Swag.CallConv.C)]
     {
         func ChoosePixelFormat(hdc: HDC, ppfd: const *PIXELFORMATDESCRIPTOR)->s32
         func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: const *PIXELFORMATDESCRIPTOR)->BOOL

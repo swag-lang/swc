@@ -204,3 +204,28 @@ Entries are sorted by identifier, ascending; position carries no priority.
   stale artifact against the rebuilt one to identify which product (object, module interface,
   or cache entry) was wrong. Two prior entries suspect artifact reuse; this one has a saved
   reproducer shape: byte-identical failures across runs that survive source edits.
+
+### F-178 — A published inline body that uses a memory intrinsic decodes differently in a consumer
+
+- Area: compiler
+- Found while: letting a generated module API publish the inline bodies it had been dropping, so a
+  consumer can expand them instead of paying a cross-module call.
+- Observation: a generated API may re-emit the body of a public `#[Swag.Inline]` function only when
+  every intrinsic it uses means the same thing in another module. Marking the math, bit, vector and
+  comparison intrinsics that way is byte-neutral: `bin/std` builds and the whole video suite stay
+  green with `Math.sqrt`, `Math.min`, `Math.rol` and the rest expanded at the call site. Marking
+  `@memcpy`, `@memmove`, `@memset` and `@memcmp` the same way makes three H.264 fixtures decode
+  differently, with the same 839/809/742-byte divergences F-177 recorded.
+- Evidence: `swc tools/std.swgs dm test video` after a clean `bin/std/.output` and `bin/std/.tmp`.
+  With `TokenIdKindE::Portable` on the four memory intrinsics in
+  [Tokens.Def.inc](../src/Compiler/Lexer/Tokens.Def.inc), `Core.Memory.copy`, `copyOverlapping`,
+  `clear` and `set` publish their bodies, `video.dll` stops importing `memory__copy`,
+  `memory__copy_overlapping`, `memory__clear` and `memory__set`, and 3 of 48 tests fail. Without it,
+  the same tree passes 48 of 48 and those four imports come back. No other import moves between the
+  two builds except `math__min___f64__f64`, which is green either way.
+- Next step: reduce it away from H.264. Add a provider/consumer pair to `bin/unittests/workspace`
+  where the provider publishes `#[Swag.Inline] func clear(dest: [*] void, size: u64) { if size do
+  @memset(dest, 0, size) }` and the consumer calls it with a compile-time size and with a runtime
+  size, then compare the emitted code against the same call made inside the provider. The inlined
+  form is the one that differs, so the constant-size lowering of `@memset`/`@memcpy` is the first
+  thing to read.

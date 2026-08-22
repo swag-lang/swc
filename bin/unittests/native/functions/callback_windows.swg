@@ -9,7 +9,7 @@ alias ThreadProc = func(#null *void)->DWORD
 const WAIT_OBJECT_0 = 0'u32
 const INFINITE      = 0xFFFFFFFF'u32
 
-#[Swag.Foreign("kernel32")]
+#[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
     func CreateThread(lpThreadAttributes: #null *void, dwStackSize: u64, lpStartAddress: ThreadProc, lpParameter: #null *void, dwCreationFlags: DWORD, lpThreadId: #null *DWORD)->HANDLE
     func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD

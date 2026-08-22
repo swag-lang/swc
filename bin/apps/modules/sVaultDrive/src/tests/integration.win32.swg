@@ -35,7 +35,7 @@ namespace Integration
         return writeError == null ? 0 : 1
     }
 
-    #[Swag.Foreign("kernel32")]
+    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func MoveFileExW(existing, replacement: #null const [*] u16, flags: u32)->s32
         func SetFileAttributesW(path: #null const [*] u16, attributes: u32)->s32

@@ -270,7 +270,7 @@ struct IEnumFORMATETCVtbl
     }
 }
 
-#[Foreign("ole32")]
+#[Foreign("ole32", callconv: Swag.CallConv.C)]
 {
     func CoInitializeEx(pvReserved: #null *void, dwCoInit: DWORD)->HRESULT
     func CoUninitialize()

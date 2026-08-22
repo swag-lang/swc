@@ -138,6 +138,7 @@ public:
     void                                setVariadicParamFlag(TaskContext& ctx);
     void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
+    Utf8                                computePublicApiBaseSymbolName(const TaskContext& ctx) const;
     Utf8                                computePublicApiSymbolName(const TaskContext& ctx) const;
     bool                                supportsGeneratedModuleApiExport() const noexcept;
     bool                                supportsPublicApiForeignExport() const noexcept;
@@ -167,6 +168,7 @@ public:
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
     std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
     CallConvKind     foreignCallConvKind() const noexcept { return attributes().resolvedForeignCallConvKind(); }
+    Utf8             resolveForeignModuleName(const TaskContext& ctx) const;
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
     bool usesGvtd() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::UsesGvtd); }

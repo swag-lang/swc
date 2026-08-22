@@ -455,7 +455,7 @@ struct NOTIFYICONDATAW
 
 internal namespace Shell32Priv
 {
-    #[Foreign("shell32")]
+    #[Foreign("shell32", callconv: Swag.CallConv.C)]
     {
         func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL)->BOOL
         func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL)->BOOL
@@ -469,7 +469,7 @@ internal namespace Shell32Priv
     }
 }
 
-#[Foreign("shell32")]
+#[Foreign("shell32", callconv: Swag.CallConv.C)]
 {
     func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR

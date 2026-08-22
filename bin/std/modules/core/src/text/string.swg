@@ -297,8 +297,13 @@ impl String
     mtd clear()
     {
         .length = 0
-        if .buffer do
-            .buffer[0] = 0
+
+        // The guard binds the pointer instead of testing the field: a published inline body is
+        // re-analyzed at the call site, where the receiver may be an expression that narrowing
+        // cannot follow, such as an array element.
+        let buffer = .buffer
+        if buffer do
+            buffer[0] = 0
     }
 
     // Returns true if the String has zero length

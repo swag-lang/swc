@@ -20,7 +20,7 @@ private const DWM_BB_ENABLE = 0x00000001'u32
 // Selects the region field of DWM_BLURBEHIND.
 private const DWM_BB_BLURREGION = 0x00000002'u32
 
-private #[Swag.Foreign("dwmapi")]
+private #[Swag.Foreign("dwmapi", callconv: Swag.CallConv.C)]
 {
     // Performs the dwm set window attribute operation.
     func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32
@@ -29,7 +29,7 @@ private #[Swag.Foreign("dwmapi")]
     func DwmEnableBlurBehindWindow(hWnd: HWND, pBlurBehind: const *DWM_BLURBEHIND)->s32
 }
 
-private #[Swag.Foreign("gdi32")]
+private #[Swag.Foreign("gdi32", callconv: Swag.CallConv.C)]
 {
     // Creates a rectangular region; an inverted rectangle yields the empty region.
     func CreateRectRgn(x1, y1, x2, y2: s32)->#null *void

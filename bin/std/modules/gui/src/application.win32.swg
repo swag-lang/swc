@@ -6,7 +6,7 @@ using Win32, Core, Pixel, Gdi32
 
 private const SPI_GETCLIENTAREAANIMATION = 0x1042'u32
 
-private #[Swag.Foreign("user32")]
+private #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
 {
     func SystemParametersInfoW(uiAction, uiParam: UINT, pvParam: LPVOID, fWinIni: UINT)->BOOL
 }

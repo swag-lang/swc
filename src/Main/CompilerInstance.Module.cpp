@@ -2245,7 +2245,7 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
             SWC_RESULT(mirrorDependencyDir(importPaths.sharedDir, sourceDependencyRoot));
         }
 
-        instance().collectImportedApiFolderFiles(importPaths.apiDir);
+        instance().collectImportedApiFolderFiles(importPaths.apiDir, importRequest.moduleName.view());
         instance().registerImportedDependencyLinkDir(importPaths.linkDir);
         instance().registerImportedSharedModuleDir(importPaths.sharedDir);
 
@@ -3327,7 +3327,7 @@ Result CompilerInstance::prepareModuleBuildConfig(TaskContext& ctx)
     return adoptModuleBuildCfg(ctx, precomputedModuleSetup_->buildCfg);
 }
 
-void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags)
+void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags, const std::string_view apiModuleName)
 {
     if (paths.empty())
         return;
@@ -3337,7 +3337,7 @@ void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFla
     {
         if (hasResolvedFilePath(path))
             continue;
-        addResolvedFile(std::move(path), flags);
+        addResolvedFile(std::move(path), flags).setApiModuleName(apiModuleName);
     }
 }
 
@@ -3349,12 +3349,25 @@ void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flag
     appendResolvedFiles(paths, flags);
 }
 
-void CompilerInstance::collectImportedApiFolderFiles(const fs::path& folder)
+// A generated public API file sits at '<module>/<backend>/<build-cfg>/<arch>/<file>', so the
+// module it describes is the fourth directory above it. An explicit '--import-api-file' carries
+// no import request to read that name from, and every entry of a module API resolves its foreign
+// module through it.
+Utf8 CompilerInstance::apiModuleNameFromPath(const fs::path& file)
+{
+    fs::path dir = file.parent_path();
+    for (uint32_t level = 0; level < 3; ++level)
+        dir = dir.parent_path();
+
+    return dir.has_filename() ? Utf8(dir.filename().string().c_str()) : Utf8{};
+}
+
+void CompilerInstance::collectImportedApiFolderFiles(const fs::path& folder, const std::string_view moduleName)
 {
     std::vector<fs::path> paths;
     collectSwagFilesRec(cmdLine(), folder, paths, false);
     std::ranges::sort(paths);
-    appendResolvedFiles(paths, FileFlagsE::ImportedApi);
+    appendResolvedFiles(paths, FileFlagsE::ImportedApi, moduleName);
 }
 
 Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
@@ -3374,7 +3387,7 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
             if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine, &importBackendKind) != Result::Continue)
                 return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
 
-            collectImportedApiFolderFiles(importDir);
+            collectImportedApiFolderFiles(importDir, moduleName.view());
             fs::path sharedDir;
             if (findDependencyConfigurationDirectoryForBackend(sharedDir, because, dependencyRoot, moduleName.view(), cmdLine, Runtime::BuildCfgBackendKind::SharedLibrary) == Result::Continue)
             {
@@ -3396,7 +3409,7 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
     {
         if (hasResolvedFilePath(file))
             continue;
-        addResolvedFile(file, FileFlagsE::ImportedApi);
+        addResolvedFile(file, FileFlagsE::ImportedApi).setApiModuleName(apiModuleNameFromPath(file).view());
         if (file.has_parent_path())
             registerImportedDependencyLinkDir(file.parent_path());
     }

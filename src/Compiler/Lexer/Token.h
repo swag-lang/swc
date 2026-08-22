@@ -22,6 +22,11 @@ enum class TokenIdKindE : uint32_t
     Literal   = 1 << 9,
     Modifier  = 1 << 10,
     Reserved  = 1 << 11,
+    // An intrinsic that computes its result from its operands alone. It reads no state the
+    // module it is compiled into owns, so a body using it means the same thing when a
+    // generated module API re-emits it in a consumer. An atomic, a context query, or a
+    // report about the running program does not, and carries no such mark.
+    Portable  = 1 << 12,
     Uniq      = 1 << 13,
 
     // Operator families. '++' is deliberately absent: concatenation shares no operand rule
@@ -119,6 +124,7 @@ struct Token
     static bool isCompiler(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler); }
     static bool isIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic); }
     static bool isIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Return); }
+    static bool isPortableIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Portable); }
     static bool isType(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Type); }
     static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }

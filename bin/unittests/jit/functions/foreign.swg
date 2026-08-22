@@ -1,7 +1,7 @@
 #global private
 #global if #os == Swag.TargetOs.Windows
 
-#[Swag.Foreign("kernel32", "GetCurrentProcessId")]
+#[Swag.Foreign("kernel32", "GetCurrentProcessId", callconv: Swag.CallConv.C)]
 func GetPidAlias()->u32
 
 #[Swag.Foreign(module: "kernel32", function: "GetCurrentProcessId", callconv: Swag.CallConv.C)]
@@ -10,19 +10,19 @@ func GetPidExplicitC()->u32
 #[Swag.Foreign(module: "kernel32", function: "GetCurrentProcessId", callconv: Swag.CallConv.WindowsX64)]
 func GetPidExplicitWin64()->u32
 
-#[Swag.Foreign("kernel32", "GetCurrentProcess")]
+#[Swag.Foreign("kernel32", "GetCurrentProcess", callconv: Swag.CallConv.C)]
 func GetCurrentProcess()->*void
 
-#[Swag.Foreign("kernel32", "GetProcessId")]
+#[Swag.Foreign("kernel32", "GetProcessId", callconv: Swag.CallConv.C)]
 func GetProcessId(process: #null *void)->u32
 
-#[Swag.Foreign("kernel32", "VirtualAlloc")]
+#[Swag.Foreign("kernel32", "VirtualAlloc", callconv: Swag.CallConv.C)]
 func VirtualAlloc(address: #null *void, bytes: u64, allocType: u32, protect: u32)->*void
 
-#[Swag.Foreign("kernel32", "VirtualFree")]
+#[Swag.Foreign("kernel32", "VirtualFree", callconv: Swag.CallConv.C)]
 func VirtualFree(address: #null *void, bytes: u64, freeType: u32)->bool
 
-#[Swag.Foreign("kernel32")]
+#[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
     func GetCurrentProcessId()->u32
 }
@@ -57,25 +57,25 @@ func VirtualFree(address: #null *void, bytes: u64, freeType: u32)->bool
     #assert(!F)
 }
 
-#[Swag.Foreign("kernel32", "GetCurrentProcessId")]
+#[Swag.Foreign("kernel32", "GetCurrentProcessId", callconv: Swag.CallConv.C)]
 func GetPidMissingArg(dummy: u32)->u32
 
-#[Swag.Foreign("kernel32", "lstrlenA")]
+#[Swag.Foreign("kernel32", "lstrlenA", callconv: Swag.CallConv.C)]
 func LStrLenA(text: const *u8)->s32
 
-#[Swag.Foreign("kernel32", "MulDiv")]
+#[Swag.Foreign("kernel32", "MulDiv", callconv: Swag.CallConv.C)]
 func MulDiv(number: s32, numerator: s32, denominator: s32)->s32
 
-#[Swag.Foreign("kernel32", "GetProcessHeap")]
+#[Swag.Foreign("kernel32", "GetProcessHeap", callconv: Swag.CallConv.C)]
 func GetProcessHeap()->*void
 
-#[Swag.Foreign("kernel32", "HeapAlloc")]
+#[Swag.Foreign("kernel32", "HeapAlloc", callconv: Swag.CallConv.C)]
 func HeapAlloc(heap: #null *void, flags: u32, bytes: u64)->*void
 
-#[Swag.Foreign("kernel32", "HeapFree")]
+#[Swag.Foreign("kernel32", "HeapFree", callconv: Swag.CallConv.C)]
 func HeapFree(heap: #null *void, flags: u32, mem: #null *void)->bool
 
-#[Swag.Foreign("kernel32", "MultiByteToWideChar")]
+#[Swag.Foreign("kernel32", "MultiByteToWideChar", callconv: Swag.CallConv.C)]
 func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: #null *u16, dstCount: s32)->s32
 
 #test
@@ -187,7 +187,7 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 #test { const V = #run VirtualFree(null, 0'u64, 0x8000'u32, 1) }                                 // swc-expected-error {{sema_err_too_many_arguments}}
 #test { const V = #run VirtualFree("bad", 0'u64, 0x8000'u32) }                                   // swc-expected-error {{sema_err_cannot_cast}}
 
-#[Swag.Foreign("kernel32", "GetCurrentProcessId")]
+#[Swag.Foreign("kernel32", "GetCurrentProcessId", callconv: Swag.CallConv.C)]
 func GetPidWithBody()->u32 { return 0; }     // swc-expected-error {{sema_err_foreign_cannot_have_body}}
 
 #test

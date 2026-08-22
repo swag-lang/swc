@@ -1,7 +1,7 @@
 #global private
 #global if #os == Swag.TargetOs.Windows
 
-#[Swag.Foreign(link: "ucrt", function: "abs", module: "ucrtbase")]
+#[Swag.Foreign(link: "ucrt", function: "abs", module: "ucrtbase", callconv: Swag.CallConv.C)]
 func CAbs(value: s32)->s32
 
 #test

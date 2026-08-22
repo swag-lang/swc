@@ -58,6 +58,11 @@ public:
     bool             mustSkipFormat() const { return flags_.has(FileFlagsE::SkipFmt); }
     void             setMustSkipFormat() { flags_.add(FileFlagsE::SkipFmt); }
 
+    // The module a generated public API file describes. It is what a 'Swag.Foreign' that
+    // names no module resolves to, so every entry of a module API can leave it out.
+    const Utf8& apiModuleName() const { return apiModuleName_; }
+    void        setApiModuleName(const std::string_view name) { apiModuleName_ = name; }
+
     NodePayload&           nodePayloadContext() { return *nodePayloadContext_; }
     const NodePayload&     nodePayloadContext() const { return *nodePayloadContext_; }
     Ast&                   ast();
@@ -87,6 +92,7 @@ private:
     FileRef   fileRef_ = FileRef::invalid();
     fs::path  path_;
     FileFlags flags_ = FileFlagsE::Zero;
+    Utf8      apiModuleName_;
 
     mutable std::mutex           formattedFileNamesMutex_;
     mutable std::array<Utf8, 3>  formattedFileNames_;

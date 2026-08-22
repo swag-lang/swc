@@ -718,7 +718,7 @@ const GL_FOG_SPECULAR_TEXTURE_WIN = 0x80EC
 const GL_LOGIC_OP           = GL_INDEX_LOGIC_OP
 const GL_TEXTURE_COMPONENTS = GL_TEXTURE_INTERNAL_FORMAT
 
-#[Swag.Foreign("opengl32")]
+#[Swag.Foreign("opengl32", callconv: Swag.CallConv.C)]
 {
     func glAccum(op: GLenum, value: GLfloat)
     func glAlphaFunc(fc: GLenum, refr: GLclampf)

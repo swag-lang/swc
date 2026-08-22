@@ -2,7 +2,7 @@
 #global if #os == Swag.TargetOs.Windows
 
 #[Swag.ConstExpr]
-#[Swag.Foreign(link: "ucrt", function: "abs", module: "ucrtbase")]
+#[Swag.Foreign(link: "ucrt", function: "abs", module: "ucrtbase", callconv: Swag.CallConv.C)]
 func CAbs(value: s32)->s32
 
 func useForeignConstExpr()->s32

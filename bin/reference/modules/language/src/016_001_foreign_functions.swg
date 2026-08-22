@@ -11,7 +11,15 @@ parameters are:
 | 'module' | Dynamic module used to resolve the symbol |
 | 'function' | External symbol name; defaults to the Swag declaration name |
 | 'link' | Native import-library name when it differs from 'module' |
-| 'callconv' | ABI: '.C' by default, '.WindowsX64', or '.Swag' |
+| 'callconv' | ABI: '.Swag' by default, '.C', or '.WindowsX64' |
+
+A Swag declaration is Swag-convention unless it says otherwise, and
+'#[Swag.Foreign]' only states where a function comes from. A function of a
+native library therefore names 'Swag.CallConv.C' itself.
+
+A generated module API is the one place where 'module' is left out: it names
+the module the API file describes, and 'function' then defaults to the
+flattened public API name instead of the declaration name.
 
 '#foreignlib' registers the corresponding import library with the native
 linker. It does not declare functions by itself.
@@ -19,7 +27,7 @@ linker. It does not declare functions by itself.
 
 #foreignlib("kernel32")
 
-#[Swag.Foreign(module: "kernel32")]
+#[Swag.Foreign(module: "kernel32", callconv: Swag.CallConv.C)]
 {
     func GetCurrentProcessId()->u32
     func Sleep(milliseconds: u32)

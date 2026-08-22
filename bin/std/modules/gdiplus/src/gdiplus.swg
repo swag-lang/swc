@@ -51,13 +51,13 @@ struct GpRectF
     }
 }
 
-#[Foreign("Gdiplus")]
+#[Foreign("Gdiplus", callconv: Swag.CallConv.C)]
 {
     func GdiplusStartup(token: *u64, input: const *GdiplusStartupInput, output: #null *void)->GpStatus
     func GdiplusShutdown(token: u64)
 }
 
-#[Foreign("Gdiplus"), Discardable]
+#[Foreign("Gdiplus", callconv: Swag.CallConv.C), Discardable]
 {
     func GdipCreateBitmapFromScan0(width, height, stride: s32, format: s32, scan0: #null [*] u8, bitmap: *#null *GpBitmap)->GpStatus
     func GdipDisposeImage(image: *GpImage)->GpStatus

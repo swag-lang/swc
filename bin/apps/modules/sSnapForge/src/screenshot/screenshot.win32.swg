@@ -7,13 +7,13 @@ namespace CaptureNative
     const ProcessQueryLimitedInformation = 0x1000'u32
     const AncestorRoot = 2'u32
 
-    #[Swag.Foreign("user32")]
+    #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
     {
         func GetWindowThreadProcessId(hWnd: HWND, processId: *u32)->u32
         func GetAncestor(hWnd: HWND, flags: u32)->HWND
     }
 
-    #[Swag.Foreign("kernel32")]
+    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func OpenProcess(access: u32, inheritHandle: s32, processId: u32)->HANDLE
         func QueryFullProcessImageNameW(process: HANDLE, flags: u32, fileName: [*] u16, size: *u32)->s32

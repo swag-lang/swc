@@ -182,7 +182,7 @@ namespace WinFsp
 
     var g_WinFsp: WinFspApi
 
-    #[Swag.Foreign("kernel32")]
+    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func LoadLibraryW(name: #null const [*] u16)->NativeModule
         func GetProcAddress(module: NativeModule, name: const [*] u8)->#null const *void
@@ -198,13 +198,13 @@ namespace WinFsp
         func LocalFree(memory: #null *void)->#null *void
     }
 
-    #[Swag.Foreign("advapi32")]
+    #[Swag.Foreign("advapi32", callconv: Swag.CallConv.C)]
     {
         func ConvertStringSecurityDescriptorToSecurityDescriptorW(text: #null const [*] u16, revision: u32, descriptor: *#null *void, size: #null *u32)->s32
         func GetSecurityDescriptorLength(descriptor: #null const *void)->u32
     }
 
-    #[Swag.Foreign("shell32")]
+    #[Swag.Foreign("shell32", callconv: Swag.CallConv.C)]
     {
         func IsUserAnAdmin()->s32
         func ShellExecuteW(window: #null *void, operation, file, parameters, directory: #null const [*] u16, show: s32)->#null const *void

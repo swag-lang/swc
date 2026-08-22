@@ -2,7 +2,7 @@
 
 using Win32
 
-#[Swag.Foreign("kernel32")]
+#[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
     private func LoadLibraryW(fileName: #null const [*] u16)->#null *void
     private func FreeLibrary(module: *void)->s32

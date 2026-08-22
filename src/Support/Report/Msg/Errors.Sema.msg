@@ -122,6 +122,7 @@ SWC_DIAG_DEF(sema_err_attribute_inline_noinline_conflict, Error, "'Swag.Inline' 
 SWC_DIAG_DEF(sema_err_attribute_inline_macro_mixin_conflict, Error, "'Swag.Inline', 'Swag.Macro', and 'Swag.Mixin' are mutually exclusive")
 SWC_DIAG_DEF(sema_err_foreign_cannot_have_body, Error, "a function marked with '#[Swag.Foreign]' cannot have a body")
 SWC_DIAG_DEF(sema_err_foreign_invalid_callconv, Error, "'#[Swag.Foreign]' does not support this calling convention; [help] use 'Swag.CallConv.C', 'Swag.CallConv.WindowsX64', or 'Swag.CallConv.Swag'")
+SWC_DIAG_DEF(sema_err_foreign_needs_module, Error, "'#[Swag.Foreign]' needs a module; only a generated module API takes it from the file it belongs to; [help] name the library or module the function comes from")
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "expected a value expression here")
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "'{sym}' is not a value expression; it is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_array_dim_not_int, Error, "array dimension needs an integer, found '{type}'")

@@ -325,6 +325,29 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 3, 3, Color.fromArgb(255'u8, 255'u8, 0'u8, 255'u8))
 }
 
+// Packed clear and solid spans preserve masked channels through their non-vector tail.
+#test
+{
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(37'u8, 10'u8, 20'u8, 30'u8))
+    painter.setColorMaskColor()
+    painter.clear(Color.fromArgb(200'u8, 90'u8, 80'u8, 70'u8))
+    painter.setColorMaskAlpha()
+    painter.fillRect({1, 0, 7, 3}, Color.fromArgb(Argb.White))
+    painter.end()
+
+    let image = renderCpu(9, 3, &painter)
+    for y in 3
+    {
+        assertPixel(image, 0, y, Color.fromArgb(37'u8, 90'u8, 80'u8, 70'u8))
+        for var x = 1; x < 8; x += 1 do
+            assertPixel(image, x, y, Color.fromArgb(255'u8, 90'u8, 80'u8, 70'u8))
+        assertPixel(image, 8, y, Color.fromArgb(37'u8, 90'u8, 80'u8, 70'u8))
+    }
+}
+
 // Gradients stay in painter space while geometry follows the model transform.
 #test
 {

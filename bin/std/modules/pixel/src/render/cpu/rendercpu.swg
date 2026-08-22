@@ -111,6 +111,11 @@ private
     const CpuProgram_Blur:    u8 = 4
     const CpuProgram_Resolve: u8 = 5
 
+    // Four BGRA pixels share these byte masks in the packed span kernels.
+    const CpuBgraRgbMask   = cast(Math.Simd.U8x16) [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0]
+    const CpuBgraAlphaMask = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
+    const CpuPixelLanes    = cast(Math.Simd.F32x4) [0.0'f32, 1.0, 2.0, 3.0]
+
     // Alpha factor of the bitmap font shader per atlas byte: pow(byte / 255, FontGamma).
     //
     // Filled at run time with the exact expression the per-pixel path evaluated, so a lookup
@@ -298,6 +303,22 @@ private impl RenderCpu
     func insideEdge(value: f32, topLeft: bool)->bool
     {
         return value > 0 or (value == 0 and topLeft)
+    }
+
+    // Returns one coverage bit per horizontal pixel while preserving the scalar top-left rule.
+    func insideEdges4(edge0, edge1, edge2: Math.Simd.F32x4, edge0TopLeft, edge1TopLeft, edge2TopLeft: bool)->u32
+    {
+        let zero  = Math.Simd.splat(0.0'f32)
+        var mask0 = edge0 > zero
+        var mask1 = edge1 > zero
+        var mask2 = edge2 > zero
+        if edge0TopLeft do
+            mask0 |= edge0 == zero
+        if edge1TopLeft do
+            mask1 |= edge1 == zero
+        if edge2TopLeft do
+            mask2 |= edge2 == zero
+        return Math.Simd.bitmask(mask0 & mask1 & mask2)
     }
 
     func lerpColor(c0, c1: Color, t: f32)->Color
@@ -1312,6 +1333,10 @@ private impl RenderCpu
             if fastAlpha or fastCopy or alphaMaskStore
             {
                 let copyAll = fastCopy and maskFull
+                let fill    = cast(Math.Simd.U8x16) [constColor.b, constColor.g, constColor.r, constColor.a,
+                                                     constColor.b, constColor.g, constColor.r, constColor.a,
+                                                     constColor.b, constColor.g, constColor.r, constColor.a,
+                                                     constColor.b, constColor.g, constColor.r, constColor.a]
                 for var y = minY; y <= maxY; y += 1
                 {
                     let sy         = cast(f32) y + 0.5
@@ -1320,34 +1345,74 @@ private impl RenderCpu
                     let rowDy2     = sy - p0.y
                     let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
                     let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
-                    for var x = minX; x <= maxX; x += 1
+                    var x          = minX
+                    while x <= maxX
                     {
-                        let sx = cast(f32) x + 0.5
-                        let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
-                        let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
-                        let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
-                        if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
-                            continue
-                        if stencilTest and rowStencil[x] != 1 do
-                            continue
-
-                        let pixel = rowPixels + cast(u64) x * 4
-                        if fastAlpha
+                        var coverage: u32
+                        var laneCount = 1
+                        if maxX - x >= 3
                         {
-                            blendAlphaBgra8(pixel, constColor)
-                        }
-                        elif alphaMaskStore
-                        {
-                            pixel[3] = 255
+                            let sx = Math.Simd.splat(cast(f32) x + 0.5) + CpuPixelLanes
+                            let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
+                            let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
+                            let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                            coverage  = insideEdges4(e0, e1, e2, edge0TopLeft, edge1TopLeft, edge2TopLeft)
+                            laneCount = 4
                         }
                         else
                         {
-                            pixel[0] = constColor.b
-                            pixel[1] = constColor.g
-                            pixel[2] = constColor.r
-                            if copyAll do
-                                pixel[3] = constColor.a
+                            let sx = cast(f32) x + 0.5
+                            let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
+                            let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
+                            let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                            if insideEdge(e0, edge0TopLeft) and insideEdge(e1, edge1TopLeft) and insideEdge(e2, edge2TopLeft) do
+                                coverage = 1
                         }
+
+                        let pixel = rowPixels + cast(u64) x * 4
+
+                        // Translucent alpha keeps the scalar float blend so every byte rounds as
+                        // before; the other full spans collapse to one packed load/store pair.
+                        if laneCount == 4 and coverage == 0xF and !stencilTest and (!fastAlpha or constColor.a == 255)
+                        {
+                            if copyAll do
+                                Math.Simd.store(pixel, fill)
+                            elif alphaMaskStore do
+                                Math.Simd.store(pixel, Math.Simd.select(CpuBgraAlphaMask, fill, Math.Simd.load(pixel)))
+                            else do
+                                Math.Simd.store(pixel, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(pixel)))
+                            x += 4
+                            continue
+                        }
+
+                        for lane in laneCount
+                        {
+                            if !(coverage & (1'u32 << lane)) do
+                                continue
+                            let pixelX = x + cast(s32) lane
+                            if stencilTest and rowStencil[pixelX] != 1 do
+                                continue
+
+                            let lanePixel = rowPixels + cast(u64) pixelX * 4
+                            if fastAlpha
+                            {
+                                blendAlphaBgra8(lanePixel, constColor)
+                            }
+                            elif alphaMaskStore
+                            {
+                                lanePixel[3] = 255
+                            }
+                            else
+                            {
+                                lanePixel[0] = constColor.b
+                                lanePixel[1] = constColor.g
+                                lanePixel[2] = constColor.r
+                                if copyAll do
+                                    lanePixel[3] = constColor.a
+                            }
+                        }
+
+                        x += laneCount
                     }
                 }
 
@@ -1577,14 +1642,25 @@ private impl RenderCpu
         // Every format carrying alpha stores it in the fourth byte, and rows are stored bottom-up.
         let pixels = image.pixels.buffer!
         let stride = cast(u64) image.bytesPerPixel
+        let zero   = Math.Simd.splat(0'u8)
         for var y = minY; y < maxY; y += 1
         {
             let row    = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel)
             var offset = 3'u64
-            for var x = minX; x < maxX; x += 1
+            var x      = minX
+            while maxX - x >= 4
+            {
+                let block = row + offset - 3
+                Math.Simd.store(block, Math.Simd.select(CpuBgraAlphaMask, zero, Math.Simd.load(block)))
+                offset += 4 * stride
+                x      += 4
+            }
+
+            while x < maxX
             {
                 row[offset] = 0
                 offset      += stride
+                x           += 1
             }
         }
     }
@@ -1632,11 +1708,25 @@ private impl RenderCpu
                 return
             }
 
+            let fill = cast(Math.Simd.U8x16) [color.b, color.g, color.r, color.a,
+                                              color.b, color.g, color.r, color.a,
+                                              color.b, color.g, color.r, color.a,
+                                              color.b, color.g, color.r, color.a]
             for var y = minY; y < maxY; y += 1
             {
-                let row    = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
-                var offset = 0'u64
-                for var x = minX; x < maxX; x += 1
+                let row       = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
+                var offset    = 0'u64
+                let byteCount = runWidth * 4
+                while byteCount - offset >= #sizeof(Math.Simd.U8x16)
+                {
+                    if writeAll do
+                        Math.Simd.store(row + offset, fill)
+                    else do
+                        Math.Simd.store(row + offset, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(row + offset)))
+                    offset += #sizeof(Math.Simd.U8x16)
+                }
+
+                while offset < byteCount
                 {
                     row[offset]     = color.b
                     row[offset + 1] = color.g

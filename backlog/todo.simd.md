@@ -57,6 +57,14 @@ MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is 
 
 - Intent: define stack/home-slot passing for packed arguments beyond the register lanes and apply
   it consistently to caller lowering, callee prologues, the JIT bridge, and pure-call folding.
+- Evidence: the Windows x64/Swag call convention exposes four shared argument-register slots and
+  `ABICall::callArgStackOffset` assigns every later argument one fixed 8-byte slot. Both the JIT
+  bridge (`emitCallArgs`) and native prepared-call path (`ABICall::prepareArgs`) reject `B128`
+  there. Building `video` in `debug` (whose inline mode is `Never`) therefore asserted at
+  `ABICall.cpp:339` on `H264.tap6Half16(a, b, c, d, e, f)`: its fifth and sixth `#simd [8] u16`
+  values could not leave the register lanes. H.264 now pre-combines the six taps into three vector
+  sums so every configuration builds, but the ABI limitation remains independently reproducible
+  with any non-inlined function taking five 128-bit vector values.
 - Complete when: fifth-and-later packed arguments work in JIT and native code for every supported
   vector width and the existing `ABICall` and `SemaJIT` guards disappear.
 - Related: T-506, T-510, T-522.

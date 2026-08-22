@@ -254,6 +254,8 @@ impl IDecoder for Decoder
         return result
     }
 
+    mtd impl syncFrameAt(index: u64)->u64 => index
+
     mtd impl seekFrame(source: *Source, index: u64) fail
     {
         if index == .nextIndex and .nextIndex != NoFrameIndex do

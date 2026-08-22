@@ -121,6 +121,33 @@ is the layout it does not read yet.
   while picture N+1 parses. The parse itself does not read reference pixels, so the pipeline is
   legal; what it needs is the reference marking applied at the end of each parse rather than at
   the end of each picture.
+- A second 2026-08-21 pass measured the player itself under its real clock. The commit-time
+  resync policy jumped the clock target two seconds ahead, but in this all-P stream a distant
+  target skips no work — the decoder walks every picture in between inside one decode job, and
+  those steps reached 1.9 seconds. The player now jumps only to the next sync frame
+  (`Video.Reader.syncFrameAt`, new on `IDecoder` with trivial intra-format implementations),
+  which costs a single decoded IDR — this stream carries one per second — and it re-anchors the
+  clock there; a stream whose next sync is more than fifteen seconds away keeps walking below
+  speed instead of teleporting. The player also double-buffers its two decoded pictures and
+  chains the next due decode before publishing the current one, so the texture upload overlaps
+  the next decode. Measured in the running application: the worst decode step fell from 1.9 s
+  to 0.24 s, and a 70-second alternated comparison showed 753-764 pictures on screen against
+  409-546, reaching the same timeline position.
+- The cross-picture pipeline T-504 calls for was then built and measured: reconstruction joins
+  at parse end, deblocking and edge padding run as one background completion job per picture
+  against buffer-swapped bookkeeping (the six arrays the filter reads), the next picture's
+  in-parse reconstruction bands gate on the previous completion, and the MP4 layer parses the
+  next access unit ahead of converting the current picture. Byte-exact on all 48 tests in
+  fast-debug and release. Rejected: normalized against an in-process calibration loop on a
+  thermally saturated machine, it bought about 4% — within noise — because deblocking was
+  already parallel and short, and the two pictures contend for memory bandwidth; one 60-second
+  application run also nearly stalled (62 pictures decoded) in a way that never reproduced.
+  The overlap worth having must hide the CABAC parse itself, not the filter tail: that is the
+  full two-picture state split, with entropy decode of picture N+1 running against the whole
+  reconstruction of N, and it should be measured on an idle machine.
+- During this pass the suite also failed three B-stream fixtures deterministically on an
+  unmodified tree until `core.dll` was forcibly rebuilt — recorded as F-177; measurements made
+  across that boundary compared two different binaries.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
   levers, in expected order of value: fine-grained frame/slice threading, a true byte-run
   significance decoder beyond the targeted inlining, strong and vertical packed deblocking (the

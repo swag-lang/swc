@@ -7,7 +7,7 @@ using Core
 // vertical edges left to right, then its horizontal edges top to bottom, in place, in raster
 // macroblock order.
 
-private const DeblockLanes = 4'u32
+private const DeblockLanes = 8'u32
 
 private struct DeblockContext
 {

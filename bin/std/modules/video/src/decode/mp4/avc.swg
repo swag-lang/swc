@@ -100,6 +100,22 @@ impl AvcStream
         .nextRank   = 0
     }
 
+    // Returns the first display rank at or after `rank` whose sample starts a clean decode.
+    //
+    // Returns the stream length when no sync sample remains past `rank`.
+    mtd const syncRankAt(rank: u64)->u64
+    {
+        var scan = rank
+        while scan < .frames.count
+        {
+            if .syncFlags[cast(u64) .sampleAtRank[scan]] != 0 do
+                return scan
+            scan += 1
+        }
+
+        return .frames.count
+    }
+
     // Positions the stream so the next decoded frame has display rank `rank`.
     mtd seekTo(rank: u64)
     {

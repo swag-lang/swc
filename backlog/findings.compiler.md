@@ -172,3 +172,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: re-evaluate on the next occurrence. The conditional alone is not the trigger, so a
   recurrence has to be captured with the exact module and configuration that produced it before
   the lowering is compared against the scalar one.
+
+### F-177 — An incremental build produced a wrong module that only a forced rebuild cured
+
+- Area: compiler
+- Found while: optimizing 4K H.264 playback, with heavy incremental rebuild traffic on `core`
+  and `video`.
+- Observation: the video test suite failed three H.264 B-stream fixtures with byte-identical
+  pixel divergences (839/809/742 bytes) across six consecutive runs, surviving semantic
+  reversions of every working-tree change, and the same failures reproduced on the clean
+  committed tree. Overwriting `core/src/thread/job.swg` with a byte-different but semantically
+  identical copy — forcing `core.dll` and its dependents to rebuild — turned the suite green,
+  and restoring the exact original file kept it green through three more runs. The same
+  sources and the same `swc.exe` therefore produced a wrong `video.dll` (or a wrong `core.dll`
+  under it) until an unrelated touch invalidated the artifact chain.
+- Aggravating context: the compiler binary was a 0.1.167 build while `src/Main/Version.h`
+  already said 168, after another session rebuilt the executables mid-day; the version key in
+  the caches cannot distinguish the two binaries that both call themselves what they embed.
+- Next step: on the next occurrence, before touching anything, save the whole `.output` tree
+  of the failing module and its dependencies, plus the exact failing test output; then diff the
+  stale artifact against the rebuilt one to identify which product (object, module interface,
+  or cache entry) was wrong. Two prior entries suspect artifact reuse; this one has a saved
+  reproducer shape: byte-identical failures across runs that survive source edits.

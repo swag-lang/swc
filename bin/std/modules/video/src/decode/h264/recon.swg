@@ -3,7 +3,7 @@
 
 using Core, Core.Errors
 
-const ReconstructionBands = 12'u32
+const ReconstructionBands = 32'u32
 
 struct ReconstructionJob
 {

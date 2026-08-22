@@ -344,6 +344,8 @@ impl IDecoder for Decoder
         return .info
     }
 
+    mtd impl syncFrameAt(index: u64)->u64 => index
+
     mtd impl seekFrame(source: *Source, index: u64) fail
     {
         // The container gave every frame position away when the stream was opened, so seeking is

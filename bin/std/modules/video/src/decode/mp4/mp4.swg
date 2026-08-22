@@ -783,6 +783,13 @@ impl IDecoder for Decoder
         return .info
     }
 
+    mtd impl syncFrameAt(index: u64)->u64
+    {
+        if !.isAvc do
+            return index
+        return .avc.syncRankAt(index)
+    }
+
     mtd impl seekFrame(source: *Source, index: u64) fail
     {
         discard source

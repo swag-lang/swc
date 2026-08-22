@@ -47,6 +47,14 @@ interface IDecoder
     // `target` is reused when it already has the stream geometry and pixel format, and is
     // recreated otherwise, so a caller decoding a whole stream allocates one frame in total.
     mtd decodeFrame(source: *Source, target: *Image) fail
+
+    // Returns the first frame at or after `index` that decodes without any earlier frame.
+    //
+    // In an intra-only format that is `index` itself; in an inter-coded one it is the next
+    // sync sample. Returns the frame count when no such frame remains, so a caller that must
+    // drop work — a player hopelessly behind its clock — can jump to the result and pay for
+    // one decoded frame instead of every frame in between.
+    mtd syncFrameAt(index: u64)->u64
 }
 
 // Decodes the frames of a video stream without holding the stream in memory.
@@ -212,6 +220,16 @@ impl Reader
 
     // Returns the number of frames, or zero when the format cannot report it.
     mtd const frameCount()->u64 => .info.frameCount
+
+    // Returns the first frame at or after `index` that decodes without any earlier frame.
+    //
+    // See [[Video.IDecoder.syncFrameAt]]; the result is the frame count when none remains.
+    mtd const syncFrameAt(index: u64)->u64
+    {
+        if !.decoder do
+            return 0
+        return .decoder.syncFrameAt(index)
+    }
 
     // Returns the stream duration in seconds, or zero when the frame count is unknown.
     mtd const durationInSeconds()->f64

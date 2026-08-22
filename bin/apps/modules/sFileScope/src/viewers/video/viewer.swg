@@ -17,10 +17,16 @@ private const VideoCatchUpLimit = 1'u64
 // How far behind the clock playback is allowed to fall before it gives up and jumps.
 //
 // Walking one picture at a time keeps motion smooth, but on a stream the machine cannot sustain
-// it also falls behind for as long as it plays. Past this much, the jump earns its cost: the
-// target is far enough ahead that the decoder restarts at a clean decode point instead of
-// walking to it, so the picture arrives at once and the clock is honest again.
+// it also falls behind for as long as it plays. Past this much, playback skips to the next sync
+// frame, which is the one place a jump costs a single decoded picture rather than the decode of
+// every picture in between.
 private const VideoResyncSeconds = 2.0
+
+// How far past the clock a resync jump may land.
+//
+// A stream whose sync frames are seconds apart would turn a resync into a scene change; past
+// this bound the player keeps walking below speed instead of teleporting.
+private const VideoResyncMaxJumpSeconds = 15.0
 
 internal struct VideoViewer
 {
@@ -39,7 +45,11 @@ internal struct VideoViewer
     // The stream is decoded one frame at a time and never held in memory, so a video of any
     // size opens on its header alone and plays with a single decoded frame resident.
     video: Reader
-    frame: Image
+    // Two decoded pictures alternate: the front one is what the renderer uploads, the back one
+    // is what the worker decodes into, so the next decode starts while the previous picture is
+    // still being published.
+    frames:    [2] Image
+    frameBack: u32
 
     // Exactly one decode owns `video` and `frame` at a time. The GUI thread only publishes a
     // completed frame, and repeated seeks replace `requestedFrame` instead of building a queue.
@@ -86,7 +96,7 @@ internal impl VideoViewer
 
     mtd runDecode()
     {
-        catch .video.decodeFrameInto(&.frame, .decodeFrame) as decodeError
+        catch .video.decodeFrameInto(&.frames[.frameBack], .decodeFrame) as decodeError
         .decodeError = decodeError
     }
 
@@ -109,7 +119,20 @@ internal impl VideoViewer
 
         .frameIndex = .decodeFrame
         .hasFrame   = true
-        .imageView.updateImage(&.frame)
+
+        // Chain the next due decode before publishing: the upload of this picture and the decode
+        // of the next one then overlap instead of alternating. The chained decode writes the
+        // other picture buffer, so the upload reads stable pixels.
+        let published = .frameBack
+        .frameBack = 1 - .frameBack
+        if .playing and !.frameRequested and !Jobs.isSynchronous()
+        {
+            let due = .playbackTarget()
+            if due != .frameIndex and due < .video.frameCount() do
+                discard .startDecode(due)
+        }
+
+        .imageView.updateImage(&.frames[published])
         .refreshTransport()
 
         if .frameRequested
@@ -208,6 +231,42 @@ internal impl VideoViewer
         .refreshTransport()
     }
 
+    // Returns the picture the playback clock asks for next, bounded by the catch-up policy,
+    // and re-anchors the clock when the policy decides to skip forward.
+    //
+    // The result can point past the end of the stream, which the caller turns into a stop.
+    //
+    // Presentation follows the clock for as long as the decoder keeps up. Once it does not,
+    // walking one picture at a time shows every picture the decode pays for, rather than
+    // spending that same second of work reaching a distant target and discarding everything
+    // decoded on the way. And once the walk has fallen whole seconds behind, playback skips to
+    // the next sync frame — the one target a jump reaches for the price of a single decoded
+    // picture — and restarts the clock there.
+    mtd playbackTarget()->u64
+    {
+        let rate   = .video.frameRate()
+        let target = cast(u64) (.currentSeconds() * cast(f64) rate.numerator() / cast(f64) rate.denominator())
+        if target >= .video.frameCount() do
+            return target
+        if target <= .frameIndex + VideoCatchUpLimit do
+            return target
+
+        let resyncLag = cast(u64) (rate.framesPerSecond() * VideoResyncSeconds)
+        if target - .frameIndex < resyncLag do
+            return .frameIndex + VideoCatchUpLimit
+
+        let sync = .video.syncFrameAt(target)
+        let cap  = cast(u64) (rate.framesPerSecond() * VideoResyncMaxJumpSeconds)
+        if sync < .video.frameCount() and sync - target <= cap
+        {
+            .elapsed = .frameSeconds(sync)
+            .clock.restart()
+            return sync
+        }
+
+        return .frameIndex + VideoCatchUpLimit
+    }
+
     mtd updatePlayback()
     {
         discard .finishDecode()
@@ -216,9 +275,7 @@ internal impl VideoViewer
         if .decodeScheduled do
             return
 
-        let seconds = .currentSeconds()
-        let rate    = .video.frameRate()
-        var target  = cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator())
+        let target = .playbackTarget()
         if target >= .video.frameCount()
         {
             .playing = false
@@ -231,15 +288,6 @@ internal impl VideoViewer
 
         if target == .frameIndex do
             return
-
-        // Presentation follows the clock for as long as the decoder keeps up. Once it does not,
-        // walking one picture at a time shows every picture the decode pays for, rather than
-        // spending that same second of work reaching a distant target and discarding everything
-        // decoded on the way. Only a gap wide enough to restart at a clean decode point is
-        // jumped, which is what keeps the clock honest without stuttering through the rest.
-        let resyncLag = cast(u64) (rate.framesPerSecond() * VideoResyncSeconds)
-        if target > .frameIndex + VideoCatchUpLimit and target - .frameIndex < resyncLag do
-            target = .frameIndex + VideoCatchUpLimit
 
         if !.showFrame(target)
         {

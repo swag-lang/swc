@@ -248,6 +248,14 @@ namespace
         const TypeInfo& leftSemanticType  = typeMgr.get(leftSemanticTypeRef);
         const TypeInfo& rightSemanticType = typeMgr.get(rightSemanticTypeRef);
         ctx.encodingKind                  = resolveBinaryEncodingKind(tokId, leftSemanticType, rightSemanticType);
+        if (ctx.encodingKind == BinaryEncodingKind::IntLike && typeMgr.get(ctx.operationTypeRef).isFloat())
+        {
+            // An inlined parameter resolves to its call-site expression. That expression can
+            // still have an integer type even though the provider's binary expression, and the
+            // conversions materialized above, operate on floats. Keep the instruction family
+            // aligned with that normalized operation type.
+            ctx.encodingKind = BinaryEncodingKind::Float;
+        }
         // Pointer arithmetic is expressed in element units, so capture the stride once and reuse it in
         // both offset and difference lowering.
         if (ctx.encodingKind == BinaryEncodingKind::PointerOffset)

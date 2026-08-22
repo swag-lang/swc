@@ -184,15 +184,36 @@ namespace
         return false;
     }
 
-    void appendMissingFunctionAttributeLine(Utf8& ioPrefix, const SymbolFunction& symbolFunction, const std::string_view eol, const std::string_view snippet, const RtAttributeFlagsE flag, const std::string_view marker, const std::string_view attrText)
+    // The generated API opens with the runtime prelude in scope, which is what lets a copied
+    // '#[Inline]' resolve, so every attribute the generator writes is spelled unqualified too.
+    void appendMissingFunctionAttribute(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, const std::string_view snippet, const RtAttributeFlagsE flag, const std::string_view marker)
     {
         if (!symbolFunction.attributes().hasRtFlag(flag))
             return;
         if (snippetSpellsAttribute(snippet, marker))
             return;
 
-        ioPrefix += attrText;
-        ioPrefix += eol;
+        ioAttributes.push_back(Utf8{marker});
+    }
+
+    // One list holds every attribute of a declaration, so an entry costs one line whatever it
+    // states.
+    Utf8 buildAttributeListLine(std::span<const Utf8> attributes, const std::string_view eol)
+    {
+        if (attributes.empty())
+            return {};
+
+        Utf8 result = "#[";
+        for (size_t index = 0; index < attributes.size(); ++index)
+        {
+            if (index != 0)
+                result += ", ";
+            result += attributes[index];
+        }
+
+        result += "]";
+        result += eol;
+        return result;
     }
 
     AstNodeRef moduleApiOpaqueTypeBodyRef(const AstNode& declNode)
@@ -251,7 +272,7 @@ namespace
         Utf8 prefix;
         if (!tryBuildOpaqueTypePrefix(ctx, root, eol, prefix))
         {
-            prefix += "#[Swag.Opaque]";
+            prefix += "#[Opaque]";
             prefix += eol;
             prefix += symbolStruct->isUnion() ? "union " : "struct ";
             prefix += symbolStruct->name(ctx);
@@ -261,7 +282,7 @@ namespace
         uint32_t alignValue = 0;
         if (symbolStruct->alignment() > 1 && !tryGetSwagAttributeIntValue(alignValue, ctx, *symbolStruct, "Align"))
         {
-            result += std::format("#[Swag.Align({})]", symbolStruct->alignment());
+            result += std::format("#[Align({})]", symbolStruct->alignment());
             result += eol;
         }
 
@@ -324,23 +345,22 @@ namespace
         trimTrailingModuleApiWhitespace(text);
     }
 
-    void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody, Utf8& ioSnippet)
+    void collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, const bool hasExportedBody, const Utf8& snippet)
     {
-        Utf8 prefix;
-        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Macro, "Macro", "#[Swag.Macro]");
-        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Mixin, "Mixin", "#[Swag.Mixin]");
+        appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Macro, "Macro");
+        appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Mixin, "Mixin");
 
         // 'Inline' asks the consumer to expand the body, so it only means something where the
         // body travels with the declaration. Publishing it on an entry the API reduced to a
         // foreign call promises an expansion that cannot happen.
         if (hasExportedBody)
-            appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
-        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::ConstExpr, "ConstExpr", "#[Swag.ConstExpr]");
-        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Implicit, "Implicit", "#[Swag.Implicit]");
+            appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Inline, "Inline");
+        appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::ConstExpr, "ConstExpr");
+        appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Implicit, "Implicit");
 
         // 'Discardable' is a fact about the call site, not about the body: without it an
         // importer has to write 'discard' where a caller inside the module does not.
-        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Discardable, "Discardable", "#[Swag.Discardable]");
+        appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Discardable, "Discardable");
 
         // The borrow summaries are computed facts, not source attributes: re-emit them
         // so importers can judge their call sites against this function's parameters.
@@ -352,14 +372,18 @@ namespace
         const uint64_t freesMask          = symbolFunction.freesParamsMask();
         const uint64_t reallocatesMask    = symbolFunction.reallocatesParamsMask();
         const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0) && !ioSnippet.contains("BorrowSummary"))
-        {
-            prefix += std::format("#[Swag.BorrowSummary({}, {}, {}, {}, {}, {})]", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask);
-            prefix += eol;
-        }
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0) && !snippet.contains("BorrowSummary"))
+            ioAttributes.push_back(Utf8{std::format("BorrowSummary({}, {}, {}, {}, {}, {})", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask)});
+    }
 
-        if (!prefix.empty())
-            ioSnippet = prefix + ioSnippet;
+    void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody, Utf8& ioSnippet)
+    {
+        SmallVector<Utf8> attributes;
+        collectMissingFunctionAttributes(attributes, symbolFunction, hasExportedBody, ioSnippet);
+
+        const Utf8 line = buildAttributeListLine(attributes.span(), eol);
+        if (!line.empty())
+            ioSnippet = line + ioSnippet;
     }
 
     bool tryFindFunctionBodyStartOffset(const ModuleApiGeneratedRoot& root, uint32_t& outBodyStartOffset)
@@ -603,22 +627,15 @@ namespace
     // the flattened symbol name is the scoped declaration name; each of those is the
     // default an importer applies on its own. Only an overload carries a name, because
     // its disambiguating suffix depends on the whole overload set.
-    Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction, const std::string_view eol)
+    Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction)
     {
         SWC_ASSERT(symbolFunction.callConvKind() == CallConvKind::Swag);
 
-        Utf8       result  = "#[Swag.Foreign";
         const Utf8 apiName = symbolFunction.computePublicApiSymbolName(ctx);
-        if (apiName != symbolFunction.computePublicApiBaseSymbolName(ctx))
-        {
-            result += "(function: \"";
-            result += apiName;
-            result += "\")";
-        }
+        if (apiName == symbolFunction.computePublicApiBaseSymbolName(ctx))
+            return "Foreign";
 
-        result += "]";
-        result += eol;
-        return result;
+        return Utf8{std::format("Foreign(function: \"{}\")", apiName.c_str())};
     }
 
     // 'Inline' asks the consumer to expand the body. An entry the API reduced to a foreign
@@ -676,15 +693,16 @@ namespace
             return {};
 
         dropInlineAttributeLine(eol, prefix);
-        prependMissingFunctionAttributes(*symbolFunction, eol, false, prefix);
         trimTrailingModuleApiDeclarationSeparator(prefix);
         if (prefix.empty())
             return {};
 
-        Utf8 result;
+        SmallVector<Utf8> attributes;
         if (!symbolFunction->isForeign())
-            result += buildModuleApiForeignAttribute(ctx, *symbolFunction, eol);
+            attributes.push_back(buildModuleApiForeignAttribute(ctx, *symbolFunction));
+        collectMissingFunctionAttributes(attributes, *symbolFunction, false, prefix);
 
+        Utf8 result = buildAttributeListLine(attributes.span(), eol);
         result += prefix;
         return result;
     }

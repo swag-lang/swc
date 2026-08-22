@@ -123,6 +123,88 @@ namespace
         }
     }
 
+    // A generated entry opens with its attribute list, and the plain 'Foreign' of an entry the
+    // API reduced to a declaration says nothing its neighbours do not also say. Take it off the
+    // entry so a run of them can state it once. A 'Foreign' that names a symbol stays where it
+    // is: that one belongs to its own declaration.
+    bool tryTakeBareForeignAttribute(Utf8& ioSnippet)
+    {
+        static constexpr std::string_view SOLE = "#[Foreign]";
+        static constexpr std::string_view HEAD = "#[Foreign, ";
+
+        if (ioSnippet.starts_with(HEAD))
+        {
+            ioSnippet.erase(2, HEAD.size() - 2);
+            return true;
+        }
+
+        if (!ioSnippet.starts_with(SOLE))
+            return false;
+
+        size_t skip = SOLE.size();
+        while (skip < ioSnippet.size() && (ioSnippet[skip] == '\r' || ioSnippet[skip] == '\n'))
+            ++skip;
+        ioSnippet.erase(0, skip);
+        return true;
+    }
+
+    // States one attribute once for a run of entries instead of once per entry. A run of one is
+    // written back as it came, because a block would cost more than it saves. The whole content
+    // is formatted afterwards, so the braces need no indentation of their own.
+    void appendForeignRun(Utf8& outContent, std::span<const Utf8> originals, std::span<const Utf8> stripped, const Utf8& indent, const std::string_view eol)
+    {
+        if (originals.empty())
+            return;
+
+        if (originals.size() == 1)
+        {
+            appendIndentedSnippet(outContent, originals.front().view(), indent.view(), eol);
+            if (originals.front().back() != '\n' && originals.front().back() != '\r')
+                outContent += eol;
+            return;
+        }
+
+        Utf8 block = "#[Foreign]";
+        block += eol;
+        block += "{";
+        block += eol;
+        for (const Utf8& snippet : stripped)
+        {
+            appendIndentedSnippet(block, snippet.view(), "    ", eol);
+            if (snippet.back() != '\n' && snippet.back() != '\r')
+                block += eol;
+        }
+
+        block += "}";
+        appendIndentedSnippet(outContent, block.view(), indent.view(), eol);
+        outContent += eol;
+    }
+
+    void appendSnippetsGroupingForeign(Utf8& outContent, std::span<const Utf8> snippets, const Utf8& indent, const std::string_view eol)
+    {
+        std::vector<Utf8> originals;
+        std::vector<Utf8> stripped;
+        for (const Utf8& snippet : snippets)
+        {
+            Utf8 candidate = snippet;
+            if (tryTakeBareForeignAttribute(candidate))
+            {
+                originals.push_back(snippet);
+                stripped.push_back(std::move(candidate));
+                continue;
+            }
+
+            appendForeignRun(outContent, originals, stripped, indent, eol);
+            originals.clear();
+            stripped.clear();
+            appendIndentedSnippet(outContent, snippet.view(), indent.view(), eol);
+            if (snippet.back() != '\n' && snippet.back() != '\r')
+                outContent += eol;
+        }
+
+        appendForeignRun(outContent, originals, stripped, indent, eol);
+    }
+
     void appendImplEntry(Utf8& outContent, const ModuleApiImplEntry& entry, const Utf8& indent, const std::string_view eol)
     {
         if (entry.prefix.empty())
@@ -136,12 +218,7 @@ namespace
 
         Utf8 childIndent = indent;
         childIndent += "    ";
-        for (const Utf8& snippet : entry.snippets)
-        {
-            appendIndentedSnippet(outContent, snippet.view(), childIndent.view(), eol);
-            if (snippet.back() != '\n' && snippet.back() != '\r')
-                outContent += eol;
-        }
+        appendSnippetsGroupingForeign(outContent, entry.snippets, childIndent, eol);
 
         outContent += indent;
         outContent += "}";
@@ -322,12 +399,7 @@ namespace
             return;
         }
 
-        for (const Utf8& snippet : entry.snippets)
-        {
-            appendIndentedSnippet(outContent, snippet.view(), indent.view(), eol);
-            if (snippet.back() != '\n' && snippet.back() != '\r')
-                outContent += eol;
-        }
+        appendSnippetsGroupingForeign(outContent, entry.snippets, indent, eol);
     }
 
     void appendOrderedSnippet(std::vector<ModuleApiOrderedEntry>& outEntries, std::span<const IdentifierRef> namespacePath, Utf8&& snippet)

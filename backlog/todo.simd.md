@@ -62,7 +62,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   returns, type information, cross-module exports, and matching `Math.Simd` aliases.
 - Complete when: every supported 32-byte shape compiles and runs, crosses a module boundary, and
   128-bit code generation remains byte-identical when the wider path is not selected.
-- Related: T-509, T-505, T-507.
+- Related: T-509, T-507.
 
 ### T-510 — 512-bit vectors and AVX-512 masks have no representation
 
@@ -73,29 +73,13 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   machines that lack the feature.
 - Related: T-509, T-506, T-516, T-517.
 
-### T-505 — A `#simd` argument cannot occupy a stack slot
-
-- Intent: define stack/home-slot passing for packed arguments beyond the register lanes and apply
-  it consistently to caller lowering, callee prologues, the JIT bridge, and pure-call folding.
-- Evidence: the Windows x64/Swag call convention exposes four shared argument-register slots and
-  `ABICall::callArgStackOffset` assigns every later argument one fixed 8-byte slot. Both the JIT
-  bridge (`emitCallArgs`) and native prepared-call path (`ABICall::prepareArgs`) reject `B128`
-  there. Building `video` in `debug` (whose inline mode is `Never`) therefore asserted at
-  `ABICall.cpp:339` on `H264.tap6Half16(a, b, c, d, e, f)`: its fifth and sixth `#simd [8] u16`
-  values could not leave the register lanes. H.264 now pre-combines the six taps into three vector
-  sums so every configuration builds, but the ABI limitation remains independently reproducible
-  with any non-inlined function taking five 128-bit vector values.
-- Complete when: fifth-and-later packed arguments work in JIT and native code for every supported
-  vector width and the existing `ABICall` and `SemaJIT` guards disappear.
-- Related: T-506, T-510, T-522.
-
 ### T-522 — Foreign vector ABIs are unavailable
 
 - Intent: support explicitly selected platform vector ABIs for foreign declarations where the ABI
   is stable, while continuing to reject an ambiguous bare C-vector contract.
 - Complete when: supported Windows x64 vector parameters and returns interoperate with a C/C++
   fixture, unsupported conventions fail semantically, and the contract is documented per target.
-- Related: T-505, T-506.
+- Related: T-506.
 
 ## Tier A — Missing packed operations
 
@@ -109,18 +93,20 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   them.
 - Related: T-547, T-549, T-552, T-555.
 
-### T-512 — Rotates and several packed shifts are missing
+### T-512 — Packed rotates are missing
 
-- Intent: provide lane rotates plus portable lowerings for byte shifts, 64-bit arithmetic right
-  shift, and other useful shift shapes that lack a single baseline instruction.
+- Intent: provide lane rotates through native instructions where available and bounded shift/or
+  lowerings elsewhere. Byte shifts and signed 64-bit right shift already use portable register-only
+  sequences.
 - Complete when: constant and variable counts have scalar-equivalent masking semantics, use native
-  instructions when available, and otherwise lower to bounded shift/or or widen/pack sequences.
+  instructions when available, and otherwise lower to bounded shift/or sequences.
 - Related: T-251, T-536, T-538.
 
-### T-513 — Packed integer multiplication is incomplete
+### T-513 — Packed widening multiplication is incomplete
 
-- Intent: add low and widening products for 8-, 16-, 32-, and 64-bit signed and unsigned lanes,
-  including decomposed baseline lowerings where no one-instruction form exists.
+- Intent: add signed and unsigned widening products and explicit high halves for 8-, 16-, 32-, and
+  64-bit lanes. Low wrapping products already exist for every integer lane width, including
+  decomposed baseline lowerings for 8 and 64 bits.
 - Measured application: the JPEG color LUT holds 16-bit fixed-point coefficients scaled past the
   `s16` range — 45941 and 58982 in `pixel/src/image/decode/jpg/scan.swg` — so a byte-exact
   packed YCbCr conversion has no 16-bit high or widening product to reach for and has to widen to
@@ -139,22 +125,21 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   transformations that would lose to scalar code.
 - Related: T-535, T-545, T-547.
 
-### T-557 — Elementary packed min, max, abs, and sign operations are incomplete
+### T-557 — Floating packed abs, sign, and clamp operations are incomplete
 
-- Intent: complete 64-bit integer min/max, 64-bit signed abs, floating abs/copysign, clamp, and
-  related elementary lane operations through native forms or compare/select/bitwise lowerings.
-- Complete when: every numeric lane shape has explicit NaN, signed-zero, and minimum-integer
-  behavior, with constant/runtime parity and no spill-based implementation.
+- Intent: complete floating abs/copysign, clamp, and related elementary lane operations through
+  native forms or compare/select/bitwise lowerings. Integer min/max now cover every lane width and
+  signed abs covers every signed lane width, including 64 bits.
+- Complete when: `f32` and `f64` lanes have explicit NaN and signed-zero behavior, with
+  constant/runtime parity and no spill-based implementation.
 - Related: T-507, T-534, T-546, T-552.
 
 ### T-514 — Shuffle, zip, transpose, and two-source permutation are incomplete
 
 - Intent: add immediate lane permutation, zip/unzip, byte align/extract, and two-source table
   permutation rather than forcing every transpose through spills or byte masks. Low/high
-  interleave now exists for `u8x16` and `u16x8`, and three consumers now need the 32- and 64-bit
-  shapes: a 4x4 `s16` transpose finishes on `punpckldq` and `punpcklqdq`, and their absence is what
-  leaves the inverse transforms of T-542, the IDCT column pass of T-549 and the vertical edges of
-  T-541 without a transpose strategy. Extend it there first.
+  interleave now covers 8-, 16-, 32-, and 64-bit integer lanes; the remaining gap is a higher-level
+  permutation vocabulary that composes those primitives without scalar extraction.
 - Complete when: constant patterns select immediate hardware forms, dynamic patterns retain a
   defined fallback, and 4x4/8x8 transpose helpers require no scalar lane extraction.
 - Related: T-507, T-542, T-549, T-550, T-551.
@@ -235,14 +220,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 - Complete when: error bounds, exceptional values, determinism policy, and scalar/vector parity are
   tested, and benchmarks justify the chosen polynomial/table implementations.
 - Related: T-547, T-553, T-554.
-
-### T-508 — Unary plus rejects packed vectors
-
-- Intent: make unary `+` the identity for every numeric `#simd` shape, matching packed unary minus
-  and scalar arithmetic.
-- Complete when: sema, native execution, compile-time execution, the language reference, and the
-  operator suite agree on the accepted form.
-- Related: F-167, retired when this finding became a todo.
 
 ## Tier B — Backend quality and automatic vectorization
 
@@ -383,9 +360,9 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   transposes and saturating output. Direct packed-column and packed-residual prototypes were
   byte-exact but slower than the scalar kernels and were discarded; a profitable transpose or
   combined transform/reconstruction strategy is still needed.
-  Those prototypes date from inside the call window and are worth re-measuring, but the missing 32-
-  and 64-bit lane interleave (T-514) is a real obstacle that inlining does not remove: without it a
-  4x4 transpose costs a shuffle and a select per output vector.
+  Those prototypes date from inside the call window and are worth re-measuring. The 32- and 64-bit
+  lane interleaves now exist, so the next attempt can build a 4x4 transpose without scalar lane
+  extraction and measure the combined transform/reconstruction strategy directly.
 - Complete when: coefficient extremes and conformance streams remain byte-exact and transform time
   decreases in the video profile.
 - Related: T-514, T-520, T-541.

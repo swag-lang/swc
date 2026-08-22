@@ -149,6 +149,7 @@ enum class MicroOp : uint8_t
     VecSub64,
     VecMul16,
     VecMul32,
+    VecMulU32Wide,
     VecSatAddS8,
     VecSatAddS16,
     VecSatAddU8,

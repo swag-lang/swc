@@ -167,10 +167,10 @@ namespace
         return MicroOpBits::B64;
     }
 
-    void emitLoadIncomingArg(MicroBuilder& builder, const CallConv& callConv, uint32_t slotIndex, MicroReg dstReg, const ABITypeNormalize::NormalizedType& normalizedType)
+    void emitLoadIncomingArg(MicroBuilder& builder, const CallConv& callConv, std::span<const ABICall::ArgLayout> argLayouts, uint32_t slotIndex, MicroReg dstReg, const ABITypeNormalize::NormalizedType& normalizedType)
     {
         const MicroOpBits argBits = adapterArgBits(normalizedType);
-        if (slotIndex < callConv.numArgRegisterSlots())
+        if (callConv.canPassArgInRegister(slotIndex, normalizedType.isFloat, normalizedType.numBits))
         {
             if (normalizedType.isFloat)
             {
@@ -186,7 +186,7 @@ namespace
             return;
         }
 
-        builder.emitLoadRegMem(dstReg, callConv.framePointer, ABICall::incomingArgFrameOffset(callConv, slotIndex), argBits);
+        builder.emitLoadRegMem(dstReg, callConv.framePointer, ABICall::incomingArgFrameOffset(callConv, argLayouts, slotIndex), argBits);
     }
 
     void addAdapterParameter(TaskContext& ctx, SymbolFunction& adapter, const SymbolVariable& sourceParam)
@@ -221,10 +221,22 @@ namespace
             .isFloat = false,
             .numBits = 64};
 
+        SmallVector<ABICall::ArgLayout> incomingArgLayouts;
+        incomingArgLayouts.reserve(adapter.parameters().size() + (hasHiddenRet ? 2u : 1u));
+        if (hasHiddenRet)
+            incomingArgLayouts.push_back({});
+        incomingArgLayouts.push_back({});
+        for (const SymbolVariable* param : adapter.parameters())
+        {
+            SWC_ASSERT(param != nullptr);
+            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+            incomingArgLayouts.push_back({.numBits = static_cast<uint8_t>(normalizedParam.numBits ? normalizedParam.numBits : 64), .isFloat = normalizedParam.isFloat});
+        }
+
         const uint32_t closureContextSlot = hasHiddenRet ? 1 : 0;
 
         const MicroReg closureContextReg = MicroReg::virtualIntReg(regIndex++);
-        emitLoadIncomingArg(builder, callConv, closureContextSlot, closureContextReg, pointerArg);
+        emitLoadIncomingArg(builder, callConv, incomingArgLayouts, closureContextSlot, closureContextReg, pointerArg);
 
         const MicroReg targetReg = MicroReg::virtualIntReg(regIndex++);
         builder.emitLoadRegMem(targetReg, closureContextReg, 0, MicroOpBits::B64);
@@ -233,7 +245,7 @@ namespace
         if (hasHiddenRet)
         {
             hiddenRetStorageReg = MicroReg::virtualIntReg(regIndex++);
-            emitLoadIncomingArg(builder, callConv, 0, hiddenRetStorageReg, pointerArg);
+            emitLoadIncomingArg(builder, callConv, incomingArgLayouts, 0, hiddenRetStorageReg, pointerArg);
         }
 
         SmallVector<ABICall::PreparedArg> preparedArgs;
@@ -251,6 +263,7 @@ namespace
             ABICall::PreparedArg preparedArg;
             preparedArg.kind        = ABICall::PreparedArgKind::Direct;
             preparedArg.isFloat     = normalizedParam.isFloat;
+            preparedArg.isSigned    = normalizedParam.isSigned;
             preparedArg.numBits     = normalizedParam.numBits;
             preparedArg.isAddressed = false;
 
@@ -259,7 +272,7 @@ namespace
             else
                 preparedArg.srcReg = MicroReg::virtualIntReg(regIndex++);
 
-            emitLoadIncomingArg(builder, callConv, incomingSlot, preparedArg.srcReg, normalizedParam);
+            emitLoadIncomingArg(builder, callConv, incomingArgLayouts, incomingSlot, preparedArg.srcReg, normalizedParam);
             preparedArgs.push_back(preparedArg);
         }
 

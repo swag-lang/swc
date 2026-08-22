@@ -63,21 +63,37 @@ like the other forms, which is what lets a vector be declared 'const'.
 The arithmetic, bitwise and shift operators compute per lane, and a scalar
 operand broadcasts over the other side's lanes. Lane arithmetic always wraps:
 a vector is machine data, and no overflow guard applies. The operators follow
-what the hardware provides on every target: no packed integer divide or
-modulo, no 8-bit or 64-bit packed multiply, no 8-bit shifts, and no 64-bit
-arithmetic right shift.
+what the hardware provides on every target: packed integer divide and modulo
+remain unavailable. Integer multiply and shifts without a direct packed
+instruction use register-only portable lowerings. Unary '+' is the identity
+for every vector shape.
 */
 #test
 {
     let v = cast(#simd [4] s32) [1, 2, 3, 4]
     let w = cast(#simd [4] s32) [10, 20, 30, 40]
 
-    var r = cast([4] s32) (v + w)
+    var r = cast([4] s32) (+v)
+    @assert(r[0] == 1 and r[3] == 4)
+    r = cast([4] s32) (v + w)
     @assert(r[0] == 11 and r[3] == 44)
     r = cast([4] s32) (w * 2)
     @assert(r[0] == 20 and r[3] == 80)
     r = cast([4] s32) (v << 4)
     @assert(r[0] == 16 and r[3] == 64)
+
+    let bytes = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
+    let shiftedBytes = cast([16] u8) (bytes << 1)
+    @assert(shiftedBytes[0] == 2 and shiftedBytes[1] == 254)
+
+    let wide = cast(#simd [2] s64) [-8, 0x4000_0000_0000_0000]
+    let shiftedWide = cast([2] s64) (wide >> 2)
+    @assert(shiftedWide[0] == -2 and shiftedWide[1] == 0x1000_0000_0000_0000)
+
+    let factors1 = cast(#simd [2] u64) [0xFFFF_FFFF_FFFF_FFFF, 0x1_0000_0001]
+    let factors2 = cast(#simd [2] u64) [2, 0x1_0000_0001]
+    let products = cast([2] u64) (factors1 * factors2)
+    @assert(products[0] == 0xFFFF_FFFF_FFFF_FFFE and products[1] == 0x2_0000_0001)
 
     // Lanes wrap by definition.
     let big  = @vecsplat(2_147_483_647's32)
@@ -142,7 +158,8 @@ toward zero, '@vecgather' loads four 's32' values through four 'u32' indices,
 and '@vecperm' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. '@min',
 '@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil' and '@trunc' also accept
-vectors and compute per lane. A gather uses 'vpgatherdd' when AVX2 is selected
+vectors and compute per lane. Integer '@abs' wraps the minimum lane value back
+to itself, like unary minus. A gather uses 'vpgatherdd' when AVX2 is selected
 and a portable four-load lowering otherwise; every index must designate a
 readable table element and be at most 's32.Max'.
 */

@@ -938,11 +938,6 @@ namespace
             if (!constantPayloadFitsByteSize(argConstantValue, argStorageSize))
                 return Result::Continue;
 
-            // Packed args must ride register lanes through the JIT bridge, and an
-            // indirect return can occupy the first lane; give up folding otherwise.
-            if (argValueType.isSimd() && outJitArgs.size() + 1 >= CallConv::swag().numArgRegisterSlots())
-                return Result::Continue;
-
             auto& argStorage = outArgStorage.emplace_back();
             reserveJitFoldStorage(argStorage, argStorageSize);
             SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueTypeRef) == Result::Continue);
@@ -1081,11 +1076,6 @@ namespace
             if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
                 return Result::Continue;
             if (!constantPayloadFitsByteSize(argConstantValue, argStorageSize))
-                return Result::Continue;
-
-            // Packed args must ride register lanes through the JIT bridge, and an
-            // indirect return can occupy the first lane; give up folding otherwise.
-            if (argValueType.isSimd() && outJitArgs.size() + 1 >= CallConv::swag().numArgRegisterSlots())
                 return Result::Continue;
 
             auto& argStorage = outArgStorage.emplace_back();

@@ -10,13 +10,23 @@ class TaskContext;
 
 namespace ABICall
 {
+    struct ArgLayout
+    {
+        uint8_t numBits = 64;
+        bool    isFloat = false;
+    };
+
     uint32_t argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex);
     uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex);
+    uint64_t callArgStackOffset(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex);
     uint64_t incomingArgStackOffset(const CallConv& conv, uint32_t argIndex);
+    uint64_t incomingArgStackOffset(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex);
     uint64_t incomingArgFrameOffset(const CallConv& conv, uint32_t argIndex);
+    uint64_t incomingArgFrameOffset(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex);
 
     // Compute total stack reservation needed before issuing a call instruction.
     uint32_t computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs);
+    uint32_t computeCallStackAdjust(CallConvKind callConvKind, std::span<const ArgLayout> argLayouts);
 
     struct Arg
     {
@@ -58,8 +68,14 @@ namespace ABICall
     struct PreparedCall
     {
         // prepareArgs may pre-adjust the stack when stack arguments are present.
-        uint32_t numPreparedArgs      = 0;
-        uint32_t stackAdjust          = 0;
+        // Once adjusted, the exact byte count replaces the argument count: call emission
+        // only needs one of these values at a time. Keeping them in one word preserves the
+        // small aggregate ABI used by direct PreparedCall{} call sites.
+        union
+        {
+            uint32_t numPreparedArgs = 0;
+            uint32_t stackAdjust;
+        };
         bool     stackAlreadyAdjusted = false;
         uint8_t  intArgMask           = 0;
         uint8_t  floatArgMask         = 0;

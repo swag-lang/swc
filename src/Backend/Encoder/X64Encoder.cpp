@@ -682,6 +682,7 @@ namespace
             case MicroOp::VecSub64: return {VEX_MAP_0F, 0x66, 0xFB};
             case MicroOp::VecMul16: return {VEX_MAP_0F, 0x66, 0xD5};
             case MicroOp::VecMul32: return {VEX_MAP_0F38, 0x66, 0x40};
+            case MicroOp::VecMulU32Wide: return {VEX_MAP_0F, 0x66, 0xF4};
             case MicroOp::VecSatAddS8: return {VEX_MAP_0F, 0x66, 0xEC};
             case MicroOp::VecSatAddS16: return {VEX_MAP_0F, 0x66, 0xED};
             case MicroOp::VecSatAddU8: return {VEX_MAP_0F, 0x66, 0xDC};

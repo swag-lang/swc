@@ -79,6 +79,7 @@ struct CallConv
     bool stackRedZone = false;
 
     uint32_t             numArgRegisterSlots() const;
+    bool                 canPassArgInRegister(uint32_t argIndex, bool isFloat, uint8_t numBits) const;
     uint32_t             stackSlotSize() const;
     bool                 canPassStructArgByValue(uint32_t sizeInBytes) const;
     bool                 canPassStructReturnByValue(uint32_t sizeInBytes) const;

@@ -541,8 +541,7 @@ namespace
             materializeArithmeticOperand(countReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, codeGen.typeMgr().typeU64());
             const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
             builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);
-            const MicroOp op = CodeGenVectorHelpers::variableShiftMicroOpForLane(tokId, laneType);
-            builder.emitOpBinaryRegRegReg(nodePayload.reg, lhsReg, countVecReg, op, MicroOpBits::B128);
+            nodePayload.reg = CodeGenVectorHelpers::emitVariableShift(codeGen, tokId, lhsReg, countVecReg, laneType);
             return Result::Continue;
         }
 
@@ -566,6 +565,12 @@ namespace
             MicroReg scalarReg;
             materializeArithmeticOperand(scalarReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, vecType.payloadSimdLaneTypeRef());
             rhsReg = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
+        }
+
+        if (tokId == TokenId::SymAsterisk && laneType.isInt() && (laneType.payloadIntBits() == 8 || laneType.payloadIntBits() == 64))
+        {
+            nodePayload.reg = CodeGenVectorHelpers::emitDecomposedMultiply(codeGen, lhsReg, rhsReg, laneType);
+            return Result::Continue;
         }
 
         const MicroOp op = CodeGenVectorHelpers::binaryMicroOpForLane(tokId, laneType);

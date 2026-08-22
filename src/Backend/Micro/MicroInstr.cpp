@@ -131,12 +131,13 @@ namespace
         return static_cast<uint8_t>(ops[maskOperandIndex].valueU32);
     }
 
-    void addMaskedCallArgRegs(MicroInstrUseDef& useDef, const MicroRegSpan regs, const uint8_t mask)
+    void addMaskedCallArgRegs(MicroInstrUseDef& useDef, const MicroRegSpan regs, const uint8_t mask, size_t defaultCount)
     {
         if (mask == K_CALL_ARG_MASK_ALL)
         {
-            for (const MicroReg reg : regs)
-                useDef.addUse(reg);
+            const size_t count = std::min(regs.size(), defaultCount);
+            for (size_t i = 0; i < count; ++i)
+                useDef.addUse(regs[i]);
             return;
         }
 
@@ -177,8 +178,9 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
         // Call instructions consume ABI argument registers implicitly. Keep them live so
         // register allocation and later rewrites cannot reuse them before the call.
         const CallConv& callConv = CallConv::get(useDef.callConv);
-        addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, false));
-        addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, true));
+        const size_t defaultArgCount = callConv.numArgRegisterSlots();
+        addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, false), defaultArgCount);
+        addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, true), defaultArgCount);
         for (const MicroReg reg : callConv.intTransientRegs)
             useDef.addDef(reg);
         for (const MicroReg reg : callConv.floatTransientRegs)

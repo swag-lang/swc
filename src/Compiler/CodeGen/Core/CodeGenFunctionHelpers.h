@@ -20,6 +20,7 @@ namespace CodeGenFunctionHelpers
     struct FunctionParameterInfo
     {
         uint32_t    slotIndex         = 0;
+        uint64_t    stackOffset       = 0;
         MicroOpBits opBits            = MicroOpBits::Zero;
         bool        isFloat           = false;
         bool        isSigned          = false;

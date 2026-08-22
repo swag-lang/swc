@@ -3,6 +3,8 @@
 
 using Swag, Math
 
+const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
+
 // The aliases name the '#simd' types themselves.
 #test
 {
@@ -89,6 +91,16 @@ using Swag, Math
 
     let wordLow = Simd.interleaveLow(cast(Simd.U16x8) [0'u16, 1, 2, 3, 4, 5, 6, 7], cast(Simd.U16x8) [10'u16, 11, 12, 13, 14, 15, 16, 17])
     @assert(wordLow[0] == 0 and wordLow[1] == 10 and wordLow[6] == 3 and wordLow[7] == 13)
+
+    let quadLow  = Simd.interleaveLow(cast(Simd.U32x4) [0'u32, 1, 2, 3], cast(Simd.U32x4) [10'u32, 11, 12, 13])
+    let quadHigh = Simd.interleaveHigh(cast(Simd.U32x4) [0'u32, 1, 2, 3], cast(Simd.U32x4) [10'u32, 11, 12, 13])
+    @assert(quadLow[0] == 0 and quadLow[1] == 10 and quadLow[2] == 1 and quadLow[3] == 11)
+    @assert(quadHigh[0] == 2 and quadHigh[1] == 12 and quadHigh[2] == 3 and quadHigh[3] == 13)
+
+    let octLow  = Simd.interleaveLow(cast(Simd.U64x2) [0'u64, 1], cast(Simd.U64x2) [10'u64, 11])
+    let octHigh = Simd.interleaveHigh(cast(Simd.U64x2) [0'u64, 1], cast(Simd.U64x2) [10'u64, 11])
+    @assert(octLow[0] == 0 and octLow[1] == 10)
+    @assert(octHigh[0] == 1 and octHigh[1] == 11)
 }
 
 // Packs narrow with saturation, and the widening halves extend with the lane's signedness.
@@ -140,6 +152,11 @@ using Swag, Math
     let a = cast(Simd.S16x8) [-5's16, 10, -300, 4, 0, 1, -1, 32767]
     let r = Math.abs(a)
     @assert(r[0] == 5 and r[2] == 300 and r[7] == 32767)
+    let wide = cast(Simd.S64x2) [CoreSimdS64Min, -9_000_000_000]
+    let wideAbs = Math.abs(wide)
+    @assert(wideAbs[0] == CoreSimdS64Min and wideAbs[1] == 9_000_000_000)
+    @assert(Math.min(wide, Simd.splat(-7's64))[0] == CoreSimdS64Min)
+    @assert(Math.max(wide, Simd.splat(-7's64))[1] == -7)
 
     let x = cast(Simd.F32x4) [1'f32, 4, 9, 16]
     let s = Math.sqrt(x)

@@ -255,7 +255,7 @@ namespace
     {
         SWC_UNUSED(expr);
         const TypeInfo& type = aliasType(sema, view);
-        if (type.isFloat() || type.isIntLike())
+        if (type.isFloat() || type.isIntLike() || type.isSimd())
             return Result::Continue;
 
         return reportInvalidType(sema, expr, view);

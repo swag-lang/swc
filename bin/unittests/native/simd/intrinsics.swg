@@ -1,6 +1,8 @@
 #global private
 using Swag
 
+const IntrinsicS64Min = -9_223_372_036_854_775_807's64 - 1
+
 // The packed intrinsic vocabulary, checked lane by lane: broadcast, saturation,
 // packs, interleaves, widens, average, multiply-add, horizontal sum, float-to-integer conversion,
 // gather, permute, select, movemask, and the vector overloads of the scalar math intrinsics.
@@ -107,6 +109,20 @@ func splatU8(value: u8)->#simd [16] u8 => @vecsplat(value)
     let high16 = cast([8] u16) @vecinterleavehi(words0, words1)
     @assert(low16[0] == 0 and low16[1] == 100 and low16[6] == 3 and low16[7] == 103)
     @assert(high16[0] == 4 and high16[1] == 104 and high16[6] == 7 and high16[7] == 107)
+
+    let quads0 = cast(#simd [4] u32) [0, 1, 2, 3]
+    let quads1 = cast(#simd [4] u32) [100, 101, 102, 103]
+    let low32  = cast([4] u32) @vecinterleavelo(quads0, quads1)
+    let high32 = cast([4] u32) @vecinterleavehi(quads0, quads1)
+    @assert(low32[0] == 0 and low32[1] == 100 and low32[2] == 1 and low32[3] == 101)
+    @assert(high32[0] == 2 and high32[1] == 102 and high32[2] == 3 and high32[3] == 103)
+
+    let octs0 = cast(#simd [2] u64) [0, 1]
+    let octs1 = cast(#simd [2] u64) [100, 101]
+    let low64 = cast([2] u64) @vecinterleavelo(octs0, octs1)
+    let high64 = cast([2] u64) @vecinterleavehi(octs0, octs1)
+    @assert(low64[0] == 0 and low64[1] == 100)
+    @assert(high64[0] == 1 and high64[1] == 101)
 }
 
 #test
@@ -213,6 +229,22 @@ func splatU8(value: u8)->#simd [16] u8 => @vecsplat(value)
     @assert(r[0] == 5 and r[1] == 4 and r[2] == 100 and r[3] == 50)
     r = cast([4] s32) @abs(a)
     @assert(r[0] == 5 and r[1] == 3 and r[2] == 100 and r[3] == 100)
+
+    let s64a = cast(#simd [2] s64) [IntrinsicS64Min, 9_000_000_000]
+    let s64b = cast(#simd [2] s64) [-7, 10_000_000_000]
+    let s64min = cast([2] s64) @min(s64a, s64b)
+    let s64max = cast([2] s64) @max(s64a, s64b)
+    let s64abs = cast([2] s64) @abs(s64a)
+    @assert(s64min[0] == IntrinsicS64Min and s64min[1] == 9_000_000_000)
+    @assert(s64max[0] == -7 and s64max[1] == 10_000_000_000)
+    @assert(s64abs[0] == IntrinsicS64Min and s64abs[1] == 9_000_000_000)
+
+    let u64a = cast(#simd [2] u64) [0, 0xFFFF_FFFF_FFFF_FFFF]
+    let u64b = cast(#simd [2] u64) [0xFFFF_FFFF_FFFF_FFFF, 4_000_000_000]
+    let u64min = cast([2] u64) @min(u64a, u64b)
+    let u64max = cast([2] u64) @max(u64a, u64b)
+    @assert(u64min[0] == 0 and u64min[1] == 4_000_000_000)
+    @assert(u64max[0] == 0xFFFF_FFFF_FFFF_FFFF and u64max[1] == 0xFFFF_FFFF_FFFF_FFFF)
 
     let ua = cast(#simd [16] u8) [1, 200, 3, 200, 1, 200, 1, 200, 1, 200, 1, 200, 1, 200, 1, 200]
     let ub = @vecsplat(100'u8)

@@ -1403,6 +1403,8 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @min(value1, value2: #simd [8] s16)->#simd [8] s16
     func @min(value1, value2: #simd [4] u32)->#simd [4] u32
     func @min(value1, value2: #simd [4] s32)->#simd [4] s32
+    func @min(value1, value2: #simd [2] u64)->#simd [2] u64
+    func @min(value1, value2: #simd [2] s64)->#simd [2] s64
     func @min(value1, value2: #simd [4] f32)->#simd [4] f32
     func @min(value1, value2: #simd [2] f64)->#simd [2] f64
     func @max(value1, value2: #simd [16] u8)->#simd [16] u8
@@ -1411,6 +1413,8 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @max(value1, value2: #simd [8] s16)->#simd [8] s16
     func @max(value1, value2: #simd [4] u32)->#simd [4] u32
     func @max(value1, value2: #simd [4] s32)->#simd [4] s32
+    func @max(value1, value2: #simd [2] u64)->#simd [2] u64
+    func @max(value1, value2: #simd [2] s64)->#simd [2] s64
     func @max(value1, value2: #simd [4] f32)->#simd [4] f32
     func @max(value1, value2: #simd [2] f64)->#simd [2] f64
 
@@ -1418,6 +1422,7 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @abs(value: #simd [16] s8)->#simd [16] s8
     func @abs(value: #simd [8] s16)->#simd [8] s16
     func @abs(value: #simd [4] s32)->#simd [4] s32
+    func @abs(value: #simd [2] s64)->#simd [2] s64
     func @sqrt(value: #simd [4] f32)->#simd [4] f32
     func @sqrt(value: #simd [2] f64)->#simd [2] f64
 
@@ -1467,8 +1472,12 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @vecpackss(low, high: #simd [4] s32)->#simd [8] s16
     func @vecinterleavelo(value1, value2: #simd [16] u8)->#simd [16] u8
     func @vecinterleavelo(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @vecinterleavelo(value1, value2: #simd [4] u32)->#simd [4] u32
+    func @vecinterleavelo(value1, value2: #simd [2] u64)->#simd [2] u64
     func @vecinterleavehi(value1, value2: #simd [16] u8)->#simd [16] u8
     func @vecinterleavehi(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @vecinterleavehi(value1, value2: #simd [4] u32)->#simd [4] u32
+    func @vecinterleavehi(value1, value2: #simd [2] u64)->#simd [2] u64
 
     // Widening: the low or high half of the lanes extends to double width,
     // zero-extended for unsigned lanes and sign-extended for signed ones.

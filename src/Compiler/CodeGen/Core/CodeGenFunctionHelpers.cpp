@@ -359,7 +359,21 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     result.needsIndirectCopy = normalizedParam.needsIndirectCopy;
     result.numBits           = normalizedParam.numBits;
     result.opBits            = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
-    result.isRegisterArg     = result.slotIndex < callConv.numArgRegisterSlots();
+    result.isRegisterArg     = callConv.canPassArgInRegister(result.slotIndex, result.isFloat, result.numBits);
+
+    SmallVector<ABICall::ArgLayout> argLayouts;
+    argLayouts.reserve(symbolFunc.parameters().size() + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
+    if (hasIndirectReturnArg)
+        argLayouts.push_back({});
+    if (hasClosureContextArg)
+        argLayouts.push_back({});
+    for (const SymbolVariable* param : symbolFunc.parameters())
+    {
+        SWC_ASSERT(param != nullptr);
+        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+        argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
+    }
+    result.stackOffset = ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
     return result;
 }
 
@@ -490,11 +504,10 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
     }
     else
     {
-        const uint64_t frameOffset = ABICall::incomingArgFrameOffset(callConv, paramInfo.slotIndex);
         if (paramInfo.isFloat)
-            builder.emitLoadRegMem(dstReg, callConv.framePointer, frameOffset, paramInfo.opBits);
+            builder.emitLoadRegMem(dstReg, callConv.framePointer, paramInfo.stackOffset, paramInfo.opBits);
         else
-            ABICall::loadCanonicalIntFromMemToReg(builder, dstReg, callConv.framePointer, frameOffset, paramInfo.numBits, paramInfo.isSigned);
+            ABICall::loadCanonicalIntFromMemToReg(builder, dstReg, callConv.framePointer, paramInfo.stackOffset, paramInfo.numBits, paramInfo.isSigned);
     }
 }
 

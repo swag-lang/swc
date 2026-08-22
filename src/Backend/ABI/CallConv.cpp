@@ -99,6 +99,15 @@ uint32_t CallConv::numArgRegisterSlots() const
     return std::min(numIntArgRegs, numFloatArgRegs);
 }
 
+bool CallConv::canPassArgInRegister(uint32_t argIndex, bool isFloat, uint8_t numBits) const
+{
+    if (argIndex < numArgRegisterSlots())
+        return true;
+
+    // Swag extends packed argument lanes through the remaining volatile xmm registers.
+    return numBits == 128 && isFloat && argIndex < floatArgRegs.size();
+}
+
 uint32_t CallConv::stackSlotSize() const
 {
     // Slot granularity used for shadow-space and stack-passed arguments.
@@ -220,6 +229,8 @@ void CallConv::setup()
     c                                   = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
     swag.name                           = "swag";
     c.name                              = "c";
+    swag.floatArgRegs.push_back(MicroReg::floatReg(4));
+    swag.floatArgRegs.push_back(MicroReg::floatReg(5));
     // Swag reuses the native register/stack contract. Direct Swag calls may borrow a large
     // value-semantic aggregate because the callee cannot mutate the parameter; calls through
     // runtime function values add a defensive copy because their target may instead be native.

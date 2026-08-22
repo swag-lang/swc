@@ -465,9 +465,8 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, scalarRef, leftView.typeRef(), rightView.typeRef());
         }
 
-        // The lane legality of each operator, from what the hardware offers:
-        // no packed integer divide or modulo, no 8-bit or 64-bit packed
-        // multiply, no 8-bit shifts, and no 64-bit arithmetic right shift.
+        // The lane legality of each operator. Operations without one packed
+        // instruction are accepted when the backend has a portable lowering.
         bool legal = true;
         switch (op)
         {
@@ -478,7 +477,7 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
                 legal = floatLanes;
                 break;
             case TokenId::SymAsterisk:
-                legal = floatLanes || laneBits == 16 || laneBits == 32;
+                legal = true;
                 break;
             case TokenId::SymAmpersand:
             case TokenId::SymPipe:
@@ -486,10 +485,10 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
                 legal = !floatLanes;
                 break;
             case TokenId::SymLowerLower:
-                legal = !floatLanes && laneBits != 8;
+                legal = !floatLanes;
                 break;
             case TokenId::SymGreaterGreater:
-                legal = !floatLanes && laneBits != 8 && !(laneType.isIntSigned() && laneBits == 64);
+                legal = !floatLanes;
                 break;
             default:
                 break;

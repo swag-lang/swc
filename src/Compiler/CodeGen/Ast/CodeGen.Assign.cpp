@@ -348,7 +348,7 @@ namespace
         const MicroReg leftReg = codeGen.nextVirtualFloatRegister();
         builder.emitLoadVecRegMem(leftReg, targetPayload.reg, 0, MicroOpBits::B128);
 
-        const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+        MicroReg resultReg;
         if (binaryOp == TokenId::SymLowerLower || binaryOp == TokenId::SymGreaterGreater)
         {
             const TypeRef     countTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
@@ -364,7 +364,7 @@ namespace
 
             const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
             builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegRegReg(resultReg, leftReg, countVecReg, CodeGenVectorHelpers::variableShiftMicroOpForLane(binaryOp, laneType), MicroOpBits::B128);
+            resultReg = CodeGenVectorHelpers::emitVariableShift(codeGen, binaryOp, leftReg, countVecReg, laneType);
         }
         else
         {
@@ -390,7 +390,13 @@ namespace
                 rhsReg                   = CodeGenVectorHelpers::splatScalarLane(codeGen, scalarReg, laneType);
             }
 
-            builder.emitOpBinaryRegRegReg(resultReg, leftReg, rhsReg, CodeGenVectorHelpers::binaryMicroOpForLane(binaryOp, laneType), MicroOpBits::B128);
+            if (binaryOp == TokenId::SymAsterisk && laneType.isInt() && (laneType.payloadIntBits() == 8 || laneType.payloadIntBits() == 64))
+                resultReg = CodeGenVectorHelpers::emitDecomposedMultiply(codeGen, leftReg, rhsReg, laneType);
+            else
+            {
+                resultReg = codeGen.nextVirtualFloatRegister();
+                builder.emitOpBinaryRegRegReg(resultReg, leftReg, rhsReg, CodeGenVectorHelpers::binaryMicroOpForLane(binaryOp, laneType), MicroOpBits::B128);
+            }
         }
 
         builder.emitStoreVecMemReg(targetPayload.reg, 0, resultReg, MicroOpBits::B128);

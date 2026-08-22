@@ -137,6 +137,8 @@ namespace Simd
         // The result is `x[0], y[0], x[1], y[1], ...` and discards both high halves.
         func interleaveLow(x, y: U8x16)->U8x16 => @vecinterleavelo(x, y)
         func interleaveLow(x, y: U16x8)->U16x8 => @vecinterleavelo(x, y)
+        func interleaveLow(x, y: U32x4)->U32x4 => @vecinterleavelo(x, y)
+        func interleaveLow(x, y: U64x2)->U64x2 => @vecinterleavelo(x, y)
 
         // Alternates lanes from the high halves of two vectors.
         //
@@ -144,6 +146,8 @@ namespace Simd
         // as [[Core.Math.Simd.interleaveLow]].
         func interleaveHigh(x, y: U8x16)->U8x16 => @vecinterleavehi(x, y)
         func interleaveHigh(x, y: U16x8)->U16x8 => @vecinterleavehi(x, y)
+        func interleaveHigh(x, y: U32x4)->U32x4 => @vecinterleavehi(x, y)
+        func interleaveHigh(x, y: U64x2)->U64x2 => @vecinterleavehi(x, y)
 
         // Extends the low half of the lanes to double width, zero-extended for unsigned
         // lanes and sign-extended for signed ones.
@@ -215,6 +219,7 @@ namespace Simd
     func abs(x: Simd.S8x16)->Simd.S8x16 => @abs(x)
     func abs(x: Simd.S16x8)->Simd.S16x8 => @abs(x)
     func abs(x: Simd.S32x4)->Simd.S32x4 => @abs(x)
+    func abs(x: Simd.S64x2)->Simd.S64x2 => @abs(x)
 
     // Returns the square root, per lane.
     func sqrt(x: Simd.F32x4)->Simd.F32x4 => @sqrt(x)

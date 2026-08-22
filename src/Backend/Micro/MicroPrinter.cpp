@@ -228,6 +228,8 @@ namespace
                 return "vec.mul16";
             case MicroOp::VecMul32:
                 return "vec.mul32";
+            case MicroOp::VecMulU32Wide:
+                return "vec.mulwideu32";
             case MicroOp::VecSatAddS8:
                 return "vec.satadds8";
             case MicroOp::VecSatAddS16:

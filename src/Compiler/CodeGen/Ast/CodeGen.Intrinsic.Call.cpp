@@ -2377,6 +2377,40 @@ namespace
             return Result::Continue;
         }
 
+        if (!floatLanes && laneBits == 64 && (tokId == TokenId::IntrinsicMin || tokId == TokenId::IntrinsicMax))
+        {
+            // There is no packed 64-bit integer min/max before AVX-512. Build
+            // it from the existing compare mask and a register-only select.
+            const MicroReg leftReg  = loadArg(0);
+            const MicroReg rightReg = loadArg(1);
+            const TokenId  cmpTok   = tokId == TokenId::IntrinsicMin ? TokenId::SymLess : TokenId::SymGreater;
+            const MicroReg maskReg  = CodeGenVectorHelpers::emitCompare(codeGen, cmpTok, leftReg, rightReg, laneType);
+
+            const MicroReg keptReg    = codeGen.nextVirtualFloatRegister();
+            const MicroReg droppedReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(keptReg, leftReg, maskReg, MicroOp::VecAnd, MicroOpBits::B128);
+            builder.emitOpBinaryRegRegReg(droppedReg, maskReg, rightReg, MicroOp::VecAndNot, MicroOpBits::B128);
+            builder.emitOpBinaryRegRegReg(resultPayload.reg, keptReg, droppedReg, MicroOp::VecOr, MicroOpBits::B128);
+            outHandled = true;
+            return Result::Continue;
+        }
+
+        if (tokId == TokenId::IntrinsicAbs && laneBits == 64)
+        {
+            // abs(x) = (x xor sign) - sign, where the signed compare supplies
+            // the all-ones mask that a packed arithmetic shift would produce.
+            const MicroReg srcReg  = loadArg(0);
+            const MicroReg zeroReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(zeroReg, srcReg, srcReg, MicroOp::VecXor, MicroOpBits::B128);
+
+            const MicroReg signReg = CodeGenVectorHelpers::emitCompare(codeGen, TokenId::SymGreater, zeroReg, srcReg, laneType);
+            const MicroReg xorReg  = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(xorReg, srcReg, signReg, MicroOp::VecXor, MicroOpBits::B128);
+            builder.emitOpBinaryRegRegReg(resultPayload.reg, xorReg, signReg, MicroOp::VecSub64, MicroOpBits::B128);
+            outHandled = true;
+            return Result::Continue;
+        }
+
         if (isMulAdd)
         {
             const MicroOp  mulOp  = laneBits == 32 ? MicroOp::VecMulF32 : MicroOp::VecMulF64;

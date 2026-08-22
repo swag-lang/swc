@@ -153,29 +153,169 @@ MicroOp CodeGenVectorHelpers::binaryMicroOpForLane(TokenId tokId, const TypeInfo
     }
 }
 
-MicroOp CodeGenVectorHelpers::variableShiftMicroOpForLane(TokenId tokId, const TypeInfo& laneType)
+MicroReg CodeGenVectorHelpers::emitDecomposedMultiply(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType)
 {
+    MicroBuilder&  builder  = codeGen.builder();
     const uint32_t laneBits = laneBitsOf(laneType);
+    SWC_ASSERT(!laneType.isFloat() && (laneBits == 8 || laneBits == 64));
+
+    if (laneBits == 8)
+    {
+        // Unsigned widening is sufficient even for signed lanes: only the low
+        // eight product bits survive, so both interpretations are identical.
+        const MicroReg leftHighBytesReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg rightHighBytesReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegImm(leftHighBytesReg, leftReg, ApInt(8, 8), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegImm(rightHighBytesReg, rightReg, ApInt(8, 8), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+
+        const MicroReg leftLowWideReg   = codeGen.nextVirtualFloatRegister();
+        const MicroReg leftHighWideReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg rightLowWideReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg rightHighWideReg = codeGen.nextVirtualFloatRegister();
+        builder.emitVecUnaryRegReg(leftLowWideReg, leftReg, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(leftHighWideReg, leftHighBytesReg, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(rightLowWideReg, rightReg, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(rightHighWideReg, rightHighBytesReg, MicroOp::VecWidenLoU8, MicroOpBits::B128);
+
+        const MicroReg lowProductReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg highProductReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(lowProductReg, leftLowWideReg, rightLowWideReg, MicroOp::VecMul16, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(highProductReg, leftHighWideReg, rightHighWideReg, MicroOp::VecMul16, MicroOpBits::B128);
+
+        const MicroReg onesReg     = allOnes(codeGen, leftReg);
+        const MicroReg byteMaskReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegImm(byteMaskReg, onesReg, ApInt(8, 8), MicroOp::VecShiftRight16, MicroOpBits::B128);
+        const MicroReg maskedLowReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg maskedHighReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(maskedLowReg, lowProductReg, byteMaskReg, MicroOp::VecAnd, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(maskedHighReg, highProductReg, byteMaskReg, MicroOp::VecAnd, MicroOpBits::B128);
+
+        const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(resultReg, maskedLowReg, maskedHighReg, MicroOp::VecPackUS16, MicroOpBits::B128);
+        return resultReg;
+    }
+
+    // For each qword, keep low*low and the low 32 bits of both cross
+    // products. The omitted high*high term starts above bit 63.
+    const MicroReg leftHighReg  = codeGen.nextVirtualFloatRegister();
+    const MicroReg rightHighReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegImm(leftHighReg, leftReg, ApInt(32, 8), MicroOp::VecShiftRight64, MicroOpBits::B128);
+    builder.emitOpBinaryRegRegImm(rightHighReg, rightReg, ApInt(32, 8), MicroOp::VecShiftRight64, MicroOpBits::B128);
+
+    const MicroReg lowProductReg = codeGen.nextVirtualFloatRegister();
+    const MicroReg cross1Reg     = codeGen.nextVirtualFloatRegister();
+    const MicroReg cross2Reg     = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegReg(lowProductReg, leftReg, rightReg, MicroOp::VecMulU32Wide, MicroOpBits::B128);
+    builder.emitOpBinaryRegRegReg(cross1Reg, leftHighReg, rightReg, MicroOp::VecMulU32Wide, MicroOpBits::B128);
+    builder.emitOpBinaryRegRegReg(cross2Reg, leftReg, rightHighReg, MicroOp::VecMulU32Wide, MicroOpBits::B128);
+
+    const MicroReg crossSumReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegReg(crossSumReg, cross1Reg, cross2Reg, MicroOp::VecAdd64, MicroOpBits::B128);
+    const MicroReg shiftedCrossReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegImm(shiftedCrossReg, crossSumReg, ApInt(32, 8), MicroOp::VecShiftLeft64, MicroOpBits::B128);
+
+    const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegReg(resultReg, lowProductReg, shiftedCrossReg, MicroOp::VecAdd64, MicroOpBits::B128);
+    return resultReg;
+}
+
+MicroReg CodeGenVectorHelpers::emitVariableShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, MicroReg countVecReg, const TypeInfo& laneType)
+{
+    MicroBuilder&  builder  = codeGen.builder();
+    const uint32_t laneBits = laneBitsOf(laneType);
+    const bool     shiftLeft = tokId == TokenId::SymLowerLower;
+    SWC_ASSERT(shiftLeft || tokId == TokenId::SymGreaterGreater);
+
+    if (laneBits == 8)
+    {
+        // Widen each byte half to words, shift there, then narrow the halves
+        // back together. Left shifts mask to eight bits before the saturating
+        // pack so they preserve wrapping shift semantics.
+        const bool    arithmeticRight = !shiftLeft && laneType.isIntSigned();
+        const MicroOp widenOp         = arithmeticRight ? MicroOp::VecWidenLoS8 : MicroOp::VecWidenLoU8;
+        const MicroOp shiftOp         = shiftLeft ? MicroOp::VecShiftLeftV16 : arithmeticRight ? MicroOp::VecShiftRightAV16
+                                                                                               : MicroOp::VecShiftRightV16;
+
+        const MicroReg highBytesReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegImm(highBytesReg, valueReg, ApInt(8, 8), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+
+        const MicroReg lowWideReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg highWideReg = codeGen.nextVirtualFloatRegister();
+        builder.emitVecUnaryRegReg(lowWideReg, valueReg, widenOp, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(highWideReg, highBytesReg, widenOp, MicroOpBits::B128);
+
+        MicroReg lowShiftReg  = codeGen.nextVirtualFloatRegister();
+        MicroReg highShiftReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(lowShiftReg, lowWideReg, countVecReg, shiftOp, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(highShiftReg, highWideReg, countVecReg, shiftOp, MicroOpBits::B128);
+
+        if (shiftLeft)
+        {
+            const MicroReg onesReg     = allOnes(codeGen, valueReg);
+            const MicroReg byteMaskReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegImm(byteMaskReg, onesReg, ApInt(8, 8), MicroOp::VecShiftRight16, MicroOpBits::B128);
+
+            const MicroReg maskedLowReg  = codeGen.nextVirtualFloatRegister();
+            const MicroReg maskedHighReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(maskedLowReg, lowShiftReg, byteMaskReg, MicroOp::VecAnd, MicroOpBits::B128);
+            builder.emitOpBinaryRegRegReg(maskedHighReg, highShiftReg, byteMaskReg, MicroOp::VecAnd, MicroOpBits::B128);
+            lowShiftReg  = maskedLowReg;
+            highShiftReg = maskedHighReg;
+        }
+
+        const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(resultReg, lowShiftReg, highShiftReg, arithmeticRight ? MicroOp::VecPackSS16 : MicroOp::VecPackUS16, MicroOpBits::B128);
+        return resultReg;
+    }
+
+    if (!shiftLeft && laneBits == 64 && laneType.isIntSigned())
+    {
+        // Arithmetic right shift is a logical shift plus the high sign fill.
+        // Shifting an all-ones vector also makes counts >= 64 naturally select
+        // a complete sign fill, as required by the language.
+        const MicroReg logicalReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(logicalReg, valueReg, countVecReg, MicroOp::VecShiftRightV64, MicroOpBits::B128);
+
+        const MicroReg zeroReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(zeroReg, valueReg, valueReg, MicroOp::VecXor, MicroOpBits::B128);
+        const MicroReg signReg = emitCompare(codeGen, TokenId::SymGreater, zeroReg, valueReg, laneType);
+
+        const MicroReg onesReg      = allOnes(codeGen, valueReg);
+        const MicroReg preservedReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(preservedReg, onesReg, countVecReg, MicroOp::VecShiftRightV64, MicroOpBits::B128);
+        const MicroReg fillReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(fillReg, preservedReg, signReg, MicroOp::VecAndNot, MicroOpBits::B128);
+
+        const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(resultReg, logicalReg, fillReg, MicroOp::VecOr, MicroOpBits::B128);
+        return resultReg;
+    }
+
+    MicroOp op;
     if (tokId == TokenId::SymLowerLower)
     {
         switch (laneBits)
         {
-            case 16: return MicroOp::VecShiftLeftV16;
-            case 32: return MicroOp::VecShiftLeftV32;
-            default: return MicroOp::VecShiftLeftV64;
+            case 16: op = MicroOp::VecShiftLeftV16; break;
+            case 32: op = MicroOp::VecShiftLeftV32; break;
+            default: op = MicroOp::VecShiftLeftV64; break;
+        }
+    }
+    else if (laneType.isIntSigned())
+        op = laneBits == 16 ? MicroOp::VecShiftRightAV16 : MicroOp::VecShiftRightAV32;
+    else
+    {
+        switch (laneBits)
+        {
+            case 16: op = MicroOp::VecShiftRightV16; break;
+            case 32: op = MicroOp::VecShiftRightV32; break;
+            default: op = MicroOp::VecShiftRightV64; break;
         }
     }
 
-    SWC_ASSERT(tokId == TokenId::SymGreaterGreater);
-    if (laneType.isIntSigned())
-        return laneBits == 16 ? MicroOp::VecShiftRightAV16 : MicroOp::VecShiftRightAV32;
-
-    switch (laneBits)
-    {
-        case 16: return MicroOp::VecShiftRightV16;
-        case 32: return MicroOp::VecShiftRightV32;
-        default: return MicroOp::VecShiftRightV64;
-    }
+    const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegReg(resultReg, valueReg, countVecReg, op, MicroOpBits::B128);
+    return resultReg;
 }
 
 MicroReg CodeGenVectorHelpers::emitCompare(CodeGen& codeGen, TokenId tokId, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType)

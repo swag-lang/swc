@@ -406,6 +406,7 @@ namespace
         ENCODE_CASE("vec_sub16_vex", "C5 E9 F9 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSub16, MicroOpBits::B128););
         ENCODE_CASE("vec_sub64_vex", "C5 E9 FB CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSub64, MicroOpBits::B128););
         ENCODE_CASE("vec_mul16_vex", "C5 E9 D5 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMul16, MicroOpBits::B128););
+        ENCODE_CASE("vec_mulwideu32_vex", "C5 E9 F4 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMulU32Wide, MicroOpBits::B128););
         ENCODE_CASE("vec_satadds8_vex", "C5 E9 EC CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatAddS8, MicroOpBits::B128););
         ENCODE_CASE("vec_satadds16_vex", "C5 E9 ED CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatAddS16, MicroOpBits::B128););
         ENCODE_CASE("vec_sataddu8_vex", "C5 E9 DC CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecSatAddU8, MicroOpBits::B128););

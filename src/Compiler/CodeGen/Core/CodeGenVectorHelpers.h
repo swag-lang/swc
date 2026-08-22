@@ -38,8 +38,13 @@ namespace CodeGenVectorHelpers
     // on the given lanes. Shifts are handled separately.
     MicroOp binaryMicroOpForLane(TokenId tokId, const TypeInfo& laneType);
 
-    // The packed variable-count shift of a shift operator on the given lanes.
-    MicroOp variableShiftMicroOpForLane(TokenId tokId, const TypeInfo& laneType);
+    // Emits the low wrapping product for 8- or 64-bit integer lanes, whose
+    // packed forms require decomposition on the baseline target.
+    MicroReg emitDecomposedMultiply(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);
+
+    // Shifts every lane by one scalar count. Shapes without a direct packed
+    // instruction are synthesized without leaving the register file.
+    MicroReg emitVariableShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, MicroReg countVecReg, const TypeInfo& laneType);
 
     // Emits an element-wise compare and returns the mask register (all-ones
     // lanes where the compare holds).

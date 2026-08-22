@@ -157,6 +157,64 @@ private func testPhaseCompiled(output, module: string)->bool
     return false
 }
 
+// Checks the compact spelling contract of the generated public API fixture.
+private func verifyCompactExportedApi(workspace: string, buildCfg: string, targetArch: string)->s32 fail
+{
+    let exportDirectory = Path.combine(workspace, ".output", "api_export_provider", "export", buildCfg, targetArch)
+    let generated       = try File.readAllText(Path.combine(exportDirectory.toString(), "api_export_provider.swg").toString())
+    let wholeFile       = try File.readAllText(Path.combine(exportDirectory.toString(), "legacy.swg").toString())
+    let staticDirectory = Path.combine(workspace, ".output", "api_static_provider", "static-library", buildCfg, targetArch)
+    let staticApi       = try File.readAllText(Path.combine(staticDirectory.toString(), "api_static_provider.swg").toString())
+
+    for redundant in ["#[Swag.", "namespace DepTools {}", "namespace DepTools.Deep {}", "namespace DepSharedRng {}", "namespace Shared {}"]
+    {
+        if !generated.contains(redundant) and !wholeFile.contains(redundant) do
+            continue
+
+        Console.println("Generated module API still contains redundant text: ", redundant)
+        return 1
+    }
+
+    for compact in ["#[Discardable, Inline]", "#[Align(8)]"]
+    {
+        if generated.contains(compact) do
+            continue
+
+        Console.println("Generated module API is missing compact attribute list: ", compact)
+        return 1
+    }
+
+    if !wholeFile.contains("#[Discardable, Inline]")
+    {
+        Console.println("Whole-file module API is missing compact attribute list: #[Discardable, Inline]")
+        return 1
+    }
+
+    for redundant in ["#[Opaque]", "Opaque]", "Pack(8)", "NoDoc", "NoDuplicate"]
+    {
+        if !generated.contains(redundant) and !staticApi.contains(redundant) do
+            continue
+
+        Console.println("Generated module API still contains a producer-only attribute: ", redundant)
+        return 1
+    }
+
+    if !staticApi.contains("#[Foreign, Discardable]") or !staticApi.contains("func depTriple(value: s32)->s32")
+    {
+        Console.println("Bodyless module API declaration lost a consumer attribute")
+        return 1
+    }
+
+    let retainedBodyAttributes = "#[NoInline, Safety(.All, false), Sanity(.All, false), Optimize(false), Warning(\"all\", .Disable)]"
+    if !staticApi.contains(retainedBodyAttributes) or !staticApi.contains("func(T) depMirror(value: T)->T => value")
+    {
+        Console.println("Exported function body lost its compilation attributes")
+        return 1
+    }
+
+    return 0
+}
+
 // Runs the multi-module workspace suite.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
@@ -177,6 +235,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let buildCode = try context.runCompiler(built)
     if buildCode != 0 do
         return buildCode
+
+    let compactApiCode = try verifyCompactExportedApi(workspace.toString(), buildCfg, options.targetArch.toString())
+    if compactApiCode != 0 do
+        return compactApiCode
 
     let stdOutput = context.workspaceOutput("std")
     if !Directory.exists(Path.combine(stdOutput.toString(), "core"))

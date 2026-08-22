@@ -14,6 +14,7 @@ func depMixinAccumulateTwice(value: s32)
     total += scaled
 }
 
+#[Swag.NoInline, Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.Optimize(false), Swag.Warning("all", .Disable)]
 func(T) depMirror(value: T)->T => value
 
 #[Swag.Inline, Swag.ConstExpr]

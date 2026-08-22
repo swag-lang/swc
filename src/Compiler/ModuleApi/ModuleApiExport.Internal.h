@@ -95,7 +95,8 @@ namespace ModuleApiExport
     void   appendGeneratedRootsForFile(TaskContext& ctx, const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots);
 
     // ModuleApiExport.Content.cpp
-    Utf8   buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, bool hasModuleNamespace);
+    void   removeModuleApiAttributes(TaskContext& ctx, Utf8& ioContent, std::span<const std::string_view> attributeNames);
+    Utf8   buildExportedModuleApiContent(TaskContext& ctx, const SourceFile& file, std::string_view moduleNamespace, bool hasModuleNamespace);
     Result writeGeneratedModuleImports(TaskContext& ctx, const fs::path& exportApiDir, std::string_view eol);
     Result buildGeneratedModuleApiSingleFileContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent);
 }

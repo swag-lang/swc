@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/RuntimeName.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -14,11 +15,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    static constexpr std::string_view NON_CONSUMER_ATTRIBUTES[] = {"Opaque", "NoDoc", "NoDuplicate", "PrintAst", "PrintMicro", "NoPrint"};
+
     using ModuleApiExport::buildModuleArtifactName;
     using ModuleApiExport::buildSanitizedModuleApiSnippet;
     using ModuleApiExport::findEnclosingImplRef;
     using ModuleApiExport::ModuleApiGeneratedRoot;
     using ModuleApiExport::sameNamespacePath;
+    using ModuleApiExport::sourceTokenByteEnd;
+    using ModuleApiExport::sourceTokenByteStart;
     using ModuleApiExport::tryBuildImplPrefix;
     using ModuleApiExport::tryFindSemanticImplRef;
     using ModuleApiExport::tryGetModuleApiSnippet;
@@ -225,8 +230,254 @@ namespace
         outContent += eol;
     }
 
-    Result formatGeneratedModuleApiContent(const TaskContext& ctx, Utf8& outContent)
+    struct ModuleApiTextEdit
     {
+        size_t start;
+        size_t end;
+        Utf8   replacement;
+    };
+
+    struct ModuleApiAttributeListSpan
+    {
+        size_t start;
+        size_t end;
+    };
+
+    struct ModuleApiAttributeEntrySpan
+    {
+        size_t           start;
+        size_t           end;
+        std::string_view name;
+    };
+
+    bool isWhitespaceOnly(const std::string_view text)
+    {
+        return std::ranges::all_of(text, [](const char c) { return std::isspace(static_cast<unsigned char>(c)); });
+    }
+
+    bool containsModuleApiAttributeName(std::span<const std::string_view> attributeNames, const std::string_view name)
+    {
+        return std::ranges::find(attributeNames, name) != attributeNames.end();
+    }
+
+    std::string_view moduleApiAttributeEntryName(const SourceView& srcView, const std::span<const Token> tokens, const size_t firstTokenIndex, const size_t endTokenIndex)
+    {
+        if (firstTokenIndex >= endTokenIndex || tokens[firstTokenIndex].id != TokenId::Identifier)
+            return {};
+
+        const std::string_view firstName = tokens[firstTokenIndex].string(srcView);
+        if (firstName != "Swag")
+            return firstName;
+        if (firstTokenIndex + 2 >= endTokenIndex || tokens[firstTokenIndex + 1].id != TokenId::SymDot || tokens[firstTokenIndex + 2].id != TokenId::Identifier)
+            return firstName;
+        return tokens[firstTokenIndex + 2].string(srcView);
+    }
+
+    void appendModuleApiAttributeEntry(std::vector<ModuleApiAttributeEntrySpan>& outEntries, const SourceView& srcView, const std::span<const Token> tokens, const size_t firstTokenIndex, const size_t endTokenIndex, const size_t separatorStart)
+    {
+        if (firstTokenIndex >= endTokenIndex)
+            return;
+
+        outEntries.push_back({
+            .start = sourceTokenByteStart(srcView, tokens[firstTokenIndex]),
+            .end   = separatorStart,
+            .name  = moduleApiAttributeEntryName(srcView, tokens, firstTokenIndex, endTokenIndex),
+        });
+    }
+
+    void removeNamedModuleApiAttributes(const SourceView& srcView, Utf8& ioContent, std::span<const std::string_view> attributeNames)
+    {
+        if (attributeNames.empty())
+            return;
+
+        std::vector<ModuleApiTextEdit> edits;
+        const auto&                    tokens = srcView.tokens();
+        for (size_t tokenIndex = 0; tokenIndex < tokens.size(); ++tokenIndex)
+        {
+            if (tokens[tokenIndex].id != TokenId::SymAttrStart)
+                continue;
+
+            const size_t listStart       = sourceTokenByteStart(srcView, tokens[tokenIndex]);
+            size_t       entryTokenIndex = tokenIndex + 1;
+            uint32_t     parenDepth      = 0;
+            uint32_t     bracketDepth    = 1;
+            uint32_t     curlyDepth      = 0;
+            std::vector<ModuleApiAttributeEntrySpan> entries;
+            for (size_t listTokenIndex = tokenIndex + 1; listTokenIndex < tokens.size(); ++listTokenIndex)
+            {
+                const Token& token = tokens[listTokenIndex];
+                switch (token.id)
+                {
+                    case TokenId::SymLeftParen:
+                        parenDepth++;
+                        break;
+                    case TokenId::SymRightParen:
+                        parenDepth--;
+                        break;
+                    case TokenId::SymAttrStart:
+                    case TokenId::SymLeftBracket:
+                        bracketDepth++;
+                        break;
+                    case TokenId::SymRightBracket:
+                        bracketDepth--;
+                        break;
+                    case TokenId::SymLeftCurly:
+                        curlyDepth++;
+                        break;
+                    case TokenId::SymRightCurly:
+                        curlyDepth--;
+                        break;
+                    default:
+                        break;
+                }
+
+                const bool isSeparator = token.id == TokenId::SymComma && parenDepth == 0 && bracketDepth == 1 && curlyDepth == 0;
+                const bool isListEnd   = token.id == TokenId::SymRightBracket && bracketDepth == 0;
+                if (!isSeparator && !isListEnd)
+                    continue;
+
+                const size_t separatorStart = sourceTokenByteStart(srcView, token);
+                appendModuleApiAttributeEntry(entries, srcView, tokens, entryTokenIndex, listTokenIndex, separatorStart);
+                if (isSeparator)
+                {
+                    entryTokenIndex = listTokenIndex + 1;
+                    continue;
+                }
+
+                bool hasRemovedEntry = false;
+                Utf8 replacement = "#[";
+                bool hasKeptEntry = false;
+                for (const ModuleApiAttributeEntrySpan& entry : entries)
+                {
+                    if (containsModuleApiAttributeName(attributeNames, entry.name))
+                    {
+                        hasRemovedEntry = true;
+                        continue;
+                    }
+
+                    std::string_view entryText = ioContent.subView(entry.start, entry.end - entry.start);
+                    while (!entryText.empty() && std::isspace(static_cast<unsigned char>(entryText.front())))
+                        entryText.remove_prefix(1);
+                    while (!entryText.empty() && std::isspace(static_cast<unsigned char>(entryText.back())))
+                        entryText.remove_suffix(1);
+                    if (hasKeptEntry)
+                        replacement += ", ";
+                    replacement += entryText;
+                    hasKeptEntry = true;
+                }
+
+                if (hasRemovedEntry)
+                {
+                    size_t editEnd = sourceTokenByteEnd(srcView, token);
+                    if (hasKeptEntry)
+                        replacement += "]";
+                    else
+                    {
+                        replacement.clear();
+                        while (editEnd < ioContent.size() && std::isspace(static_cast<unsigned char>(ioContent[editEnd])))
+                            editEnd++;
+                    }
+                    edits.push_back({
+                        .start       = listStart,
+                        .end         = editEnd,
+                        .replacement = std::move(replacement),
+                    });
+                }
+
+                tokenIndex = listTokenIndex;
+                break;
+            }
+        }
+
+        for (auto it = edits.rbegin(); it != edits.rend(); ++it)
+            ioContent.replace(it->start, it->end - it->start, it->replacement);
+    }
+
+    void tokenizeAndRemoveModuleApiAttributes(TaskContext& ctx, Utf8& ioContent, std::span<const std::string_view> attributeNames)
+    {
+        SourceFile lexFile(FileRef::invalid(), fs::path{}, FileFlagsE::CustomSrc);
+        lexFile.setContent(ioContent.view());
+
+        SourceView srcView(SourceViewRef::invalid(), &lexFile);
+        Lexer      lexer;
+        lexer.tokenize(ctx, srcView, LexerFlagsE::AllowReservedIdentifiers);
+        removeNamedModuleApiAttributes(srcView, ioContent, attributeNames);
+    }
+
+    // Exported files always have the runtime prelude in scope. Normalize copied source attributes
+    // to that context and fold adjacent lists before the formatter lays out the file.
+    void normalizeModuleApiAttributes(const SourceView& srcView, Utf8& ioContent)
+    {
+        std::vector<ModuleApiAttributeListSpan> lists;
+        std::vector<ModuleApiTextEdit>          edits;
+        const auto&                             tokens = srcView.tokens();
+        for (size_t tokenIndex = 0; tokenIndex < tokens.size(); ++tokenIndex)
+        {
+            if (tokens[tokenIndex].id != TokenId::SymAttrStart)
+                continue;
+
+            const size_t listStart = sourceTokenByteStart(srcView, tokens[tokenIndex]);
+            uint32_t     depth     = 1;
+            for (size_t listTokenIndex = tokenIndex + 1; listTokenIndex < tokens.size(); ++listTokenIndex)
+            {
+                const Token& token = tokens[listTokenIndex];
+                if (token.id == TokenId::SymAttrStart || token.id == TokenId::SymLeftBracket)
+                    depth++;
+                else if (token.id == TokenId::SymRightBracket)
+                    depth--;
+
+                if (token.id == TokenId::Identifier && token.string(srcView) == "Swag" && listTokenIndex + 1 < tokens.size() && tokens[listTokenIndex + 1].id == TokenId::SymDot)
+                {
+                    edits.push_back({
+                        .start = sourceTokenByteStart(srcView, token),
+                        .end   = sourceTokenByteEnd(srcView, tokens[listTokenIndex + 1]),
+                    });
+                }
+
+                if (depth)
+                    continue;
+
+                lists.push_back({listStart, sourceTokenByteEnd(srcView, token)});
+                tokenIndex = listTokenIndex;
+                break;
+            }
+        }
+
+        for (size_t listIndex = 1; listIndex < lists.size(); ++listIndex)
+        {
+            const ModuleApiAttributeListSpan& previous = lists[listIndex - 1];
+            const ModuleApiAttributeListSpan& current  = lists[listIndex];
+            if (!isWhitespaceOnly(ioContent.subView(previous.end, current.start - previous.end)))
+                continue;
+
+            edits.push_back({
+                .start       = previous.end - 1,
+                .end         = current.start + 2,
+                .replacement = ", ",
+            });
+        }
+
+        std::ranges::sort(edits, {}, &ModuleApiTextEdit::start);
+        for (auto it = edits.rbegin(); it != edits.rend(); ++it)
+            ioContent.replace(it->start, it->end - it->start, it->replacement);
+    }
+
+    void normalizeModuleApiAttributes(TaskContext& ctx, Utf8& ioContent)
+    {
+        SourceFile lexFile(FileRef::invalid(), fs::path{}, FileFlagsE::CustomSrc);
+        lexFile.setContent(ioContent.view());
+
+        SourceView srcView(SourceViewRef::invalid(), &lexFile);
+        Lexer      lexer;
+        lexer.tokenize(ctx, srcView, LexerFlagsE::AllowReservedIdentifiers);
+        normalizeModuleApiAttributes(srcView, ioContent);
+    }
+
+    Result formatGeneratedModuleApiContent(TaskContext& ctx, Utf8& outContent)
+    {
+        tokenizeAndRemoveModuleApiAttributes(ctx, outContent, NON_CONSUMER_ATTRIBUTES);
+        normalizeModuleApiAttributes(ctx, outContent);
+
         FormatOptions options;
         options.insertFinalNewline         = true;
         options.trimTrailingNewlines       = true;
@@ -462,100 +713,6 @@ namespace
         closeNamespaceBlocks(outContent, openNamespacePath, 0, eol);
     }
 
-    bool tryExtractLeadingNamespacePath(TaskContext& ctx, std::vector<IdentifierRef>& outNamespacePath, std::span<const IdentifierRef> parentNamespacePath, std::string_view snippet)
-    {
-        constexpr std::string_view namespacePrefix = "namespace ";
-        outNamespacePath.clear();
-        if (!snippet.starts_with(namespacePrefix))
-            return false;
-
-        outNamespacePath.assign(parentNamespacePath.begin(), parentNamespacePath.end());
-
-        std::string_view remaining = snippet.substr(namespacePrefix.size());
-        const size_t     bodyPos   = remaining.find_first_of("{\r\n");
-        if (bodyPos == std::string_view::npos)
-            return false;
-
-        remaining = remaining.substr(0, bodyPos);
-        while (!remaining.empty())
-        {
-            const size_t splitPos = remaining.find('.');
-            const auto   name     = splitPos == std::string_view::npos ? remaining : remaining.substr(0, splitPos);
-            if (name.empty())
-                return false;
-
-            outNamespacePath.push_back(ctx.idMgr().addIdentifier(name));
-            if (splitPos == std::string_view::npos)
-                break;
-
-            remaining.remove_prefix(splitPos + 1);
-        }
-
-        return !outNamespacePath.empty();
-    }
-
-    Utf8 buildForwardNamespaceDeclLine(TaskContext& ctx, std::span<const IdentifierRef> namespacePath)
-    {
-        Utf8 result;
-        result += "namespace ";
-        for (size_t i = 0; i < namespacePath.size(); ++i)
-        {
-            if (i)
-                result += ".";
-            result += ctx.idMgr().get(namespacePath[i]).name;
-        }
-
-        result += " {}";
-        return result;
-    }
-
-    void appendForwardNamespaceDeclLine(TaskContext& ctx, Utf8& outContent, std::span<const IdentifierRef> namespacePath, std::string_view eol, std::unordered_set<Utf8>* emittedPreambleLines)
-    {
-        const Utf8 line = buildForwardNamespaceDeclLine(ctx, namespacePath);
-        outContent += line;
-        outContent += eol;
-        if (emittedPreambleLines)
-            emittedPreambleLines->insert(line);
-    }
-
-    bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::span<const Utf8> snippets, std::string_view eol, std::unordered_set<Utf8>* emittedPreambleLines = nullptr)
-    {
-        SWC_ASSERT(roots.size() == snippets.size());
-
-        bool                       emitted = false;
-        std::unordered_set<Utf8>   emittedPaths;
-        std::vector<IdentifierRef> namespacePath;
-
-        for (size_t rootIndex = 0; rootIndex < roots.size(); ++rootIndex)
-        {
-            const ModuleApiGeneratedRoot& root    = roots[rootIndex];
-            const Utf8&                   snippet = snippets[rootIndex];
-            if (!root.namespacePath.empty())
-            {
-                const Utf8 pathKey = buildNamespacePathKey(ctx, root.namespacePath);
-                if (emittedPaths.insert(pathKey).second)
-                {
-                    appendForwardNamespaceDeclLine(ctx, outContent, root.namespacePath, eol, emittedPreambleLines);
-                    emitted = true;
-                }
-            }
-
-            if (snippet.empty())
-                continue;
-            if (!tryExtractLeadingNamespacePath(ctx, namespacePath, root.namespacePath, snippet.view()))
-                continue;
-
-            const Utf8 pathKey = buildNamespacePathKey(ctx, namespacePath);
-            if (!emittedPaths.insert(pathKey).second)
-                continue;
-
-            appendForwardNamespaceDeclLine(ctx, outContent, namespacePath, eol, emittedPreambleLines);
-            emitted = true;
-        }
-
-        return emitted;
-    }
-
     Result buildGeneratedModuleApiContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::span<Utf8> snippets, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)
     {
         SWC_ASSERT(roots.size() == snippets.size());
@@ -566,8 +723,6 @@ namespace
         outContent += eol;
         outContent += "#global public";
         outContent += eol;
-        if (appendForwardNamespaceDecls(ctx, outContent, roots, snippets, eol))
-            outContent += eol;
 
         std::vector<ModuleApiOrderedEntry>    orderedEntries;
         std::unordered_set<Utf8>              emittedUsingKeys;
@@ -649,7 +804,7 @@ namespace
 
     bool isGeneratedModuleApiPreambleLine(std::string_view line)
     {
-        return line.starts_with("using ") || (line.starts_with("namespace ") && line.ends_with(" {}"));
+        return line.starts_with("using ");
     }
 
     void trimLeadingGeneratedModulePreamble(Utf8& ioContent, std::unordered_set<Utf8>& emittedPreambleLines, std::string_view eol)
@@ -699,29 +854,41 @@ namespace
 
 namespace ModuleApiExport
 {
-    Utf8 buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, bool hasModuleNamespace)
+    void removeModuleApiAttributes(TaskContext& ctx, Utf8& ioContent, std::span<const std::string_view> attributeNames)
+    {
+        tokenizeAndRemoveModuleApiAttributes(ctx, ioContent, attributeNames);
+    }
+
+    Utf8 buildExportedModuleApiContent(TaskContext& ctx, const SourceFile& file, std::string_view moduleNamespace, bool hasModuleNamespace)
     {
         const std::string_view source = file.sourceView();
+        Utf8                   content;
         if (hasModuleNamespace)
-            return Utf8{source};
-
-        uint32_t insertOffset = file.ast().srcView().sourceStartOffset();
-        if (file.ast().srcView().numTokens())
         {
-            const Token& firstToken = file.ast().srcView().token(TokenRef(0));
-            if (firstToken.id != TokenId::EndOfFile)
-                insertOffset = firstToken.byteStart;
+            content = source;
+        }
+        else
+        {
+            uint32_t insertOffset = file.ast().srcView().sourceStartOffset();
+            if (file.ast().srcView().numTokens())
+            {
+                const Token& firstToken = file.ast().srcView().token(TokenRef(0));
+                if (firstToken.id != TokenId::EndOfFile)
+                    insertOffset = firstToken.byteStart;
+            }
+
+            insertOffset = std::min<uint32_t>(insertOffset, static_cast<uint32_t>(source.size()));
+
+            content.reserve(source.size() + moduleNamespace.size() + 32);
+            content.append(source.substr(0, insertOffset));
+            content += "#global namespace ";
+            content += moduleNamespace;
+            content += preferredLineEnding(file);
+            content.append(source.substr(insertOffset));
         }
 
-        insertOffset = std::min<uint32_t>(insertOffset, static_cast<uint32_t>(source.size()));
-
-        Utf8 content;
-        content.reserve(source.size() + moduleNamespace.size() + 32);
-        content.append(source.substr(0, insertOffset));
-        content += "#global namespace ";
-        content += moduleNamespace;
-        content += preferredLineEnding(file);
-        content.append(source.substr(insertOffset));
+        tokenizeAndRemoveModuleApiAttributes(ctx, content, NON_CONSUMER_ATTRIBUTES);
+        normalizeModuleApiAttributes(ctx, content);
         return content;
     }
 
@@ -765,8 +932,7 @@ namespace ModuleApiExport
             rootIndex = nextIndex;
         }
 
-        // Build every sanitized snippet once. Both the global forward declarations and the
-        // per-file content consume these bytes; regenerating them at each stage dominates
+        // Build every sanitized snippet once; regenerating them for the per-file merge dominates
         // large generated modules such as ogl.
         std::vector<Utf8> rootSnippets(roots.size());
         std::vector       groupResults(groups.size(), Result::Continue);
@@ -786,11 +952,9 @@ namespace ModuleApiExport
             SWC_RESULT(groupResult);
 
         std::unordered_set<Utf8> emittedPreambleLines;
-        if (appendForwardNamespaceDecls(ctx, outContent, roots, rootSnippets, eol, &emittedPreambleLines))
-            outContent += eol;
 
-        // Build each group's content in parallel. Snippet bytes are only read for the
-        // preamble above, then moved into their final ordered entries by one group.
+        // Build each group's content in parallel. Snippet bytes are moved into their final
+        // ordered entries by one group.
         std::vector<Utf8> groupContents(groups.size());
         std::ranges::fill(groupResults, Result::Continue);
         jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t g) {

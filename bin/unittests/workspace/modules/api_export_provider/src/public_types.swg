@@ -2,6 +2,7 @@
 
 alias DepCount = s32
 
+#[Swag.NoDuplicate]
 enum DepMode: s16
 {
     Zero = 0
@@ -102,7 +103,7 @@ union DepValue
     }
 }
 
-#[Swag.Opaque]
+#[Swag.Opaque, Swag.Pack(8)]
 struct DepOpaque
 {
     public

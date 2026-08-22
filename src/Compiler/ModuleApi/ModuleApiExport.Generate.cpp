@@ -26,6 +26,7 @@ namespace
     using ModuleApiExport::isWholeFileExportedSymbol;
     using ModuleApiExport::ModuleApiGeneratedRoot;
     using ModuleApiExport::moduleApiNodeSourceView;
+    using ModuleApiExport::removeModuleApiAttributes;
     using ModuleApiExport::moduleApiSnippetStartTokRef;
     using ModuleApiExport::sameNamespacePath;
     using ModuleApiExport::sourceTokenByteEnd;
@@ -277,6 +278,9 @@ namespace
             prefix += symbolStruct->isUnion() ? "union " : "struct ";
             prefix += symbolStruct->name(ctx);
         }
+
+        static constexpr std::string_view MATERIALIZED_LAYOUT_ATTRIBUTES[] = {"Pack"};
+        removeModuleApiAttributes(ctx, prefix, MATERIALIZED_LAYOUT_ATTRIBUTES);
 
         Utf8     result;
         uint32_t alignValue = 0;
@@ -638,50 +642,6 @@ namespace
         return Utf8{std::format("Foreign(function: \"{}\")", apiName.c_str())};
     }
 
-    // 'Inline' asks the consumer to expand the body. An entry the API reduced to a foreign
-    // declaration carries no body, so a copied attribute line saying otherwise describes an
-    // expansion that cannot happen. Only a line that says nothing else is dropped: an attribute
-    // written alongside another one keeps whatever the declaration also stated.
-    void dropInlineAttributeLine(const std::string_view eol, Utf8& ioPrefix)
-    {
-        static constexpr std::string_view INLINE_ATTRIBUTES[] = {"#[Swag.Inline]", "#[Inline]"};
-
-        size_t pos = 0;
-        while (pos < ioPrefix.size())
-        {
-            while (pos < ioPrefix.size() && std::isspace(static_cast<unsigned char>(ioPrefix[pos])))
-                ++pos;
-            if (pos >= ioPrefix.size() || ioPrefix[pos] != '#')
-                return;
-
-            const std::string_view rest = ioPrefix.subView(pos, ioPrefix.size() - pos);
-            size_t                 attributeSize = 0;
-            for (const std::string_view attribute : INLINE_ATTRIBUTES)
-            {
-                if (rest.starts_with(attribute))
-                    attributeSize = attribute.size();
-            }
-
-            if (attributeSize == 0)
-            {
-                const size_t groupEnd = ioPrefix.find(']', pos);
-                if (groupEnd == Utf8::npos)
-                    return;
-                pos = groupEnd + 1;
-                continue;
-            }
-
-            size_t lineEnd = pos + attributeSize;
-            while (lineEnd < ioPrefix.size() && (ioPrefix[lineEnd] == ' ' || ioPrefix[lineEnd] == '\t'))
-                ++lineEnd;
-            if (ioPrefix.subView(lineEnd, eol.size()) == eol)
-                lineEnd += eol.size();
-
-            ioPrefix.erase(pos, lineEnd - pos);
-            return;
-        }
-    }
-
     Utf8 buildFunctionSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol)
     {
         const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
@@ -692,7 +652,8 @@ namespace
         if (!tryBuildFunctionDeclPrefix(ctx, root, eol, prefix))
             return {};
 
-        dropInlineAttributeLine(eol, prefix);
+        static constexpr std::string_view BODY_ATTRIBUTES[] = {"Inline", "NoInline", "Safety", "Sanity", "Optimize", "Warning"};
+        removeModuleApiAttributes(ctx, prefix, BODY_ATTRIBUTES);
         trimTrailingModuleApiDeclarationSeparator(prefix);
         if (prefix.empty())
             return {};

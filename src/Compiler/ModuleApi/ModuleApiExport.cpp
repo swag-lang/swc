@@ -372,7 +372,7 @@ namespace ModuleApi
         std::vector wholeExportResults(wholeExports.size(), Result::Continue);
         jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(wholeExports.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
             const WholeFileExport& we      = wholeExports[i];
-            const Utf8             content = buildExportedModuleApiContent(*we.file, moduleNamespace.view(), we.hasModuleNamespace);
+            const Utf8             content = buildExportedModuleApiContent(workerCtx, *we.file, moduleNamespace.view(), we.hasModuleNamespace);
             wholeExportResults[i]          = writeModuleApiFile(workerCtx, we.dstPath, content.view());
         });
         for (const Result r : wholeExportResults)

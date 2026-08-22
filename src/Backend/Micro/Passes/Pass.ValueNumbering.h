@@ -11,7 +11,10 @@ SWC_BEGIN_NAMESPACE();
 // register copy, which copy elimination then folds away. This deduplicates the
 // multiply-high expansions strength reduction emits for division and modulo by
 // the same constant (`u / C` and `u % C` share one mulhi chain), and any repeated
-// address or extension computation the front end produces.
+// address or extension computation the front end produces. A load is numbered
+// the same way, scoped to the straight line it sits in: it folds onto an earlier
+// load of the same address only when no label, store, call or terminator lies
+// between them.
 class MicroValueNumberingPass final : public MicroPass
 {
 public:

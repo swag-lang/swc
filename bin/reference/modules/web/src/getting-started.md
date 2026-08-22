@@ -116,8 +116,8 @@ selected names into scope with `using Core`.
 ## Continue learning
 
 - Start with the [language tour](language.html#_001_002_language_tour_swg).
-- Use the [`swc` command-line reference](language.html#The__swc__Command_Line).
-- Read about [workspaces and modules](language.html#Workspaces_and_Modules).
+- Use the [`swc` command-line reference](language.html#_001_004_swc_command_line_swg_The__swc__Command_Line).
+- Read about [workspaces and modules](language.html#_002_001_workspaces_modules_and_dependencies_swg_Workspaces_and_Modules).
 - Browse the [standard library](std.html) and
   [runtime API](swag.runtime.html).
 - Run the programs under

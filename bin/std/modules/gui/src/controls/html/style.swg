@@ -917,8 +917,7 @@ impl HtmlComputedStyle
             {
                 switch text
                 {
-                case "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "smaller", "larger":
-                    isSize = true
+                case "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "smaller", "larger": isSize = true
                 }
             }
 
@@ -1267,6 +1266,7 @@ impl HtmlComputedStyle
             }
 
         case .LineBreak:
+
             // The strictness grades govern CJK punctuation rules this engine does not model;
             // only the value that changes where a line may break is acted on.
             if value == "anywhere" do

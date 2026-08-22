@@ -731,10 +731,10 @@ namespace
             if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            const size_t fieldIndex = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
-                                          ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightTypeRef, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
-                                          : i;
-            const auto fieldLayout  = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
+            const size_t fieldIndex  = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
+                                           ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightTypeRef, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
+                                           : i;
+            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
 
             SWC_ASSERT(fieldIndex < boundFields.size());
             boundFields[fieldIndex] = true;

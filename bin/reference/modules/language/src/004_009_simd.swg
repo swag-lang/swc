@@ -82,11 +82,11 @@ for every vector shape.
     r = cast([4] s32) (v << 4)
     @assert(r[0] == 16 and r[3] == 64)
 
-    let bytes = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
+    let bytes        = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
     let shiftedBytes = cast([16] u8) (bytes << 1)
     @assert(shiftedBytes[0] == 2 and shiftedBytes[1] == 254)
 
-    let wide = cast(#simd [2] s64) [-8, 0x4000_0000_0000_0000]
+    let wide        = cast(#simd [2] s64) [-8, 0x4000_0000_0000_0000]
     let shiftedWide = cast([2] s64) (wide >> 2)
     @assert(shiftedWide[0] == -2 and shiftedWide[1] == 0x1000_0000_0000_0000)
 

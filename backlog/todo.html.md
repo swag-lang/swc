@@ -17,7 +17,7 @@ ships; history lives in git, not here.
 
 ## Where the engine already stands
 
-About 8 700 lines across thirteen files, and the shape is a real engine, not a tag-to-widget
+About 11 800 lines across thirteen files, and the shape is a real engine, not a tag-to-widget
 translator. The parser is resumable and streams: a document fed in 48 KB chunks produces exactly
 the tree the whole file would, partial renderings appear at growing intervals, a 48 MB cap ends
 the load with a visible notice, and every node keeps its source byte offset — which is what lets

@@ -2091,14 +2091,14 @@ namespace
             MicroBuilder& builder = codeGen.builder();
 
             const CodeGenNodePayload& basePayload = codeGen.payload(children[0]);
-            MicroReg                 baseReg      = basePayload.reg;
+            MicroReg                  baseReg     = basePayload.reg;
             if (basePayload.isAddress())
             {
                 baseReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(baseReg, basePayload.reg, 0, MicroOpBits::B64);
             }
 
-            const MicroReg indicesReg = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(children[1]));
+            const MicroReg      indicesReg    = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(children[1]));
             CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
             resultPayload.reg                 = codeGen.nextVirtualFloatRegister();
 
@@ -2118,7 +2118,7 @@ namespace
                 return Result::Continue;
             }
 
-            std::array<MicroReg, 4> laneRegs{};
+            std::array<MicroReg, 4>          laneRegs{};
             constexpr std::array<uint8_t, 4> K_LANE_SHUFFLES = {0x00, 0x55, 0xAA, 0xFF};
             for (uint32_t lane = 0; lane < 4; ++lane)
             {
@@ -2157,15 +2157,17 @@ namespace
         if (!firstType.isSimd())
             return Result::Continue;
 
-        const TypeInfo& laneType   = codeGen.typeMgr().get(firstType.payloadSimdLaneTypeRef());
-        const uint32_t  laneBits   = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
-        const bool      floatLanes = laneType.isFloat();
+        const TypeInfo& laneType    = codeGen.typeMgr().get(firstType.payloadSimdLaneTypeRef());
+        const uint32_t  laneBits    = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
+        const bool      floatLanes  = laneType.isFloat();
         const bool      signedLanes = laneType.isIntSigned();
-        const uint32_t  laneCount  = firstType.payloadSimdLaneCount();
+        const uint32_t  laneCount   = firstType.payloadSimdLaneCount();
 
-        MicroBuilder&  builder = codeGen.builder();
-        const auto     loadArg = [&](size_t index) { return CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(children[index])); };
-        const TypeRef  resultTypeRef = codeGen.curViewType().typeRef();
+        MicroBuilder& builder = codeGen.builder();
+        const auto    loadArg = [&](size_t index) {
+            return CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(children[index]));
+        };
+        const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
 
         // The reductions produce a scalar, everything else a vector.
         switch (tokId)
@@ -2195,8 +2197,8 @@ namespace
             case TokenId::IntrinsicVecAny:
             case TokenId::IntrinsicVecAll:
             {
-                MicroReg srcReg = loadArg(0);
-                MicroOp  maskOp = MicroOp::VecMoveMaskB;
+                MicroReg srcReg   = loadArg(0);
+                MicroOp  maskOp   = MicroOp::VecMoveMaskB;
                 uint32_t fullMask = 0xFFFF;
                 if (laneBits == 16)
                 {
@@ -2243,13 +2245,13 @@ namespace
                 break;
         }
 
-        MicroOp  op          = MicroOp::VecAnd;
-        bool     isUnary     = false;
-        bool     isWidenHi   = false;
-        uint8_t  roundMode   = 0;
-        bool     isRound     = false;
-        bool     isSelect    = false;
-        bool     isMulAdd    = false;
+        MicroOp op        = MicroOp::VecAnd;
+        bool    isUnary   = false;
+        bool    isWidenHi = false;
+        uint8_t roundMode = 0;
+        bool    isRound   = false;
+        bool    isSelect  = false;
+        bool    isMulAdd  = false;
         switch (tokId)
         {
             case TokenId::IntrinsicMin:
@@ -2321,13 +2323,13 @@ namespace
                 break;
             case TokenId::IntrinsicVecInterleaveLo:
                 op = laneBits == 8 ? MicroOp::VecUnpackLo8 : laneBits == 16 ? MicroOp::VecUnpackLo16
-                                                                           : laneBits == 32 ? MicroOp::VecUnpackLo32
-                                                                                            : MicroOp::VecUnpackLo64;
+                                                         : laneBits == 32   ? MicroOp::VecUnpackLo32
+                                                                            : MicroOp::VecUnpackLo64;
                 break;
             case TokenId::IntrinsicVecInterleaveHi:
                 op = laneBits == 8 ? MicroOp::VecUnpackHi8 : laneBits == 16 ? MicroOp::VecUnpackHi16
-                                                                           : laneBits == 32 ? MicroOp::VecUnpackHi32
-                                                                                            : MicroOp::VecUnpackHi64;
+                                                         : laneBits == 32   ? MicroOp::VecUnpackHi32
+                                                                            : MicroOp::VecUnpackHi64;
                 break;
             case TokenId::IntrinsicVecWidenHi:
                 isWidenHi = true;

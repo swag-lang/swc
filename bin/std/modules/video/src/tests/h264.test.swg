@@ -72,8 +72,8 @@ func h264AssertStream(name: string, width, height: s32, frameCount: u64)
 // whole stream prefix. The pyramid fixture carries a later clean decode point.
 #test
 {
-    var source              = expect Source.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
-    var decoder: Mp4.Decoder
+    var source             = expect Source.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
 

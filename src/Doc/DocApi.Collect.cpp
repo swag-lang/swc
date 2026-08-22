@@ -185,7 +185,7 @@ void DocApi::appendNormalizedComment(std::vector<Utf8>& outLines, std::string_vi
 
     // Remove the source margin once, so Markdown indentation inside the comment remains intact.
     // The extra star that opens a documentation comment is a boundary, not a zero-width margin.
-    std::vector<Utf8> lines = Utf8Helper::splitLines(text);
+    std::vector<Utf8> lines        = Utf8Helper::splitLines(text);
     size_t            commonIndent = std::numeric_limits<size_t>::max();
     for (const Utf8& line : lines)
     {

@@ -8,26 +8,31 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 ## Loop vectorization
 
-### F-034 — Unrolling a loop does not hand it to the vectorizer
+### F-034 — Unrolling the key-stream loop no longer loses its constant offsets, and still does not pay
 
 - Area: compiler/backend
 - Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
-- Observation: after the rounds were fixed, the dominant cost became the key-stream application -
-  sixteen words XOR-ed one at a time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. The
-  obvious move (raise it to 16, since `K_MAX_TOTAL_INSTR` already bounds the blow-up) unrolls the
-  loop and buys nothing: the sixteen copies stay scalar, so the whole function doubles - 187 to
-  377 instructions - for the loop overhead alone. The gain hoped for was the SLP pass seeing
-  sixteen adjacent stores; it does not see them.
-- Evidence: the unrolled body keeps 16 `load_addr_amc_reg_mem`, 71 loads and 49 zero-extensions.
-  The indexed (Amc) addressing survives unrolling instead of folding into constant offsets, and an
-  Amc access is exactly what makes the SLP scan give up on a block
-  (`hasUnresolvedMemRead`/`Write`). Raising the limit also perturbed the round loop, 23
-  instructions to 39. Reverted; the limit stays at 8.
-- Next step: the missing step is constant-index folding after unrolling, not a bigger unroller. A
-  cloned body whose induction variable is now a constant should have `[base + i*4]` rewritten to
-  `[base + K]`, which is what turns the Amc form into the constant-offset form the vectorizer
-  reads. Check whether instruction-combine already does this and is simply not re-run after the
-  unroll, or whether it has no rule for Amc-with-constant-index at all.
+- Observation: the dominant cost is the key-stream application — sixteen words XOR-ed one at a
+  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. The first attempt at raising it
+  to 16 unrolled the loop and bought nothing, because the indexed accesses survived as `Amc`
+  forms; that part is fixed — `tryFoldConstIndexAmc` (2026-08-04) turns each copy's `state[i]`
+  and `initial[i]` into `[frame + K]`, and the lea-into-index fold gives `data[offset + i]` its
+  constant displacement. What survives in the unrolled body is what a constant cannot remove.
+- Evidence: measured again 2026-08-22 with `K_MAX_TRIPS = 16` (static census, release): chacha
+  main 627 -> 763 instructions, sha256 725 -> 878 (its sixteen-trip schedule loops unroll too),
+  every other task unchanged. Per element the unrolled body reads `[rbx + 0xAC]` and
+  `[rbx + 0x58]` directly, but still spends three instructions on the data word — `lea r9,
+  [rdi + rsi*4 + K]`, `load [r9]`, `store [r9]` — where clang writes one `xor dword ptr
+  [rdi + rsi*4 + K], reg`, and three zero-extensions on the two u32 adds — `load b32; zext
+  b64<-b32` although a 32-bit load already zero-extends, and `add b64; zext b64<-b32` for the
+  `& M32`, which a 32-bit add would do in one. Reverted: no dynamic measurement yet shows the
+  sixteen copies winning over the loop, and the change reaches every counted loop of up to
+  sixteen trips.
+- Next step: two peepholes come first, because they pay whether or not the loop unrolls — drop
+  the zero-extension that follows a 32-bit load or a 32-bit-masked 64-bit add of two
+  zero-extended words, and fold a `lea; load; op; store` round trip on the same address into a
+  memory-destination op. Then re-measure chacha with the limit at 16 on a quiet machine, and
+  only then ask whether the SLP pass sees the sixteen `[frame + K]` loads it now has.
 
 ## Register allocation and frame-slot promotion
 
@@ -109,23 +114,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: promote sha256's eight carried slots as one group, or rank their live ranges over the
   loop hull rather than the whole function. For Leven, record the allocator spill boundary so a
   program pointer can be proved unable to alias those slots.
-
-### F-069 — A byte the loop compares is loaded again to use it
-
-- Area: compiler/backend
-- Found while: reading csvagg's digit loop after the hoisting pass above
-- Observation: `while p < eol and text[p] != ',' { qty = qty * 10 + (text[p] - 48) }` reads the same
-  byte twice — once through `cmp_amc_imm [base + p], ','` and once through
-  `load_amc_reg_mem r, [base + p]`. Instruction-combine folded the first load into the compare,
-  which leaves nothing for the second to reuse, and value numbering does not number indexed memory
-  reads so it never merges them.
-- Evidence: csvagg's digit loop, 15 instructions with 4 memory operations, of which two are this
-  one byte. clang-cl reads it once into a register and both compares and uses that.
-- Next step: two candidate rules, and the cheaper one first — decline the fold into a compare when
-  the loaded value has another use (the fold is only a win when it kills the load), or number
-  indexed loads in value numbering when no intervening write can alias them. The first is local to
-  `Pass.InstructionCombine.LoadFold`; the second is worth more but needs the aliasing question the
-  post-RA hoist above already answers conservatively.
 
 ### F-121 — Text shading and bilinear texture lerps still dominate a CPU-rendered widget frame
 
@@ -247,34 +235,23 @@ Entries are sorted by identifier, ascending; position carries no priority.
   which already computes the spans, the benefits and the concrete-claim positions a splitting
   allocator needs.
 
-### F-165 — Integer ternaries lower to branches and starve pixel loops
+### F-165 — Integer selects written as early returns still lower to branches
 
 - Area: compiler
 - Found while: T-504, profiling the H.264 decoder on a 1080p30 Main stream in release.
-- Observation: `Math.clamp`, `Math.min`, `Math.max`, `Math.abs`, and every integer ternary
-  compile to compare-and-branch. `#[Swag.PrintMicro("pre-emit")]` on the YUV-to-RGB inner loop
-  shows two conditional jumps per clamped store plus per-iteration reloads of loop-invariant
-  pointers from the frame — every branch is an allocation boundary, so the loop's live set
-  flushes at each pixel.
-- Evidence: rewriting the decoder's clamps as sign-bit arithmetic (the
-  `value & ~(value >> 31)` family now in `decode/h264/transform.swg`) took the conversion stage from
-  1495 ms to about 470 ms over 59 frames — 3.2x from removing branches alone, byte-identical
-  output — and the deblocking filters gained another ~30% from the same treatment. Also
-  measured: forcing `#[Swag.Inline]` on the ~25-instruction `CabacReader.decision` at its
-  ~40 call sites regressed the parse stage ~10% — inlining raised pressure and the allocator
-  spilled more, the same mechanism as
-  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers).
-- The exporter change of 2026-08-21 widened the blast radius. `Math.min`, `Math.max` and `Math.abs`
-  on a concrete integer or float type used to reach a `bin/std` consumer as one call into
-  `core.dll`; they now inline, so their compare-and-branch pairs land directly in the loops of the
-  consumer. `Math.clamp` and the generic forms always inlined — a generic root publishes its
-  source — so the pixel loops that hurt most never had a call to hide behind in the first
-  place. The packed forms are not affected at all: `@min`, `@max` and `@abs` on a `#simd` value
-  select packed instructions with no branch, which is why the deblocking and conversion kernels
-  that moved to `Core.Math.Simd` never needed the sign-bit rewrite.
-- Next step: lower integer `cond ? a : b` — and through it the Math min/max/clamp/abs family —
-  to a compare-and-select without a branch in the backend, then re-measure the decoder's
-  deblock and conversion loops and retire the hand-written sign-bit forms if the select
-  matches them. Re-measure the `bin/std` consumers with it and not only the decoder: they now
-  carry these branches inline instead of a call, so the lowering is worth more across `bin/` than
-  the original H.264 measurement suggested.
+- Observation: `cond ? a : b`, `@min`, `@max`, `@abs` and `Math.clamp` through them lower to a
+  compare and a conditional move: the ternary diamond converts when both arms are short, pure
+  and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
+  through the single-arm conversion beside it. What still compiles to compare-and-branch is the
+  select written as a statement — the `if v < lo do return lo` / `if v > hi do return hi` chain,
+  and an `if`/`else` whose arms do more than produce one value — and every such branch is an
+  allocation boundary, so the loop's live set flushes around it.
+- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on a three-way early-return clamp: two
+  `jump_cond`, three `ret`, 26 instructions; the same clamp as a nested ternary: 11 instructions
+  and two `cmov`. The decoder's conversion stage went from 1495 ms to about 470 ms over 59 frames
+  when its clamps were rewritten branch-free by hand (3.2x, byte-identical output; the sign-bit
+  forms in `decode/h264/transform.swg`), which is the gain the statement form still leaves where
+  it is used.
+- Next step: if-convert the early-return chain — a triangle whose body is a `ret` of a pure value
+  — into a select feeding one `ret`, then re-measure the decoder's deblock and conversion loops
+  against the hand-written sign-bit forms and retire those if the select matches them.

@@ -83,10 +83,10 @@ public struct HtmlSelectorPart
     nthA:        s32
     nthB:        s32
     rejectFirst: u32
-    rejectCount:   u32
-    acceptFirst:   u32
-    acceptCount:   u32
-    combinator:    HtmlCombinator
+    rejectCount: u32
+    acceptFirst: u32
+    acceptCount: u32
+    combinator:  HtmlCombinator
 }
 
 // One declaration, kept as text until an element needs its computed value.

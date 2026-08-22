@@ -21,8 +21,7 @@ that library's `bin` directory.
 |---|---|---|
 | [std.core](std.core.html) | `Core` | Collections, strings, files, paths, serialization, math, time, concurrency, diagnostics, input, and host services |
 | [std.pixel](std.pixel.html) | `Pixel` | Images, codecs, transforms, vector drawing, text layout, brushes, paths, and OpenGL rendering |
-| [std.pdf](std.pdf.html) | `Pdf` | PDF decoding, editable pages, Pixel rendering, metadata, vector and image content, and PDF writing |
-| [std.gui](std.gui.html) | `Gui` | Native desktop applications, surfaces, controls, layouts, events, themes, dialogs, and actions |
+| [std.gui](std.gui.html) | `Gui`, `Pdf` | Native desktop applications, surfaces, controls, layouts, events, themes, dialogs, document engines, and actions |
 | [std.audio](std.audio.html) | `Audio` | WAV loading, decoding, streaming, voices, buses, codecs, and process-wide playback |
 | [std.video](std.video.html) | `Video` | Streamed video reading and writing, frame by frame, with YUV4MPEG2 and Motion JPEG AVI codecs |
 | [std.truetype](std.truetype.html) | `TrueType` | TrueType parsing, metrics, outlines, rasterization, kerning, and distance fields |

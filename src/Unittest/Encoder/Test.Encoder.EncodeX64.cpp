@@ -33,27 +33,27 @@ namespace
         }
     };
 
-    constexpr MicroReg RAX  = MicroReg::intReg(0);
-    constexpr MicroReg RBX  = MicroReg::intReg(1);
-    constexpr MicroReg RCX  = MicroReg::intReg(2);
-    constexpr MicroReg RDX  = MicroReg::intReg(3);
-    constexpr MicroReg RSP  = MicroReg::intReg(4);
-    constexpr MicroReg RBP  = MicroReg::intReg(5);
-    constexpr MicroReg RSI  = MicroReg::intReg(6);
-    constexpr MicroReg RDI  = MicroReg::intReg(7);
-    constexpr MicroReg R8   = MicroReg::intReg(8);
-    constexpr MicroReg R9   = MicroReg::intReg(9);
-    constexpr MicroReg R10  = MicroReg::intReg(10);
-    constexpr MicroReg R11  = MicroReg::intReg(11);
-    constexpr MicroReg R12  = MicroReg::intReg(12);
-    constexpr MicroReg R13  = MicroReg::intReg(13);
-    constexpr MicroReg R14  = MicroReg::intReg(14);
-    constexpr MicroReg R15  = MicroReg::intReg(15);
-    constexpr MicroReg XMM0 = MicroReg::floatReg(0);
-    constexpr MicroReg XMM1 = MicroReg::floatReg(1);
-    constexpr MicroReg XMM2 = MicroReg::floatReg(2);
-    constexpr MicroReg XMM3 = MicroReg::floatReg(3);
-    constexpr MicroReg XMM9 = MicroReg::floatReg(9);
+    constexpr MicroReg RAX   = MicroReg::intReg(0);
+    constexpr MicroReg RBX   = MicroReg::intReg(1);
+    constexpr MicroReg RCX   = MicroReg::intReg(2);
+    constexpr MicroReg RDX   = MicroReg::intReg(3);
+    constexpr MicroReg RSP   = MicroReg::intReg(4);
+    constexpr MicroReg RBP   = MicroReg::intReg(5);
+    constexpr MicroReg RSI   = MicroReg::intReg(6);
+    constexpr MicroReg RDI   = MicroReg::intReg(7);
+    constexpr MicroReg R8    = MicroReg::intReg(8);
+    constexpr MicroReg R9    = MicroReg::intReg(9);
+    constexpr MicroReg R10   = MicroReg::intReg(10);
+    constexpr MicroReg R11   = MicroReg::intReg(11);
+    constexpr MicroReg R12   = MicroReg::intReg(12);
+    constexpr MicroReg R13   = MicroReg::intReg(13);
+    constexpr MicroReg R14   = MicroReg::intReg(14);
+    constexpr MicroReg R15   = MicroReg::intReg(15);
+    constexpr MicroReg XMM0  = MicroReg::floatReg(0);
+    constexpr MicroReg XMM1  = MicroReg::floatReg(1);
+    constexpr MicroReg XMM2  = MicroReg::floatReg(2);
+    constexpr MicroReg XMM3  = MicroReg::floatReg(3);
+    constexpr MicroReg XMM9  = MicroReg::floatReg(9);
     constexpr MicroReg XMM10 = MicroReg::floatReg(10);
 
 #define ENCODE_CASE(__name, __hex, ...)                                     \

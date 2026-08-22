@@ -1151,7 +1151,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.applyLayout()
     view.rebuild()
 
-    let kept = view.boxOfNode(view.elementById("k"))
+    let kept     = view.boxOfNode(view.elementById("k"))
     let keptZero = findItemPos(view, kept, "zero")
     let keptFour = findItemPos(view, kept, "four")
     @assert(keptZero.found and keptFour.found)
@@ -1160,7 +1160,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // The second line starts four monospace spaces in, not at the margin.
     @assert(keptFour.x > keptZero.x + 1)
 
-    let folded = view.boxOfNode(view.elementById("f"))
+    let folded     = view.boxOfNode(view.elementById("f"))
     let foldedZero = findItemPos(view, folded, "zero")
     let foldedFour = findItemPos(view, folded, "four")
     @assert(foldedZero.found and foldedFour.found)
@@ -1190,10 +1190,10 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let width = view.scroll.paddedClientRect().width
     let track = (width - 20) / 3
-    let a = view.layout.constBox(view.boxOfNode(view.elementById("a")))
-    let b = view.layout.constBox(view.boxOfNode(view.elementById("b")))
-    let c = view.layout.constBox(view.boxOfNode(view.elementById("c")))
-    let d = view.layout.constBox(view.boxOfNode(view.elementById("d")))
+    let a     = view.layout.constBox(view.boxOfNode(view.elementById("a")))
+    let b     = view.layout.constBox(view.boxOfNode(view.elementById("b")))
+    let c     = view.layout.constBox(view.boxOfNode(view.elementById("c")))
+    let d     = view.layout.constBox(view.boxOfNode(view.elementById("d")))
 
     // Three columns share the row; the fourth item wraps to the next one.
     @assert(a.rect.y == b.rect.y and b.rect.y == c.rect.y)
@@ -1203,10 +1203,10 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(Math.abs(c.rect.right() - width) <= 0.75)
 
     let flexible = (width - 200) / 2
-    let m1 = view.layout.constBox(view.boxOfNode(view.elementById("m1")))
-    let m2 = view.layout.constBox(view.boxOfNode(view.elementById("m2")))
-    let m3 = view.layout.constBox(view.boxOfNode(view.elementById("m3")))
-    let m4 = view.layout.constBox(view.boxOfNode(view.elementById("m4")))
+    let m1       = view.layout.constBox(view.boxOfNode(view.elementById("m1")))
+    let m2       = view.layout.constBox(view.boxOfNode(view.elementById("m2")))
+    let m3       = view.layout.constBox(view.boxOfNode(view.elementById("m3")))
+    let m4       = view.layout.constBox(view.boxOfNode(view.elementById("m4")))
     @assert(m1.rect.y == m4.rect.y)
     @assert(Math.abs(m1.rect.width - 100) <= 0.75)
     @assert(Math.abs(m2.rect.width - flexible) <= 0.75)

@@ -12474,7 +12474,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_RtlGenRandom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RtlGenRandom</span> <a class="api-item-permalink" href="#Win32_RtlGenRandom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/advapi32.swg#L65">src</a></div>
 <p><span class="code-inline">RtlGenRandom</span> has never had an export of that name: <span class="code-inline">advapi32.dll</span> publishes it as <span class="code-inline">SystemFunction036</span>, which is what <span class="code-inline">ntsecapi.h</span> declares it as too.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Foreign("advapi32", "SystemFunction036")]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Foreign("advapi32", "SystemFunction036", callconv: Swag.CallConv.C)]</span>
 <span class="SKwd">func</span> <span class="SFct">RtlGenRandom</span>(<span class="SCst">RandomBuffer</span>: [*] <span class="STpe">u8</span>, <span class="SCst">RandomBufferLength</span>: <span class="SCst"><a href="#Win32_ULONG">ULONG</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOLEAN">BOOLEAN</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -12723,7 +12723,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.161</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.179</div>
 </footer>
 </section>
 </main>

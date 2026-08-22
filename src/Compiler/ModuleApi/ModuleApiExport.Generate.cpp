@@ -26,8 +26,8 @@ namespace
     using ModuleApiExport::isWholeFileExportedSymbol;
     using ModuleApiExport::ModuleApiGeneratedRoot;
     using ModuleApiExport::moduleApiNodeSourceView;
-    using ModuleApiExport::removeModuleApiAttributes;
     using ModuleApiExport::moduleApiSnippetStartTokRef;
+    using ModuleApiExport::removeModuleApiAttributes;
     using ModuleApiExport::sameNamespacePath;
     using ModuleApiExport::sourceTokenByteEnd;
     using ModuleApiExport::sourceTokenByteStart;

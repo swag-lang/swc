@@ -12,7 +12,7 @@ ships; history lives in git, not here.
 
 ## Where the command already stands
 
-5 742 lines produce a complete static site — API pages collected from the semantic model, guide
+5 761 lines produce a complete static site — API pages collected from the semantic model, guide
 pages from module comments, a symbol index, themes, brand and navigation options, cross-module
 references, source links back to the repository, and a Markdown renderer with headings, lists,
 tables, blockquote callouts and syntax-highlighted Swag code. It needs no server and asks for no

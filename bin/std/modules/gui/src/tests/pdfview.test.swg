@@ -110,7 +110,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // A deep zoom stays a transform change and still paints the page region under the view.
     view.setZoom(40)
     @assert(Math.isEqualEpsilon(view.effectiveZoom(), 40.0, 0.001))
-    let frame = host.render()
+    let frame    = host.render()
     let evidence = countPageEvidence(&frame)
     @assert(evidence.paper > 10_000)
     @assert(!view.reportedPaintError)

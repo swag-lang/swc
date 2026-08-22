@@ -168,3 +168,20 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the diagnostic should say that the receiver is what stops it. The second is cheap and removes the
   mystery; the first removes the workaround. Either way a `bin/unittests/sanity` case belongs here:
   the same guarded access reached through a local, a field, and an array element.
+
+### F-181 — Null narrowing through a conditional expression depends on the build configuration
+
+- Area: compiler
+- Found while: writing a native optimizer test whose select arm dereferences a guarded pointer
+- Observation: `func guarded(p: #null *s32) -> s32 => p != null ? p[] : -1` compiles and runs
+  under `fast-debug`, and is rejected under `release` with "cannot dereference '#null *s32',
+  which can still be null". The narrowing the true arm of a conditional expression receives from
+  its condition is therefore not a pure function of the source: the same file is accepted by one
+  configuration and refused by the next, which a test suite run in one configuration cannot see.
+- Evidence: one-file probe (`swc test --artifact-kind executable -d <dir> --build-cfg fast-debug`
+  passes, `--build-cfg release` stops at the diagnostic), swc 0.0.177, 2026-08-22. The `if`
+  statement form narrows in both configurations; only the `cond ? a : b` form differs.
+- Next step: find what the conditional's narrowing reads that changes with the configuration —
+  the safety mask, an inlining decision, or the sanitizer's pass over the condition — and make the
+  acceptance configuration-independent, then keep the probe as a sema suite test that runs in
+  both configurations.

@@ -535,7 +535,7 @@ impl HtmlLayout
         {
             let entry = .listOrdinals.findOrAdd(parent)
             entry.value += 1
-            ordinal = entry.value
+            ordinal     = entry.value
         }
 
         let style = &.styles[node]
@@ -1871,8 +1871,8 @@ private impl HtmlLayout
 
             .boxes[box].items[index].x       = pen
             .boxes[box].items[index].visible = kind != .OpenInline and kind != .CloseInline
-            pen   += width
-            index += 1
+            pen                              += width
+            index                            += 1
         }
 
         if .hasLineContent(box, lineStart, .boxes[box].items.count) do

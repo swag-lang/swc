@@ -27,7 +27,7 @@ func keepDepScore(score: IDepScore)->IDepScore => score
 
 var gImportedDefaultOuter: DepImportedDefaultOuter
 var gStaticInlineStorage = [7'u8]
-var gStaticInlineBuffer: StaticInlineBuffer
+var gStaticInlineBuffer:   StaticInlineBuffer
 const IMPORTED_DEFAULT_OUTER: DepImportedDefaultOuter
 
 func verifyImportedImplicitStructDefaults()
@@ -205,7 +205,7 @@ func verifyExportAndStaticModules()
     staticInferredDepOwner.namespaced.value = 15
     @assert(staticInferredDepOwner.getNamespaced().value == 15)
 
-    gStaticInlineStorage[0] = 7
+    gStaticInlineStorage[0]    = 7
     gStaticInlineBuffer.buffer = &gStaticInlineStorage[0]
     gStaticInlineBuffer.clearFirst()
     @assert(gStaticInlineStorage[0] == 0)

@@ -38,12 +38,12 @@ private impl RichEditCtrl
         let undo = Memory.new'RichEditUndo()
         undo.type = .Delete
         var range = .textRangeData(posStart, posEnd)
-        undo.runes  = #move range.text
-        undo.styles = #move range.styles
-        undo.selBeg               = .selBeg
-        undo.cursorPos            = .cursorPos
-        undo.hasSelRect           = selRect
-        undo.serial               = 0
+        undo.runes      = #move range.text
+        undo.styles     = #move range.styles
+        undo.selBeg     = .selBeg
+        undo.cursorPos  = .cursorPos
+        undo.hasSelRect = selRect
+        undo.serial     = 0
         .resetUndo()
         .toUndo.add(undo)
         .deleteTextPrivate(posStart, posEnd, selRect)

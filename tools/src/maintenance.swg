@@ -79,6 +79,12 @@ public func runWeb(context: *Context, options: *Options)->s32 fail
     if branded != 0 do
         return branded
 
+    // A removed module must not leave its generated page behind. Root HTML files are all
+    // documentation outputs; assets and source tools live in their own directories.
+    let oldPages = try Directory.enumerateFiles(webDir.toString(), ".html")
+    for page in oldPages do
+        try File.delete(page.fullname.toString())
+
     for workspace in ["std", "reference"]
     {
         var arguments: Arguments

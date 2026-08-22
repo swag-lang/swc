@@ -317,12 +317,12 @@ private func htmlColorFromColorSpace(space: string, c1, c2, c3, alpha: f32)->{ c
         result.color = htmlColorFromLinearRgb(c1, c2, c3, alpha)
 
     case "display-p3":
-        let r = Math.clamp(c1, 0, 1)
-        let g = Math.clamp(c2, 0, 1)
-        let b = Math.clamp(c3, 0, 1)
-        let lr = r <= 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4)
-        let lg = g <= 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4)
-        let lb = b <= 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4)
+        let r     = Math.clamp(c1, 0, 1)
+        let g     = Math.clamp(c2, 0, 1)
+        let b     = Math.clamp(c3, 0, 1)
+        let lr    = r <= 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4)
+        let lg    = g <= 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4)
+        let lb    = b <= 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4)
         let red   = 1.2249401763 * lr - 0.2249401763 * lg
         let green = -0.0420569547 * lr + 1.0420569547 * lg
         let blue  = -0.0196375546 * lr - 0.0786360456 * lg + 1.0982735901 * lb
@@ -580,10 +580,10 @@ func htmlParseColor(text: string)->HtmlColorValue
     let oklab = htmlColorFunctionParts(lower.toString(), "oklab", "oklab")
     if oklab.matched and oklab.parts.count >= 3
     {
-        let l = htmlColorComponent(oklab.parts[0].toString(), 1)
+        let l     = htmlColorComponent(oklab.parts[0].toString(), 1)
         let aAxis = htmlColorComponent(oklab.parts[1].toString(), 0.4)
         let bAxis = htmlColorComponent(oklab.parts[2].toString(), 0.4)
-        let a = oklab.parts.count >= 4 ? htmlColorAlpha(oklab.parts[3].toString()) : 1.0
+        let a     = oklab.parts.count >= 4 ? htmlColorAlpha(oklab.parts[3].toString()) : 1.0
         result.color   = htmlColorFromOklab(l, aAxis, bAxis, a)
         result.matched = true
         return result
@@ -604,10 +604,10 @@ func htmlParseColor(text: string)->HtmlColorValue
     let lab = htmlColorFunctionParts(lower.toString(), "lab", "lab")
     if lab.matched and lab.parts.count >= 3
     {
-        let l = htmlColorComponent(lab.parts[0].toString(), 100)
+        let l     = htmlColorComponent(lab.parts[0].toString(), 100)
         let aAxis = htmlColorComponent(lab.parts[1].toString(), 125)
         let bAxis = htmlColorComponent(lab.parts[2].toString(), 125)
-        let a = lab.parts.count >= 4 ? htmlColorAlpha(lab.parts[3].toString()) : 1.0
+        let a     = lab.parts.count >= 4 ? htmlColorAlpha(lab.parts[3].toString()) : 1.0
         result.color   = htmlColorFromLab(l, aAxis, bAxis, a)
         result.matched = true
         return result
@@ -616,10 +616,10 @@ func htmlParseColor(text: string)->HtmlColorValue
     let spaced = htmlColorFunctionParts(lower.toString(), "color", "color")
     if spaced.matched and spaced.parts.count >= 4
     {
-        let c1 = htmlColorComponent(spaced.parts[1].toString(), 1)
-        let c2 = htmlColorComponent(spaced.parts[2].toString(), 1)
-        let c3 = htmlColorComponent(spaced.parts[3].toString(), 1)
-        let a  = spaced.parts.count >= 5 ? htmlColorAlpha(spaced.parts[4].toString()) : 1.0
+        let c1        = htmlColorComponent(spaced.parts[1].toString(), 1)
+        let c2        = htmlColorComponent(spaced.parts[2].toString(), 1)
+        let c3        = htmlColorComponent(spaced.parts[3].toString(), 1)
+        let a         = spaced.parts.count >= 5 ? htmlColorAlpha(spaced.parts[4].toString()) : 1.0
         let converted = htmlColorFromColorSpace(spaced.parts[0].toString(), c1, c2, c3, a)
         if converted.matched
         {

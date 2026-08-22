@@ -297,11 +297,11 @@ namespace
             if (tokens[tokenIndex].id != TokenId::SymAttrStart)
                 continue;
 
-            const size_t listStart       = sourceTokenByteStart(srcView, tokens[tokenIndex]);
-            size_t       entryTokenIndex = tokenIndex + 1;
-            uint32_t     parenDepth      = 0;
-            uint32_t     bracketDepth    = 1;
-            uint32_t     curlyDepth      = 0;
+            const size_t                             listStart       = sourceTokenByteStart(srcView, tokens[tokenIndex]);
+            size_t                                   entryTokenIndex = tokenIndex + 1;
+            uint32_t                                 parenDepth      = 0;
+            uint32_t                                 bracketDepth    = 1;
+            uint32_t                                 curlyDepth      = 0;
             std::vector<ModuleApiAttributeEntrySpan> entries;
             for (size_t listTokenIndex = tokenIndex + 1; listTokenIndex < tokens.size(); ++listTokenIndex)
             {
@@ -345,8 +345,8 @@ namespace
                 }
 
                 bool hasRemovedEntry = false;
-                Utf8 replacement = "#[";
-                bool hasKeptEntry = false;
+                Utf8 replacement     = "#[";
+                bool hasKeptEntry    = false;
                 for (const ModuleApiAttributeEntrySpan& entry : entries)
                 {
                     if (containsModuleApiAttributeName(attributeNames, entry.name))

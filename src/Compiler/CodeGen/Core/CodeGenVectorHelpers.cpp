@@ -221,8 +221,8 @@ MicroReg CodeGenVectorHelpers::emitDecomposedMultiply(CodeGen& codeGen, MicroReg
 
 MicroReg CodeGenVectorHelpers::emitVariableShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, MicroReg countVecReg, const TypeInfo& laneType)
 {
-    MicroBuilder&  builder  = codeGen.builder();
-    const uint32_t laneBits = laneBitsOf(laneType);
+    MicroBuilder&  builder   = codeGen.builder();
+    const uint32_t laneBits  = laneBitsOf(laneType);
     const bool     shiftLeft = tokId == TokenId::SymLowerLower;
     SWC_ASSERT(shiftLeft || tokId == TokenId::SymGreaterGreater);
 

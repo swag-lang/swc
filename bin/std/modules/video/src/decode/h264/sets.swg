@@ -17,53 +17,53 @@ const Zigzag8: [64] u8 = [
 // One sequence parameter set, reduced to what a progressive 8-bit 4:2:0 decoder uses.
 struct Sps
 {
-    valid:               bool
-    profile:             u8
-    pocType:             u8
-    log2MaxFrameNum:     u32
-    log2MaxPocLsb:       u32
-    deltaPocAlwaysZero:  bool
-    offsetForNonRefPic:  s32
+    valid:                bool
+    profile:              u8
+    pocType:              u8
+    log2MaxFrameNum:      u32
+    log2MaxPocLsb:        u32
+    deltaPocAlwaysZero:   bool
+    offsetForNonRefPic:   s32
     offsetForTopToBottom: s32
-    pocCycle:            Array's32     // offset_for_ref_frame of picture-order type 1.
-    maxRefFrames:        u32
-    gapsAllowed:         bool
-    mbWidth:             s32           // Coded width, in macroblocks.
-    mbHeight:            s32           // Coded height, in macroblocks.
-    frameMbsOnly:        bool
-    direct8x8Inference:  bool
-    cropLeft:            s32           // Cropping, in luma pixels.
-    cropRight:           s32
-    cropTop:             s32
-    cropBottom:          s32
-    hasScaling:          bool
-    scaling4:            [96] u8      // Six weight lists of Table 7-2, in zig-zag scan order.
-    scaling8:            [128] u8     // Intra then inter 8x8 weight lists, in zig-zag scan order.
+    pocCycle:             Array's32     // offset_for_ref_frame of picture-order type 1.
+    maxRefFrames:         u32
+    gapsAllowed:          bool
+    mbWidth:              s32     // Coded width, in macroblocks.
+    mbHeight:             s32     // Coded height, in macroblocks.
+    frameMbsOnly:         bool
+    direct8x8Inference:   bool
+    cropLeft:             s32     // Cropping, in luma pixels.
+    cropRight:            s32
+    cropTop:              s32
+    cropBottom:           s32
+    hasScaling:           bool
+    scaling4:             [96] u8      // Six weight lists of Table 7-2, in zig-zag scan order.
+    scaling8:             [128] u8     // Intra then inter 8x8 weight lists, in zig-zag scan order.
 }
 
 // One picture parameter set, with its dequantization tables resolved against its sequence set.
 struct Pps
 {
-    valid:                 bool
-    spsId:                 u32
-    cabac:                 bool
-    picOrderPresent:       bool
-    defaultRefCount:       [2] u32
-    weightedPred:          bool
-    weightedBipredIdc:     u32
-    initQp:                s32
-    chromaQpOffset:        [2] s32
-    deblockControlPresent: bool
-    constrainedIntra:      bool
+    valid:                  bool
+    spsId:                  u32
+    cabac:                  bool
+    picOrderPresent:        bool
+    defaultRefCount:        [2] u32
+    weightedPred:           bool
+    weightedBipredIdc:      u32
+    initQp:                 s32
+    chromaQpOffset:         [2] s32
+    deblockControlPresent:  bool
+    constrainedIntra:       bool
     redundantPicCntPresent: bool
-    transform8x8:          bool
+    transform8x8:           bool
 
     // Dequantization multiplier per list, QP, and raster position, with the `QP / 6` shift
     // folded in: a 4x4 level dequantizes as `(level * dequant4 + 8) >> 4`, an 8x8 one as
     // `(level * dequant8 + 32) >> 6`. Lists follow Table 7-2: intra Y, Cb, Cr then inter Y,
     // Cb, Cr for 4x4, and intra then inter for 8x8.
-    dequant4:              [6, 52, 16] u32
-    dequant8:              [2, 52, 64] u32
+    dequant4: [6, 52, 16] u32
+    dequant8: [2, 52, 64] u32
 }
 
 // Parses one `scaling_list` syntax structure into `list`, reporting the use-default escape.
@@ -149,9 +149,9 @@ impl Sps
         bits.init(payload)
 
         .profile = cast(u8) bits.read(8)
-        bits.skip(8)                          // Constraint flags and reserved bits.
-        bits.skip(8)                          // level_idc.
-        discard bits.ue()                     // seq_parameter_set_id, checked by the caller.
+        bits.skip(8)          // Constraint flags and reserved bits.
+        bits.skip(8)          // level_idc.
+        discard bits.ue()     // seq_parameter_set_id, checked by the caller.
 
         // Every list weight defaults to 16, the flat matrix.
         for &value in .scaling4 do
@@ -164,9 +164,9 @@ impl Sps
         {
             chromaFormat = bits.ue()
             if chromaFormat == 3 do
-                bits.skip(1)                  // separate_colour_plane_flag.
-            let bitDepthLuma   = bits.ue() + 8
-            let bitDepthChroma = bits.ue() + 8
+                bits.skip(1)     // separate_colour_plane_flag.
+            let bitDepthLuma    = bits.ue() + 8
+            let bitDepthChroma  = bits.ue() + 8
             let transformBypass = bits.bit()
             if chromaFormat != 1 do
                 fail UnsupportedFormatError{"video decoder only supports 4:2:0 H.264 streams"}
@@ -212,8 +212,8 @@ impl Sps
             fail InvalidFormatError{"H.264 sequence set declares more than sixteen reference frames"}
         .gapsAllowed = bits.bit() != 0
 
-        let widthInMbs        = bits.ue() + 1
-        let heightInMapUnits  = bits.ue() + 1
+        let widthInMbs       = bits.ue() + 1
+        let heightInMapUnits = bits.ue() + 1
         .frameMbsOnly = bits.bit() != 0
         if !.frameMbsOnly do
             fail UnsupportedFormatError{"video decoder does not support interlaced H.264 streams"}
@@ -259,9 +259,9 @@ impl Pps
         var bits: BitReader
         bits.init(payload)
 
-        discard bits.ue()                     // pic_parameter_set_id, checked by the caller.
-        .spsId = bits.ue()
-        .cabac = bits.bit() != 0
+        discard bits.ue()     // pic_parameter_set_id, checked by the caller.
+        .spsId           = bits.ue()
+        .cabac           = bits.bit() != 0
         .picOrderPresent = bits.bit() != 0
 
         let sliceGroups = bits.ue() + 1
@@ -276,9 +276,9 @@ impl Pps
         .weightedPred      = bits.bit() != 0
         .weightedBipredIdc = bits.read(2)
         .initQp            = 26 + bits.se()
-        discard bits.se()                     // pic_init_qs_minus26, SP/SI slices only.
-        .chromaQpOffset[0] = bits.se()
-        .chromaQpOffset[1] = .chromaQpOffset[0]
+        discard bits.se()     // pic_init_qs_minus26, SP/SI slices only.
+        .chromaQpOffset[0]      = bits.se()
+        .chromaQpOffset[1]      = .chromaQpOffset[0]
         .deblockControlPresent  = bits.bit() != 0
         .constrainedIntra       = bits.bit() != 0
         .redundantPicCntPresent = bits.bit() != 0
@@ -313,9 +313,9 @@ impl Pps
                 let mod6  = qp % 6
                 for scan in 16'u64
                 {
-                    let raster = cast(u64) Zigzag4[scan]
-                    let x      = raster & 3
-                    let y      = raster >> 2
+                    let raster   = cast(u64) Zigzag4[scan]
+                    let x        = raster & 3
+                    let y        = raster >> 2
                     let posClass = (x & 1) + (y & 1)
                     .dequant4[list, qp, raster] = (cast(u32) scaling4[list * 16 + scan] * cast(u32) Dequant4Scale[mod6 * 3 + posClass]) << shift
                 }
@@ -330,9 +330,9 @@ impl Pps
                 let mod6  = qp % 6
                 for scan in 64'u64
                 {
-                    let raster = cast(u64) Zigzag8[scan]
-                    let x      = raster & 7
-                    let y      = raster >> 3
+                    let raster   = cast(u64) Zigzag8[scan]
+                    let x        = raster & 7
+                    let y        = raster >> 3
                     let posClass = cast(u64) Dequant8ScaleClass[(x & 3) + (y & 3) * 4]
                     .dequant8[list, qp, raster] = (cast(u32) scaling8[list * 64 + scan] * cast(u32) Dequant8Scale[mod6 * 6 + posClass]) << shift
                 }

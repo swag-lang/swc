@@ -117,8 +117,8 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     @assert(ru[0] == 0x4000_0000 and ru[1] == 2)
 
     // Byte lanes widen and repack in registers.
-    let bytes = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
-    let bytesLeft = cast([16] u8) (bytes << 1)
+    let bytes      = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
+    let bytesLeft  = cast([16] u8) (bytes << 1)
     let bytesRight = cast([16] u8) (bytes >> 1)
     @assert(bytesLeft[0] == 2 and bytesLeft[1] == 254 and bytesLeft[4] == 254)
     @assert(bytesRight[0] == 0x40 and bytesRight[1] == 0x3F and bytesRight[4] == 127)
@@ -133,7 +133,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     @assert(bytesGone[0] == 0 and bytesGone[15] == 0)
     @assert(signsOnly[0] == -1 and signsOnly[1] == -1 and signsOnly[2] == 0)
 
-    let wide = cast(#simd [2] s64) [-8, 0x4000_0000_0000_0000]
+    let wide      = cast(#simd [2] s64) [-8, 0x4000_0000_0000_0000]
     let wideRight = cast([2] s64) (wide >> 2)
     @assert(wideRight[0] == -2 and wideRight[1] == 0x1000_0000_0000_0000)
 
@@ -151,11 +151,11 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     @assert(r8[0] == 44 and r8[15] == 44)
 
     let mul8a = cast(#simd [16] u8) [200, 255, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-    let mul8 = cast([16] u8) (mul8a * @vecsplat(2'u8))
+    let mul8  = cast([16] u8) (mul8a * @vecsplat(2'u8))
     @assert(mul8[0] == 144 and mul8[1] == 254 and mul8[15] == 32)
 
     let signedMul8a = cast(#simd [16] s8) [-100, -128, -3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-    let signedMul8 = cast([16] s8) (signedMul8a * @vecsplat(3's8))
+    let signedMul8  = cast([16] s8) (signedMul8a * @vecsplat(3's8))
     @assert(signedMul8[0] == -44 and signedMul8[1] == -128 and signedMul8[2] == -9)
 
     let a16 = cast(#simd [8] s16) [1, -2, 3, -4, 5, -6, 7, -8]
@@ -163,14 +163,14 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     let r16 = cast([8] s16) (a16 * b16)
     @assert(r16[0] == 10 and r16[1] == -20 and r16[7] == -80)
 
-    let u64a = cast(#simd [2] u64) [0xFFFF_FFFF_FFFF_FFFF, 0x1_0000_0001]
-    let u64b = cast(#simd [2] u64) [2, 0x1_0000_0001]
+    let u64a  = cast(#simd [2] u64) [0xFFFF_FFFF_FFFF_FFFF, 0x1_0000_0001]
+    let u64b  = cast(#simd [2] u64) [2, 0x1_0000_0001]
     let mul64 = cast([2] u64) (u64a * u64b)
     @assert(mul64[0] == 0xFFFF_FFFF_FFFF_FFFE and mul64[1] == 0x2_0000_0001)
 
     let signedMul64a = cast(#simd [2] s64) [-3, OperatorS64Min]
     let signedMul64b = cast(#simd [2] s64) [-7, 3]
-    let signedMul64 = cast([2] s64) (signedMul64a * signedMul64b)
+    let signedMul64  = cast([2] s64) (signedMul64a * signedMul64b)
     @assert(signedMul64[0] == 21 and signedMul64[1] == OperatorS64Min)
 }
 

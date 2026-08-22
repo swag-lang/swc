@@ -45,6 +45,7 @@ internal struct VideoViewer
     // The stream is decoded one frame at a time and never held in memory, so a video of any
     // size opens on its header alone and plays with a single decoded frame resident.
     video: Reader
+
     // Two decoded pictures alternate: the front one is what the renderer uploads, the back one
     // is what the worker decodes into, so the next decode starts while the previous picture is
     // still being published.

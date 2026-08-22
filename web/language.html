@@ -571,6 +571,27 @@ indent-style = spaces</span></div>
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p><span class="code-inline">#load</span> includes source selected by the compiler, while <span class="code-inline">#import</span> establishes a module dependency. They solve different problems and are not interchangeable.</p>
 </div>
+<h3 id="_002_001_workspaces_modules_and_dependencies_swg_Where_a_Dependency_Lives">Where a Dependency Lives</h3>
+<p>A workspace keeps the same dependency in more than one place, and each answers a question the others cannot:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Directory</th><th>Holds</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">&lt;workspace&gt;/.output/&lt;module&gt;</span></td><td>what building that module produced; the original</td></tr>
+<tr><td><span class="code-inline">&lt;workspace&gt;/.dep/&lt;module&gt;</span></td><td>the copy the workspace compiles and links against</td></tr>
+<tr><td>beside the executable</td><td>the copy that lets the program run with nothing else present</td></tr>
+</tbody>
+</table>
+<p>The <span class="code-inline">.dep</span> copy exists because compile-time execution loads a dependency's shared library and holds it open, and a held file cannot be replaced: reading the original would stop the very build that has to rewrite it.</p>
+<p>An executable asks for the third copy itself:</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#run</span>
+{
+    <span class="SKwd">let</span> cfg = <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()!
+    cfg.backendKind         = .<span class="SCst">Executable</span>
+    cfg.publishDependencies = <span class="SKwd">true</span>
+}</span></div>
+<p>The link then places every shared library the program needs beside it, so it runs from its own directory without the compiler. Whether a program has to stand on its own is a fact about the program, so it is stated in <span class="code-inline">module.swg</span> and not on the command line: no later command can take it away.</p>
 <h3 id="_002_001_workspaces_modules_and_dependencies_swg_Sharing_Source_Between_Modules">Sharing Source Between Modules</h3>
 <p><span class="code-inline">#load</span> belongs in <span class="code-inline">module.swg</span> too, and names one extra source file by path. The file becomes part of the module, exactly as if it sat under <span class="code-inline">src</span>:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"gui"</span>, location: <span class="SStr">"swag@std"</span>)
@@ -774,9 +795,10 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SItr">@atomadd</span>  <span class="SItr">@atomand</span>  <span class="SItr">@atomcmpxchg</span>  <span class="SItr">@atomor</span>  <span class="SItr">@atomxchg</span>  <span class="SItr">@atomxor</span>
 <span class="SItr">@memcmp</span>  <span class="SItr">@memcpy</span>  <span class="SItr">@memmove</span>  <span class="SItr">@memset</span></span></div>
 <p>Packed vector intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SItr">@vecall</span>  <span class="SItr">@vecany</span>  <span class="SItr">@vecavgr</span>  <span class="SItr">@vecmadd</span>  <span class="SItr">@vecmask</span>  <span class="SItr">@vecpackss</span>
-<span class="SItr">@vecpackus</span>  <span class="SItr">@vecperm</span>  <span class="SItr">@vecsatadd</span>  <span class="SItr">@vecsatsub</span>  <span class="SItr">@vecselect</span>
-<span class="SItr">@vecsplat</span>  <span class="SItr">@vecwidenhi</span>  <span class="SItr">@vecwidenlo</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SItr">@vecall</span>  <span class="SItr">@vecany</span>  <span class="SItr">@vecavgr</span>  <span class="SItr">@vecgather</span>  <span class="SItr">@vecinterleavehi</span>  <span class="SItr">@vecinterleavelo</span>
+<span class="SItr">@vecmadd</span>  <span class="SItr">@vecmask</span>  <span class="SItr">@vecpackss</span>  <span class="SItr">@vecpackus</span>  <span class="SItr">@vecperm</span>  <span class="SItr">@vecsatadd</span>
+<span class="SItr">@vecsatsub</span>  <span class="SItr">@vecselect</span>  <span class="SItr">@vecsplat</span>  <span class="SItr">@vecsum</span>  <span class="SItr">@vectruncs32</span>  <span class="SItr">@vecwidenhi</span>
+<span class="SItr">@vecwidenlo</span></span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>The <span class="code-inline">#</span>-prefixed and <span class="code-inline">@</span>-prefixed names are reserved separately from bare identifiers. The next section explains why Swag uses both namespaces.</p>
@@ -2077,6 +2099,37 @@ indent-style = spaces</span></div>
     <span class="SKwd">let</span> large_float:   <span class="STpe">f64</span> = <span class="SNum">1.23456789012345611111</span>
     <span class="SKwd">let</span> smaller_float: <span class="STpe">f32</span> = <span class="SKwd">cast</span>(<span class="STpe">f32</span>) large_float
 }</span></div>
+<h3 id="_003_007_cast_swg_Casting_Between_Pointers_and_Integers">Casting Between Pointers and Integers</h3>
+<p>An address is an integer, so one explicit cast crosses in either direction. Towards a pointer, any integer type that fits in an address is accepted, and a narrower one is zero-extended; an enum crosses through its underlying type. Towards an integer, the destination has to be able to hold an address: <span class="code-inline">u64</span> and <span class="code-inline">s64</span> do, and a narrower type is refused rather than silently losing the high half of the address.</p>
+<p>Naming the destination is part of it. A <span class="code-inline">cast()</span> takes its destination from the context, and only <span class="code-inline">u64</span> reaches a pointer that way: an integer that could bind any pointer parameter would let overload resolution pick a call nobody wrote.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CastPointerTag</span>: <span class="STpe">u64</span>
+{
+    <span class="SCst">First</span>  = <span class="SNum">7</span>
+    <span class="SCst">Second</span> = <span class="SNum">9</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> storage: [<span class="SNum">16</span>] <span class="STpe">u8</span>
+    <span class="SKwd">let</span> base = <span class="SItr">@dataof</span>(storage)
+
+    <span class="SKwd">let</span> address = <span class="SKwd">cast</span>(<span class="STpe">u64</span>) base
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>([*] <span class="STpe">u8</span>) address == base)
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s64</span>) base == <span class="SKwd">cast</span>(<span class="STpe">s64</span>) address)
+
+    <span class="SCmt">// A narrower integer needs no second step towards a pointer.</span>
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">0xBEEF</span>'<span class="STpe">u16</span> == <span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">0xBEEF</span>'<span class="STpe">u64</span>)
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SCst">CastPointerTag</span>.<span class="SCst">First</span> == <span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">7</span>'<span class="STpe">u64</span>)
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(<span class="SCst">CastPointerTag</span>) <span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">9</span>'<span class="STpe">u64</span> == <span class="SCst">CastPointerTag</span>.<span class="SCst">Second</span>)
+
+    <span class="SCmt">// 'cast(u32) base' is refused. Widen the address first, then narrow that value with</span>
+    <span class="SCmt">// '#wrap' to say that dropping its high half is intended.</span>
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>) address == <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>) <span class="SKwd">cast</span>(<span class="STpe">u64</span>) base)
+
+    <span class="SCmt">// A deduced destination reaches a pointer from 'u64' only.</span>
+    <span class="SKwd">let</span> deduced: [*] <span class="STpe">u8</span> = <span class="SKwd">cast</span>() address
+    <span class="SItr">@assert</span>(deduced == base)
+}</span></div>
 <h3 id="_003_008_alias_swg">Alias</h3>
 <h3 id="_003_008_alias_swg_Type_Alias">Type Alias</h3>
 <p>An <span class="code-inline">alias</span> creates a shorthand or alternative name for an existing type. This can improve readability, reduce repetition, and simplify the use of complex types. A type alias does not create a new type — it simply provides a new name for an existing one.</p>
@@ -3158,6 +3211,22 @@ indent-style = spaces</span></div>
     vp[<span class="SLgc">as</span> <span class="STpe">u32</span>] = <span class="SNum">0xFFFF_FFFF</span>     <span class="SCmt">// Writes through the reinterpreted place</span>
     <span class="SItr">@assert</span>(value == -<span class="SNum">1</span>)
 }</span></div>
+<p><span class="code-inline">[as T]</span> opens <b>one</b> place, so a following index applies to that <span class="code-inline">T</span> and not to a buffer of them: <span class="code-inline">p[as u32][2]</span> asks a <span class="code-inline">u32</span> to be indexed. To walk a buffer under a different lane type, reinterpret the pointer instead — <span class="code-inline">(cast([*] T) p)[i]</span> is the spelling to use. An array shape works too, and keeps the reinterpretation postfix when the element count is known: <span class="code-inline">p[as [4] u32][1]</span> names the second word of the first four.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> bytes: [<span class="SNum">16</span>] <span class="STpe">u8</span>
+    <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">16</span> <span class="SLgc">do</span>
+        bytes[i] = <span class="SKwd">cast</span>(<span class="STpe">u8</span>) i
+
+    <span class="SCmt">// Walk the same storage as four words.</span>
+    <span class="SKwd">let</span> words = <span class="SKwd">cast</span>([*] <span class="STpe">u32</span>) <span class="SItr">@dataof</span>(bytes)
+    <span class="SItr">@assert</span>(words[<span class="SNum">0</span>] == <span class="SNum">0x0302_0100</span>)
+    <span class="SItr">@assert</span>(words[<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
+
+    <span class="SCmt">// Or name a fixed shape in one postfix step.</span>
+    <span class="SKwd">let</span> p = <span class="SItr">@dataof</span>(bytes)
+    <span class="SItr">@assert</span>(p[<span class="SLgc">as</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>][<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
+}</span></div>
 <h3 id="_004_007_pointers_swg_Pointers_to_Const_Data">Pointers to Const Data</h3>
 <p><span class="code-inline">const</span> qualifies the <b>pointed-to data</b>, never the pointer itself. Written just before a <span class="code-inline">*</span>, it makes whatever that <span class="code-inline">*</span> points to read-only, so <span class="code-inline">const *u8</span> is a pointer to a read-only <span class="code-inline">u8</span> and assigning through <span class="code-inline">[]</span> is rejected. The pointer variable stays free to point somewhere else; <span class="code-inline">let</span> is what makes a pointer itself immutable.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -3360,18 +3429,33 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(back[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> back[<span class="SNum">2</span>] == <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Element-Wise_Operators">Element-Wise Operators</h3>
-<p>The arithmetic, bitwise and shift operators compute per lane, and a scalar operand broadcasts over the other side's lanes. Lane arithmetic always wraps: a vector is machine data, and no overflow guard applies. The operators follow what the hardware provides on every target: no packed integer divide or modulo, no 8-bit or 64-bit packed multiply, no 8-bit shifts, and no 64-bit arithmetic right shift.</p>
+<p>The arithmetic, bitwise and shift operators compute per lane, and a scalar operand broadcasts over the other side's lanes. Lane arithmetic always wraps: a vector is machine data, and no overflow guard applies. The operators follow what the hardware provides on every target: packed integer divide and modulo remain unavailable. Integer multiply and shifts without a direct packed instruction use register-only portable lowerings. Unary <span class="code-inline">+</span> is the identity for every vector shape.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> v = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
     <span class="SKwd">let</span> w = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>]
 
-    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (v + w)
+    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (+v)
+    <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">4</span>)
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (v + w)
     <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">11</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">44</span>)
     r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (w * <span class="SNum">2</span>)
     <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">20</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">80</span>)
     r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (v &lt;&lt; <span class="SNum">4</span>)
     <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">16</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">64</span>)
+
+    <span class="SKwd">let</span> bytes        = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">0x81</span>, <span class="SNum">0x7F</span>, <span class="SNum">1</span>, <span class="SNum">0</span>, <span class="SNum">255</span>, <span class="SNum">128</span>, <span class="SNum">64</span>, <span class="SNum">3</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>]
+    <span class="SKwd">let</span> shiftedBytes = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) (bytes &lt;&lt; <span class="SNum">1</span>)
+    <span class="SItr">@assert</span>(shiftedBytes[<span class="SNum">0</span>] == <span class="SNum">2</span> <span class="SLgc">and</span> shiftedBytes[<span class="SNum">1</span>] == <span class="SNum">254</span>)
+
+    <span class="SKwd">let</span> wide        = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">s64</span>) [-<span class="SNum">8</span>, <span class="SNum">0x4000_0000_0000_0000</span>]
+    <span class="SKwd">let</span> shiftedWide = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">s64</span>) (wide &gt;&gt; <span class="SNum">2</span>)
+    <span class="SItr">@assert</span>(shiftedWide[<span class="SNum">0</span>] == -<span class="SNum">2</span> <span class="SLgc">and</span> shiftedWide[<span class="SNum">1</span>] == <span class="SNum">0x1000_0000_0000_0000</span>)
+
+    <span class="SKwd">let</span> factors1 = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>) [<span class="SNum">0xFFFF_FFFF_FFFF_FFFF</span>, <span class="SNum">0x1_0000_0001</span>]
+    <span class="SKwd">let</span> factors2 = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>) [<span class="SNum">2</span>, <span class="SNum">0x1_0000_0001</span>]
+    <span class="SKwd">let</span> products = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>) (factors1 * factors2)
+    <span class="SItr">@assert</span>(products[<span class="SNum">0</span>] == <span class="SNum">0xFFFF_FFFF_FFFF_FFFE</span> <span class="SLgc">and</span> products[<span class="SNum">1</span>] == <span class="SNum">0x2_0000_0001</span>)
 
     <span class="SCmt">// Lanes wrap by definition.</span>
     <span class="SKwd">let</span> big  = <span class="SItr">@vecsplat</span>(<span class="SNum">2_147_483_647</span>'<span class="STpe">s32</span>)
@@ -3406,7 +3490,7 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(v[i] == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Packed_Intrinsics">Packed Intrinsics</h3>
-<p>The <span class="code-inline">@vec</span> intrinsic family carries the operations the operators cannot express, each mapping to one hardware form: <span class="code-inline">@vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">@vecsatadd</span> and <span class="code-inline">@vecsatsub</span> clamp instead of wrapping, <span class="code-inline">@vecpackus</span> and <span class="code-inline">@vecpackss</span> narrow two vectors with saturation, <span class="code-inline">@vecwidenlo</span> and <span class="code-inline">@vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">@vecavgr</span> is the rounding average, <span class="code-inline">@vecmadd</span> multiplies 16-bit pairs into 32-bit sums, and <span class="code-inline">@vecperm</span> permutes bytes through a dynamic table. <span class="code-inline">@min</span>, <span class="code-inline">@max</span>, <span class="code-inline">@abs</span>, <span class="code-inline">@sqrt</span>, <span class="code-inline">@muladd</span>, <span class="code-inline">@floor</span>, <span class="code-inline">@ceil</span> and <span class="code-inline">@trunc</span> also accept vectors and compute per lane.</p>
+<p>The <span class="code-inline">@vec</span> intrinsic family carries the operations the operators cannot express: <span class="code-inline">@vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">@vecsatadd</span> and <span class="code-inline">@vecsatsub</span> clamp instead of wrapping, <span class="code-inline">@vecpackus</span> and <span class="code-inline">@vecpackss</span> narrow two vectors with saturation, <span class="code-inline">@vecinterleavelo</span> and <span class="code-inline">@vecinterleavehi</span> alternate lanes from the corresponding input halves, <span class="code-inline">@vecwidenlo</span> and <span class="code-inline">@vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">@vecavgr</span> is the rounding average, <span class="code-inline">@vecmadd</span> multiplies 16-bit pairs into 32-bit sums, <span class="code-inline">@vecsum</span> adds the four lanes of an <span class="code-inline">s32</span> vector with wrapping arithmetic, <span class="code-inline">@vectruncs32</span> converts four <span class="code-inline">f32</span> lanes to <span class="code-inline">s32</span> by truncating toward zero, <span class="code-inline">@vecgather</span> loads four <span class="code-inline">s32</span> values through four <span class="code-inline">u32</span> indices, and <span class="code-inline">@vecperm</span> permutes bytes through a dynamic table. NaN and values outside the <span class="code-inline">s32</span> range become <span class="code-inline">s32.Min</span>. <span class="code-inline">@min</span>, <span class="code-inline">@max</span>, <span class="code-inline">@abs</span>, <span class="code-inline">@sqrt</span>, <span class="code-inline">@muladd</span>, <span class="code-inline">@floor</span>, <span class="code-inline">@ceil</span> and <span class="code-inline">@trunc</span> also accept vectors and compute per lane. Integer <span class="code-inline">@abs</span> wraps the minimum lane value back to itself, like unary minus. A gather uses <span class="code-inline">vpgatherdd</span> when AVX2 is selected and a portable four-load lowering otherwise; every index must designate a readable table element and be at most <span class="code-inline">s32.Max</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a = <span class="SItr">@vecsplat</span>(<span class="SNum">200</span>'<span class="STpe">u8</span>)
@@ -3423,8 +3507,23 @@ indent-style = spaces</span></div>
     <span class="SKwd">let</span> wide = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>) <span class="SItr">@vecwidenlo</span>(a)
     <span class="SItr">@assert</span>(wide[<span class="SNum">0</span>] == <span class="SNum">200</span>)
 
+    <span class="SKwd">let</span> indices = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>]
+    <span class="SKwd">let</span> zipped  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SItr">@vecinterleavelo</span>(indices, b)
+    <span class="SItr">@assert</span>(zipped[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> zipped[<span class="SNum">1</span>] == <span class="SNum">100</span> <span class="SLgc">and</span> zipped[<span class="SNum">14</span>] == <span class="SNum">7</span> <span class="SLgc">and</span> zipped[<span class="SNum">15</span>] == <span class="SNum">100</span>)
+
     <span class="SKwd">let</span> avg = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SItr">@vecavgr</span>(a, b)
     <span class="SItr">@assert</span>(avg[<span class="SNum">0</span>] == <span class="SNum">150</span>)
+
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
+    <span class="SItr">@assert</span>(<span class="SItr">@vecsum</span>(quads) == <span class="SNum">10</span>)
+
+    <span class="SKwd">let</span> samples = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>) [<span class="SNum">1.9</span>, -<span class="SNum">1.9</span>, <span class="SNum">32767.9</span>, -<span class="SNum">32768.9</span>]
+    <span class="SKwd">let</span> ints    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SItr">@vectruncs32</span>(samples)
+    <span class="SItr">@assert</span>(ints[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> ints[<span class="SNum">1</span>] == -<span class="SNum">1</span> <span class="SLgc">and</span> ints[<span class="SNum">2</span>] == <span class="SNum">32767</span> <span class="SLgc">and</span> ints[<span class="SNum">3</span>] == -<span class="SNum">32768</span>)
+
+    <span class="SKwd">var</span> lookup: [<span class="SNum">5</span>] <span class="STpe">s32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>]
+    <span class="SKwd">let</span> found           = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SItr">@vecgather</span>(<span class="SItr">@dataof</span>(lookup), <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">4</span>, <span class="SNum">0</span>, <span class="SNum">3</span>, <span class="SNum">1</span>])
+    <span class="SItr">@assert</span>(found[<span class="SNum">0</span>] == <span class="SNum">50</span> <span class="SLgc">and</span> found[<span class="SNum">1</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> found[<span class="SNum">2</span>] == <span class="SNum">40</span> <span class="SLgc">and</span> found[<span class="SNum">3</span>] == <span class="SNum">20</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Boundaries">Boundaries</h3>
 <p>A vector crosses module boundaries in the Swag calling convention only: a <span class="code-inline">#[Swag.Foreign]</span> declaration with a C calling convention does not accept a simd parameter or return type. Inside Swag code a vector behaves like any value: struct fields, arrays of vectors, and compile-time execution all work.</p>
@@ -7058,7 +7157,7 @@ indent-style = spaces</span></div>
     link: "native_import_library",
     callconv: .C)]</span>
 <span class="SKwd">func</span> <span class="SFct">localName</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
-<p><span class="code-inline">function</span> defaults to the local declaration name, <span class="code-inline">link</span> defaults to the module name, and <span class="code-inline">callconv</span> defaults to the target C ABI.</p>
+<p><span class="code-inline">function</span> defaults to the local declaration name, <span class="code-inline">link</span> defaults to the module name, and <span class="code-inline">callconv</span> defaults to the Swag ABI, so a native library names <span class="code-inline">Swag.CallConv.C</span> itself.</p>
 <h3 id="_010_002_predefined_attributes_swg_Documentation">Documentation</h3>
 <table class="table-markdown">
 <thead>
@@ -9134,13 +9233,15 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <tr><td><span class="code-inline">module</span></td><td>Dynamic module used to resolve the symbol</td></tr>
 <tr><td><span class="code-inline">function</span></td><td>External symbol name; defaults to the Swag declaration name</td></tr>
 <tr><td><span class="code-inline">link</span></td><td>Native import-library name when it differs from <span class="code-inline">module</span></td></tr>
-<tr><td><span class="code-inline">callconv</span></td><td>ABI: <span class="code-inline">.C</span> by default, <span class="code-inline">.WindowsX64</span>, or <span class="code-inline">.Swag</span></td></tr>
+<tr><td><span class="code-inline">callconv</span></td><td>ABI: <span class="code-inline">.Swag</span> by default, <span class="code-inline">.C</span>, or <span class="code-inline">.WindowsX64</span></td></tr>
 </tbody>
 </table>
+<p>A Swag declaration is Swag-convention unless it says otherwise, and <span class="code-inline">#[Swag.Foreign]</span> only states where a function comes from. A function of a native library therefore names <span class="code-inline">Swag.CallConv.C</span> itself.</p>
+<p>A generated module API is the one place where <span class="code-inline">module</span> is left out: it names the module the API file describes, and <span class="code-inline">function</span> then defaults to the flattened public API name instead of the declaration name.</p>
 <p><span class="code-inline">#foreignlib</span> registers the corresponding import library with the native linker. It does not declare functions by itself.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#foreignlib</span>(<span class="SStr">"kernel32"</span>)
 
-<span class="SAtr">#[Swag.Foreign(module: "kernel32")]</span>
+<span class="SAtr">#[Swag.Foreign(module: "kernel32", callconv: Swag.CallConv.C)]</span>
 {
     <span class="SKwd">func</span> <span class="SFct">GetCurrentProcessId</span>()-&gt;<span class="STpe">u32</span>
     <span class="SKwd">func</span> <span class="SFct">Sleep</span>(milliseconds: <span class="STpe">u32</span>)
@@ -9181,7 +9282,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.161</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.179</div>
 </footer>
 </section>
 </main>
@@ -9471,6 +9572,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Workspaces and Modules|_002_001_workspaces_modules_and_dependencies_swg_Workspaces_and_Modules|",
 "h|The module.swg File|_002_001_workspaces_modules_and_dependencies_swg_The__module_swg__File|",
 "h|Importing Another Module|_002_001_workspaces_modules_and_dependencies_swg_Importing_Another_Module|",
+"h|Where a Dependency Lives|_002_001_workspaces_modules_and_dependencies_swg_Where_a_Dependency_Lives|",
 "h|Sharing Source Between Modules|_002_001_workspaces_modules_and_dependencies_swg_Sharing_Source_Between_Modules|",
 "h|Source Files|_002_002_source_files_swg|",
 "h|Source Files|_002_002_source_files_swg_Source_Files|",
@@ -9595,6 +9697,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Implicit Casts|_003_007_cast_swg_Implicit_Casts|",
 "h|Implicit Cast Rules|_003_007_cast_swg_Implicit_Cast_Rules|",
 "h|Disallowed Implicit Casts|_003_007_cast_swg_Disallowed_Implicit_Casts|",
+"h|Casting Between Pointers and Integers|_003_007_cast_swg_Casting_Between_Pointers_and_Integers|",
 "h|Alias|_003_008_alias_swg|",
 "h|Type Alias|_003_008_alias_swg_Type_Alias|",
 "h|Basic Type Alias|_003_008_alias_swg_Basic_Type_Alias|",

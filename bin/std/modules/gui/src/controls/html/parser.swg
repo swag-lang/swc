@@ -278,7 +278,7 @@ impl HtmlParser
     // structure between cells, `HtmlNoNode` when content belongs where it is.
     mtd const fosterAnchor()->u32
     {
-        let parent = .document.constNode(.stack.back()).tag
+        let parent           = .document.constNode(.stack.back()).tag
         let inTableStructure = parent == .Table or parent == .TBody or parent == .THead or parent == .TFoot or parent == .Tr
         if !inTableStructure do
             return HtmlNoNode

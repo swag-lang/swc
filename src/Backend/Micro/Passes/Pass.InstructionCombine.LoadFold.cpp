@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -425,6 +426,174 @@ namespace InstructionCombine
             return true;
         }
 
+        constexpr uint32_t K_MAX_REREAD_WINDOW = 32;
+
+        // The SSA value a register carries at an instruction, looked up through
+        // the plain 64-bit copies mem2reg and the front end leave between a
+        // promoted local and its uses.
+        MicroSsaState::ReachingDef rootAddressValue(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+        {
+            MicroSsaState::ReachingDef reach = ctx.ssa->reachingDef(reg, atRef);
+            for (uint32_t depth = 0; depth < 8 && reach.valid() && !reach.isPhi && reach.inst && reach.inst->op == MicroInstrOpcode::LoadRegReg; ++depth)
+            {
+                const MicroInstrOperand* copyOps = reach.inst->ops(*ctx.operands);
+                if (!copyOps || copyOps[2].opBits != MicroOpBits::B64 || !copyOps[1].reg.isVirtual())
+                    break;
+                const MicroSsaState::ReachingDef src = ctx.ssa->reachingDef(copyOps[1].reg, reach.instRef);
+                if (!src.valid())
+                    break;
+                reach = src;
+            }
+            return reach;
+        }
+
+        // True when no write or call separates `fromRef` from `toRef` within
+        // the window, `toRef` being later in the straight line.
+        bool noMemoryChangeBetween(const Context& ctx, MicroInstrRef fromRef, MicroInstrRef toRef)
+        {
+            MicroInstrRef ref = ctx.storage->findNextInstructionRef(fromRef);
+            for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && ref.isValid(); ++step, ref = ctx.storage->findNextInstructionRef(ref))
+            {
+                if (ref == toRef)
+                    return true;
+                const MicroInstr& inst = *ctx.storage->ptr(ref);
+                if (writesMemory(inst) || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    return false;
+            }
+            return false;
+        }
+
+        // True when the two registers hold the same address at their respective
+        // instructions: the same SSA value, or — before mem2reg has promoted the
+        // local both read — two reloads of one frame slot with nothing written
+        // in between, which is how every use of `p` is spelled on the first
+        // sweep, while the compare fold is already eligible.
+        bool sameAddressValue(const Context& ctx, MicroReg regA, MicroInstrRef atA, MicroReg regB, MicroInstrRef atB)
+        {
+            const MicroSsaState::ReachingDef a = rootAddressValue(ctx, regA, atA);
+            const MicroSsaState::ReachingDef b = rootAddressValue(ctx, regB, atB);
+            if (!a.valid() || !b.valid())
+                return false;
+            if (a.valueId == b.valueId)
+                return true;
+            if (a.isPhi || b.isPhi || !a.inst || !b.inst)
+                return false;
+            if (a.inst->op != MicroInstrOpcode::LoadRegMem || b.inst->op != MicroInstrOpcode::LoadRegMem)
+                return false;
+
+            // LoadRegMem: [dst, base, opBits, offset].
+            const MicroInstrOperand* aOps = a.inst->ops(*ctx.operands);
+            const MicroInstrOperand* bOps = b.inst->ops(*ctx.operands);
+            if (!aOps || !bOps || aOps[2].opBits != bOps[2].opBits || aOps[3].valueU64 != bOps[3].valueU64)
+                return false;
+
+            const MicroSsaState::ReachingDef baseA = ctx.ssa->reachingDef(aOps[1].reg, a.instRef);
+            const MicroSsaState::ReachingDef baseB = ctx.ssa->reachingDef(bOps[1].reg, b.instRef);
+            if (!baseA.valid() || !baseB.valid() || baseA.valueId != baseB.valueId)
+                return false;
+            return noMemoryChangeBetween(ctx, a.instRef, b.instRef);
+        }
+
+        // The addressing of an indexed read: an indexed load itself, or a
+        // plain load at offset zero through an address an indexed lea computed,
+        // which is how every `text[p]` is spelled before the lea is folded into
+        // the access. `atRef` is where the base and index registers are read.
+        struct IndexedRead
+        {
+            MicroInstrRef atRef    = MicroInstrRef::invalid();
+            MicroReg      base     = MicroReg::invalid();
+            MicroReg      index    = MicroReg::invalid();
+            uint64_t      mulValue = 0;
+            uint64_t      addValue = 0;
+            MicroOpBits   cellBits = MicroOpBits::Zero;
+        };
+
+        bool matchIndexedRead(IndexedRead& out, const Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+        {
+            const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+            if (!ops)
+                return false;
+
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadAmcRegMem:
+                    // [dst, base, index, loadBits, addrBits, mul, add]
+                    if (ops[4].opBits != MicroOpBits::B64)
+                        return false;
+                    out = {.atRef = ref, .base = ops[1].reg, .index = ops[2].reg, .mulValue = ops[5].valueU64, .addValue = ops[6].valueU64, .cellBits = ops[3].opBits};
+                    return true;
+
+                case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                    // [dst, base, index, dstBits, srcBits, mul, add]
+                    out = {.atRef = ref, .base = ops[1].reg, .index = ops[2].reg, .mulValue = ops[5].valueU64, .addValue = ops[6].valueU64, .cellBits = ops[4].opBits};
+                    return true;
+
+                case MicroInstrOpcode::LoadRegMem:
+                case MicroInstrOpcode::LoadSignedExtRegMem:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                {
+                    // [dst, base, bits, off] or [dst, base, dstBits, srcBits, off], through an
+                    // address from LoadAddrAmcRegMem [dst, base, index, dstBits, addrBits, mul, add].
+                    const bool plain = inst.op == MicroInstrOpcode::LoadRegMem;
+                    if (ops[plain ? 3 : 4].valueU64 != 0)
+                        return false;
+                    const MicroSsaState::ReachingDef addr = ctx.ssa->reachingDef(ops[1].reg, ref);
+                    if (!addr.valid() || addr.isPhi || !addr.inst || addr.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                        return false;
+                    const MicroInstrOperand* leaOps = addr.inst->ops(*ctx.operands);
+                    if (!leaOps || leaOps[3].opBits != MicroOpBits::B64)
+                        return false;
+                    out = {.atRef = addr.instRef, .base = leaOps[1].reg, .index = leaOps[2].reg, .mulValue = leaOps[5].valueU64, .addValue = leaOps[6].valueU64, .cellBits = ops[plain ? 2 : 3].opBits};
+                    return true;
+                }
+
+                default:
+                    return false;
+            }
+        }
+
+        // True when the straight line after `fromRef` reads the same cell
+        // again — the same bytes at the same address values — before any write,
+        // call or exit. Folding the first read into the compare would leave
+        // nothing for that second read to share; left as a load, value
+        // numbering feeds both from it. This is the `text[p] != ','` guard
+        // followed by the `text[p] - 48` consumer of every text scanner, read
+        // once instead of twice. Labels and conditional jumps are looked
+        // through: the decision only keeps a load, which is always sound, and
+        // the join of a short-circuit condition sits between the guard and the
+        // body it protects until branch simplification threads it.
+        bool cellReadAgainInStraightLine(const Context& ctx, MicroInstrRef loadRef, MicroInstrRef fromRef, MicroReg base, MicroReg index, uint64_t mulValue, uint64_t addValue, MicroOpBits cellBits)
+        {
+            MicroInstrRef ref = ctx.storage->findNextInstructionRef(fromRef);
+            for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && ref.isValid(); ++step, ref = ctx.storage->findNextInstructionRef(ref))
+            {
+                const MicroInstr&    inst = *ctx.storage->ptr(ref);
+                const MicroInstrDef& info = MicroInstr::info(inst.op);
+                if (writesMemory(inst) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    return false;
+                if (inst.op == MicroInstrOpcode::JumpCond)
+                {
+                    if (MicroInstrInfo::isUnconditionalJumpInstruction(inst, inst.ops(*ctx.operands)))
+                        return false;
+                }
+                else if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                {
+                    return false;
+                }
+
+                IndexedRead read;
+                if (!matchIndexedRead(read, ctx, ref, inst))
+                    continue;
+                if (read.cellBits != cellBits || read.mulValue != mulValue || read.addValue != addValue)
+                    continue;
+                if (sameAddressValue(ctx, base, loadRef, read.base, read.atRef) && sameAddressValue(ctx, index, loadRef, read.index, read.atRef))
+                    return true;
+            }
+
+            return false;
+        }
+
         // Shared tail of the two compare folds below: from an indexed load at
         // loadRef whose single consumer must be a CmpRegImm on the loaded
         // value, rewrite that compare into CmpAmcImm at cmpBits and erase the
@@ -489,6 +658,8 @@ namespace InstructionCombine
                     return false;
 
                 const MicroInstrRef cmpRef = walker.current;
+                if (cellReadAgainInStraightLine(ctx, loadRef, cmpRef, base, index, mulValue, addValue, cmpBits))
+                    return false;
                 if (!ctx.claimAll({loadRef, cmpRef}))
                     return false;
 

@@ -118,7 +118,7 @@ namespace
         const TypeRef paramTypeRef = param.typeRef();
         if (paramTypeRef.isValid() && exprRef.isValid())
         {
-            const TypeInfo& paramType = param.type(sema.ctx());
+            const TypeInfo&    paramType = param.type(sema.ctx());
             const SemaNodeView exprView(sema, exprRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             if (paramType.isAnyTypeInfo(sema.ctx()))
             {

@@ -812,9 +812,9 @@ namespace
     // Element-wise simd compare: the result is a mask vector, not a bool.
     Result emitRelationalVector(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
     {
-        const SemaNodeView leftView     = codeGen.viewType(node.nodeLeftRef);
-        const TypeRef      vecTypeRef   = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), leftView.typeRef());
-        const TypeInfo&    vecType      = codeGen.typeMgr().get(vecTypeRef);
+        const SemaNodeView leftView   = codeGen.viewType(node.nodeLeftRef);
+        const TypeRef      vecTypeRef = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), leftView.typeRef());
+        const TypeInfo&    vecType    = codeGen.typeMgr().get(vecTypeRef);
         SWC_ASSERT(vecType.isSimd());
         const TypeInfo& laneType = codeGen.typeMgr().get(vecType.payloadSimdLaneTypeRef());
 

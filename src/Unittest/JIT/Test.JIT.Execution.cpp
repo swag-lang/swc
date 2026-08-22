@@ -575,8 +575,8 @@ SWC_TEST_BEGIN(JIT_VecCodecOps)
     for (uint32_t lane = 0; lane < 4; ++lane)
     {
         // Bytes 0..15 at offset 0, bytes 255..240 at offset 16.
-        vecPackedOpsData[lane]     = 0x03020100u + 0x04040404u * lane;
-        vecPackedOpsData[4 + lane] = 0xFCFDFEFFu - 0x04040404u * lane;
+        vecPackedOpsData[lane]      = 0x03020100u + 0x04040404u * lane;
+        vecPackedOpsData[4 + lane]  = 0xFCFDFEFFu - 0x04040404u * lane;
         vecPackedOpsData[8 + lane]  = 0x00020002u;
         vecPackedOpsData[12 + lane] = 0x00320032u;
     }
@@ -592,8 +592,8 @@ SWC_TEST_BEGIN(JIT_VecFloatOps)
     static constexpr float IN[4] = {1.0f, 4.0f, 9.0f, 16.0f};
     for (uint32_t lane = 0; lane < 4; ++lane)
     {
-        vecFloatOpsData[lane]     = IN[lane];
-        vecFloatOpsData[4 + lane] = 0.5f;
+        vecFloatOpsData[lane]      = IN[lane];
+        vecFloatOpsData[4 + lane]  = 0.5f;
         vecFloatOpsData[8 + lane]  = 0.0f;
         vecFloatOpsData[12 + lane] = 0.0f;
     }

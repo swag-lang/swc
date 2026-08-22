@@ -783,43 +783,43 @@ namespace
         switch (op)
         {
             case MicroOp::VecShiftLeft16:
-                outOpcode  = 0x71;
+                outOpcode   = 0x71;
                 outModRmReg = MODRM_REG_6;
                 return true;
             case MicroOp::VecShiftRight16:
-                outOpcode  = 0x71;
+                outOpcode   = 0x71;
                 outModRmReg = MODRM_REG_2;
                 return true;
             case MicroOp::VecShiftRightA16:
-                outOpcode  = 0x71;
+                outOpcode   = 0x71;
                 outModRmReg = MODRM_REG_4;
                 return true;
             case MicroOp::VecShiftLeft32:
-                outOpcode  = 0x72;
+                outOpcode   = 0x72;
                 outModRmReg = MODRM_REG_6;
                 return true;
             case MicroOp::VecShiftRight32:
-                outOpcode  = 0x72;
+                outOpcode   = 0x72;
                 outModRmReg = MODRM_REG_2;
                 return true;
             case MicroOp::VecShiftRightA32:
-                outOpcode  = 0x72;
+                outOpcode   = 0x72;
                 outModRmReg = MODRM_REG_4;
                 return true;
             case MicroOp::VecShiftLeft64:
-                outOpcode  = 0x73;
+                outOpcode   = 0x73;
                 outModRmReg = MODRM_REG_6;
                 return true;
             case MicroOp::VecShiftRight64:
-                outOpcode  = 0x73;
+                outOpcode   = 0x73;
                 outModRmReg = MODRM_REG_2;
                 return true;
             case MicroOp::VecShiftLeftBytes:
-                outOpcode  = 0x73;
+                outOpcode   = 0x73;
                 outModRmReg = MODRM_REG_7;
                 return true;
             case MicroOp::VecShiftRightBytes:
-                outOpcode  = 0x73;
+                outOpcode   = 0x73;
                 outModRmReg = MODRM_REG_3;
                 return true;
             default:
@@ -2037,10 +2037,10 @@ void X64Encoder::encodeVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg 
     SWC_ASSERT(baseReg.isInt());
     SWC_ASSERT(indicesReg.isFloat());
 
-    const X64Reg dstX64     = microRegToX64Reg(regDst);
-    const X64Reg baseX64    = microRegToX64Reg(baseReg);
-    const X64Reg indicesX64 = microRegToX64Reg(indicesReg);
-    constexpr X64Reg K_MASK = X64Reg::Xmm15;
+    const X64Reg     dstX64     = microRegToX64Reg(regDst);
+    const X64Reg     baseX64    = microRegToX64Reg(baseReg);
+    const X64Reg     indicesX64 = microRegToX64Reg(indicesReg);
+    constexpr X64Reg K_MASK     = X64Reg::Xmm15;
     SWC_ASSERT(dstX64 != K_MASK && indicesX64 != K_MASK && dstX64 != indicesX64);
 
     // VPGATHERDD clears every mask lane it consumes, so rebuild an all-ones
@@ -3651,9 +3651,9 @@ void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, Micro
     // opcode extension in the ModRM.reg field, so the destination travels in
     // vvvv and the source in r/m - the reverse of the three-operand
     // arithmetic form.
-    uint8_t opcode   = 0;
-    uint8_t modRmReg = 0;
-    const bool isShift = vecShiftImmEncoding(op, opcode, modRmReg);
+    uint8_t    opcode   = 0;
+    uint8_t    modRmReg = 0;
+    const bool isShift  = vecShiftImmEncoding(op, opcode, modRmReg);
     SWC_ASSERT(isShift);
     emitVex(store_, 0x66, VEX_MAP_0F, X64Reg::Rax, microRegToX64Reg(regDst), microRegToX64Reg(regSrc));
     emitCpuOp(store_, opcode);

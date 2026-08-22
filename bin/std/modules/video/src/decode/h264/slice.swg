@@ -11,23 +11,23 @@ const SliceTypeI = 2'u32
 // Everything a slice header declares, before reference lists are resolved.
 struct SliceHeader
 {
-    firstMb:           u32
-    type:              u32
-    allSameType:       bool     // The in-stream type promised every slice of the picture is alike.
-    ppsId:             u32
-    frameNum:          u32
-    isIdr:             bool
-    pocLsb:            u32
-    deltaPocBottom:    s32
-    deltaPoc0:         s32
-    deltaPoc1:         s32
-    directSpatial:     bool
-    refCount:          [2] u32
-    cabacInitIdc:      u32
-    qp:                s32
-    deblockIdc:        u32
-    alphaOffset:       s32
-    betaOffset:        s32
+    firstMb:        u32
+    type:           u32
+    allSameType:    bool     // The in-stream type promised every slice of the picture is alike.
+    ppsId:          u32
+    frameNum:       u32
+    isIdr:          bool
+    pocLsb:         u32
+    deltaPocBottom: s32
+    deltaPoc0:      s32
+    deltaPoc1:      s32
+    directSpatial:  bool
+    refCount:       [2] u32
+    cabacInitIdc:   u32
+    qp:             s32
+    deblockIdc:     u32
+    alphaOffset:    s32
+    betaOffset:     s32
 }
 
 // One resolved reference picture of a slice, with its explicit prediction weights.
@@ -54,28 +54,28 @@ private struct ListOp
 // One slice being decoded: its header, entropy state, and resolved reference lists.
 struct Slice
 {
-    dec:            #null *Decoder
-    pps:            #null *Pps     // Kept because reconstruction runs after every slice parses.
-    header:         SliceHeader
-    bits:           BitReader          // CAVLC entropy source, shared with the header.
-    cabac:          CabacReader
-    isCabac:        bool
+    dec:     #null *Decoder
+    pps:     #null *Pps     // Kept because reconstruction runs after every slice parses.
+    header:  SliceHeader
+    bits:    BitReader     // CAVLC entropy source, shared with the header.
+    cabac:   CabacReader
+    isCabac: bool
 
-    refs:           [2, 32] RefPic
-    refCount:       [2] u32
-    listOps:        [2] Array'ListOp   // Reference-list modifications, applied when lists build.
-    lumaLog2Denom:  u32
+    refs:            [2, 32] RefPic
+    refCount:        [2] u32
+    listOps:         [2] Array'ListOp     // Reference-list modifications, applied when lists build.
+    lumaLog2Denom:   u32
     chromaLog2Denom: u32
-    useWeights:     bool               // Explicit weights apply to every prediction.
-    useImplicit:    bool               // Implicit weights apply to bidirectional predictions.
-    implicitW1:     [32, 32] s16       // Implicit weight of the list-1 side, per reference pair.
+    useWeights:      bool             // Explicit weights apply to every prediction.
+    useImplicit:     bool             // Implicit weights apply to bidirectional predictions.
+    implicitW1:      [32, 32] s16     // Implicit weight of the list-1 side, per reference pair.
 
-    qp:             s32                // Current luma QP, carried from macroblock to macroblock.
-    lastQpDelta:    s32                // For the CABAC QP-delta context.
-    mbX:            s32
-    mbY:            s32
-    mbAddr:         u32
-    sliceId:        u16
+    qp:          s32     // Current luma QP, carried from macroblock to macroblock.
+    lastQpDelta: s32     // For the CABAC QP-delta context.
+    mbX:         s32
+    mbY:         s32
+    mbAddr:      u32
+    sliceId:     u16
 }
 
 impl Slice
@@ -90,7 +90,7 @@ impl Slice
 
         .header.isIdr   = isIdr
         .header.firstMb = .bits.ue()
-        let rawType     = .bits.ue()
+        let rawType = .bits.ue()
         if rawType > 9 do
             fail InvalidFormatError{"H.264 slice declares an unknown slice type"}
         .header.allSameType = rawType >= 5
@@ -112,7 +112,7 @@ impl Slice
         .header.frameNum = .bits.read(sps.log2MaxFrameNum)
 
         if isIdr do
-            discard .bits.ue()                   // idr_pic_id.
+            discard .bits.ue()     // idr_pic_id.
 
         if sps.pocType == 0
         {
@@ -202,7 +202,7 @@ impl Slice
             dec.idrLongTerm     = false
             if isIdr
             {
-                discard .bits.bit()              // no_output_of_prior_pics_flag.
+                discard .bits.bit()     // no_output_of_prior_pics_flag.
                 dec.idrLongTerm = .bits.bit() != 0
             }
             elif .bits.bit()
@@ -420,14 +420,14 @@ impl Slice
         {
             for index1 in .refCount[1]
             {
-                let ref0 = .refs[0, index0]
-                let ref1 = .refs[1, index1]
+                let ref0    = .refs[0, index0]
+                let ref1    = .refs[1, index1]
                 var weight1 = 32's32
                 if !ref0.isLong and !ref1.isLong and ref0.poc != ref1.poc
                 {
-                    let tb = Math.clamp(currentPoc - ref0.poc, -128, 127)
-                    let td = Math.clamp(ref1.poc - ref0.poc, -128, 127)
-                    let tx = (16384 + Math.abs(td / 2)) / td
+                    let tb    = Math.clamp(currentPoc - ref0.poc, -128, 127)
+                    let td    = Math.clamp(ref1.poc - ref0.poc, -128, 127)
+                    let tx    = (16384 + Math.abs(td / 2)) / td
                     let scale = Math.clamp((tb * tx + 32) >> 6, -1024, 1023)
                     if (scale >> 2) >= -64 and (scale >> 2) <= 128 do
                         weight1 = scale >> 2
@@ -467,7 +467,7 @@ impl Slice
             }
             else
             {
-                let delta = cast(s32) operation.value + 1
+                let delta  = cast(s32) operation.value + 1
                 var picNum = operation.kind == 0 ? picNumPred - delta : picNumPred + delta
                 if picNum < 0 do
                     picNum += maxFrameNum

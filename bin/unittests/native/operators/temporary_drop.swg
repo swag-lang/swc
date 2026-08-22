@@ -346,8 +346,8 @@ func visitFailureTemporary() fail
 #test
 {
     var pair = makeOwnerPair(8, 9)
-    DropCount = 0
-    DropTrace = 0
+    DropCount                 = 0
+    DropTrace                 = 0
     {pair.first, pair.second} = makeOwnerPair(4, 5)
     @assert(DropCount == 2)
     @assert(DropTrace == 89)
@@ -360,8 +360,8 @@ func visitFailureTemporary() fail
 #test
 {
     var pair = makeOwnerPair(8, 9)
-    DropCount = 0
-    DropTrace = 0
+    DropCount       = 0
+    DropTrace       = 0
     {pair.first, ?} = makeOwnerPair(4, 5)
     @assert(DropCount == 2)
     @assert(DropTrace == 85)
@@ -375,9 +375,9 @@ func visitFailureTemporary() fail
 {
     var source = makeTransferPair(4, 5)
     var target = makeTransferPair(8, 9)
-    DropCount     = 0
-    PostCopyCount = 0
-    PostMoveCount = 0
+    DropCount                     = 0
+    PostCopyCount                 = 0
+    PostMoveCount                 = 0
     {target.first, target.second} = source
     @assert(DropCount == 2)
     @assert(PostCopyCount == 2)
@@ -395,9 +395,9 @@ func visitFailureTemporary() fail
     discard makeTransferPair(0, 0)
     let callPostCopyCount = PostCopyCount
     let callPostMoveCount = PostMoveCount
-    DropCount     = 0
-    PostCopyCount = 0
-    PostMoveCount = 0
+    DropCount                     = 0
+    PostCopyCount                 = 0
+    PostMoveCount                 = 0
     {target.first, target.second} = makeTransferPair(4, 5)
     @assert(DropCount == 2)
     @assert(PostCopyCount == callPostCopyCount)

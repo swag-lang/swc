@@ -1734,8 +1734,8 @@ namespace
         // A scalar of the lane type broadcasts into every lane of the vector.
         if (resolvedDstType.isSimd() && resolvedSrcType.isScalarNumeric())
         {
-            const TypeInfo&   laneType = typeMgr.get(resolvedDstType.payloadSimdLaneTypeRef());
-            const MicroOpBits laneBits = CodeGenTypeHelpers::numericBits(laneType);
+            const TypeInfo&   laneType  = typeMgr.get(resolvedDstType.payloadSimdLaneTypeRef());
+            const MicroOpBits laneBits  = CodeGenTypeHelpers::numericBits(laneType);
             MicroReg          scalarReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {

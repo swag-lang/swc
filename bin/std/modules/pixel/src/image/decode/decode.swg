@@ -141,7 +141,7 @@ public impl Image
         var extension = String.from(mediaType).toLower()
         switch extension.toString()
         {
-        case "jpeg":                        extension = "jpg"
+        case "jpeg": extension = "jpg"
         case "x-icon", "vnd.microsoft.icon": extension = "ico"
         }
 

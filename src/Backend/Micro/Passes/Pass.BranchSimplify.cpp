@@ -20,6 +20,7 @@
 //   - Erase jumps whose target is the immediate fall-through label run.
 //   - Remove instructions that become unreachable after a terminator.
 //   - Drop CFG-unreachable instructions when the builder can rebuild a precise CFG.
+//   - If-convert the smallest branch shapes into conditional moves.
 //
 // The pass never invents new blocks or labels. It only retargets / erases
 // existing jumps and then lets the surrounding optimization loop rebuild SSA.
@@ -1142,6 +1143,483 @@ namespace
         return true;
     }
 
+    // Speculative if-conversion of the two-armed diamond a ternary lowers to:
+    //
+    //     cmp   X, Y                    A...                ; unchanged
+    //     jcc   CC, .Lb                 B'...               ; every D in B renamed D'
+    //     A...  (defines D)       ->    [cmp X, Y]          ; re-issued when an arm wrote the flags
+    //     jmp   .Ljoin                  cmov(CC) D, D'
+    //   .Lb:                          .Ljoin:
+    //     B...  (defines D)
+    //   .Ljoin:
+    //
+    // Both arms run and the condition picks the result, which is what clang
+    // and MSVC emit for `c ? a : b`, `Math.clamp` and every integer select in
+    // a pixel loop. Running an arm on the path that used to skip it is only
+    // sound when every instruction in it is pure and cannot fault — no memory
+    // access, no call, no division — when the arm leaves nothing behind but D,
+    // and when the arm the branch used to skip reads nothing the other arm
+    // overwrote. Short arms only: past a handful of instructions the work of
+    // the untaken arm costs more than the branch it replaces. The single-arm
+    // triangle is convertBranchesToConditionalMoves above; a diamond whose
+    // arms hold their own selects converts from the inside out, one
+    // fixed-point iteration per nesting level.
+    constexpr uint32_t K_MAX_IF_CONVERT_ARM_INSTR = 6;
+
+    bool isSpeculatableMicroOp(const MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::Add:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+            case MicroOp::Subtract:
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
+            case MicroOp::MultiplySigned:
+            case MicroOp::Negate:
+            case MicroOp::BitwiseNot:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // An instruction that can run on a path that used to skip it: no memory
+    // read (a guarded load may fault), no write, no call, no trap, and
+    // integer register results the conditional move can join.
+    bool isSpeculatableArmInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops)
+            return false;
+
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadAddrRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::CmpRegReg:
+            case MicroInstrOpcode::CmpRegImm:
+            case MicroInstrOpcode::LoadCondRegReg:
+            case MicroInstrOpcode::ClearReg:
+                return true;
+            case MicroInstrOpcode::OpBinaryRegReg:
+                return isSpeculatableMicroOp(ops[3].microOp);
+            case MicroInstrOpcode::OpBinaryRegImm:
+                return isSpeculatableMicroOp(ops[2].microOp);
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+                return isSpeculatableMicroOp(ops[4].microOp);
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+                return isSpeculatableMicroOp(ops[3].microOp);
+            case MicroInstrOpcode::OpUnaryReg:
+                return isSpeculatableMicroOp(ops[2].microOp);
+            default:
+                return false;
+        }
+    }
+
+    // The width an arm instruction writes its destination at. Zero for the
+    // compares, which define no register.
+    MicroOpBits armInstructionWriteBits(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::ClearReg:
+            case MicroInstrOpcode::OpBinaryRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
+                return ops[1].opBits;
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadAddrRegMem:
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+                return ops[2].opBits;
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::LoadCondRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+                return ops[3].opBits;
+            default:
+                return MicroOpBits::Zero;
+        }
+    }
+
+    struct DiamondArm
+    {
+        SmallVector<MicroInstrRef, 8> refs;
+        SmallVector<MicroReg, 8>      defs;
+        MicroOpBits                   resultBits      = MicroOpBits::Zero;
+        bool                          definesFlags    = false;
+        bool                          readsEntryFlags = false;
+    };
+
+    struct Diamond
+    {
+        MicroInstrRef flagsRef     = MicroInstrRef::invalid();
+        MicroInstrRef jumpRef      = MicroInstrRef::invalid();
+        MicroInstrRef joinJumpRef  = MicroInstrRef::invalid();
+        MicroInstrRef armLabelRef  = MicroInstrRef::invalid();
+        MicroInstrRef joinLabelRef = MicroInstrRef::invalid();
+        DiamondArm    fallthroughArm;
+        DiamondArm    jumpArm;
+        MicroCond     cond        = MicroCond::Unconditional;
+        MicroReg      result      = MicroReg::invalid();
+        MicroOpBits   moveBits    = MicroOpBits::B64;
+        bool          sinkCompare = false;
+    };
+
+    struct DiamondScan
+    {
+        const MicroSsaState*                   ssa      = nullptr;
+        const MicroStorage*                    storage  = nullptr;
+        const MicroOperandStorage*             operands = nullptr;
+        std::unordered_map<uint64_t, uint32_t> labelReferences;
+        std::unordered_set<uint32_t>           relocated;
+    };
+
+    // Collect up to K_MAX_IF_CONVERT_ARM_INSTR speculatable instructions after
+    // `fromRef`, stopping at the first one that is not; that instruction comes
+    // back in `outStopRef` for the caller to classify.
+    bool collectDiamondArm(DiamondArm& outArm, MicroInstrRef& outStopRef, const DiamondScan& scan, MicroInstrRef fromRef)
+    {
+        outStopRef = scan.storage->findNextInstructionRef(fromRef);
+        while (outStopRef.isValid())
+        {
+            const MicroInstr*        inst = scan.storage->ptr(outStopRef);
+            const MicroInstrOperand* ops  = inst ? inst->ops(*scan.operands) : nullptr;
+            if (!inst || !isSpeculatableArmInstruction(*inst, ops))
+                return true;
+            if (outArm.refs.size() >= K_MAX_IF_CONVERT_ARM_INSTR || scan.relocated.contains(outStopRef.get()))
+                return false;
+            outArm.refs.push_back(outStopRef);
+            outStopRef = scan.storage->findNextInstructionRef(outStopRef);
+        }
+        return false;
+    }
+
+    // The two arms and the three control instructions, by position alone. The
+    // SSA-backed checks come after, once a function is known to hold a diamond
+    // at all, so the analysis is not rebuilt for the many that hold none.
+    bool tryMatchDiamondShape(Diamond& out, const DiamondScan& scan, MicroInstrRef jumpRef, const MicroInstr& jumpInst, const MicroInstrOperand* jumpOps)
+    {
+        uint32_t armLabelId = 0;
+        if (!tryGetJumpTargetLabelId(armLabelId, jumpInst, jumpOps))
+            return false;
+
+        // The fall-through arm, ended by the jump to the join.
+        MicroInstrRef stopRef;
+        if (!collectDiamondArm(out.fallthroughArm, stopRef, scan, jumpRef) || out.fallthroughArm.refs.empty())
+            return false;
+        const MicroInstr*        joinJumpInst = scan.storage->ptr(stopRef);
+        const MicroInstrOperand* joinJumpOps  = joinJumpInst->ops(*scan.operands);
+        uint32_t                 joinLabelId  = 0;
+        if (joinJumpInst->op != MicroInstrOpcode::JumpCond || !joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
+            return false;
+        if (!tryGetJumpTargetLabelId(joinLabelId, *joinJumpInst, joinJumpOps) || joinLabelId == armLabelId)
+            return false;
+        out.joinJumpRef = stopRef;
+
+        // The jump arm's label is reached from this branch alone, so folding
+        // the arm into the straight line strands no other path.
+        out.armLabelRef = scan.storage->findNextInstructionRef(out.joinJumpRef);
+        if (!out.armLabelRef.isValid() || scan.relocated.contains(out.armLabelRef.get()))
+            return false;
+        const MicroInstr* armLabelInst = scan.storage->ptr(out.armLabelRef);
+        uint32_t          labelId      = 0;
+        if (!tryGetLabelId(labelId, *armLabelInst, armLabelInst->ops(*scan.operands)) || labelId != armLabelId)
+            return false;
+        const auto referenceIt = scan.labelReferences.find(armLabelId);
+        if (referenceIt == scan.labelReferences.end() || referenceIt->second != 1)
+            return false;
+
+        // The jump arm, ended by the join label.
+        if (!collectDiamondArm(out.jumpArm, stopRef, scan, out.armLabelRef) || out.jumpArm.refs.empty())
+            return false;
+        const MicroInstr* joinLabelInst = scan.storage->ptr(stopRef);
+        if (!tryGetLabelId(labelId, *joinLabelInst, joinLabelInst->ops(*scan.operands)) || labelId != joinLabelId)
+            return false;
+        out.joinLabelRef = stopRef;
+
+        out.jumpRef = jumpRef;
+        out.cond    = jumpOps[0].cpuCond;
+        return true;
+    }
+
+    // True when something outside `insideRefs` reads the value — directly, or
+    // through the phis that merge it with the other arm's result at the join.
+    bool isValueReadOutside(const MicroSsaState& ssa, uint32_t valueId, const std::unordered_set<uint32_t>& insideRefs, SmallVector<uint32_t>& visitedPhis)
+    {
+        const MicroSsaState::ValueInfo* info = ssa.valueInfo(valueId);
+        if (!info)
+            return true;
+
+        for (const MicroSsaState::UseSite& use : info->uses)
+        {
+            if (use.kind == MicroSsaState::UseSite::Kind::Instruction)
+            {
+                if (!insideRefs.contains(use.instRef.get()))
+                    return true;
+                continue;
+            }
+
+            if (std::ranges::find(visitedPhis, use.phiIndex) != visitedPhis.end())
+                continue;
+            if (visitedPhis.size() >= 16)
+                return true;
+            visitedPhis.push_back(use.phiIndex);
+
+            const MicroSsaState::PhiInfo* phi = ssa.phiInfo(use.phiIndex);
+            if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE)
+                return true;
+            if (isValueReadOutside(ssa, phi->resultValueId, insideRefs, visitedPhis))
+                return true;
+        }
+
+        return false;
+    }
+
+    // Classify one arm: what it writes, whether it touches the flags, and the
+    // single register it hands to the join. Fails when the arm leaks anything
+    // other than that one register.
+    bool analyzeDiamondArm(DiamondArm& arm, MicroReg& outResult, const DiamondScan& scan)
+    {
+        std::unordered_set<uint32_t> insideRefs;
+        for (const MicroInstrRef ref : arm.refs)
+            insideRefs.insert(ref.get());
+
+        outResult              = MicroReg::invalid();
+        bool definedFlagsSoFar = false;
+        for (const MicroInstrRef ref : arm.refs)
+        {
+            const MicroInstr*        inst = scan.storage->ptr(ref);
+            const MicroInstrOperand* ops  = inst->ops(*scan.operands);
+            const MicroInstrDef&     info = MicroInstr::info(inst->op);
+            if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags) && !definedFlagsSoFar)
+                arm.readsEntryFlags = true;
+            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            {
+                arm.definesFlags  = true;
+                definedFlagsSoFar = true;
+            }
+
+            const MicroInstrUseDef* useDef = scan.ssa->instrUseDef(ref);
+            if (!useDef)
+                return false;
+
+            for (const MicroReg def : useDef->defs)
+            {
+                if (!def.isVirtualInt())
+                    return false;
+                arm.defs.push_back(def);
+
+                uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+                if (!scan.ssa->defValue(def, ref, valueId))
+                    return false;
+
+                SmallVector<uint32_t> visitedPhis;
+                if (!isValueReadOutside(*scan.ssa, valueId, insideRefs, visitedPhis))
+                    continue;
+
+                // Exactly one register may leave the arm, and only its last
+                // write can reach the join, so the width seen here is final.
+                if (outResult.isValid() && outResult != def)
+                    return false;
+                outResult      = def;
+                arm.resultBits = armInstructionWriteBits(*inst, ops);
+            }
+        }
+
+        return outResult.isValid();
+    }
+
+    // True when `arm` reads `reg` before writing it, i.e. observes the value
+    // live at its entry.
+    bool armReadsRegisterLiveIn(const DiamondArm& arm, const DiamondScan& scan, const MicroReg reg)
+    {
+        for (const MicroInstrRef ref : arm.refs)
+        {
+            const MicroInstrUseDef* useDef = scan.ssa->instrUseDef(ref);
+            if (std::ranges::find(useDef->uses, reg) != useDef->uses.end())
+                return true;
+            if (std::ranges::find(useDef->defs, reg) != useDef->defs.end())
+                return false;
+        }
+        return false;
+    }
+
+    bool qualifyDiamond(Diamond& diamond, const DiamondScan& scan)
+    {
+        MicroReg fallthroughResult;
+        MicroReg jumpResult;
+        if (!analyzeDiamondArm(diamond.fallthroughArm, fallthroughResult, scan))
+            return false;
+        if (!analyzeDiamondArm(diamond.jumpArm, jumpResult, scan))
+            return false;
+        if (fallthroughResult != jumpResult)
+            return false;
+        diamond.result = fallthroughResult;
+
+        // cmov exists for 32/64-bit registers only. The move must carry every
+        // bit either arm defined: a 32-bit write zero-extends, so the wider of
+        // the two final writes is the width that keeps both results intact.
+        const uint32_t fallthroughBits = getNumBits(diamond.fallthroughArm.resultBits);
+        const uint32_t jumpBits        = getNumBits(diamond.jumpArm.resultBits);
+        if (fallthroughBits < 32 || jumpBits < 32)
+            return false;
+        diamond.moveBits = fallthroughBits == 64 || jumpBits == 64 ? MicroOpBits::B64 : MicroOpBits::B32;
+
+        // The jump arm now runs after the fall-through arm. Its first touch of
+        // the result must be a write (the rename to D' then covers every
+        // occurrence), and it must not read anything the other arm wrote.
+        if (armReadsRegisterLiveIn(diamond.jumpArm, scan, diamond.result))
+            return false;
+        for (const MicroReg def : diamond.fallthroughArm.defs)
+        {
+            if (def != diamond.result && armReadsRegisterLiveIn(diamond.jumpArm, scan, def))
+                return false;
+        }
+
+        // When neither arm writes the flags, the conditional move at the join
+        // still observes the compare that fed the branch, wherever it sits.
+        // Otherwise the compare is re-issued right before the move: it must be
+        // the instruction feeding the branch, a pure register compare whose
+        // inputs neither arm overwrites, and no arm may read the flags it
+        // enters with, since those flags will no longer be the compare's.
+        diamond.sinkCompare = diamond.fallthroughArm.definesFlags || diamond.jumpArm.definesFlags;
+        if (!diamond.sinkCompare)
+            return true;
+        if (diamond.fallthroughArm.readsEntryFlags || diamond.jumpArm.readsEntryFlags)
+            return false;
+
+        diamond.flagsRef = scan.storage->findPreviousInstructionRef(diamond.jumpRef);
+        if (!diamond.flagsRef.isValid() || scan.relocated.contains(diamond.flagsRef.get()))
+            return false;
+        const MicroInstr* flagsInst = scan.storage->ptr(diamond.flagsRef);
+        if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const MicroInstrUseDef* flagsUseDef = scan.ssa->instrUseDef(diamond.flagsRef);
+        if (!flagsUseDef)
+            return false;
+        for (const MicroReg use : flagsUseDef->uses)
+        {
+            if (std::ranges::find(diamond.fallthroughArm.defs, use) != diamond.fallthroughArm.defs.end())
+                return false;
+            if (std::ranges::find(diamond.jumpArm.defs, use) != diamond.jumpArm.defs.end())
+                return false;
+        }
+
+        // After the join the flags used to be whichever arm last wrote them;
+        // now they are the compare's. Nothing may depend on either.
+        return MicroPassHelpers::areCpuFlagsDeadAfter(*scan.storage, *scan.operands, diamond.joinLabelRef);
+    }
+
+    bool convertDiamondsToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    {
+        DiamondScan scan;
+        scan.storage  = &storage;
+        scan.operands = &operands;
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& inst = *it;
+            if (inst.op == MicroInstrOpcode::JumpReg)
+                return false;
+            if (inst.op != MicroInstrOpcode::JumpCond && inst.op != MicroInstrOpcode::JumpCondImm)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops || inst.numOperands < 3)
+                return false;
+            ++scan.labelReferences[ops[2].valueU64];
+        }
+
+        if (context.builder)
+        {
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    scan.relocated.insert(reloc.instructionRef.get());
+            }
+        }
+
+        std::vector<Diamond> diamonds;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& jumpInst = *it;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            Diamond diamond;
+            if (tryMatchDiamondShape(diamond, scan, it.current, jumpInst, jumpOps))
+                diamonds.push_back(std::move(diamond));
+        }
+
+        if (diamonds.empty())
+            return false;
+
+        scan.ssa = MicroSsaState::ensureFor(context, localSsaState);
+        if (!scan.ssa || !scan.ssa->isValid())
+            return false;
+
+        std::erase_if(diamonds, [&scan](Diamond& diamond) { return !qualifyDiamond(diamond, scan); });
+        if (diamonds.empty())
+            return false;
+
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        for (const Diamond& diamond : diamonds)
+        {
+            const MicroReg renamedResult = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+
+            SmallVector<MicroInstrRegOperandRef> regOperands;
+            for (const MicroInstrRef ref : diamond.jumpArm.refs)
+            {
+                regOperands.clear();
+                storage.ptr(ref)->collectRegOperands(operands, regOperands, context.encoder);
+                for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                {
+                    if (*regOperand.reg == diamond.result)
+                        *regOperand.reg = renamedResult;
+                }
+            }
+
+            if (diamond.sinkCompare)
+            {
+                const MicroInstr*        flagsInst = storage.ptr(diamond.flagsRef);
+                const MicroInstrOperand* flagsOps  = flagsInst->ops(operands);
+                MicroInstrOperand        sunkOps[3];
+                SWC_ASSERT(flagsInst->numOperands <= 3);
+                for (uint32_t i = 0; i < flagsInst->numOperands; ++i)
+                    sunkOps[i] = flagsOps[i];
+                storage.insertDerivedBefore(operands, diamond.joinLabelRef, flagsInst->op, std::span<const MicroInstrOperand>(sunkOps, flagsInst->numOperands));
+                storage.erase(diamond.flagsRef);
+            }
+
+            MicroInstrOperand movOps[4];
+            movOps[0].reg     = diamond.result;
+            movOps[1].reg     = renamedResult;
+            movOps[2].cpuCond = diamond.cond;
+            movOps[3].opBits  = diamond.moveBits;
+            storage.insertDerivedBefore(operands, diamond.joinLabelRef, MicroInstrOpcode::LoadCondRegReg, movOps);
+
+            storage.erase(diamond.jumpRef);
+            storage.erase(diamond.joinJumpRef);
+            storage.erase(diamond.armLabelRef);
+        }
+
+        return true;
+    }
+
     bool instructionHasNoFallthrough(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (!MicroInstrInfo::isTerminatorInstruction(inst))
@@ -1279,6 +1757,23 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         }
 
         changed |= structuralChanged;
+    }
+
+    // Diamond if-conversion reads the liveness of what each arm writes off
+    // SSA, so it runs on the settled IR; the analysis built above is stale
+    // once anything changed, and is rebuilt lazily only for a function that
+    // actually holds a diamond.
+    if (changed)
+    {
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        localSsaState.invalidate();
+    }
+    if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState))
+    {
+        changed = true;
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
     }
 
     if (changed)

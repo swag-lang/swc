@@ -55,7 +55,7 @@ impl BitReader
     // Returns the next 16 bits without consuming them, padding past the end with zeros.
     mtd const peek16()->u32
     {
-        var result = 0'u32
+        var result    = 0'u32
         let byteIndex = .bitPos >> 3
         for offset in 3'u64
         {
@@ -100,7 +100,7 @@ impl BitReader
     // Reads one signed Exp-Golomb value.
     mtd se()->s32
     {
-        let code = .ue()
+        let code      = .ue()
         let magnitude = cast(s32) ((code + 1) >> 1)
         return code & 1 ? magnitude : -magnitude
     }

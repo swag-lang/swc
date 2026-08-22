@@ -522,8 +522,8 @@ namespace
         SWC_ASSERT(encodeCtx.rightPayload);
         SWC_ASSERT(encodeCtx.resultTypeRef.isValid());
 
-        const TypeManager& typeMgr    = codeGen.typeMgr();
-        const TypeInfo&    vecType    = typeMgr.get(encodeCtx.resultTypeRef);
+        const TypeManager& typeMgr = codeGen.typeMgr();
+        const TypeInfo&    vecType = typeMgr.get(encodeCtx.resultTypeRef);
         SWC_ASSERT(vecType.isSimd());
         const TypeInfo& laneType  = typeMgr.get(vecType.payloadSimdLaneTypeRef());
         const bool      leftIsVec = typeMgr.get(encodeCtx.leftOperandTypeRef).isSimd();

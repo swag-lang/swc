@@ -87,7 +87,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ABI_SwagSimdArgsUseExtendedRegistersThenWideStackSlots)
 {
-    const CallConv& swag = CallConv::swag();
+    const CallConv&                         swag       = CallConv::swag();
     const std::array<ABICall::ArgLayout, 8> argLayouts = {{{128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}}};
 
     if (!swag.canPassArgInRegister(4, true, 128) || !swag.canPassArgInRegister(5, true, 128))
@@ -100,7 +100,7 @@ SWC_TEST_BEGIN(ABI_SwagSimdArgsUseExtendedRegistersThenWideStackSlots)
         return Result::Error;
 
     const uint32_t expectedFrameBaseSize = swag.stackShadowSpace + 32;
-    const uint32_t expectedAdjust = expectedFrameBaseSize + (swag.stackAlignment + sizeof(void*) - expectedFrameBaseSize % swag.stackAlignment) % swag.stackAlignment;
+    const uint32_t expectedAdjust        = expectedFrameBaseSize + (swag.stackAlignment + sizeof(void*) - expectedFrameBaseSize % swag.stackAlignment) % swag.stackAlignment;
     if (ABICall::computeCallStackAdjust(CallConvKind::Swag, argLayouts) != expectedAdjust)
         return Result::Error;
 }

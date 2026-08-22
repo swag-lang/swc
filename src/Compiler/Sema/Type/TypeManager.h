@@ -117,7 +117,7 @@ public:
     }
 
     // Selects one of 'SymbolStruct::opDrop', 'opPostCopy' or 'opPostMove'.
-    using LifecycleOperator = const SymbolFunction* (SymbolStruct::*)() const;
+    using LifecycleOperator = const SymbolFunction* (SymbolStruct::*) () const;
 
     // True when the type, or anything inside it, declares that lifecycle operator directly.
     // Aliases and array element types are transparent, and a struct is also reached through

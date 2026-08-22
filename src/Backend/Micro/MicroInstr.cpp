@@ -177,8 +177,8 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
 
         // Call instructions consume ABI argument registers implicitly. Keep them live so
         // register allocation and later rewrites cannot reuse them before the call.
-        const CallConv& callConv = CallConv::get(useDef.callConv);
-        const size_t defaultArgCount = callConv.numArgRegisterSlots();
+        const CallConv& callConv        = CallConv::get(useDef.callConv);
+        const size_t    defaultArgCount = callConv.numArgRegisterSlots();
         addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, false), defaultArgCount);
         addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, true), defaultArgCount);
         for (const MicroReg reg : callConv.intTransientRegs)

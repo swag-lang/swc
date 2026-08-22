@@ -7,7 +7,7 @@ using Core, Core.Math, Pixel
 // one line; and the horizontal gap, as a share of the run height, past which two runs on one
 // line are two words rather than one split by kerning.
 private const TextLineOverlap = 0.5'f32
-private const TextWordGap     = 0.18'f32
+private const TextWordGap = 0.18'f32
 
 // One code of a run: the byte range it decoded to inside the run's text, and the horizontal
 // span it covers in the item's local units.
@@ -24,17 +24,17 @@ public struct TextCode
 #[Swag.NoDoc]
 public struct TextRun
 {
-    item:      u32           // Index of the page item.
-    textStart: u64           // Byte range this run holds inside the page text.
+    item:      u32     // Index of the page item.
+    textStart: u64     // Byte range this run holds inside the page text.
     textEnd:   u64
     rect:      Rectangle     // Page-space bounding rectangle.
 
     // Per-code geometry only exists for an upright run: a rotated or sheared one keeps its
     // bounding rectangle and answers at run granularity.
     axisAligned: bool
-    originX:     f32               // Page-space x of the run's local origin.
-    scaleX:      f32               // Local-to-page horizontal scale.
-    codes:       Array'TextCode    // Per-code spans, in text order.
+    originX:     f32                // Page-space x of the run's local origin.
+    scaleX:      f32                // Local-to-page horizontal scale.
+    codes:       Array'TextCode     // Per-code spans, in text order.
 }
 
 // The text of one page in reading order, with the geometry to hit-test, select, and highlight
@@ -102,7 +102,7 @@ impl TextIndex
             while lineEnd < seeds.count and seeds[lineEnd].yCenter < lineBottom
             {
                 lineBottom = Math.max(lineBottom, seeds[lineEnd].yCenter + seeds[lineEnd].height * TextLineOverlap)
-                lineEnd += 1
+                lineEnd    += 1
             }
 
             sortLineByX(&seeds, scan, lineEnd)
@@ -133,8 +133,8 @@ impl TextIndex
 
             var run = seed.run
             run.textStart = .text.length
-            .text += seed.text
-            run.textEnd = .text.length
+            .text         += seed.text
+            run.textEnd   = .text.length
             .runs.add(#move run)
             previousRight = Math.max(previousRight, seed.run.rect.right())
         }
@@ -183,10 +183,10 @@ impl TextIndex
         else
         {
             // A rotated run keeps the bounding box of its transformed corners.
-            var minX = Swag.F32.Max
-            var minY = Swag.F32.Max
-            var maxX = -Swag.F32.Max
-            var maxY = -Swag.F32.Max
+            var minX              = Swag.F32.Max
+            var minY              = Swag.F32.Max
+            var maxX              = -Swag.F32.Max
+            var maxY              = -Swag.F32.Max
             let cornersX: [4] f32 = [0, width, 0, width]
             let cornersY: [4] f32 = [0, 0, item.fontSize, item.fontSize]
             for corner in 4
@@ -217,14 +217,14 @@ impl TextIndex
         var x = 0.0'f32
         if item.textCodes.count and item.textCodes.count == item.textAdvances.count and item.fontIndex < page.fonts.count
         {
-            let font = &page.fonts[item.fontIndex]
+            let font      = &page.fonts[item.fontIndex]
             var byteStart = 0'u64
             for code, index in item.textCodes
             {
                 let codeString = font.codeText(code)
                 let byteEnd    = Math.min(byteStart + codeString.length, item.text.length)
                 codes.add({cast(u32) byteStart, cast(u32) byteEnd, x, x + item.textAdvances[index]})
-                x += item.textAdvances[index]
+                x         += item.textAdvances[index]
                 byteStart = byteEnd
             }
 
@@ -242,7 +242,7 @@ impl TextIndex
             let {value, eat} = Utf8.decodeRune(source[scan to])
             let advance      = item.standardFont.glyphWidth(value) * item.fontSize
             codes.add({cast(u32) scan, cast(u32) (scan + eat), x, x + advance})
-            x += advance
+            x    += advance
             scan += eat
         }
 
@@ -355,7 +355,7 @@ impl TextIndex
         }
 
         starts.add(scan)
-        let position = Math.min(offset, @countof(source) - 1)
+        let position  = Math.min(offset, @countof(source) - 1)
         var runeIndex = 0'u64
         for i in words.count where starts[i] <= position do
             runeIndex = i

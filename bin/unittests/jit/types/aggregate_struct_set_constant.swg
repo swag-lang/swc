@@ -7,9 +7,9 @@
 // uninitialized argument (an empty string), and a non-nullable one asserted in code
 // generation because the identifier had lost its constant.
 
-const KEY  = "text"
+const KEY          = "text"
 const TKEY: string = "text"
-const NUM  = 42
+const NUM          = 42
 
 struct NullableName
 {

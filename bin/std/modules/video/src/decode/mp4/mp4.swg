@@ -24,9 +24,9 @@ const VideoHandlerId      = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
 const ElementaryStreamId  = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
 const Mpeg4VisualId       = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
 
-const SyncSampleId        = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
-const CompositionId       = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
-const AvcConfigId         = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
+const SyncSampleId  = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
+const CompositionId = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
+const AvcConfigId   = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
 
 const JpegCodecIds: [3] u32 = [
     fourCc('j'u32, 'p'u32, 'e'u32, 'g'u32),
@@ -611,7 +611,7 @@ impl Track
             if entry.sampleDelta != delta do
                 constant = false
             samples += entry.sampleCount
-            ticks += cast(u64) entry.sampleCount * cast(u64) entry.sampleDelta
+            ticks   += cast(u64) entry.sampleCount * cast(u64) entry.sampleDelta
         }
 
         if samples != .sizes.count do
@@ -629,8 +629,8 @@ impl Track
         // The average `timescale * samples / ticks`, reduced so it fits the rate's parts.
         var numerator   = cast(u64) .timescale * samples
         var denominator = ticks
-        var a = numerator
-        var b = denominator
+        var a           = numerator
+        var b           = denominator
         while b != 0
         {
             let remainder = a % b
@@ -638,7 +638,7 @@ impl Track
             b = remainder
         }
 
-        numerator /= a
+        numerator   /= a
         denominator /= a
         if numerator <= Swag.U32.Max and denominator <= Swag.U32.Max do
             return FrameRate.create(cast(u32) numerator, cast(u32) denominator)
@@ -678,7 +678,7 @@ impl Track
                 if index >= result.count do
                     break
                 result[index] += cast(s64) entry.offset
-                index += 1
+                index         += 1
             }
         }
 

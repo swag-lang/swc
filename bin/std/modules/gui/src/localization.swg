@@ -73,15 +73,15 @@ struct Strings
         browser_StatusFiles:    string = "files"                                       // Status word for several files.
         browser_StatusSelected: string = "  —  % selected"                             // Status suffix with the selection count.
 
-        markdown_AlertNote:      string = "Note"                                                                       // Title of a Markdown [!NOTE] alert.
-        markdown_AlertTip:       string = "Tip"                                                                        // Title of a Markdown [!TIP] alert.
-        markdown_AlertImportant: string = "Important"                                                                  // Title of a Markdown [!IMPORTANT] alert.
-        markdown_AlertWarning:   string = "Warning"                                                                    // Title of a Markdown [!WARNING] alert.
-        markdown_AlertCaution:   string = "Caution"                                                                    // Title of a Markdown [!CAUTION] alert.
-        markdown_EmptyDocument:  string = "This Markdown document is empty."                                           // Placeholder paragraph of an empty document.
-        markdown_LoadFailed:     string = "Unable to read this Markdown document."                                     // Document body shown when loading stops.
-        markdown_ReadFailed:     string = "Markdown source could not be read"                                          // Fallback load-failure reason.
-        markdown_NotUtf8:        string = "Markdown source contains a zero byte and is not supported UTF-8 text"      // Load-failure reason for binary input.
+        markdown_AlertNote:      string = "Note"                                                                     // Title of a Markdown [!NOTE] alert.
+        markdown_AlertTip:       string = "Tip"                                                                      // Title of a Markdown [!TIP] alert.
+        markdown_AlertImportant: string = "Important"                                                                // Title of a Markdown [!IMPORTANT] alert.
+        markdown_AlertWarning:   string = "Warning"                                                                  // Title of a Markdown [!WARNING] alert.
+        markdown_AlertCaution:   string = "Caution"                                                                  // Title of a Markdown [!CAUTION] alert.
+        markdown_EmptyDocument:  string = "This Markdown document is empty."                                         // Placeholder paragraph of an empty document.
+        markdown_LoadFailed:     string = "Unable to read this Markdown document."                                   // Document body shown when loading stops.
+        markdown_ReadFailed:     string = "Markdown source could not be read"                                        // Fallback load-failure reason.
+        markdown_NotUtf8:        string = "Markdown source contains a zero byte and is not supported UTF-8 text"     // Load-failure reason for binary input.
 
         // Context-menu vocabulary shared by every text-bearing view: editors, the HTML and PDF
         // viewers, and any control offering its selection to the clipboard.

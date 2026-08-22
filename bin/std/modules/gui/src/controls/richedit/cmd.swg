@@ -382,9 +382,9 @@ impl RichEditCtrl
         }
     }
 
-    internal const CtxCut       = "RichEdit.CtxCut"
-    internal const CtxCopy      = "RichEdit.CtxCopy"
-    internal const CtxPaste     = "RichEdit.CtxPaste"
+    internal const CtxCut = "RichEdit.CtxCut"
+    internal const CtxCopy = "RichEdit.CtxCopy"
+    internal const CtxPaste = "RichEdit.CtxPaste"
     internal const CtxSelectAll = "RichEdit.CtxSelectAll"
 
     // Offers the clipboard vocabulary at `surfacePos`, honoring the read-only state.

@@ -152,7 +152,7 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let a = cast(Simd.S16x8) [-5's16, 10, -300, 4, 0, 1, -1, 32767]
     let r = Math.abs(a)
     @assert(r[0] == 5 and r[2] == 300 and r[7] == 32767)
-    let wide = cast(Simd.S64x2) [CoreSimdS64Min, -9_000_000_000]
+    let wide    = cast(Simd.S64x2) [CoreSimdS64Min, -9_000_000_000]
     let wideAbs = Math.abs(wide)
     @assert(wideAbs[0] == CoreSimdS64Min and wideAbs[1] == 9_000_000_000)
     @assert(Math.min(wide, Simd.splat(-7's64))[0] == CoreSimdS64Min)

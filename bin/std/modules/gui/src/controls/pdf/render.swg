@@ -463,6 +463,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             try drawTextItem(painter, fonts, fontCache, page, item, placed, fallbackFontFile)
 
         case .Path:
+
             // A page states its fill rule over the winding count, so the fill has to be
             // named rather than left to the winding direction of whatever the writer emitted.
             if item.hasFill do

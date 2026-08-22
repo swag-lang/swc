@@ -22,18 +22,18 @@ port targets. Explicit adapters such as `Image.from(HBITMAP)` may remain Windows
 portability debt only when a portable module or application has to mention their types, constants,
 message numbers, or calling conventions.
 
-The starting platform-specific body, excluding OpenGL and raw binding modules, is large enough to
-justify one coordinated campaign:
+As of 2026-08-22, the platform-specific body, excluding OpenGL and raw binding modules, is large
+enough to justify one coordinated campaign:
 
 | Area | Platform files | Lines |
 | --- | ---: | ---: |
-| `bin/runtime/os_windows.swg` | 1 | 694 |
-| `std/core` (`.win32.swg` and `.xinput.swg`) | 28 | 3,396 |
-| `std/gui` (`.win32.swg`, excluding tests) | 5 | 2,448 |
-| `std/pixel` (`.win32.swg`, excluding OpenGL and tests) | 3 | 393 |
-| `std/audio` XAudio2 backend | 1 | 479 |
-| sSnapForge | 1 | 287 |
-| sVaultDrive, including its platform integration test | 9 | 2,138 |
+| `bin/runtime/os_windows.swg` | 1 | 426 |
+| `std/core` (`.win32.swg` and `.xinput.swg`) | 29 | 3,050 |
+| `std/gui` (`.win32.swg`, excluding tests) | 5 | 2,967 |
+| `std/pixel` (`.win32.swg`, excluding OpenGL and tests) | 3 | 399 |
+| `std/audio` XAudio2 backend | 1 | 504 |
+| sSnapForge | 1 | 308 |
+| sVaultDrive, including its platform integration test | 11 | 2,454 |
 
 Those numbers are an inventory, not a deletion target. A small native backend is healthy. The
 target is that code above it compiles and is tested without importing a native binding, and that a

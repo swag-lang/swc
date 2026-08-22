@@ -120,7 +120,7 @@ func nestedSquares()->LinePathList
     painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
     painter.end()
 
-    let cache = list.fillCache!
+    let cache         = list.fillCache!
     var triangleCount = 0'u64
     for p in cache.paths do
         triangleCount += p.triangles.vertices.count

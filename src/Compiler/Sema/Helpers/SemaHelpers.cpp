@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -324,12 +325,26 @@ namespace
         return false;
     }
 
-    bool isNarrowRootVariable(const SymbolVariable& symVar)
+    bool isNarrowRootVariable(Sema& sema, const SymbolVariable& symVar)
     {
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) ||
-            symVar.hasGlobalStorage() ||
-            symVar.isClosureCapture())
+        if (symVar.isClosureCapture())
             return false;
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) || symVar.hasGlobalStorage())
+        {
+            // An ordinary inline body was already checked with its receiver parameter as
+            // a stable narrowing root. Direct receiver substitution can turn that root
+            // into a global variable at the call site; keep the callee's local proof valid.
+            const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+            if (!inlinePayload || !inlinePayload->sourceFunction)
+                return false;
+
+            const AttributeList& attributes = inlinePayload->sourceFunction->attributes();
+            if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
+                return false;
+
+            return true;
+        }
 
         return symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                symVar.hasExtraFlag(SymbolVariableFlagsE::Let) ||
@@ -454,7 +469,7 @@ bool SemaHelpers::extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4
     const Symbol*      sym  = view.singleSymbol();
     if (!sym || !sym->isVariable())
         return false;
-    if (!isNarrowRootVariable(sym->cast<SymbolVariable>()))
+    if (!isNarrowRootVariable(sema, sym->cast<SymbolVariable>()))
         return false;
 
     outPath.push_back(sym);

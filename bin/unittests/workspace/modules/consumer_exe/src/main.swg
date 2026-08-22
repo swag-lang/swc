@@ -26,6 +26,8 @@ struct CtxSelfBufferWrapper
 func keepDepScore(score: IDepScore)->IDepScore => score
 
 var gImportedDefaultOuter: DepImportedDefaultOuter
+var gStaticInlineStorage = [7'u8]
+var gStaticInlineBuffer: StaticInlineBuffer
 const IMPORTED_DEFAULT_OUTER: DepImportedDefaultOuter
 
 func verifyImportedImplicitStructDefaults()
@@ -202,6 +204,15 @@ func verifyExportAndStaticModules()
     var staticInferredDepOwner: StaticInferredDepOwner
     staticInferredDepOwner.namespaced.value = 15
     @assert(staticInferredDepOwner.getNamespaced().value == 15)
+
+    gStaticInlineStorage[0] = 7
+    gStaticInlineBuffer.buffer = &gStaticInlineStorage[0]
+    gStaticInlineBuffer.clearFirst()
+    @assert(gStaticInlineStorage[0] == 0)
+
+    var staticOpaqueInline: StaticOpaqueInline
+    staticOpaqueInline.init(42)
+    @assert(staticOpaqueInline.getValue() == 42)
 
     var ignoredContainer: DepIgnoredContainer
     ignoredContainer.run()

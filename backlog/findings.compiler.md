@@ -186,6 +186,10 @@ Entries are sorted by identifier, ascending; position carries no priority.
   and restoring the exact original file kept it green through three more runs. The same
   sources and the same `swc.exe` therefore produced a wrong `video.dll` (or a wrong `core.dll`
   under it) until an unrelated touch invalidated the artifact chain.
+- Evidence: six consecutive video-suite runs reported the same 839/809/742-byte divergences on
+  the three fixtures, including after every source reversion and on the committed tree. A
+  semantic no-op touch of `core/src/thread/job.swg` rebuilt the dependency chain; the next run
+  and three runs after restoring the original bytes all passed with the same compiler binary.
 - Aggravating context: the compiler binary was a 0.1.167 build while `src/Main/Version.h`
   already said 168, after another session rebuilt the executables mid-day; the version key in
   the caches cannot distinguish the two binaries that both call themselves what they embed.

@@ -22,4 +22,5 @@ impl PointerReceiverNarrowing
     value.buffer = &storage[0]
     value.clearFirst()
     @assert(storage[0] == 0)
+
 }

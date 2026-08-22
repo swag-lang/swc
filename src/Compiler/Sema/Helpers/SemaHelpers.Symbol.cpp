@@ -1058,6 +1058,16 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, leftRef, symbols.span());
     }
 
+    bool optionalAccessWasValidatedBeforeInlining(Sema& sema)
+    {
+        const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        if (!inlinePayload || !inlinePayload->sourceFunction)
+            return false;
+
+        const AttributeList& attributes = inlinePayload->sourceFunction->attributes();
+        return !attributes.hasRtFlag(RtAttributeFlagsE::Macro) && !attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+    }
+
     Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef)
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
@@ -1459,7 +1469,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         if (nodeLeftView.hasSymbolList() && nodeLeftView.symList().size() > 1)
             return reportAmbiguousMemberAccessLeft(sema, node.nodeLeftRef, nodeLeftView);
 
-        SWC_ASSERT(nodeLeftView.type());
+        return Result::Error;
     }
 
     // Enum
@@ -1474,11 +1484,16 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     {
         // '?.' takes the guarded route: it requires a left side that can actually be
         // null. Legality is judged on the DECLARED type so a redundant '?.' inside a
-        // narrowed region stays valid (the flow proof makes the test dead, not wrong).
-        const TypeRef storedLeftTypeRef = sema.viewStored(node.nodeLeftRef, SemaNodeViewPartE::Type).typeRef();
-        const TypeRef unwrappedLeftRef  = storedLeftTypeRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), storedLeftTypeRef) : TypeRef::invalid();
-        if (unwrappedLeftRef.isInvalid() || !sema.typeMgr().get(unwrappedLeftRef).isNullable())
-            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_optional_access_not_nullable, node.nodeLeftRef, nodeLeftView.typeRef());
+        // narrowed region stays valid (the flow proof makes the test dead, not wrong). An
+        // ordinary inline clone has already passed this check in the callee; its substituted
+        // left payload can carry the non-null call-site type instead of the declared one.
+        if (!optionalAccessWasValidatedBeforeInlining(sema))
+        {
+            const TypeRef storedLeftTypeRef = sema.viewStored(node.nodeLeftRef, SemaNodeViewPartE::Type).typeRef();
+            const TypeRef unwrappedLeftRef  = storedLeftTypeRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), storedLeftTypeRef) : TypeRef::invalid();
+            if (unwrappedLeftRef.isInvalid() || !sema.typeMgr().get(unwrappedLeftRef).isNullable())
+                return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_optional_access_not_nullable, node.nodeLeftRef, nodeLeftView.typeRef());
+        }
     }
     else if (useSiteTypeIsNullable(sema, nodeLeftView))
     {

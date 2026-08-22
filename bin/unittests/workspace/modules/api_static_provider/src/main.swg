@@ -31,6 +31,17 @@ struct StaticInferredDepOwner
     public namespaced: DepTools.DepNamespaced
 }
 
+struct StaticInlineBuffer
+{
+    public buffer: #null [*] u8
+}
+
+#[Swag.Opaque]
+struct StaticOpaqueInline
+{
+    internal value: u32
+}
+
 impl DepCalculator
 {
     func make(base: s32)->DepCalculator
@@ -55,4 +66,25 @@ impl StaticInferredDepOwner
 {
     #[Swag.Inline]
     mtd getNamespaced() => &.namespaced
+}
+
+impl StaticInlineBuffer
+{
+    #[Swag.Inline]
+    mtd clearFirst()
+    {
+        if .buffer do
+            .buffer[0] = 0
+    }
+}
+
+impl StaticOpaqueInline
+{
+    mtd init(value: u32)
+    {
+        .value = value
+    }
+
+    #[Swag.Inline]
+    mtd getValue()->u32 => .value
 }

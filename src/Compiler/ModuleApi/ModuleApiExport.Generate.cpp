@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
@@ -20,7 +21,10 @@ namespace
     using ModuleApiExport::extractPublicNamespacePath;
     using ModuleApiExport::findExportDeclRoot;
     using ModuleApiExport::isCurrentModuleSourceFile;
+    using ModuleApiExport::isCurrentModuleSymbol;
     using ModuleApiExport::isExportedPublicDeclScope;
+    using ModuleApiExport::isModuleApiOpaqueType;
+    using ModuleApiExport::isWholeFileExportedSymbol;
     using ModuleApiExport::ModuleApiGeneratedRoot;
     using ModuleApiExport::moduleApiNodeSourceView;
     using ModuleApiExport::moduleApiSnippetStartTokRef;
@@ -46,6 +50,61 @@ namespace
             default:
                 return false;
         }
+    }
+
+    bool isGeneratedInlineBodySymbolAvailable(TaskContext& ctx, const SymbolFunction& function, const Symbol& symbol)
+    {
+        if (!isCurrentModuleSymbol(ctx.compiler(), symbol) || isWholeFileExportedSymbol(ctx.compiler(), symbol))
+            return true;
+
+        if (const auto* variable = symbol.safeCast<SymbolVariable>())
+        {
+            if (variable->isFunctionLocalVariable(function) || function.containsLocalVariable(*variable))
+                return true;
+
+            const SymbolMap* owner = variable->ownerSymMap();
+            while (owner)
+            {
+                if (owner->isStruct() && isModuleApiOpaqueType(owner->cast<SymbolStruct>()))
+                    return false;
+                owner = owner->ownerSymMap();
+            }
+        }
+
+        return symbol.isPublic();
+    }
+
+    bool canExportGeneratedInlineBody(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const SymbolFunction& function)
+    {
+        const auto* functionDecl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!root.file || !functionDecl || functionDecl->nodeBodyRef.isInvalid())
+            return false;
+
+        bool       canExport = true;
+        const Ast& ast       = root.file->ast();
+        Ast::visit(ast, functionDecl->nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode&) {
+            const NodePayload::StoredView view = root.file->nodePayloadContext().viewStored(ctx, nodeRef);
+            if (view.hasSymbol && view.sym && !isGeneratedInlineBodySymbolAvailable(ctx, function, *view.sym))
+            {
+                canExport = false;
+                return Ast::VisitResult::Stop;
+            }
+
+            if (view.hasSymbolList)
+            {
+                for (const Symbol* symbol : view.symList)
+                {
+                    if (symbol && !isGeneratedInlineBodySymbolAvailable(ctx, function, *symbol))
+                    {
+                        canExport = false;
+                        return Ast::VisitResult::Stop;
+                    }
+                }
+            }
+
+            return Ast::VisitResult::Continue;
+        });
+        return canExport;
     }
 
     bool tryGetSwagAttributeIntValue(uint32_t& outValue, TaskContext& ctx, const Symbol& symbol, std::string_view attrName)
@@ -742,7 +801,7 @@ namespace ModuleApiExport
 
             if (symbolFunction->supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
             {
-                if (symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Inline))
+                if (symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Inline) && canExportGeneratedInlineBody(ctx, root, *symbolFunction))
                     return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
 
                 outSnippet = buildFunctionSnippet(ctx, root, eol);

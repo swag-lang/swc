@@ -193,6 +193,12 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Aggravating context: the compiler binary was a 0.1.167 build while `src/Main/Version.h`
   already said 168, after another session rebuilt the executables mid-day; the version key in
   the caches cannot distinguish the two binaries that both call themselves what they embed.
+- Resolution: the saved failure shape was reproduced with clean 0.1.169/170 builds and bisected
+  to generated module APIs re-emitting public `#[Swag.Inline]` bodies. Replacing only the generated
+  `core.swg` with the pre-change API made all 48 video tests pass while keeping the newly compiled
+  `core.dll`. The isolated bodies contained atomics and other compiler intrinsics, whose lowering
+  and effect contracts are not represented in a generated API. API generation now keeps inline
+  bodies containing intrinsics as foreign declarations.
 - Next step: on the next occurrence, before touching anything, save the whole `.output` tree
   of the failing module and its dependencies, plus the exact failing test output; then diff the
   stale artifact against the rebuilt one to identify which product (object, module interface,

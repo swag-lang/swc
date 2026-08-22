@@ -74,6 +74,18 @@ namespace
         return symbol.isPublic();
     }
 
+    bool isGeneratedInlineBodyIntrinsicExportable(const AstNode& node)
+    {
+        if (node.isNot(AstNodeId::IntrinsicCallExpr))
+            return true;
+
+        // Generated APIs do not carry an intrinsic's lowering and effect contract. Re-emitting
+        // one in a consumer can therefore differ from calling the provider's compiled entry;
+        // atomics in particular need the foreign call's cross-module memory boundary. Keep the
+        // declaration foreign until that contract is represented explicitly in the API.
+        return false;
+    }
+
     bool canExportGeneratedInlineBody(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const SymbolFunction& function)
     {
         const auto* functionDecl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
@@ -82,7 +94,13 @@ namespace
 
         bool       canExport = true;
         const Ast& ast       = root.file->ast();
-        Ast::visit(ast, functionDecl->nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode&) {
+        Ast::visit(ast, functionDecl->nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
+            if (!isGeneratedInlineBodyIntrinsicExportable(node))
+            {
+                canExport = false;
+                return Ast::VisitResult::Stop;
+            }
+
             const NodePayload::StoredView view = root.file->nodePayloadContext().viewStored(ctx, nodeRef);
             if (view.hasSymbol && view.sym && !isGeneratedInlineBodySymbolAvailable(ctx, function, *view.sym))
             {

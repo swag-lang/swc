@@ -119,15 +119,27 @@ namespace
         if (paramTypeRef.isValid() && exprRef.isValid())
         {
             const TypeInfo& paramType = param.type(sema.ctx());
+            const SemaNodeView exprView(sema, exprRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             if (paramType.isAnyTypeInfo(sema.ctx()))
             {
-                const SemaNodeView exprView(sema, exprRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                 if (exprView.cstRef().isValid() && exprView.type() && exprView.type()->isAnyTypeInfo(sema.ctx()))
                 {
                     binding.typeRef = paramTypeRef;
                     binding.cstRef  = exprView.cstRef();
                     return;
                 }
+            }
+
+            // The selected call has already folded a contextual `cast()` to the parameter
+            // type. Bind that result directly: cloning the still-destinationless syntax can
+            // make several deduced arguments share the last contextual substitute.
+            if (sema.node(exprRef).is(AstNodeId::AutoCastExpr) &&
+                exprView.cstRef().isValid() &&
+                exprView.typeRef() == paramTypeRef)
+            {
+                binding.typeRef = paramTypeRef;
+                binding.cstRef  = exprView.cstRef();
+                return;
             }
         }
 

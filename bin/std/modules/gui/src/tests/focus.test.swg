@@ -706,9 +706,10 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
 // The ring takes the corner of the control, and the corner is a decision the palette makes.
 //
-// The Swag palettes point a push button at the edit tiles, so the same button is a capsule under
-// the neutral theme and a square-cornered tile under theirs. The image is the contract: a mark
-// shaped for the capsule and carried onto the tile crosses its own control at all four corners.
+// The Swag palettes point a push button at the slightly rounded edit tiles, so the same button is
+// a capsule under the neutral theme and a compact four-pixel corner under theirs. The image is the
+// contract: a mark shaped for the capsule and carried onto the tile crosses its own control at all
+// four corners.
 #test
 {
     var host: Testing.HeadlessHost

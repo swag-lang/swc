@@ -194,11 +194,10 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     @assert(iconButtonColorCount(&framed, border) > 0)
 }
 
-// The checked frame is drawn on the shape of the button it marks, not on a shape of its own.
+// The checked frame is drawn on the shape the active palette gives the button.
 //
-// It lands over the fill the hovered state leaves under it, so a rounded hairline around a square
-// tool crosses the ground it is standing on at four places, and the pair reads as two controls
-// stacked rather than as one that is picked.
+// A rectangular tool is slightly rounded in a Swag palette and square in a neutral one. The frame
+// and focus ring have to move with that choice, or either mark crosses the fill at the corners.
 #test
 {
     var host: Testing.HeadlessHost
@@ -213,7 +212,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
     let border = host.theme.colors.btnIcon_CheckedFrameBorder
 
-    // A rounded tool cuts its own corner, so the pixel of the cell's corner is left to the ground.
+    // An explicitly rounded tool cuts its own corner.
     btn.setForm(.RoundedRectangle)
     host.finishAnimations()
     var rounded = host.render()
@@ -221,12 +220,21 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     @assert(btn.focusRingRadius == host.theme.rects.btnIcon_RoundSquareBk.radius)
     @assert(rounded.pixelColor(20, 20) != border)
 
-    // A square one keeps that corner, and the ring it publishes says the same thing.
+    // The Swag palette gives a rectangular tool the same slight corner.
     btn.setForm(.Rectangle)
     host.finishAnimations()
-    var squared = host.render()
-    @assert(iconButtonColorCount(&squared, border) > iconButtonColorCount(&rounded, border))
+    var softened = host.render()
     @assert(btn.focusRingRadius == host.theme.rects.btnIcon_SquareBk.radius)
+    @assert(softened.pixelColor(20, 20) != border)
+
+    // The neutral palette restores the hard square and the marks follow it.
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
+    host.finishAnimations()
+    var squared       = host.render()
+    let neutralBorder = host.theme.colors.btnIcon_CheckedFrameBorder
+    @assert(btn.focusRingRadius == 0)
+    @assert(iconButtonColorCount(&squared, neutralBorder) > 0)
 }
 
 // The two indicator-less placements differ by what they leave the state colors saying: `None`

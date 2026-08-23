@@ -162,8 +162,8 @@ The keyboard-focus ring is the worked example, and every rule it follows applies
 drawn *over* a control rather than *by* it.
 
 - **Take the corner from what you are marking, not from the theme.** A palette decides the shape of
-  a control — `setSwagGeometry` points a push button at the edit tiles, so the same button is a
-  capsule under one palette and a square-cornered tile under another. A mark with a corner of its
+  a control — `setSwagGeometry` points actions and rectangular tool cells at the four-pixel edit
+  tile, while another palette may keep a capsule or a hard square. A mark with a corner of its
   own therefore crosses its own control at four places in exactly one of them.
   [[Gui.ThemeImageRect.radius]] is where a tile says what corner it draws, so a widget publishes it
   from the tile it painted ([[Gui.Wnd.focusRingRadius]]) and the mark steps it in by its own inset
@@ -196,10 +196,13 @@ Anything else goes through `ThemeColors`.
 
 ### A palette answers for geometry too
 
-`Theme.setSwagDark`/`setSwagLight` narrow the surface corner and point the push button at the
-edit tiles. `Theme.setDark`/`setLight` put both back. Applying a palette must always be total:
-a theme that only sets colors leaves square buttons under a blue accent when a surface leaves
-it. If you add a geometric decision to one palette, add its inverse to `setDefaultGeometry`.
+`Theme.setSwagDark`/`setSwagLight` narrow the surface corner and point push buttons, rectangular
+tool cells, their full checked states, and standalone panels at the same four-pixel tile. Hover
+and selection grounds reuse `selectionBox_Bk`, which carries that radius through lists, headers
+and property rows. `Theme.setDark`/`setLight` put palette-specific geometry back. Applying a
+palette must always be total: a theme that only sets colors leaves the previous palette's shapes
+under its new accent. If you add a geometric decision to one palette, add its inverse to
+`setDefaultGeometry`.
 
 ## Theme Sheets
 

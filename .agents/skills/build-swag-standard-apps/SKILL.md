@@ -120,16 +120,14 @@ glyph, another app's icon, or a letter tile.
   tool, whitespace the second, and a rule the last. Every border and every divider is one more
   line a reader has to step over, so a surface that answers each grouping question with another
   line ends up as a grid of boxes. Never put a border, a rule, and a fill around the same group.
-- Refuse rounded chrome, not craft. Square means no control is a capsule or a pill, and that a
-  button carries the same corner and the same hairline stroke as the field beside it. It does not
-  mean a hard right angle and a heavy outline on everything: a surface hacked out of a slab has
-  missed the identity as badly as an upholstered one. Curves remain valid inside user content when
-  the app edits or displays curved content. Two things round, and only these two: the outline of
-  the window itself, softened by `surfaceWnd_CornerRadius` so the application sits on the desktop
-  instead of being dropped on it, and a repeated cell that holds content — a thumbnail strip, a
-  swatch grid, a preview tile — at the corner the theme already gives a raised cell
-  (`ThemeImageRects.btnIcon_RoundSquareBk.radius`). Read the radius from the theme rather than
-  naming a number; the chrome between those cells does not follow either of them.
+- Refuse rounded chrome, not craft. No control is a capsule or a pill, and a button carries the
+  same four-pixel corner and hairline stroke as the field beside it. The same slight corner finishes
+  rectangular icon cells, hover and selection grounds, repeated content cells and standalone
+  raised panels; take it from `ThemeImageRects.btnIcon_RoundSquareBk.radius` rather than naming a
+  number in an application. Joined bars, rails, separators, document grounds and the chrome between
+  those bounded things stay square. The window outline keeps its distinct
+  `surfaceWnd_CornerRadius`, while semantic circles remain fully round. This measured scale keeps
+  the surface cut from a grid without making it look hacked out of a slab.
 - Avoid card soup, repeated shadows, and ornamental illustrations. The one gradient the chart
   admits is the wash the title bar carries to say the window has the focus, and the toolkit draws
   it — an application that adds a second one has decorated a surface rather than informed it. See
@@ -206,9 +204,10 @@ hold it. The interface must read as an instrument at arm's length, never as a to
 - **A small horizontal icon bar frames its active cell.** Use
   `IconButtonCheckIndicator.Frame`: its slight themed fill and a hairline on the button's own
   corner surround the glyph without looking like part of it — the frame takes the form's radius,
-  so a square tool is marked square and a rounded one is marked rounded, and the mark never cuts
-  across the fill the hovered state leaves under it. A vertical tool rail may instead keep a
-  leading `Left` rule, as sSnapForge does, because the rule then reads beside the column. Make
+  so a rectangular tool keeps the palette's slight corner and a circular one stays round, and the
+  mark never cuts across the fill the hovered state leaves under it. A vertical tool rail may
+  instead keep a leading `Left` rule, as sSnapForge does, because the rule then reads beside the
+  column. Make
   the indicator an explicit choice; never use a bottom underline on compact horizontal icons, and
   reserve the rail's lane in every state so vertical content never moves when it is checked.
 - **Nothing sits against the edge of its cell.** A glyph flush with the window edge and a label

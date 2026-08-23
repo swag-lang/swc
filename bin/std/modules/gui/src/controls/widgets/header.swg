@@ -109,7 +109,7 @@ impl IWnd for Header
             var labelPosBk = labelPos
             labelPosBk.x     -= (metrics.header_Separator * 0.5)
             labelPosBk.width += metrics.header_Separator
-            painter.fillRect(labelPosBk, .clicked ? colors.headerItem_ClickedBk : colors.headerItem_HotBk)
+            theme.drawSubRect(painter, labelPosBk, &theme.rects.selectionBox_Bk, .clicked ? colors.headerItem_ClickedBk : colors.headerItem_HotBk)
         }
 
         labelPos.moveLeft(.itemPadding)

@@ -7,7 +7,7 @@ description: Apply the Swag visual identity to the logo, favicons, generated doc
 
 Swag is a compiler that runs your program while it compiles it. The identity says the
 same thing: everything is **cut from a grid**, in a **closed set of tones over one ink**.
-Nothing is rounded, nothing is decorative, and nothing is added that does not carry
+Corners are measured, decoration is absent, and nothing is added that does not carry
 information.
 
 A reader must recognize a Swag surface from three things alone, before reading a word:
@@ -15,29 +15,30 @@ the cut, the voltage, and the ink. That has to hold on paper exactly as it holds
 and holding it there costs more than repeating the same numbers — see **One Family, Two
 Modes**.
 
-**Cut is not the same as rough.** Every edge sits where a rule puts it, and every cut is
-measured. What the identity refuses is softness, not craft: a form that looks hacked out
-of a slab has missed it as badly as one that looks upholstered.
+**Cut is not the same as rough.** Every edge sits where a rule puts it, and every cut or
+curve is measured. What the identity refuses is softness without structure, not craft: a
+form that looks hacked out of a slab has missed it as badly as one that looks upholstered.
 
-**Square is the default, not a law.** A touch of rounding is admissible where a hard right
-angle would read as unfinished rather than as deliberate. Two forms have argued for it and
-won, and both are worth knowing because they are the pattern:
+**Square is the structure; a slight corner finishes the things held inside it.** Bars, rails,
+separators, document grounds and joined chrome stay square because their edges describe the
+surface. A bounded control, state or panel takes a small radius so its hard right angle does not
+read as unfinished. Three measures cover the family:
 
 - **The outline of a window.** It sits on a desktop beside applications that all soften that
   corner, and carried literally the cut turns it into a slab dropped on the screen.
   `ThemeMetrics.surfaceWnd_CornerRadius` is 12 in the Swag palettes — it was 8, which read as a
   bevel on a square window rather than as a decision. **A radius too small to be seen is worse
   than none**: it costs the same pixels and reports nothing.
-- **A repeated cell that holds content.** A thumbnail in a strip, a swatch, a preview tile: a
-  grid of hard right angles reads as a contact sheet rather than as an interface, and a
-  selection frame drawn square around a picture reads as a crop mark rather than as a state.
-  Take the corner the theme already gives a raised cell — `btnIcon_RoundSquareBk.radius`,
-  which is 4 — rather than naming a new number beside it.
+- **The four-pixel interface corner.** Buttons, fields, icon cells, hover and selection grounds,
+  standalone raised panels, thumbnails, swatches and preview tiles all take the corner the theme
+  gives `btnIcon_RoundSquareBk.radius`. Reusing that one radius is what makes a selected icon,
+  the hover beneath it and the panel beside it belong to the same surface.
+- **The full curve.** A radio mark, circular tool or intentionally round control remains circular.
+  It is a semantic shape, not a larger value on the interface-corner scale.
 
-The bounds still hold. Keep the radius small enough that the surface reads as cut; apply it to
-the outline of a form or to the cell of a repeated element, never to the chrome between them; and
-never let it become the reflex — everything the identity draws is square until a specific form
-argues otherwise, and "it looks friendlier" is not an argument.
+The bounds still hold. Keep the interface radius at four logical pixels, never inflate it into a
+capsule, and never apply it to the chrome between bounded things. The result is not "friendlier";
+it is more finished while the grid, the cut and the information hierarchy stay intact.
 
 **A mark drawn over a rounded thing takes that thing's corner, stepped in by its own inset.** A
 frame inset by half its weight is concentric with the cell only if its radius is the cell's minus

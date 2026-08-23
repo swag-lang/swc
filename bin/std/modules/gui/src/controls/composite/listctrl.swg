@@ -797,7 +797,7 @@ private impl ListView
         if isSelected and (!hideSel or .hasFocus()) and !bc.isDisabled
         {
             let colorSel = .hasFocus() ? colors.listItem_FocusSelectedBk : colors.listItem_SelectedBk
-            painter.fillRect(rect, colorSel)
+            theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, colorSel)
             if colors.activeRail.a and .list.selectionMode != .Single
             {
                 let rail = Math.Rectangle{rect.x, rect.y, metrics.activeRail_Size, rect.height}
@@ -808,7 +808,7 @@ private impl ListView
         // Hot box
         elif idx == .list.hotIndex and .list.listFlags.has(.HotTrack) and canHotTrack
         {
-            painter.fillRect(rect, colors.listItem_HotBk)
+            theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, colors.listItem_HotBk)
         }
 
         // User background

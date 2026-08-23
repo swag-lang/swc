@@ -2,9 +2,9 @@ using Core, Gui
 
 // A panel holding a heading, a field form, and one trailing row of actions.
 //
-// The card is a raised surface, not a framed box: it is told apart from the ground by its own
-// fill, so nothing has to be drawn around it or between its parts. The form panels of the main
-// window share this shape, and only their fields differ.
+// The card is a raised surface, not a framed box: [[Gui.BackgroundStyle.Panel]] gives its fill the
+// theme's slight standalone corner, so nothing has to be drawn around it or between its parts.
+// The form panels of the main window share this shape, and only their fields differ.
 struct VaultCard
 {
     panel:    *Wnd             = undefined
@@ -20,7 +20,7 @@ impl VaultCard
     func create(parent: *Wnd, title, subtitle: string)->VaultCard
     {
         let panel = Wnd.create'Wnd(parent)
-        panel.backgroundStyle = .Window
+        panel.backgroundStyle = .Panel
         panel.padding         = {28, 24, 28, 24}
 
         let titleLabel = Label.create(panel, title, {0, 0, 0, 30})

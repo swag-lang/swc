@@ -401,3 +401,28 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     host.pump()
     @assert(list.dropMark == ListDropMark.Before)
 }
+
+// The selected-row state follows the slight corner carried by the theme's selection tile.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(220, 100)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.root.backgroundStyle = .View
+    host.notify(.ThemeChanged)
+
+    let list = ListCtrl.createSimple(&host.root, {20, 20, 180, 60})
+    list.setSelectionMode(.Single)
+    discard list.createLine("selected")
+    list.selectLine(0)
+    host.focus(list.listView!)
+    host.finishAnimations()
+
+    let rect   = list.listView.surfaceRect()
+    let image  = host.render()
+    let corner = image.pixelColor(cast(s32) rect.x, cast(s32) rect.y)
+    let center = image.pixelColor(cast(s32) rect.x + 8, cast(s32) rect.y + 8)
+    @assert(center == host.theme.colors.listItem_FocusSelectedBk)
+    @assert(corner != center)
+}

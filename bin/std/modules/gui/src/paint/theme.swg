@@ -327,22 +327,24 @@ impl Theme
         @init(&.rects, 1)
     }
 
-    // Gives a push button the geometry the theme already gives an edit box.
+    // Gives interactive cells and standalone panels the same slight corner as an edit box.
     //
     // The default atlas draws a push button as a pill, which is the one control that cannot sit
-    // next to a field without looking borrowed from another kit. Pointing it at the edit tiles
-    // is the whole change: same corner, same stroke weight, so a row of a form reads as one
-    // control and not as a box beside a capsule. Nothing else is repointed, because refusing a
-    // capsule is not the same as squaring every corner of the interface.
+    // next to a field without looking borrowed from another kit. The Swag palettes instead use
+    // one four-pixel corner for fields, actions, tool cells, selection states and raised panels.
+    // Structural chrome remains square, so the corner softens a bounded thing without rounding
+    // the bars and rails that join the surface together.
     private mtd setSwagGeometry()
     {
-        // A window is the one form the chart lets round. The cut is a vocabulary for the mark and
-        // for the repeated elements of a page; carried literally onto the outline of a window it
-        // reads as a slab dropped on the desktop, next to every other application that softens
-        // that corner. The radius still has to be seen to do its job: at 8 the corner read as a
-        // bevel on a square window rather than as a decision, so it is 12 — deliberate against
-        // the desktop, and still well short of the 18 the neutral palettes use.
+        // The window outline takes the large corner of the scale. Carried square onto the desktop
+        // it reads as a slab beside every other application; at 8 the corner instead read as a
+        // bevel on that square, so it is 12 — deliberate against the desktop, and still well short
+        // of the 18 the neutral palettes use.
         .metrics.surfaceWnd_CornerRadius = 12
+
+        .rects.panel_Bk              = .rects.edit_SquareBk
+        .rects.btnIcon_SquareBk      = .rects.btnIcon_RoundSquareBk
+        .rects.btnIcon_CheckedSquare = .rects.btnIcon_CheckedRoundSquare
 
         .rects.btnPush_Normal         = .rects.edit_SquareBk
         .rects.btnPush_Hot            = .rects.edit_SquareBk

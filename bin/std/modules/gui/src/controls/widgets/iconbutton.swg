@@ -662,24 +662,10 @@ impl IWnd for IconButton
             if cur.a
             {
                 bc.painter.setParams(.Antialiased)
-                let rad = .overlayRadius(clientRect)
+                let rad = subRectBk!.radius
                 bc.painter.fillRoundRect(clientRect, rad, rad, cur)
             }
         }
-    }
-
-    // Corner radius of the overlay state layer, matching the button's form.
-    mtd overlayRadius(r: Math.Rectangle)->f32
-    {
-        let m = Math.min(r.width, r.height)
-        switch .form
-        {
-        case .Circle:           return m * 0.5
-        case .RoundedRectangle: return Math.min(m * 0.28, 8.0)
-        case .Rectangle:        return 3
-        }
-
-        return 4
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

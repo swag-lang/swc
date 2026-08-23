@@ -25,6 +25,7 @@ internal impl Properties
 
         var colBkBk, colBk, colBorder: Color
 
+        let theme  = .wnd.theme()
         let colors = .wnd.themeColors()
         if item == .selItem
         {
@@ -85,9 +86,9 @@ internal impl Properties
             colBkBk = colors.prop_CategBk
         painter.fillRect(r, colBkBk)
 
-        // Hot and focus ground. It spans the row instead of floating as a rounded card: the
-        // property values are the content, and the row state is only a quiet wash behind them.
-        painter.fillRect(r, item.aniFocusBk.cur())
+        // Hot and focus ground. The slight themed corner keeps the state inside the row without
+        // turning the property value itself into a card.
+        theme.drawSubRect(painter, r, &theme.rects.selectionBox_Bk, item.aniFocusBk.cur())
 
         // The column boundary is visible only while it is being targeted. Extend that live rule
         // through the layout margins so adjacent row segments meet without clipped ends.

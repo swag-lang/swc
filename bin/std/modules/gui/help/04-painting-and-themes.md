@@ -14,7 +14,7 @@ The theme is separated into:
 | [[Gui.ThemePalette]] | The thirty-odd decisions a theme makes |
 | [[Gui.ThemeColors]] | Semantic colors for controls and states, all derived from the palette |
 | [[Gui.ThemeMetrics]] | Sizes, spacing, borders, and timing |
-| [[Gui.ThemeImageRects]] | Regions in the theme image atlas |
+| [[Gui.ThemeImageRects]] | Regions and painted corner radii in the theme image atlas |
 | [[Gui.ThemeStyle]] | A control's resolved font, colors, and resources |
 
 A palette is where a theme is written: grounds, rules, ink, one accent and the ink
@@ -24,6 +24,15 @@ what makes a theme complete by construction — it cannot answer for a button an
 forget the field beside it. The four shipped palettes ([[Gui.Theme.setDark]],
 [[Gui.Theme.setLight]], [[Gui.Theme.setSwagDark]], [[Gui.Theme.setSwagLight]]) are
 token lists and nothing else, and each also restores the geometry it implies.
+
+The Swag palettes use one small four-logical-pixel corner for bounded interface
+parts: fields, actions, rectangular tool cells, hover and selection grounds, and
+standalone raised panels. Joined bars, rails, separators, and document grounds
+remain square; the outer surface uses its larger
+[[Gui.ThemeMetrics.surfaceWnd_CornerRadius]]. Set a window's
+[[Gui.Wnd.backgroundStyle]] to [[Gui.BackgroundStyle.Panel]] when it is a raised
+panel rather than joined application chrome, so its ground follows that geometry
+in every palette.
 
 ```swag
 var palette = Gui.ThemeColors.swagDarkPalette()

@@ -262,28 +262,37 @@ using Swag, Core
     @assert(brandParts > 20)
 }
 
-// A Swag palette carries its own geometry, and it takes the surface corner with it: the outline
-// of a window is the one piece of chrome the chart softens, so the palette narrows the default
-// rather than squaring it. Leaving a Swag palette has to give that geometry back, or a surface
-// that switches to a neutral theme keeps square buttons under a blue accent.
+// A Swag palette carries its own geometry: the window takes the large corner, while actions,
+// rectangular tool cells and standalone panels share the slight interface corner. Leaving a Swag
+// palette has to give that geometry back, or a surface switching to a neutral theme keeps the
+// previous palette's shapes under its new accent.
 #test
 {
     var theme: Theme
     @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
+    @assert(theme.rects.panel_Bk.radius == 0)
+    @assert(theme.rects.btnIcon_SquareBk.radius == 0)
 
     theme.setSwagDark()
     @assert(theme.colors.activeRail == 0xFFF7F900)
     @assert(theme.metrics.surfaceWnd_CornerRadius == 12)
     @assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
+    @assert(theme.rects.panel_Bk.rect == theme.rects.edit_SquareBk.rect)
+    @assert(theme.rects.btnIcon_SquareBk.rect == theme.rects.btnIcon_RoundSquareBk.rect)
+    @assert(theme.rects.btnIcon_CheckedSquare.rect == theme.rects.btnIcon_CheckedRoundSquare.rect)
+    @assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setSwagLight()
     @assert(theme.colors.activeRail == 0xFF7E8000)
     @assert(theme.metrics.surfaceWnd_CornerRadius == 12)
+    @assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setDark()
     @assert(theme.colors.activeRail.a == 0)
     @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
     @assert(theme.rects.btnPush_Normal.rect != theme.rects.edit_SquareBk.rect)
+    @assert(theme.rects.panel_Bk.radius == 0)
+    @assert(theme.rects.btnIcon_SquareBk.radius == 0)
 
     theme.setSwagLight()
     theme.setLight()

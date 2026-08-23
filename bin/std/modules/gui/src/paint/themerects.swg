@@ -166,5 +166,7 @@ struct ThemeImageRects
         colorPicker_SquarePick: ThemeImageRect = {{169, 169, 27, 27}, 13, 7}        // Theme atlas region used for color picker square pick.
         colorPicker_Bk:         ThemeImageRect = {{141, 197, 27, 27}, 13, 5}        // Theme atlas region used for color picker bk.
         colorPicker_Border:     ThemeImageRect = {{169, 197, 27, 27}, 13, 6}        // Theme atlas region used for color picker border.
+
+        panel_Bk: ThemeImageRect = {{1, 29, 27, 27}, 9, 0}     // Ground of a standalone content panel.
     }
 }

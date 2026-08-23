@@ -801,12 +801,12 @@ impl MainWindow
         credit.setTextAlignment(.Left, .Center)
         footerRow.applyLayout()
 
-        // The status line is raised off the ground by its own fill. A border around it would
-        // draw a third box on a surface that already reads without one.
+        // The status line is raised off the ground by the same slight panel shape as the card. A
+        // border around it would draw a third box on a surface that already reads without one.
         .statusView                 = Wnd.create'Wnd(&.wnd, {0, 0, 0, 52})
         .statusView.dockStyle       = .Bottom
         .statusView.margin          = {32, 0, 32, 12}
-        .statusView.backgroundStyle = .Window
+        .statusView.backgroundStyle = .Panel
         .statusView.padding         = {20, 8, 20, 8}
 
         .statusIcon           = Label.create(.statusView, "", {0, 0, 24})

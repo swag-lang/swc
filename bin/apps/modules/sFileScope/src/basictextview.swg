@@ -31,9 +31,9 @@ struct BasicTextView
 
     #[Swag.Late]
     {
-        commands:      *Wnd
+        commands:      *ViewerCommandBar
         editor:        *RichEditCtrl
-        wrapButton:    *PushButton
+        wrapButton:    *IconButton
         encodingCombo: *ComboBox
     }
 
@@ -270,7 +270,8 @@ impl BasicTextView
     mtd updateWrap()
     {
         .editor.setFlags(.ReadOnly | (.wrapping ? RichEditFlags.WordWrap : .None))
-        .wrapButton.setText(.wrapping ? appStrings().ui_WrapOn : appStrings().ui_WrapOff)
+        .wrapButton.setChecked(.wrapping)
+        .wrapButton.toolTip = .wrapping ? appStrings().ui_WrapOn : appStrings().ui_WrapOff
         .scheduleMore()
     }
 
@@ -361,15 +362,14 @@ impl BasicTextView
         result.encoding     = probed.encoding
         result.contentStart = probed.contentStart
 
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 312, 36})
-        result.commands.backgroundStyle = .Window
+        result.commands = ViewerCommandBar.create(commandParent, 200)
 
-        // Sized for the longest wording any shipped language gives this button, not for the
-        // English one: a label that only fits in the reference language is a cut label elsewhere.
-        with result.wrapButton = PushButton.create(result.commands, appStrings().ui_WrapOn, {0, 0, 148, 36})
+        with result.wrapButton = IconButton.create(result.commands, result.commands.icon(.Wrap), {0, 0, 36, 36}, flags: .Toggle)
         {
-            .dockStyle  = .Left
-            .sigPressed += func|view = result|(button)
+            .dockStyle = .Left
+            .toolTip   = appStrings().ui_WrapOn
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|view = result|(button)
             {
                 discard button
                 view.toggleWrap()

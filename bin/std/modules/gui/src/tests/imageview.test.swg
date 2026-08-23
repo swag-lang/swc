@@ -73,3 +73,57 @@ using Swag, Core, Pixel
     @assert(wider.pixels.buffer == widerPixels)
     @assert(view.image.width == 120)
 }
+
+// A video frame reaches the view as planes: the texture is kept across frames, the geometry comes
+// from the picture even though the view holds no image, and the next size starts a new texture.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    defer host.shutdown()
+
+    let view = ImageView.create(&host.root, {0, 0, 300, 200})
+
+    var planes: Array'u8
+    planes.resize(100 * 50 + 50 * 25 * 2)
+    Memory.set(planes.buffer!, 235, 100 * 50)
+    Memory.set(planes.buffer! + 100 * 50, 128, 50 * 25 * 2)
+
+    let picture = Yuv420View{
+        luma: planes.buffer!,
+        chromaB: planes.buffer! + 100 * 50,
+        chromaR: planes.buffer! + 100 * 50 + 50 * 25,
+        lumaStride: 100,
+        chromaStride: 50,
+        width: 100,
+        height: 50}
+
+    view.updateVideoFrame(&picture)
+    @assert(view.hasContent())
+    @assert(!view.image.isValid())
+    @assert(view.uploadedTexture.isValid() and view.uploadedTexture.pixelFormat == .Yuv420)
+    @assert(view.contentSize().width == 100 and view.contentSize().height == 50)
+    @assert(view.isFitted)
+    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
+
+    // The next picture of a playing stream reuses the texture the first one created.
+    let textureHandle = view.uploadedTexture.handle
+    view.updateVideoFrame(&picture)
+    @assert(view.uploadedTexture.handle == textureHandle)
+
+    // A stream that changes size, or a view that is cleared, starts over.
+    let smaller = Yuv420View{
+        luma: planes.buffer!,
+        chromaB: planes.buffer! + 100 * 50,
+        chromaR: planes.buffer! + 100 * 50 + 50 * 25,
+        lumaStride: 100,
+        chromaStride: 50,
+        width: 60,
+        height: 40}
+    view.updateVideoFrame(&smaller)
+    @assert(view.contentSize().width == 60 and view.contentSize().height == 40)
+
+    view.clear()
+    @assert(!view.hasContent())
+    @assert(!view.uploadedTexture.isValid())
+}

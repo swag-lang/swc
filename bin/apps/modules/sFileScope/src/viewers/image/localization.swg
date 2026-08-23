@@ -10,7 +10,6 @@ struct ImageStrings
 {
     ui_TipZoomOut: string = "Zoom out"             // Tooltip of the zoom-out button.
     ui_TipZoomIn:  string = "Zoom in"              // Tooltip of the zoom-in button.
-    ui_Fit:        string = "Fit"                  // Label of the fit-to-window button.
     ui_TipFit:     string = "Fit image"            // Tooltip of the fit-to-window button.
     ui_TipActual:  string = "Actual size"          // Tooltip of the actual-size button.
     ui_TipRotate:  string = "Rotate clockwise"     // Tooltip of the rotation button.

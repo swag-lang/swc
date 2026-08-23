@@ -21,6 +21,13 @@ enum ViewerIcons
     Text               // Plain text viewer.
     FullScreen         // Enter-full-screen action.
     ExitFullScreen     // Leave-full-screen action.
+    SeekBackward       // Media seek toward an earlier position.
+    SeekForward        // Media seek toward a later position.
+    Volume             // Audible media volume.
+    VolumeMute         // Muted media volume.
+    FitView            // Fit the complete document inside its viewport.
+    ActualSize         // Show one source pixel or point at its native scale.
+    Wrap               // Fold long text lines into the viewport.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")
@@ -40,4 +47,39 @@ func viewerIcons()->*IconAtlas
     }
 
     return &g_ViewerIcons
+}
+
+// Owns the application glyph textures used by one viewer toolbar.
+//
+// The vector rasterizations stay shared in [[viewerIcons]]; only the renderer textures belong to
+// the toolbar and are released with it.
+struct ViewerCommandBar
+{
+    using wnd: Wnd
+    icons:     IconSet
+}
+
+impl IWnd for ViewerCommandBar
+{
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        discard evt
+        .icons.free()
+    }
+}
+
+impl ViewerCommandBar
+{
+    func create(parent: *Wnd, width: f32)->*ViewerCommandBar
+    {
+        let result = Wnd.create'ViewerCommandBar(parent, {0, 0, width, 36})
+        result.backgroundStyle = .Window
+        result.icons.setup(parent.app().renderer, viewerIcons())
+        return result
+    }
+
+    mtd icon(index: ViewerIcons, size = 20'f32)->Icon
+    {
+        return .icons.icon(cast(s32) index, size, .theme().res.atlasScale)
+    }
 }

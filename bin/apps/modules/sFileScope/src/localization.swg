@@ -14,8 +14,8 @@ struct AppStrings
     ui_Next:             string = "Next file"                                                                              // Tooltip of the next-file button.
     ui_Viewer:           string = "Viewer"                                                                                 // Tooltip of the viewer selector.
     ui_BasicText:        string = "Basic text"                                                                             // Name of the host's own text viewer in that selector.
-    ui_WrapOn:           string = "Wrap on"                                                                                // Wrapping button while long lines are folded.
-    ui_WrapOff:          string = "Wrap off"                                                                               // Wrapping button while long lines run off the edge.
+    ui_WrapOn:           string = "Line wrapping on (Ctrl+W)"                                                              // Tooltip while long lines are folded.
+    ui_WrapOff:          string = "Line wrapping off (Ctrl+W)"                                                             // Tooltip while long lines run off the edge.
     ui_Encoding:         string = "Character encoding"                                                                     // Tooltip of the encoding selector.
     ui_Files:            string = "Files beside this one"                                                                  // Tooltip of the file-panel button.
     ui_FullScreen:       string = "Full screen (F11)"                                                                      // Tooltip of the enter-full-screen button.
@@ -32,7 +32,7 @@ struct AppStrings
     ui_NoMatch:          string = "No match"                                                                               // Status line when a search reached the end with nothing.
     ui_Searching:        string = "Searching…"                                                                             // Status line while a search scans the file.
     ui_DropTitle:        string = "Drop a file to view it"                                                                 // Invitation shown while no file is open.
-    ui_Ready:            string = "Ready"                                                                                  // Neutral status line.
+    ui_DropHint:         string = "or open one with Ctrl+O"                                                                // Secondary invitation shown while no file is open.
     ui_TextDetails:      string = "% · streamed"                                                                           // Summary of the basic text viewer, starting with its encoding.
     ui_Unsupported:      string = "No viewer can show this file."                                                          // No viewer claimed the file.
     ui_OpenStopped:      string = "The file could not be shown."                                                           // A viewer refused the file it claimed.

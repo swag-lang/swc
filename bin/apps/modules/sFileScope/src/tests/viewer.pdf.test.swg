@@ -67,6 +67,39 @@ private func createPdfFixture()->String
     Testing.assertContentFits(view)
 }
 
+// Pins page navigation and magnification as one compact icon family around the page readout.
+#test
+{
+    let fileName = createPdfFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: HeadlessHost
+    host.setup(720, 500)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    commandBar.dockStyle       = .Bottom
+    commandBar.backgroundStyle = .Window
+    commandBar.padding         = {16, 8, 16, 8}
+
+    let request = ViewerRequest{&host.root, commandBar, fileName.toString()}
+    var result: ViewerResult
+    createPdfViewer(&request, &result)
+    @assert(result.view != null and result.commands != null)
+
+    let view = cast(*PdfViewer) result.view!
+    view.dockStyle          = .Center
+    view.commands.dockStyle = .Center
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+    Testing.assertContentFits(&host.root)
+
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "viewer.pdf.document")
+}
+
 #test
 {
     let fileName = Gui.Testing.tempFilePath("filescope-pdf-broken-", ".pdf")

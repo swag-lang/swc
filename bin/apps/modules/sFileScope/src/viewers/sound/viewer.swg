@@ -301,14 +301,14 @@ internal struct SoundViewer
 
     #[Swag.Late]
     {
-        commands:       *Wnd
+        commands:       *ViewerCommandBar
         playButton:     *IconButton
         stopButton:     *IconButton
-        backwardButton: *PushButton
-        forwardButton:  *PushButton
+        backwardButton: *IconButton
+        forwardButton:  *IconButton
         timeline:       *Slider
         timeLabel:      *Label
-        muteButton:     *CheckButton
+        muteButton:     *IconButton
         volumeSlider:   *Slider
         waveform:       *SoundWaveformView
     }
@@ -479,7 +479,8 @@ internal impl SoundViewer
     mtd setMuted(muted: bool)
     {
         .muted = muted
-        .muteButton.setState(muted ? .Checked : .Unchecked)
+        .muteButton.setChecked(muted)
+        .muteButton.setIcon(.commands.icon(muted ? .VolumeMute : .Volume, SoundGlyphSize))
         if .voice do
             catch .voice!.setVolume(muted ? 0 : .volume)
     }
@@ -610,8 +611,7 @@ internal impl SoundViewer
         let result = Wnd.create'SoundViewer(contentParent, "sFileScope.sound")
         result.backgroundStyle = .View
 
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 0, 36})
-        result.commands.backgroundStyle = .Window
+        result.commands = ViewerCommandBar.create(commandParent, 0)
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, SoundGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
@@ -637,7 +637,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.backwardButton = PushButton.create(result.commands, "-10 s", {0, 0, 64, 36})
+        with result.backwardButton = IconButton.create(result.commands, result.commands.icon(.SeekBackward, SoundGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -649,7 +649,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.forwardButton = PushButton.create(result.commands, "+10 s", {0, 0, 64, 36})
+        with result.forwardButton = IconButton.create(result.commands, result.commands.icon(.SeekForward, SoundGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -674,14 +674,15 @@ internal impl SoundViewer
             }
         }
 
-        with result.muteButton = CheckButton.create(result.commands, soundStrings().ui_Mute, {0, 0, 84, 36})
+        with result.muteButton = IconButton.create(result.commands, result.commands.icon(.Volume, SoundGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
-            .dockStyle  = .Right
-            .margin.x   = 8
-            .toolTip    = soundStrings().ui_TipMute
-            .sigChanged += func|view = result|(button)
+            .dockStyle = .Right
+            .margin.x  = 8
+            .toolTip   = soundStrings().ui_TipMute
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|view = result|(button)
             {
-                view.setMuted(button.isChecked())
+                view.setMuted(button.isChecked)
             }
         }
 

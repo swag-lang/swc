@@ -37,6 +37,11 @@ func videoAudioFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/glint-aac-mjpeg.mp4")
 }
 
+func videoAvcFixturePath()->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-baseline.mp4")
+}
+
 #test
 {
     let fileName = expect videoPreviewFile(Format.toString("filescope-video-clock-%.mp4", Guid64.random()).toString(), 12)
@@ -82,6 +87,9 @@ func videoAudioFixturePath()->String
     waitForVideoFrame(view)
     @assert(view.video.frameCount() == 4)
     @assert(view.frameIndex == 0 and !view.playing)
+
+    // A Motion JPEG stream has no planes to hand over, so the queue holds packed pictures.
+    @assert(!view.planar)
     @assert(view.details.indexOf("160") != Swag.U64.Max)
     @assert(view.details.indexOf("4 frames") != Swag.U64.Max)
     @assert(view.details.indexOf("Swag CPU") != Swag.U64.Max)
@@ -175,11 +183,13 @@ func videoAudioFixturePath()->String
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
+    @assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
+    @assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
     @assert(view.audio != null and view.voice != null and view.video.audioTrackCount() == 1)
     view.setVolume(0.35)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.35, 0.001))
     view.setMuted(true)
-    @assert(view.muted and view.muteButton.isChecked())
+    @assert(view.muted and view.muteButton.isChecked)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
     view.setMuted(false)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.35, 0.001))
@@ -232,4 +242,35 @@ func videoAudioFixturePath()->String
 
     @assert(view.voice!.playbackSampleFrame() == stalled)
     @assert(view.frameIndex != 0)
+}
+
+// An H.264 stream is played from the planes its decoder reconstructed, without ever being
+// converted to packed pixels.
+//
+// This is the path that matters for a real recording: converting a picture to RGB costs more
+// processor time at high resolutions than decoding it did, and the renderer can sample the planes
+// where it draws. Seeking must keep using it, since a seek rebuilds the queue.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let fileName = videoAvcFixturePath()
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+
+    @assert(view.planar)
+    @assert(view.video.width() == 64 and view.video.height() == 48)
+    @assert(view.frameIndex == 0 and !view.hasFailure)
+
+    view.seekFrame(12)
+    waitForVideoFrame(view)
+    @assert(view.frameIndex == 12 and !view.hasFailure)
+    @assert(view.planar)
 }

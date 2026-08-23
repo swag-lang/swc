@@ -692,6 +692,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Top)
     @assert(window.infoBar.backgroundStyle != window.backgroundStyle)
+    @assert(!window.infoBar.isLocallyVisible())
     @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
     @assert(window.openButton.position.x < window.previousButton.position.x)
     @assert(window.openButton.position.x < window.searchBox.position.x)
@@ -700,6 +701,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
+    @assert(window.emptyView.isLocallyVisible() and window.emptyIconLabel.icon.isValid())
+    @assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
     @assert(!window.previousButton.isEnabled())
     @assert(!window.nextButton.isEnabled())
     @assert(window.currentView == null)
@@ -861,6 +864,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.currentFile.isEmpty())
     @assert(!window.previousButton.isEnabled() and !window.nextButton.isEnabled())
     @assert(window.infoNameLabel.name.raw.isEmpty())
+    @assert(!window.infoBar.isLocallyVisible() and window.emptyView.isLocallyVisible())
 }
 
 #test
@@ -983,6 +987,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     host.settleAnimations(window, 4)
 
     @assert(window.viewerCombo.isLocallyVisible())
+    @assert(window.infoBar.isLocallyVisible() and !window.emptyView.isLocallyVisible())
+    @assert(window.infoIconLabel.icon.isValid())
     @assert(window.currentCommands!.parent == window.viewerBar and window.viewerBar.isLocallyVisible())
     @assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())
     var dark = host.render(window)

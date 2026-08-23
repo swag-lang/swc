@@ -3,8 +3,8 @@
 using Core, Pixel, Gui
 
 private const ImageGlyphSize = 18.0
-private const ImageCommandWidth = 362.0
-private const GifCommandWidth = 590.0
+private const ImageCommandWidth = 316.0
+private const GifCommandWidth = 544.0
 private const SvgRasterLimit = 2048.0
 
 internal func loadViewerImage(fileName: string)->Image fail
@@ -28,7 +28,7 @@ internal struct ImageViewer
 
     #[Swag.Late]
     {
-        commands:   *Wnd
+        commands:   *ViewerCommandBar
         imageView:  *ImageView
         zoomLabel:  *Label
         playButton: *IconButton
@@ -109,10 +109,7 @@ private impl ImageViewer
         let result = Wnd.create'ImageViewer(contentParent, "sFileScope.image")
         result.backgroundStyle = .View
 
-        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, ImageCommandWidth, 36})
-        {
-            .backgroundStyle = .Window
-        }
+        result.commands = ViewerCommandBar.create(commandParent, ImageCommandWidth)
 
         with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
         {
@@ -137,7 +134,7 @@ private impl ImageViewer
             }
         }
 
-        with let fit = PushButton.create(result.commands, imageStrings().ui_Fit, {0, 0, 48, 36})
+        with let fit = IconButton.create(result.commands, result.commands.icon(.FitView, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -149,7 +146,7 @@ private impl ImageViewer
             }
         }
 
-        with let actual = PushButton.create(result.commands, "100%", {0, 0, 58, 36})
+        with let actual = IconButton.create(result.commands, result.commands.icon(.ActualSize, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8

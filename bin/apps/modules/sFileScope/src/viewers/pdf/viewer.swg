@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const PdfCommandWidth = 380.0
+private const PdfCommandWidth = 336.0
 
 internal struct PdfViewer
 {
@@ -12,7 +12,7 @@ internal struct PdfViewer
 
     #[Swag.Late]
     {
-        commands:       *Wnd
+        commands:       *ViewerCommandBar
         pdfView:        *PdfView
         previousButton: *IconButton
         nextButton:     *IconButton
@@ -56,10 +56,7 @@ private impl PdfViewer
         result.backgroundStyle = .View
         result.reportFailure   = reportFailure
 
-        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, PdfCommandWidth, 36})
-        {
-            .backgroundStyle = .Window
-        }
+        result.commands = ViewerCommandBar.create(commandParent, PdfCommandWidth)
 
         var complete: bool
         defer if !complete
@@ -120,10 +117,11 @@ private impl PdfViewer
             }
         }
 
-        with let fit = PushButton.create(result.commands, pdfStrings().ui_Fit, {0, 0, 58, 36})
+        with let fit = IconButton.create(result.commands, result.commands.icon(.FitView, 18), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
+            .toolTip    = pdfStrings().ui_Fit
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -131,10 +129,11 @@ private impl PdfViewer
             }
         }
 
-        with let actual = PushButton.create(result.commands, pdfStrings().ui_Actual, {0, 0, 58, 36})
+        with let actual = IconButton.create(result.commands, result.commands.icon(.ActualSize, 18), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
+            .toolTip    = pdfStrings().ui_Actual
             .sigPressed += func|view = result|(button)
             {
                 discard button

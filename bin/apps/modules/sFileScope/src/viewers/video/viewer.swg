@@ -40,10 +40,15 @@ private const VideoPrefetchMin = 2'u64
 private const VideoNoSlot = Swag.U32.Max
 
 // One decoded picture of the run-ahead queue.
+//
+// A codec reconstructs planar 4:2:0 and the renderer converts where it draws, so a queued picture
+// is the planes themselves. That is both the cheaper decode and the smaller queue: three planes
+// are half the bytes of the packed picture they would have become.
 internal struct VideoSlot
 {
-    image: Image
-    index: u64
+    planes: PlanarFrame
+    image:  Image     // Used only by a stream whose codec does not reconstruct planes.
+    index:  u64
 }
 
 internal struct VideoViewer
@@ -52,20 +57,21 @@ internal struct VideoViewer
 
     #[Swag.Late]
     {
-        commands:       *Wnd
+        commands:       *ViewerCommandBar
         playButton:     *IconButton
         stopButton:     *IconButton
-        backwardButton: *PushButton
-        forwardButton:  *PushButton
+        backwardButton: *IconButton
+        forwardButton:  *IconButton
         timeline:       *Slider
         timeLabel:      *Label
-        muteButton:     *CheckButton
+        muteButton:     *IconButton
         volumeSlider:   *Slider
         imageView:      *ImageView
     }
 
     // The stream is read through its own header alone, so a video of any size opens instantly.
     video:               Reader
+    planar:              bool     // The codec hands its pictures over without converting them.
     audio:               #null const *SoundFile
     voice:               #null *Voice
     audioEngineAcquired: bool
@@ -205,7 +211,8 @@ internal impl VideoViewer
     mtd setMuted(muted: bool)
     {
         .muted = muted
-        .muteButton.setState(muted ? .Checked : .Unchecked)
+        .muteButton.setChecked(muted)
+        .muteButton.setIcon(.commands.icon(muted ? .VolumeMute : .Volume, VideoGlyphSize))
         if .voice do
             catch .voice!.setVolume(muted ? 0 : .volume)
     }
@@ -224,7 +231,9 @@ internal impl VideoViewer
     // gives a small stream a deep queue and a 4K stream one that still covers that gap.
     mtd prepareSlots()
     {
-        let bytes = cast(u64) .video.width() * cast(u64) .video.height() * 3
+        // A planar picture costs half of what the packed one would, so the same budget buys twice
+        // the run-ahead on exactly the streams whose key pictures are the most expensive.
+        let bytes = cast(u64) .video.width() * cast(u64) .video.height() * (.planar ? 3 : 6) / 2
         var count = bytes ? VideoPrefetchBytes / bytes : cast(u64) VideoPrefetchMax
         count = Math.clamp(count, cast(u64) VideoPrefetchMin, cast(u64) VideoPrefetchMax)
 
@@ -257,6 +266,22 @@ internal impl VideoViewer
         .anchorPending = true
     }
 
+    // Decodes one picture into a slot, and answers with the error the stream raised, if any.
+    //
+    // A codec that reconstructs planes hands them over as they are; one that does not produces the
+    // packed picture itself. Only the queue knows which of the two a slot holds.
+    private mtd decodeIntoSlot(slot: u32, index: u64)->#null any
+    {
+        if .planar
+        {
+            catch .video.decodeFramePlanesInto(&.slots[cast(u64) slot].planes, index) as planarError
+            return planarError
+        }
+
+        catch .video.decodeFrameInto(&.slots[cast(u64) slot].image, index) as packedError
+        return packedError
+    }
+
     // Decodes one queued picture, and reports whether the producer can immediately do more.
     mtd produceOne()->bool
     {
@@ -282,7 +307,7 @@ internal impl VideoViewer
             .inFlight   += 1
         }
 
-        catch .video.decodeFrameInto(&.slots[cast(u64) slot].image, index) as decodeError
+        let decodeError = .decodeIntoSlot(slot, index)
 
         Sync.scopedLock(&.queueLock)
         .inFlight -= 1
@@ -375,7 +400,16 @@ internal impl VideoViewer
             }
         }
 
-        .imageView.exchangeImage(&.slots[cast(u64) chosen].image)
+        if .planar
+        {
+            let picture = .slots[cast(u64) chosen].planes.view()
+            .imageView.updateVideoFrame(&picture)
+        }
+        else
+        {
+            .imageView.exchangeImage(&.slots[cast(u64) chosen].image)
+        }
+
         {
             Sync.scopedLock(&.queueLock)
             .freeSlots.add(chosen)
@@ -672,10 +706,7 @@ private impl VideoViewer
         result.backgroundStyle = .View
         result.reportFailure   = reportFailure
 
-        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, 0, 36})
-        {
-            .backgroundStyle = .Window
-        }
+        result.commands = ViewerCommandBar.create(commandParent, 0)
 
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, VideoGlyphSize), {0, 0, 36, 36})
         {
@@ -701,7 +732,7 @@ private impl VideoViewer
             }
         }
 
-        with result.backwardButton = PushButton.create(result.commands, "-10 s", {0, 0, 64, 36})
+        with result.backwardButton = IconButton.create(result.commands, result.commands.icon(.SeekBackward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -713,7 +744,7 @@ private impl VideoViewer
             }
         }
 
-        with result.forwardButton = PushButton.create(result.commands, "+10 s", {0, 0, 64, 36})
+        with result.forwardButton = IconButton.create(result.commands, result.commands.icon(.SeekForward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -738,14 +769,15 @@ private impl VideoViewer
             }
         }
 
-        with result.muteButton = CheckButton.create(result.commands, videoStrings().ui_Mute, {0, 0, 84, 36})
+        with result.muteButton = IconButton.create(result.commands, result.commands.icon(.Volume, VideoGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
-            .dockStyle  = .Right
-            .margin.x   = 8
-            .toolTip    = videoStrings().ui_TipMute
-            .sigChanged += func|view = result|(button)
+            .dockStyle = .Right
+            .margin.x  = 8
+            .toolTip   = videoStrings().ui_TipMute
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|view = result|(button)
             {
-                view.setMuted(button.isChecked())
+                view.setMuted(button.isChecked)
             }
         }
 
@@ -773,7 +805,8 @@ private impl VideoViewer
         result.imageView           = ImageView.create(result)
         result.imageView.dockStyle = .Center
 
-        result.video = #move video
+        result.video  = #move video
+        result.planar = result.video.hasPlanarFrames()
         result.prepareSlots()
         if result.video.audioTrackCount()
         {

@@ -14,7 +14,6 @@ struct SoundStrings
     ui_TipBackward: string = "Back 10 seconds (Left)"         // Tooltip of the backward seek button.
     ui_TipForward:  string = "Forward 10 seconds (Right)"     // Tooltip of the forward seek button.
     ui_TipSeek:     string = "Seek"                           // Tooltip of the playback timeline.
-    ui_Mute:        string = "Mute"                           // Label of the mute switch.
     ui_TipMute:     string = "Mute or unmute (M)"             // Tooltip of the mute switch.
     ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
     ui_NoEngine:    string = "Playback unavailable"           // Tooltip when no audio engine could be acquired.

@@ -4,7 +4,7 @@ ui_Previous  Page précédente
 ui_Next      Page suivante
 ui_ZoomOut   Réduire
 ui_ZoomIn    Agrandir
-ui_Fit       Ajuster
-ui_Actual    100 %
+ui_Fit       Ajuster la page
+ui_Actual    Taille réelle
 ui_Page      page
 ui_Pages     pages

@@ -11,7 +11,6 @@ struct VideoStrings
     ui_TipBackward: string = "Back 10 seconds (Left)"         // Tooltip of the backward seek button.
     ui_TipForward:  string = "Forward 10 seconds (Right)"     // Tooltip of the forward seek button.
     ui_TipSeek:     string = "Seek"                           // Tooltip of the time timeline.
-    ui_Mute:        string = "Mute"                           // Label of the mute switch.
     ui_TipMute:     string = "Mute or unmute (M)"             // Tooltip of the mute switch.
     ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
     word_Frame:     string = "frame"                          // One video frame.

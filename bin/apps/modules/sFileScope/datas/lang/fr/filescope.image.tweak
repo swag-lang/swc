@@ -2,7 +2,6 @@
 
 ui_TipZoomOut  Dézoomer
 ui_TipZoomIn   Zoomer
-ui_Fit         Ajuster
 ui_TipFit      Ajuster l'image à la fenêtre
 ui_TipActual   Taille réelle
 ui_TipRotate   Pivoter dans le sens horaire

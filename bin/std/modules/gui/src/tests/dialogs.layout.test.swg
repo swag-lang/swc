@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, Pixel
 
 // Predefined dialogs fit their common chrome around the content instead of keeping stale blank rows.
 #test
@@ -87,12 +87,16 @@ using Swag, Core
     let dlg = AboutDlg.create(&host.surface, params)
 
     let metrics       = dlg.themeMetrics()
-    var contentHeight = dlg.labelMessageTitle.measure({dlg.labelMessageTitle.position.width, 0}).preferred.y
+    var contentHeight = dlg.identityView.position.height
     contentHeight += dlg.labelMessage.measure({dlg.labelMessage.position.width, 0}).preferred.y
     contentHeight += metrics.dialog_BtnPadding * 2
     var expected = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
     expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface!.shadowMargin()
     @assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 0.5)
+    @assert(dlg.identityView.backgroundStyle == .View)
+    @assert(dlg.identityView.position.width > 0)
+    @assert(dlg.identityAccent.form == .Accent and dlg.identityAccent.dockStyle == .Top)
+    @assert(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
 }
 
 // The application form supplies the common version, build, source, copyright, and icon shape.
@@ -115,6 +119,33 @@ using Swag, Core
     @assert(dlg.labelMessageTitle.text() == "sTestBench 1.2.3")
     @assert(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))
     @assert(dlg.labelIcon.icon.isValid())
+    @assert(dlg.identityView.isAncestorOf(dlg.labelIcon))
+}
+
+// Pins the application identity hierarchy: one accent, one raised product block, and quieter
+// provenance above the ordinary dialog action bar.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let icon = host.theme.icon(.About, 64)
+    let dlg  = AboutDlg.create(&host.surface, {
+        surfaceTitle: "sTestBench",
+        contentTitle: "sTestBench 1.2.3",
+        message: "Built on 23 August 2026.\n\nCreated with <url>Swag</url>.",
+        surfaceIcon: icon,
+        contentIcon: icon})
+
+    dlg.applyLayout()
+    let surface = dlg.surface!
+    surface.invalidate()
+    surface.paint()
+    var image = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+    Pixel.Testing.assertImageGolden(&image, "aboutdlg.identity.dark")
 }
 
 // A question is as wide as its actions need, and never narrower than the family's floor.

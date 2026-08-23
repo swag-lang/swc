@@ -24,10 +24,17 @@ struct ImageView
         }
     }
 
-    image:           Image          // Still image owned by the view.
-    uploadedTexture: Texture        // Renderer texture for the current still or movie frame.
+    image:           Image          // Still image owned by the view, empty for a planar picture.
+    uploadedTexture: Texture        // Renderer texture for the current still, movie or planar frame.
     isPanning:       bool           // Whether the left mouse button currently pans the image.
     lastPointer:     Math.Point     // Previous surface position of a pan gesture.
+
+    // Size of the planar picture the view shows, in its own pixels.
+    //
+    // Such a picture never becomes an image: the renderer keeps it in the layout the decoder
+    // produced and converts it where it samples, so the view knows its geometry and nothing else.
+    planarWidth:     s32
+    planarHeight:    s32
 }
 
 private impl ImageView
@@ -39,18 +46,30 @@ private impl ImageView
         return &.image
     }
 
-    mtd const contentRect()->Math.Rectangle
+    // Reports whether the view has something to paint, whatever kind of content it holds.
+    mtd const hasContent()->bool => .currentImage().isValid() or .planarWidth > 0
+
+    // Returns the size of the content in its own pixels.
+    mtd const contentSize()->{ width, height: s32 }
     {
         let source = .currentImage()
-        if !source.isValid() do
+        if source.isValid() do
+            return {source.width, source.height}
+        return {.planarWidth, .planarHeight}
+    }
+
+    mtd const contentRect()->Math.Rectangle
+    {
+        if !.hasContent() do
             return {}
 
+        let size   = .contentSize()
         let client = .paddedClientRect()
         let scale  = .effectiveZoom()
 
         var result: retval
-        result.width  = source.width * scale
-        result.height = source.height * scale
+        result.width  = size.width * scale
+        result.height = size.height * scale
         result.x      = client.horzCenter() - result.width * 0.5 + .panOffset.x
         result.y      = client.vertCenter() - result.height * 0.5 + .panOffset.y
         return result
@@ -110,12 +129,12 @@ impl IWnd for ImageView
             .sigFrameChanged.call(me)
         }
 
-        let source = .currentImage()
-        if !source.isValid() or !.uploadedTexture.isValid() do
+        if !.hasContent() or !.uploadedTexture.isValid() do
             return
 
+        let source      = .currentImage()
         let destination = .contentRect()
-        if source.pixelFormat.hasAlpha() do
+        if source.isValid() and source.pixelFormat.hasAlpha() do
             painter.fillRect(destination, Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha))
         painter.drawTexture(destination, .uploadedTexture, .themeColors().imageRect_Fg)
 
@@ -128,7 +147,7 @@ impl IWnd for ImageView
         switch evt.kind
         {
         case .Wheel:
-            if !.currentImage().isValid()
+            if !.hasContent()
             {
                 evt.accepted = false
                 return
@@ -145,7 +164,7 @@ impl IWnd for ImageView
                 .zoomToFit()
 
         case .Pressed where evt.button == .Left:
-            if !.currentImage().isValid() do
+            if !.hasContent() do
                 return
             .isPanning   = true
             .lastPointer = evt.surfacePos
@@ -154,7 +173,7 @@ impl IWnd for ImageView
         case .Move:
             if !.isPanning
             {
-                if .currentImage().isValid() do
+                if .hasContent() do
                     .app().setFrameCursor(Cursor.from(.Hand))
                 return
             }
@@ -199,6 +218,8 @@ impl ImageView
         .movie.clear()
         @drop(&.image, 1)
         @init(&.image, 1)
+        .planarWidth  = 0
+        .planarHeight = 0
         .zoom      = 1
         .isFitted  = true
         .panOffset = {}
@@ -235,6 +256,39 @@ impl ImageView
 
         Memory.copy(.image.pixels.buffer!, image.pixels.buffer!, .image.byteCount)
         .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
+        .invalidate()
+    }
+
+    // Displays a planar 4:2:0 picture, which the renderer converts while it draws.
+    //
+    // This is what a video stream should reach the screen through. Converting a picture to packed
+    // RGB costs more processor time at high resolutions than decoding it did, and none of it is
+    // needed: the renderer holds the planes the decoder produced and converts them where it
+    // samples. The view never owns the picture, so `view` is borrowed for the call alone.
+    //
+    // ```swag
+    // try reader.decodeFramePlanesInto(&picture, index)
+    // view.updateVideoFrame(picture.view())
+    // ```
+    mtd updateVideoFrame(view: const *Yuv420View)
+    {
+        if view.width <= 0 or view.height <= 0
+        {
+            .clear()
+            return
+        }
+
+        if .movie.isValid() or .image.isValid() or !.uploadedTexture.isValid() or view.width != .planarWidth or view.height != .planarHeight
+        {
+            .clear()
+            .planarWidth     = view.width
+            .planarHeight    = view.height
+            .uploadedTexture = .app().renderer.addImage(view)
+            .zoomToFit()
+            return
+        }
+
+        .app().renderer.updateTexture(.uploadedTexture, view)
         .invalidate()
     }
 
@@ -328,8 +382,7 @@ impl ImageView
     // Returns the scale currently used to paint the image.
     mtd const effectiveZoom()->f32
     {
-        let source = .currentImage()
-        if !source.isValid() do
+        if !.hasContent() do
             return 1
         if !.isFitted do
             return .zoom
@@ -337,7 +390,9 @@ impl ImageView
         let client = .paddedClientRect()
         if client.width <= 0 or client.height <= 0 do
             return 1
-        return Math.min(client.width / source.width, client.height / source.height)
+
+        let size = .contentSize()
+        return Math.min(client.width / size.width, client.height / size.height)
     }
 
     // Sets an explicit image scale and leaves fitted mode.

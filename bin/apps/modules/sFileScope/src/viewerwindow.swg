@@ -1,7 +1,7 @@
 using Core, Pixel, Gui
 
 const ViewerBarHeight       = 48.0
-const ViewerInfoHeight      = 36.0
+const ViewerInfoHeight      = 40.0
 const ViewerGlyphSize       = 20.0
 const ViewerRowGlyphSize    = 16.0
 const ViewerMinWidth        = 880
@@ -108,11 +108,10 @@ impl ViewerErrorView
     }
 }
 
-// The band under the document that names the open file, and answers for it.
+// The document header that names the open file, and answers for it.
 //
-// A reader points at a file to act on it, and the name under the document is where the open file
-// is. The panel is closed by default and the file being read is the one an action is wanted for
-// most, so the band carries the same menu a panel row does.
+// The panel is closed by default and the file being read is the one an action is wanted for most,
+// so the header carries the same menu a panel row does.
 struct ViewerInfoBar
 {
     using wnd: Wnd
@@ -157,12 +156,16 @@ struct ViewerWindow
         viewerCombo:      *ComboBox
         appearanceButton: *AppearanceButton
         infoBar:          *ViewerInfoBar
+        infoIconLabel:    *Label
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
         infoSizeLabel:    *Label
         loadingSpinner:   *Spinner
         viewerBar:        *Wnd
+        emptyView:        *StackLayoutCtrl
+        emptyIconLabel:   *Label
         emptyLabel:       *Label
+        emptyHintLabel:   *Label
         filePanel:        *SplitterCtrl
         recentPane:       *Wnd
         recentLabel:      *Label
@@ -373,6 +376,7 @@ impl IWnd for ViewerWindow
         {
             for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
                 (cast(*ViewerErrorView) instance.view!).refreshTheme()
+            .refreshArtwork()
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -396,6 +400,16 @@ impl ViewerWindow
     mtd applyLanguage()
     {
         discard catch .appearanceButton.setAppearanceLanguage(.language.toString())
+    }
+
+    // Keeps the few decorative glyphs aligned with the active palette and document kind.
+    mtd refreshArtwork()
+    {
+        .emptyIconLabel.setIcon(.theme().icon(.OpenFile, 48))
+        .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
+        .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
+        if .activeChoiceIndex < .choices.count do
+            .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
     }
 
     // A monitor-sized full-screen placement is transient and must never replace the saved
@@ -576,18 +590,19 @@ impl ViewerWindow
         with result.infoBar = Wnd.create'ViewerInfoBar(result, {0, 0, 0, ViewerInfoHeight})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .View
             .padding         = {14, 4, 14, 4}
+            .hide()
         }
 
-        with result.infoSizeLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoSizeWidth, 28}, null, .SecondaryText)
+        with result.infoSizeLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoSizeWidth, 32}, null, .SecondaryText)
         {
             .dockStyle = .Right
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.infoStatsLabel = Label.create(result.infoBar, appStrings().ui_Ready, {0, 0, ViewerInfoStatsWidth, 28}, null, .SecondaryText)
+        with result.infoStatsLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoStatsWidth, 32}, null, .SecondaryText)
         {
             .dockStyle = .Right
             .margin.z  = 16
@@ -602,10 +617,17 @@ impl ViewerWindow
             .hide()
         }
 
-        with result.infoNameLabel = Label.create(result.infoBar, "", {0, 0, 0, 28})
+        with result.infoIconLabel = Label.create(result.infoBar, "", {0, 0, 24, 32})
+        {
+            .dockStyle = .Left
+            .margin.z  = 8
+            .setIconAlignment(.Center, .Center)
+        }
+
+        with result.infoNameLabel = Label.create(result.infoBar, "", {0, 0, 0, 32})
         {
             .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
+            .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
@@ -716,14 +738,33 @@ impl ViewerWindow
 
         result.filePanel.addPane(result.folderPane).minimumSize = ViewerPaneMinSize
 
-        with result.emptyLabel = Label.create(result, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {}, null, .WordWrap)
+        with result.emptyView = StackLayoutCtrl.create(result, .VerticalCenter)
         {
             .dockStyle = .Center
             .padding   = {48, 48, 48, 48}
+            .spacing   = 12
+        }
+
+        with result.emptyIconLabel = Label.create(result.emptyView, "", {0, 0, 48, 48})
+        {
+            .layoutSpec.alignX = .Center
+            .setIconAlignment(.Center, .Center)
+        }
+
+        with result.emptyLabel = Label.create(result.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
+        {
+            .layoutSpec.alignX = .Center
+            .setTextAlignment(.Center, .Center)
+        }
+
+        with result.emptyHintLabel = Label.create(result.emptyView, appStrings().ui_DropHint, {0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        {
+            .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
 
         result.applyLanguage()
+        result.refreshArtwork()
         result.applyLayout()
         return result
     }
@@ -771,8 +812,8 @@ impl ViewerWindow
         .searchMatch = Swag.U64.Max
         .destroyInstances()
 
-        .emptyLabel.setText(message)
-        .emptyLabel.show()
+        .emptyLabel.setText(Format.toString("<b>%</b>", message))
+        .emptyView.show()
         .currentFile.clear()
         .choices.clear()
         .viewerCombo.clear()
@@ -782,10 +823,11 @@ impl ViewerWindow
         .siblingsDirty = true
         .infoNameLabel.setText("")
         .infoNameLabel.toolTip = ""
-        .infoStatsLabel.setText(appStrings().ui_Ready)
+        .infoStatsLabel.setText("")
         .infoStatsLabel.toolTip = ""
         .infoSizeLabel.setText("")
         .infoSizeLabel.toolTip = ""
+        .infoBar.hide()
         .viewerBar.hide()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .previousButton.enable(false)
@@ -1212,6 +1254,10 @@ impl ViewerWindow
         .infoStatsLabel.toolTip = details
         .infoSizeLabel.setText(size.toString())
         .infoSizeLabel.toolTip = size.toString()
+        if .activeChoiceIndex < .choices.count do
+            .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
+        .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
+        .infoBar.show()
     }
 
     mtd selectViewer(index: u32)
@@ -1320,7 +1366,7 @@ impl ViewerWindow
             }
         }
 
-        .emptyLabel.hide()
+        .emptyView.hide()
 
         .siblingsDirty = true
         if remember do
@@ -1354,7 +1400,8 @@ impl ViewerWindow
         if .currentFile.isEmpty()
         {
             .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
-            .infoStatsLabel.setText(texts.ui_Ready)
+            .emptyHintLabel.setText(texts.ui_DropHint)
+            .infoStatsLabel.setText("")
         }
 
         .invalidate()

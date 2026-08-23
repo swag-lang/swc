@@ -17,6 +17,12 @@ public struct AboutDlg
         }
     }
 
+    #[Swag.Late]
+    {
+        identityView:   *Wnd           // Raised product block carrying the mark and heading.
+        identityAccent: *Separator     // Single Swag accent anchoring that product block.
+    }
+
     sourceUrl: String     // Source page owned for the lifetime of an application about dialog.
 }
 
@@ -73,7 +79,7 @@ public impl AboutDlg
             contentTitle: title.toString(),
             message: message.toString(),
             surfaceIcon: app.appIconAt(metrics.wnd_CaptionIconSize, colors.wnd_CaptionBk),
-            contentIcon: app.appIconAt(64, colors.dlg_Bk)})
+            contentIcon: app.appIconAt(64, colors.view_Bk)})
         dlg.sourceUrl = String.from(params.sourceUrl)
         dlg.labelMessage.sigLinkActivated += func|dlg|(label, text)
         {
@@ -103,21 +109,8 @@ public impl AboutDlg
         let metrics = dlg.themeMetrics()
         let body    = dlg.createContentView()
 
-        if params.contentIcon.isValid()
-        {
-            // The product glyph takes one compact column and keeps the same clear lane as a
-            // message status icon. The dialog body already owns the outer inset.
-            let gap = metrics.dialog_BtnPadding * 2
-            with dlg.labelIcon = Label.create(body, "", {0, 0, params.contentIcon.sizeX + gap, 0})
-            {
-                .dockStyle = .Left
-                .setIcon(params.contentIcon)
-                .setIconAlignment(.Left, .Center)
-            }
-        }
-
-        // The name and its description form one centered group: one heading, one measured gap,
-        // then the supporting copy. Any remaining room is shared above and below the group.
+        // Identity and provenance are two quiet tiers: the product owns one raised panel and one
+        // accent, while the supporting copy remains on the dialog surface below it.
         let stackLayout = StackLayoutCtrl.create(body, .VerticalCenter)
         with stackLayout
         {
@@ -125,16 +118,50 @@ public impl AboutDlg
             .spacing   = metrics.dialog_BtnPadding * 2
         }
 
-        // The product name is the one heading of the box, so it is set once, in bold, and
-        // nothing else in here competes with it.
-        with dlg.labelMessageTitle = Label.create(stackLayout, params.contentTitle)
+        // VerticalCenter preserves each child's authored cross-axis extent. Resolve the body now
+        // so the plain identity window can author the exact width it must keep.
+        dlg.applyLayout()
+
+        let identityInset = metrics.dialog_Padding
+        with dlg.identityView = Wnd.create'Wnd(stackLayout, {0, 0, stackLayout.position.width, 0})
+        {
+            .backgroundStyle = .View
+        }
+
+        dlg.identityAccent = Separator.create(dlg.identityView, .Top, .Accent)
+        let identityContent = Wnd.create'Wnd(dlg.identityView)
+        identityContent.dockStyle = .Center
+        identityContent.padding   = {identityInset, identityInset, identityInset, identityInset}
+
+        if params.contentIcon.isValid()
+        {
+            // The mark has a reserved lane, which keeps the heading optically centered in the
+            // remaining product block without making the descriptive copy inherit that inset.
+            let gap = metrics.dialog_BtnPadding * 2
+            with dlg.labelIcon = Label.create(identityContent, "", {0, 0, params.contentIcon.sizeX + gap, 0})
+            {
+                .dockStyle = .Left
+                .setIcon(params.contentIcon)
+                .setIconAlignment(.Left, .Center)
+            }
+        }
+
+        // The product name is the one heading of the box; the accent and mark support it without
+        // introducing another caption or a decorative color outside the active theme.
+        with dlg.labelMessageTitle = Label.create(identityContent, params.contentTitle)
         {
             let fontSize = cast(u32) (metrics.defaultFontSize * 1.5)
             .style.setFont(dlg.theme().createDefaultFont(fontSize, .Bold), .Regular)
-            .dockStyle = .Top
-            .setTextAlignment(.Left, .Top)
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
             .updateFlags(.AutoHeight)
         }
+
+        let titleHeight    = dlg.labelMessageTitle.measure({w, 0}).preferred.y
+        var identityHeight = titleHeight
+        if params.contentIcon.isValid() do
+            identityHeight = Math.max(identityHeight, cast(f32) params.contentIcon.sizeY)
+        dlg.identityView.position.height = identityHeight + 2 * identityInset + dlg.identityAccent.position.height
 
         with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)
         {
@@ -151,13 +178,12 @@ public impl AboutDlg
 
         dlg.addButton(strings().dlg_Close, Dialog.BtnCancel, true)
         dlg.sendResizeEvent()
+        dlg.buttonBar.applyLayout()
+        dlg.applyLayout()
         if height == 0
         {
-            dlg.applyLayout()
             let availableWidth = Math.max(stackLayout.position.width, 1)
-            var contentHeight  = stackLayout.measure({availableWidth, 0}).preferred.y
-            if params.contentIcon.isValid() do
-                contentHeight = Math.max(contentHeight, cast(f32) params.contentIcon.sizeY)
+            let contentHeight  = stackLayout.measure({availableWidth, 0}).preferred.y
             dlg.fitHeightToContent(contentHeight)
             srf.center(from)
         }

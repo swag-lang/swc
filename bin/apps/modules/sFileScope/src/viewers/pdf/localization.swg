@@ -9,8 +9,8 @@ struct PdfStrings
     ui_Next:     string = "Next page"         // Tooltip of the next-page button.
     ui_ZoomOut:  string = "Zoom out"          // Tooltip of the zoom-out button.
     ui_ZoomIn:   string = "Zoom in"           // Tooltip of the zoom-in button.
-    ui_Fit:      string = "Fit"               // Label of the fit-to-window button.
-    ui_Actual:   string = "100%"              // Label of the actual-size button.
+    ui_Fit:      string = "Fit page"          // Tooltip of the fit-to-window button.
+    ui_Actual:   string = "Actual size"       // Tooltip of the actual-size button.
     ui_Page:     string = "page"              // One document page.
     ui_Pages:    string = "pages"             // Several document pages.
 }

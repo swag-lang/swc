@@ -4,8 +4,17 @@ using Core, Core.Errors, Pixel
 
 // FFmpeg uses the same automatic ceiling for frame-threaded video decoders.
 private const AvcMaxFrameThreads = 16'u32
-private const AvcActiveFrameThreads = AvcMaxFrameThreads
 private const AvcNoLane = Swag.U32.Max
+
+// What one picture in flight costs, and how much the stream may spend on them together.
+//
+// A frame thread owns a complete picture: its samples, the macroblocks and per-block grids the
+// entropy decoder fills, and the reference pictures it still holds. That is about seven bytes
+// per pixel, so sixteen threads on a 3840x2160 stream would reserve close to a gigabyte before
+// decoding anything. Past a handful of threads the stream already decodes several times faster
+// than any clock asks for, so the budget buys back the memory rather than the speed.
+private const AvcBytesPerLanePixel = 7'u64
+private const AvcLaneMemoryBudget = 640 * 1024 * 1024'u64
 
 // One decoded H.264 frame waiting for its display turn.
 private struct PendingFrame
@@ -95,7 +104,7 @@ impl AvcStream
         for &decoder in .decoders do
             decoder.configure(track.avcConfig.toSlice())
 
-        .laneCount = Math.max(1'u32, Math.min(Jobs.workerCount(), AvcActiveFrameThreads))
+        .laneCount = Math.max(1'u32, Math.min(Jobs.workerCount(), AvcMaxFrameThreads))
         let sps = .decoders[0].firstSps()
         if !sps do
             fail InvalidFormatError{"MP4 AVC configuration carries no sequence parameter set"}
@@ -103,6 +112,10 @@ impl AvcStream
         .height   = sps.height()
         .cropLeft = sps.cropLeft
         .cropTop  = sps.cropTop
+
+        let laneBytes = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight * 256 * AvcBytesPerLanePixel
+        if laneBytes do
+            .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(AvcLaneMemoryBudget / laneBytes, 1'u64)))
 
         .frames = #move frames
         let count = .frames.count
@@ -241,6 +254,12 @@ impl AvcStream
 
     // Creates dedicated persistent frame owners. They stay outside the shared job pool so their
     // reconstruction and deblocking passes can use every job worker without nested-job starvation.
+    //
+    // They also run below normal priority. Frame threading deliberately decodes far ahead of
+    // whatever consumes the pictures, so a lane is almost always working on something that is
+    // not needed yet; at these resolutions there are enough of them to keep a consumer that
+    // has to present on a clock off the processor, and a decoder that races ahead while the
+    // picture on screen stutters has won nothing.
     private mtd ensureFrameThreads() fail
     {
         if .threadsStarted do
@@ -252,7 +271,7 @@ impl AvcStream
             let frameThread = &.frameThreads[lane]
             frameThread.wake.init(false)
             frameThread.done.init(true)
-            frameThread.thread.init(&runAvcFrameThread, frameThread)
+            frameThread.thread.init(&runAvcFrameThread, frameThread, priority: .BelowNormal)
             frameThread.thread.start()
         }
 

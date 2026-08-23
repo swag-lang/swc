@@ -238,6 +238,41 @@ impl ImageView
         .invalidate()
     }
 
+    // Displays `image` by exchanging pixel storage with the view instead of copying it.
+    //
+    // A source that produces a new picture many times a second — a decoded video stream, a
+    // camera, a live render — otherwise pays a full copy of every picture on the very thread
+    // that has to present it, and at high resolutions that copy is the same order of magnitude
+    // as the upload it feeds. Here the view takes the pixels of `image` and leaves its own in
+    // their place, so the caller keeps a buffer of exactly the right shape to produce the next
+    // picture into and nothing is copied.
+    //
+    // `image` must carry the geometry and pixel format the view is already showing. Anything
+    // else behaves like [[Gui.ImageView.setImage]], which copies and refits.
+    //
+    // ```swag
+    // try decoder.decodeFrameInto(&frame, index)
+    // view.exchangeImage(&frame)     // `frame` now owns the picture that just left the screen
+    // ```
+    mtd exchangeImage(image: *Image)
+    {
+        if !image.isValid()
+        {
+            .clear()
+            return
+        }
+
+        if .movie.isValid() or !.image.isValid() or !.uploadedTexture.isValid() or image.width != .image.width or image.height != .image.height or image.pixelFormat != .image.pixelFormat
+        {
+            .setImage(image[])
+            return
+        }
+
+        swap(&.image, image)
+        .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
+        .invalidate()
+    }
+
     // Replaces the image with another rendering of the same content, keeping the view.
     //
     // A viewer whose content is scalable — a document page, a drawing — does not zoom by

@@ -178,7 +178,14 @@ private func mvClose(p, q: const *DeblockMotion, crossed: bool)->bool
 }
 
 // Filters every edge of one macroblock.
-private func deblockMb(dec: *Decoder, mbX, mbY: s32)
+// Filters one complete macroblock row, in the raster order the specification defines.
+func deblockRow(dec: *Decoder, mbY: s32)
+{
+    for mbX in dec.sps!.mbWidth do
+        deblockMb(dec, mbX, mbY)
+}
+
+func deblockMb(dec: *Decoder, mbX, mbY: s32)
 {
     let sps   = dec.sps!
     let frame = dec.current!

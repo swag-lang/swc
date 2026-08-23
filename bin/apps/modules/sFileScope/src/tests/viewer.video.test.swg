@@ -23,11 +23,12 @@ func videoPreviewFile(name: string, frameCount = 4'u32)->String fail
 
 func waitForVideoFrame(view: *VideoViewer)
 {
-    // A completion can immediately launch the most recent seek that arrived while it was running.
-    while view.decodeScheduled
+    // Playback runs a producer ahead of the clock, so a picture reaches the screen only when
+    // the viewer is next pumped. Drive that pump until the requested picture is published.
+    while view.awaitingFrame
     {
         Threading.Thread.yield()
-        discard view.finishDecode()
+        view.updatePlayback()
     }
 }
 

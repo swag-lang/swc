@@ -690,22 +690,45 @@ impl Slice
         var scan              = 0'u32
         var foundLast         = false
         var arithmetic        = CabacArithmetic{.cabac.low, .cabac.range}
-        while scan < maxCoeffs - 1
-        {
-            let sigCtx = cat == 5 ? cast(u32) SigCoeffCtx8x8[scan] : scan
-            if .cabac.significanceDecision(sigBase + sigCtx, &arithmetic) != 0
-            {
-                indices[count] = scan
-                count          += 1
-                let lastCtx = cat == 5 ? cast(u32) LastCoeffCtx8x8[scan] : scan
-                if .cabac.significanceDecision(lastBase + lastCtx, &arithmetic) != 0
-                {
-                    foundLast = true
-                    break
-                }
-            }
 
-            scan += 1
+        // The 8x8 category maps every scan position through a table while every other category
+        // uses the position itself. Choosing once instead of per coefficient keeps the two
+        // decisions of the inner loop back to back.
+        if cat == 5
+        {
+            while scan < maxCoeffs - 1
+            {
+                if .cabac.significanceDecision(sigBase + cast(u32) SigCoeffCtx8x8[scan], &arithmetic) != 0
+                {
+                    indices[count] = scan
+                    count          += 1
+                    if .cabac.significanceDecision(lastBase + cast(u32) LastCoeffCtx8x8[scan], &arithmetic) != 0
+                    {
+                        foundLast = true
+                        break
+                    }
+                }
+
+                scan += 1
+            }
+        }
+        else
+        {
+            while scan < maxCoeffs - 1
+            {
+                if .cabac.significanceDecision(sigBase + scan, &arithmetic) != 0
+                {
+                    indices[count] = scan
+                    count          += 1
+                    if .cabac.significanceDecision(lastBase + scan, &arithmetic) != 0
+                    {
+                        foundLast = true
+                        break
+                    }
+                }
+
+                scan += 1
+            }
         }
 
         .cabac.low   = arithmetic.low

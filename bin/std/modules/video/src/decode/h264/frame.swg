@@ -11,6 +11,14 @@ using Core, Core.Errors, Core.Math
 const FramePadding = 32's32
 private const ConversionBands = 16'u32
 
+// Row progress a picture publishes while it is being reconstructed.
+//
+// A value of `n` means the first `n` macroblock rows hold their final samples and carry their
+// side padding, and that the top padding is written once `n` is at least one. The completion
+// value additionally covers the bottom padding, so a prediction reading past the picture waits
+// for it. A failed picture publishes [[FrameProgressFailed]] so nothing waits on it forever.
+const FrameProgressFailed = -1's32
+
 // Co-located motion read by direct B prediction.
 struct ColMotion
 {
@@ -42,7 +50,13 @@ struct Frame
     heldByCaller:        u32     // The container still displays this frame; shared across pipeline lanes.
     reconstructionHolds: u32     // Parsed pictures still borrow this frame for reconstruction.
     parseProgress:       u32     // Zero while metadata is incomplete, one when ready, two on failure.
-    decodeProgress:      u32     // Zero while pixels are incomplete, one when ready, two on failure.
+
+    // Reconstruction progress, in final macroblock rows. Prediction in a later picture waits on
+    // it rather than on the whole picture, which is what lets consecutive pictures overlap.
+    progressRows:    s32
+    progressWaiters: u32
+    progressLock:    Sync.Mutex
+    progressEvent:   Sync.Event
 
     // Motion exported for co-located prediction in later B slices, one entry per 4x4 block:
     // the L0 motion when the block had one, its L1 motion otherwise.
@@ -97,10 +111,63 @@ impl Frame
 
         .isShortTerm = false
         .isLongTerm  = false
+        if !.progressEvent.isValid() do
+            .progressEvent.init(manual: true)
         Atomic.exchange(&.heldByCaller, 0)
         Atomic.exchange(&.parseProgress, 0)
-        Atomic.exchange(&.decodeProgress, 0)
+        Atomic.exchange(&.progressRows, 0)
         Debug.assert(Atomic.get(&.reconstructionHolds) == 0)
+    }
+
+    // Returns the progress value that covers the whole picture, padding included.
+    #[Swag.Inline]
+    mtd const progressComplete()->s32 => .mbHeight + 1
+
+    // Publishes reconstruction progress and releases everything waiting for less than it.
+    mtd publishProgress(rows: s32)
+    {
+        .progressLock.lock()
+        Atomic.exchange(&.progressRows, rows)
+
+        // Every macroblock row publishes, and with a picture per decoder lane that is thousands
+        // of signals a second on a stream nobody is waiting on. Only pay for the wake-up when a
+        // waiter registered itself.
+        if .progressWaiters do
+            .progressEvent.signal()
+        .progressLock.unlock()
+    }
+
+    // Waits until the first `rows` macroblock rows are final, and returns the progress it
+    // observed, which is [[FrameProgressFailed]] when the picture will never produce them.
+    //
+    // The event stays manual so one publication releases every waiter. A waiter that still
+    // needs more clears it under the lock before waiting again, which cannot lose a
+    // publication because a publication takes the same lock; a waiter that leaves sets it
+    // again so the others re-read the counter rather than sleeping through it.
+    mtd awaitProgress(rows: s32)->s32
+    {
+        var value = Atomic.get(&.progressRows)
+        if value >= rows do
+            return value
+
+        .progressLock.lock()
+        .progressWaiters += 1
+        while true
+        {
+            value = Atomic.get(&.progressRows)
+            if value >= rows or value == FrameProgressFailed do
+                break
+            .progressEvent.reset()
+            .progressLock.unlock()
+            .progressEvent.wait()
+            .progressLock.lock()
+        }
+
+        .progressWaiters -= 1
+        if .progressWaiters do
+            .progressEvent.signal()
+        .progressLock.unlock()
+        return value
     }
 
     // Returns the address of the luma sample at `x`, `y` of the coded picture.
@@ -172,6 +239,30 @@ impl Frame
         extendPlane(.luma.buffer!, .strideLuma, .mbWidth * 16, .mbHeight * 16)
         extendPlane(.cb.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
         extendPlane(.cr.buffer!, .strideChroma, .mbWidth * 8, .mbHeight * 8)
+    }
+
+    // Replicates the left and right edges of one macroblock row, and the top padding with it
+    // when that row is the first. A picture publishes a row only once this ran on it, so a
+    // later picture predicting from the row reads replicated samples and not stale ones.
+    mtd extendRowEdges(mbRow: s32)
+    {
+        extendPlaneRows(.luma.buffer!, .strideLuma, .mbWidth * 16, mbRow * 16, 16)
+        extendPlaneRows(.cb.buffer!, .strideChroma, .mbWidth * 8, mbRow * 8, 8)
+        extendPlaneRows(.cr.buffer!, .strideChroma, .mbWidth * 8, mbRow * 8, 8)
+        if mbRow == 0
+        {
+            extendPlaneTop(.luma.buffer!, .strideLuma)
+            extendPlaneTop(.cb.buffer!, .strideChroma)
+            extendPlaneTop(.cr.buffer!, .strideChroma)
+        }
+    }
+
+    // Replicates the bottom padding, which only the finished picture can produce.
+    mtd extendBottomEdge()
+    {
+        extendPlaneBottom(.luma.buffer!, .strideLuma, .mbHeight * 16)
+        extendPlaneBottom(.cb.buffer!, .strideChroma, .mbHeight * 8)
+        extendPlaneBottom(.cr.buffer!, .strideChroma, .mbHeight * 8)
     }
 }
 
@@ -300,6 +391,37 @@ private func convertRgb16(destination: [*] u8, luma, cb, cr: const [*] u8)
     Simd.store(destination, Simd.shuffle(r8, PermR0) | Simd.shuffle(g8, PermG0) | Simd.shuffle(b8, PermB0))
     Simd.store(destination + 16, Simd.shuffle(r8, PermR1) | Simd.shuffle(g8, PermG1) | Simd.shuffle(b8, PermB1))
     Simd.store(destination + 32, Simd.shuffle(r8, PermR2) | Simd.shuffle(g8, PermG2) | Simd.shuffle(b8, PermB2))
+}
+
+// Replicates the left and right edges of `count` rows starting at `first`.
+private func extendPlaneRows(base: [*] u8, stride: u64, width, first, count: s32)
+{
+    let pad = cast(u64) FramePadding
+    var row = base + (pad + cast(u64) first) * stride + pad
+    for count
+    {
+        Memory.set(row - pad, row[0], pad)
+        Memory.set(row + cast(u64) width, row[cast(u64) width - 1], pad)
+        row += stride
+    }
+}
+
+// Copies the first row of a plane into the padding above it.
+private func extendPlaneTop(base: [*] u8, stride: u64)
+{
+    let pad = cast(u64) FramePadding
+    let top = base + pad * stride
+    for index in pad do
+        Memory.copy(base + index * stride, top, stride)
+}
+
+// Copies the last row of a plane into the padding below it.
+private func extendPlaneBottom(base: [*] u8, stride: u64, height: s32)
+{
+    let pad    = cast(u64) FramePadding
+    let bottom = base + (pad + cast(u64) height - 1) * stride
+    for index in pad do
+        Memory.copy(bottom + (index + 1) * stride, bottom, stride)
 }
 
 // Replicates the edges of one plane into its padding border.

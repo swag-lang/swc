@@ -36,6 +36,12 @@ struct RefPic
     frame:      #null *Frame
     poc:        s32
     isLong:     bool
+
+    // Rows of the reference this slice has already seen published. Reconstruction reads it
+    // before every predicted block, and the shared counter behind it costs a locked
+    // instruction, so the last answer is kept here and only refreshed when a block needs more.
+    readyRows:  s32
+
     lumaWeight: s32
     lumaOffset: s32
     cbWeight:   s32
@@ -69,6 +75,13 @@ struct Slice
     useWeights:      bool             // Explicit weights apply to every prediction.
     useImplicit:     bool             // Implicit weights apply to bidirectional predictions.
     implicitW1:      [32, 32] s16     // Implicit weight of the list-1 side, per reference pair.
+
+    // A macroblock reconstructed as soon as it is parsed consumes its coefficients and its
+    // extra motion regions immediately, so one scratch record serves the whole slice instead of
+    // one per macroblock of the picture. That removes about fifty megabytes per decoder lane at
+    // this resolution, and the record stays in cache between the two passes over it.
+    scratchResidual:  MbResidual
+    scratchExtraJobs: MbExtraJobs
 
     qp:          s32     // Current luma QP, carried from macroblock to macroblock.
     lastQpDelta: s32     // For the CABAC QP-delta context.

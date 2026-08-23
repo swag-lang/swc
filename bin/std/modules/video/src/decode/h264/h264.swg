@@ -117,6 +117,11 @@ struct Decoder
     referencesHeld:  bool     // Slice reference pictures are pinned until reconstruction finishes.
     preparedData:    bool     // A single slice has published setup but has not parsed its macroblocks.
     frameThreaded:   bool     // This picture may overlap complete neighboring pictures.
+
+    // A single-slice picture reconstructs, filters and publishes each macroblock row as the
+    // entropy decoder finishes it, so the next picture predicts from the rows it already has
+    // instead of waiting for the whole reference.
+    inlineRecon: bool
 }
 
 // One memory-management control operation of a slice header.
@@ -194,6 +199,7 @@ impl Decoder
         .current            = null
         .preparedData       = false
         .frameThreaded      = false
+        .inlineRecon        = false
         .prevPocMsb         = 0
         .prevPocLsb         = 0
         .prevFrameNum       = 0
@@ -209,6 +215,7 @@ impl Decoder
         .current       = null
         .preparedData  = false
         .frameThreaded = false
+        .inlineRecon   = false
     }
 
     // Starts from the prediction state produced by the preceding decoder lane.
@@ -252,11 +259,13 @@ impl Decoder
     mtd prepareAccessUnit(sample: const [..] u8)->bool fail
     {
         .frameThreaded = true
+        .inlineRecon   = false
         if !.hasSinglePictureSlice(sample) do
             return try .parseAccessUnit(sample, true)
 
         .current       = null
         .markingParsed = false
+        .inlineRecon   = true
         .mmcoOps.clear()
         .pipelineSingleSlice = false
         .pipelineBandCount   = 0
@@ -313,10 +322,11 @@ impl Decoder
         if .current
         {
             Atomic.exchange(&.current!.parseProgress, 2)
-            Atomic.exchange(&.current!.decodeProgress, 2)
+            .current!.publishProgress(FrameProgressFailed)
         }
 
         .preparedData = false
+        .inlineRecon  = false
         .releasePictureReferences()
     }
 
@@ -329,6 +339,7 @@ impl Decoder
     {
         .current       = null
         .markingParsed = false
+        .inlineRecon   = false
         .mmcoOps.clear()
         .pipelineSingleSlice = !deferReconstruction and .hasSinglePictureSlice(sample)
         .pipelineBandCount   = 0
@@ -368,13 +379,25 @@ impl Decoder
     {
         Debug.assert(.current != null)
         defer .releasePictureReferences()
+        if .inlineRecon
+        {
+            // Reconstruction, filtering and padding already ran row by row beside the entropy
+            // decoder, and the last row was published by [[completeInlinePicture]].
+            let published = .current!
+            .inlineRecon = false
+            Atomic.exchange(&published.heldByCaller, 1)
+            .current = null
+            return published
+        }
+
         if .frameThreaded do
             .awaitReferenceProgress(true)
         .reconstructPicture()
         deblockPicture(me)
         let result = .current!
         result.extendEdges()
-        Atomic.exchange(&result.decodeProgress, 1)
+
+        result.publishProgress(result.progressComplete())
         Atomic.exchange(&result.heldByCaller, 1)
         .current = null
         return result
@@ -435,12 +458,22 @@ impl Decoder
                     if !frame do
                         continue
 
-                    let progress = decoded ? &frame!.decodeProgress : &frame!.parseProgress
-                    var value    = Atomic.get(progress)
+                    if decoded
+                    {
+                        // The whole picture is waited for here, so reconstruction never has to
+                        // consult the shared counter again for this entry.
+                        let complete = frame!.progressComplete()
+                        if frame!.awaitProgress(complete) == FrameProgressFailed do
+                            fail InvalidFormatError{"H.264 inter block has no reference picture"}
+                        slice.refs[list, index].readyRows = complete
+                        continue
+                    }
+
+                    var value = Atomic.get(&frame!.parseProgress)
                     while value == 0
                     {
                         Threading.Thread.yield()
-                        value = Atomic.get(progress)
+                        value = Atomic.get(&frame!.parseProgress)
                     }
 
                     if value == 2 do
@@ -679,10 +712,14 @@ impl Decoder
             .mvdL1.resize(blocks * 2)
             .directFlags.resize(blocks)
             .parsedMbs.resize(mbCount)
+        }
 
-            // Residual coefficients and extra motion regions are cold on skipped or simple
-            // inter macroblocks. Reserve stable pointer storage, but materialize only entries
-            // that the current picture actually uses.
+        // A picture reconstructed after its complete parse keeps every macroblock's coefficients
+        // and extra motion regions alive until then, and their addresses have to stay put, so
+        // the storage is reserved whole. A picture reconstructed row by row consumes both
+        // immediately and uses the slice scratch instead.
+        if !.inlineRecon
+        {
             .parsedResiduals.reserve(mbCount)
             .parsedExtraJobs.reserve(mbCount)
         }

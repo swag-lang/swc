@@ -255,3 +255,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: if-convert the early-return chain — a triangle whose body is a `ret` of a pure value
   — into a select feeding one `ret`, then re-measure the decoder's deblock and conversion loops
   against the hand-written sign-bit forms and retire those if the select matches them.
+
+### F-187 — An atomic read is a locked read-modify-write
+
+- Area: optimization
+- Found while: T-504, giving the H.264 decoder per-row reference progress so pictures overlap.
+- Observation: `Core.Atomic.get` is written as `@atomcmpxchg(addr, 0, 0)`, so every atomic read
+  compiles to a `LOCK CMPXCHG`. That takes the cache line exclusively, writes it, and orders the
+  whole pipeline, for what is only a read. On x86-64 an aligned load of that width is already
+  atomic and already carries acquire ordering, so the locked form buys nothing and costs the line
+  to every other reader.
+- Evidence: reconstruction consulted a per-picture progress counter before each predicted block.
+  With sixteen frame threads reading the same counter it turned a read-mostly value into a
+  contended write, and the reconstruction of one 3840x2160 picture measured about 42 ms instead of
+  the 22 ms the same work takes without it. The decoder now caches the last value it observed per
+  reference picture, so the locked read happens about once per macroblock row rather than several
+  times per macroblock, and the time came back. Every other spin in the repository still pays it:
+  `Jobs.isDone`, `Jobs.wait`, the deblocking wavefront, `Frame.heldByCaller`, and the frame-pool
+  scan in `startPicture` all poll through `Atomic.get`.
+- Next step: add a relaxed atomic load to the language — an `@atomget` intrinsic lowering to a
+  plain `MOV` on x86-64, with the same acquire guarantee the current form provides — and make
+  `Atomic.get` use it. Measure `tools/unittests.swgs dm cpp` for the intrinsic itself, then the
+  `Jobs` scheduler and the deblocking wavefront before and after; both spin on it today.

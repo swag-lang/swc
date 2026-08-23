@@ -402,10 +402,15 @@ impl Slice
 
         if !mb.extraJobs
         {
-            let dec   = .dec!
-            let entry = dec.parsedExtraJobs.count
-            dec.parsedExtraJobs.resize(entry + 1)
-            mb.extraJobs = &dec.parsedExtraJobs[entry]
+            let dec = .dec!
+            if dec.inlineRecon do
+                mb.extraJobs = &.scratchExtraJobs
+            else
+            {
+                let entry = dec.parsedExtraJobs.count
+                dec.parsedExtraJobs.resize(entry + 1)
+                mb.extraJobs = &dec.parsedExtraJobs[entry]
+            }
         }
 
         return &mb.extraJobs!.jobs[index - 1]
@@ -768,6 +773,8 @@ impl Slice
                 else do
                     .parseMbCavlc(mb)
                 .bookkeepMb(mb)
+                if dec.inlineRecon do
+                    .reconstructMb(mb)
                 dec.decodedMbs += 1
                 .advanceMb()
             }
@@ -787,6 +794,8 @@ impl Slice
 
         if !.isCabac and .bits.overran do
             fail InvalidFormatError{"H.264 slice data is truncated"}
+        if dec.inlineRecon and .mbAddr >= mbCount do
+            dec.completeInlinePicture()
     }
 
     // Resets the parse state for the macroblock at the current address.
@@ -825,9 +834,15 @@ impl Slice
             // Full macroblocks can leave uncoded blocks untouched while parsing, and intra
             // reconstruction reads those blocks later. Skipped inter macroblocks have no
             // residual by definition, so their zero bookkeeping keeps these arrays unreachable.
-            let entry = dec.parsedResiduals.count
-            dec.parsedResiduals.resize(entry + 1)
-            mb.residual = &dec.parsedResiduals[entry]
+            if dec.inlineRecon do
+                mb.residual = &.scratchResidual
+            else
+            {
+                let entry = dec.parsedResiduals.count
+                dec.parsedResiduals.resize(entry + 1)
+                mb.residual = &dec.parsedResiduals[entry]
+            }
+
             Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
             Memory.clear(mb.residual!, #sizeof(MbResidual))
         }
@@ -871,6 +886,8 @@ impl Slice
 
         .lastQpDelta = 0
         .bookkeepMb(mb)
+        if dec.inlineRecon do
+            .reconstructMb(mb)
         dec.decodedMbs += 1
         .advanceMb()
     }
@@ -884,7 +901,10 @@ impl Slice
         {
             .mbX = 0
             .mbY += 1
-            .dec!.scheduleParsedRows(cast(u32) .mbY)
+            if .dec!.inlineRecon do
+                .dec!.completeReconstructedRow(.mbY - 1)
+            else do
+                .dec!.scheduleParsedRows(cast(u32) .mbY)
         }
     }
 

@@ -22,6 +22,42 @@ private struct ReconstructionContext
 
 impl Decoder
 {
+    // Advances the loop filter and the published row progress after one macroblock row of the
+    // current picture has been reconstructed.
+    //
+    // Intra prediction reads unfiltered neighbors, so the filter has to stay one row behind
+    // reconstruction. Filtering row `R` is the last pass that touches row `R - 1`, which is
+    // therefore final and can be padded and published as soon as row `R` is filtered.
+    mtd completeReconstructedRow(reconstructedRow: s32)
+    {
+        if reconstructedRow >= 1 do
+            .filterRow(reconstructedRow - 1)
+    }
+
+    // Filters one macroblock row and publishes the row above it as final.
+    private mtd filterRow(mbRow: s32)
+    {
+        deblockRow(me, mbRow)
+        if mbRow == 0 do
+            return
+
+        let frame = .current!
+        frame.extendRowEdges(mbRow - 1)
+        frame.publishProgress(mbRow)
+    }
+
+    // Filters and publishes what the row-by-row pipeline still owes once the last macroblock
+    // row of the picture has been reconstructed.
+    mtd completeInlinePicture()
+    {
+        let last  = cast(s32) .sps!.mbHeight - 1
+        let frame = .current!
+        .filterRow(last)
+        frame.extendRowEdges(last)
+        frame.extendBottomEdge()
+        frame.publishProgress(frame.progressComplete())
+    }
+
     // Starts every fully parsed row band without making the entropy thread wait for it.
     mtd scheduleParsedRows(parsedRows: u32)
     {
@@ -450,6 +486,11 @@ impl Slice
             let ref1 = job.refIdx[1] >= 0 ? .refs[1, cast(u64) job.refIdx[1]].frame : null
             if !ref0 and !ref1 do
                 fail InvalidFormatError{"H.264 inter block has no reference picture"}
+            if ref0 do
+                .awaitJobReference(mb, job, 0, ref0!)
+            if ref1 do
+                .awaitJobReference(mb, job, 1, ref1!)
+
 
             // Luma.
             let lumaX   = mb.mbX * 16 + job.x
@@ -508,6 +549,29 @@ impl Slice
                 }
             }
         }
+    }
+
+    // Waits until a reference picture holds every row one job reads from it.
+    //
+    // The luma interpolator reads three rows past the block and the chroma one reads one row
+    // past its half-resolution block; a window reaching past the picture is clamped onto the
+    // last row, and the padding that carries it only exists once the picture is complete.
+    mtd awaitJobReference(mb: *Mb, job: *McJob, list: u32, reference: *Frame) fail
+    {
+        let mvY        = cast(s32) job.mv[list, 1]
+        let lumaLast   = mb.mbY * 16 + job.y + (mvY >> 2) + job.height + 3
+        let chromaLast = 2 * (mb.mbY * 8 + job.y / 2 + (mvY >> 3) + job.height / 2) + 1
+        let last       = Math.max(lumaLast, chromaLast)
+        let rows       = last >= reference.mbHeight * 16 ? reference.progressComplete() : (Math.max(last, 0) >> 4) + 1
+
+        let entry = &.refs[list, cast(u64) job.refIdx[list]]
+        if rows <= entry.readyRows do
+            return
+
+        let observed = reference.awaitProgress(rows)
+        if observed == FrameProgressFailed do
+            fail InvalidFormatError{"H.264 reference picture did not decode"}
+        entry.readyRows = observed
     }
 
     // Interpolates the luma of one job for one list.

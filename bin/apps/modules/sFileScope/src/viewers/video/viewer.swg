@@ -1,6 +1,6 @@
 #global internal
 
-using Core, Pixel, Gui, Video
+using Core, Pixel, Gui, Video, Audio
 
 private const VideoGlyphSize = 18.0
 private const VideoCommandWidth = 350.0
@@ -54,7 +54,10 @@ internal struct VideoViewer
     }
 
     // The stream is read through its own header alone, so a video of any size opens instantly.
-    video: Reader
+    video:               Reader
+    audio:               #null const *SoundFile
+    voice:               #null *Voice
+    audioEngineAcquired: bool
 
     // Decoded pictures waiting for their turn on screen.
     //
@@ -84,9 +87,10 @@ internal struct VideoViewer
     failureText: String
     hasFailure:  bool
 
-    awaitingFrame: bool
-    anchorPending: bool     // The next published picture re-anchors the playback clock on itself.
-    hasFrame:      bool
+    awaitingFrame:        bool
+    anchorPending:        bool     // The next published picture re-anchors the playback clock on itself.
+    hasFrame:             bool
+    resumeAudioAfterSeek: bool
 
     timer:         #null *Timer
     clock:         Time.Stopwatch
@@ -101,14 +105,31 @@ internal impl VideoViewer
 {
     mtd frameSeconds(index: u64)->f64
     {
-        return cast(f64) index * cast(f64) .video.frameRate().denominator() / cast(f64) .video.frameRate().numerator()
+        return .video.frameTimestamp(index)
     }
 
     mtd currentSeconds()->f64
     {
         if !.playing do
             return .elapsed
+        if .voice do
+            return .voice!.playbackPositionSeconds()
         return .elapsed + cast(f64) .clock.elapsedMicroseconds() / 1_000_000.0
+    }
+
+    mtd resumeAudio()
+    {
+        .resumeAudioAfterSeek = false
+        if !.voice do
+            return
+        catch .voice!.play() as playError
+        if playError != null
+        {
+            .playing = false
+            .refreshTransport()
+            if .reportFailure do
+                .reportFailure!(me, Errors.message(playError))
+        }
     }
 
     mtd refreshTransport()
@@ -140,10 +161,14 @@ internal impl VideoViewer
     }
 
     // Aims the producer at `index`, dropping everything it had already decoded past it.
+    //
+    // A reposition that is still waiting for its own picture is not repeated: a starved queue
+    // asks for the same sync frame on every tick, and restarting the decoder each time would
+    // never let it fill.
     mtd repositionTo(index: u64)
     {
         Sync.scopedLock(&.queueLock)
-        if .produceFrom == index and !.hasFailure do
+        if .anchorPending and .produceFrom == index and !.hasFailure do
             return
 
         for slot in .ready do
@@ -243,6 +268,13 @@ internal impl VideoViewer
 
         if failure.length
         {
+            .resumeAudioAfterSeek = false
+            if .voice
+            {
+                .elapsed = .voice!.playbackPositionSeconds()
+                catch .voice!.pause()
+            }
+
             .playing       = false
             .awaitingFrame = false
             .clock.reset()
@@ -259,10 +291,11 @@ internal impl VideoViewer
         .awaitingFrame = false
         if .anchorPending
         {
-            // A jump moved the producer, so the clock follows the picture that came back
-            // rather than the position it asked for.
+            // A jump moved the producer, so the silent clock follows the picture that came back
+            // rather than the position it asked for. Sound is the master clock when there is
+            // one, and its timeline is never moved to conceal video decode latency.
             .anchorPending = false
-            if .playing
+            if .playing and !.voice
             {
                 .elapsed = .frameSeconds(.frameIndex)
                 .clock.restart()
@@ -277,6 +310,11 @@ internal impl VideoViewer
 
         .decodeWake.signal()
         .refreshTransport()
+
+        // A transport seek holds the audio clock until its target picture is on screen. This
+        // avoids showing the previous picture while sound has already jumped to the new time.
+        if .resumeAudioAfterSeek do
+            .resumeAudio()
         return true
     }
 
@@ -285,6 +323,8 @@ internal impl VideoViewer
     {
         if index >= .video.frameCount() do
             return false
+        if .hasFrame and !.awaitingFrame and index == .frameIndex do
+            return true
         .repositionTo(index)
         .decodeWake.signal()
         discard .publishHead()
@@ -295,11 +335,38 @@ internal impl VideoViewer
     {
         if !.video.frameCount() do
             return
-        let target = Math.min(index, .video.frameCount() - 1)
+        let target      = Math.min(index, .video.frameCount() - 1)
+        let resumeAudio = .playing and .voice != null
+        .resumeAudioAfterSeek = false
+        if resumeAudio do
+            catch .voice!.pause()
         if !.showFrame(target) do
             return
+
         .elapsed = .frameSeconds(target)
-        if .playing do
+        if .voice
+        {
+            let sample = cast(u64) Math.round(.elapsed * cast(f64) .audio!.sampleRateHz())
+            catch .voice!.seekSampleFrame(sample) as seekError
+            if seekError != null
+            {
+                .resumeAudioAfterSeek = false
+                .playing              = false
+                catch .voice!.pause()
+                if .reportFailure do
+                    .reportFailure!(me, Errors.message(seekError))
+                return
+            }
+
+            if resumeAudio
+            {
+                if .frameIndex != target do
+                    .resumeAudioAfterSeek = true
+                else do
+                    .resumeAudio()
+            }
+        }
+        elif .playing do
             .clock.restart()
     }
 
@@ -309,7 +376,10 @@ internal impl VideoViewer
             return
         if .playing
         {
-            .elapsed = .currentSeconds()
+            .resumeAudioAfterSeek = false
+            .elapsed              = .currentSeconds()
+            if .voice do
+                catch .voice!.pause()
             .clock.reset()
             .playing = false
         }
@@ -319,9 +389,23 @@ internal impl VideoViewer
             {
                 .elapsed = 0
                 discard .showFrame(0)
+                if .voice do
+                    catch .voice!.seekSampleFrame(0)
             }
 
-            .clock.restart()
+            if .voice
+            {
+                catch .voice!.play() as playError
+                if playError != null
+                {
+                    if .reportFailure do
+                        .reportFailure!(me, Errors.message(playError))
+                    return
+                }
+            }
+            else do
+                .clock.restart()
+
             .playing = true
             .decodeWake.signal()
         }
@@ -333,9 +417,12 @@ internal impl VideoViewer
     {
         if !.video.frameCount() do
             return
-        .playing = false
-        .elapsed = 0
+        .playing              = false
+        .resumeAudioAfterSeek = false
+        .elapsed              = 0
         .clock.reset()
+        if .voice do
+            catch .voice!.stop()
         discard .showFrame(0)
         .refreshTransport()
     }
@@ -343,8 +430,7 @@ internal impl VideoViewer
     // Returns the picture the playback clock is currently on.
     mtd clockFrame()->u64
     {
-        let rate = .video.frameRate()
-        return cast(u64) (.currentSeconds() * cast(f64) rate.numerator() / cast(f64) rate.denominator())
+        return .video.frameAtTime(.currentSeconds())
     }
 
     // Advances presentation by at most one picture, and decides when to give up and skip.
@@ -384,9 +470,12 @@ internal impl VideoViewer
 
         if clock >= .video.frameCount() and .frameIndex + 1 >= .video.frameCount()
         {
-            .playing = false
-            .elapsed = .video.durationInSeconds()
+            .playing              = false
+            .resumeAudioAfterSeek = false
+            .elapsed              = .video.durationInSeconds()
             .clock.reset()
+            if .voice do
+                catch .voice!.pause()
             .refreshTransport()
             return
         }
@@ -444,6 +533,19 @@ private impl IWnd for VideoViewer
             .decodeWake.release()
         }
 
+        if .voice
+        {
+            catch .voice!.stop()
+            .voice!.destroy()
+            .voice = null
+        }
+
+        if .audioEngineAcquired
+        {
+            releaseSoundEngine()
+            .audioEngineAcquired = false
+        }
+
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -462,6 +564,22 @@ private impl VideoViewer
         registerVideoStrings(contentParent.app())
         var video  = try Reader.open(fileName)
         let result = Wnd.create'VideoViewer(contentParent, "sFileScope.video")
+        defer #fail
+        {
+            if result.voice
+            {
+                catch result.voice!.stop()
+                result.voice!.destroy()
+                result.voice = null
+            }
+
+            if result.audioEngineAcquired
+            {
+                releaseSoundEngine()
+                result.audioEngineAcquired = false
+            }
+        }
+
         result.backgroundStyle = .View
         result.reportFailure   = reportFailure
 
@@ -519,6 +637,15 @@ private impl VideoViewer
 
         result.video = #move video
         result.prepareSlots()
+        if result.video.audioTrackCount()
+        {
+            if !acquireSoundEngine() do
+                fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
+            result.audioEngineAcquired = true
+            result.audio               = result.video.audioTrack(0)
+            result.voice               = Voice.create(result.audio!)
+        }
+
         if !Jobs.isSynchronous()
         {
             result.decodeWake.init()

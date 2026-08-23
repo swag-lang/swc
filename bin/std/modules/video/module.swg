@@ -1,13 +1,14 @@
 /*
-Video reads and writes silent video streams as timed sequences of [[Pixel.Image]]
-frames.
+Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed ISO-BMFF readers
+also expose streamed AAC-LC sound tracks through [[Audio.SoundFile]].
 
 Reading and writing are streamed: [[Video.Reader]] opens a stream by reading its
-header alone and decodes one frame at a time, and [[Video.Writer]] encodes one
-frame at a time into its destination. Neither holds the encoded stream, so both
-cost the memory of a frame rather than the memory of a file, whatever its length.
-[[Video.Clip]] is the other half of the picture — the frames a program builds in
-memory before encoding them.
+metadata and decodes one frame at a time, and [[Video.Writer]] encodes one frame
+at a time into its destination. Encoded media payloads remain in their source;
+indexed containers retain compact sample tables while decoding keeps only the
+active picture, codec references, and bounded audio buffers. [[Video.Clip]] is
+the other half of the picture — the frames a program builds in memory before
+encoding them.
 
 ```swag
 #import("video")
@@ -37,23 +38,25 @@ Three codecs ship in the box:
 - AVI (`.avi`) reads Motion JPEG and uncompressed frames and writes Motion JPEG
   ones. It seeks through the index the container carries rather than through the
   frames themselves, so a seek costs one frame whatever the length of the file.
-- ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads and writes Motion JPEG tracks. It
-  expands the movie's sample tables into direct frame offsets, ignores non-video
-  tracks, and accepts the `jpeg`, `mjpg`, `mjpa`, and JPEG-tagged `mp4v` forms.
+- ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG and H.264 pictures, writes Motion JPEG,
+  and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct packet
+  offsets while payloads remain in the file. Exact composition timestamps are retained for
+  variable-rate playback and H.264 display reordering.
 
 Decoding and encoding are separate implementations of a format, under `src/decode`
 and `src/encode`, laid out as the Pixel image codecs are. A format that has
 something to choose takes an options structure the same way they do, such as
 [[Avi.EncodeOptions]] and [[Mp4.EncodeOptions]].
 
-The reader does not expose audio tracks. MP4 tracks using H.264 or another
-inter-frame codec fail as unsupported rather than being mistaken for pictures.
+Unsupported picture or sound codecs fail or remain unavailable rather than being mistaken for
+decoded media.
 Alpha is discarded during encoding, and decoded frames use
 [[Pixel.PixelFormat.RGB8]]. Malformed streams, unsupported codecs, inconsistent
 frames, and file access errors use Swag's normal `fail` mechanism.
 */
 
 #import("core")
+#import("audio")
 #import("pixel")
 
 #run

@@ -1,6 +1,6 @@
 #global public
 
-using Core, Core.Errors, Pixel
+using Core, Core.Errors, Pixel, Audio
 
 // One registered decoder: the format it reads, and the type that reads it.
 internal struct DecoderDesc
@@ -57,6 +57,26 @@ interface IDecoder
     mtd syncFrameAt(index: u64)->u64
 }
 
+// Optional decoder capability exposing sound tracks carried by a video container.
+interface IAudioDecoder
+{
+    // Returns the number of playable sound tracks.
+    mtd audioTrackCount()->u32
+
+    // Returns a sound track owned by the decoder, or `null` past the end.
+    mtd audioTrack(index: u32)->#null const *SoundFile
+}
+
+// Optional decoder capability exposing exact presentation timestamps.
+interface ITimedDecoder
+{
+    // Returns the presentation time of frame `index`, in seconds.
+    mtd frameTimestamp(index: u64)->f64
+
+    // Returns the frame presented at `seconds`, or the frame count past the end.
+    mtd frameAtTime(seconds: f64)->u64
+}
+
 // Decodes the frames of a video stream without holding the stream in memory.
 //
 // A reader owns its source and its decoder instance. Frame `index` is zero-based; decoding
@@ -70,11 +90,13 @@ struct Reader
 {
     internal
     {
-        source:      Source                               // Bytes of the encoded stream.
-        info:        StreamInfo                           // What the decoder reported when opening.
-        format:      StreamFormat                         // Format claimed by the selected decoder.
-        decoder:     #null IDecoder                       // Decoder instance owned by this reader.
-        decoderType: #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
+        source:       Source                               // Bytes of the encoded stream.
+        info:         StreamInfo                           // What the decoder reported when opening.
+        format:       StreamFormat                         // Format claimed by the selected decoder.
+        decoder:      #null IDecoder                       // Decoder instance owned by this reader.
+        audioDecoder: #null IAudioDecoder                  // Optional sound-track capability.
+        timedDecoder: #null ITimedDecoder                  // Optional exact-timestamp capability.
+        decoderType:  #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
     }
 }
 
@@ -170,9 +192,13 @@ impl Reader
         let selected = found!
         .format      = selected.format
         .decoderType = selected.type
+
         // The registry only ever holds types that implement the interface, so the table resolves.
-        .decoder     = @mkinterface(Memory.new(selected.type), selected.type, IDecoder)!
-        .info        = .decoder.open(&.source)
+        .decoder = @mkinterface(Memory.new(selected.type), selected.type, IDecoder)!
+        let instance = @dataof(.decoder)
+        .audioDecoder = @mkinterface(instance, selected.type, IAudioDecoder)
+        .timedDecoder = @mkinterface(instance, selected.type, ITimedDecoder)
+        .info         = .decoder.open(&.source)
     }
 
     // Releases the decoder instance and the source when the reader leaves scope.
@@ -191,8 +217,10 @@ impl Reader
             if type.opDrop do
                 type.opDrop(instance)
             Memory.free(instance, cast(u64) type.sizeof)
-            .decoder     = null
-            .decoderType = null
+            .decoder      = null
+            .audioDecoder = null
+            .timedDecoder = null
+            .decoderType  = null
         }
 
         .source.close()
@@ -221,6 +249,37 @@ impl Reader
 
     // Returns the number of frames, or zero when the format cannot report it.
     mtd const frameCount()->u64 => .info.frameCount
+
+    // Returns the number of decoded sound tracks carried by the opened stream.
+    mtd const audioTrackCount()->u32 => .audioDecoder ? .audioDecoder!.audioTrackCount() : 0
+
+    // Returns sound track `index`, owned by this reader, or `null` past the end.
+    //
+    // The track streams from its own file cursor and remains valid until the reader is closed.
+    mtd const audioTrack(index: u32)->#null const *SoundFile
+    {
+        return .audioDecoder ? .audioDecoder!.audioTrack(index) : null
+    }
+
+    // Returns the exact presentation time of frame `index` in seconds.
+    //
+    // Formats without timestamp metadata fall back to their declared frame rate.
+    mtd const frameTimestamp(index: u64)->f64
+    {
+        if .timedDecoder do
+            return .timedDecoder!.frameTimestamp(index)
+        return cast(f64) index * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
+    }
+
+    // Returns the picture presented at `seconds`, or the frame count past the end.
+    mtd const frameAtTime(seconds: f64)->u64
+    {
+        if .timedDecoder do
+            return .timedDecoder!.frameAtTime(seconds)
+        if seconds < 0 do
+            return 0
+        return Math.min(cast(u64) (seconds * cast(f64) .info.frameRate.numerator() / cast(f64) .info.frameRate.denominator()), .info.frameCount)
+    }
 
     // Returns the first frame at or after `index` that decodes without any earlier frame.
     //

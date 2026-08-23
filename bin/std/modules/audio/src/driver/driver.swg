@@ -239,8 +239,10 @@ impl Driver
         else
         {
             back = Memory.new'Voice(.allocationAllocator)
-            back.allocationAllocator    = .allocationAllocator
-            back.streamBuffer.allocator = .allocationAllocator
+            back.allocationAllocator     = .allocationAllocator
+            back.streamBuffer.allocator  = .allocationAllocator
+            back.packetBuffer.allocator  = .allocationAllocator
+            back.packetScratch.allocator = .allocationAllocator
             for &buffer in back.decodedBuffers do
                 buffer.allocator = .allocationAllocator
         }

@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui, Video
+using Core, Pixel, Gui, Video, Audio
 
 func videoPreviewFile(name: string, frameCount = 4'u32)->String fail
 {
@@ -30,6 +30,11 @@ func waitForVideoFrame(view: *VideoViewer)
         Threading.Thread.yield()
         view.updatePlayback()
     }
+}
+
+func videoAudioFixturePath()->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/glint-aac-mjpeg.mp4")
 }
 
 #test
@@ -144,4 +149,35 @@ func waitForVideoFrame(view: *VideoViewer)
     createVideoViewer(&request, &result)
     @assert(result.view == null and result.commands == null)
     @assert(!result.failureReason.isEmpty())
+}
+
+#test
+{
+    @assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let fileName = videoAudioFixturePath()
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    @assert(view.audio != null and view.voice != null and view.video.audioTrackCount() == 1)
+
+    view.togglePlayback()
+    @assert(view.playing and view.voice!.isPlaying())
+    view.seekFrame(5)
+    waitForVideoFrame(view)
+    @assert(!view.resumeAudioAfterSeek and view.voice!.isPlaying())
+    @assert(view.voice!.playbackSampleFrame() == cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0))
+    view.togglePlayback()
+    @assert(!view.playing and !view.voice!.isPlaying())
+    view.stopPlayback()
+    @assert(view.voice!.playbackSampleFrame() == 0)
 }

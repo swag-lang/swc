@@ -169,6 +169,8 @@ impl Voice
 
     mtd updateNative()->bool fail
     {
+        .dataMutex.lock()
+        defer .dataMutex.unlock()
         switch g_Driver.kind
         {
         case .NoSound:
@@ -236,6 +238,21 @@ impl Voice
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
+    }
+
+    mtd playedFramesNative()->u64
+    {
+        switch g_Driver.kind
+        {
+        case .NoSound:
+            return .playedFramesNoSound()
+
+        case .XAudio2:
+            #static if #os == Swag.TargetOs.Windows do
+                return .playedFramesXAudio2()
+        }
+
+        return 0
     }
 }
 

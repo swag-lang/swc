@@ -1,10 +1,11 @@
 # std/video
 
-The module reads and writes silent video as a stream: a codec registered against `Video.IDecoder`
-and `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
-Four codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, and ISO-BMFF with H.264 — and the
-readers hold one frame of memory whatever the length of the file, plus the reference frames H.264
-prediction needs.
+The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
+`Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
+Four picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, and ISO-BMFF with H.264 —;
+file-backed ISO-BMFF also exposes streamed AAC-LC tracks to std/audio. Encoded payloads stay on
+disk; readers retain compact per-sample indexes plus one picture, the reference frames H.264
+prediction needs, and a bounded audio queue.
 
 What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
 than in design: what is missing is decoders.
@@ -48,14 +49,13 @@ is the layout it does not read yet.
 - Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
   machine.
 
-### T-424 — A video stream carries no sound
+### T-424 — AVI video carries no sound
 
-- Intent: both codecs are silent by construction, and a container that already holds an audio track
-  has it skipped. A player built on this module therefore cannot play what it opens.
-- Complete when: a decoder reports the audio streams of a container, hands their samples to
-  `std/audio` rather than decoding sound itself, and a reader exposes the timestamp a caller needs
-  to keep the two in step. AVI is the first container to carry one, since it already declares its
-  streams.
+- Intent: ISO-BMFF now reports AAC-LC tracks to `std/audio`, streams their access units through an
+  independent cursor, and exposes exact picture timestamps for an audio-master player. AVI still
+  skips the PCM stream it already declares.
+- Complete when: AVI exposes its audio streams through the same reader contract instead of staying
+  silent.
 - Related: T-420
 
 ### T-425 — An AVI larger than four gigabytes is refused

@@ -47,9 +47,11 @@ guessing an encoding.
   script, style, template, and embedded-document content never executes.
 - `Image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, plus Pixel's SVG
   parser. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF playback.
-- `Video` uses the Video module for silent YUV4MPEG2, AVI, and ISO-BMFF streams. It indexes frame
-  payloads without decoding the file up front and materializes only the selected frame. MP4, M4V,
-  and MOV currently accept Motion JPEG video; unsupported tracks remain inspectable as binary.
+- `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, and ISO-BMFF streams. It indexes
+  packets without decoding the file up front and materializes only the selected picture and the
+  few audio buffers queued at the device. MP4, M4V, and MOV accept Motion JPEG or H.264 picture
+  tracks and AAC-LC mono/stereo sound. The output-device sample cursor is the master clock: slow
+  picture decoding drops to a clean video sync frame without moving or stretching sound.
 - `Sound` uses the Audio module to stream PCM or float WAV files. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.

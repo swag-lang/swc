@@ -1,28 +1,32 @@
-﻿#global namespace Mp4
+#global namespace Mp4
 
-using Core, Core.Errors, Pixel
+using Core, Core.Errors, Pixel, Audio
 
 // Builds the big-endian value an ISO-BMFF box stores for a four-character identifier.
 #[Swag.ConstExpr]
 func fourCc(a, b, c, d: u32)->u32 => (a << 24) | (b << 16) | (c << 8) | d
 
-const FileTypeId          = fourCc('f'u32, 't'u32, 'y'u32, 'p'u32)
-const MovieId             = fourCc('m'u32, 'o'u32, 'o'u32, 'v'u32)
-const TrackId             = fourCc('t'u32, 'r'u32, 'a'u32, 'k'u32)
-const MediaId             = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
-const MediaHeaderId       = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
-const HandlerId           = fourCc('h'u32, 'd'u32, 'l'u32, 'r'u32)
-const MediaInfoId         = fourCc('m'u32, 'i'u32, 'n'u32, 'f'u32)
-const SampleTableId       = fourCc('s'u32, 't'u32, 'b'u32, 'l'u32)
-const SampleDescriptionId = fourCc('s'u32, 't'u32, 's'u32, 'd'u32)
-const TimeToSampleId      = fourCc('s'u32, 't'u32, 't'u32, 's'u32)
-const SampleToChunkId     = fourCc('s'u32, 't'u32, 's'u32, 'c'u32)
-const SampleSizeId        = fourCc('s'u32, 't'u32, 's'u32, 'z'u32)
-const ChunkOffsetId       = fourCc('s'u32, 't'u32, 'c'u32, 'o'u32)
-const ChunkOffset64Id     = fourCc('c'u32, 'o'u32, '6'u32, '4'u32)
-const VideoHandlerId      = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
-const ElementaryStreamId  = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
-const Mpeg4VisualId       = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
+const FileTypeId           = fourCc('f'u32, 't'u32, 'y'u32, 'p'u32)
+const MovieId              = fourCc('m'u32, 'o'u32, 'o'u32, 'v'u32)
+const TrackId              = fourCc('t'u32, 'r'u32, 'a'u32, 'k'u32)
+const MediaId              = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
+const MediaHeaderId        = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
+const HandlerId            = fourCc('h'u32, 'd'u32, 'l'u32, 'r'u32)
+const MediaInfoId          = fourCc('m'u32, 'i'u32, 'n'u32, 'f'u32)
+const SampleTableId        = fourCc('s'u32, 't'u32, 'b'u32, 'l'u32)
+const SampleDescriptionId  = fourCc('s'u32, 't'u32, 's'u32, 'd'u32)
+const TimeToSampleId       = fourCc('s'u32, 't'u32, 't'u32, 's'u32)
+const SampleToChunkId      = fourCc('s'u32, 't'u32, 's'u32, 'c'u32)
+const SampleSizeId         = fourCc('s'u32, 't'u32, 's'u32, 'z'u32)
+const ChunkOffsetId        = fourCc('s'u32, 't'u32, 'c'u32, 'o'u32)
+const ChunkOffset64Id      = fourCc('c'u32, 'o'u32, '6'u32, '4'u32)
+const VideoHandlerId       = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
+const AudioHandlerId       = fourCc('s'u32, 'o'u32, 'u'u32, 'n'u32)
+const ElementaryStreamId   = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
+const Mpeg4VisualId        = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
+const Mpeg4AudioId         = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
+const WaveId               = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
+const Mpeg4AudioObjectType = 0x40'u8
 
 const SyncSampleId  = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
 const CompositionId = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
@@ -37,11 +41,12 @@ const AvcCodecIds: [2] u32 = [
     fourCc('a'u32, 'v'u32, 'c'u32, '1'u32),
     fourCc('a'u32, 'v'u32, 'c'u32, '3'u32)]
 
-const JpegName       = ".jpg"
-const JpegObjectType = 0x6C'u8
-const BoxHeaderSize  = 8'u64
-const FullBoxSize    = 4'u64
-const NoFrameIndex   = Swag.U64.Max
+const JpegName        = ".jpg"
+const JpegObjectType  = 0x6C'u8
+const BoxHeaderSize   = 8'u64
+const FullBoxSize     = 4'u64
+const NoFrameIndex    = Swag.U64.Max
+const AacFrameSamples = 1024'u32
 
 // One bounded box in the stream.
 struct Box
@@ -95,9 +100,14 @@ struct Track
     syncSamples:    Array'u32          // Zero-based sync sample indices; empty means every sample.
     ctsEntries:     Array'CtsEntry     // Composition offset runs, empty for decode-order streams.
     avcConfig:      Array'u8           // The `avcC` decoder configuration of an AVC track.
+    aacConfig:      Array'u8           // MPEG-4 AudioSpecificConfig of an AAC track.
+    channelCount:   u32
+    sampleRate:     u32
+    sampleBits:     u32
     hasDescription: bool
     isJpeg:         bool
     isAvc:          bool
+    isAac:          bool
 }
 
 // One run of samples sharing a composition-time offset.
@@ -111,6 +121,7 @@ private struct CtsEntry
 private struct Layout
 {
     track:            Track
+    audioTracks:      Array'Track
     hasMovie:         bool
     hasVideo:         bool
     unsupportedCodec: u32
@@ -223,7 +234,7 @@ private func describeId(id: u32)->String
 
 private impl Layout
 {
-    // Walks the top-level boxes and keeps the first supported video track.
+    // Walks the top-level boxes and keeps the first supported video track plus playable audio.
     mtd parse(source: *Source) fail
     {
         while source.position() + BoxHeaderSize <= source.size()
@@ -270,6 +281,8 @@ private impl Layout
                     elif !.unsupportedCodec do
                         .unsupportedCodec = candidate.codec
                 }
+                elif candidate.handler == AudioHandlerId and candidate.hasDescription and candidate.isAac do
+                    .audioTracks.add(#move candidate)
             }
 
             source.seek(box.end)
@@ -305,7 +318,7 @@ impl Track
                 .parseHandler(source, box.end)
 
             case MediaInfoId:
-                if .handler == VideoHandlerId do
+                if .handler == VideoHandlerId or .handler == AudioHandlerId do
                     .parseMediaInfo(source, box.end)
             }
 
@@ -393,6 +406,12 @@ impl Track
             fail InvalidFormatError{"MP4 video track has no sample description"}
 
         let entry = readBox(source, end)
+        if .handler == AudioHandlerId
+        {
+            .parseAudioDescription(source, entry)
+            return
+        }
+
         if 28 > entry.end - entry.data do
             fail InvalidFormatError{"MP4 visual sample entry is truncated"}
         .codec = entry.kind
@@ -408,6 +427,88 @@ impl Track
             .isJpeg = .parseMpeg4VisualDescription(source, entry)
         if Slice.contains(AvcCodecIds, .codec) do
             .isAvc = .parseAvcDescription(source, entry)
+    }
+
+    // Reads an MPEG-4 audio sample entry and locates its AudioSpecificConfig.
+    mtd parseAudioDescription(source: *Source, entry: Box) fail
+    {
+        const AudioSampleEntrySize = 28'u64
+        if AudioSampleEntrySize > entry.end - entry.data do
+            fail InvalidFormatError{"MP4 audio sample entry is truncated"}
+        .codec = entry.kind
+        source.seek(entry.data + 8)
+        let version = readU16(source)
+        source.skip(6)
+        .channelCount = readU16(source)
+        .sampleBits   = readU16(source)
+        source.skip(4)
+        .sampleRate     = readU32(source) >> 16
+        .hasDescription = true
+        if !.channelCount or !.sampleRate do
+            fail InvalidFormatError{"MP4 audio track needs channels and a sample rate"}
+        if version > 1 do
+            fail UnsupportedFormatError{"video decoder does not support this MP4 audio sample-entry version"}
+
+        let childStart = entry.data + AudioSampleEntrySize + (version == 1 ? 16 : 0)
+        if childStart > entry.end do
+            fail InvalidFormatError{"MP4 audio sample entry is truncated"}
+        if .codec == Mpeg4AudioId do
+            .isAac = .parseAudioChildren(source, childStart, entry.end)
+    }
+
+    // Recursively searches the sample entry and its QuickTime `wave` wrapper for `esds`.
+    mtd parseAudioChildren(source: *Source, start, end: u64)->bool fail
+    {
+        var position = start
+        while position + BoxHeaderSize <= end
+        {
+            source.seek(position)
+            let child = readBox(source, end)
+            if child.kind == ElementaryStreamId do
+                return .parseAacElementaryStreamDescriptor(source, child.end)
+            if child.kind == WaveId and .parseAudioChildren(source, child.data, child.end) do
+                return true
+            position = child.end
+        }
+
+        return false
+    }
+
+    // Reads an MPEG-4 systems descriptor and retains an AAC AudioSpecificConfig.
+    mtd parseAacElementaryStreamDescriptor(source: *Source, end: u64)->bool fail
+    {
+        if FullBoxSize > end - source.position() do
+            fail InvalidFormatError{"MP4 elementary-stream box is truncated"}
+        discard readFullBox(source)
+        let es = readDescriptor(source, end)
+        if es.tag != 3 or 3 > es.end - source.position() do
+            fail InvalidFormatError{"MP4 elementary-stream descriptor is truncated"}
+        source.skip(2)
+        let flags = source.readByte()
+        if flags & 0x80 do
+            .skipDescriptorBytes(source, es.end, 2)
+        if flags & 0x40
+        {
+            if source.position() >= es.end do
+                fail InvalidFormatError{"MP4 elementary-stream URL length is truncated"}
+            .skipDescriptorBytes(source, es.end, source.readByte())
+        }
+
+        if flags & 0x20 do
+            .skipDescriptorBytes(source, es.end, 2)
+
+        let decoder = readDescriptor(source, es.end)
+        if decoder.tag != 4 or 13 > decoder.end - source.position() do
+            fail InvalidFormatError{"MP4 decoder-configuration descriptor is truncated"}
+        if source.readByte() != Mpeg4AudioObjectType do
+            return false
+        source.skip(12)
+        let specific = readDescriptor(source, decoder.end)
+        if specific.tag != 5 or specific.end <= source.position() do
+            fail InvalidFormatError{"MP4 AAC track has no AudioSpecificConfig"}
+        .aacConfig.resize(specific.end - source.position())
+        source.readExact(.aacConfig.toSlice())
+        return true
     }
 
     // Locates and keeps the `avcC` decoder configuration of an AVC sample entry.
@@ -728,6 +829,33 @@ impl Track
             fail InvalidFormatError{"MP4 chunk table does not describe every video sample"}
         return result
     }
+
+    // Expands this AAC track into the packet index consumed by std/audio.
+    mtd buildSoundPackets(sourceSize: u64)->{ packets: Array'SoundPacket, frameCount: u64 } fail
+    {
+        let frames = .buildFrames(sourceSize)
+        var result: retval
+        result.packets.reserve(frames.count)
+        var sampleIndex = 0'u64
+        for timing in .times
+        {
+            if timing.sampleDelta != AacFrameSamples do
+                fail UnsupportedFormatError{"audio decoder supports 1024-sample AAC access units only"}
+            for timing.sampleCount
+            {
+                if sampleIndex >= frames.count do
+                    fail InvalidFormatError{"MP4 audio timing describes more packets than its sample table"}
+                let frame = frames[sampleIndex]
+                result.packets.add({frame.offset, cast(u32) frame.size, timing.sampleDelta})
+                result.frameCount += timing.sampleDelta
+                sampleIndex       += 1
+            }
+        }
+
+        if sampleIndex != frames.count do
+            fail InvalidFormatError{"MP4 audio timing does not describe every packet"}
+        return result
+    }
 }
 
 // Reads ISO-BMFF files carrying Motion JPEG or H.264 video samples.
@@ -738,17 +866,21 @@ impl Track
 // stream seeks by decoding forward from the nearest sync sample, and its frames are returned
 // in display order whatever order the file stores them in.
 //
-// The container may carry other tracks, including audio; they are ignored.
+// AAC-LC mono/stereo tracks are exposed as packetized std/audio streams. Their payload remains
+// in the MP4 file and each voice opens its own cursor, so sound and picture can stream in parallel.
 struct Decoder
 {
     internal
     {
-        info:      StreamInfo
-        frames:    Array'FrameEntry
-        payload:   Array'u8
-        nextIndex: u64
-        isAvc:     bool
-        avc:       AvcStream
+        info:                  StreamInfo
+        frames:                Array'FrameEntry
+        payload:               Array'u8
+        nextIndex:             u64
+        isAvc:                 bool
+        avc:                   AvcStream
+        soundTracks:           Array'SoundFile
+        presentationTimes:     Array's64
+        presentationTimescale: u32
     }
 }
 
@@ -761,6 +893,46 @@ impl IDecoder for Decoder
         var layout: Layout
         layout.parse(source)
         var frames = layout.track.buildFrames(source.size())
+
+        let times = layout.track.sampleTimes()
+        .presentationTimescale = layout.track.timescale
+        .presentationTimes.reserve(times.count)
+        if layout.track.isAvc
+        {
+            var order: Array'u32
+            order.reserve(times.count)
+            for index in times.count
+            {
+                var position = order.count
+                while position > 0 and times[cast(u64) order[position - 1]] > times[index] do
+                    position -= 1
+                order.insertAt(position, cast(u32) index)
+            }
+
+            for sample in order do
+                .presentationTimes.add(times[sample])
+        }
+        else do
+            .presentationTimes = #move times
+
+        if .presentationTimes.count
+        {
+            let origin = .presentationTimes[0]
+            for &time in .presentationTimes do
+                time[] -= origin
+        }
+
+        let path = source.sourcePath()
+        if @countof(path)
+        {
+            .soundTracks.reserve(layout.audioTracks.count)
+            for &audioTrack in layout.audioTracks
+            {
+                let packetLayout = audioTrack.buildSoundPackets(source.size())
+                let sound        = SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice())
+                .soundTracks.add(#move sound)
+            }
+        }
 
         .info.frameRate  = layout.track.frameRate()
         .info.frameCount = frames.count
@@ -828,5 +1000,51 @@ impl IDecoder for Decoder
             target[] = Image.create(.info.width, .info.height, .RGB8)
         Memory.copy(target.pixels.buffer!, decoded.pixels.buffer!, target.byteCount)
         .nextIndex = current + 1
+    }
+}
+
+impl IAudioDecoder for Decoder
+{
+    mtd impl audioTrackCount()->u32 => cast(u32) .soundTracks.count
+
+    mtd impl audioTrack(index: u32)->#null const *SoundFile
+    {
+        if index >= .soundTracks.count do
+            return null
+        return &.soundTracks[index]
+    }
+}
+
+impl ITimedDecoder for Decoder
+{
+    mtd impl frameTimestamp(index: u64)->f64
+    {
+        if index >= .presentationTimes.count or !.presentationTimescale do
+            return 0
+        return cast(f64) .presentationTimes[index] / cast(f64) .presentationTimescale
+    }
+
+    mtd impl frameAtTime(seconds: f64)->u64
+    {
+        if !.presentationTimes.count or !.presentationTimescale do
+            return 0
+        if seconds < 0 do
+            return 0
+        if seconds >= cast(f64) .info.frameCount * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator() do
+            return .info.frameCount
+
+        let ticks = cast(s64) (seconds * cast(f64) .presentationTimescale)
+        var low   = 0'u64
+        var high  = .presentationTimes.count
+        while low < high
+        {
+            let middle = low + (high - low) / 2
+            if .presentationTimes[middle] <= ticks do
+                low = middle + 1
+            else do
+                high = middle
+        }
+
+        return low ? low - 1 : 0
     }
 }

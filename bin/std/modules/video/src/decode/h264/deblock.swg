@@ -83,6 +83,48 @@ struct EdgeStrength
     bs: [4] u32
 }
 
+// Reference and motion state needed to compare one 4x4 block edge.
+private struct DeblockMotion
+{
+    refPoc: [2] s32
+    mv:     [2, 2] s16
+}
+
+// Reads motion from the compact macroblock job when a P-skip never published a 4x4 grid.
+private func deblockMotion(dec: *Decoder, blockIndex: u64)->DeblockMotion
+{
+    let blocksWide = dec.sps!.mbWidth * 4
+    let x4         = cast(s32) (blockIndex % cast(u64) blocksWide)
+    let y4         = cast(s32) (blockIndex / cast(u64) blocksWide)
+    let mbIndex    = cast(u64) ((y4 >> 2) * dec.sps!.mbWidth + (x4 >> 2))
+    let info       = &dec.mbInfo[mbIndex]
+
+    var result: retval
+    if info.skipped and !info.direct
+    {
+        let mb    = &dec.parsedMbs[mbIndex]
+        let job   = &mb.firstJob
+        let slice = &dec.pictureSlices[mb.sliceIndex]
+        for list in 2'u32
+        {
+            let ref = job.refIdx[list]
+            result.refPoc[list] = ref >= 0 ? slice.refs[list, cast(u64) ref].poc : NoRefPoc
+            result.mv[list, 0]  = job.mv[list, 0]
+            result.mv[list, 1]  = job.mv[list, 1]
+        }
+
+        return result
+    }
+
+    result.refPoc[0] = dec.refPocL0[blockIndex]
+    result.refPoc[1] = dec.refPocL1[blockIndex]
+    result.mv[0, 0]  = dec.mvL0[blockIndex * 2]
+    result.mv[0, 1]  = dec.mvL0[blockIndex * 2 + 1]
+    result.mv[1, 0]  = dec.mvL1[blockIndex * 2]
+    result.mv[1, 1]  = dec.mvL1[blockIndex * 2 + 1]
+    return result
+}
+
 // Computes the strength of one 4x4 block edge between blocks `p` and `q`, section 8.7.2.1.
 private func edgeStrength(dec: *Decoder, pIndex, qIndex: u64, mbEdge, pIntra, qIntra, pCoded, qCoded: bool)->u32
 {
@@ -92,44 +134,42 @@ private func edgeStrength(dec: *Decoder, pIndex, qIndex: u64, mbEdge, pIntra, qI
         return 2
 
     // Reference and motion comparison.
-    let p0 = dec.refPocL0[pIndex]
-    let p1 = dec.refPocL1[pIndex]
-    let q0 = dec.refPocL0[qIndex]
-    let q1 = dec.refPocL1[qIndex]
+    let p = deblockMotion(dec, pIndex)
+    let q = deblockMotion(dec, qIndex)
 
-    let straight = p0 == q0 and p1 == q1
-    let crossed  = p0 == q1 and p1 == q0
+    let straight = p.refPoc[0] == q.refPoc[0] and p.refPoc[1] == q.refPoc[1]
+    let crossed  = p.refPoc[0] == q.refPoc[1] and p.refPoc[1] == q.refPoc[0]
     if !straight and !crossed do
         return 1
 
-    if straight and mvClose(dec, pIndex, qIndex, false) do
+    if straight and mvClose(&p, &q, false) do
         return 0
-    if crossed and mvClose(dec, pIndex, qIndex, true) do
+    if crossed and mvClose(&p, &q, true) do
         return 0
     return 1
 }
 
 // Reports whether every motion vector pair differs by less than one full sample.
-private func mvClose(dec: *Decoder, pIndex, qIndex: u64, crossed: bool)->bool
+private func mvClose(p, q: const *DeblockMotion, crossed: bool)->bool
 {
-    let pL0x = cast(s32) dec.mvL0[pIndex * 2]
-    let pL0y = cast(s32) dec.mvL0[pIndex * 2 + 1]
-    let pL1x = cast(s32) dec.mvL1[pIndex * 2]
-    let pL1y = cast(s32) dec.mvL1[pIndex * 2 + 1]
+    let pL0x = cast(s32) p.mv[0, 0]
+    let pL0y = cast(s32) p.mv[0, 1]
+    let pL1x = cast(s32) p.mv[1, 0]
+    let pL1y = cast(s32) p.mv[1, 1]
     var qL0x, qL0y, qL1x, qL1y: s32
     if crossed
     {
-        qL0x = cast(s32) dec.mvL1[qIndex * 2]
-        qL0y = cast(s32) dec.mvL1[qIndex * 2 + 1]
-        qL1x = cast(s32) dec.mvL0[qIndex * 2]
-        qL1y = cast(s32) dec.mvL0[qIndex * 2 + 1]
+        qL0x = cast(s32) q.mv[1, 0]
+        qL0y = cast(s32) q.mv[1, 1]
+        qL1x = cast(s32) q.mv[0, 0]
+        qL1y = cast(s32) q.mv[0, 1]
     }
     else
     {
-        qL0x = cast(s32) dec.mvL0[qIndex * 2]
-        qL0y = cast(s32) dec.mvL0[qIndex * 2 + 1]
-        qL1x = cast(s32) dec.mvL1[qIndex * 2]
-        qL1y = cast(s32) dec.mvL1[qIndex * 2 + 1]
+        qL0x = cast(s32) q.mv[0, 0]
+        qL0y = cast(s32) q.mv[0, 1]
+        qL1x = cast(s32) q.mv[1, 0]
+        qL1y = cast(s32) q.mv[1, 1]
     }
 
     // All four differences must stay below one full sample; OR-ing `3 - abs` keeps the test

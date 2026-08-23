@@ -415,7 +415,12 @@ impl Slice
 
         var zero:  [2] s16
         var noRef: [2] s8 = [0, -1]
-        .assignSkipMotion(mb, 0, 0, 4, 4, noRef, mv, zero, false)
+        // A P-skip carries one uniform motion region. Neighbor prediction already reads that
+        // region from `firstJob`, reconstruction consumes the job directly, and deblocking does
+        // the same. Avoid publishing nineteen bytes of redundant 4x4-grid state per block on
+        // the overwhelmingly common path of screen recordings.
+        mb.motionMask[0] = 0xFFFF
+        mb.motionMask[1] = 0xFFFF
         .addJob(mb, 0, 0, 4, 4, noRef, mv, zero)
     }
 
@@ -499,10 +504,11 @@ impl Slice
                 for q in 4's32
                 {
                     let colIndex = .colBlockIndex(mb, (q & 1) * 3, (q >> 1) * 3)
-                    if col.colRef[colIndex] == 0 and col.colShort[colIndex] != 0
+                    let motion   = col.colMotion(colIndex)
+                    if motion.ref == 0 and motion.isShort
                     {
-                        let cx = cast(s32) col.colMv[colIndex * 2]
-                        let cy = cast(s32) col.colMv[colIndex * 2 + 1]
+                        let cx = cast(s32) motion.mv[0]
+                        let cy = cast(s32) motion.mv[1]
                         if cx >= -1 and cx <= 1 and cy >= -1 and cy <= 1 do
                             mask |= 1'u32 << cast(u32) q
                     }
@@ -563,10 +569,11 @@ impl Slice
                 else
                 {
                     let colIndex = .colBlockIndex(mb, colX, colY)
-                    if col.colRef[colIndex] == 0 and col.colShort[colIndex] != 0
+                    let motion   = col.colMotion(colIndex)
+                    if motion.ref == 0 and motion.isShort
                     {
-                        let cx = cast(s32) col.colMv[colIndex * 2]
-                        let cy = cast(s32) col.colMv[colIndex * 2 + 1]
+                        let cx = cast(s32) motion.mv[0]
+                        let cy = cast(s32) motion.mv[1]
                         colZero = cx >= -1 and cx <= 1 and cy >= -1 and cy <= 1
                     }
                 }
@@ -634,12 +641,13 @@ impl Slice
                 }
 
                 let colIndex = .colBlockIndex(mb, colX, colY)
-                var colMvX   = cast(s32) col.colMv[colIndex * 2]
-                var colMvY   = cast(s32) col.colMv[colIndex * 2 + 1]
+                let motion   = col.colMotion(colIndex)
+                var colMvX   = cast(s32) motion.mv[0]
+                var colMvY   = cast(s32) motion.mv[1]
                 var refL0    = 0's32
                 var longTerm = false
                 var poc0     = .refs[0, 0].poc
-                if col.colRef[colIndex] < 0
+                if motion.ref < 0
                 {
                     colMvX = 0
                     colMvY = 0
@@ -647,8 +655,8 @@ impl Slice
                 else
                 {
                     // Map the co-located reference into the current list 0 by picture.
-                    let wantedPoc = col.colPoc[colIndex]
-                    longTerm = col.colShort[colIndex] == 0
+                    let wantedPoc = motion.poc
+                    longTerm = !motion.isShort
                     var found = false
                     for index in .refCount[0] where .refs[0, index].poc == wantedPoc
                     {
@@ -738,7 +746,7 @@ impl Slice
             }
 
             let mb = &dec.parsedMbs[.mbAddr]
-            if inter and .isCabac and .decodeSkipFlagCabac(mb)
+            if inter and .isCabac and .decodeSkipFlagCabac()
             {
                 .decodeSkipMb(mb)
             }
@@ -1588,6 +1596,7 @@ impl Slice
 
         let gw    = dec.sps!.mbWidth * 4
         let mbIdx = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
+        dec.current!.colUniform[mbIdx] = 0
         for block in 16's32
         {
             let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
@@ -1710,40 +1719,26 @@ impl Slice
     // Publishes the uniform metadata of a P-skip macroblock four blocks at a time.
     mtd bookkeepSkippedPMb(mb: *Mb)
     {
-        let dec       = .dec!
-        let gw        = dec.sps!.mbWidth * 4
-        let job       = &mb.firstJob
-        let ref       = job.refIdx[0]
-        let motion    = cast(Simd.S16x8) [job.mv[0, 0], job.mv[0, 1], job.mv[0, 0], job.mv[0, 1], job.mv[0, 0], job.mv[0, 1], job.mv[0, 0], job.mv[0, 1]]
-        let modes     = Simd.splat(cast(u8) IntraDc)
-        let zeros     = Simd.splat(0'u8)
-        let refs      = Simd.splat(cast #bit (u8) ref)
-        let poc       = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
-        let pocs      = Simd.splat(poc)
-        let shortRefs = Simd.splat(ref >= 0 and !.refs[0, cast(u64) ref].isLong ? 1'u8 : 0)
+        let dec          = .dec!
+        let job          = &mb.firstJob
+        let ref          = job.refIdx[0]
+        let poc          = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
+        let gw           = dec.sps!.mbWidth * 4
+        let zeros        = Simd.splat(0'u8)
         for row in 4'u64
         {
             let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-            Simd.storeLow4(dec.intraModes.buffer! + index, modes)
-            Simd.storeLow4(dec.nonZeroLuma.buffer! + index, zeros)
             Simd.storeLow4(dec.codedLuma.buffer! + index, zeros)
-            Simd.storeLow4(cast([*] u8) dec.current!.colRef.buffer! + index, refs)
-            Simd.store(dec.current!.colMv.buffer! + index * 2, motion)
-            Simd.store(dec.current!.colPoc.buffer! + index, pocs)
-            Simd.storeLow4(dec.current!.colShort.buffer! + index, shortRefs)
         }
 
-        let cw = dec.sps!.mbWidth * 2
-        for row in 2'u64
-        {
-            let index = cast(u64) ((mb.mbY * 2 + cast(s32) row) * cw + mb.mbX * 2)
-            (cast([*] u16) (dec.nonZeroCb.buffer! + index))[0] = 0
-            (cast([*] u16) (dec.nonZeroCr.buffer! + index))[0] = 0
-        }
-
-        let mbIndex = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX) * 3
-        (cast([*] u16) (dec.dcFlags.buffer! + mbIndex))[0] = 0
-        dec.dcFlags[mbIndex + 2] = 0
+        let frame        = dec.current!
+        let compactIndex = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
+        frame.colUniform[compactIndex]     = 1
+        frame.colMbMv[compactIndex * 2]     = job.mv[0, 0]
+        frame.colMbMv[compactIndex * 2 + 1] = job.mv[0, 1]
+        frame.colMbRef[compactIndex]        = ref
+        frame.colMbPoc[compactIndex]        = poc
+        frame.colMbShort[compactIndex]      = ref >= 0 and !.refs[0, cast(u64) ref].isLong ? 1 : 0
     }
 
     // Parses every residual block of the macroblock with CAVLC coding, section 7.3.5.3.

@@ -13,7 +13,7 @@ struct VideoStrings
     word_Frames: string = "frames"     // Several video frames.
 
     // Summary the host shows beside the file size: geometry, frame count, frame rate, and duration.
-    ui_Details: string = "% × % · % · %{f2} fps · %{f2} s"
+    ui_Details: string = "% × % · % · %{f2} fps · %{f2} s · Swag CPU"
 }
 
 private const FrenchStringsName = "lang/fr/filescope.video.tweak"

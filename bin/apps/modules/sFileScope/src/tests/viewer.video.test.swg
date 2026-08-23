@@ -26,7 +26,7 @@ func waitForVideoFrame(view: *VideoViewer)
     // A completion can immediately launch the most recent seek that arrived while it was running.
     while view.decodeScheduled
     {
-        Jobs.wait(&view.decodeJob)
+        Threading.Thread.yield()
         discard view.finishDecode()
     }
 }
@@ -78,6 +78,7 @@ func waitForVideoFrame(view: *VideoViewer)
     @assert(view.frameIndex == 0 and !view.playing)
     @assert(view.details.indexOf("160") != Swag.U64.Max)
     @assert(view.details.indexOf("4 frames") != Swag.U64.Max)
+    @assert(view.details.indexOf("Swag CPU") != Swag.U64.Max)
 
     view.seekFrame(2)
     waitForVideoFrame(view)

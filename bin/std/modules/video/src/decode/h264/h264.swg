@@ -3,20 +3,6 @@
 
 using Core, Core.Errors
 
-var PerfParseUs:   u64
-var PerfReconUs:   u64
-var PerfDeblockUs: u64
-var PerfEdgesUs:   u64
-
-func resetPerfCounters()
-{
-    Atomic.exchange(&PerfParseUs, 0)
-    Atomic.exchange(&PerfReconUs, 0)
-    Atomic.exchange(&PerfDeblockUs, 0)
-    Atomic.exchange(&PerfEdgesUs, 0)
-    Atomic.exchange(&PerfRgbUs, 0)
-}
-
 // Macroblock classes stored per decoded macroblock for neighbor prediction and deblocking.
 const MbClassIntra4x4   = 0'u8
 const MbClassIntra8x8   = 1'u8
@@ -248,14 +234,6 @@ impl Decoder
     // lane reconstructs, filters, and pads the current one.
     mtd parseAccessUnit(sample: const [..] u8, deferReconstruction: bool)->bool fail
     {
-        var perfClock: Time.Stopwatch
-        perfClock.start()
-        defer
-        {
-            perfClock.stop()
-            Atomic.add(&PerfParseUs, perfClock.elapsedMicroseconds())
-        }
-
         .current       = null
         .markingParsed = false
         .mmcoOps.clear()
@@ -293,22 +271,10 @@ impl Decoder
     mtd finishAccessUnit()->*Frame fail
     {
         Debug.assert(.current != null)
-        var perfClock: Time.Stopwatch
-        perfClock.start()
         .reconstructPicture()
-        perfClock.stop()
-        Atomic.add(&PerfReconUs, perfClock.elapsedMicroseconds())
-
-        perfClock.restart()
         deblockPicture(me)
-        perfClock.stop()
-        Atomic.add(&PerfDeblockUs, perfClock.elapsedMicroseconds())
-
         let result = .current!
-        perfClock.restart()
         result.extendEdges()
-        perfClock.stop()
-        Atomic.add(&PerfEdgesUs, perfClock.elapsedMicroseconds())
         result.heldByCaller = true
         .current            = null
         return result

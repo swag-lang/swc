@@ -10,7 +10,15 @@ using Core, Core.Errors, Core.Math
 // excursions go through the bounded fallback of the interpolator instead.
 const FramePadding = 32's32
 private const ConversionBands = 16'u32
-var PerfRgbUs: u64
+
+// Co-located motion read by direct B prediction.
+struct ColMotion
+{
+    mv:      [2] s16
+    ref:     s8
+    poc:     s32
+    isShort: bool
+}
 
 // One decoded picture: padded 4:2:0 planes plus the reference and motion state the rest of
 // the stream needs from it.
@@ -39,6 +47,14 @@ struct Frame
     colRef:   Array's8      // Reference index, or -1 for an intra or unpredicted block.
     colPoc:   Array's32     // Picture order count of the referenced frame.
     colShort: Array'u8      // Whether the referenced frame was short-term.
+
+    // A uniform P-skip exports the same co-located motion for all sixteen blocks. Keep it once
+    // per macroblock so the serial entropy path does not write five full grids for still areas.
+    colUniform: Array'u8
+    colMbMv:    Array's16
+    colMbRef:   Array's8
+    colMbPoc:   Array's32
+    colMbShort: Array'u8
 }
 
 impl Frame
@@ -67,6 +83,13 @@ impl Frame
             .colRef.resize(blocks)
             .colPoc.resize(blocks)
             .colShort.resize(blocks)
+
+            let macroblocks = cast(u64) mbWidth * cast(u64) mbHeight
+            .colUniform.resize(macroblocks)
+            .colMbMv.resize(macroblocks * 2)
+            .colMbRef.resize(macroblocks)
+            .colMbPoc.resize(macroblocks)
+            .colMbShort.resize(macroblocks)
         }
 
         .isShortTerm  = false
@@ -89,18 +112,36 @@ impl Frame
     // Reports whether the frame is referenced by upcoming pictures.
     mtd const isReference()->bool => .isShortTerm or .isLongTerm
 
+    // Returns co-located motion for one raster 4x4 block.
+    mtd const colMotion(blockIndex: u64)->ColMotion
+    {
+        let blocksWide = .mbWidth * 4
+        let x4         = cast(s32) (blockIndex % cast(u64) blocksWide)
+        let y4         = cast(s32) (blockIndex / cast(u64) blocksWide)
+        let mbIndex    = cast(u64) ((y4 >> 2) * .mbWidth + (x4 >> 2))
+
+        if .colUniform[mbIndex] != 0
+        {
+            return {
+                [.colMbMv[mbIndex * 2], .colMbMv[mbIndex * 2 + 1]],
+                .colMbRef[mbIndex],
+                .colMbPoc[mbIndex],
+                .colMbShort[mbIndex] != 0,
+            }
+        }
+
+        return {
+            [.colMv[blockIndex * 2], .colMv[blockIndex * 2 + 1]],
+            .colRef[blockIndex],
+            .colPoc[blockIndex],
+            .colShort[blockIndex] != 0,
+        }
+    }
+
     // Converts the visible window of the frame into a bottom-up RGB8 image, with the
     // limited-range BT.601 arithmetic every decoder of this module uses.
     mtd const toRgb(target: *Pixel.Image, width, height, cropLeft, cropTop: s32)
     {
-        var perfClock: Time.Stopwatch
-        perfClock.start()
-        defer
-        {
-            perfClock.stop()
-            Atomic.add(&PerfRgbUs, perfClock.elapsedMicroseconds())
-        }
-
         if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
             target[] = Pixel.Image.create(width, height, .RGB8)
 

@@ -154,6 +154,18 @@ is the layout it does not read yet.
 - During this pass the suite also failed three B-stream fixtures deterministically on an
   unmodified tree until `core.dll` was forcibly rebuilt — recorded as F-177; measurements made
   across that boundary compared two different binaries.
+- A 2026-08-22 application pass moved the picture owner from a nested `Core.Jobs` job to one
+  persistent Swag thread, leaving every scheduler worker available to the codec's own parse,
+  reconstruction, filter, and conversion jobs. P-skip macroblocks now keep their uniform motion
+  once instead of publishing redundant 4x4 motion and co-located grids; CABAC neighbors and
+  deblocking read that compact record. The shipped viewer labels the path `Swag CPU` and uses no
+  platform video decoder. Byte-exact H.264 fixtures pass. On the 20.3 GB, 226,479-frame Filmora
+  3840x2160p25 recording, identical release probes at frames 0, 56,619, 113,239, 169,859, and
+  226,449 moved respectively from 23.07/8.18/9.17/10.03/7.15 fps to
+  26.86/9.16/11.01/10.02/7.47 fps. A warm contiguous 90-frame window around frame 113,239 moved
+  from about 13.3 to 15.1 fps. The stream therefore remains below real time far into the file;
+  this pass removes application oversubscription and serial skip bookkeeping, but does not close
+  the remaining single-slice CABAC gap.
 - Complete when: a 1080p25 High-profile stream decodes in real time in a release build. Remaining
   levers, in expected order of value: fine-grained frame/slice threading, a true byte-run
   significance decoder beyond the targeted inlining, strong and vertical packed deblocking (the

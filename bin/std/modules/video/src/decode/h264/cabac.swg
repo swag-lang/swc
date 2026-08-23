@@ -245,15 +245,23 @@ const CoeffAbsLevelGt1Ctx: [8] u8 = [5, 5, 5, 5, 6, 7, 8, 9]
 impl Slice
 {
     // Decodes the skip flag of the macroblock at the current address, section 9.3.3.1.1.1.
-    mtd decodeSkipFlagCabac(mb: *Mb)->bool
+    mtd decodeSkipFlagCabac()->bool
     {
-        let mbX = .mbX
-        let mbY = .mbY
-        var ctx = 0'u32
-        if .mbAvailable(mbX - 1, mbY) and !.mbInfoAt(mbX - 1, mbY).skipped do
-            ctx += 1
-        if .mbAvailable(mbX, mbY - 1) and !.mbInfoAt(mbX, mbY - 1).skipped do
-            ctx += 1
+        let dec   = .dec!
+        let width = dec.sps!.mbWidth
+        var ctx   = 0'u32
+        if .mbX > 0
+        {
+            let left = &dec.mbInfo[.mbAddr - 1]
+            if left.sliceId == .sliceId and !left.skipped do
+                ctx += 1
+        }
+        if .mbY > 0
+        {
+            let top = &dec.mbInfo[.mbAddr - cast(u32) width]
+            if top.sliceId == .sliceId and !top.skipped do
+                ctx += 1
+        }
         if .header.type == SliceTypeB do
             ctx += 13
         return .cabac.decision(11 + ctx) != 0

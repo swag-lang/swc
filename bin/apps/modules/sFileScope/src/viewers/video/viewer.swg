@@ -52,9 +52,14 @@ internal struct VideoViewer
     frames:    [2] Image
     frameBack: u32
 
-    // Exactly one decode owns `video` and `frame` at a time. The GUI thread only publishes a
-    // completed frame, and repeated seeks replace `requestedFrame` instead of building a queue.
-    decodeJob:       Jobs.Job
+    // Exactly one decode owns `video` and the back frame at a time. It runs on a persistent Swag
+    // thread instead of occupying a scheduler worker: the codec can therefore give all global
+    // workers to entropy parsing, reconstruction, filtering, and color conversion. The GUI
+    // thread only publishes a completed frame, and repeated seeks replace `requestedFrame`
+    // instead of building a queue.
+    decodeThread:    Threading.Thread
+    decodeWake:      Sync.Event
+    decodeDone:      u32
     decodeError:     #null any
     decodeFrame:     u64
     requestedFrame:  u64
@@ -105,7 +110,7 @@ internal impl VideoViewer
     // its most recent target, so scrubbing cannot leave minutes of obsolete work queued behind it.
     mtd finishDecode()->bool
     {
-        if !.decodeScheduled or !Jobs.isDone(&.decodeJob) do
+        if !.decodeScheduled or Atomic.get(&.decodeDone) == 0 do
             return false
 
         .decodeScheduled = false
@@ -152,18 +157,18 @@ internal impl VideoViewer
         .decodeFrame      = index
         .decodeError      = null
         .decodeScheduled  = true
-        .decodeJob.lambda = &runVideoViewerDecode
-        .decodeJob.data   = me
-        Jobs.schedule(&.decodeJob)
 
         // App tests deliberately do not start global worker threads. Preserve their deterministic
         // behavior while the shipped application always takes the asynchronous branch.
         if Jobs.isSynchronous()
         {
-            Jobs.wait(&.decodeJob)
+            .runDecode()
+            Atomic.exchange(&.decodeDone, 1)
             return .finishDecode()
         }
 
+        Atomic.exchange(&.decodeDone, 0)
+        .decodeWake.signal()
         return true
     }
 
@@ -322,10 +327,12 @@ private impl IWnd for VideoViewer
             .timer = null
         }
 
-        if .decodeScheduled
+        if .decodeThread.isValid()
         {
-            Jobs.wait(&.decodeJob)
-            .decodeScheduled = false
+            .decodeThread.safeForceEnd()
+            .decodeWake.signal()
+            .decodeThread.wait()
+            .decodeWake.release()
         }
     }
 
@@ -401,6 +408,12 @@ private impl VideoViewer
         result.imageView.dockStyle = .Center
 
         result.video = #move video
+        if !Jobs.isSynchronous()
+        {
+            result.decodeWake.init()
+            result.decodeThread.init(&runVideoViewerDecode, result)
+            result.decodeThread.start()
+        }
         result.refreshTransport()
 
         // A stream whose format cannot report a frame count still plays, but it cannot be
@@ -417,9 +430,18 @@ private impl VideoViewer
     }
 }
 
-private func runVideoViewerDecode(data: #null *void)
+private func runVideoViewerDecode(thread: Threading.Thread)
 {
-    (cast(*VideoViewer) data!).runDecode()
+    let view = cast(*VideoViewer) thread.userParam!
+    while !thread.requestEnd
+    {
+        view.decodeWake.wait()
+        if thread.requestEnd do
+            break
+
+        view.runDecode()
+        Atomic.exchange(&view.decodeDone, 1)
+    }
 }
 
 private func loadVideoViewer(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure)->#null *VideoViewer fail => try VideoViewer.create(contentParent, commandParent, fileName, reportFailure)

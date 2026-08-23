@@ -2,9 +2,6 @@
 
 using Core, Core.Errors, Pixel
 
-var PerfWaitParseUs: u64
-var PerfUseInterPicture = true
-
 // One decoded H.264 frame waiting for its display turn.
 private struct PendingFrame
 {
@@ -212,14 +209,8 @@ impl AvcStream
             return
 
         let job = &.parseJobs[.parsedLane]
-        if job.scheduled
-        {
-            var perfClock: Time.Stopwatch
-            perfClock.start()
+        if job.scheduled do
             Jobs.wait(job)
-            perfClock.stop()
-            Atomic.add(&PerfWaitParseUs, perfClock.elapsedMicroseconds())
-        }
         job.scheduled = false
         .hasParsed    = false
     }
@@ -228,14 +219,8 @@ impl AvcStream
     mtd waitParse() fail
     {
         let job = &.parseJobs[.parsedLane]
-        if job.scheduled
-        {
-            var perfClock: Time.Stopwatch
-            perfClock.start()
+        if job.scheduled do
             Jobs.wait(job)
-            perfClock.stop()
-            Atomic.add(&PerfWaitParseUs, perfClock.elapsedMicroseconds())
-        }
         job.scheduled = false
 
         if job.errorText.length do
@@ -313,7 +298,7 @@ impl AvcStream
 
         // Two scheduler workers are the minimum useful pipeline: one parses while the caller
         // and the remaining workers reconstruct the preceding picture.
-        if Jobs.workerCount() > 1 and PerfUseInterPicture do
+        if Jobs.workerCount() > 1 do
             discard try .startParse(source, 1 - lane, wanted, decoder, true)
 
         let frame = try decoder.finishAccessUnit()

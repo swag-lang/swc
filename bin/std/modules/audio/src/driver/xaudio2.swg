@@ -331,6 +331,16 @@ impl Voice
         if hr != S_OK do
             fail SystemError{"cannot flush XAudio2 source buffers", errorID: hresultErrorId(hr)}
     }
+
+    mtd playedFramesXAudio2()->u64
+    {
+        if !.handle do
+            return 0
+        let handle = cast(*IXAudio2SourceVoice) .handle
+        var voiceState: XAUDIO2_VOICE_STATE
+        handle.vtbl.getState(handle, &voiceState, 0)
+        return voiceState.samplesPlayed
+    }
 }
 
 internal impl Voice

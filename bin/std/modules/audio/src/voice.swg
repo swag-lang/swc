@@ -48,19 +48,28 @@ public struct Voice
     {
         allocationAllocator: IAllocator = undefined     // Allocator that owns this voice and its buffers.
         handle:              #null *void                // Identity of the voice inside the driver.
-        file:                #null *SoundFile           // Borrowed source, alive for the voice's lifetime.
+        file:                #null const *SoundFile     // Borrowed source, alive for the voice's lifetime.
+        dataMutex:           Sync.Mutex                 // Serializes buffer feeding with transport changes.
 
         requestedEncoding = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
-        codec: #null ICodec                               // Decoder instance for a streamed source.
+        codec:       #null ICodec       = null     // Decoder instance for a streamed source.
+        packetCodec: #null IPacketCodec = null     // Decoder instance for packetized media.
 
-        playFlags:        VoicePlayFlags                   // Flags 'play' was given.
-        state:            VoiceState                       // Where the voice is in its lifecycle.
-        idxInList:        u32                              // Slot of the voice in the driver's list.
-        stream:           File.FileStream                  // Reader over the encoded source.
-        streamCurSeek:    u64                              // Read position in the encoded source.
-        streamBuffer:     Array'u8                         // Encoded bytes waiting to be decoded.
-        decodedBuffers:   [NumDecodedBuffers] Array'u8     // Decoded buffers rotated while streaming.
-        decodedBufferIdx: u32                              // Buffer the mixing thread reads next.
+        playFlags:         VoicePlayFlags                   // Flags 'play' was given.
+        state:             VoiceState                       // Where the voice is in its lifecycle.
+        idxInList:         u32                              // Slot of the voice in the driver's list.
+        stream:            File.FileStream                  // Reader over the encoded source.
+        streamCurSeek:     u64                              // Read position in the encoded source.
+        streamBuffer:      Array'u8                         // Encoded bytes waiting to be decoded.
+        packetBuffer:      Array'u8 = {}                    // One compressed access unit read from its source.
+        packetScratch:     Array'u8 = {}                    // Decoded packet used when a seek trims its prefix.
+        decodedBuffers:    [NumDecodedBuffers] Array'u8     // Decoded buffers rotated while streaming.
+        decodedBufferIdx:  u32                              // Buffer the mixing thread reads next.
+        streamPacketIdx:   u64                              // Next compressed packet in playback order.
+        seekDiscardFrames: u32                              // Leading decoded frames omitted after a seek.
+
+        playbackBaseFrame: u64     // Source frame corresponding to the native origin.
+        nativeFrameOrigin: u64     // Backend sample counter captured at the last seek.
     }
 }
 
@@ -74,8 +83,13 @@ private impl Voice
         .idxInList         = 0
         .streamCurSeek     = 0
         .decodedBufferIdx  = 0
+        .streamPacketIdx   = 0
+        .seekDiscardFrames = 0
+        .playbackBaseFrame = 0
+        .nativeFrameOrigin = 0
         .requestedEncoding = .Unknown
         .destroyCodec()
+        .destroyPacketCodec()
     }
 
     mtd hasState(st: VoiceState)->bool
@@ -100,6 +114,7 @@ public impl Voice
     mtd opDrop()
     {
         .destroyCodec()
+        .destroyPacketCodec()
     }
 
     // Creates a controllable playback instance for a sound file.
@@ -108,7 +123,7 @@ public impl Voice
     // outlive the returned voice. The caller owns the voice and must call
     // [[Audio.Voice.destroy]] unless a later playback uses
     // [[Audio.VoicePlayFlags.DestroyOnStop]]. Success returns a non-null pointer.
-    func create(file: *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice fail
+    func create(file: const *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice fail
     {
         if !g_Driver.isCreated do
             fail BadParameterError{"audio engine is not created"}
@@ -137,7 +152,7 @@ public impl Voice
     // voice for destruction when playback finishes. The returned pointer can be
     // retained to adjust playback while it remains valid.
     #[Swag.Discardable]
-    func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice fail
+    func play(file: const *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice fail
     {
         let voice = create(file, createFlags)!
         defer #fail voice.destroy()
@@ -153,6 +168,8 @@ public impl Voice
     // has no effect.
     mtd play(playFlags = VoicePlayFlags.None) fail
     {
+        .dataMutex.lock()
+        defer .dataMutex.unlock()
         if .hasState(.Playing) do
             return
         .playFlags = playFlags
@@ -162,6 +179,7 @@ public impl Voice
         if !.hasState(.PlayedOnce)
         {
             .setState(.PlayedOnce)
+            .nativeFrameOrigin = .playedFramesNative()
             g_Driver.updateVoice(me, .UpdateBuffers)
         }
     }
@@ -171,6 +189,8 @@ public impl Voice
     // Calling this on a voice that is not playing has no effect.
     mtd pause() fail
     {
+        .dataMutex.lock()
+        defer .dataMutex.unlock()
         if !.hasState(.Playing) do
             return
         .stopNative()
@@ -183,15 +203,100 @@ public impl Voice
     // [[Audio.VoicePlayFlags.DestroyOnStop]], this also schedules destruction.
     mtd stop() fail
     {
+        .dataMutex.lock()
+        defer .dataMutex.unlock()
         if !.hasState(.PlayedOnce) do
             return
         if .hasState(.Playing) do
             .stopNative()
         .resetNative()
         .closeBuffer()
+        .playbackBaseFrame = 0
+        .nativeFrameOrigin = .playedFramesNative()
         .resetState(.Playing | .PlayedOnce)
         if .playFlags.has(.DestroyOnStop) do
             .destroy()
+    }
+
+    // Seeks to a decoded sample frame and preserves whether playback was running.
+    //
+    // Packetized sources restart on the packet containing `frame`; decoded frames before the
+    // requested position are discarded before submission. The backend queue is flushed, so
+    // [[Audio.Voice.playbackSampleFrame]] immediately uses the new position as its origin.
+    mtd seekSampleFrame(frame: u64) fail
+    {
+        .dataMutex.lock()
+        defer .dataMutex.unlock()
+        if !.handle or !.file do
+            fail BadParameterError{"voice is not valid"}
+        let file       = .file!
+        let target     = Math.min(frame, file.frameCount)
+        let wasPlaying = .hasState(.Playing)
+        if wasPlaying do
+            .stopNative()
+        .resetNative()
+        .closeData()
+        .destroyCodec()
+        .destroyPacketCodec()
+        .streamCurSeek     = 0
+        .streamPacketIdx   = 0
+        .seekDiscardFrames = 0
+        .playbackBaseFrame = target
+
+        if file.packets.count and target < file.frameCount
+        {
+            var low  = 0'u64
+            var high = file.packetStarts.count
+            while low + 1 < high
+            {
+                let middle = low + (high - low) / 2
+                if file.packetStarts[middle] <= target do
+                    low = middle
+                else do
+                    high = middle
+            }
+
+            // AAC synthesis overlaps the current transform with the preceding access unit.
+            // Decode one preroll packet and discard it so a random seek has the same samples as
+            // uninterrupted playback from the very first audible frame.
+            let preroll = low ? low - 1 : low
+            .streamPacketIdx   = preroll
+            .seekDiscardFrames = cast(u32) (target - file.packetStarts[preroll])
+        }
+        elif !file.packets.count
+        {
+            let bytesPerFrame = cast(u64) file.channelCount * cast(u64) (file.bitsPerSample / 8)
+            .streamCurSeek = Math.min(target * bytesPerFrame, file.dataSize)
+        }
+        else do
+            .streamPacketIdx = file.packets.count
+
+        .nativeFrameOrigin = .playedFramesNative()
+        .setState(.PlayedOnce)
+        if wasPlaying
+        {
+            .playNative()
+            .setState(.Playing)
+            g_Driver.updateVoice(me, .UpdateBuffers)
+        }
+    }
+
+    // Returns the decoded source sample frame currently heard at the output device.
+    mtd playbackSampleFrame()->u64
+    {
+        if !.handle or !.file do
+            return 0
+        let native   = .playedFramesNative()
+        let advanced = native >= .nativeFrameOrigin ? native - .nativeFrameOrigin : 0
+        return Math.min(.playbackBaseFrame + advanced, .file!.frameCount)
+    }
+
+    // Returns the output-device playback position in seconds.
+    mtd playbackPositionSeconds()->f64
+    {
+        if !.file or !.file!.sampleRate do
+            return 0
+        return cast(f64) .playbackSampleFrame() / cast(f64) .file!.sampleRate
     }
 
     // Schedules this voice and its native resources for destruction.

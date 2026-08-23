@@ -1,6 +1,7 @@
 using Core
 
-var g_Codecs: Array'CodecDesc
+var g_Codecs:       Array'CodecDesc
+var g_PacketCodecs: Array'PacketCodecDesc
 
 // Converts encoded audio incrementally between sound-file encodings.
 //
@@ -28,6 +29,25 @@ public interface ICodec
     mtd decode(destination: [*] void, destinationSize: u64, source: const [*] void, sourceSize: u64)->CodecProgress fail
 }
 
+// Decodes independently indexed compressed access units to interleaved PCM16.
+//
+// Packet codecs are used by container readers such as MP4. One instance belongs to one
+// voice, so implementations may retain overlap, prediction, and filter state between calls.
+public interface IPacketCodec
+{
+    // Returns whether this codec can consume `encoding`.
+    mtd canDecode(encoding: SoundFileEncoding)->bool
+
+    // Initializes codec state from the container's decoder configuration.
+    mtd initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
+
+    // Restores the state used before the first access unit.
+    mtd reset()
+
+    // Decodes one complete access unit to interleaved PCM16 and returns bytes written.
+    mtd decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
+}
+
 // Reports the byte-level progress of one incremental codec operation.
 public struct CodecProgress
 {
@@ -42,6 +62,12 @@ struct CodecDesc
 {
     type: const *Swag.TypeInfoStruct
     itf:  ICodec
+}
+
+struct PacketCodecDesc
+{
+    type: const *Swag.TypeInfoStruct
+    itf:  IPacketCodec
 }
 
 // Registers a codec implementation for subsequent voice creation.
@@ -66,6 +92,28 @@ public func registerCodecImplementation(type: const *Swag.TypeInfoStruct, itf: I
     g_Codecs.add(desc)
 }
 
+// Registers a packet codec implementation for subsequent voice creation.
+//
+// `T` must implement [[Audio.IPacketCodec]]. Registration stores its type and
+// interface dispatch table; codec instances are allocated on demand.
+public func(T) registerPacketCodec()
+{
+    #assert(Reflection.hasInterface(#typeof(T), IPacketCodec))
+
+    registerPacketCodecImplementation(#typeof(T), @mkinterface(null, #typeof(T), IPacketCodec))
+}
+
+// Non-generic bridge used by registerPacketCodec after its body is instantiated in the
+// caller's module.
+#[Swag.NoDoc]
+public func registerPacketCodecImplementation(type: const *Swag.TypeInfoStruct, itf: IPacketCodec)
+{
+    var desc: PacketCodecDesc = undefined
+    desc.type = type
+    desc.itf  = itf
+    g_PacketCodecs.add(desc)
+}
+
 // Find the codec that can treat the given encoding
 func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->#null *CodecDesc
 {
@@ -80,6 +128,13 @@ func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->#null *C
     }
 
     return found
+}
+
+func findPacketCodec(sourceEncoding: SoundFileEncoding)->#null *PacketCodecDesc
+{
+    for &codec in g_PacketCodecs where codec.itf.canDecode(sourceEncoding) do
+        return codec
+    return null
 }
 
 // Stores the source, destination, and concrete type of a codec instance.

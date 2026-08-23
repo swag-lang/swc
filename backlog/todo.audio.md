@@ -42,19 +42,19 @@ effects, no capture.
   architecture work.
 - Why first: everything else on this list is a refinement of a library that plays audio. This is
   what decides whether it can be used at all.
-- Related: T-166, T-167, T-168, T-169, T-060
+- Related: T-166, T-167, T-168, T-169
 
 ### T-166 — No Ogg Vorbis decoder
 
 Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.
 
-- Related: T-058, T-060
+- Related: T-058
 
 ### T-167 — No FLAC decoder
 
 Add native FLAC decoding with streaming, metadata bounds, and exact PCM output tests.
 
-- Related: T-058, T-060
+- Related: T-058
 
 ### T-168 — No Opus decoder
 
@@ -82,17 +82,6 @@ containers.
 - Fix: a ramp duration on the gain setters, and explicit `fadeIn`/`fadeOut` on `Voice` and `Bus`,
   interpolated over a frame count rather than applied at once.
 - Cost: low. This is the highest value-to-effort entry in the module.
-
-### T-060 — No seek
-
-- Problem: `Voice.rewindData` restarts a source at the beginning. There is no way to start playback
-  at an offset, or to move the play position of a running voice.
-- Consequence: no scrubbing, no resume, no jumping within a track, no sample-accurate loop points.
-- Fix: a seek on the codec interface with a byte-offset fallback for the constant-bitrate PCM case,
-  plus a public `Voice.seek` in seconds or frames.
-- Note: this must be designed alongside T-058. Seeking in MP3 and Vorbis is not a byte offset,
-  so the codec interface needs the right shape before three decoders are written against the
-  wrong one.
 
 ## Tier A — Output-device lifecycle
 

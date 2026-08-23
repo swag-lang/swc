@@ -7,6 +7,7 @@ struct NoSoundVoice
     isPlaying:      bool
     busCount:       u32
     buses:          [16] #null *Bus
+    samplesPlayed:  u64
 }
 
 struct NoSoundBus
@@ -50,7 +51,7 @@ impl Voice
     {
         voice.handle = cast(#null *void) Memory.new'NoSoundVoice(voice.allocationAllocator)
         let file = voice.file!
-        voice.requestedEncoding = file.encoding
+        voice.requestedEncoding = file.encoding == .AacLc ? .Pcm16 : file.encoding
         if !voice.handle do
             fail BadParameterError{"cannot create no-sound voice"}
     }
@@ -73,6 +74,7 @@ impl Voice
         if .playFlags.has(.Loop)
         {
             let {_, sizeBuffer} = .readBuffer()
+            handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()
             return sizeBuffer != 0
         }
 
@@ -81,6 +83,7 @@ impl Voice
             let {_, sizeBuffer} = .readBuffer()
             if !sizeBuffer do
                 break
+            handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()
         }
 
         handle.isPlaying = false
@@ -106,6 +109,12 @@ impl Voice
         let handle = cast(#null *NoSoundVoice) .handle
         if handle do
             handle.isPlaying = false
+    }
+
+    mtd playedFramesNoSound()->u64
+    {
+        let handle = cast(#null *NoSoundVoice) .handle
+        return handle ? handle.samplesPlayed : 0
     }
 }
 

@@ -1,5 +1,7 @@
 /*
-Audio loads WAV files and plays them through a process-wide audio engine.
+Audio streams decoded sound through a process-wide audio engine. It loads PCM and floating-point
+WAV files directly, and container readers can expose indexed AAC-LC access units without copying
+their media payload.
 
 The high-level API revolves around three objects: [[Audio.SoundFile]] describes
 decoded or streamable source data, [[Audio.Voice]] controls one playback
@@ -23,8 +25,9 @@ let sound = try SoundFile.load("assets/notify.wav")
 try Voice.play(&sound)
 ```
 
-Failures use normal Swag error propagation. Loading currently accepts WAV
-files; unsupported containers or encodings fail instead of being guessed.
+Voices provide sample-frame seeking and an output-device playback cursor suitable for an
+audio-master video clock. Failures use normal Swag error propagation; unsupported containers and
+encodings fail instead of being guessed.
 */
 
 #import("core")

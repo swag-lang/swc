@@ -27,6 +27,22 @@ enum SoundFileEncoding
     Pcm24       // Signed, uncompressed 24-bit PCM.
     Pcm32       // Signed, uncompressed 32-bit PCM.
     Float32     // Uncompressed 32-bit IEEE floating-point samples.
+    AacLc       // MPEG-4 AAC Low Complexity access units.
+}
+
+// Locates one indexed compressed access unit in a source file.
+//
+// Packet payloads need not be contiguous. `sampleFrameCount` is the number of
+// decoded sample frames contributed by the packet, across all interleaved
+// channels. Packet order is playback order.
+struct SoundPacket
+{
+    public
+    {
+        sourceOffset:     u64     // Absolute byte offset of the packet payload in the source file.
+        byteSize:         u32     // Compressed payload size in bytes.
+        sampleFrameCount: u32     // Decoded sample frames contributed by this packet.
+    }
 }
 
 // Describes a validated sound source that may be prefetched or streamed.
@@ -39,8 +55,11 @@ struct SoundFile
 {
     internal
     {
-        path: String       // Source path used for deferred streaming reads.
-        data: Array'u8     // Prefetched payload bytes in [[Audio.SoundFile.sampleEncoding]].
+        path:          String                // Source path used for deferred streaming reads.
+        data:          Array'u8              // Prefetched payload bytes in [[Audio.SoundFile.sampleEncoding]].
+        packets:       Array'SoundPacket     // Compressed access units, empty for a byte stream.
+        packetStarts:  Array'u64             // Decoded sample-frame start of every packet.
+        decoderConfig: Array'u8              // Codec initialization bytes copied from the container.
 
         frameCount: u64     // Number of sample frames across all channels.
         dataSize:   u64     // Payload size in bytes.
@@ -72,6 +91,20 @@ impl SoundFile
     // Returns whether the complete payload is retained in memory.
     mtd const isDataPreloaded()->bool => .data.count == .dataSize
 
+    // Returns whether this source is made of independently indexed packets.
+    mtd const isPacketStream()->bool => .packets.count != 0
+
+    // Returns the number of compressed packets in this source.
+    mtd const packetCount()->u64 => .packets.count
+
+    // Returns packet `index` in playback order.
+    mtd const packet(index: u64)->SoundPacket fail
+    {
+        if index >= .packets.count do
+            fail BadParameterError{"sound packet index exceeds the packet count"}
+        return .packets[index]
+    }
+
     // Reads an owned range of the validated audio payload.
     //
     // `offset` is relative to the first payload byte. The range is clamped at the payload end,
@@ -86,6 +119,36 @@ impl SoundFile
 
         let wanted = Math.min(count, .dataSize - offset)
         result.resize(wanted)
+        if .packets.count
+        {
+            var stream        = File.openRead(.path.toString())
+            var logicalStart  = 0'u64
+            var logicalOffset = offset
+            var written       = 0'u64
+            for packet in .packets
+            {
+                let logicalEnd = logicalStart + packet.byteSize
+                if logicalOffset < logicalEnd and written < wanted
+                {
+                    let packetSkip = logicalOffset > logicalStart ? logicalOffset - logicalStart : 0
+                    let available  = cast(u64) packet.byteSize - packetSkip
+                    let readSize   = Math.min(available, wanted - written)
+                    stream.seek(.Begin, packet.sourceOffset + packetSkip)
+                    if stream.read(result.buffer! + written, readSize) != readSize do
+                        fail InvalidFormatError{"compressed sound packet is truncated"}
+                    written       += readSize
+                    logicalOffset += readSize
+                }
+
+                logicalStart = logicalEnd
+                if written == wanted do
+                    break
+            }
+
+            result.resize(written)
+            return result
+        }
+
         if .isDataPreloaded()
         {
             Memory.copy(result.buffer, .data.buffer + offset, wanted)
@@ -142,6 +205,63 @@ impl SoundFile
         var stream = File.openRead(path)
         Wav.load(&result, &stream, preloadData)
         result.path = path
+        return result
+    }
+
+    // Creates a streamed compressed sound from a container's packet index.
+    //
+    // The packet table and decoder configuration are copied, while media bytes stay in
+    // `path` and are read only as playback reaches them. Memory holds the compact packet index,
+    // never the compressed media payload. `frameCount` is validated against the sum of packet
+    // durations.
+    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8)->SoundFile fail
+    {
+        if encoding != .AacLc do
+            fail UnsupportedFormatError{"unsupported packetized sound encoding"}
+        if !sampleRateHz or !channels or channels > 2 do
+            fail BadParameterError{"packetized sound needs one or two channels and a non-zero sample rate"}
+        if !@countof(packets) or !@countof(decoderConfig) do
+            fail BadParameterError{"packetized sound needs packets and decoder configuration"}
+
+        var stream     = File.openRead(path)
+        let sourceSize = stream.size()
+
+        var result: retval
+        result.path               = path
+        result.encoding           = encoding
+        result.sampleRate         = sampleRateHz
+        result.channelCount       = channels
+        result.bitsPerSample      = 16
+        result.validBitsPerSample = 16
+        result.waveSpeakerMask    = channels == 1 ? 4 : 3
+        result.packets.reserve(@countof(packets))
+        result.packetStarts.reserve(@countof(packets))
+        result.decoderConfig.add(decoderConfig)
+
+        var decodedFrames = 0'u64
+        var payloadBytes  = 0'u64
+        for packet in packets
+        {
+            if !packet.byteSize or !packet.sampleFrameCount do
+                fail BadParameterError{"sound packets need non-zero byte and sample-frame counts"}
+            if packet.sourceOffset > sourceSize or cast(u64) packet.byteSize > sourceSize - packet.sourceOffset do
+                fail InvalidFormatError{"sound packet runs past the end of its source file"}
+            if decodedFrames > Swag.U64.Max - packet.sampleFrameCount or payloadBytes > Swag.U64.Max - packet.byteSize do
+                fail OverflowError{"sound packet table is too large"}
+
+            result.packetStarts.add(decodedFrames)
+            result.packets.add(packet)
+            decodedFrames += packet.sampleFrameCount
+            payloadBytes  += packet.byteSize
+        }
+
+        if decodedFrames != frameCount do
+            fail InvalidFormatError{"sound packet durations do not match the declared frame count"}
+
+        result.frameCount      = frameCount
+        result.dataSize        = payloadBytes
+        result.durationSeconds = cast(f32) frameCount / cast(f32) sampleRateHz
+        result.availableFields = .Format | .SampleRate | .ChannelCount | .SpeakerMask | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
         return result
     }
 }

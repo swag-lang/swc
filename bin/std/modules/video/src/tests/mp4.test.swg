@@ -141,3 +141,17 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64
     discard catch Reader.openMemory("h264.mp4", unsupported.toSlice()) as codec
     @assert(codec is UnsupportedFormatError)
 }
+
+// A file-backed MP4 exposes its AAC-LC access units as a streamed std/audio track and keeps
+// variable presentation timestamps available to an audio-master player.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("glint-aac-mjpeg.mp4"))
+    @assert(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
+    let sound = reader.audioTrack(0)!
+    @assert(sound.sampleEncoding() == .AacLc)
+    @assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
+    @assert(sound.packetCount() >= 18 and !sound.isDataPreloaded())
+    @assert(Math.isEqualEpsilon(reader.frameTimestamp(5), 0.2, 0.000001))
+    @assert(reader.frameAtTime(0.219) == 5)
+}

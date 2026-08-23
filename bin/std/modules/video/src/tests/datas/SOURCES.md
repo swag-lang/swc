@@ -61,6 +61,15 @@ the same six pictures.
 
 ## Generated for this repository
 
+`glint-aac-mjpeg.mp4` combines the ten synthetic pictures from `ffmpeg-mjpeg.mp4` with the
+mathematically generated stereo sine stream documented by std/audio's
+`aac-lc-stereo-44100.aac`. The tracks were stream-copied into MP4 through PyAV 17.1; no
+third-party recording is present. It exercises a version-0 `mp4a` entry, `esds`
+AudioSpecificConfig, independent audio chunking, and concurrent file cursors.
+
+- SHA-256: `3414695932df3598a24212796c46183a3cce46d7c81dba7b60eef6886047ab63`
+- License: same as this repository; the glint encoder is MIT licensed.
+
 `bars-scroll-c420.y4m` is the long stream the streaming tests read: 400 frames of 128x72 at 25
 frames per second, 8-bit `C420jpeg`, progressive.
 

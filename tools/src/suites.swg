@@ -157,6 +157,20 @@ private func testPhaseCompiled(output, module: string)->bool
     return false
 }
 
+// Counts permanent module report lines for one dependency. Progress frames are absent from captured
+// output, so a repeated line proves that the dependency was reported more than once.
+private func moduleReportCount(output, module: string)->u32
+{
+    var result: u32
+    for line in Tokenize.splitLines(output)
+    {
+        if Utf8.contains(line, module) and (Utf8.contains(line, " files") or Utf8.contains(line, "up-to-date")) do
+            result += 1
+    }
+
+    return result
+}
+
 // Checks the compact spelling contract of the generated public API fixture.
 private func verifyCompactExportedApi(workspace: string, buildCfg: string, targetArch: string)->s32 fail
 {
@@ -232,9 +246,13 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     var built = workspaceModuleCommand("build", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&built)
 
-    let buildCode = try context.runCompiler(built)
-    if buildCode != 0 do
-        return buildCode
+    let buildOutput = try context.captureCompiler(built)
+    Console.print(buildOutput.toString())
+    for dependency in ["core", "win32", "xinput"] where moduleReportCount(buildOutput.toString(), dependency) != 1
+    {
+        Console.println("Workspace dependency plan did not compile standard module exactly once: ", dependency)
+        return 1
+    }
 
     let compactApiCode = try verifyCompactExportedApi(workspace.toString(), buildCfg, options.targetArch.toString())
     if compactApiCode != 0 do
@@ -250,6 +268,14 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     for unrelated in ["audio", "gdiplus", "gui"] where Directory.exists(Path.combine(stdOutput.toString(), unrelated))
     {
         Console.println("Workspace import built unrelated standard module \"", unrelated, "\".")
+        return 1
+    }
+
+    let warmBuildOutput = try context.captureCompiler(built)
+    Console.print(warmBuildOutput.toString())
+    for dependency in ["core", "win32", "xinput"] where moduleReportCount(warmBuildOutput.toString(), dependency) != 0
+    {
+        Console.println("Reusable workspace dependency added noise to the build report: ", dependency)
         return 1
     }
 

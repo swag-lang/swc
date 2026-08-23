@@ -637,16 +637,6 @@ namespace
         return !outPath.empty();
     }
 
-    void appendUniqueModules(std::vector<Utf8>& outModules, std::unordered_set<Utf8>& ioSeenModules, std::span<const Utf8> modules)
-    {
-        for (const Utf8& moduleName : modules)
-        {
-            if (!ioSeenModules.insert(moduleName).second)
-                continue;
-            outModules.push_back(moduleName);
-        }
-    }
-
     Result collectDependencyConfigurationMatches(std::vector<DependencyConfigCandidate>& outMatches, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine)
     {
         outMatches.clear();
@@ -795,6 +785,13 @@ namespace
     Utf8 formatWorkspaceStageStat(const TaskContext& ctx, const CompilerInstance::WorkspaceBuildLogState& workspaceLogState)
     {
         std::vector<Utf8> parts;
+        if (ctx.cmdLine().workspaceDependencyBuild && workspaceLogState.builtModules == workspaceLogState.activeModules)
+        {
+            if (workspaceLogState.compiledModules)
+                parts.push_back(ScopedTimedLog::formatStatCount(ctx, workspaceLogState.compiledModules, "module"));
+            return ScopedTimedLog::joinStatItems(ctx, parts);
+        }
+
         if (workspaceLogState.activeModules)
         {
             if (workspaceLogState.builtModules < workspaceLogState.activeModules)
@@ -1256,101 +1253,6 @@ namespace
         return buildTime >= compilerTime;
     }
 
-    // The build a dependency output directory claims, when no manifest names it. A dependency that
-    // did not come from a workspace build here — a published library, a hand-copied tree — has no
-    // record of what it was made from, and the newest file it holds is the only date available.
-    bool dependencyBuildPredatesCompiler(const fs::path& apiDir, const fs::path& compilerPath)
-    {
-        fs::file_time_type compilerTime{};
-        if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
-            return false;
-
-        fs::file_time_type buildTime{};
-        if (!tryCollectLatestWorkspaceTreeWriteTime(buildTime, apiDir))
-            return false;
-
-        return buildTime < compilerTime;
-    }
-
-    // A source file that appeared, or disappeared, since the build. It is in no list the build
-    // could have written, so the only trace of it is the modification time of the directory that
-    // holds it — which every recorded input names.
-    bool workspaceInputDirectoryChangedSince(std::span<const fs::path> inputs, const fs::file_time_type buildTime)
-    {
-        std::unordered_set<Utf8> checkedDirs;
-        for (const fs::path& inputPath : inputs)
-        {
-            const fs::path parentDir = inputPath.parent_path();
-            if (parentDir.empty() || !checkedDirs.insert(Utf8(parentDir)).second)
-                continue;
-
-            fs::file_time_type parentTime;
-            if (tryGetWorkspacePathWriteTime(parentTime, parentDir) && parentTime > buildTime)
-                return true;
-        }
-
-        return false;
-    }
-
-    bool dependencyBuildIsOutdated(std::unordered_set<Utf8>& ioCheckedApiDirs, const fs::path& apiDir, const fs::path& compilerPath);
-
-    // Whether anything the dependency was built from has moved since — including inside the
-    // dependencies of that dependency, which is how a script that imports `gui` notices an edit
-    // to `core`.
-    bool dependencyClosureIsOutdated(std::unordered_set<Utf8>& ioCheckedApiDirs, std::span<const fs::path> dependencyDirs, const fs::path& compilerPath)
-    {
-        for (const fs::path& dependencyDir : dependencyDirs)
-        {
-            if (dependencyBuildIsOutdated(ioCheckedApiDirs, dependencyDir, compilerPath))
-                return true;
-        }
-
-        return false;
-    }
-
-    // Answers whether a dependency no longer matches what it was built from.
-    //
-    // This is the question a workspace build asks about its own modules, asked from outside. A
-    // script does not own the library it imports, but it has to notice when that library moved
-    // under it: a new compiler, an edited source, a rebuilt dependency of its own. The manifest a
-    // build leaves in its output directory names every input, every dependency and every artifact,
-    // so the whole answer costs one stat per recorded path instead of a workspace scan.
-    //
-    // It matters more here than for any other consumer, because a dependency is consumed as
-    // source: its exported API is `.swg` text this compiler parses, so a library exported by an
-    // older one can spell syntax this one has dropped, and the error surfaces in whoever imports
-    // it rather than in itself.
-    bool dependencyBuildIsOutdated(std::unordered_set<Utf8>& ioCheckedApiDirs, const fs::path& apiDir, const fs::path& compilerPath)
-    {
-        if (!ioCheckedApiDirs.insert(Utf8(FileSystem::normalizePath(apiDir))).second)
-            return false;
-
-        // Always the plain manifest: what a script consumes is what a normal build produces, never
-        // the '.test' variant a test build writes beside it.
-        const fs::path            manifestPath = (apiDir / K_WORKSPACE_ARTIFACT_MANIFEST_FILE).lexically_normal();
-        WorkspaceArtifactManifest manifest;
-        if (!readWorkspaceArtifactManifest(manifest, manifestPath))
-            return dependencyBuildPredatesCompiler(apiDir, compilerPath);
-
-        // The manifest is its own record of what was current, so it answers for both lists.
-        if (!workspaceArtifactsAreUpToDate(manifest, apiDir, manifestPath, compilerPath, {}, manifest.dependencyDirs, {}))
-            return true;
-
-        fs::file_time_type buildTime{};
-        if (!tryGetWorkspacePathWriteTime(buildTime, manifestPath))
-            return true;
-        if (workspaceInputDirectoryChangedSince(manifest.inputs, buildTime))
-            return true;
-
-        return dependencyClosureIsOutdated(ioCheckedApiDirs, manifest.dependencyDirs, compilerPath);
-    }
-
-    bool dependencyBuildIsOutdated(const fs::path& apiDir, const fs::path& compilerPath)
-    {
-        std::unordered_set<Utf8> checkedApiDirs;
-        return dependencyBuildIsOutdated(checkedApiDirs, apiDir, compilerPath);
-    }
-
     bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine)
     {
         if (cmdLine.rebuild || cmdLine.dryRun || cmdLine.showConfig)
@@ -1676,81 +1578,28 @@ namespace
         return Result::Continue;
     }
 
-    // One standard-library module is built on demand at most once per compiler process. The asks
-    // keep coming — every importer, every dependency-closure walk, and every compilation phase: a
-    // test command alone resolves its imports once for the JIT pass and once more for the native
-    // artifact. The answer cannot change within one process, and under '--rebuild' a repeat would
-    // not merely be wasted work: the earlier pass loaded the freshly built shared libraries into
-    // this very process for JIT execution, so rebuilding asks Windows to replace a DLL it has
-    // mapped, which fails with an access-denied error.
-    bool claimOnDemandStdModuleBuild(const Utf8& moduleName)
-    {
-        static std::mutex               mutex;
-        static std::unordered_set<Utf8> claimedModules;
-
-        const std::scoped_lock lock(mutex);
-        return claimedModules.insert(moduleName).second;
-    }
-
-    // The standard library as a whole, built on demand at most once per compiler process.
-    //
-    // The claim above answers for one module; this one answers for the set. A module that imports
-    // several standard roots used to discover them one at a time and build each on its own, which
-    // interleaves building with loading: the first root's build maps 'core.dll' from the workspace
-    // mirror for compile-time execution, and the next root's build then has to publish another
-    // 'core.dll' over the file this very process is running. Building the set in one workspace run
-    // resolves the shared dependency once, before any of it is loaded.
-    //
-    // `claim` takes that single build; without it the call only reports whether it was taken.
-    bool onDemandStdWorkspaceBuild(const bool claim)
-    {
-        static std::mutex mutex;
-        static bool       claimed = false;
-
-        const std::scoped_lock lock(mutex);
-        if (!claim)
-            return claimed;
-        if (claimed)
-            return false;
-        claimed = true;
-        return true;
-    }
 }
 
-struct ModuleSetupInputApplier
+struct DependencyPlanBuilder
 {
-    struct ResolvedModuleImportPaths
-    {
-        fs::path                     apiDir;
-        Runtime::BuildCfgBackendKind apiBackendKind = Runtime::BuildCfgBackendKind::None;
-        fs::path                     linkDir;
-        fs::path                     sharedDir;
-        fs::path                     dependencyRoot;
-    };
+    explicit DependencyPlanBuilder(CompilerInstance& compilerInstance, TaskContext& taskContext);
 
-    explicit ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext);
-
-    Result      apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot);
+    Result      build(CompilerInstance::DependencyPlan& outPlan, std::span<const CompilerInstance::ModuleSetupImport> imports);
     Result      resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    Result      resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    Result      resolveLinkAndSharedDirs(CompilerInstance::ResolvedDependencyPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     bool        mirrorsDependencies() const;
     Result      mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
     Result      mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
     Result      mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    bool        tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    bool        canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const;
-    CommandLine makeSwagStdBuildCommandLine(const fs::path& workspacePath, std::string_view moduleFilter) const;
-    Result      buildSwagStdWorkspaceOnDemand(std::span<const CompilerInstance::ModuleSetupImport> imports);
-    Result      buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest);
-    Result      resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
+    bool        tryResolveDependencyApiDir(CompilerInstance::ResolvedDependencyPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    Result      resolveDependencyImportDir(CompilerInstance::ResolvedDependencyPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
     Result      captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
-    // Parsing+sema'ing a dependency's .dep metadata file is expensive and the same file is reached
-    // by both the processImports walk and the collectDependencyClosure walk (and by multiple
-    // importers of a shared dependency). Cache the resulting import list keyed by the resolved .dep
-    // path so each metadata file is captured at most once per setup.
+    // Parsing and checking dependency metadata is expensive, and several roots can reach the same
+    // file. Cache its import list so the global resolution visits it once.
     Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
-    Result collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot);
-    Result processImports(std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot, bool recordDirectImports);
+    bool   tryCaptureGeneratedDependencyImports(const fs::path& depsFile, std::vector<CompilerInstance::ModuleSetupImport>& outImports) const;
+    Result resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
+    void   collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, size_t nodeIndex) const;
 
     CompilerInstance& instance() const
     {
@@ -1769,12 +1618,33 @@ struct ModuleSetupInputApplier
     fs::path                                                                   workspaceDependencyRoot;
     std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
     std::unordered_map<Utf8, fs::path>                                         scriptDependencyEntries;
-    std::unordered_map<Utf8, std::vector<Utf8>>                                dependencyClosureCache;
-    std::unordered_set<Utf8>                                                   processedDependencyApis;
+    std::unordered_map<Utf8, size_t>                                           nodeIndices;
     std::unordered_map<Utf8, std::vector<CompilerInstance::ModuleSetupImport>> dependencyImportsCache;
 };
 
-ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext)
+struct ModuleSetupInputApplier
+{
+    explicit ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext);
+
+    Result apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot, const CompilerInstance::DependencyPlan& dependencyPlan);
+
+    CompilerInstance& instance() const
+    {
+        SWC_ASSERT(compiler);
+        return *compiler;
+    }
+
+    TaskContext& taskCtx() const
+    {
+        SWC_ASSERT(ctx);
+        return *ctx;
+    }
+
+    CompilerInstance* compiler = nullptr;
+    TaskContext*      ctx      = nullptr;
+};
+
+DependencyPlanBuilder::DependencyPlanBuilder(CompilerInstance& compilerInstance, TaskContext& taskContext)
 {
     compiler = &compilerInstance;
     ctx      = &taskContext;
@@ -1782,14 +1652,65 @@ ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInsta
         workspaceDependencyRoot = FileSystem::normalizePath(WorkspaceLayout::workspaceDependencyDirectory(instance().cmdLine().workspacePath));
 }
 
-Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot)
+ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext)
+{
+    compiler = &compilerInstance;
+    ctx      = &taskContext;
+}
+
+Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot, const CompilerInstance::DependencyPlan& dependencyPlan)
 {
     instance().moduleSetupImports_ = setupSnapshot.imports;
     instance().nativeRuntimeImports_.clear();
     instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
 
-    SWC_RESULT(buildSwagStdWorkspaceOnDemand(setupSnapshot.imports));
-    SWC_RESULT(processImports(setupSnapshot.imports, nullptr, true));
+    for (const CompilerInstance::ModuleSetupImport& importRequest : setupSnapshot.imports)
+    {
+        const CompilerInstance::ResolvedDependencyBinding* binding = nullptr;
+        for (const CompilerInstance::ResolvedDependencyBinding& candidate : dependencyPlan.bindings)
+        {
+            if (candidate.request.moduleName == importRequest.moduleName &&
+                candidate.request.location == importRequest.location &&
+                candidate.request.version == importRequest.version &&
+                FileSystem::pathEquals(candidate.request.baseDir, importRequest.baseDir) &&
+                candidate.request.linkBackendKind == importRequest.linkBackendKind)
+            {
+                binding = &candidate;
+                break;
+            }
+        }
+
+        // Workspace-local imports become resolvable in build order, after their producer has
+        // published its artifacts. External imports are always present in the command-wide plan.
+        CompilerInstance::DependencyPlan localPlan;
+        if (!binding)
+        {
+            DependencyPlanBuilder builder(instance(), taskCtx());
+            SWC_RESULT(builder.build(localPlan, std::span{&importRequest, 1}));
+            SWC_ASSERT(localPlan.bindings.size() == 1);
+            binding = &localPlan.bindings.front();
+        }
+
+        const CompilerInstance::DependencyPlan& bindingPlan = localPlan.bindings.empty() ? dependencyPlan : localPlan;
+        for (const size_t nodeIndex : binding->closure)
+        {
+            const CompilerInstance::ResolvedDependencyNode& node = bindingPlan.nodes[nodeIndex];
+            instance().collectImportedApiFolderFiles(node.paths.apiDir, node.moduleName.view());
+            instance().registerImportedDependencyLinkDir(node.paths.linkDir);
+            instance().registerImportedSharedModuleDir(node.paths.sharedDir);
+        }
+
+        const CompilerInstance::ResolvedDependencyNode& directNode = bindingPlan.nodes[binding->nodeIndex];
+        if (!directNode.paths.linkDir.empty())
+        {
+            CompilerInstance::NativeRuntimeImport runtimeImport;
+            runtimeImport.moduleName           = importRequest.moduleName;
+            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(directNode.paths.linkDir, importRequest.moduleName.view());
+            runtimeImport.transitiveImports    = binding->transitiveImports;
+            runtimeImport.hasSharedRuntimeHook = !directNode.paths.sharedDir.empty();
+            instance().nativeRuntimeImports_.push_back(std::move(runtimeImport));
+        }
+    }
 
     for (const fs::path& filePath : setupSnapshot.loadedFiles)
     {
@@ -1807,7 +1728,7 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
     return Result::Continue;
 }
 
-Result ModuleSetupInputApplier::resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
+Result DependencyPlanBuilder::resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
 {
     if (importRequest.location == "swag@std")
         return resolveSwagStdOutputRoot(outRoot, taskCtx());
@@ -1824,11 +1745,11 @@ Result ModuleSetupInputApplier::resolveExplicitDependencyRoot(fs::path& outRoot,
     return Result::Continue;
 }
 
-Result ModuleSetupInputApplier::resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
+Result DependencyPlanBuilder::resolveLinkAndSharedDirs(CompilerInstance::ResolvedDependencyPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
 {
     outPaths.linkDir.clear();
     outPaths.sharedDir.clear();
-    outPaths.dependencyRoot = FileSystem::normalizePath(dependencyRoot);
+    outPaths.sourceRoot = FileSystem::normalizePath(dependencyRoot);
 
     Utf8     because;
     fs::path sharedDir;
@@ -1858,12 +1779,12 @@ Result ModuleSetupInputApplier::resolveLinkAndSharedDirs(ResolvedModuleImportPat
 // A workspace vendors them into a '.dep' directory it owns. A script has no directory of its own
 // and shares the content-addressed cache. Everything else reads them where they are: only these
 // two run a program whose libraries may be rebuilt underneath it by the very run that loaded them.
-bool ModuleSetupInputApplier::mirrorsDependencies() const
+bool DependencyPlanBuilder::mirrorsDependencies() const
 {
     return !workspaceDependencyRoot.empty() || instance().cmdLine().scriptMode;
 }
 
-Result ModuleSetupInputApplier::mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
+Result DependencyPlanBuilder::mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
 {
     if (ioDir.empty())
         return Result::Continue;
@@ -1872,7 +1793,7 @@ Result ModuleSetupInputApplier::mirrorDependencyDir(fs::path& ioDir, const fs::p
     return mirrorScriptDependencyDir(ioDir, sourceDependencyRoot);
 }
 
-Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
+Result DependencyPlanBuilder::mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
 {
     const fs::path normalizedSourceDir  = FileSystem::normalizePath(ioDir);
     const fs::path normalizedSourceRoot = FileSystem::normalizePath(sourceDependencyRoot);
@@ -1894,7 +1815,7 @@ Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, co
     return Result::Continue;
 }
 
-Result ModuleSetupInputApplier::mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
+Result DependencyPlanBuilder::mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot)
 {
     const fs::path normalizedSourceDir = FileSystem::normalizePath(ioDir);
 
@@ -1926,142 +1847,12 @@ Result ModuleSetupInputApplier::mirrorScriptDependencyDir(fs::path& ioDir, const
     return Result::Continue;
 }
 
-// Builds one standard-library module in place, so every compilation that imports it works on a
-// checkout where the library has never been built for this configuration, or was last built by a
-// compiler this one has replaced. The import names the dependency and its source; requiring a
-// separate command to materialize that dependency would make workspace correctness depend on an
-// orchestration layer outside the compiler.
-//
-// `outBuilt` says whether a build actually ran, which is the caller's cue to look again. The
-// build is an ordinary workspace command on the standard library, narrowed to the wanted module
-// and its workspace dependencies, and it is not itself a script: nothing it imports can come back
-// here, so this cannot recurse.
-bool ModuleSetupInputApplier::canBuildSwagStdModuleOnDemand(const CompilerInstance::ModuleSetupImport& importRequest) const
-{
-    return importRequest.location == "swag@std";
-}
-
-// Builds every standard root one module setup names, in a single workspace run, when it names more
-// than one. Each root would otherwise be built on its own, and the shared dependency underneath
-// them — `core` — would be published again for each, over the copy the first build already mapped
-// into this process. One run resolves that dependency once. A setup naming a single root keeps the
-// narrow build: nothing else in the library has to exist for it.
-Result ModuleSetupInputApplier::buildSwagStdWorkspaceOnDemand(std::span<const CompilerInstance::ModuleSetupImport> imports)
-{
-    std::unordered_set<Utf8> stdModules;
-    for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
-    {
-        if (canBuildSwagStdModuleOnDemand(importRequest))
-            stdModules.insert(importRequest.moduleName);
-    }
-
-    if (stdModules.size() < 2)
-        return Result::Continue;
-    if (!onDemandStdWorkspaceBuild(true))
-        return Result::Continue;
-
-    fs::path workspacePath;
-    SWC_RESULT(resolveSwagStdWorkspaceRoot(workspacePath, taskCtx()));
-
-    Utf8 because;
-    if (FileSystem::resolveExistingFolder(workspacePath, because) != Result::Continue)
-        return Result::Continue;
-
-    CommandLine      stdCmdLine = makeSwagStdBuildCommandLine(workspacePath, {});
-    CompilerInstance stdCompiler(instance().global(), stdCmdLine);
-    if (stdCompiler.runWorkspace() != ExitCode::Success)
-        return Result::Error;
-
-    return Result::Continue;
-}
-
-Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest)
-{
-    outBuilt = false;
-    if (!canBuildSwagStdModuleOnDemand(importRequest))
-        return Result::Continue;
-
-    // The whole library was already built in this process, so there is nothing left to produce and
-    // nothing to gain from replacing a shared library this process may already have mapped.
-    if (onDemandStdWorkspaceBuild(false))
-        return Result::Continue;
-
-    if (!claimOnDemandStdModuleBuild(importRequest.moduleName))
-        return Result::Continue;
-
-    fs::path workspacePath;
-    SWC_RESULT(resolveSwagStdWorkspaceRoot(workspacePath, taskCtx()));
-
-    Utf8 because;
-    if (FileSystem::resolveExistingFolder(workspacePath, because) != Result::Continue)
-        return Result::Continue;
-
-    // A name the library does not have is not something a build can produce, so let the caller
-    // report the missing dependency rather than run a workspace command that would fail anyway.
-    fs::path moduleDir = workspaceModuleDirectory(workspacePath, importRequest.moduleName.view());
-    if (FileSystem::resolveExistingFolder(moduleDir, because) != Result::Continue)
-        return Result::Continue;
-
-    CommandLine      stdCmdLine = makeSwagStdBuildCommandLine(workspacePath, importRequest.moduleName.view());
-    CompilerInstance stdCompiler(instance().global(), stdCmdLine);
-    if (stdCompiler.runWorkspace() != ExitCode::Success)
-        return Result::Error;
-
-    outBuilt = true;
-    return Result::Continue;
-}
-
-// The command line a nested standard-library build runs under: an ordinary workspace build of the
-// library, narrowed to `moduleFilter` when one is given, and never a script — nothing it imports
-// can come back here, so this cannot recurse.
-CommandLine ModuleSetupInputApplier::makeSwagStdBuildCommandLine(const fs::path& workspacePath, const std::string_view moduleFilter) const
-{
-    CommandLine stdCmdLine           = instance().cmdLine();
-    stdCmdLine.command               = CommandKind::Build;
-    stdCmdLine.commandExplicit       = true;
-    stdCmdLine.scriptMode            = false;
-    stdCmdLine.sourceDrivenTest      = false;
-    stdCmdLine.workspacePath         = workspacePath;
-    stdCmdLine.workspaceModuleFilter = moduleFilter;
-    stdCmdLine.moduleFilePath.clear();
-    stdCmdLine.modulePath.clear();
-    stdCmdLine.directories.clear();
-    stdCmdLine.files.clear();
-    stdCmdLine.importApiModules.clear();
-    stdCmdLine.importApiDirs.clear();
-    stdCmdLine.importApiFiles.clear();
-    stdCmdLine.exportApiDir.clear();
-    stdCmdLine.outDir.clear();
-    stdCmdLine.workDir.clear();
-    stdCmdLine.outDirStorage.clear();
-    stdCmdLine.workDirStorage.clear();
-    stdCmdLine.outDirExplicit  = false;
-    stdCmdLine.workDirExplicit = false;
-    stdCmdLine.name.clear();
-    stdCmdLine.artifactNameExplicit = false;
-    // What the requester asked to be built for itself says nothing about the library it depends
-    // on: each standard module states its own artifact kind and namespace, and this build must be
-    // the same one `tools/std.swgs` runs. Inheriting them turns `--artifact-kind executable` into
-    // "link every standard module as a program" and `--module-namespace X` into "call them all X".
-    stdCmdLine.backendKind          = Runtime::BuildCfgBackendKind::Executable;
-    stdCmdLine.artifactKindExplicit = false;
-    stdCmdLine.moduleNamespace.clear();
-    stdCmdLine.moduleNamespaceStorage.clear();
-    stdCmdLine.moduleNamespaceExplicit = false;
-    // This nested build can be the first code to load and initialize a standard-library DLL.
-    // Those lifecycle hooks are process-wide, so they must inherit the effective arguments of
-    // the program that requested the build before their one-time guards close over the state.
-    stdCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(instance().cmdLine());
-    CommandLineParser::refreshBuildCfg(stdCmdLine);
-    return stdCmdLine;
-}
-
-bool ModuleSetupInputApplier::tryResolveDependencyApiDir(ResolvedModuleImportPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
+bool DependencyPlanBuilder::tryResolveDependencyApiDir(CompilerInstance::ResolvedDependencyPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
 {
     return findDependencyConfigurationDirectory(outPaths.apiDir, outBecause, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) == Result::Continue;
 }
 
-Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot)
+Result DependencyPlanBuilder::resolveDependencyImportDir(CompilerInstance::ResolvedDependencyPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot)
 {
     outPaths = {};
 
@@ -2071,22 +1862,7 @@ Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportP
         SWC_RESULT(resolveExplicitDependencyRoot(dependencyRoot, importRequest));
 
         Utf8 because;
-        bool resolved = tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest);
-
-        // A dependency that no longer matches what it was built from is as unusable as an absent
-        // one, so it is rebuilt on the same terms. '--rebuild' asks for the same thing without
-        // consulting a date: it is how a build is forced when every timestamp says otherwise.
-        // Neither question is worth asking where nothing can act on it.
-        const bool onDemand = canBuildSwagStdModuleOnDemand(importRequest);
-        if (!resolved || (onDemand && (instance().cmdLine().rebuild || dependencyBuildIsOutdated(outPaths.apiDir, instance().exeFullName_))))
-        {
-            bool built = false;
-            SWC_RESULT(buildSwagStdModuleOnDemand(built, importRequest));
-            if (built)
-                resolved = tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest);
-        }
-
-        if (!resolved)
+        if (!tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest))
             return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
 
         return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
@@ -2151,7 +1927,7 @@ Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportP
     return resolveLinkAndSharedDirs(outPaths, dependencyRootFromConfigurationDir(outPaths.apiDir), importRequest);
 }
 
-Result ModuleSetupInputApplier::captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const
+Result DependencyPlanBuilder::captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const
 {
     CommandLine setupCmdLine = instance().cmdLine();
     setupCmdLine.directories.clear();
@@ -2165,7 +1941,106 @@ Result ModuleSetupInputApplier::captureDependencyImportSnapshot(const fs::path& 
     return instance().captureModuleSetupSnapshot(taskCtx(), setupCmdLine, outSnapshot);
 }
 
-Result ModuleSetupInputApplier::captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports)
+bool DependencyPlanBuilder::tryCaptureGeneratedDependencyImports(const fs::path& depsFile, std::vector<CompilerInstance::ModuleSetupImport>& outImports) const
+{
+    std::string             content;
+    FileSystem::IoErrorInfo ioError;
+    if (FileSystem::readTextFile(depsFile, content, ioError) != Result::Continue)
+        return false;
+
+    const auto skipSpaces = [](const std::string_view line, size_t& pos) {
+        while (pos < line.size() && (line[pos] == ' ' || line[pos] == '\t'))
+            pos++;
+    };
+    const auto readQuoted = [](Utf8& outValue, const std::string_view line, size_t& pos) {
+        if (pos >= line.size() || line[pos] != '"')
+            return false;
+        const size_t end = line.find('"', ++pos);
+        if (end == std::string_view::npos)
+            return false;
+        outValue = line.substr(pos, end - pos);
+        pos      = end + 1;
+        return true;
+    };
+
+    size_t contentPos = 0;
+    while (contentPos < content.size())
+    {
+        const size_t           lineEnd = content.find('\n', contentPos);
+        std::string_view       line{content.data() + contentPos, (lineEnd == std::string::npos ? content.size() : lineEnd) - contentPos};
+        CompilerInstance::ModuleSetupImport importRequest;
+        contentPos = lineEnd == std::string::npos ? content.size() : lineEnd + 1;
+        if (!line.empty() && line.back() == '\r')
+            line.remove_suffix(1);
+
+        size_t pos = 0;
+        skipSpaces(line, pos);
+        constexpr std::string_view prefix = "#import(";
+        if (!line.substr(pos).starts_with(prefix))
+            return false;
+        pos += prefix.size();
+        if (!readQuoted(importRequest.moduleName, line, pos))
+            return false;
+
+        while (true)
+        {
+            skipSpaces(line, pos);
+            if (pos < line.size() && line[pos] == ')')
+            {
+                pos++;
+                break;
+            }
+            if (pos >= line.size() || line[pos++] != ',')
+                return false;
+            skipSpaces(line, pos);
+
+            Utf8* target = nullptr;
+            if (line.substr(pos).starts_with("location:"))
+            {
+                pos += 9;
+                target = &importRequest.location;
+            }
+            else if (line.substr(pos).starts_with("version:"))
+            {
+                pos += 8;
+                target = &importRequest.version;
+            }
+            else if (line.substr(pos).starts_with("link:"))
+            {
+                pos += 5;
+                Utf8 link;
+                skipSpaces(line, pos);
+                if (!readQuoted(link, line, pos))
+                    return false;
+                if (link == backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary))
+                    importRequest.linkBackendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+                else if (link == backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary))
+                    importRequest.linkBackendKind = Runtime::BuildCfgBackendKind::StaticLibrary;
+                else
+                    return false;
+                continue;
+            }
+            else
+            {
+                return false;
+            }
+
+            skipSpaces(line, pos);
+            if (!readQuoted(*target, line, pos))
+                return false;
+        }
+
+        skipSpaces(line, pos);
+        if (pos != line.size() || importRequest.moduleName.empty())
+            return false;
+        importRequest.baseDir = depsFile.parent_path();
+        outImports.push_back(std::move(importRequest));
+    }
+
+    return true;
+}
+
+Result DependencyPlanBuilder::captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports)
 {
     // depsFile has already been resolved to an absolute path by the caller, so a lexical key is
     // enough to identify it without paying for another weakly_canonical() disk round-trip.
@@ -2177,103 +2052,177 @@ Result ModuleSetupInputApplier::captureDependencyImports(const fs::path& depsFil
         return Result::Continue;
     }
 
-    CompilerInstance::ModuleSetupSnapshot snapshot;
-    SWC_RESULT(captureDependencyImportSnapshot(depsFile, snapshot));
-    const auto [insertedIt, inserted] = dependencyImportsCache.emplace(key, std::move(snapshot.imports));
+    std::vector<CompilerInstance::ModuleSetupImport> imports;
+    if (!tryCaptureGeneratedDependencyImports(depsFile, imports))
+    {
+        CompilerInstance::ModuleSetupSnapshot snapshot;
+        SWC_RESULT(captureDependencyImportSnapshot(depsFile, snapshot));
+        imports = std::move(snapshot.imports);
+    }
+
+    const auto [insertedIt, inserted] = dependencyImportsCache.emplace(key, std::move(imports));
     SWC_UNUSED(inserted);
     *outImports = &insertedIt->second;
     return Result::Continue;
 }
 
-Result ModuleSetupInputApplier::collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot)
+Result DependencyPlanBuilder::resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot)
 {
-    std::unordered_set seenModules(outModules.begin(), outModules.end());
-    for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
+    CompilerInstance::ResolvedDependencyPaths paths;
+    SWC_RESULT(resolveDependencyImportDir(paths, importRequest, preferredDependencyRoot));
+
+    const fs::path sourceApiDir = FileSystem::normalizePath(paths.apiDir);
+    const Utf8     nodeKey      = std::format("{}|{}|{}", Utf8(sourceApiDir).c_str(), importRequest.moduleName.c_str(), importRequest.version.c_str());
+    const auto     existingIt   = nodeIndices.find(nodeKey);
+    if (existingIt != nodeIndices.end())
     {
-        if (seenModules.insert(importRequest.moduleName).second)
-            outModules.push_back(importRequest.moduleName);
+        outIndex = existingIt->second;
+        return Result::Continue;
+    }
 
-        ResolvedModuleImportPaths importPaths;
-        SWC_RESULT(resolveDependencyImportDir(importPaths, importRequest, preferredDependencyRoot));
-        if (importPaths.apiDir.empty())
-            continue;
+    const fs::path sourceRoot = paths.sourceRoot;
+    if (mirrorsDependencies())
+    {
+        SWC_RESULT(mirrorDependencyDir(paths.apiDir, sourceRoot));
+        SWC_RESULT(mirrorDependencyDir(paths.linkDir, sourceRoot));
+        SWC_RESULT(mirrorDependencyDir(paths.sharedDir, sourceRoot));
+    }
 
-        const auto cacheKey = Utf8(FileSystem::normalizePath(importPaths.apiDir));
-        const auto cacheIt  = dependencyClosureCache.find(cacheKey);
-        if (cacheIt != dependencyClosureCache.end())
-        {
-            appendUniqueModules(outModules, seenModules, cacheIt->second);
-            continue;
-        }
+    outIndex = plan.nodes.size();
+    nodeIndices.emplace(nodeKey, outIndex);
 
-        fs::path depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
-        Utf8     because;
-        if (FileSystem::resolveExistingFile(depsFile, because) != Result::Continue)
-        {
-            dependencyClosureCache.emplace(cacheKey, std::vector<Utf8>{});
-            continue;
-        }
+    CompilerInstance::ResolvedDependencyNode node;
+    node.moduleName      = importRequest.moduleName;
+    node.location        = importRequest.location;
+    node.version         = importRequest.version;
+    node.linkBackendKind = importRequest.linkBackendKind;
+    node.paths           = std::move(paths);
+    plan.nodes.push_back(std::move(node));
 
-        const std::vector<CompilerInstance::ModuleSetupImport>* nestedImports = nullptr;
-        SWC_RESULT(captureDependencyImports(depsFile, &nestedImports));
+    fs::path depsFile = dependencyImportMetadataPath(plan.nodes[outIndex].paths.apiDir, importRequest.moduleName.view());
+    Utf8     because;
+    if (FileSystem::resolveExistingFile(depsFile, because) != Result::Continue)
+        return Result::Continue;
 
-        std::vector<Utf8> nestedModules;
-        const fs::path    sourceDependencyRoot = importPaths.dependencyRoot;
-        SWC_RESULT(collectDependencyClosure(nestedModules, *nestedImports, &sourceDependencyRoot));
-        const auto [insertedIt, inserted] = dependencyClosureCache.emplace(cacheKey, std::move(nestedModules));
-        appendUniqueModules(outModules, seenModules, insertedIt->second);
-        SWC_UNUSED(inserted);
+    const std::vector<CompilerInstance::ModuleSetupImport>* nestedImports = nullptr;
+    SWC_RESULT(captureDependencyImports(depsFile, &nestedImports));
+    for (const CompilerInstance::ModuleSetupImport& nestedImport : *nestedImports)
+    {
+        size_t dependencyIndex = 0;
+        SWC_RESULT(resolveNode(dependencyIndex, plan, nestedImport, &sourceRoot));
+        plan.nodes[outIndex].dependencies.push_back(dependencyIndex);
     }
 
     return Result::Continue;
 }
 
-Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot, const bool recordDirectImports)
+void DependencyPlanBuilder::collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, const size_t nodeIndex) const
 {
+    if (std::ranges::find(outClosure, nodeIndex) != outClosure.end())
+        return;
+
+    outClosure.push_back(nodeIndex);
+    const CompilerInstance::ResolvedDependencyNode& node = plan.nodes[nodeIndex];
+    for (const size_t dependencyIndex : node.dependencies)
+    {
+        if (std::ranges::find(outClosure, dependencyIndex) != outClosure.end())
+            continue;
+
+        const CompilerInstance::ResolvedDependencyNode& dependency = plan.nodes[dependencyIndex];
+        if (std::ranges::find(outModules, dependency.moduleName) == outModules.end())
+            outModules.push_back(dependency.moduleName);
+        collectClosure(outClosure, outModules, plan, dependencyIndex);
+    }
+}
+
+Result DependencyPlanBuilder::build(CompilerInstance::DependencyPlan& outPlan, const std::span<const CompilerInstance::ModuleSetupImport> imports)
+{
+    outPlan = {};
     for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
     {
-        ResolvedModuleImportPaths importPaths;
-        SWC_RESULT(resolveDependencyImportDir(importPaths, importRequest, preferredDependencyRoot));
-        const fs::path sourceDependencyRoot = importPaths.dependencyRoot;
-        if (mirrorsDependencies())
+        bool alreadyBound = false;
+        for (const CompilerInstance::ResolvedDependencyBinding& binding : outPlan.bindings)
         {
-            SWC_RESULT(mirrorDependencyDir(importPaths.apiDir, sourceDependencyRoot));
-            SWC_RESULT(mirrorDependencyDir(importPaths.linkDir, sourceDependencyRoot));
-            SWC_RESULT(mirrorDependencyDir(importPaths.sharedDir, sourceDependencyRoot));
+            if (binding.request.moduleName == importRequest.moduleName &&
+                binding.request.location == importRequest.location &&
+                binding.request.version == importRequest.version &&
+                FileSystem::pathEquals(binding.request.baseDir, importRequest.baseDir) &&
+                binding.request.linkBackendKind == importRequest.linkBackendKind)
+            {
+                alreadyBound = true;
+                break;
+            }
         }
-
-        instance().collectImportedApiFolderFiles(importPaths.apiDir, importRequest.moduleName.view());
-        instance().registerImportedDependencyLinkDir(importPaths.linkDir);
-        instance().registerImportedSharedModuleDir(importPaths.sharedDir);
-
-        fs::path                                                depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
-        Utf8                                                    because;
-        const std::vector<CompilerInstance::ModuleSetupImport>* nestedImports = nullptr;
-        const bool                                              hasDepsFile   = FileSystem::resolveExistingFile(depsFile, because) == Result::Continue;
-        if (hasDepsFile)
-            SWC_RESULT(captureDependencyImports(depsFile, &nestedImports));
-
-        if (recordDirectImports && !importPaths.linkDir.empty())
-        {
-            CompilerInstance::NativeRuntimeImport runtimeImport;
-            runtimeImport.moduleName           = importRequest.moduleName;
-            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(importPaths.linkDir, importRequest.moduleName.view());
-            runtimeImport.hasSharedRuntimeHook = !importPaths.sharedDir.empty();
-            if (hasDepsFile)
-                SWC_RESULT(collectDependencyClosure(runtimeImport.transitiveImports, *nestedImports, &sourceDependencyRoot));
-            instance().nativeRuntimeImports_.push_back(std::move(runtimeImport));
-        }
-
-        const auto apiDirKey = Utf8(FileSystem::normalizePath(importPaths.apiDir));
-        if (!processedDependencyApis.insert(apiDirKey).second)
-            continue;
-        if (!hasDepsFile)
+        if (alreadyBound)
             continue;
 
-        SWC_RESULT(processImports(*nestedImports, &sourceDependencyRoot, false));
+        CompilerInstance::ResolvedDependencyBinding binding;
+        binding.request = importRequest;
+        SWC_RESULT(resolveNode(binding.nodeIndex, outPlan, importRequest, nullptr));
+        collectClosure(binding.closure, binding.transitiveImports, outPlan, binding.nodeIndex);
+        outPlan.bindings.push_back(std::move(binding));
     }
 
     return Result::Continue;
+}
+
+Result CompilerInstance::prepareDependencyPlan(TaskContext& ctx, DependencyPlan& outPlan, const std::span<const ModuleSetupImport> imports)
+{
+    // Materialization precedes resolution. The compiler distribution already owns swag@std's
+    // sources, so its provider only has to build the requested roots. A future repository provider
+    // can fetch and build its source here, then hand the same flat resolver an output root.
+    std::set<Utf8> stdModules;
+    for (const ModuleSetupImport& importRequest : imports)
+    {
+        if (importRequest.location == "swag@std")
+            stdModules.insert(importRequest.moduleName);
+    }
+
+    if (!stdModules.empty())
+    {
+        fs::path workspacePath;
+        SWC_RESULT(resolveSwagStdWorkspaceRoot(workspacePath, ctx));
+
+        CommandLine stdCmdLine              = cmdLine();
+        stdCmdLine.command                  = CommandKind::Build;
+        stdCmdLine.commandExplicit          = true;
+        stdCmdLine.scriptMode               = false;
+        stdCmdLine.sourceDrivenTest         = false;
+        stdCmdLine.workspaceDependencyBuild = true;
+        stdCmdLine.workspacePath            = workspacePath;
+        stdCmdLine.workspaceModuleFilter.clear();
+        stdCmdLine.workspaceModuleSelection = std::move(stdModules);
+        stdCmdLine.moduleFilePath.clear();
+        stdCmdLine.modulePath.clear();
+        stdCmdLine.directories.clear();
+        stdCmdLine.files.clear();
+        stdCmdLine.importApiModules.clear();
+        stdCmdLine.importApiDirs.clear();
+        stdCmdLine.importApiFiles.clear();
+        stdCmdLine.exportApiDir.clear();
+        stdCmdLine.outDir.clear();
+        stdCmdLine.workDir.clear();
+        stdCmdLine.outDirStorage.clear();
+        stdCmdLine.workDirStorage.clear();
+        stdCmdLine.outDirExplicit           = false;
+        stdCmdLine.workDirExplicit          = false;
+        stdCmdLine.name.clear();
+        stdCmdLine.artifactNameExplicit     = false;
+        stdCmdLine.backendKind              = Runtime::BuildCfgBackendKind::Executable;
+        stdCmdLine.artifactKindExplicit     = false;
+        stdCmdLine.moduleNamespace.clear();
+        stdCmdLine.moduleNamespaceStorage.clear();
+        stdCmdLine.moduleNamespaceExplicit = false;
+        stdCmdLine.runArgs                 = effectiveGeneratedArtifactRunArgs(cmdLine());
+        CommandLineParser::refreshBuildCfg(stdCmdLine);
+
+        CompilerInstance stdCompiler(global(), stdCmdLine);
+        if (stdCompiler.runWorkspace() != ExitCode::Success)
+            return Result::Error;
+    }
+
+    DependencyPlanBuilder builder(*this, ctx);
+    return builder.build(outPlan, imports);
 }
 
 bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild)
@@ -2335,29 +2284,6 @@ struct WorkspaceModuleLink
 
 namespace
 {
-    Result collectWorkspaceModuleDependencyDirs(std::vector<fs::path>& outDirs, CompilerInstance& compiler, TaskContext& ctx, std::span<const CompilerInstance::ModuleSetupImport> imports)
-    {
-        outDirs.clear();
-        ModuleSetupInputApplier applier(compiler, ctx);
-        outDirs.reserve(imports.size() * 3);
-        for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
-        {
-            ModuleSetupInputApplier::ResolvedModuleImportPaths importPaths;
-            if (applier.resolveDependencyImportDir(importPaths, importRequest, nullptr) != Result::Continue)
-                return Result::Error;
-
-            if (!importPaths.apiDir.empty())
-                outDirs.push_back(importPaths.apiDir);
-            if (!importPaths.linkDir.empty())
-                outDirs.push_back(importPaths.linkDir);
-            if (!importPaths.sharedDir.empty())
-                outDirs.push_back(importPaths.sharedDir);
-        }
-
-        normalizeWorkspacePaths(outDirs);
-        return Result::Continue;
-    }
-
     // Foreground completion of a backgrounded module link: drain the link job, interpret its result
     // and report any diagnostics in order, then record the artifact manifest now that the output exists.
     Result finalizeWorkspaceModuleLink(WorkspaceModuleLink& link)
@@ -2376,10 +2302,54 @@ namespace
     }
 }
 
+Result CompilerInstance::collectWorkspaceModuleDependencyDirs(TaskContext& ctx, std::vector<fs::path>& outDirs, const DependencyPlan& dependencyPlan, const std::span<const ModuleSetupImport> imports)
+{
+    outDirs.clear();
+    outDirs.reserve(imports.size() * 3);
+    for (const ModuleSetupImport& importRequest : imports)
+    {
+        const DependencyPlan*             selectedPlan = &dependencyPlan;
+        const ResolvedDependencyBinding* binding      = nullptr;
+        for (const ResolvedDependencyBinding& candidate : dependencyPlan.bindings)
+        {
+            if (candidate.request.moduleName == importRequest.moduleName &&
+                candidate.request.location == importRequest.location &&
+                candidate.request.version == importRequest.version &&
+                FileSystem::pathEquals(candidate.request.baseDir, importRequest.baseDir) &&
+                candidate.request.linkBackendKind == importRequest.linkBackendKind)
+            {
+                binding = &candidate;
+                break;
+            }
+        }
+
+        DependencyPlan localPlan;
+        if (!binding)
+        {
+            DependencyPlanBuilder builder(*this, ctx);
+            SWC_RESULT(builder.build(localPlan, std::span{&importRequest, 1}));
+            SWC_ASSERT(localPlan.bindings.size() == 1);
+            selectedPlan = &localPlan;
+            binding      = &localPlan.bindings.front();
+        }
+
+        const ResolvedDependencyPaths& paths = selectedPlan->nodes[binding->nodeIndex].paths;
+        if (!paths.apiDir.empty())
+            outDirs.push_back(paths.apiDir);
+        if (!paths.linkDir.empty())
+            outDirs.push_back(paths.linkDir);
+        if (!paths.sharedDir.empty())
+            outDirs.push_back(paths.sharedDir);
+    }
+
+    normalizeWorkspacePaths(outDirs);
+    return Result::Continue;
+}
+
 // Builds the same workspace selection this test run covers, so every module that a tested module
 // imports has published its interface and its link artifacts before the tests are compiled. The
 // nested run is an ordinary build: its command is not `test`, so it cannot come back here.
-ExitCode CompilerInstance::runWorkspacePublishPass() const
+ExitCode CompilerInstance::runWorkspacePublishPass(const DependencyPlan& dependencies) const
 {
     // `publish` is deliberately inherited: this is a build of the workspace under test, and a link
     // that does not publish *removes* the runtime files a previous link put beside the artifact.
@@ -2401,10 +2371,10 @@ ExitCode CompilerInstance::runWorkspacePublishPass() const
     CommandLineParser::refreshBuildCfg(buildCmdLine);
 
     CompilerInstance buildCompiler(global(), buildCmdLine);
-    return buildCompiler.runWorkspace();
+    return buildCompiler.runWorkspace(&dependencies);
 }
 
-ExitCode CompilerInstance::runWorkspace()
+ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependencies)
 {
     TaskContext    ctx(*this);
     ScopedTimedLog workspaceStage(ctx, ScopedTimedLog::Stage::Workspace);
@@ -2483,25 +2453,33 @@ ExitCode CompilerInstance::runWorkspace()
     // module and the transitive closure of its workspace dependencies, discovered lazily by
     // following each module's imports as it is snapshotted. Every other module stays
     // filtered out and is never set up.
-    const bool          hasFilter         = !cmdLine().workspaceModuleFilter.empty();
-    size_t              filterTargetIndex = static_cast<size_t>(-1);
+    std::set<Utf8> requestedModules = cmdLine().workspaceModuleSelection;
+    if (!cmdLine().workspaceModuleFilter.empty())
+        requestedModules.insert(cmdLine().workspaceModuleFilter);
+
+    const bool          hasFilter = !requestedModules.empty();
+    std::vector<size_t> requestedModuleIndices;
     std::vector<size_t> snapshotOrder;
     std::vector         snapshotQueued(modules.size(), false);
     if (hasFilter)
     {
-        const auto it = moduleIndices.find(cmdLine().workspaceModuleFilter);
-        if (it == moduleIndices.end())
+        for (const Utf8& requestedModule : requestedModules)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
-            FileSystem::setDiagnosticPath(diag, &ctx, cmdLine().workspacePath);
-            diag.addArgument(Diagnostic::ARG_SYM, cmdLine().workspaceModuleFilter);
-            diag.report(ctx);
-            return ExitCode::CompileError;
+            const auto it = moduleIndices.find(requestedModule);
+            if (it == moduleIndices.end())
+            {
+                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
+                FileSystem::setDiagnosticPath(diag, &ctx, cmdLine().workspacePath);
+                diag.addArgument(Diagnostic::ARG_SYM, requestedModule);
+                diag.report(ctx);
+                return ExitCode::CompileError;
+            }
+
+            requestedModuleIndices.push_back(it->second);
+            snapshotOrder.push_back(it->second);
+            snapshotQueued[it->second] = true;
         }
 
-        filterTargetIndex = it->second;
-        snapshotOrder.push_back(it->second);
-        snapshotQueued[it->second] = true;
         for (auto& module : modules)
             module.filteredOut = true;
     }
@@ -2551,10 +2529,13 @@ ExitCode CompilerInstance::runWorkspace()
         }
     }
 
-    if (hasFilter && modules[filterTargetIndex].ignoreInWorkspace)
+    for (const size_t requestedModuleIndex : requestedModuleIndices)
     {
+        if (!modules[requestedModuleIndex].ignoreInWorkspace)
+            continue;
+
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_ignored);
-        diag.addArgument(Diagnostic::ARG_SYM, modules[filterTargetIndex].name);
+        diag.addArgument(Diagnostic::ARG_SYM, modules[requestedModuleIndex].name);
         diag.report(ctx);
         return ExitCode::CompileError;
     }
@@ -2614,6 +2595,27 @@ ExitCode CompilerInstance::runWorkspace()
     workspaceBuildLogState_.ignoredModules    = ignoredModuleCount;
     workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
 
+    DependencyPlan ownedDependencies;
+    if (!preparedDependencies)
+    {
+        std::vector<ModuleSetupImport> externalImports;
+        for (const WorkspaceModuleBuild& moduleBuild : modules)
+        {
+            if (!isWorkspaceModuleActive(moduleBuild))
+                continue;
+            for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
+            {
+                if (!importRequest.location.empty())
+                    externalImports.push_back(importRequest);
+            }
+        }
+
+        if (prepareDependencyPlan(ctx, ownedDependencies, externalImports) != Result::Continue)
+            return ExitCode::CompileError;
+        preparedDependencies = &ownedDependencies;
+    }
+    SWC_ASSERT(preparedDependencies);
+
     // A test compile never publishes its module's interface: it also sees test-gated declarations,
     // and the api directory it would write into is the one every later build reads. A dependent
     // tested in the same run still has to find that interface, so the workspace is built first and
@@ -2633,7 +2635,7 @@ ExitCode CompilerInstance::runWorkspace()
 
         if (hasActiveWorkspaceDependency)
         {
-            const ExitCode buildExitCode = runWorkspacePublishPass();
+            const ExitCode buildExitCode = runWorkspacePublishPass(*preparedDependencies);
             if (buildExitCode != ExitCode::Success)
                 return buildExitCode;
         }
@@ -2715,7 +2717,8 @@ ExitCode CompilerInstance::runWorkspace()
         // active dependents need an API file for a later module to import.
         const bool                           writeModuleApi = cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty();
         std::unique_ptr<WorkspaceModuleLink> modulePending;
-        if (runWorkspaceModule(moduleBuild, buildIndex + 1, buildCount, writeModuleApi, modulePending) != Result::Continue)
+        bool compiled = false;
+        if (runWorkspaceModule(moduleBuild, *preparedDependencies, buildIndex + 1, buildCount, writeModuleApi, compiled, modulePending) != Result::Continue)
             return ExitCode::CompileError;
 
         if (modulePending)
@@ -2730,6 +2733,8 @@ ExitCode CompilerInstance::runWorkspace()
         }
 
         workspaceBuildLogState_.builtModules++;
+        if (compiled)
+            workspaceBuildLogState_.compiledModules++;
         workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
     }
 
@@ -2743,12 +2748,16 @@ ExitCode CompilerInstance::runWorkspace()
         return ExitCode::CompileError;
     }
 
+    if (cmdLine().workspaceDependencyBuild && workspaceBuildLogState_.compiledModules == 0)
+        workspaceStage.dismiss();
+
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
-Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleOrdinal, const uint32_t moduleCount, const bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const DependencyPlan& dependencies, const uint32_t moduleOrdinal, const uint32_t moduleCount, const bool writeModuleApi, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const
 {
     outPending.reset();
+    outCompiled = false;
 
     CommandLine moduleCmdLine    = cmdLine();
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
@@ -2780,8 +2789,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, {});
 
         CompilerInstance probeCompiler(global(), moduleCmdLine);
-        probeCompiler.precomputedModuleSetup_  = &moduleBuild.setup;
-        probeCompiler.workspaceModuleLogState_ = workspaceLogState;
+        probeCompiler.precomputedModuleSetup_    = &moduleBuild.setup;
+        probeCompiler.precomputedDependencyPlan_ = &dependencies;
+        probeCompiler.workspaceModuleLogState_   = workspaceLogState;
 
         TaskContext probeCtx(probeCompiler);
         if (probeCompiler.prepareModuleBuildConfig(probeCtx) != Result::Continue)
@@ -2814,7 +2824,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         }
 
         std::vector<fs::path> currentDependencyDirs;
-        if (collectWorkspaceModuleDependencyDirs(currentDependencyDirs, probeCompiler, probeCtx, moduleBuild.setup.imports) != Result::Continue)
+        if (probeCompiler.collectWorkspaceModuleDependencyDirs(probeCtx, currentDependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
             return Result::Error;
 
         WorkspaceArtifactManifest manifest;
@@ -2865,8 +2875,13 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                     return Result::Error;
             }
 
-            moduleStage.markUpToDate();
-            moduleStage.setStat(formatWorkspaceReuseStat(probeCtx, probeCompiler));
+            if (moduleCmdLine.workspaceDependencyBuild)
+                moduleStage.dismiss();
+            else
+            {
+                moduleStage.markUpToDate();
+                moduleStage.setStat(formatWorkspaceReuseStat(probeCtx, probeCompiler));
+            }
             return Result::Continue;
         }
     }
@@ -2877,11 +2892,13 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     // and the compiler holds a pointer to the CommandLine), so both are heap-owned and handed to the
     // caller in the pending link. Native-artifact builds run only the build half here and leave a
     // prepared link to be executed off the main thread.
-    auto moduleCmdLineOwned                  = std::make_unique<CommandLine>(moduleCmdLine);
-    auto moduleCompiler                      = std::make_unique<CompilerInstance>(global(), *moduleCmdLineOwned);
-    moduleCompiler->precomputedModuleSetup_  = &moduleBuild.setup;
-    moduleCompiler->workspaceModuleLogState_ = workspaceLogState;
+    auto moduleCmdLineOwned                    = std::make_unique<CommandLine>(moduleCmdLine);
+    auto moduleCompiler                        = std::make_unique<CompilerInstance>(global(), *moduleCmdLineOwned);
+    moduleCompiler->precomputedModuleSetup_    = &moduleBuild.setup;
+    moduleCompiler->precomputedDependencyPlan_ = &dependencies;
+    moduleCompiler->workspaceModuleLogState_   = workspaceLogState;
     moduleCompiler->setDeferNativeLink(true);
+    outCompiled = true;
 
     std::unique_ptr<NativeBackendBuilder> deferredBuilder;
     {
@@ -2905,7 +2922,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             {
                 WorkspaceArtifactManifest manifest;
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
-                if (collectWorkspaceModuleDependencyDirs(manifest.dependencyDirs, *moduleCompiler, moduleCtx, moduleBuild.setup.imports) != Result::Continue)
+                if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                     return Result::Error;
                 collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
                 if (writeWorkspaceArtifactManifest(moduleCtx, manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine)) != Result::Continue)
@@ -2928,7 +2945,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         if (link->writeManifest)
         {
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
-            if (collectWorkspaceModuleDependencyDirs(link->manifest.dependencyDirs, *moduleCompiler, moduleCtx, moduleBuild.setup.imports) != Result::Continue)
+            if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, link->manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                 return Result::Error;
         }
 
@@ -3242,8 +3259,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
 Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot)
 {
+    SWC_ASSERT(precomputedDependencyPlan_);
     ModuleSetupInputApplier applier(*this, ctx);
-    return applier.apply(setupSnapshot);
+    return applier.apply(setupSnapshot, *precomputedDependencyPlan_);
 }
 
 Result CompilerInstance::resolveModuleInputPaths(TaskContext& ctx)
@@ -3306,6 +3324,9 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     ModuleSetupSnapshot setupSnapshot;
     SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, setupSnapshot));
     SWC_RESULT(adoptModuleBuildCfg(ctx, setupSnapshot.buildCfg));
+    ownedDependencyPlan_ = std::make_unique<DependencyPlan>();
+    SWC_RESULT(prepareDependencyPlan(ctx, *ownedDependencyPlan_, setupSnapshot.imports));
+    precomputedDependencyPlan_ = ownedDependencyPlan_.get();
     return applyModuleSetupInputs(ctx, setupSnapshot);
 }
 

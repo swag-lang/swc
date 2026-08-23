@@ -58,6 +58,7 @@ public:
     ScopedTimedLog& operator=(const ScopedTimedLog&) = delete;
 
     StatsSnapshot delta() const;
+    void          dismiss();
     void          markFailure();
     void          markUpToDate();
     void          setStat(Utf8 stat);

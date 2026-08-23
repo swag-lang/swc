@@ -63,9 +63,6 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 
 func refreshLayoutTree(wnd: *Wnd)
 {
-    if !wnd do
-        return
-
     wnd.sendResizeEvent()
     wnd.applyLayout()
     for child in wnd.children do

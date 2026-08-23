@@ -123,7 +123,7 @@ func getOutlineBounds(outline: const *Outline)->BBox
     result.xMax = Swag.S32.Min
     result.yMax = Swag.S32.Min
 
-    if !outline or outline.pointCount <= 0
+    if outline.pointCount <= 0
     {
         result = {}
         return result
@@ -144,7 +144,7 @@ func getOutlineBounds(outline: const *Outline)->BBox
 
 func countBitmapCoverage(bitmap: const *Bitmap)->u32
 {
-    if !bitmap or !bitmap.buffer do
+    if !bitmap.buffer do
         return 0
 
     var count = 0'u32

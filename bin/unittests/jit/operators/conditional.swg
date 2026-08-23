@@ -237,8 +237,8 @@ var g_CondSt: CondSt
     func takeF(x: f32)->f32 { return x }
     func retF(c: bool, i: s32)->f32 { return c ? i : 200 }
 
-    let p      = &g_CondSt
-    let f: f32 = p ? p.col : 200
+    let p: #null *CondSt = g_CondTrue ? &g_CondSt : null
+    let f: f32           = p ? p.col : 200
     @assert(f == 200.0)
 
     @assert(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)

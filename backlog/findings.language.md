@@ -879,3 +879,56 @@ Entries are sorted by identifier, ascending; position carries no priority.
   destination. The rule is not the obstacle, the lowering is: an aggregate literal is materialized
   as one value through `emitAggregateLiteralPayload`, so a moved field needs its own store plus
   the source's post-move invalidation instead of that path.
+
+## What the other pointer families answer in a condition
+
+### F-184 — A condition that can only be true is diagnosed for one pointer family
+
+- Area: language
+- Found while: implementing the diagnostic that closed F-133. `if p` on a non-null `*T` now
+  reports `sema_err_bool_test_not_nullable`, and the `bin/` sweep that change forced showed
+  where the same shape survives untouched.
+- Observation: the rule reads a single-value pointer and nothing else. A `typeinfo`, a block
+  pointer `[*] T`, a `func` value, an `interface`, a `[..]` slice and a `string` all convert to
+  bool in a condition, and the test is just as constant when the type carries no `#null`. One
+  line of the runtime holds both halves: `@as` opens with `if !toType or !fromType or !ptr`
+  ([core.swg](../bin/runtime/core.swg)), where only the single-value pointer was diagnosed while
+  the two non-null `typeinfo` operands still compile and still always answer true.
+- Evidence: probe — `func f(t: typeinfo)->bool => t ? true : false` compiles, and so does the
+  same body over `[*] u8`, `func()->s32`, an interface, `const [..] u8` and `string`; only the
+  `*T` version reports the error. The split even cuts through one family: `#type s32` in a
+  condition IS rejected, because a type constant carries the concrete `const *TypeInfoNative`
+  rather than the abstract `typeinfo` a parameter has. Verified against 0.1.184.
+- Elsewhere: Rust gives a reference no truthiness at all, and Zig accepts `if (ptr)` only for an
+  optional pointer. Neither language splits the pointer families the way this rule now does.
+- Next step: decide family by family instead of widening the predicate. The pointer help line
+  ("test the pointed value with '[]'") fits `typeinfo`, a block pointer and a `func` value, but a
+  slice or a string reads as a test of emptiness as much as one of absence, so those two need
+  their own answer — or a deliberate exemption recorded here.
+
+## Where a narrowing proof stops
+
+### F-185 — Two branches can each prove a value non-null and it stays unproven after them
+
+- Area: language
+- Found while: closing the leak that let an assignment inside `if c do ...` narrow the code after
+  the branch. With the region closed, code that proves the same fact on every path stopped
+  compiling and had to be rewritten.
+- Observation: narrowing has exactly one merge rule, the guard-style early exit: when one branch
+  stops the local flow, the other one's facts hold for the rest of the block
+  (`AstIfStmt::semaPostNode`). The symmetric case has none. When both branches assign a non-null
+  value, the value is nullable again after the `if`, and the first use needs a `!` that the code
+  in front of the reader does not justify.
+- Evidence: probe — `var p: #null *T`, `if flag { p = a } else { p = b }` with both `a` and `b`
+  non-null, then `p.next` reports `sema_err_nullable_member_access`. Two real sites paid for it
+  in the same change: `Properties.addItem` now names the row through a `!`
+  ([properties.build.swg](../bin/std/modules/gui/src/controls/property/properties.build.swg)) and
+  `getLowermostRec` moved to `orelse`
+  ([clipper.swg](../bin/std/modules/pixel/src/poly/clipper.swg)).
+- Elsewhere: C# definite assignment, TypeScript control-flow narrowing and Kotlin smart casts all
+  intersect what the branches proved. It is the first case they cover, because it is how a value
+  gets initialized in two steps.
+- Next step: intersect the facts the branches proved. Each branch already runs under its own
+  frame, so the material is there; what is missing is reading a branch frame back before the
+  deferred pop drops it, keeping the paths both branches proved (a branch that stops the local
+  flow contributing nothing, as it already does), and publishing that set to the enclosing frame.

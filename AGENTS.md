@@ -2,6 +2,23 @@
 
 All AI instructions for modifying this repository live in `.agents/skills/`.
 
+## Start Here
+
+The compiler lives in [src/](src): `src/Compiler/` handles the language pipeline, `src/Backend/`
+handles JIT/native execution and artifacts, and `src/Main/`, `src/Doc/`, and `src/Format/` own
+orchestration, documentation, and formatting. The consumer workspaces live in [bin/](bin):
+runtime, standard modules, examples, applications, and language-reference tests.
+
+Use [tools/README.md](tools/README.md) for the authoritative tool syntax and focused commands.
+Build/test guidance and agent-to-agent serialization rules are in the two skills named below;
+prefer a focused command for the changed behavior over the full campaign in `tools/tests.swgs`.
+Use the checkout-local `bin\\swc.exe` or `bin\\swc_devmode.exe` when multiple worktrees may be
+present. Treat [web/](web/) as generated output: edit its source under `bin/reference` or the
+relevant module, then regenerate it through `tools/web.swgs`.
+
+Compiler-source changes under `src/` must increment `SWC_BUILD_NUM` in
+[src/Main/Version.h](src/Main/Version.h), since it participates in compiler cache identity.
+
 Before changing code, tests, examples, or build files, read and follow
 [modify-swag-codebase](.agents/skills/modify-swag-codebase/SKILL.md).
 

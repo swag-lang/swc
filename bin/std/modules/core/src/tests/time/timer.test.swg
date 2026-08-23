@@ -7,15 +7,15 @@ using Swag
 // runtime would hand it a default context created on first access; the timer installs the context
 // of the thread that armed it instead. The marker below travels through that context.
 
-const TimerTestMarker = 0x5741'474E'u64
+const TimerTestMarker = 0x5741474E'u64
 
 var g_timerFired:  s32
 var g_timerMarker: u64
 
-func timerTestCallback(timer: *Time.Timer)
+func timerTestCallback(_timer: *Time.Timer)
 {
     g_timerMarker = @getcontext().user0
-    discard Atomic.add(&g_timerFired, 1)
+    Atomic.add(&g_timerFired, 1)
 }
 
 #test

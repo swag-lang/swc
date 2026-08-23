@@ -34,6 +34,18 @@ func nonNullConditionNullableWhile(scan: #null *NonNullConditionItem)->s32
     return 0
 }
 
+// Flow narrowing does not turn the question into a contradiction: the declared type still
+// carries it, so a proven pointer keeps every spelling, exactly as 'orelse' keeps a dead
+// fallback on a nullable-declared value.
+func nonNullConditionNarrowed(item: #null *NonNullConditionItem)->s32
+{
+    if item == null do
+        return 0
+    if item do
+        return item.value
+    return 0
+}
+
 // A non-null pointer offers the pointed value instead.
 func nonNullConditionPointee(flag: *bool)->s32
 {

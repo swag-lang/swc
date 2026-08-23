@@ -2100,7 +2100,7 @@ impl Capture
                 if itf do
                     itf.setup(me)
                 let base = cast(*BaseForm) @dataof(itf)
-                if base and editView.main.editMode == .PixSel do
+                if editView.main.editMode == .PixSel do
                     base.subKind = .PixSel
                 let undo = .newUndo(.CreateForm)
                 undo.oldForms.add(itf)

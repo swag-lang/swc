@@ -834,12 +834,6 @@ impl PropWnd
             it.destroy()
         .grid.clear()
 
-        if !.getSelectedBaseForm()
-        {
-            .applyLayout()
-            return
-        }
-
         // The cells start at the panel margin like every row under them, instead of floating
         // in the middle of the column: a group centred on its own is a third alignment on a
         // surface that already has one.
@@ -923,8 +917,6 @@ impl IPropertyNotify for PropWnd
     mtd impl isItemVisible(list: *Properties, item: *PropertiesItem)->bool
     {
         let base = .getSelectedBaseForm()
-        if !base do
-            return true
 
         // Category separators hide by themselves: the grid force-shows an item's parents,
         // so a separator appears exactly when its group has at least one visible row.

@@ -789,23 +789,19 @@ impl QuickWnd
 
         let formItf     = .main.editModeToModel(.main.getEditMode())
         let baseForm    = cast(*BaseForm) @dataof(formItf)
-        var canAddModel = false
-        if baseForm
+        var canAddModel = true
+        if .main.editMode == .Highlight
         {
-            canAddModel = true
-            if .main.editMode == .Highlight
-            {
-                if baseForm.subKind != .Highlight do
-                    canAddModel = false
-            }
-            elif .main.editMode == .PixSel
-            {
+            if baseForm.subKind != .Highlight do
                 canAddModel = false
-            }
-            elif baseForm.subKind == .Highlight or baseForm.subKind == .PixSel
-            {
-                canAddModel = false
-            }
+        }
+        elif .main.editMode == .PixSel
+        {
+            canAddModel = false
+        }
+        elif baseForm.subKind == .Highlight or baseForm.subKind == .PixSel
+        {
+            canAddModel = false
         }
 
         // Light path: same style target and same button population. Destroying and

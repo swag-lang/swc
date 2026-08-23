@@ -13,6 +13,7 @@ private
     const VertexShaderAA = #include("shaders/aa.vert")
     const PixelShaderAA  = #include("shaders/aa.frag")
 
+    const PixelShaderYuv     = #include("shaders/yuv.frag")
     const PixelShaderBlur    = #include("shaders/blur.frag")
     const PixelShaderResolve = #include("shaders/resolve.frag")
 
@@ -55,6 +56,17 @@ const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0    
 
 // Executes [[Pixel.Painter]] command streams through OpenGL.
 //
+// The two chroma planes of a planar texture, held beside the luma handle the caller carries.
+//
+// Public only because it names the type of a renderer field, which the generated module surface
+// spells out; nothing outside this backend has any use for it.
+#[Swag.NoDoc]
+struct ChromaPlanes
+{
+    chromaB: GLuint
+    chromaR: GLuint
+}
+
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
 // render targets. Create it as an [[Pixel.IRenderer]], create a
 // [[Pixel.RenderContext]], call `init`, then bracket frames with `begin` and `end`.
@@ -76,6 +88,7 @@ struct RenderOgl
         // with [[Pixel.Painter.setShaderParam]] to build a custom pass.
         shaderSimple:   ShaderSimple      // Built-in non-antialiased shader.
         shaderAA:       ShaderAA          // Built-in antialiased shader.
+        shaderYuv:      ShaderYuv         // Built-in planar 4:2:0 shader.
         shaderBlur:     ShaderBlur        // Built-in separable-blur shader.
         shaderResolve:  ShaderResolve     // Built-in supersampling-resolve shader.
         shaderFont:     ShaderFont        // Built-in bitmap-font shader.
@@ -93,6 +106,14 @@ struct RenderOgl
         modelMatrix:             Matrix4x4                                    // Current model matrix.
         whiteTexture:            GLuint                                       // Built-in one-pixel white texture.
         hatchTextures:           [HatchStyle] GLuint                          // Built-in hatch texture handles.
+        // The two chroma planes of every planar texture, keyed by the luma handle the caller
+        // holds. A texture is one handle everywhere else in this module, and a planar picture is
+        // three: keeping the other two here is what lets it travel as an ordinary texture.
+        chromaPlanes: HashTable'(TextureHandle, ChromaPlanes)
+
+        // The program a planar texture displaced, restored as soon as one stops being drawn.
+        planarPrevShader: #null *ShaderBase
+
         gradientTexture:         GLuint                                       // Dynamically sized gradient-stop table.
         gradientTextureCapacity: u64                                          // Stop slots allocated in `gradientTexture`.
         gradientOffsetUpload:    Array'Vector4                                // Reused first texture row.
@@ -226,6 +247,19 @@ private impl RenderOgl
             glUseProgram(cast(GLuint) .shaderAA.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
+        }
+
+        {
+            // The picture arrives as three planes on units 0, 3 and 4, and the shader converts
+            // while it samples: that is what lets a decoder skip the conversion entirely.
+            expect .createShader(&.shaderYuv, VertexShaderSimple, PixelShaderYuv)
+            let text0   = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inTexture0"))
+            let chromaB = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inChromaB"))
+            let chromaR = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inChromaR"))
+            glUseProgram(cast(GLuint) .shaderYuv.handle)
+            glUniform1i(text0, 0)
+            glUniform1i(chromaB, 3)
+            glUniform1i(chromaR, 4)
         }
 
         {
@@ -756,6 +790,70 @@ impl RenderOgl
         rt.clear()
     }
 
+    // Creates one single-channel plane of a planar picture.
+    private mtd createPlaneTexture(width, height: s32)->GLuint
+    {
+        var textureID: GLuint
+        glGenTextures(1, &textureID)
+        glBindTexture(GL_TEXTURE_2D, textureID)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, cast(GLsizei) width, cast(GLsizei) height, 0, GL_RED, GL_UNSIGNED_BYTE, null)
+        return textureID
+    }
+
+    // Uploads one plane, letting the driver skip whatever padding the source rows carry.
+    private mtd uploadPlane(handle: GLuint, pixels: const [*] u8, stride: u64, width, height: s32)
+    {
+        glBindTexture(GL_TEXTURE_2D, handle)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint) stride)
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) width, cast(GLsizei) height, GL_RED, GL_UNSIGNED_BYTE, pixels)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+    }
+
+    // Registers a planar picture as three single-channel planes the shader converts.
+    internal mtd addImageImpl(view: const *Yuv420View)->Texture
+    {
+        if view.width <= 0 or view.height <= 0
+        {
+            return {}
+        }
+
+        let chromaWidth  = (view.width + 1) / 2
+        let chromaHeight = (view.height + 1) / 2
+        let luma         = .createPlaneTexture(view.width, view.height)
+
+        var planes: ChromaPlanes
+        planes.chromaB = .createPlaneTexture(chromaWidth, chromaHeight)
+        planes.chromaR = .createPlaneTexture(chromaWidth, chromaHeight)
+
+        var result: retval
+        result.attach(cast(TextureHandle) luma, .Yuv420, view.width, view.height)
+        .chromaPlanes.add(result.handle, planes)
+        .updatePlanarImpl(result, view)
+        return result
+    }
+
+    // Replaces the planar picture held by a texture, converting nothing.
+    internal mtd updatePlanarImpl(texture: Texture, view: const *Yuv420View)
+    {
+        if !texture.isValid() or texture.pixelFormat != .Yuv420 do
+            return
+        let planes = .chromaPlanes.tryFind(texture.handle)
+        if !planes do
+            return
+
+        let chromaWidth  = (texture.width + 1) / 2
+        let chromaHeight = (texture.height + 1) / 2
+        .uploadPlane(cast(GLuint) texture.handle, view.luma, view.lumaStride, texture.width, texture.height)
+        .uploadPlane(planes!.value.chromaB, view.chromaB, view.chromaStride, chromaWidth, chromaHeight)
+        .uploadPlane(planes!.value.chromaR, view.chromaR, view.chromaStride, chromaWidth, chromaHeight)
+    }
+
     // Load and register an image for rendering
     internal mtd addImageImpl(fullName: string)->Texture fail
     {
@@ -776,6 +874,11 @@ impl RenderOgl
 
         switch #complete image.pixelFormat
         {
+        case .Yuv420:
+            // A planar picture has no single upload format; it goes through the plane path.
+            Debug.assert(false, "a planar picture is added through its view")
+            return {}
+
         case .BGR8:
             fmt = GL_BGR
 
@@ -807,6 +910,7 @@ impl RenderOgl
     {
         switch #complete pixelFormat
         {
+        case .Yuv420: return GL_RED     // One plane at a time.
         case .BGR8:  return GL_BGR
         case .BGRA8: return GL_BGRA
         case .RGB8:  return GL_RGB
@@ -843,6 +947,16 @@ impl RenderOgl
     {
         if !texture.isValid() do
             return
+
+        let planes = .chromaPlanes.tryFind(texture.handle)
+        if planes
+        {
+            var chromaB = planes!.value.chromaB
+            var chromaR = planes!.value.chromaR
+            glDeleteTextures(1, &chromaB)
+            glDeleteTextures(1, &chromaR)
+            .chromaPlanes.remove(texture.handle)
+        }
         var id: GLuint = cast() texture.handle
         glDeleteTextures(1, &id)
         texture.clear()
@@ -1110,6 +1224,12 @@ impl RenderOgl
             }
 
         case .ResetTexture0:
+            if .planarPrevShader
+            {
+                .setShader(.planarPrevShader)
+                .planarPrevShader = null
+            }
+
             let curShader = .curShader!
             glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) BrushType.SolidColor)
             glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) cast(u32) UVMode.Fill)
@@ -1119,7 +1239,28 @@ impl RenderOgl
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
         case .BindTexture0:
-            let params    = &cmd.texture0
+            let params = &cmd.texture0
+
+            // A planar picture is three textures and its own program. Selecting it here, from the
+            // format the texture carries, is what lets it travel through the ordinary texture
+            // path: nothing above this line knows the difference.
+            let planarPlanes = params.type == .Texture and params.texture.pixelFormat == .Yuv420 ? .chromaPlanes.tryFind(params.texture.handle) : null
+            if planarPlanes
+            {
+                if !.planarPrevShader do
+                    .planarPrevShader = .curShader
+                glActiveTexture(GL_TEXTURE3)
+                glBindTexture(GL_TEXTURE_2D, planarPlanes!.value.chromaB)
+                glActiveTexture(GL_TEXTURE4)
+                glBindTexture(GL_TEXTURE_2D, planarPlanes!.value.chromaR)
+                .setShader(&.shaderYuv)
+            }
+            elif .planarPrevShader
+            {
+                .setShader(.planarPrevShader)
+                .planarPrevShader = null
+            }
+
             let curShader = .curShader!
             glUniform4fv(cast(GLint) curShader.boundRect, 1, &params.boundRect.x)
             glUniform4fv(cast(GLint) curShader.textureRect, 1, &params.textureRect.x)

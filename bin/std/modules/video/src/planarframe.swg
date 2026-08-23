@@ -1,6 +1,6 @@
 #global public
 
-using Core
+using Core, Pixel
 
 // One decoded picture in planar 4:2:0, the layout every modern video codec produces.
 //
@@ -49,6 +49,22 @@ impl PlanarFrame
 
     // Returns the number of chroma rows, which is half the luma rows rounded up.
     mtd const chromaHeight()->s32 => (.height + 1) / 2
+
+    // Describes the picture as a borrowed planar view.
+    //
+    // Hand it to [[Pixel.IRenderer.addImage]] or [[Pixel.IRenderer.updateTexture]] and the
+    // renderer converts where it draws, which is the whole reason a decoder produces planes.
+    mtd const view()->Pixel.Yuv420View
+    {
+        return {
+            luma: .luma.buffer!,
+            chromaB: .chromaB.buffer!,
+            chromaR: .chromaR.buffer!,
+            lumaStride: cast(u64) .strideLuma,
+            chromaStride: cast(u64) .strideChroma,
+            width: .width,
+            height: .height}
+    }
 
     // Resizes the planes for a picture of `width` by `height`, keeping the storage it can.
     mtd resize(width, height: s32)

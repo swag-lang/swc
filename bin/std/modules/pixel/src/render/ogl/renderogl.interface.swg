@@ -167,6 +167,16 @@ impl IRenderer for RenderOgl
         return .addImageImpl(&image)
     }
 
+    mtd impl addImage(view: const *Yuv420View)->Texture
+    {
+        return .addImageImpl(view)
+    }
+
+    mtd impl updateTexture(texture: Texture, view: const *Yuv420View)
+    {
+        .updatePlanarImpl(texture, view)
+    }
+
     mtd impl updateTexture(texture: Texture, pixels: const *u8)
     {
         .updateTextureImpl(texture, pixels)

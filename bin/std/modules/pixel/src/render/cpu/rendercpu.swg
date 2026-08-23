@@ -367,6 +367,10 @@ private impl RenderCpu
 
         switch #complete image.pixelFormat
         {
+        case .Yuv420:
+            // A surface is always packed: this backend converts a planar picture on upload.
+            Debug.assert(false, "cannot write one pixel of a planar picture")
+
         case .BGRA8:
             pixel[0] = color.b
             pixel[1] = color.g
@@ -2118,6 +2122,40 @@ impl RenderCpu
     }
 
     // Copies an image into a renderer-owned CPU texture.
+    // Registers a planar picture.
+    //
+    // This backend has no shaders, so it converts once here rather than once per sample and holds
+    // an ordinary packed surface. The descriptor still says the picture is planar, which is what
+    // the caller handed over.
+    internal mtd addImageImpl(view: const *Yuv420View)->Texture
+    {
+        if view.width <= 0 or view.height <= 0 do
+            return {}
+
+        var image = Image.create(view.width, view.height, .RGB8)
+        view.convertToRgb(&image)
+
+        var result: retval
+        result.attach(cast(TextureHandle) .nextHandle, .Yuv420, view.width, view.height)
+        .nextHandle += 1
+
+        var storage: CpuTexture
+        storage.handle = result.handle
+        storage.image  = #move image
+        .textures.add(#move storage)
+        return result
+    }
+
+    // Converts a planar picture into the surface that holds it.
+    internal mtd updatePlanarImpl(texture: Texture, view: const *Yuv420View)
+    {
+        if !texture.isValid() do
+            return
+        let storage = .findTexture(texture.handle)
+        Debug.assert(storage != null, "texture is not owned by this renderer")
+        view.convertToRgb(&storage!.image)
+    }
+
     internal mtd addImageImpl(image: const *Image)->Texture
     {
         if !image.isValid() do

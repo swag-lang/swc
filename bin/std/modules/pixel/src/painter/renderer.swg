@@ -103,8 +103,18 @@ interface IRenderer
     // Copies an image into a texture owned by this renderer.
     mtd addImage(image: Image)->Texture
 
+    // Copies a planar 4:2:0 picture into a texture owned by this renderer.
+    //
+    // The result carries [[Pixel.PixelFormat.Yuv420]] and draws like any other texture. A backend
+    // with shaders keeps the planes and converts while it samples, which is why a decoder is
+    // allowed to hand its picture over unconverted; one without converts here, once per upload.
+    mtd addImage(view: const *Yuv420View)->Texture
+
     // Replaces all bytes of a texture owned by this renderer.
     mtd updateTexture(texture: Texture, pixels: const *u8)
+
+    // Replaces the planar picture held by a texture created from a view.
+    mtd updateTexture(texture: Texture, view: const *Yuv420View)
 
     // Reads a texture into the requested tightly packed pixel format.
     mtd readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8

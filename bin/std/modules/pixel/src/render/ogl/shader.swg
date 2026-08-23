@@ -76,6 +76,12 @@ struct ShaderFont
     }
 }
 
+// Uses the standard shader over the three planes of a picture stored in planar 4:2:0.
+struct ShaderYuv
+{
+    public using base: ShaderBase     // Shared program and uniform handles.
+}
+
 // Extends the simple shader with separable-blur controls.
 struct ShaderBlur
 {

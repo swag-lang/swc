@@ -18307,7 +18307,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(msg: <span class="STpe">string</span>) =&gt; <span class="SCst"><a href="std.win32.html#Win32_OutputDebugStringA">OutputDebugStringA</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.end</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L340">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.end</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L338">src</a></div>
 <p>Finish reading</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">end</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -18316,7 +18316,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">inferStructTypeForInterface</span>(itfType: <span class="STpe">typeinfo</span>, fieldCrcs: <span class="SKwd">const</span> [..] <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> <span class="STpe">typeinfo</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_readAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.readAll</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_readAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L355">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_readAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.readAll</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_readAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L353">src</a></div>
 <p>Read a full struct</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">TR</span>) <span class="SFct">readAll</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">TR</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -18329,7 +18329,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readTypeValue</span>(typedVal: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>, data: <span class="SItr">#null</span> [*] <span class="STpe">void</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.start</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L333">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.start</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L331">src</a></div>
 <p>Start reading</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -18558,7 +18558,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(result: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Encoder_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.writeAll</span> <a class="api-item-permalink" href="#Core_Serialization_Encoder_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/encoder.swg#L310">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Encoder_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.writeAll</span> <a class="api-item-permalink" href="#Core_Serialization_Encoder_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/encoder.swg#L308">src</a></div>
 <p>Write a full struct. Will call <a href="#Core_Serialization_Encoder_start">Encoder.start</a>, <a href="#Core_Serialization_Encoder_writeValue">Encoder.writeValue</a> and <a href="#Core_Serialization_Encoder_end">Encoder.end</a></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAll</span>(result: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>, value: <span class="STpe">any</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -22496,7 +22496,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Reflection_attributes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.attributes</span> <a class="api-item-permalink" href="#Core_Reflection_attributes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/attribute.swg#L66">src</a></div>
 <p>Returns the given associated attributes to <span class="code-inline">value</span></p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
-<span class="SKwd">func</span> <span class="SFct">attributes</span>(value: <span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>, attribute: <span class="STpe">typeinfo</span>)-&gt;<span class="SFct">Array</span>'(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Attribute">Attribute</a></span>)</span></div>
+<span class="SKwd">func</span> <span class="SFct">attributes</span>(value: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>, attribute: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>)-&gt;<span class="SFct">Array</span>'(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Attribute">Attribute</a></span>)</span></div>
 <p>Returns the given associated attributes to <span class="code-inline">type</span></p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">attributes</span>(type: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, attribute: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>)-&gt;<span class="SFct">Array</span>'(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Attribute">Attribute</a></span>)</span></div>
@@ -22525,7 +22525,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_canCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.canCopy</span> <a class="api-item-permalink" href="#Core_Reflection_canCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L135">src</a></div>
 <p>Returns whether this value can copy.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canCopy</span>(type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span> =&gt; type <span class="SLgc">and</span> (type.flags &amp; <span class="SCst"><a href="swag.runtime.html#Swag_TypeInfoFlags">TypeInfoFlags</a></span>.<span class="SCst">CanCopy</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canCopy</span>(type: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span> =&gt; type <span class="SLgc">and</span> (type.flags &amp; <span class="SCst"><a href="swag.runtime.html#Swag_TypeInfoFlags">TypeInfoFlags</a></span>.<span class="SCst">CanCopy</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_clearDynamicArray" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.clearDynamicArray</span> <a class="api-item-permalink" href="#Core_Reflection_clearDynamicArray" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/array.swg#L32">src</a></div>
@@ -22622,7 +22622,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isAny</span> <a class="api-item-permalink" href="#Core_Reflection_isAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L81">src</a></div>
 <p>Returns whether any.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isAny</span>(t: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isAny</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isBool" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isBool</span> <a class="api-item-permalink" href="#Core_Reflection_isBool" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L91">src</a></div>
@@ -22662,7 +22662,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isInterface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isInterface</span> <a class="api-item-permalink" href="#Core_Reflection_isInterface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L31">src</a></div>
 <p>Returns whether interface.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInterface</span>(t: <span class="STpe">typeinfo</span>) =&gt; t</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInterface</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>) =&gt; t</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isNamedStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isNamedStruct</span> <a class="api-item-permalink" href="#Core_Reflection_isNamedStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L9">src</a></div>
@@ -22683,17 +22683,17 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isPointer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPointer</span> <a class="api-item-permalink" href="#Core_Reflection_isPointer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L13">src</a></div>
 <p>Returns whether pointer.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointer</span>(t: <span class="STpe">typeinfo</span>) =&gt; t</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointer</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>) =&gt; t</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isPointerArithmetic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPointerArithmetic</span> <a class="api-item-permalink" href="#Core_Reflection_isPointerArithmetic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L52">src</a></div>
 <p>Returns whether pointer arithmetic.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointerArithmetic</span>(t: <span class="STpe">typeinfo</span>) =&gt; t</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointerArithmetic</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>) =&gt; t</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isPointerRef" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPointerRef</span> <a class="api-item-permalink" href="#Core_Reflection_isPointerRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L49">src</a></div>
 <p>Returns whether pointer ref.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointerRef</span>(t: <span class="STpe">typeinfo</span>) =&gt; t</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointerRef</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>) =&gt; t</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isRune</span> <a class="api-item-permalink" href="#Core_Reflection_isRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L71">src</a></div>
@@ -22708,7 +22708,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isSlice</span> <a class="api-item-permalink" href="#Core_Reflection_isSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L25">src</a></div>
 <p>Returns whether slice.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSlice</span>(t: <span class="STpe">typeinfo</span>) =&gt; t</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSlice</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>) =&gt; t</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isStaticArray" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isStaticArray</span> <a class="api-item-permalink" href="#Core_Reflection_isStaticArray" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L22">src</a></div>
@@ -22728,12 +22728,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isTuple" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isTuple</span> <a class="api-item-permalink" href="#Core_Reflection_isTuple" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L43">src</a></div>
 <p>Returns whether tuple.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isTuple</span>(t: <span class="STpe">typeinfo</span>) =&gt; t</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isTuple</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>) =&gt; t</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isType</span> <a class="api-item-permalink" href="#Core_Reflection_isType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L46">src</a></div>
 <p>Returns whether type.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isType</span>(t: <span class="STpe">typeinfo</span>) =&gt; t</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isType</span>(t: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>) =&gt; t</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isTypeAlias" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isTypeAlias</span> <a class="api-item-permalink" href="#Core_Reflection_isTypeAlias" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L28">src</a></div>
@@ -24571,18 +24571,18 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">timeToTicks</span>(hour, minute, second, millisecond: <span class="STpe">u16</span>)-&gt;<span class="SCst"><a href="#Core_Time_Ticks">Ticks</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_Timer_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.create</span> <a class="api-item-permalink" href="#Core_Time_Timer_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L41">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_Timer_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.create</span> <a class="api-item-permalink" href="#Core_Time_Timer_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L42">src</a></div>
 <p>Creates a timer that first fires after <span class="code-inline">delay</span>.</p>
 <p>A periodic timer subsequently fires at the same interval.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(delay: <span class="SCst"><a href="#Core_Time_Duration">Duration</a></span>, callback: <span class="SKwd">func</span>(*<span class="SCst"><a href="#Core_Time_Timer">Timer</a></span>), periodic = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Core_Time_Timer">Timer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_Timer_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.opDrop</span> <a class="api-item-permalink" href="#Core_Time_Timer_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L33">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_Timer_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.opDrop</span> <a class="api-item-permalink" href="#Core_Time_Timer_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L34">src</a></div>
 <p>Releases the native timer when this value leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_Timer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.release</span> <a class="api-item-permalink" href="#Core_Time_Timer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L61">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_Timer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.release</span> <a class="api-item-permalink" href="#Core_Time_Timer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L62">src</a></div>
 <p>Stops the timer and waits for any active callback before returning.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
 </section>
@@ -26103,7 +26103,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.183</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.186</div>
 </footer>
 </section>
 </main>

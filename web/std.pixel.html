@@ -7253,7 +7253,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">aspectRatio</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canLoad</span> <a class="api-item-permalink" href="#Pixel_Image_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L97">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canLoad</span> <a class="api-item-permalink" href="#Pixel_Image_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L98">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the given filename has a corresponding decoder</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canLoad</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">getDecoder</span>(fileName)</span></div>
 </section>
@@ -7323,13 +7323,13 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cropped</span>(cropRect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_decodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_decodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L87">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_decodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_decodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L88">src</a></div>
 <p>Returns the format read by each registered decoder, in registration order.</p>
 <p>The result is owned by the caller and is a snapshot: registering another decoder afterwards does not change it. Use it to build the format list of an open dialog.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decode</span> <a class="api-item-permalink" href="#Pixel_Image_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L100">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decode</span> <a class="api-item-permalink" href="#Pixel_Image_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L101">src</a></div>
 <p>Decode the given image buffer</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(fileName: <span class="STpe">string</span>, bytes: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -7346,7 +7346,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodeToBytes</span> <a class="api-item-permalink" href="#Pixel_Image_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L103">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodeToBytes</span> <a class="api-item-permalink" href="#Pixel_Image_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L104">src</a></div>
 <p>Encodes the image to one contiguous owned block.</p>
 <p>Selection works exactly as in <a href="#Pixel_Image_encode">Pixel.Image.encode</a>. This is what a caller handing the bytes to something that wants a single slice asks for — a clipboard medium, a drag payload, a request body — rather than flattening the segmented buffer itself every time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
@@ -7413,7 +7413,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">from</span>(hbitmap: <span class="SCst"><a href="std.win32.html#Win32_HBITMAP">HBITMAP</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_fromDataUri" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.fromDataUri</span> <a class="api-item-permalink" href="#Pixel_Image_fromDataUri" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L127">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_fromDataUri" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.fromDataUri</span> <a class="api-item-permalink" href="#Pixel_Image_fromDataUri" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L128">src</a></div>
 <p>Decodes an image carried inline in a <span class="code-inline">data:</span> URI.</p>
 <p>This is how HTML and SVG documents embed a picture in their own source. Only the base64 form is read: <span class="code-inline">data:image/png;base64,...</span>. The media type selects the decoder the same way a file extension does, and the payload is decoded with <a href="std.core.html#Core_Base64_decode">Core.Base64.decode</a>. A reference that is not an image data URI or names a media type with no decoder reports <span class="code-inline">UnsupportedFormatError</span>; a malformed payload reports the codec's own failure.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromDataUri</span>(uri: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
@@ -7468,7 +7468,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lightness</span>(factor: <span class="STpe">f32</span> = <span class="SNum">0.5</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.load</span> <a class="api-item-permalink" href="#Pixel_Image_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L111">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.load</span> <a class="api-item-permalink" href="#Pixel_Image_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L112">src</a></div>
 <p>Load the given image file</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -7515,7 +7515,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pixelColor</span>(pixX, pixY: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_Color">Color</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_registerDecoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerDecoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_registerDecoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerDecoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L73">src</a></div>
 <p>Registers a decoder type unless it is already present.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerDecoder</span>()</span></div>
 </section>
@@ -7550,7 +7550,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rotated</span>(angle: <span class="SCst"><a href="#Pixel_Image_Rotation">Rotation</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.save</span> <a class="api-item-permalink" href="#Pixel_Image_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L114">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.save</span> <a class="api-item-permalink" href="#Pixel_Image_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L115">src</a></div>
 <p>Encodes the image and writes it to <span class="code-inline">fileName</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -9132,7 +9132,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.183</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.186</div>
 </footer>
 </section>
 </main>

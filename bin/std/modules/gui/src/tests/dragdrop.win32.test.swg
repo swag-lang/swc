@@ -596,6 +596,32 @@ impl IWnd for PlatformCatcher
     @assert(Testing.bytesAre(catcher.blobs[1].toSlice(), "made on demand"))
 }
 
+// A physical path wins over a duplicate deferred-content offer. Shell data objects can publish
+// both, and materializing FILECONTENTS would read the complete local file during the Drop call.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    host.surfaceWnd.view = catcher
+
+    var produced = 0'u32
+    var data: DragData
+    data.addFile("c:/tmp/large.mp4")
+    data.addContent("large.mp4", func|&produced|()
+    {
+        produced += 1
+        return Testing.textBytes("must stay deferred")
+    })
+
+    var session: DragSession
+    testRoundTripDrop(&host, testDragSource(&session, &data))
+    @assert(produced == 0)
+    @assert(catcher.names.count == 0)
+}
+
 // The source enumerates a file with no path as a descriptor plus one entry per file, and names
 // the stream medium the shell reads content through.
 #test

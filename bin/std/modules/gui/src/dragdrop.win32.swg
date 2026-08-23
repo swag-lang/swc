@@ -275,8 +275,12 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData, withCont
     }
 
     // Files the source holds in memory, which is what an attachment dragged out of a mail client
-    // is: it has a name and it has bytes, and nothing on disk holds it.
-    readFileContents(obj, data, withContents)
+    // is: it has a name and it has bytes, and nothing on disk holds it. Some shell sources also
+    // advertise this deferred representation for a file that already has a path. Prefer the path
+    // in that case: asking for FILECONTENTS can otherwise copy a multi-gigabyte local file into
+    // the drop payload before the target receives its event.
+    if !data.hasFiles() do
+        readFileContents(obj, data, withContents)
 
     // Text, preferring the Unicode form the way the clipboard does.
     #scope(Text)

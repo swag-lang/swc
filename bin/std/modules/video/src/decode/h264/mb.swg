@@ -399,6 +399,15 @@ impl Slice
     {
         if index == 0 do
             return &mb.firstJob
+
+        if !mb.extraJobs
+        {
+            let dec   = .dec!
+            let entry = dec.parsedExtraJobs.count
+            dec.parsedExtraJobs.resize(entry + 1)
+            mb.extraJobs = &dec.parsedExtraJobs[entry]
+        }
+
         return &mb.extraJobs!.jobs[index - 1]
     }
 
@@ -415,6 +424,7 @@ impl Slice
 
         var zero:  [2] s16
         var noRef: [2] s8 = [0, -1]
+
         // A P-skip carries one uniform motion region. Neighbor prediction already reads that
         // region from `firstJob`, reconstruction consumes the job directly, and deblocking does
         // the same. Avoid publishing nineteen bytes of redundant 4x4-grid state per block on
@@ -793,7 +803,7 @@ impl Slice
         mb.decodedMask   = 0
         mb.motionMask[0] = 0
         mb.motionMask[1] = 0
-        mb.extraJobs     = &dec.parsedExtraJobs[.mbAddr]
+        mb.extraJobs     = null
         mb.jobCount      = 0
         mb.cbpLuma       = 0
         mb.cbpChroma     = 0
@@ -815,7 +825,9 @@ impl Slice
             // Full macroblocks can leave uncoded blocks untouched while parsing, and intra
             // reconstruction reads those blocks later. Skipped inter macroblocks have no
             // residual by definition, so their zero bookkeeping keeps these arrays unreachable.
-            mb.residual = &dec.parsedResiduals[.mbAddr]
+            let entry = dec.parsedResiduals.count
+            dec.parsedResiduals.resize(entry + 1)
+            mb.residual = &dec.parsedResiduals[entry]
             Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
             Memory.clear(mb.residual!, #sizeof(MbResidual))
         }
@@ -841,7 +853,7 @@ impl Slice
             mb.shape         = Shape16x16
             mb.motionMask[0] = 0
             mb.motionMask[1] = 0
-            mb.extraJobs     = &dec.parsedExtraJobs[.mbAddr]
+            mb.extraJobs     = null
             mb.jobCount      = 0
             mb.cbpLuma       = 0
             mb.cbpChroma     = 0
@@ -1719,12 +1731,12 @@ impl Slice
     // Publishes the uniform metadata of a P-skip macroblock four blocks at a time.
     mtd bookkeepSkippedPMb(mb: *Mb)
     {
-        let dec          = .dec!
-        let job          = &mb.firstJob
-        let ref          = job.refIdx[0]
-        let poc          = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
-        let gw           = dec.sps!.mbWidth * 4
-        let zeros        = Simd.splat(0'u8)
+        let dec   = .dec!
+        let job   = &mb.firstJob
+        let ref   = job.refIdx[0]
+        let poc   = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
+        let gw    = dec.sps!.mbWidth * 4
+        let zeros = Simd.splat(0'u8)
         for row in 4'u64
         {
             let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
@@ -1733,7 +1745,7 @@ impl Slice
 
         let frame        = dec.current!
         let compactIndex = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
-        frame.colUniform[compactIndex]     = 1
+        frame.colUniform[compactIndex]      = 1
         frame.colMbMv[compactIndex * 2]     = job.mv[0, 0]
         frame.colMbMv[compactIndex * 2 + 1] = job.mv[0, 1]
         frame.colMbRef[compactIndex]        = ref

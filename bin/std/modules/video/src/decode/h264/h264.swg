@@ -114,6 +114,9 @@ struct Decoder
     mmcoOps:         Array'MmcoOp
     isIdrPicture:    bool
     isRefPicture:    bool
+    referencesHeld:  bool     // Slice reference pictures are pinned until reconstruction finishes.
+    preparedData:    bool     // A single slice has published setup but has not parsed its macroblocks.
+    frameThreaded:   bool     // This picture may overlap complete neighboring pictures.
 }
 
 // One memory-management control operation of a slice header.
@@ -166,6 +169,7 @@ impl Decoder
     // Releases every frame the decoder owns.
     mtd opDrop()
     {
+        .releasePictureReferences()
         for frame in .pool do
             Memory.delete(frame)
     }
@@ -173,12 +177,13 @@ impl Decoder
     // Returns a frame to the pool once the container no longer displays it.
     mtd releaseFrame(frame: *Frame)
     {
-        frame.heldByCaller = false
+        Atomic.exchange(&frame.heldByCaller, 0)
     }
 
     // Flushes prediction state before decoding from a container sync sample.
     mtd restart()
     {
+        .releasePictureReferences()
         for reference in .shortRefs do
             reference.isShortTerm = false
         for reference in .longRefs do
@@ -187,10 +192,23 @@ impl Decoder
         .longRefs.clear()
         .pictureSlices.clear()
         .current            = null
+        .preparedData       = false
+        .frameThreaded      = false
         .prevPocMsb         = 0
         .prevPocLsb         = 0
         .prevFrameNum       = 0
         .prevFrameNumOffset = 0
+    }
+
+    // Abandons a parsed picture when its container pipeline is flushed by a seek.
+    mtd discardAccessUnit()
+    {
+        .waitReconstructionJobs()
+        .releasePictureReferences()
+        .pictureSlices.clear()
+        .current       = null
+        .preparedData  = false
+        .frameThreaded = false
     }
 
     // Starts from the prediction state produced by the preceding decoder lane.
@@ -222,9 +240,84 @@ impl Decoder
     // longer referenced by the stream itself.
     mtd decodeAccessUnit(sample: const [..] u8)->#null *Frame fail
     {
+        .frameThreaded = false
         if !try .parseAccessUnit(sample, false) do
             return null
         return try .finishAccessUnit()
+    }
+
+    // Publishes a picture's prediction state before its single-slice entropy data is decoded.
+    // This is the setup boundary that lets the next frame thread start without waiting for the
+    // current CABAC stream. Multi-slice pictures keep the proven complete-parse fallback.
+    mtd prepareAccessUnit(sample: const [..] u8)->bool fail
+    {
+        .frameThreaded = true
+        if !.hasSinglePictureSlice(sample) do
+            return try .parseAccessUnit(sample, true)
+
+        .current       = null
+        .markingParsed = false
+        .mmcoOps.clear()
+        .pipelineSingleSlice = false
+        .pipelineBandCount   = 0
+        .pipelineScheduled   = 0
+        .pipelineFailed      = 0
+        .preparedData        = false
+
+        var offset = 0'u64
+        while offset < @countof(sample)
+        {
+            if offset + .nalLengthSize > @countof(sample) do
+                fail InvalidFormatError{"H.264 sample ends inside a NAL length prefix"}
+            var size = 0'u64
+            for .nalLengthSize
+            {
+                size   = (size << 8) | cast(u64) sample[offset]
+                offset += 1
+            }
+
+            if size < 1 or size > @countof(sample) - offset do
+                fail InvalidFormatError{"H.264 sample ends inside a NAL unit"}
+            .handleNal(sample[offset until offset + size], true)
+            offset += size
+        }
+
+        if !.current do
+            return false
+        .applyMarking(.current!)
+        .holdPictureReferences()
+        .preparedData = true
+        return true
+    }
+
+    // Completes entropy parsing and the picture work started by [[prepareAccessUnit]].
+    mtd decodePreparedAccessUnit()->#null *Frame fail
+    {
+        if .preparedData
+        {
+            Debug.assert(.pictureSlices.count == 1)
+            if .pictureSlices[0].header.type == SliceTypeB do
+                .awaitReferenceProgress(false)
+            .pictureSlices[0].decodeData()
+            .validatePicture()
+            Atomic.exchange(&.current!.parseProgress, 1)
+            .preparedData = false
+        }
+
+        return try .finishAccessUnit()
+    }
+
+    // Publishes a failed frame so dependent frame threads cannot wait forever.
+    mtd failPreparedAccessUnit()
+    {
+        if .current
+        {
+            Atomic.exchange(&.current!.parseProgress, 2)
+            Atomic.exchange(&.current!.decodeProgress, 2)
+        }
+
+        .preparedData = false
+        .releasePictureReferences()
     }
 
     // Parses one access unit and applies its reference marking without reconstructing it.
@@ -241,6 +334,7 @@ impl Decoder
         .pipelineBandCount   = 0
         .pipelineScheduled   = 0
         .pipelineFailed      = 0
+        .preparedData        = false
         defer .waitReconstructionJobs()
         var offset = 0'u64
         while offset < @countof(sample)
@@ -264,6 +358,8 @@ impl Decoder
             return false
         .validatePicture()
         .applyMarking(.current!)
+        .holdPictureReferences()
+        Atomic.exchange(&.current!.parseProgress, 1)
         return true
     }
 
@@ -271,13 +367,87 @@ impl Decoder
     mtd finishAccessUnit()->*Frame fail
     {
         Debug.assert(.current != null)
+        defer .releasePictureReferences()
+        if .frameThreaded do
+            .awaitReferenceProgress(true)
         .reconstructPicture()
         deblockPicture(me)
         let result = .current!
         result.extendEdges()
-        result.heldByCaller = true
-        .current            = null
+        Atomic.exchange(&result.decodeProgress, 1)
+        Atomic.exchange(&result.heldByCaller, 1)
+        .current = null
         return result
+    }
+
+    // Pins every borrowed slice reference while later pictures may change reference marking.
+    private mtd holdPictureReferences()
+    {
+        Debug.assert(!.referencesHeld)
+        for &slice in .pictureSlices
+        {
+            for list in 2'u64
+            {
+                for index in slice.refCount[list]
+                {
+                    let frame = slice.refs[list, index].frame
+                    if frame do
+                        Atomic.add(&frame!.reconstructionHolds, 1)
+                }
+            }
+        }
+
+        .referencesHeld = true
+    }
+
+    // Releases the slice references pinned by [[holdPictureReferences]].
+    private mtd releasePictureReferences()
+    {
+        if !.referencesHeld do
+            return
+
+        for &slice in .pictureSlices
+        {
+            for list in 2'u64
+            {
+                for index in slice.refCount[list]
+                {
+                    let frame = slice.refs[list, index].frame
+                    if frame do
+                        Atomic.add(&frame!.reconstructionHolds, ~0'u32)
+                }
+            }
+        }
+
+        .referencesHeld = false
+    }
+
+    // Waits for the metadata or pixels borrowed by this picture's reference lists.
+    private mtd awaitReferenceProgress(decoded: bool) fail
+    {
+        for &slice in .pictureSlices
+        {
+            for list in 2'u64
+            {
+                for index in slice.refCount[list]
+                {
+                    let frame = slice.refs[list, index].frame
+                    if !frame do
+                        continue
+
+                    let progress = decoded ? &frame!.decodeProgress : &frame!.parseProgress
+                    var value    = Atomic.get(progress)
+                    while value == 0
+                    {
+                        Threading.Thread.yield()
+                        value = Atomic.get(progress)
+                    }
+
+                    if value == 2 do
+                        fail InvalidFormatError{"H.264 inter block has no reference picture"}
+                }
+            }
+        }
     }
 
     // Reports whether the access unit has exactly one coded-picture NAL. Multiple slices can
@@ -362,7 +532,7 @@ impl Decoder
     }
 
     // Dispatches one NAL unit.
-    private mtd handleNal(nal: const [..] u8) fail
+    private mtd handleNal(nal: const [..] u8, prepareOnly: bool = false) fail
     {
         let header = nal[0]
         if header & 0x80 do
@@ -374,7 +544,7 @@ impl Decoder
         {
         case 1, 5:
             unescapeRbsp(&.rbsp, nal[1 until @countof(nal)])
-            .decodeSliceNal(refIdc, nalType == 5)
+            .decodeSliceNal(refIdc, nalType == 5, !prepareOnly)
 
         case 7:
             unescapeRbsp(&.rbsp, nal[1 until @countof(nal)])
@@ -399,7 +569,7 @@ impl Decoder
     }
 
     // Decodes one coded slice NAL unit.
-    private mtd decodeSliceNal(refIdc: u32, isIdr: bool) fail
+    private mtd decodeSliceNal(refIdc: u32, isIdr: bool, decodeData: bool = true) fail
     {
         var slice: Slice
         if !slice.parseHeader(me, refIdc, isIdr) do
@@ -421,7 +591,8 @@ impl Decoder
         if slice.header.type != SliceTypeI do
             slice.buildLists()
         .pictureSlices.add(#move slice)
-        .pictureSlices[.pictureSlices.count - 1].decodeData()
+        if decodeData do
+            .pictureSlices[.pictureSlices.count - 1].decodeData()
     }
 
     // Parses one sequence parameter set and stores it under its identifier.
@@ -465,7 +636,7 @@ impl Decoder
     mtd startPicture(frameNum: u32, poc: s32) fail
     {
         var found: #null *Frame
-        for candidate in .pool where !candidate.heldByCaller and !candidate.isReference()
+        for candidate in .pool where Atomic.get(&candidate.heldByCaller) == 0 and Atomic.get(&candidate.reconstructionHolds) == 0 and !candidate.isReference()
         {
             found = candidate
             break
@@ -508,9 +679,16 @@ impl Decoder
             .mvdL1.resize(blocks * 2)
             .directFlags.resize(blocks)
             .parsedMbs.resize(mbCount)
-            .parsedResiduals.resize(mbCount)
-            .parsedExtraJobs.resize(mbCount)
+
+            // Residual coefficients and extra motion regions are cold on skipped or simple
+            // inter macroblocks. Reserve stable pointer storage, but materialize only entries
+            // that the current picture actually uses.
+            .parsedResiduals.reserve(mbCount)
+            .parsedExtraJobs.reserve(mbCount)
         }
+
+        .parsedResiduals.clear()
+        .parsedExtraJobs.clear()
 
         // A stale slice id would make a mb from the previous picture look like a neighbor.
         for &info in .mbInfo do

@@ -53,7 +53,7 @@ func h264AssertFrame(frame: Image, reference: const [..] u8, index: u64, width, 
 func h264AssertStream(name: string, width, height: s32, frameCount: u64)
 {
     if Jobs.isSynchronous() do
-        discard expect Jobs.initialize(4)
+        discard expect Jobs.initialize(16)
 
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.mp4", name).toString()))
     @assert(reader.width() == width and reader.height() == height)
@@ -93,6 +93,26 @@ func h264AssertStream(name: string, width, height: s32, frameCount: u64)
 #test
 {
     h264AssertStream("ffmpeg-h264-baseline", 64, 48, 20)
+}
+
+// The entropy producer keeps more than one successor parsed, so CABAC does not wait for the
+// preceding picture's reconstruction, RGB conversion, and publication before starting again.
+#test
+{
+    if Jobs.isSynchronous() do
+        discard expect Jobs.initialize(16)
+
+    var source             = expect Source.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var decoder:  Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+
+    var frame: Image
+    for 20 do
+        expect idecoder.decodeFrame(&source, &frame)
+    decoder.avc.stopFrameThreads()
+    @assert(decoder.avc.laneCount == 16)
+    @assert(decoder.avc.threadedHighWater == 16)
 }
 
 // High profile: CABAC, B frames with pyramid references, direct modes, weighted prediction,

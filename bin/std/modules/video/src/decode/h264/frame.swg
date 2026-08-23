@@ -32,14 +32,17 @@ struct Frame
     mbWidth:      s32
     mbHeight:     s32
 
-    poc:          s32     // Picture order count of the frame.
-    frameNum:     u32
-    isShortTerm:  bool
-    isLongTerm:   bool
-    longTermIdx:  s32
-    frameNumWrap: s32     // Recomputed for every slice against the current frame number.
-    picNum:       s32
-    heldByCaller: bool     // The container still displays this frame.
+    poc:                 s32     // Picture order count of the frame.
+    frameNum:            u32
+    isShortTerm:         bool
+    isLongTerm:          bool
+    longTermIdx:         s32
+    frameNumWrap:        s32     // Recomputed for every slice against the current frame number.
+    picNum:              s32
+    heldByCaller:        u32     // The container still displays this frame; shared across pipeline lanes.
+    reconstructionHolds: u32     // Parsed pictures still borrow this frame for reconstruction.
+    parseProgress:       u32     // Zero while metadata is incomplete, one when ready, two on failure.
+    decodeProgress:      u32     // Zero while pixels are incomplete, one when ready, two on failure.
 
     // Motion exported for co-located prediction in later B slices, one entry per 4x4 block:
     // the L0 motion when the block had one, its L1 motion otherwise.
@@ -92,9 +95,12 @@ impl Frame
             .colMbShort.resize(macroblocks)
         }
 
-        .isShortTerm  = false
-        .isLongTerm   = false
-        .heldByCaller = false
+        .isShortTerm = false
+        .isLongTerm  = false
+        Atomic.exchange(&.heldByCaller, 0)
+        Atomic.exchange(&.parseProgress, 0)
+        Atomic.exchange(&.decodeProgress, 0)
+        Debug.assert(Atomic.get(&.reconstructionHolds) == 0)
     }
 
     // Returns the address of the luma sample at `x`, `y` of the coded picture.
@@ -126,16 +132,14 @@ impl Frame
                 [.colMbMv[mbIndex * 2], .colMbMv[mbIndex * 2 + 1]],
                 .colMbRef[mbIndex],
                 .colMbPoc[mbIndex],
-                .colMbShort[mbIndex] != 0,
-            }
+                .colMbShort[mbIndex] != 0}
         }
 
         return {
             [.colMv[blockIndex * 2], .colMv[blockIndex * 2 + 1]],
             .colRef[blockIndex],
             .colPoc[blockIndex],
-            .colShort[blockIndex] != 0,
-        }
+            .colShort[blockIndex] != 0}
     }
 
     // Converts the visible window of the frame into a bottom-up RGB8 image, with the

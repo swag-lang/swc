@@ -17,20 +17,6 @@ namespace Crypto
     const RecordKeyContext  = "sCrypt record key v3"
     const LocatorKeyContext = "sCrypt locator key v3"
 
-    // Cost profiles offered for a key slot.
-    //
-    // A slot stores the profile it was created with, so raising the default
-    // later never invalidates an existing password.
-    enum Argon2Profile
-    {
-        Interactive     // Roughly a tenth of a second on a desktop.
-        Moderate        // The default: noticeable, and expensive to attack in parallel.
-        Sensitive       // For a volume that is worth minutes of an attacker's memory.
-        Paranoid        // The most a workstation can usually spare.
-    }
-
-    const Argon2ProfileCount = 4
-
     // A test build derives keys with a token cost. Nothing a test writes is
     // meant to survive, and a real profile would dominate every test run.
     #[Swag.NoDoc]
@@ -52,18 +38,14 @@ namespace Crypto
         }
     }
 
-    func profileParameters(profile: Argon2Profile)->Core.Crypto.Argon2Parameters
+    // Version 4 gives every password in a container the same fixed cost. The
+    // slot area therefore carries no profile selector, authenticated or not;
+    // changing the cost is a format-version change.
+    func slotParameters()->Core.Crypto.Argon2Parameters
     {
         #static if TestProfile do
             return {memoryKib: 32, iterations: 1, parallelism: 1}
-
-        switch profile
-        {
-        case .Interactive: return {memoryKib: 64 * 1024, iterations: 2, parallelism: 4}
-        case .Moderate:    return {memoryKib: 256 * 1024, iterations: 3, parallelism: 4}
-        case .Sensitive:   return {memoryKib: 1024 * 1024, iterations: 4, parallelism: 4}
-        case .Paranoid:    return {memoryKib: 2048 * 1024, iterations: 6, parallelism: 4}
-        }
+        return {memoryKib: 256 * 1024, iterations: 3, parallelism: 4}
     }
 
     // Derives the key that unwraps one key slot's copy of the master key.
@@ -71,10 +53,10 @@ namespace Crypto
     // This is the only place a password is turned into key material, and it is
     // deliberately expensive: Argon2id costs an attacker memory, which is what
     // PBKDF2 never did.
-    func deriveSlotKey(password, salt: const [..] u8, profile: Argon2Profile)->[KeySize] u8 fail
+    func deriveSlotKey(password, salt: const [..] u8)->[KeySize] u8 fail
     {
         var result: retval
-        try Core.Crypto.argon2id(password, salt, profileParameters(profile), result)
+        try Core.Crypto.argon2id(password, salt, slotParameters(), result)
         return result
     }
 

@@ -98,7 +98,7 @@ locally.
   start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
   attempt, but it does mean the state file says which vaults have no password.
 
-## Tier B — Credentials and derivation profiles
+## Tier B — Credentials
 
 ### T-092 — Additional password slots are not in the interface
 
@@ -107,16 +107,9 @@ locally.
   hold four passwords and the interface only ever writes the one a reader opened it with.
 - Fix: a key-slot list that can add and revoke passwords and show how many slots are occupied
   without claiming which password maps to which slot.
-- Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
-  multiplies the cost of rejecting a wrong password.
-- Related: T-259
-
-### T-259 — No key-derivation cost-profile selector
-
-- Owner: sVaultDrive
-- Expose `Crypto.Argon2Profile` independently of password-slot management, with clear latency and
-  memory guidance.
-- Related: T-092, T-251 in [todo.simd.md](todo.simd.md), T-252
+- Note: `KeySlotCount` is 4. Version 4 derives one slot key per password attempt and then checks
+  every slot cheaply, so raising the count costs one constant and a wider `keySlotMask` without
+  multiplying the Argon2 cost.
 
 ## Tier B — Container maintenance
 

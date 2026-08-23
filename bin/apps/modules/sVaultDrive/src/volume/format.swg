@@ -45,13 +45,11 @@ const DataOffset        = JournalAreaOffset + JournalAreaSize
 const MinimumBlocks = 16'u64
 const MinimumSize   = DataOffset + MinimumBlocks * BlockRecordSize
 
-// Format version 3 replaced the password-derived encryption key with a master
-// key and key slots, PBKDF2-HMAC-SHA-256 with Argon2id, and the two-pass
-// encrypt-then-MAC record with a single-pass AEAD. None of those can be read
-// with the previous key schedule, so an older container reports the same
-// outcome as a wrong password, deliberately: a caller must never be able to
-// tell one from the other.
-const FormatVersion = 3'u32
+// Format version 4 gives the complete slot area one salt and one fixed Argon2id
+// cost. Slot records carry no profile selector, and the first occupied slot is
+// chosen randomly. Older formats deliberately report the same outcome as a
+// wrong password or a damaged container.
+const FormatVersion = 4'u32
 
 // Record kinds mixed into every nonce and locator, so a record of one kind can
 // never be decrypted as another.
@@ -94,7 +92,7 @@ const MaximumSecuritySize = 1'u32 * 1024 * 1024
 
 const HeaderMagic: [16] u8 = [
     0x73, 0x43, 0x72, 0x79, 0x70, 0x74, 0x2D, 0x56,
-    0x6F, 0x6C, 0x75, 0x6D, 0x65, 0x2D, 0x33, 0x00]
+    0x6F, 0x6C, 0x75, 0x6D, 0x65, 0x2D, 0x34, 0x00]
 
 // A header slot that was decrypted and passed its magic and version check.
 struct HeaderCandidate

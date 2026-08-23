@@ -112,6 +112,7 @@ struct Volume
     file:               File.FileStream
     keys:               Crypto.Keys
     master:             [Crypto.MasterKeySize] u8
+    slotSalt:           [Crypto.SaltSize] u8     // One random salt shared by every password slot.
     path:               String
     label:              String
     containerSize:      u64
@@ -226,6 +227,7 @@ impl Volume
         .dirty = false
         .keys.clear()
         Core.Crypto.secureClear(.master)
+        Core.Crypto.secureClear(.slotSalt)
     }
 
     mtd opDrop()
@@ -301,9 +303,12 @@ impl Volume
         // The master key is drawn once and never derived. A password only ever
         // unwraps it, which is what makes changing a password cheap.
         Core.Crypto.randomBytes(result.master)
+        Core.Crypto.randomBytes(result.slotSalt)
+        result.file.writeAllAt(KeySlotAreaOffset, result.slotSalt)
         result.keys        = try Crypto.deriveKeys(result.master)
-        result.keySlotMask = keySlotBit(0)
-        try result.writeKeySlot(0, password, .Moderate)
+        let initialKeySlot = try randomKeySlotIndex()
+        result.keySlotMask = keySlotBit(initialKeySlot)
+        try result.writeKeySlot(initialKeySlot, password)
 
         // The root directory is its own parent, which ends every path walk.
         let now = volumeTimeNow()
@@ -405,8 +410,8 @@ impl Volume
 
     // Finds the key slot `password` opens and unwraps the master key from it.
     //
-    // Every slot costs one full derivation whether or not it holds a password,
-    // so the time taken never says how many passwords a container has.
+    // The complete area shares one salt, so rejecting a password costs exactly
+    // one fixed Argon2id derivation followed by four authenticated opens.
     mtd unlock(password: const [..] u8) fail
     {
         var area: [KeySlotAreaSize] u8
@@ -414,28 +419,39 @@ impl Volume
         if !.file.readExactAt(KeySlotAreaOffset, area) do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
+        @memcpy(&.slotSalt[0], &area[0], Crypto.SaltSize)
+        var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
+        defer Core.Crypto.secureClear(slotKey)
+        var candidate: [Crypto.MasterKeySize] u8
+        defer Core.Crypto.secureClear(candidate)
+        var found = false
         for index in KeySlotCount
         {
-            var slot = KeySlot.decode(area[index * KeySlotSize until (index + 1) * KeySlotSize])
+            Core.Crypto.secureClear(candidate)
+            var slot = KeySlot.decode(area[index * KeySlotSize + KeySlotPrefixSize until (index + 1) * KeySlotSize])
             defer slot.clear()
-            if try slot.unwrap(password, index, .master)
+            if try slot.unwrap(slotKey, index, candidate)
             {
-                .keys = try Crypto.deriveKeys(.master)
-                return
+                @memcpy(&.master[0], &candidate[0], Crypto.MasterKeySize)
+                found = true
             }
         }
 
-        failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+        if !found do
+            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+        .keys = try Crypto.deriveKeys(.master)
     }
 
     // Writes the key slot at `index` so that `password` unwraps the master key.
-    mtd writeKeySlot(index: u64, password: const [..] u8, profile: Crypto.Argon2Profile) fail
+    mtd writeKeySlot(index: u64, password: const [..] u8) fail
     {
         try .requireWritable()
-        var slot = try KeySlot.create(password, .master, profile, index)
+        var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
+        defer Core.Crypto.secureClear(slotKey)
+        var slot = try KeySlot.create(slotKey, .master, index)
         defer slot.clear()
         let record = try slot.encode()
-        .file.writeAllAt(KeySlotAreaOffset + index * KeySlotSize, record)
+        .file.writeAllAt(keySlotPayloadOffset(index), record)
         .file.flush()
     }
 
@@ -444,9 +460,9 @@ impl Volume
     mtd eraseKeySlot(index: u64) fail
     {
         try .requireWritable()
-        var record: [KeySlotSize] u8
+        var record: [KeySlotPayloadSize] u8
         Core.Crypto.randomBytes(record)
-        .file.writeAllAt(KeySlotAreaOffset + index * KeySlotSize, record)
+        .file.writeAllAt(keySlotPayloadOffset(index), record)
         .file.flush()
     }
 
@@ -458,13 +474,16 @@ impl Volume
         if !.file.readExactAt(KeySlotAreaOffset, area) do
             return Swag.U64.Max
 
+        var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
+        defer Core.Crypto.secureClear(slotKey)
         var candidate: [Crypto.MasterKeySize] u8
         defer Core.Crypto.secureClear(candidate)
         for index in KeySlotCount
         {
-            var slot = KeySlot.decode(area[index * KeySlotSize until (index + 1) * KeySlotSize])
+            Core.Crypto.secureClear(candidate)
+            var slot = KeySlot.decode(area[index * KeySlotSize + KeySlotPrefixSize until (index + 1) * KeySlotSize])
             defer slot.clear()
-            if try slot.unwrap(password, index, candidate) do
+            if try slot.unwrap(slotKey, index, candidate) do
                 return index
         }
 
@@ -480,12 +499,12 @@ impl Volume
     // empty password, which is how a container stops asking for one. That is a
     // deliberate downgrade a caller states outright, unlike [[Volume.addPassword]],
     // which refuses to add an unprotected way into a container that has one.
-    mtd changePassword(current, replacement: const [..] u8, profile = Crypto.Argon2Profile.Moderate) fail
+    mtd changePassword(current, replacement: const [..] u8) fail
     {
         let index = try .findKeySlot(current)
         if index == Swag.U64.Max do
             failWith("The current password is incorrect.", .AccessDenied)
-        try .writeKeySlot(index, replacement, profile)
+        try .writeKeySlot(index, replacement)
     }
 
     // Adds `additional` as another password that opens this container.
@@ -497,7 +516,7 @@ impl Volume
     // An empty `additional` is refused: a second way in that needs no password would
     // undo the protection of every other slot without saying so. Removing the
     // protection is [[Volume.changePassword]] with an empty replacement.
-    mtd addPassword(additional: const [..] u8, profile = Crypto.Argon2Profile.Moderate)->u64 fail
+    mtd addPassword(additional: const [..] u8)->u64 fail
     {
         if !@countof(additional) do
             failWith("A password is required.", .PasswordRequired)
@@ -516,7 +535,7 @@ impl Volume
             .scalarsDirty = true
             .dirty        = true
             try .checkpoint()
-            try .writeKeySlot(index, additional, profile)
+            try .writeKeySlot(index, additional)
             return index
         }
 
@@ -873,8 +892,8 @@ impl Volume
             index += count
         }
 
-        // Appended to version 3 so existing readers can ignore it and existing
-        // volumes without it keep using their logical size as their file size.
+        // The authenticated physical size separates the logical capacity from
+        // the random camouflage tail.
         writer.writeLittleEndian(.physicalSize)
 
         if result.count > HeaderPlainSize do
@@ -896,7 +915,6 @@ impl Volume
     mtd restore(plain: const [..] u8) fail
     {
         var reader = ByteStream.openRead(plain)
-        var physicalLengthNeedsRepair = false
 
         var magic: [#sizeof(HeaderMagic)] u8
         reader.readBytes(&magic[0], #sizeof(magic))
@@ -944,20 +962,10 @@ impl Volume
         if .metadataPages.count != expectedPages do
             failWith("The metadata index is incomplete.", .Corrupted)
 
-        // A version-3 header written before physical camouflage has no trailing
-        // length. Treating it as exact makes the next refresh a safe migration.
-        .physicalSize = storedSize
-        if @countof(reader.remainingBytes())
-        {
-            let storedPhysicalSize = reader.readLittleEndian'u64()
-            if storedPhysicalSize < storedSize do
-                failWith("The container geometry does not match its size.", .Corrupted)
-
-            // Only the unauthenticated random tail is missing. An older reader
-            // can have truncated it to the logical size without touching data.
-            .physicalSize             = Math.min(storedPhysicalSize, actualSize)
-            physicalLengthNeedsRepair = storedPhysicalSize != actualSize
-        }
+        let storedPhysicalSize = reader.readLittleEndian'u64()
+        if storedPhysicalSize < storedSize or storedPhysicalSize > actualSize do
+            failWith("The container geometry does not match its size.", .Corrupted)
+        .physicalSize = storedPhysicalSize
 
         var image: Array'u8
         defer Core.Crypto.secureClear(image.toSlice())
@@ -974,12 +982,6 @@ impl Volume
         // would be replayed again on every open, forever.
         .dirty = false
         try .replayJournal()
-
-        if physicalLengthNeedsRepair
-        {
-            .scalarsDirty = true
-            .dirty        = true
-        }
 
         if .nodeById(RootNodeId) == null do
             failWith("The container has no root directory.", .Corrupted)

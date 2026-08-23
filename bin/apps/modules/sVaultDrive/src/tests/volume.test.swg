@@ -678,7 +678,14 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("slotnoise")
     defer discard catch File.delete(path)
 
+    @assert(keySlotIndex(0) == 0)
+    @assert(keySlotIndex(1) == 1)
+    @assert(keySlotIndex(2) == 2)
+    @assert(keySlotIndex(3) == 3)
+
     var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    let initialMask = volume.keySlotMask
+    @assert(initialMask != 0 and (initialMask & (initialMask - 1)) == 0)
     volume.close()
 
     var file = expect File.open(path, .Open, .ReadWrite, .Read)
@@ -699,7 +706,10 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     // Damaging the only slot makes the container unopenable, which is what shows
     // the master key really is wrapped there and nowhere else.
-    flipByteAt(path, KeySlotAreaOffset)
+    var occupiedIndex = 0'u64
+    while (initialMask & keySlotBit(occupiedIndex)) == 0 do
+        occupiedIndex += 1
+    flipByteAt(path, keySlotPayloadOffset(occupiedIndex))
     @assert(rejectsPassword(path, testPassword()))
 }
 
@@ -978,39 +988,6 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(volume.containerSize == InitialSize)
     volume.close()
     @assert(expect File.info(path).size == previousPhysical)
-}
-
-// A version-3 container written before physical camouflage has no physical-length field after
-// its metadata-page runs. Reaching the exact end of that header must select the legacy path.
-#test
-{
-    let path = testContainerPath("legacy-physical-size")
-    defer discard catch File.delete(path)
-
-    var built           = expect Volume.create(path, testPassword(), MinimumSize)
-    let fileId          = expect built.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
-    let payload: [4] u8 = [1, 3, 3, 7]
-    @assert(expect built.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
-    expect built.checkpoint()
-
-    var legacyHeader = expect built.serializeHeader()
-    @assert(legacyHeader.count >= #sizeof(u64))
-    legacyHeader.resize(legacyHeader.count - #sizeof(u64))
-    expect built.writeFramedRecord(HeaderAreaOffset + cast(u64) built.activeSlot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, built.activeSlot, legacyHeader.toSlice())
-    let logicalSize = built.containerSize
-    built.close()
-
-    var file = expect File.open(path, .Open, .ReadWrite, .Read)
-    expect file.resize(logicalSize)
-    file.close()
-
-    var reopened = expect Volume.open(path, testPassword())
-    defer reopened.close()
-    @assert(reopened.containerSize == logicalSize)
-    @assert(reopened.physicalSize == logicalSize)
-    var readBack: [4] u8
-    @assert(expect reopened.readNode(reopened.resolve("\\kept.bin")!.id, 0, readBack) == #sizeof(readBack))
-    @assert(sameTestBytes(readBack, payload))
 }
 
 // An existing volume can refresh its camouflage repeatedly. Its logical capacity and payload

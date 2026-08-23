@@ -43,6 +43,7 @@ class NativeBackendBuilder;
 struct ModuleSetupInputApplier;
 struct CommandLine;
 struct WorkspaceModuleLink;
+struct DependencyPlanBuilder;
 
 class CompilerInstance
 {
@@ -102,6 +103,7 @@ public:
         size_t filteredModules   = 0;
         size_t ignoredModules    = 0;
         size_t builtModules      = 0;
+        size_t compiledModules   = 0;
     };
 
     struct WorkspaceModuleLogState
@@ -332,6 +334,7 @@ public:
 
 private:
     friend class CompilerMessageTypeInfoJob;
+    friend struct DependencyPlanBuilder;
     friend struct ModuleSetupInputApplier;
 
     struct ModuleSetupSnapshot
@@ -347,6 +350,39 @@ private:
         ModuleSetupSnapshot& operator=(const ModuleSetupSnapshot&)     = delete;
         ModuleSetupSnapshot(ModuleSetupSnapshot&&) noexcept            = default;
         ModuleSetupSnapshot& operator=(ModuleSetupSnapshot&&) noexcept = default;
+    };
+
+    struct ResolvedDependencyPaths
+    {
+        fs::path                     apiDir;
+        Runtime::BuildCfgBackendKind apiBackendKind = Runtime::BuildCfgBackendKind::None;
+        fs::path                     linkDir;
+        fs::path                     sharedDir;
+        fs::path                     sourceRoot;
+    };
+
+    struct ResolvedDependencyNode
+    {
+        Utf8                         moduleName;
+        Utf8                         location;
+        Utf8                         version;
+        Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
+        ResolvedDependencyPaths      paths;
+        std::vector<size_t>          dependencies;
+    };
+
+    struct ResolvedDependencyBinding
+    {
+        ModuleSetupImport   request;
+        size_t              nodeIndex = 0;
+        std::vector<size_t> closure;
+        std::vector<Utf8>   transitiveImports;
+    };
+
+    struct DependencyPlan
+    {
+        std::vector<ResolvedDependencyNode>    nodes;
+        std::vector<ResolvedDependencyBinding> bindings;
     };
 
     struct WorkspaceModuleBuild
@@ -398,11 +434,13 @@ private:
     Result            adoptModuleBuildCfg(TaskContext& ctx, const Runtime::BuildCfg& buildCfg);
     Result            collectModuleSetupLoadedFiles(TaskContext& ctx, const std::set<fs::path>& alreadyRead, std::vector<SourceFile*>& outFiles);
     Result            captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
+    Result            prepareDependencyPlan(TaskContext& ctx, DependencyPlan& outPlan, std::span<const ModuleSetupImport> imports);
+    Result            collectWorkspaceModuleDependencyDirs(TaskContext& ctx, std::vector<fs::path>& outDirs, const DependencyPlan& dependencyPlan, std::span<const ModuleSetupImport> imports);
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
-    ExitCode          runWorkspace();
-    ExitCode          runWorkspacePublishPass() const;
-    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleOrdinal, uint32_t moduleCount, bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
+    ExitCode          runWorkspace(const DependencyPlan* preparedDependencies = nullptr);
+    ExitCode          runWorkspacePublishPass(const DependencyPlan& dependencies) const;
+    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const DependencyPlan& dependencies, uint32_t moduleOrdinal, uint32_t moduleCount, bool writeModuleApi, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);
     const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;
     const SourceView* findSourceViewByNormalizedPathAndRuntimeLine(const Utf8& normalizedPath, uint32_t runtimeLine) const;
@@ -450,6 +488,8 @@ private:
     std::unordered_set<fs::path>                   importedDependencyLinkDirSet_;
     std::vector<std::unique_ptr<Utf8>>             ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*                     precomputedModuleSetup_ = nullptr;
+    const DependencyPlan*                          precomputedDependencyPlan_ = nullptr;
+    std::unique_ptr<DependencyPlan>                 ownedDependencyPlan_;
     bool                                           deferNativeLink_        = false;
     std::unique_ptr<NativeBackendBuilder>          deferredBuilder_;
     Utf8                                           lastArtifactLabel_;

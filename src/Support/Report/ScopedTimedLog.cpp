@@ -124,6 +124,10 @@ namespace
             Utf8 name{cmd.workspacePath.filename().string()};
             if (!cmd.workspaceModuleFilter.empty())
                 name += " [" + cmd.workspaceModuleFilter + "]";
+            else if (cmd.workspaceModuleSelection.size() == 1)
+                name += " [" + *cmd.workspaceModuleSelection.begin() + "]";
+            else if (!cmd.workspaceModuleSelection.empty())
+                name += std::format(" [{} roots]", cmd.workspaceModuleSelection.size());
             return name;
         }
         if (!cmd.modulePath.empty())
@@ -374,6 +378,14 @@ StatsSnapshot ScopedTimedLog::delta() const
     result.numTokens               = now.numTokens - std::min(now.numTokens, startSnapshot_.numTokens);
     result.numFormatRewrittenFiles = now.numFormatRewrittenFiles - std::min(now.numFormatRewrittenFiles, startSnapshot_.numFormatRewrittenFiles);
     return result;
+}
+
+void ScopedTimedLog::dismiss()
+{
+    if (progressId_)
+        ctx_->global().logger().cancelProgress(progressId_);
+    progressId_   = 0;
+    printEnabled_ = false;
 }
 
 void ScopedTimedLog::markFailure()

@@ -196,6 +196,10 @@ struct CommandLine
 
     bool devFull = false;
 
+    // Internal dependency builds select several roots at once and keep reusable nodes out of the
+    // normal report. No command-line option writes either field.
+    bool workspaceDependencyBuild = false;
+
 #if SWC_HAS_UNITTEST
     bool verboseUnittest = false;
 #endif
@@ -226,6 +230,7 @@ struct CommandLine
     Utf8              docCss;
     std::set<Utf8>    fileFilter;
     std::set<Utf8>    testFileFilter;
+    std::set<Utf8>    workspaceModuleSelection;
     std::vector<Utf8> tags;
     std::vector<Utf8> runArgs;
 

@@ -94,3 +94,28 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     @assert(!(cast(*NoSoundVoice) voice.handle!).isPlaying)
     voice.destroy()
 }
+
+// A seek performed while paused discards the queued buffers, so playing again has to fill them.
+// Leaving the voice marked as primed made the next play start the backend on an empty queue: it
+// reported itself playing and stayed silent for good, which is what a player hears after its
+// first seek.
+#test
+{
+    var sound = expect aacTestSound()
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = (expect Voice.create(&sound))!
+    defer voice.destroy()
+
+    discard expect voice.play()
+    @assert(voice.hasState(.PlayedOnce))
+
+    discard expect voice.pause()
+    discard expect voice.seekSampleFrame(2 * 1024)
+    @assert(!voice.hasState(.PlayedOnce))
+
+    discard expect voice.play()
+    @assert(voice.hasState(.PlayedOnce))
+    discard expect voice.updateNoSound()
+    @assert(voice.playbackSampleFrame() > 2 * 1024)
+}

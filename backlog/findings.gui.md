@@ -469,26 +469,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
   explicit `share` instead. The rule it enforces is already written down: *design-swag-bin-modules*
   says to mark exclusive owners `#[Swag.NoCopy]`.
 
-### F-188 — A video's audio track queues no buffer, so its playback position never moves
+### F-188 — Audio-to-video synchronisation has never been observed against a real output device
 
 - Area: gui
 - Found while: T-504, after the video viewer started presenting against the audio clock.
-- Observation: playing the 3840x2160p25 recording in sFileScope, the voice reports itself playing
-  on the real XAudio2 backend, but its output buffer queue and its played-sample counter both stay
-  at zero for the whole run. `IXAudio2SourceVoice::GetState` returns `buffersQueued == 0` and
-  `samplesPlayed == 0` fifteen seconds in, so nothing was ever submitted to the device and
-  `Voice.playbackPositionSeconds` answers the seek position for ever.
-- Evidence: a temporary probe in the video viewer logging `activeDriverKind`, the raw
-  `playedFramesNative` counter, its origin, and `buffersQueued` once per second. Driver 2
-  (XAudio2), `nat=0 org=0 queued=0` at t=0 through t=15, with `isPlaying` true from t=1 and the
-  track reporting 44100 Hz and 399,509,504 sample frames. Reproduced from the start of the file
-  and from the middle. The player no longer freezes on it — presentation keeps its own clock and
-  only re-anchors on the sound when the sound moves, covered by the last test of
-  `viewer.video.test.swg` — but the track is silent and the picture is not synchronised to
-  anything.
-- Next step: instrument `Voice.updateNative` on the streamed-packet path for this file and find
-  where the first submission is lost — whether `readBuffer` fails, whether the update thread ever
-  receives the voice, or whether opening a second handle onto a 20 GB file the video reader
-  already holds is what fails. A small AAC-in-MP4 fixture plays in the tests through the no-sound
-  backend, which never submits anything either, so the suite cannot currently see the difference:
-  the reproduction needs the real backend.
+- Observation: the viewer presents each picture at the time the sound has reached, and nothing has
+  yet confirmed that the time the sound reports is the time it is playing. On this machine the
+  played-sample counter of a source voice stays at zero for a whole run even with buffers queued
+  and the voice started, so the position `Voice.playbackPositionSeconds` answers never moves and
+  the correction the player applies to its own clock never fires. Sound is audible on the user's
+  machine, so the counter is expected to advance there; here it does not, and the difference is
+  most likely that this process gets no working audio endpoint.
+- Evidence: a temporary probe in the video viewer logging `activeDriverKind`, `buffersQueued`, and
+  the raw played-sample counter once per second. Driver 2 (XAudio2), `queued=2` from the first
+  second — so the source is primed and submission works — with `samplesPlayed` flat at zero
+  twenty seconds in, from the start of the file and after a seek. Presentation is unaffected
+  because playback keeps its own clock and only lets the sound correct it, which is what the last
+  test of `viewer.video.test.swg` pins down.
+- Next step: play a video with sound on a machine whose output is audible and log
+  `playbackSampleFrame` against the wall clock for a minute. What has to be true is that it tracks
+  real time, that `followAudioClock` corrects a deliberately skewed video clock back onto it, and
+  that the correction is not so frequent that it makes the picture stutter — the 0.1 s dead band in
+  `VideoAudioDriftSeconds` is a guess until then.

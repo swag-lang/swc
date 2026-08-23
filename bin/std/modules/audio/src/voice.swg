@@ -272,13 +272,21 @@ public impl Voice
             .streamPacketIdx = file.packets.count
 
         .nativeFrameOrigin = .playedFramesNative()
-        .setState(.PlayedOnce)
         if wasPlaying
         {
+            .setState(.PlayedOnce)
             .playNative()
             .setState(.Playing)
             g_Driver.updateVoice(me, .UpdateBuffers)
+            return
         }
+
+        // The seek discarded every queued buffer and a paused voice submits none, so the source
+        // is no longer primed. Saying otherwise would make the next [[Audio.Voice.play]] take a
+        // running voice for granted and start the backend on an empty queue: it would report
+        // itself playing, stay silent, and never advance its played-sample count. This is the
+        // same reset [[Audio.Voice.stop]] performs after discarding its own buffers.
+        .resetState(.PlayedOnce)
     }
 
     // Returns the decoded source sample frame currently heard at the output device.

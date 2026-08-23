@@ -307,7 +307,7 @@ func @safetypanic(message: string, loc: SourceCodeLocation)
     @panic(message, loc)
 }
 
-func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
+func __panic(file: const [*] u8, line: u32, col: u32, message: #null const [*] u8)
 {
     var loc: SourceCodeLocation
     loc.fileName               = @mkstring(file, @countof(cast(const cstring) file))
@@ -318,7 +318,7 @@ func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
     @panic(msg, loc)
 }
 
-func __compilerError(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
+func __compilerError(file: const [*] u8, line: u32, col: u32, message: #null const [*] u8)
 {
     var loc: SourceCodeLocation
     loc.fileName               = @mkstring(file, @countof(cast(const cstring) file))

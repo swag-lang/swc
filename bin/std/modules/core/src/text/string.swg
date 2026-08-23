@@ -569,7 +569,7 @@ impl String
         var result: String
         for values
         {
-            if separator and @index do
+            if @countof(separator) and @index do
                 result += separator
             result += values[@index]
         }

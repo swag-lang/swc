@@ -153,7 +153,8 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
 {
     // Icon painting normalizes geometry/text/points, so work on a disposable copy.
     let paintBase = MainWnd.newFormFromForm(srcItf)
-    let paintItf  = @mkinterface(paintBase, @kindof(srcItf), IForm)
+    // The source is already an IForm, so its own type carries the table.
+    let paintItf  = @mkinterface(paintBase, @kindof(srcItf), IForm)!
 
     var cxt: FormPaintContext
     cxt.z         = 1
@@ -905,13 +906,10 @@ impl QuickWnd
             btn1.sigPressed += func|quickWnd = me|(btn)
             {
                 let main = quickWnd.main
-                let mdl  = main.newFormFromModel(main.getEditMode())
-                if mdl
-                {
-                    let style = quickWnd.currentStyle!
-                    style.forms.add(mdl)
-                    quickWnd.updateQuickStyles()
-                }
+                let mdl   = main.newFormFromModel(main.getEditMode())
+                let style = quickWnd.currentStyle!
+                style.forms.add(mdl)
+                quickWnd.updateQuickStyles()
             }
         }
 

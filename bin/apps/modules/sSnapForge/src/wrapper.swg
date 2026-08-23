@@ -205,7 +205,8 @@ impl MainWnd
             }
         }
 
-        return @mkinterface(mdl, mdlType, IForm)
+        // Every registered form type implements IForm, so the table resolves.
+        return @mkinterface(mdl, mdlType, IForm)!
     }
 
     func newFormFromForm(it: IForm)->*BaseForm

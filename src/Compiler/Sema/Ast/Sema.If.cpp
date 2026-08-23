@@ -437,13 +437,12 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
             return Result::Continue;
     }
 
-    const AstNodeRef parentRef = sema.visit().parentNodeRef();
-    if (parentRef.isInvalid())
-        return Result::Continue;
-
-    SemaFrame frame = sema.frame();
-    SemaHelpers::addNarrowFacts(frame, {merged.data(), merged.size()});
-    sema.pushFramePopOnPostNode(frame, parentRef);
+    // Mutate the current frame instead of pushing one anchored at the parent: an `elif` is an
+    // `if` in the else slot of another, so its publication would sit on top of the enclosing
+    // branch's region frame and keep that frame from popping on schedule. The frame reached
+    // here is the one the statement started in, and it already ends where the facts stop
+    // holding — the enclosing block, or the branch region of the `if` this one chains from.
+    SemaHelpers::addNarrowFacts(sema.frame(), {merged.data(), merged.size()});
     return Result::Continue;
 }
 

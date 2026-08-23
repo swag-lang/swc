@@ -49,10 +49,10 @@
     <PropertyGroup Label="UserMacros"/>
     <PropertyGroup>
         <SwcOutputDir>bin/</SwcOutputDir>
-        <!-- Bound parallel compilation to /MP10 so a build leaves CPU headroom for the rest of the
+        <!-- Bound parallel compilation to /MP6 so a build leaves CPU headroom for the rest of the
              machine. Override with the SWC_COMPILE_JOBS environment variable or -p:SwcCompileJobs=N. -->
         <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$(SWC_COMPILE_JOBS)</SwcCompileJobs>
-        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">10</SwcCompileJobs>
+        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">6</SwcCompileJobs>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>

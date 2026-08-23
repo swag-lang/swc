@@ -184,7 +184,8 @@ impl Writer
         let selected = findEncoder(fileName)!
         .format      = selected.format
         .encoderType = selected.type
-        .encoder     = @mkinterface(Memory.new(selected.type), selected.type, IEncoder)
+        // The registry only ever holds types that implement the interface, so the table resolves.
+        .encoder     = @mkinterface(Memory.new(selected.type), selected.type, IEncoder)!
         .encoder.begin(&.sink, .info, options)
     }
 

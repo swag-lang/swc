@@ -59,7 +59,8 @@ impl Image
         }
 
         // Decode
-        let itf = @mkinterface(ptrDecoder, decoder.type, IImageDecoder)
+        // The registry only ever holds types that implement the interface, so the table resolves.
+        let itf = @mkinterface(ptrDecoder, decoder.type, IImageDecoder)!
         return try itf.decode(bytes, options)
     }
 }

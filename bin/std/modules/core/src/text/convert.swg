@@ -176,7 +176,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     // This is a type
     if Reflection.isType(type)
     {
-        let ptrType = valueData![as typeinfo]
+        let ptrType = valueData![as #null typeinfo]
         if ptrType do
             buf.addBytes(ptrType.fullname)
         else do
@@ -278,13 +278,13 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     // Any
     if Reflection.isAny(type)
     {
-        let ptrAny = cast(const *any) valueData!
+        let ptrAny = cast(const * #null any) valueData!
         buf.addBytes("{type = ")
         let typeAny = @kindof(ptrAny[])
         convertAny(buf, typeAny, convFmt, strFormat)
         buf.addBytes(", value = ")
         if @dataof(ptrAny[]) do
-            convertAny(buf, ptrAny[], convFmt, strFormat)
+            convertAny(buf, ptrAny[]!, convFmt, strFormat)
         else do
             buf.addBytes("null")
         buf.addBytes("}")

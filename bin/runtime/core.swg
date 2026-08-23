@@ -18,7 +18,7 @@ func __concreteAlias(type1: typeinfo)->typeinfo
     return __concreteAlias(typeAlias.rawType)
 }
 
-func @is(toType, fromType: typeinfo)->bool
+func @is(toType, fromType: #null typeinfo)->bool
 {
     if @typecmp(toType, fromType, .Strict) do
         return true
@@ -54,7 +54,7 @@ func @is(toType, fromType: typeinfo)->bool
     return false
 }
 
-func @as(toType, fromType: typeinfo, ptr: #null *void)->#null *void
+func @as(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
 {
     if @typecmp(toType, fromType, .Strict) do
         return ptr
@@ -94,7 +94,7 @@ func @as(toType, fromType: typeinfo, ptr: #null *void)->#null *void
     return null
 }
 
-func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
+func @typecmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
 {
     if !typeA and !typeB do
         return true

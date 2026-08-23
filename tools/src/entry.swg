@@ -69,7 +69,7 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
         return 1
     }
 
-    var context = try Context.create(root, options)
+    var context  = try Context.create(root, options)
     let relaunch = try relaunchToolIfNeeded(&context, script, tokens)
     if relaunch.didRun do
         return relaunch.exitCode

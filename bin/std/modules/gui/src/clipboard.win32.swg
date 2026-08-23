@@ -29,7 +29,7 @@ func hasFormat(fmt: ValueFormat)->bool
 }
 
 // Reports whether `fmt` exists and, when provided, carries the requested type fingerprint.
-func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
+func hasTypedData(fmt: ValueFormat, type: #null typeinfo)->bool
 {
     if g_Fake.enabled
     {

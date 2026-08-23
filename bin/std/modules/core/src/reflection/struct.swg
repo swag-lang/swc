@@ -131,7 +131,7 @@ func canCompare(type: #null typeinfo)->bool
     func hasPostCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
 
     // Returns whether this value can copy.
-    func canCopy(type: typeinfo)->bool => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
+    func canCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
 
     // Returns whether pod.
     func isPod(type: #null typeinfo)->bool

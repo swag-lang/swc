@@ -302,6 +302,17 @@ namespace
         if (castRequest.errorNodeRef.isInvalid())
             return true;
 
+        // Inside an inline expansion the tested node is the caller's argument substituted for a
+        // parameter, and what the callee wrote the test against is the PARAMETER's type. A body
+        // that guards a '#null' parameter keeps typechecking as it did standalone, whatever the
+        // call site passed; the question here belongs to the caller's own code.
+        if (const SymbolVariable* sourceParam = sema.constAssignSourceParameter(castRequest.errorNodeRef); sourceParam != nullptr)
+        {
+            const TypeRef paramTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), sourceParam->typeRef());
+            if (paramTypeRef.isValid() && sema.typeMgr().get(paramTypeRef).isNullable())
+                return false;
+        }
+
         const TypeRef storedTypeRef = sema.viewStored(castRequest.errorNodeRef, SemaNodeViewPartE::Type).typeRef();
         if (storedTypeRef.isInvalid())
             return true;

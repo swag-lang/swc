@@ -1,11 +1,10 @@
 using Swag, Core
 
-var Errors: [0xFF] string = undefined
+var Errors: [0xFF] #null string = undefined
 
 func fault(code: u8) fail
 {
-    let msg = Errors[code]
-    fail SystemError{msg ? msg : "truetype error"}
+    fail SystemError{Errors[code] orelse "truetype error"}
 }
 
 #init

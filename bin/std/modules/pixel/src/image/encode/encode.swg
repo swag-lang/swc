@@ -88,7 +88,8 @@ public impl Image
         }
 
         // Encode
-        let itf = @mkinterface(ptrEncoder, safeFound.type, IImageEncoder)
+        // The registry only ever holds types that implement the interface, so the table resolves.
+        let itf = @mkinterface(ptrEncoder, safeFound.type, IImageEncoder)!
         var result: retval
         itf.encode(&result, me, options)
         return result

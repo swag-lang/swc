@@ -12,6 +12,11 @@ full campaigns provide periodic breadth; change validation provides precise evid
 Follow the build/test serialization rules in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md) before taking either agent slot.
 
+Also follow its compiler CPU bound: every validation command driven by `swc.exe` or
+`swc_devmode.exe` uses at most six workers through `--num-cores 6`. For a repository tool script,
+cap both the compiler executing the script and the compiler processes the tool starts, as described
+there. Choosing a focused test reduces scope; it does not replace the worker limit.
+
 ## Make Three Independent Decisions
 
 Inspect the final diff and decide, in order:

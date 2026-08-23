@@ -39,6 +39,24 @@ user process.
 - Waiting for an occupied slot is the required behavior. Do not bypass it by changing configuration,
   executable, shell, output directory, or worktree.
 
+## Bound Agent Compiler CPU Usage
+
+Every compiler invocation launched by an AI agent for compilation or testing must cap Swag's own
+worker pool at six with `--num-cores 6`. This is separate from `/MP6`, which limits the C++
+compiler only while building `swc` itself.
+
+- Apply the cap to both checkout-local executables: `bin\swc.exe` and
+  `bin\swc_devmode.exe`.
+- For a direct compiler command, pass one cap, for example
+  `bin\swc_devmode.exe sema ... --num-cores 6`.
+- A repository tool script starts by being compiled by `swc`, then commonly launches another
+  compiler. Bound both levels: put one option before the script path and forward another through
+  the tool, for example
+  `bin\swc_devmode.exe --num-cores 6 tools\unittests.swgs dm cpp --num-cores 6`.
+- Preserve an explicit lower limit. `--randomize` and `--seed` already force one compiler worker.
+  Exceed six only when the user explicitly requests it or a concurrency reproducer genuinely
+  requires it, and state that exception before launching the command.
+
 ## Bump The Compiler Version With Every Change
 
 [src/Main/Version.h](../../../src/Main/Version.h) carries the compiler's identity, and that

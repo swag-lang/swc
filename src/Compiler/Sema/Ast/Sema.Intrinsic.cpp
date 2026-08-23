@@ -539,11 +539,20 @@ namespace
             }
         }
 
-        TypeRef resultTypeRef = interfaceTypeRef;
+        // A statically resolved struct was checked above and always carries the table. Every
+        // other form resolves it at run time from a 'typeinfo', and a type that does not
+        // implement the interface answers with a null table, so that result carries absence.
+        TypeInfoFlags resultFlags = TypeInfoFlagsE::Zero;
         if (makeInterfaceObjectIsConst(sema, objectView))
+            resultFlags.add(TypeInfoFlagsE::Const);
+        if (!objectTypeRef.isValid() || !sema.typeMgr().get(objectTypeRef).isStruct())
+            resultFlags.add(TypeInfoFlagsE::Nullable);
+
+        TypeRef resultTypeRef = interfaceTypeRef;
+        if (resultFlags != TypeInfoFlagsE::Zero)
         {
             auto* interfaceSym = &sema.typeMgr().get(interfaceTypeRef).payloadSymInterface();
-            resultTypeRef      = sema.typeMgr().addType(TypeInfo::makeInterface(interfaceSym, TypeInfoFlagsE::Const));
+            resultTypeRef      = sema.typeMgr().addType(TypeInfo::makeInterface(interfaceSym, resultFlags));
         }
 
         sema.setType(sema.curNodeRef(), resultTypeRef);

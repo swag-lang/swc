@@ -725,7 +725,7 @@ impl HeadlessHost
         if !browser or !@isset(browser.editFile) do
             return false
 
-        if folder
+        if @countof(folder)
         {
             if !Directory.exists(folder) do
                 return false

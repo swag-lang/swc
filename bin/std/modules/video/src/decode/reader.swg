@@ -170,7 +170,8 @@ impl Reader
         let selected = found!
         .format      = selected.format
         .decoderType = selected.type
-        .decoder     = @mkinterface(Memory.new(selected.type), selected.type, IDecoder)
+        // The registry only ever holds types that implement the interface, so the table resolves.
+        .decoder     = @mkinterface(Memory.new(selected.type), selected.type, IDecoder)!
         .info        = .decoder.open(&.source)
     }
 

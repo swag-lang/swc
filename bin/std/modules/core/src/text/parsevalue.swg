@@ -119,11 +119,8 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
     }
 
     // Decode interface
-    if Reflection.hasInterface(type, IPokeValue)
-    {
-        let itf = @mkinterface(addr, type, IPokeValue)
+    if let itf = @mkinterface(addr, type, IPokeValue) do
         return itf.poke(one)
-    }
 
     // Struct: a brace-enclosed list of field values in declaration order. 'Core.String' is
     // excluded because it decodes as a quoted literal below, and a type with a poke interface

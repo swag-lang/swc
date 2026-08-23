@@ -2097,8 +2097,7 @@ impl Capture
 
                 let mode = editView.main.getEditMode()
                 let itf  = editView.main.newFormFromModel(mode, clear: true)
-                if itf do
-                    itf.setup(me)
+                itf.setup(me)
                 let base = cast(*BaseForm) @dataof(itf)
                 if editView.main.editMode == .PixSel do
                     base.subKind = .PixSel

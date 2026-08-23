@@ -9,7 +9,7 @@ using Swag
     func isNative(t: #null typeinfo) => t and t.kind == .Native
 
     // Returns whether pointer.
-    func isPointer(t: typeinfo) => t and t.kind == .Pointer
+    func isPointer(t: #null typeinfo) => t and t.kind == .Pointer
 
     // Returns whether enum.
     func isEnum(t: #null typeinfo) => t and t.kind == .Enum
@@ -21,13 +21,13 @@ using Swag
     func isStaticArray(t: #null typeinfo) => t and t.kind == .Array
 
     // Returns whether slice.
-    func isSlice(t: typeinfo) => t and t.kind == .Slice
+    func isSlice(t: #null typeinfo) => t and t.kind == .Slice
 
     // Returns whether type alias.
     func isTypeAlias(t: #null typeinfo) => t and t.kind == .Alias
 
     // Returns whether interface.
-    func isInterface(t: typeinfo) => t and t.kind == .Interface
+    func isInterface(t: #null typeinfo) => t and t.kind == .Interface
 
     // Returns whether integer.
     func isInteger(t: #null typeinfo) => t and t.flags & .Integer
@@ -39,16 +39,16 @@ using Swag
     func isGeneric(t: #null typeinfo) => t and t.flags & .Generic
 
     // Returns whether tuple.
-    func isTuple(t: typeinfo) => t and t.flags & .Tuple
+    func isTuple(t: #null typeinfo) => t and t.flags & .Tuple
 
     // Returns whether type.
-    func isType(t: typeinfo) => t and t.flags & .PointerTypeInfo
+    func isType(t: #null typeinfo) => t and t.flags & .PointerTypeInfo
 
     // Returns whether pointer ref.
-    func isPointerRef(t: typeinfo) => t and t.flags & .PointerRef
+    func isPointerRef(t: #null typeinfo) => t and t.flags & .PointerRef
 
     // Returns whether pointer arithmetic.
-    func isPointerArithmetic(t: typeinfo) => t and t.flags & .PointerArithmetic
+    func isPointerArithmetic(t: #null typeinfo) => t and t.flags & .PointerArithmetic
 
     // Returns whether the type is an enum marked with #[Swag.EnumFlags].
     func isFlagsEnum(t: #null typeinfo)->bool
@@ -77,7 +77,7 @@ using Swag
     }
 
     // Returns whether any.
-    func isAny(t: typeinfo)->bool
+    func isAny(t: #null typeinfo)->bool
     {
         if !isNative(t) do
             return false

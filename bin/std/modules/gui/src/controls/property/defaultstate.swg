@@ -57,7 +57,7 @@ internal impl Properties
     // the same fixed-offset trick: a field at offset O from the struct base sits at defBase + O.
     mtd assignDefaults(fromIdx: u64, rootType: typeinfo, base0: [*] u8)
     {
-        if !rootType or rootType.kind != Swag.TypeInfoKind.Struct do
+        if rootType.kind != Swag.TypeInfoKind.Struct do
             return
 
         // A pristine instance with every field at its declared default value.

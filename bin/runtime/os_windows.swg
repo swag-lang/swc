@@ -254,7 +254,7 @@ func __hostHasAvx2()->bool => __Win32RT.IsProcessorFeaturePresent(__Win32RT.PF_A
 ////////////////////////////////////////////////////////////
 func __printString(message: #null string)
 {
-    if !@dataof(message) or !@countof(message) do
+    if !message or !@countof(message) do
         return
     using __Win32RT
     let len = cast(u32) @countof(message)
@@ -270,7 +270,7 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
     if !@jit
     {
         var msg = message
-        if !@dataof(msg)
+        if !msg
         {
             switch kind
             {

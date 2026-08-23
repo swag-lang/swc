@@ -309,7 +309,7 @@ impl Decoder
                 .awaitReferenceProgress(false)
             .pictureSlices[0].decodeData()
             .validatePicture()
-            Atomic.exchange(&.current!.parseProgress, 1)
+            .current!.publishParse(1)
             .preparedData = false
         }
 
@@ -321,7 +321,7 @@ impl Decoder
     {
         if .current
         {
-            Atomic.exchange(&.current!.parseProgress, 2)
+            .current!.publishParse(2)
             .current!.publishProgress(FrameProgressFailed)
         }
 
@@ -370,7 +370,7 @@ impl Decoder
         .validatePicture()
         .applyMarking(.current!)
         .holdPictureReferences()
-        Atomic.exchange(&.current!.parseProgress, 1)
+        .current!.publishParse(1)
         return true
     }
 
@@ -469,14 +469,7 @@ impl Decoder
                         continue
                     }
 
-                    var value = Atomic.get(&frame!.parseProgress)
-                    while value == 0
-                    {
-                        Threading.Thread.yield()
-                        value = Atomic.get(&frame!.parseProgress)
-                    }
-
-                    if value == 2 do
+                    if frame!.awaitParse() == 2 do
                         fail InvalidFormatError{"H.264 inter block has no reference picture"}
                 }
             }

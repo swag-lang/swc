@@ -169,6 +169,50 @@ impl Frame
         return value
     }
 
+    // Publishes the outcome of this picture's entropy parse: one when its metadata is complete,
+    // two when it will never be. See [[Video.H264.Frame.awaitParse]] for why it takes the lock.
+    mtd publishParse(state: u32)
+    {
+        .progressLock.lock()
+        Atomic.exchange(&.parseProgress, state)
+        if .progressWaiters do
+            .progressEvent.signal()
+        .progressLock.unlock()
+    }
+
+    // Waits until this picture's entropy parse has an outcome, and returns it.
+    //
+    // A B slice in direct mode predicts from the motion of its co-located picture, so it cannot
+    // be parsed before that picture has been. That wait is on the critical path of every lane
+    // decoding a B picture, and there are as many of those as there are lanes: spinning through
+    // it burns the very cores the picture being waited for needs to finish, so it sleeps on the
+    // same event reconstruction progress uses.
+    mtd awaitParse()->u32
+    {
+        var value = Atomic.get(&.parseProgress)
+        if value do
+            return value
+
+        .progressLock.lock()
+        .progressWaiters += 1
+        while true
+        {
+            value = Atomic.get(&.parseProgress)
+            if value do
+                break
+            .progressEvent.reset()
+            .progressLock.unlock()
+            .progressEvent.wait()
+            .progressLock.lock()
+        }
+
+        .progressWaiters -= 1
+        if .progressWaiters do
+            .progressEvent.signal()
+        .progressLock.unlock()
+        return value
+    }
+
     // Returns the address of the luma sample at `x`, `y` of the coded picture.
     #[Swag.Inline]
     mtd pixLuma(x, y: s32)->[*] u8 => .luma.buffer! + cast(u64) (y + FramePadding) * .strideLuma + cast(u64) (x + FramePadding)

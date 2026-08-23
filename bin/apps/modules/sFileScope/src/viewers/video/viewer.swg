@@ -13,6 +13,13 @@ private const VideoCommandWidth = 350.0
 // every picture in between.
 private const VideoResyncSeconds = 2.0
 
+// How far the picture may drift from the sound before the timeline is pulled back onto it.
+//
+// The sound is the master clock, but reading its position on every tick and following it exactly
+// would jitter the presentation by the size of one output buffer. Playback therefore runs its own
+// clock and only re-anchors it when the two have actually separated.
+private const VideoAudioDriftSeconds = 0.1
+
 // How far past the clock a resync jump may land.
 //
 // A stream whose sync frames are seconds apart would turn a resync into a scene change; past
@@ -87,6 +94,10 @@ internal struct VideoViewer
     failureText: String
     hasFailure:  bool
 
+    // Last position read from the sound. Playback re-anchors on it only when it moves, so a
+    // stalled output device cannot stop the picture.
+    audioClockLast: f64 = -1
+
     awaitingFrame:        bool
     anchorPending:        bool     // The next published picture re-anchors the playback clock on itself.
     hasFrame:             bool
@@ -112,9 +123,33 @@ internal impl VideoViewer
     {
         if !.playing do
             return .elapsed
-        if .voice do
-            return .voice!.playbackPositionSeconds()
         return .elapsed + cast(f64) .clock.elapsedMicroseconds() / 1_000_000.0
+    }
+
+    // Pulls the playback timeline back onto the sound whenever the two have separated.
+    //
+    // The sound is the master clock: a picture is presented at the time the output device has
+    // reached, and the sound timeline is never moved to conceal video decode latency. What the
+    // player must not do is *become* that position. A device that reports the same position twice
+    // is a clock that has stopped — an output that never consumes what it was given reports zero
+    // forever — and a player reading it directly would hold one picture on screen for good.
+    // Playback therefore keeps its own clock and lets the sound correct it, which also removes
+    // the jitter of following a position that only moves once per output buffer.
+    mtd followAudioClock()
+    {
+        if !.playing or !.voice do
+            return
+
+        let position = .voice!.playbackPositionSeconds()
+        if position == .audioClockLast do
+            return
+
+        .audioClockLast = position
+        if Math.abs(position - .currentSeconds()) <= VideoAudioDriftSeconds do
+            return
+
+        .elapsed = position
+        .clock.restart()
     }
 
     mtd resumeAudio()
@@ -366,7 +401,9 @@ internal impl VideoViewer
                     .resumeAudio()
             }
         }
-        elif .playing do
+
+        .audioClockLast = -1
+        if .playing do
             .clock.restart()
     }
 
@@ -403,9 +440,9 @@ internal impl VideoViewer
                     return
                 }
             }
-            else do
-                .clock.restart()
 
+            .audioClockLast = -1
+            .clock.restart()
             .playing = true
             .decodeWake.signal()
         }
@@ -447,6 +484,8 @@ internal impl VideoViewer
             discard .publishHead()
             return
         }
+
+        .followAudioClock()
 
         var head  = 0'u64
         var empty = true

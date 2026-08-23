@@ -181,3 +181,41 @@ func videoAudioFixturePath()->String
     view.stopPlayback()
     @assert(view.voice!.playbackSampleFrame() == 0)
 }
+
+// An output device that never consumes what it was given reports the same position for ever.
+// Presentation follows the sound, but it may not stop when the sound does: the no-sound backend
+// consumes nothing here, and the picture still has to advance.
+#test
+{
+    @assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let fileName = videoAudioFixturePath()
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    @assert(view.voice != null)
+
+    let stalled = view.voice!.playbackSampleFrame()
+    view.togglePlayback()
+    @assert(view.playing)
+
+    var attempts = 0
+    while view.frameIndex == 0 and attempts < 4000
+    {
+        Threading.Thread.sleep(1'ms)
+        view.updatePlayback()
+        attempts += 1
+    }
+
+    @assert(view.voice!.playbackSampleFrame() == stalled)
+    @assert(view.frameIndex != 0)
+}

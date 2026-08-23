@@ -67,6 +67,25 @@ interface IAudioDecoder
     mtd audioTrack(index: u32)->#null const *SoundFile
 }
 
+// Optional decoder capability handing pictures over without converting them to RGB.
+//
+// A codec that reconstructs planar 4:2:0 implements this so a consumer drawing through a
+// renderer never pays for a conversion on the processor: at 4K that conversion costs more than
+// the entropy decode, the reconstruction and the loop filter together.
+interface IPlanarDecoder
+{
+    // Reports whether the open stream decodes to planar pictures.
+    //
+    // A container carries more than one codec, so the capability is answered per stream and not
+    // per decoder: an ISO-BMFF reader implements this and still says no for a Motion JPEG track.
+    mtd hasPlanarFrames()->bool
+
+    // Decodes the frame the decoder is positioned on into `target`, then advances to the next.
+    //
+    // Answers the same picture [[Video.IDecoder.decodeFrame]] would, in the codec's own layout.
+    mtd decodeFramePlanes(source: *Source, target: *PlanarFrame) fail
+}
+
 // Optional decoder capability exposing exact presentation timestamps.
 interface ITimedDecoder
 {
@@ -95,6 +114,7 @@ struct Reader
         format:       StreamFormat                         // Format claimed by the selected decoder.
         decoder:      #null IDecoder                       // Decoder instance owned by this reader.
         audioDecoder: #null IAudioDecoder                  // Optional sound-track capability.
+        planarDecoder: #null IPlanarDecoder                // Optional unconverted-picture capability.
         timedDecoder: #null ITimedDecoder                  // Optional exact-timestamp capability.
         decoderType:  #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
     }
@@ -196,7 +216,8 @@ impl Reader
         // The registry only ever holds types that implement the interface, so the table resolves.
         .decoder = @mkinterface(Memory.new(selected.type), selected.type, IDecoder)!
         let instance = @dataof(.decoder)
-        .audioDecoder = @mkinterface(instance, selected.type, IAudioDecoder)
+        .audioDecoder  = @mkinterface(instance, selected.type, IAudioDecoder)
+        .planarDecoder = @mkinterface(instance, selected.type, IPlanarDecoder)
         .timedDecoder = @mkinterface(instance, selected.type, ITimedDecoder)
         .info         = .decoder.open(&.source)
     }
@@ -279,6 +300,33 @@ impl Reader
         if seconds < 0 do
             return 0
         return Math.min(cast(u64) (seconds * cast(f64) .info.frameRate.numerator() / cast(f64) .info.frameRate.denominator()), .info.frameCount)
+    }
+
+    // Reports whether this stream can be decoded without converting its pictures to RGB.
+    //
+    // See [[Video.Reader.decodeFramePlanesInto]] for what that is worth.
+    mtd const hasPlanarFrames()->bool => .planarDecoder != null and .planarDecoder!.hasPlanarFrames()
+
+    // Decodes frame `index` into `target` in the codec's own planar 4:2:0 layout.
+    //
+    // Converting a picture to packed RGB is, at high resolutions, the most expensive stage of
+    // decoding it, and a consumer that draws through a renderer does not need it: hand the
+    // result to [[Pixel.Painter.drawVideoFrame]] instead. `target` keeps its storage across
+    // calls, so decoding a whole stream allocates one picture.
+    //
+    // Fails on a stream whose codec does not produce planar pictures; ask
+    // [[Video.Reader.hasPlanarFrames]] first.
+    mtd decodeFramePlanesInto(target: *PlanarFrame, index: u64) fail
+    {
+        if !.decoder do
+            fail BadParameterError{"video reader has no open stream"}
+        if !.planarDecoder do
+            fail UnsupportedFormatError{"video stream does not decode to planar pictures"}
+        if .info.frameCount and index >= .info.frameCount do
+            fail BadParameterError{"video frame index exceeds the stream frame count"}
+
+        .decoder.seekFrame(&.source, index)
+        .planarDecoder!.decodeFramePlanes(&.source, target)
     }
 
     // Returns the first frame at or after `index` that decodes without any earlier frame.

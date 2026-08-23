@@ -420,25 +420,22 @@ impl AvcStream
         return {frame, threaded.rank}
     }
 
-    // Decodes until the frame with the current display rank exists, then emits it.
-    mtd decodeNext(source: *Source, target: *Image) fail
+    // Decodes until the frame with the current display rank exists, and returns it.
+    //
+    // The caller owns the result for the length of one call and must release it.
+    private mtd nextDisplayFrame(source: *Source)->*H264.Frame fail
     {
         let wanted = .nextRank
         while true
         {
-            var found = false
             for index in .pending.count where .pending[index].rank == wanted
             {
                 let frame = .pending[index].frame!
-                frame.toRgb(target, .width, .height, .cropLeft, .cropTop)
-                .decoders[0].releaseFrame(frame)
                 .pending.removeAt(index)
-                found = true
-                break
+                .nextRank = wanted + 1
+                return frame
             }
 
-            if found do
-                break
             if .threadedCount == 0 and .reachedEnd do
                 fail InvalidFormatError{"MP4 stream ends before the requested frame"}
 
@@ -453,8 +450,22 @@ impl AvcStream
             if .pending.count > 34 do
                 fail InvalidFormatError{"MP4 stream reorders more frames than a valid stream can"}
         }
+    }
 
-        .nextRank = wanted + 1
+    // Decodes the frame with the current display rank and converts it to RGB.
+    mtd decodeNext(source: *Source, target: *Image) fail
+    {
+        let frame = try .nextDisplayFrame(source)
+        frame.toRgb(target, .width, .height, .cropLeft, .cropTop)
+        .decoders[0].releaseFrame(frame)
+    }
+
+    // Decodes the frame with the current display rank and hands over its planes unconverted.
+    mtd decodeNextPlanes(source: *Source, target: *PlanarFrame) fail
+    {
+        let frame = try .nextDisplayFrame(source)
+        frame.copyPlanes(target, .width, .height, .cropLeft, .cropTop)
+        .decoders[0].releaseFrame(frame)
     }
 
     // Releases every frame waiting for display.

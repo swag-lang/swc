@@ -1003,6 +1003,18 @@ impl IDecoder for Decoder
     }
 }
 
+impl IPlanarDecoder for Decoder
+{
+    mtd impl hasPlanarFrames()->bool => .isAvc
+
+    mtd impl decodeFramePlanes(source: *Source, target: *PlanarFrame) fail
+    {
+        if !.isAvc do
+            fail UnsupportedFormatError{"MP4 track does not decode to planar pictures"}
+        .avc.decodeNextPlanes(source, target)
+    }
+}
+
 impl IAudioDecoder for Decoder
 {
     mtd impl audioTrackCount()->u32 => cast(u32) .soundTracks.count

@@ -233,6 +233,36 @@ impl Frame
         }
     }
 
+    // Copies the visible window of the frame into tightly packed 4:2:0 planes.
+    //
+    // The samples leave exactly as the codec reconstructed them: this is the whole point of the
+    // planar output, which exists so nothing converts a picture to RGB on the processor.
+    mtd copyPlanes(target: *PlanarFrame, width, height, cropLeft, cropTop: s32)
+    {
+        target.resize(width, height)
+
+        var destination = target.luma.buffer!
+        for y in height
+        {
+            Memory.copy(destination, .pixLuma(cropLeft, cropTop + y), cast(u64) width)
+            destination += cast(u64) target.strideLuma
+        }
+
+        let chromaWidth  = cast(u64) target.strideChroma
+        let chromaRows   = target.chromaHeight()
+        let chromaLeft   = cropLeft / 2
+        let chromaTop    = cropTop / 2
+        var destinationB = target.chromaB.buffer!
+        var destinationR = target.chromaR.buffer!
+        for y in chromaRows
+        {
+            Memory.copy(destinationB, .pixChroma(0, chromaLeft, chromaTop + y), chromaWidth)
+            Memory.copy(destinationR, .pixChroma(1, chromaLeft, chromaTop + y), chromaWidth)
+            destinationB += chromaWidth
+            destinationR += chromaWidth
+        }
+    }
+
     // Replicates the picture edges into the padding so motion compensation can read there.
     mtd extendEdges()
     {

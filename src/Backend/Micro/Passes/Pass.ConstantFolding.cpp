@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA constant folding driven by SSA reaching definitions.
@@ -392,7 +391,6 @@ namespace
 
 Result MicroConstantFoldingPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/ConstFold");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

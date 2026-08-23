@@ -6,7 +6,6 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Post-RA loop-invariant reload hoisting. See the header for why this exists.
@@ -788,7 +787,6 @@ namespace
 
 Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/PostRALoopHoist");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
     SWC_ASSERT(context.builder != nullptr);

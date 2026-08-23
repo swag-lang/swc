@@ -5,7 +5,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA dead code elimination on virtual registers.
@@ -111,7 +110,6 @@ namespace
 
 Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/DCE");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
     SWC_ASSERT(context.builder != nullptr);

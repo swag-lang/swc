@@ -5,7 +5,6 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
@@ -239,10 +238,6 @@ public:
     template<typename T>
     static T* make(TaskContext& ctx, const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)
     {
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numSymbols.fetch_add(1, std::memory_order_relaxed);
-#endif
         return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
     }
 

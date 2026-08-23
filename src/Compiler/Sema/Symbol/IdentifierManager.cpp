@@ -3,7 +3,6 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
@@ -275,10 +274,6 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     if (!inserted)
         return *it;
 
-#if SWC_HAS_STATS
-    if (Stats::enabledRuntime())
-        Stats::get().numIdentifiers.fetch_add(1, std::memory_order_relaxed);
-#endif
 
     uint32_t localIndex = INVALID_REF;
     {

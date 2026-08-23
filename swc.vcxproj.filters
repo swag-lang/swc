@@ -249,9 +249,6 @@
     <ClCompile Include="src\Unittest\Test.Sema.Purity.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Support.MemoryProfile.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
     <ClCompile Include="src\Unittest\Support\Test.Support.JobManager.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
@@ -814,9 +811,6 @@
       <Filter>src\Support\Math</Filter>
     </ClCompile>
     <ClCompile Include="src\Support\Memory\Allocator.cpp">
-      <Filter>src\Support\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Memory\MemoryProfile.cpp">
       <Filter>src\Support\Memory</Filter>
     </ClCompile>
     <ClCompile Include="src\Support\Memory\Arena.cpp">
@@ -1574,13 +1568,13 @@
     <ClInclude Include="src\Support\Math\Helpers.h">
       <Filter>src\Support\Math</Filter>
     </ClInclude>
+    <ClInclude Include="src\Support\Memory\Allocator.h">
+      <Filter>src\Support\Memory</Filter>
+    </ClInclude>
     <ClInclude Include="src\Support\Memory\Arena.h">
       <Filter>src\Support\Memory</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Memory\Heap.h">
-      <Filter>src\Support\Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Memory\MemoryProfile.h">
       <Filter>src\Support\Memory</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Os\Os.h">

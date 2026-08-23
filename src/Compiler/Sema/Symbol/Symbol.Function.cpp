@@ -15,8 +15,6 @@
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
-#if SWC_HAS_STATS
-#endif
 
 SWC_BEGIN_NAMESPACE();
 

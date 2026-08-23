@@ -211,7 +211,6 @@ StatsSnapshot StatsSnapshot::capture()
     const Stats& stats = Stats::get();
 
     StatsSnapshot result;
-    result.timeTotal               = stats.timeTotal.load(std::memory_order_relaxed);
     result.numErrors               = stats.numErrors.load(std::memory_order_relaxed);
     result.numWarnings             = stats.numWarnings.load(std::memory_order_relaxed);
     result.numFiles                = stats.numFiles.load(std::memory_order_relaxed);
@@ -367,7 +366,6 @@ StatsSnapshot ScopedTimedLog::delta() const
 {
     const StatsSnapshot now = StatsSnapshot::capture();
     StatsSnapshot       result;
-    result.timeTotal               = now.timeTotal - std::min(now.timeTotal, startSnapshot_.timeTotal);
     result.numErrors               = now.numErrors - std::min(now.numErrors, startSnapshot_.numErrors);
     result.numWarnings             = now.numWarnings - std::min(now.numWarnings, startSnapshot_.numWarnings);
     result.numFiles                = now.numFiles - std::min(now.numFiles, startSnapshot_.numFiles);

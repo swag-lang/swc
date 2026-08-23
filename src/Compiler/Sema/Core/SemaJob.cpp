@@ -2,11 +2,6 @@
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Main/Global.h"
-#include "Support/Memory/MemoryProfile.h"
-#if SWC_HAS_STATS
-#include "Main/Stats.h"
-#include "Support/Core/Timer.h"
-#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -36,10 +31,6 @@ SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayl
 
 JobResult SemaJob::exec()
 {
-    SWC_MEM_SCOPE("Sema");
-#if SWC_HAS_STATS
-    Timer time(Stats::timedMetric(Stats::get().timeSema));
-#endif
     const JobResult result = sema_.exec();
     if (result == JobResult::Done &&
         enqueueFullPassAfterDecl_ &&

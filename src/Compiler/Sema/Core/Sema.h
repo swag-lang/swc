@@ -254,6 +254,13 @@ public:
     const SemaFrame&           frame() const { return frames_.back(); }
     std::span<const SemaFrame> frames() const { return frames_; }
     void                       addNarrowKillAllFrames(std::span<const Symbol* const> path);
+    // A branch proves its facts in the innermost frame its body owns, and that frame is popped
+    // before the construct owning the branches can compare the paths. These keep one such set
+    // alive across the pop: 'arm' asks postNode() to snapshot the body's frame just before it
+    // goes, 'capture' snapshots the current frame now, and 'take' hands the set over once.
+    void armNarrowFactCapture(AstNodeRef bodyRef);
+    void captureNarrowFacts(AstNodeRef bodyRef);
+    bool takeNarrowFactCapture(AstNodeRef bodyRef, SmallVector2<SemaNarrowFact>& facts);
     SemaScope*                 curScopePtr() { return curScope_; }
     const SemaScope*           curScopePtr() const { return curScope_; }
     SemaScope&                 curScope() { return *(curScope_); }
@@ -662,6 +669,15 @@ private:
 
     std::vector<DeferredPopFrame> deferredPopFrames_;
     std::vector<DeferredPopScope> deferredPopScopes_;
+
+    struct NarrowFactCapture
+    {
+        AstNodeRef                   nodeRef = AstNodeRef::invalid();
+        SmallVector2<SemaNarrowFact> facts;
+        bool                         filled = false;
+    };
+
+    std::vector<NarrowFactCapture> narrowFactCaptures_;
 
     struct DeferredPostNodeAction
     {

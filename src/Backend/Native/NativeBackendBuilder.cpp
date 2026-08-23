@@ -14,7 +14,6 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Math/Hash.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
@@ -699,7 +698,6 @@ bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const ui
 
 Result NativeBackendBuilder::run()
 {
-    SWC_MEM_SCOPE("Backend/Native");
     SWC_ASSERT(compiler_ != nullptr);
     SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
     SWC_RESULT(validateTarget());
@@ -739,7 +737,6 @@ Result NativeBackendBuilder::run()
 // the deferred path it runs later, off this thread.
 Result NativeBackendBuilder::prepareForLink()
 {
-    SWC_MEM_SCOPE("Backend/Native");
     SWC_ASSERT(compiler_ != nullptr);
     SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
     SWC_RESULT(validateTarget());
@@ -774,7 +771,6 @@ Result NativeBackendBuilder::prepareForLink()
 // report diagnostics/output in order, then run the artifact if this is an executable run.
 Result NativeBackendBuilder::finishDeferredLink()
 {
-    SWC_MEM_SCOPE("Backend/Native");
     SWC_ASSERT(deferredLinker_ != nullptr);
     SWC_RESULT(deferredLinker_->finishLink(deferredToolRun_));
     artifactLinked_ = true;
@@ -791,7 +787,6 @@ Result NativeBackendBuilder::runAfterLink()
 
 Result NativeBackendBuilder::runExistingArtifact()
 {
-    SWC_MEM_SCOPE("Backend/Native");
     SWC_ASSERT(compiler_ != nullptr);
     if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;

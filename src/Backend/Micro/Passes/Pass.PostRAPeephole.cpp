@@ -3,7 +3,6 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Post-RA peephole optimization on physical registers.
@@ -72,7 +71,6 @@ namespace
 
 Result MicroPostRaPeepholePass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/PostRAPeephole");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

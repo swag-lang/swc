@@ -5,10 +5,8 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -1508,10 +1506,6 @@ void Lexer::tokenizeRaw(TaskContext& ctx, SourceView& srcView)
 
 void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
 {
-    SWC_MEM_SCOPE("Frontend/Lexer");
-#if SWC_HAS_STATS
-    Timer time(Stats::timedMetric(Stats::get().timeLexer));
-#endif
 
     srcView_ = &srcView;
     srcView_->tokens().clear();

@@ -7,7 +7,6 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Math/ApsInt.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA branch simplification and CFG cleanup.
@@ -1703,7 +1702,6 @@ namespace
 
 Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/BranchSimplify");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

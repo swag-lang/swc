@@ -63,35 +63,20 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - At least five clean baseline campaigns establish stable thresholds before regressions are enforced.
 - The campaign and CI report threshold violations without silently rewriting the baseline.
 
-**Related:** T-002, T-005, T-007, T-123.
-
-### T-123 — Detailed compiler profiling is compiled out of shipped builds
-
-**Evidence.** `src/Main/Stats.h` is enabled through `SWC_HAS_STATS`, while `src/pch.h` defines that capability only under `SWC_FORCE_STATS`. Release builds therefore cannot expose the detailed phase and allocation data needed to explain regressions.
-
-**Intent.** Make detailed counters and timings available in the shipped compiler through `--stats` and `--stats-mem`, with negligible cost when disabled.
-
-**Complete when.**
-
-- A Release compiler can report lexer, parser, semantic, code-generation, and Micro phase timings plus material AST, type, symbol, and instruction counts.
-- `--stats-mem` attributes retained and peak memory to actionable compiler subsystems.
-- Disabled-vs-enabled A/B runs use the T-004 campaign and document an accepted overhead budget.
-- The dedicated Stats configuration remains a validation mode rather than the only observable build.
-
-**Related:** T-004, T-005.
+**Related:** T-002, T-005, T-007.
 
 ### T-005 — Compiler memory has no attributed, enforced budget
 
-**Intent.** Use T-123 attribution and T-004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
+**Intent.** Use external profiling and the T-004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
 
 **Complete when.**
 
 - A full core fast-debug build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
 - Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
 - Thresholds, host normalization, and variance policy are stored with the campaign.
-- The remaining peak is attributed well enough that a regression report names the responsible subsystem.
+- External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
 
-**Related:** T-004, T-007, T-123.
+**Related:** T-004, T-007.
 
 ## Tier B — Reused and parallel compiler work
 

@@ -7,9 +7,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
-#include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Core/Timer.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -21,9 +19,6 @@ Formatter::Formatter(FormatOptions options) :
 
 void Formatter::prepare(const SourceFile& file)
 {
-#if SWC_HAS_STATS
-    Timer time(Stats::timedMetric(Stats::get().timeFormat));
-#endif
     file_ = &file;
     if (file.mustSkipFormat())
     {
@@ -81,9 +76,6 @@ Result Formatter::write(TaskContext& ctx) const
     if (!changed_)
         return Result::Continue;
 
-#if SWC_HAS_STATS
-    Timer time(Stats::timedMetric(Stats::get().timeFormatWrite));
-#endif
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::writeBinaryFile(file_->path(), text_.data(), text_.size(), ioError) != Result::Continue)
         return reportFormatFailure(ctx, *file_, FileSystem::describeIoFailure(ioError));

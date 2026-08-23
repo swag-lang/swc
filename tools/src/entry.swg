@@ -63,6 +63,12 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
         }
     }
 
+    if options.runAsync and (name != "apps" or options.command != "run")
+    {
+        Console.println("error: '--async' is available only with 'apps run'")
+        return 1
+    }
+
     var context = try Context.create(root, options)
     let relaunch = try relaunchToolIfNeeded(&context, script, tokens)
     if relaunch.didRun do

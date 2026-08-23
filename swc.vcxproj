@@ -9,10 +9,6 @@
             <Configuration>Release</Configuration>
             <Platform>x64</Platform>
         </ProjectConfiguration>
-        <ProjectConfiguration Include="Stats|x64">
-            <Configuration>Stats</Configuration>
-            <Platform>x64</Platform>
-        </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
         <VCProjectVersion>15.0</VCProjectVersion>
@@ -32,13 +28,6 @@
         <WholeProgramOptimization>false</WholeProgramOptimization>
         <CharacterSet>Unicode</CharacterSet>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'" Label="Configuration">
-        <ConfigurationType>Application</ConfigurationType>
-        <UseDebugLibraries>false</UseDebugLibraries>
-        <PlatformToolset>v145</PlatformToolset>
-        <WholeProgramOptimization>true</WholeProgramOptimization>
-        <CharacterSet>Unicode</CharacterSet>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="Configuration">
         <ConfigurationType>Application</ConfigurationType>
         <UseDebugLibraries>false</UseDebugLibraries>
@@ -54,32 +43,22 @@
     <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
-    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'" Label="PropertySheets">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
-    </ImportGroup>
     <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="PropertySheets">
         <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
     <PropertyGroup Label="UserMacros"/>
     <PropertyGroup>
         <SwcOutputDir>bin/</SwcOutputDir>
-        <!-- Bound parallel compilation (/MP) so a build leaves CPU headroom for the rest of the
+        <!-- Bound parallel compilation to /MP10 so a build leaves CPU headroom for the rest of the
              machine. Override with the SWC_COMPILE_JOBS environment variable or -p:SwcCompileJobs=N. -->
         <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$(SWC_COMPILE_JOBS)</SwcCompileJobs>
-        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$([System.Math]::Max(1, $([MSBuild]::Subtract($([System.Environment]::ProcessorCount), 4))))</SwcCompileJobs>
+        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">10</SwcCompileJobs>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>
         <OutDir>$(SwcOutputDir)</OutDir>
         <IntDir>.tmp/x64/release/</IntDir>
         <TargetName>swc</TargetName>
-        <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
-        <LinkIncremental>false</LinkIncremental>
-        <OutDir>$(SwcOutputDir)</OutDir>
-        <IntDir>.tmp/x64/stats/</IntDir>
-        <TargetName>swc_stats</TargetName>
         <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
@@ -109,33 +88,6 @@
             <SubSystem>Console</SubSystem>
             <EnableCOMDATFolding>false</EnableCOMDATFolding>
             <OptimizeReferences>false</OptimizeReferences>
-            <GenerateDebugInformation>true</GenerateDebugInformation>
-            <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-            <StackReserveSize>8388608</StackReserveSize>
-        </Link>
-        <Manifest>
-            <AdditionalManifestFiles>swc.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
-        </Manifest>
-    </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
-        <ClCompile>
-            <PrecompiledHeader>Use</PrecompiledHeader>
-            <WarningLevel>Level3</WarningLevel>
-            <Optimization>MaxSpeed</Optimization>
-            <FunctionLevelLinking>true</FunctionLevelLinking>
-            <IntrinsicFunctions>true</IntrinsicFunctions>
-            <SDLCheck>true</SDLCheck>
-            <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SWC_FORCE_STATS</PreprocessorDefinitions>
-            <ConformanceMode>true</ConformanceMode>
-            <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-            <LanguageStandard>stdcpplatest</LanguageStandard>
-            <MultiProcessorCompilation>true</MultiProcessorCompilation>
-            <ProcessorNumber>$(SwcCompileJobs)</ProcessorNumber>
-        </ClCompile>
-        <Link>
-            <SubSystem>Console</SubSystem>
-            <EnableCOMDATFolding>true</EnableCOMDATFolding>
-            <OptimizeReferences>true</OptimizeReferences>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
             <StackReserveSize>8388608</StackReserveSize>
@@ -449,10 +401,8 @@
         <ClCompile Include="src\Support\Memory\Allocator.cpp"/>
         <ClCompile Include="src\Support\Memory\Arena.cpp"/>
         <ClCompile Include="src\Support\Memory\Heap.cpp"/>
-        <ClCompile Include="src\Support\Memory\MemoryProfile.cpp"/>
         <ClCompile Include="src\Support\Memory\Mimalloc.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Support\Os\Os.Windows.cpp"/>
@@ -475,7 +425,6 @@
         <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-            <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">Create</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Support\Report\Assert.cpp"/>
@@ -744,9 +693,9 @@
         <ClInclude Include="src\Support\Math\Fold.h"/>
         <ClInclude Include="src\Support\Math\Hash.h"/>
         <ClInclude Include="src\Support\Math\Helpers.h"/>
+        <ClInclude Include="src\Support\Memory\Allocator.h"/>
         <ClInclude Include="src\Support\Memory\Arena.h"/>
         <ClInclude Include="src\Support\Memory\Heap.h"/>
-        <ClInclude Include="src\Support\Memory\MemoryProfile.h"/>
         <ClInclude Include="src\Support\Os\Os.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\Ast.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstNode.h"/>

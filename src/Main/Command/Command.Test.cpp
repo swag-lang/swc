@@ -13,7 +13,6 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/ByteArray.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -506,7 +505,6 @@ namespace
         if (!hasJitEligibleInputs(compiler))
             return true;
 
-        SWC_MEM_SCOPE("Backend/JIT");
         TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::JIT))
@@ -524,7 +522,6 @@ namespace
         std::vector<SymbolFunction*> testFunctions;
 
         {
-            SWC_MEM_SCOPE("Backend/JIT/Prepare");
             NativeBackendBuilder nativeBuilder(compiler, false);
             if (nativeBuilder.prepare() != Result::Continue)
                 return false;
@@ -560,7 +557,6 @@ namespace
             return true;
 
         {
-            SWC_MEM_SCOPE("Backend/JIT/Compile");
             if (CommandRun::afterPauses(ctx, [&] {
                     return SymbolFunction::jitBatch(ctx, allFunctions);
                 }) != Result::Continue)

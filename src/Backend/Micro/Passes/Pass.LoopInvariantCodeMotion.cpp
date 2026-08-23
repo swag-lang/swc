@@ -9,7 +9,6 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Loop-invariant code motion. See the header for the high-level contract.
@@ -774,7 +773,6 @@ namespace
 
 Result MicroLoopInvariantCodeMotionPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/LICM");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
     if (!context.builder)

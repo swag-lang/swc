@@ -46,7 +46,6 @@ namespace fs = std::filesystem;
 #define SWC_UNUSED(__x) ((void) (__x))
 
 #ifdef SWC_DEV_MODE
-#define SWC_FORCE_STATS
 #define SWC_HAS_ASSERT           1
 #define SWC_HAS_VALIDATE_MICRO   1
 #define SWC_HAS_VALIDATE_NATIVE  1
@@ -73,10 +72,4 @@ namespace fs = std::filesystem;
 #else
 #define SWC_HAS_ASSERT 0
 #endif
-#endif
-
-#ifdef SWC_FORCE_STATS
-#define SWC_HAS_STATS 1
-#else
-#define SWC_HAS_STATS 0
 #endif

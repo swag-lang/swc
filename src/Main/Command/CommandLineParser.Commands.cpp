@@ -128,12 +128,6 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "all", "--num-cores", "-j",
         &cmdLine_->numCores,
         "Set the maximum CPU core count; use 0 to detect it automatically");
-    add(HelpOptionGroup::Compiler, "all", "--stats", "-st",
-        &cmdLine_->stats,
-        "Show runtime statistics after execution");
-    add(HelpOptionGroup::Compiler, "all", "--stats-mem", "-stm",
-        &cmdLine_->statsMem,
-        "Show runtime memory statistics after execution");
     add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--tag", nullptr,
         &cmdLine_->tags,
         "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value");

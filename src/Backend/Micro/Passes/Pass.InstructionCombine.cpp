@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA instruction combiner on virtual registers.
@@ -107,7 +106,6 @@ namespace
 
 Result MicroInstructionCombinePass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/InstCombine");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

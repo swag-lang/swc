@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Support/Math/Helpers.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Inserts ABI-mandated save/restore code around the function body.
@@ -314,7 +313,6 @@ namespace
 
 Result MicroPrologEpilogPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/PrologEpilog");
     SWC_ASSERT(context.instructions);
 
     // Caller can disable this when generated code does not need ABI-preserved registers.

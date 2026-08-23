@@ -10,7 +10,6 @@
 #include "Support/Core/DenseBits.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Linear-scan style register allocation for the micro IR.
@@ -3790,7 +3789,6 @@ void MicroRegisterAllocationPass::clearState()
 
 Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/RegAlloc");
     SWC_ASSERT(context.instructions);
 
     clearState();

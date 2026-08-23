@@ -7,8 +7,6 @@
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Core/Timer.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -145,11 +143,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
         return Result::Continue;
     }
 
-    SWC_MEM_SCOPE("Frontend/LoadFile");
     Stats::get().numFiles.fetch_add(1, std::memory_order_relaxed);
-#if SWC_HAS_STATS
-    Timer time(Stats::timedMetric(Stats::get().timeLoadFile));
-#endif
 
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::readBinaryFile(path_, content_, ioError) != Result::Continue)

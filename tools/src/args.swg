@@ -22,6 +22,7 @@ public struct Options
     allConfigs:   bool             // Whether to repeat an aggregate tool in all three.
     wantHelp:     bool             // Whether the tool was asked to print its usage.
     targetArch:   String           // The architecture every output path is keyed on.
+    runAsync:     bool             // Whether an application run returns after starting the process.
     workspace:    Arguments        // Flags only a run or a smoke understands.
     test:         Arguments        // Flags only a test command understands.
     extra:        Arguments        // Everything else, forwarded to the compiler.
@@ -118,6 +119,9 @@ private struct Grammar
     runTimeout: String           // Fail a run or a smoke that outlives that many seconds.
     runArg:     Array'String     // One argument for the launched program, repeatable.
     testFile:   Array'String     // Source-path substrings whose #test functions should run.
+
+    #[CommandLine.ArgParams("async")]
+    runAsync: bool     // Return after starting an application instead of waiting for it.
 }
 
 // Parses the shared grammar, given the commands this tool accepts.
@@ -184,6 +188,7 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
     if parsed.isSet.workspaceModule do
         result.module = grammar.workspaceModule
     result.allConfigs   = grammar.allCfg
+    result.runAsync     = grammar.runAsync
     result.runArguments = grammar.runArg
 
     if parsed.isSet.targetArch

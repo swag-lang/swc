@@ -17,6 +17,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 
@@ -699,6 +700,59 @@ void Sema::popFrame()
     frames_.pop_back();
 }
 
+void Sema::armNarrowFactCapture(AstNodeRef bodyRef)
+{
+    SWC_ASSERT(bodyRef.isValid());
+    for (auto& capture : narrowFactCaptures_)
+    {
+        if (capture.nodeRef == bodyRef)
+        {
+            capture.facts.clear();
+            capture.filled = false;
+            return;
+        }
+    }
+
+    narrowFactCaptures_.emplace_back().nodeRef = bodyRef;
+}
+
+void Sema::captureNarrowFacts(AstNodeRef bodyRef)
+{
+    SWC_ASSERT(bodyRef.isValid());
+    const std::span<const SemaNarrowFact> facts = frame().narrowFacts();
+    for (auto& capture : narrowFactCaptures_)
+    {
+        if (capture.nodeRef == bodyRef)
+        {
+            capture.facts.assign(facts.begin(), facts.end());
+            capture.filled = true;
+            return;
+        }
+    }
+
+    auto& capture   = narrowFactCaptures_.emplace_back();
+    capture.nodeRef = bodyRef;
+    capture.facts.assign(facts.begin(), facts.end());
+    capture.filled = true;
+}
+
+bool Sema::takeNarrowFactCapture(AstNodeRef bodyRef, SmallVector2<SemaNarrowFact>& facts)
+{
+    for (auto it = narrowFactCaptures_.begin(); it != narrowFactCaptures_.end(); ++it)
+    {
+        if (it->nodeRef != bodyRef)
+            continue;
+
+        const bool filled = it->filled;
+        if (filled)
+            facts = std::move(it->facts);
+        narrowFactCaptures_.erase(it);
+        return filled;
+    }
+
+    return false;
+}
+
 void Sema::markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef)
 {
     SWC_UNUSED(parentRef);
@@ -1266,6 +1320,20 @@ Result Sema::postNode(AstNode& node)
 
     if (result == Result::Continue)
     {
+        // An armed body publishes what it proved here, while the frame it owns is still the
+        // current one: the pop below is what the capture exists to survive.
+        if (!narrowFactCaptures_.empty())
+        {
+            for (const auto& capture : narrowFactCaptures_)
+            {
+                if (capture.nodeRef == nodeRef && !capture.filled)
+                {
+                    captureNarrowFacts(nodeRef);
+                    break;
+                }
+            }
+        }
+
         processDeferredPopsPostNode(nodeRef);
         if (nodeRef == curNodeRef())
             SWC_RESULT(processDeferredPostNodeActions(nodeRef));

@@ -5,7 +5,6 @@
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -1477,8 +1476,6 @@ namespace Os
     {
         const std::unique_lock lock(g_proximityArena.mutex);
         void*                  ptr = proximityCarveLocked(size);
-        if (ptr)
-            MemoryProfile::trackExternalAlloc(ptr, size);
         return ptr;
     }
 
@@ -1502,7 +1499,6 @@ namespace Os
             return proximity;
 
         void* ptr = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-        MemoryProfile::trackExternalAlloc(ptr, size);
         return ptr;
     }
 
@@ -1525,7 +1521,6 @@ namespace Os
     {
         if (!ptr)
             return;
-        MemoryProfile::trackExternalFree(ptr);
         // An arena carve is not an allocation base; its address space stays
         // with the arena (committed pages are cheap and the JIT frees its
         // blocks only at teardown).

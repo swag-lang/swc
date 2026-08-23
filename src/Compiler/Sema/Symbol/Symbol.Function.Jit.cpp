@@ -8,12 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
-#if SWC_HAS_STATS
-#include "Main/Stats.h"
-#include "Support/Core/Timer.h"
-#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -331,10 +326,6 @@ Result SymbolFunction::emit(TaskContext& ctx)
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, returnTypeRef(), ABITypeNormalize::Usage::Return);
         builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
     }
-    SWC_MEM_SCOPE("Backend/MicroLower");
-#if SWC_HAS_STATS
-    Timer timeMicroLower(Stats::timedMetric(Stats::get().timeMicroLower));
-#endif
     // The static sanitizer runs the checks whose sanity guard is on for this function:
     // the build-config default combined with any `#[Swag.Sanity(...)]` override on it.
     const uint16_t sanitizerSafetyMask = attributes().effectiveSanityMask(ctx.compiler().buildCfg().sanityGuards);
@@ -355,10 +346,6 @@ Result SymbolFunction::emit(TaskContext& ctx)
     // The micro builder itself is transient and otherwise retains per-function IR memory.
     builder.releaseMemory();
 
-#if SWC_HAS_STATS
-    if (Stats::enabledRuntime())
-        Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
-#endif
     ctx.compiler().notifyAlive();
     return Result::Continue;
 }

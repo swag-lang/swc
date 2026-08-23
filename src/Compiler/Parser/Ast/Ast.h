@@ -2,7 +2,6 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Main/Stats.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/RefTypes.h"
@@ -105,10 +104,6 @@ public:
             local.second->setCodeRef(SourceCodeRef(activeSrcView.ref(), tokRef));
         }
 
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numAstNodes.fetch_add(1, std::memory_order_relaxed);
-#endif
 
         std::pair<AstNodeRef, NodeType*> value{globalRef, local.second};
 #if SWC_HAS_REF_DEBUG_INFO

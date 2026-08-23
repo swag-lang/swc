@@ -98,13 +98,15 @@ Builds, runs, tests, or smokes one or every module in the applications workspace
   --test-file <text> run only #test functions from matching source paths; repeatable
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
+  --async             start the application and return immediately (run only)
 
   swc tools/apps.swgs run sVaultDrive          launch one application
+  swc tools/apps.swgs run sVaultDrive --async  launch without waiting
   swc tools/apps.swgs dm test sSnapForge       run its tests with the DevMode compiler
 
 Every command uses the shared bin/apps workspace and places each application's runtime files
-beside its executable. 'run' needs an application name
-and launches the packaged executable from its own directory.
+beside its executable. 'run' needs an application name and launches the packaged executable
+from its own directory. With '--async', the tool returns as soon as the process starts.
 """)
 
     case "reference":

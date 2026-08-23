@@ -6,7 +6,7 @@
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
-#include "Support/Memory/MemoryProfile.h"
+#include "Support/Memory/Allocator.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
 #include "Support/Report/ScopedTimedLog.h"
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
         return static_cast<int>(swc::ExitCode::ErrorCommand);
 #endif
 
-    swc::MemoryProfile::configureAllocator();
+    swc::Allocator::configure();
 
 #ifdef _WIN32
     void* hostExceptionHandler = AddVectoredExceptionHandler(1, reportUnhandledHostException);

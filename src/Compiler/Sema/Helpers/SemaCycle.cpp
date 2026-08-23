@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Thread/JobManager.h"

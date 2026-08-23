@@ -11,7 +11,6 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Math/Hash.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/Job.h"
 #include "Support/Thread/JobManager.h"
@@ -42,7 +41,6 @@ namespace Command
 {
     void sema(CompilerInstance& compiler)
     {
-        SWC_MEM_SCOPE("Sema");
         TaskContext ctx(compiler);
 
         const Global&     global   = ctx.global();

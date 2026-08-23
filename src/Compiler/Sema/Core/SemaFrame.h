@@ -223,8 +223,12 @@ public:
 
     void addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
     void addNarrowKill(std::span<const Symbol* const> path);
-    bool queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const;
-    bool hasNarrowFacts() const { return !narrowFacts_.empty(); }
+    bool queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const { return queryNarrowFact(narrowFacts_.span(), path, kind); }
+    // Same question asked of a set that no longer belongs to a live frame: what a branch body
+    // proved is read back after its frame was popped, and it answers with the same rules.
+    static bool                     queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path, SemaNarrowFactKind kind);
+    std::span<const SemaNarrowFact> narrowFacts() const { return narrowFacts_.span(); }
+    bool                            hasNarrowFacts() const { return !narrowFacts_.empty(); }
     void clearNarrowFacts() { narrowFacts_.clear(); }
     void killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds);
 

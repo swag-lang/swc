@@ -5,12 +5,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Stats.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
-#if SWC_HAS_STATS
-#include "Support/Core/Timer.h"
-#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -94,7 +89,6 @@ void CodeGenJob::initSemaAndCodeGen()
 
 JobResult CodeGenJob::exec()
 {
-    SWC_MEM_SCOPE("Backend/CodeGen");
     SWC_ASSERT(symbolFunc_);
     ctx().state().setNone();
     if (symbolFunc_->isIgnored())
@@ -149,9 +143,6 @@ JobResult CodeGenJob::exec()
     if (!symbolFunc_->isCodeGenPreSolved())
     {
         SWC_ASSERT(root_.isValid());
-#if SWC_HAS_STATS
-        Timer timeCodeGen(Stats::timedMetric(Stats::get().timeCodeGen));
-#endif
         const Result codeGenResult = codeGen_->exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)
             return abortCodeGen(ctx(), *symbolFunc_, codeGenResult);

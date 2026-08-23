@@ -40,7 +40,6 @@ public:
 
     struct StatsSnapshot
     {
-        uint64_t timeTotal               = 0;
         size_t   numErrors               = 0;
         size_t   numWarnings             = 0;
         size_t   numFiles                = 0;

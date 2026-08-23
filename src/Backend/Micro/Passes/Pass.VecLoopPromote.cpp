@@ -10,7 +10,6 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Runtime.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Loop-region promotion of 128-bit stack chunks. See the header for the
@@ -528,7 +527,6 @@ namespace
 
 Result MicroVecLoopPromotePass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/VecLoopPromote");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
     if (!context.builder)

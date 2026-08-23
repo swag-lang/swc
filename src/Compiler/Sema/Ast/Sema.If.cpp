@@ -285,6 +285,50 @@ namespace
         return Result::Error;
     }
 
+    // A missing `else` is still a path. It proves what the condition settled on its side and
+    // nothing more: whatever else it carries, the statement already knew before the `if`.
+    void collectMissingElseNarrowFacts(Sema& sema, AstNodeRef conditionRef, SmallVector2<SemaNarrowFact>& out)
+    {
+        SemaHelpers::NarrowGuards guards;
+        SemaHelpers::collectNarrowGuards(sema, conditionRef, guards);
+        out = std::move(guards.whenFalse);
+    }
+
+    // What one path proves at its end that the statement did not already know.
+    void collectBranchNarrowCandidates(Sema& sema, const SmallVector2<SemaNarrowFact>& branchFacts, SmallVector2<SemaNarrowFact>& out)
+    {
+        for (const SemaNarrowFact& fact : branchFacts)
+        {
+            if (!fact.holds)
+                continue;
+
+            const std::span<const Symbol* const> path{fact.path.data(), fact.path.size()};
+
+            // A proof killed further down the same path is not proven where that path ends.
+            if (!SemaFrame::queryNarrowFact(branchFacts.span(), path, fact.kind))
+                continue;
+            if (sema.frame().queryNarrowFact(path, fact.kind))
+                continue;
+            if (SemaFrame::queryNarrowFact(out.span(), path, fact.kind))
+                continue;
+
+            out.push_back(fact);
+        }
+    }
+
+    // Drop every candidate the other path does not prove as well.
+    void filterBranchNarrowCandidates(const SmallVector2<SemaNarrowFact>& otherFacts, SmallVector2<SemaNarrowFact>& candidates)
+    {
+        SmallVector2<SemaNarrowFact> kept;
+        for (const SemaNarrowFact& fact : candidates)
+        {
+            if (SemaFrame::queryNarrowFact(otherFacts.span(), {fact.path.data(), fact.path.size()}, fact.kind))
+                kept.push_back(fact);
+        }
+
+        candidates = std::move(kept);
+    }
+
     Result checkIfVarDeclCondition(Sema& sema, AstNodeRef varDeclRef)
     {
         AstNodeRef     declRef = varDeclRef;
@@ -343,6 +387,13 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
             SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
             sema.pushFramePopOnPostChild(frame, childRef);
         }
+
+        // What this branch proves at its end is one half of what holds after the 'if'. A braced
+        // body proves it in the frame that block owns, which is popped before the branch comes
+        // back to semaPostNodeChild, so the set is snapshotted at the block's own post-node; a
+        // "do" body proves it in the region frame just pushed, still current at that point.
+        if (bodyOwnsFrame)
+            sema.armNarrowFactCapture(childRef);
     }
 
     if (childRef == nodeIfBlockRef)
@@ -353,26 +404,45 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 
 Result AstIfStmt::semaPostNode(Sema& sema) const
 {
-    // Guard-style early exits: when exactly one branch terminates the local flow, the
-    // statements after the `if` can only be reached through the surviving branch, so its
-    // narrowing facts hold for the remainder of the enclosing block.
+    // Take back what each branch published at its end, before anything else: an early return
+    // must not leave a capture behind.
+    SmallVector2<SemaNarrowFact> thenFacts;
+    SmallVector2<SemaNarrowFact> elseFacts;
+    sema.takeNarrowFactCapture(nodeIfBlockRef, thenFacts);
+    sema.takeNarrowFactCapture(nodeElseBlockRef, elseFacts);
+
+    // What holds after the `if` is what BOTH paths prove. A path that terminates the local flow
+    // is not one of them, which is the guard-style early exit: the surviving path's facts hold
+    // alone for the remainder of the enclosing block. When both terminate, no code after this
+    // statement is reachable and there is nothing to publish.
     const bool thenStops = SemaHelpers::stopsLocalFlow(sema, nodeIfBlockRef);
     const bool elseStops = nodeElseBlockRef.isValid() && SemaHelpers::stopsLocalFlow(sema, nodeElseBlockRef);
-    if (thenStops == elseStops)
+    if (thenStops && elseStops)
         return Result::Continue;
 
-    SemaHelpers::NarrowGuards guards;
-    SemaHelpers::collectNarrowGuards(sema, nodeConditionRef, guards);
-    const auto& facts = thenStops ? guards.whenFalse : guards.whenTrue;
-    if (facts.empty())
+    if (thenStops && nodeElseBlockRef.isInvalid())
+        collectMissingElseNarrowFacts(sema, nodeConditionRef, elseFacts);
+
+    SmallVector2<SemaNarrowFact> merged;
+    collectBranchNarrowCandidates(sema, thenStops ? elseFacts : thenFacts, merged);
+    if (merged.empty())
         return Result::Continue;
+
+    if (!thenStops && !elseStops)
+    {
+        if (nodeElseBlockRef.isInvalid())
+            collectMissingElseNarrowFacts(sema, nodeConditionRef, elseFacts);
+        filterBranchNarrowCandidates(elseFacts, merged);
+        if (merged.empty())
+            return Result::Continue;
+    }
 
     const AstNodeRef parentRef = sema.visit().parentNodeRef();
     if (parentRef.isInvalid())
         return Result::Continue;
 
     SemaFrame frame = sema.frame();
-    SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
+    SemaHelpers::addNarrowFacts(frame, {merged.data(), merged.size()});
     sema.pushFramePopOnPostNode(frame, parentRef);
     return Result::Continue;
 }
@@ -384,6 +454,11 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
+
+    // A "do" body owns no frame of its own, so what it proved is still in the region frame
+    // pushed for the branch. That frame pops right after this call, hence the snapshot here.
+    if (childRef.isValid() && (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef) && !sema.node(childRef).is(AstNodeId::EmbeddedBlock))
+        sema.captureNarrowFacts(childRef);
 
     if (childRef == nodeIfBlockRef)
     {

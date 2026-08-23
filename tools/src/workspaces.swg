@@ -186,6 +186,12 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
 
     var info    = Env.StartInfo{fileName: executable.toString(), arguments: applicationArguments.toString(), workingDirectory: directory.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
+    if options.runAsync
+    {
+        Console.println("Started ", options.module.toString(), " (process ", process.processId, ").")
+        return 0
+    }
+
     return try process.waitForExit()
 }
 

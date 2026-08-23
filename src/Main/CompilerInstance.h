@@ -546,7 +546,6 @@ private:
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 
     void   logBefore();
-    void   logStats();
     void   processCommand();
     void   setupRuntimeCompiler();
     bool   tryGetCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo*& outType);

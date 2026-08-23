@@ -131,9 +131,6 @@ public:
 
     size_t size() const noexcept { return sizeValue; }
     size_t capacity() const noexcept { return slots.size(); }
-#if SWC_HAS_STATS
-    size_t allocatedBytes() const noexcept { return ctrl.capacity() * sizeof(uint8_t) + slots.capacity() * sizeof(Slot); }
-#endif
     bool empty() const noexcept { return sizeValue == 0; }
 
 private:

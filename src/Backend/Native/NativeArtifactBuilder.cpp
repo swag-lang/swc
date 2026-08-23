@@ -8,7 +8,6 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
@@ -29,7 +28,6 @@ public:
 
     JobResult exec() override
     {
-        SWC_MEM_SCOPE("Backend/Native/Startup");
         ctx().state().setNone();
         SWC_ASSERT(artifactBuilder_ != nullptr);
         result_.store(artifactBuilder_->buildStartup(ctx()), std::memory_order_release);

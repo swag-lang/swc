@@ -38,10 +38,6 @@ public:
         head_ = nullptr;
     }
 
-#if SWC_HAS_STATS
-    size_t usedBytes() const noexcept;
-    size_t reservedBytes() const noexcept;
-#endif
 
 private:
     struct Block

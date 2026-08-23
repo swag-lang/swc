@@ -562,16 +562,10 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_ASSERT(context.instructions != nullptr);
     VerifyStateCache verifyCache;
 
-#if SWC_HAS_STATS
-    context.statsInstrInitial = context.instructions->count();
-#endif
 
     SWC_RESULT(runLinearPasses(context, startPasses_, verifyCache));
 
     context.printInstrCountBefore = context.instructions->count();
-#if SWC_HAS_STATS
-    context.statsInstrAfterStart = context.instructions->count();
-#endif
 
     // Read-only analyses over the unoptimized virtual-register IR (run once, before
     // any optimization). Running before the optimization loop keeps the IR faithful
@@ -594,23 +588,14 @@ Result MicroPassManager::run(MicroPassContext& context) const
             SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaMaxIterations, true, "post-vectorize-cleanup-loop", verifyCache));
     }
 
-#if SWC_HAS_STATS
-    context.statsInstrAfterPreRaOptim = context.instructions->count();
-#endif
 
     // Register allocation loop - legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, false, "ra-legalize-loop", verifyCache));
 
-#if SWC_HAS_STATS
-    context.statsInstrAfterRa = context.instructions->count();
-#endif
 
     SWC_RESULT(runLinearPasses(context, postRaSetupPasses_, verifyCache));
 
-#if SWC_HAS_STATS
-    context.statsInstrAfterPostRaSetup = context.instructions->count();
-#endif
 
     // Post-RA optimization loop - peephole and dead-code elimination feed each
     // other (a folded copy exposes a dead compare, an erased compare exposes a
@@ -625,15 +610,9 @@ Result MicroPassManager::run(MicroPassContext& context) const
     const uint32_t postRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
     SWC_RESULT(runBoundedLoopPasses(context, postRaOptimPasses_, postRaMaxIterations, verifyCache));
 
-#if SWC_HAS_STATS
-    context.statsInstrAfterPostRaOptim = context.instructions->count();
-#endif
 
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));
 
-#if SWC_HAS_STATS
-    context.statsInstrFinal = context.instructions->count();
-#endif
 
     return Result::Continue;
 }

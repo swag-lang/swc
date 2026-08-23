@@ -9,7 +9,6 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Helpers.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Rewrites non-encodable instruction forms into legal encoder forms.
@@ -1042,7 +1041,6 @@ namespace
 
 Result MicroLegalizePass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/Legalize");
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.builder);
     SWC_ASSERT(context.instructions);

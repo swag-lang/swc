@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA peephole optimization on virtual registers.
@@ -60,7 +59,6 @@ namespace
 
 Result MicroPreRaPeepholePass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/PreRAPeephole");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

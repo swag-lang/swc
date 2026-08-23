@@ -27,7 +27,6 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/LookupTable.h"
-#include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Os/Os.h"
@@ -530,18 +529,8 @@ void CompilerInstance::logBefore()
     ctx.global().logger().resetStageClaims();
 }
 
-void CompilerInstance::logStats()
-{
-    if (!cmdLine().stats && !cmdLine().statsMem)
-        return;
-
-    const TaskContext ctx(*this);
-    Stats::get().print(ctx);
-}
-
 void CompilerInstance::processCommand()
 {
-    const Timer time(&Stats::get().timeTotal);
     clearLastArtifactLabel();
 
     if (cmdLine().dryRun || cmdLine().showConfig)
@@ -943,7 +932,6 @@ ExitCode CompilerInstance::run()
     }
 
     commandWallTimeNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - runStart).count();
-    logStats();
     return exitCode;
 }
 

@@ -65,7 +65,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
   a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
   wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
-  report now appends the reporting thread's stack (`MemoryProfile.cpp`), so a recurrence names its
+  report now appends the reporting thread's stack (`Allocator.cpp`), so a recurrence names its
   culprit directly; if one does recur, persist the failing module and stress parallel type
   generation as originally planned.
 

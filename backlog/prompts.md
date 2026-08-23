@@ -492,11 +492,9 @@ Add real workloads to the campaign: a full core rebuild, a warm no-op, a one-fil
 a full doc generation, a full format pass. Wall time and peak working set for each, recorded in
 history.json the same way and normalized the same way.
 
-Then decide whether the per-stage counters should exist in the Release binary behind a flag. They
-exist today - lexer, parser, sema, codegen and Micro timings, plus AST, type, symbol and
-instruction counts in src/Main/Stats.h - but they are behind SWC_HAS_STATS, which only the separate
-Stats build configuration defines. In the shipped binary --stats prints four lines. A profile
-nobody can take on the shipping build is a profile nobody takes.
+Use external profilers for per-stage investigation. Do not add optional counters, allocation
+tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
+and peak-working-set measurements, while focused external traces answer transient questions.
 
 THE LOOP
 
@@ -602,12 +600,9 @@ Targets:
 START BY MAKING THE NUMBER ATTRIBUTABLE
 
 There is no per-subsystem memory accounting today - only an OS peak. The split between AST, types,
-symbols, constants and Micro is currently UNKNOWN, which means every optimization before this step
-is a guess. MemoryProfile exists but sits behind the same SWC_HAS_STATS gate as everything else in
-src/Main/Stats.h.
-
-Build the accounting first: bytes live per subsystem, sampled at peak, available in a build a
-person can actually run. Then attack what it shows, not what it seemed like.
+symbols, constants and Micro is currently UNKNOWN. Capture that split with an external heap
+profiler against the exact campaign workload; do not add per-allocation tracking or optional
+profiling branches to the compiler. Then attack what the trace shows, not what it seemed like.
 
 TWO SUSPECTS WORTH CHECKING EARLY
 

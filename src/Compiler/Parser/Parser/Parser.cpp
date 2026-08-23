@@ -1,9 +1,6 @@
 #include "pch.h"
 #include "Compiler/Parser/Parser/Parser.h"
-#include "Main/Stats.h"
-#include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -89,10 +86,6 @@ AstNodeRef Parser::parseGeneratedContent(const ParserGeneratedMode mode)
 
 AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, const ParserGeneratedMode mode, const TokenRef startTokRef)
 {
-    SWC_MEM_SCOPE("Frontend/Parser");
-#if SWC_HAS_STATS
-    Timer time(Stats::timedMetric(Stats::get().timeParser));
-#endif
 
     ctx_ = &ctx;
     ast_ = &ast;
@@ -536,10 +529,6 @@ void Parser::expectEndStatement()
 
 void Parser::parse(TaskContext& ctx, Ast& ast)
 {
-    SWC_MEM_SCOPE("Frontend/Parser");
-#if SWC_HAS_STATS
-    Timer time(Stats::timedMetric(Stats::get().timeParser));
-#endif
 
     ctx_ = &ctx;
     ast_ = &ast;

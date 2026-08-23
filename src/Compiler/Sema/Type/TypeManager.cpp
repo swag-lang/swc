@@ -3,7 +3,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-#include "Main/Stats.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
@@ -293,10 +292,6 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     if (!inserted)
         return it->second;
 
-#if SWC_HAS_STATS
-    if (Stats::enabledRuntime())
-        Stats::get().numTypes.fetch_add(1, std::memory_order_relaxed);
-#endif
 
     uint32_t  localIndex = INVALID_REF;
     TypeInfo* ptr        = nullptr;

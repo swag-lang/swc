@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Post-RA rotation of top-tested loops. See the header for why it runs here.
@@ -99,7 +98,6 @@ namespace
 
 Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/PostRaLoopRotate");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

@@ -2,7 +2,6 @@
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // Stack adjustment normalization.
@@ -340,7 +339,6 @@ namespace
 
 Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/StackAdjust");
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 

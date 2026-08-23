@@ -36,9 +36,6 @@ JobResult FormatJob::exec()
     if (jobCtx.hasError())
     {
         skippedInvalid_ = true;
-#if SWC_HAS_STATS
-        Stats::get().numFormatSkippedInvalidFiles.fetch_add(1, std::memory_order_relaxed);
-#endif
         return JobResult::Done;
     }
 
@@ -47,9 +44,6 @@ JobResult FormatJob::exec()
     skippedFmt_ = formatter.skipped();
     if (skippedFmt_)
     {
-#if SWC_HAS_STATS
-        Stats::get().numFormatSkipFmtFiles.fetch_add(1, std::memory_order_relaxed);
-#endif
     }
 
     auto writeResult = Result::Continue;

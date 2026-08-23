@@ -9,7 +9,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 // mem2reg: promote non-escaping fixed-width scalar stack slots to virtual
@@ -219,7 +218,6 @@ namespace
 
 Result MicroMemToRegPass::run(MicroPassContext& context)
 {
-    SWC_MEM_SCOPE("Backend/MicroLower/MemToReg");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
     if (!context.builder)

@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Type/TypeGen.h"
-#include "Main/Stats.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
@@ -10,46 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void recordConstantBuiltinFastHit()
-    {
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numConstantBuiltinFastHits.fetch_add(1, std::memory_order_relaxed);
-#endif
-    }
-
-    void recordConstantSmallScalarCacheHit()
-    {
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numConstantSmallScalarCacheHits.fetch_add(1, std::memory_order_relaxed);
-#endif
-    }
-
-    void recordConstantSmallScalarCacheMiss()
-    {
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numConstantSmallScalarCacheMisses.fetch_add(1, std::memory_order_relaxed);
-#endif
-    }
-
-    void recordConstantSlowPathCall()
-    {
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numConstantSlowPathCalls.fetch_add(1, std::memory_order_relaxed);
-#endif
-    }
-
-    void recordConstantMaterializedPayloadFastPath()
-    {
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numConstantMaterializedPayloadFastPath.fetch_add(1, std::memory_order_relaxed);
-#endif
-    }
-
     uint32_t internStripeIndex(const ConstantValue& value)
     {
         const uint32_t hash = Math::hash(value.hash());
@@ -84,7 +43,6 @@ ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
     const ConstantRef cstRef = cachedS32(value);
     if (cstRef.isValid())
     {
-        recordConstantBuiltinFastHit();
         return cstRef;
     }
 
@@ -214,10 +172,6 @@ namespace
 
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numConstants.fetch_add(1, std::memory_order_relaxed);
-#endif
 
 #if SWC_HAS_REF_DEBUG_INFO
         cstRef.dbgPtr = &manager.get(cstRef);
@@ -475,7 +429,6 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     const ConstantRef builtin = tryGetBuiltinConstant(ctx, value);
     if (builtin.isValid())
     {
-        recordConstantBuiltinFastHit();
         return builtin;
     }
 
@@ -486,7 +439,6 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
         if (cached.isValid())
             return cached;
 
-        recordConstantSmallScalarCacheMiss();
         const ConstantRef cstRef = addConstantSlow(ctx, value);
         return publishSmallScalarCache(cacheIndex, cstRef);
     }
@@ -496,7 +448,6 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 
 ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const ConstantValue& value)
 {
-    recordConstantSlowPathCall();
     uint32_t      shardIndex          = Math::hash(value.hash()) & (SHARD_COUNT - 1);
     const bool    isSpanValue         = value.isStruct() || value.isArray() || value.isSlice();
     bool          keepBorrowedPayload = false;
@@ -537,7 +488,6 @@ ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue&
     SWC_ASSERT(dataRef.isValid());
     SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
 
-    recordConstantMaterializedPayloadFastPath();
     Shard& shard = shards_[dataRef.shardIndex];
     return addCstOther(*this, shard, dataRef.shardIndex, value);
 }
@@ -551,7 +501,6 @@ ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const Constant
     SWC_ASSERT(dataRef.isValid());
     SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
 
-    recordConstantMaterializedPayloadFastPath();
     Shard&   shard      = shards_[dataRef.shardIndex];
     uint32_t localIndex = INVALID_REF;
     localIndex          = shard.dataSegment.add(value);
@@ -647,7 +596,6 @@ ConstantRef ConstantManager::tryGetSmallScalarCache(const uint32_t cacheIndex) c
     if (raw == INVALID_REF)
         return ConstantRef::invalid();
 
-    recordConstantSmallScalarCacheHit();
     return constantRefFromRaw(raw);
 }
 

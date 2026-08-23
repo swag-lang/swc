@@ -18,14 +18,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: `swc doc` runs full workspace sema on every invocation, with or without
   `--rebuild`, and the per-module stage line the user reads as "doc time" is dominated by it.
   The page generation itself is small: with the reachable-node index in place, the doc side of
-  the whole `std` workspace is under 1 s of a ~8 s wall run (Stats build, 22 workers), and no
+  the whole `std` workspace is under 1 s of a ~8 s wall run (instrumented build, 22 workers), and no
   single module keeps a doc stage above ~0.3 s. Inside the sema time, compile-time execution
   JIT-emits 7 803 functions: session timers report 77 s CPU of semantic analysis plus 24.5 s CPU
   codegen and 21.7 s CPU micro lowering, against 2.7 s parser and 0.7 s lexer. Each module also
   re-analyzes its dependencies' exported public API (`ogl` has 29 own sources but sema
   processes 133 files).
-- Evidence: `swc doc --workspace bin/std --doc-output-dir <tmp> --rebuild --stats` with a Stats
-  configuration build; timing probes around `Command::doc`'s sema call and inside
+- Evidence: an instrumented `swc doc --workspace bin/std --doc-output-dir <tmp> --rebuild` run,
+  with timing probes around `Command::doc`'s sema call and inside
   `DocApi::generate` ([Command.Doc.cpp](../src/Main/Command/Command.Doc.cpp),
   [DocApi.cpp](../src/Doc/DocApi.cpp)). Omitting `--rebuild` changes nothing: a doc run persists
   no sema artifact it could reuse.

@@ -110,12 +110,6 @@ uint32_t PagedStore::extentSize() const noexcept
     return 0;
 }
 
-#if SWC_HAS_STATS
-uint64_t PagedStore::allocatedBytes() const noexcept
-{
-    return snapshotPages()->size() * pageSizeValue_;
-}
-#endif
 
 void PagedStore::copyTo(std::span<std::byte> dst) const
 {

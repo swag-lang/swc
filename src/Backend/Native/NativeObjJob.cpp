@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjJob.h"
-#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -14,7 +13,6 @@ NativeObjJob::NativeObjJob(const TaskContext& ctx, NativeBackendBuilder& builder
 
 JobResult NativeObjJob::exec()
 {
-    SWC_MEM_SCOPE("Backend/Native/ObjBuild");
     ctx().state().setNone();
     SWC_ASSERT(builder_ != nullptr);
     if (builder_->buildObject(objIndex_) != Result::Continue)

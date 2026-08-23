@@ -169,8 +169,6 @@ struct CommandLine
     bool diagOneLine             = false;
     bool errorId                 = false;
     bool silent                  = false;
-    bool stats                   = false;
-    bool statsMem                = false;
     bool cleanCache              = false;
     bool rebuild                 = false;
     bool dryRun                  = false;

@@ -3,7 +3,6 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Stats.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -102,10 +101,6 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
         SWC_ASSERT(frame.node->isNot(AstNodeId::Invalid));
         SWC_ASSERT(frame.node->id() < AstNodeId::Count);
 
-#if SWC_HAS_STATS
-        if (Stats::enabledRuntime())
-            Stats::get().numVisitedAstNodes.fetch_add(1, std::memory_order_relaxed);
-#endif
     }
 
     if (preNodeVisitor_ && frame.preNodeState != Frame::CallState::Done)

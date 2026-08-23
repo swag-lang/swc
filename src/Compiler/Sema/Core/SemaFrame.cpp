@@ -120,15 +120,15 @@ void SemaFrame::killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds)
     narrowFacts_ = std::move(kept);
 }
 
-bool SemaFrame::queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const
+bool SemaFrame::queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path, SemaNarrowFactKind kind)
 {
     if (path.empty())
         return false;
 
     // Newest fact wins: a kill pushed after a guard overrides it for the rest of its scope.
-    for (size_t factIndex = narrowFacts_.size(); factIndex > 0; --factIndex)
+    for (size_t factIndex = facts.size(); factIndex > 0; --factIndex)
     {
-        const SemaNarrowFact& fact = narrowFacts_[factIndex - 1];
+        const SemaNarrowFact& fact = facts[factIndex - 1];
         if (fact.path.size() == path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
         {
             // A kill drops every kind; a proof of another kind says nothing about this

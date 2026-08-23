@@ -89,19 +89,6 @@ struct MicroPassContext
     // restored from. Reset with the rest of the pipeline state.
     SmallVector<MicroReg> globalReservedRegs;
 
-#if SWC_HAS_STATS
-    size_t optimizationInstrRemoved = 0;
-    size_t optimizationInstrAdded   = 0;
-
-    // Instruction counts captured at each observable pipeline checkpoint.
-    size_t statsInstrInitial          = 0;
-    size_t statsInstrAfterStart       = 0;
-    size_t statsInstrAfterPreRaOptim  = 0;
-    size_t statsInstrAfterRa          = 0;
-    size_t statsInstrAfterPostRaSetup = 0;
-    size_t statsInstrAfterPostRaOptim = 0;
-    size_t statsInstrFinal            = 0;
-#endif
 };
 
 SWC_END_NAMESPACE();

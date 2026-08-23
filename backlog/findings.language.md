@@ -855,32 +855,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   both stay silent), or making the canonical `swc format` style join a lone modifier with its
   single declaration. Either one kills the section reading.
 
-## What a pointer answers in a condition
-
-### F-133 — A truthiness test on a non-null pointer compiles and is always true
-
-- Area: language
-- Found while: studying pointer-read ergonomics after the noref campaign; the shape comes from
-  [quickstyles.test.swg](../bin/apps/modules/sSnapForge/src/tests/quickstyles.test.swg), where a
-  closure captures `dismissed = &didDismiss` (a `*bool`) and must spell `if dismissed[]`.
-- Observation: on a `#null *T`, `if p` is the null test and feeds flow narrowing — load-bearing
-  and correct. On a bare non-null `*T`, the same spelling compiles and is vacuously always-true:
-  `if dismissed` reads like a test of the pointed flag and is silently a constant. The same holds
-  for `while p`, for `and`/`or` operands, and for `@assert(p)`. Nothing distinguishes the
-  meaningful spelling from the vacuous one at the use site.
-- Evidence: probe — `var b = false; let p = &b; if p do ...` enters the branch (the pointer is
-  non-null; the pointee is never read). Verified against the current compiler during the
-  pointer-coercion study of 2026-08-14.
-- Elsewhere: C and C++ accept any pointer as a condition, but all their pointers are nullable, so
-  the test always asks a real question. The languages that have non-null indirections refuse the
-  spelling instead of letting it degenerate: Rust references have no truthiness at all, and Zig
-  compiles `if (ptr)` only for optional pointers (unwrapped as `if (opt) |p|`). No neighbouring
-  language lets a provably non-null pointer be a condition.
-- Next step: make truthiness of a non-null single-value pointer a dedicated error ("this test is
-  always true; test the pointed value with '[]', or declare the pointer '#null' if absence is
-  the question"). Before deciding error versus warning, survey generic instantiations that test
-  `if x` where `T` arrives as a non-null pointer.
-
 ## Where a move can land
 
 ### F-149 — A moved value cannot initialize an aggregate literal field or a conditional branch

@@ -139,3 +139,23 @@ func nullableUseSiteAssertOtherPath(p: #null *NullableUseSiteItem, q: #null *Nul
     @assert(q != null)
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
+
+// An assignment inside a branch is a proof for that branch alone: the other path never ran it.
+func nullableUseSiteAssignedInBranch(flag: bool, q: *NullableUseSiteItem)->s32
+{
+    var p: #null *NullableUseSiteItem
+    if flag do
+        p = q
+    return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
+}
+
+// The same holds whichever side spells the assignment.
+func nullableUseSiteAssignedInElse(flag: bool, q: *NullableUseSiteItem)->s32
+{
+    var p: #null *NullableUseSiteItem
+    if flag do
+        p = null
+    else do
+        p = q
+    return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
+}

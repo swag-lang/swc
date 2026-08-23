@@ -284,6 +284,31 @@ namespace
         return Result::Continue;
     }
 
+    // A single-value pointer answers a condition by testing itself against null. A type that
+    // cannot hold null makes that test a constant, while the spelling still reads like a test of
+    // the pointed value, so a condition rejects it.
+    //
+    // The question is asked of the type the expression was DECLARED with, not of what flow
+    // analysis currently proves: a "#null" pointer narrowed non-null by a dominating guard keeps
+    // compiling, exactly as "orelse" keeps a dead fallback. A dead test on a nullable-declared
+    // value is a code-quality matter; a test of a value whose type can never be null is not.
+    bool isPointerBoolTestAlwaysTrue(Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        if (!srcType.isValuePointer() || srcType.isNullable())
+            return false;
+
+        if (castRequest.errorNodeRef.isInvalid())
+            return true;
+
+        const TypeRef storedTypeRef = sema.viewStored(castRequest.errorNodeRef, SemaNodeViewPartE::Type).typeRef();
+        if (storedTypeRef.isInvalid())
+            return true;
+
+        const TypeRef concreteStoredTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), storedTypeRef);
+        return !sema.typeMgr().get(concreteStoredTypeRef).isNullable();
+    }
+
     bool isTruthyBoolCastKind(const CastKind castKind)
     {
         return castKind == CastKind::Condition ||
@@ -999,6 +1024,15 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     if (!srcType.isConvertibleToBool())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (isPointerBoolTestAlwaysTrue(sema, castRequest, srcTypeRef))
+    {
+        // A 'Swag.Late' slot is the one non-null pointer that legitimately starts empty, and the
+        // spelling that asks so is '@isset': the general help would send the reader to '#null',
+        // which the attribute rejects.
+        const DiagnosticId diagId = SemaHelpers::isLateInitAccess(sema, castRequest.errorNodeRef) ? DiagnosticId::sema_err_bool_test_late_slot : DiagnosticId::sema_err_bool_test_not_nullable;
+        return castRequest.fail(diagId, srcTypeRef, dstTypeRef);
+    }
 
     if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isBool() && !srcType.isIntLike() && !srcType.isFloat() && !srcType.isEnumFlags())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

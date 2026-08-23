@@ -330,7 +330,14 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
         SemaHelpers::NarrowGuards guards;
         SemaHelpers::collectNarrowGuards(sema, nodeConditionRef, guards);
         const auto& facts = childRef == nodeIfBlockRef ? guards.whenTrue : guards.whenFalse;
-        if (!facts.empty())
+
+        // A branch is also a narrowing region for the facts its own body proves: an assignment
+        // inside it holds only while that branch runs, because the other path never made it. A
+        // braced body already owns the frame every block gets at node entry; a "do" body is a
+        // bare statement, so the region frame is pushed here, or its fact outlives the branch
+        // and narrows code the other path reaches.
+        const bool bodyOwnsFrame = sema.node(childRef).is(AstNodeId::EmbeddedBlock);
+        if (!facts.empty() || !bodyOwnsFrame)
         {
             SemaFrame frame = sema.frame();
             SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});

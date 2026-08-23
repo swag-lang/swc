@@ -424,7 +424,7 @@ impl Painter
     func shapeRunForFont(run: const *ShapedRun, font: *Font)->ShapedRun
     {
         Debug.assert(font != null, "invalid font")
-        Debug.assert(!run.font or run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
+        Debug.assert(run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
 
         var result: retval
         result.font          = font

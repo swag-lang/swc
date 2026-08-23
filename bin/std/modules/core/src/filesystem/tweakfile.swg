@@ -148,8 +148,7 @@ impl TweakFile
                 continue
             }
 
-            if !currentFolder do
-                currentFolder = .folders.backPtr()
+            currentFolder = currentFolder orelse .folders.backPtr()
 
             // Value declaration
             one = Tokenize.eatSpaces(one)

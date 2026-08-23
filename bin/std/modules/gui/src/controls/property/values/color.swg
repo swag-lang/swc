@@ -74,8 +74,6 @@ internal impl Properties
 
         btn.sigPopupRequested += func|prop = me, color, item, opaque, keepAlpha|(btn)
         {
-            if !btn do
-                return
             let frame = btn.createAnchorPopup(356, 382)
             prop.editPopup = frame
 

@@ -54,7 +54,7 @@ func @is(toType, fromType: typeinfo)->bool
     return false
 }
 
-func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
+func @as(toType, fromType: typeinfo, ptr: #null *void)->#null *void
 {
     if @typecmp(toType, fromType, .Strict) do
         return ptr
@@ -173,7 +173,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
 
 ////////////////////////////////////////////////////////////
 
-func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
+func @tableof(structType, itfType: #null const *TypeInfoStruct)->#null const *void
 {
     if !structType or !itfType do
         return null

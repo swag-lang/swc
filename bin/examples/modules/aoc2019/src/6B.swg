@@ -62,7 +62,7 @@ func day6B()
 
     var you, san: Array'(string)
     var ity:      #null const *HashTableEntry'(string, string) = map.find("YOU")
-    var its:      const *HashTableEntry'(string, string)       = map.find("SAN")
+    var its:      #null const *HashTableEntry'(string, string) = map.tryFind("SAN")
 
     while ity
     {
@@ -81,7 +81,7 @@ func day6B()
         }
 
         san.add(its.value)
-        its = map.find(its.value)
+        its = map.tryFind(its.value)
     }
 
     // Console.print("total: ", total)

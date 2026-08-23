@@ -163,10 +163,7 @@ func getFaceImpl(face: #null *Face)->*FaceImpl fail
     if !face do
         fault(0x23)
     let safeFace = face!
-    let faceData = cast(*FaceImpl) cast(*void) safeFace
-    if !faceData do
-        fault(0x23)
-    return faceData
+    return cast(*FaceImpl) cast(*void) safeFace
 }
 
 func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail

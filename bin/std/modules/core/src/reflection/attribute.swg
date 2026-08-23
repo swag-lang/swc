@@ -62,7 +62,7 @@ func attributeValue(attribute: #null const *Swag.Attribute, value: #null string)
 
 // Returns the given associated attributes to 'value'
 #[ConstExpr]
-func attributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(const *Swag.Attribute)
+func attributes(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
     if !value do

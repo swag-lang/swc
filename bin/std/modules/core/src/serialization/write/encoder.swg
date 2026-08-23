@@ -282,9 +282,7 @@ impl Encoder
         if Reflection.isStaticArray(type)
         {
             let typeArr = cast(const *TypeInfoArray) type
-            if !typeArr.pointedType do
-                fail SerializationError{"missing array pointed type"}
-            let elemType = typeArr.pointedType orelse #typeof(u8)
+            let elemType = typeArr.pointedType
             let treated  = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()
             if treated do

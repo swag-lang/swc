@@ -1816,7 +1816,7 @@ impl Transform
     #[Swag.Inline]
     func isMaxima(e: *Edge, y: CInt)->bool
     {
-        return e and e.top.y == y and !e.nextInLML
+        return e.top.y == y and !e.nextInLML
     }
 
     func getMaximaPairEx(e: *Edge)->#null *Edge
@@ -2649,8 +2649,6 @@ impl Transform
     {
         var op      = op1
         let startOp = op
-        if !op do
-            return 0
 
         var a = 0'f64
         for
@@ -2738,10 +2736,8 @@ impl Transform
 
     func getLowermostRec(outRec1, outRec2: *OutRec)->*OutRec
     {
-        if !outRec1.bottomPt do
-            outRec1.bottomPt = getBottomPt(nnOutPt(outRec1.pts))
-        if !outRec2.bottomPt do
-            outRec2.bottomPt = getBottomPt(nnOutPt(outRec2.pts))
+        outRec1.bottomPt = outRec1.bottomPt orelse getBottomPt(nnOutPt(outRec1.pts))
+        outRec2.bottomPt = outRec2.bottomPt orelse getBottomPt(nnOutPt(outRec2.pts))
         let outPt1 = outRec1.bottomPt
         let outPt2 = outRec2.bottomPt
         if outPt1.pt.y > outPt2.pt.y do
@@ -2763,9 +2759,6 @@ impl Transform
 
     func reversePolyPtLinks(pp: *OutPt)
     {
-        if !pp do
-            return
-
         var pp1 = pp
         for
         {

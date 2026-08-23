@@ -82,7 +82,7 @@ internal impl Properties
     {
         Debug.assert(!.isGridLike())
         var width = cast(f32) .editorWidth
-        if .edView and .edView.position.width > 0 do
+        if .edView.position.width > 0 do
             width = .edView.position.width
         return Math.max(width, cast(f32) (.leftMargin + .rightMargin) + 1.0)
     }

@@ -357,24 +357,7 @@ namespace
     // received its value.
     Result semaIntrinsicIsSet(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView view   = sema.viewNode(children[0]);
-        const AstNode*     opNode = view.node();
-
-        bool isLateAccess = false;
-        if (opNode && opNode->is(AstNodeId::MemberAccessExpr))
-        {
-            const SemaNodeView rightView = sema.viewSymbol(opNode->cast<AstMemberAccessExpr>().nodeRightRef);
-            const Symbol*      sym       = rightView.sym();
-            isLateAccess                 = sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
-        }
-        else if (opNode && opNode->is(AstNodeId::Identifier))
-        {
-            // A bare 'Swag.Late' identifier is a global (fields go through member access).
-            const SemaNodeView symView = sema.viewSymbol(children[0]);
-            const Symbol*      sym     = symView.sym();
-            isLateAccess               = sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
-        }
-        if (!isLateAccess)
+        if (!SemaHelpers::isLateInitAccess(sema, children[0]))
             return SemaError::raise(sema, DiagnosticId::sema_err_isset_not_late_field, children[0]);
 
         // '@isset' inspects the storage, it never reads the value: cancel the read guard.

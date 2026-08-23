@@ -266,7 +266,7 @@ func createTrackedPopup(parent: *Wnd)->*MenuCtrl
 
 func destroyPageMenus()
 {
-    for menu in g_PageMenus where menu do
+    for menu in g_PageMenus do
         menu.destroy()
 
     g_PageMenus.clear()

@@ -11,7 +11,7 @@ func isDynamicArray(t: #null typeinfo)->bool
 
     let tt           = cast(const *TypeInfoStruct) t
     let arrayGeneric = (cast(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
-    if !tt.fromGeneric or !arrayGeneric do
+    if !tt.fromGeneric do
         return false
     return tt.fromGeneric.fullname == arrayGeneric.fullname
 }

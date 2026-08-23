@@ -1198,7 +1198,7 @@ impl Tessellate
     mtd pointEvent(point: *Point)->*Node
     {
         let node = .locateNode(point)
-        Debug.assert(node.next and node.next.point, "null node")
+        Debug.assert(node.next, "null node")
         let newNode = .newFrontTriangle(point, node)
 
         // Point coordinates are f32; compare with an f32 epsilon so the test stays in single

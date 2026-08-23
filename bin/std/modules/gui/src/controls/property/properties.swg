@@ -391,7 +391,6 @@ impl Properties
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: #null WndId = null)->*Properties
     {
-        Debug.assert(parent)
         let ed = Wnd.create'Properties(parent, "", position, id)
 
         with ed

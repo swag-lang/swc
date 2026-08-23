@@ -344,7 +344,7 @@ public impl Voice
             fail BadParameterError{"voice is not valid"}
         for bus in buses
         {
-            if !bus or !bus.handle do
+            if !bus.handle do
                 fail BadParameterError{"routing contains an invalid bus"}
         }
 

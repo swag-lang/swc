@@ -443,6 +443,28 @@ Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& sym
     return Result::Continue;
 }
 
+// Whether the expression names a 'Swag.Late' slot: a field through a member access, or a bare
+// identifier for a global. Both start as null storage and receive their value later, so a
+// consumer that asks about presence rather than value goes through '@isset'.
+bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
+{
+    if (nodeRef.isInvalid())
+        return false;
+
+    const AstNode* node = sema.viewNode(nodeRef).node();
+    if (!node)
+        return false;
+
+    AstNodeRef slotRef = nodeRef;
+    if (node->is(AstNodeId::MemberAccessExpr))
+        slotRef = node->cast<AstMemberAccessExpr>().nodeRightRef;
+    else if (node->isNot(AstNodeId::Identifier))
+        return false;
+
+    const Symbol* sym = sema.viewSymbol(slotRef).sym();
+    return sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
+}
+
 // A 'Swag.Late' field access requests a null-safety read guard when it resolves
 // (memberStruct). Consumers that never read the field value — pure assignment
 // target, address-of, '@isset' — call this to cancel the guard.

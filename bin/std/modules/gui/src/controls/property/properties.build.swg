@@ -45,16 +45,19 @@ internal impl Properties
     // module) can build their row the same way the built-in editors do.
     public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = PropertiesAddItemFlags.Name | PropertiesAddItemFlags.Description)->*PropertiesItem
     {
-        var line: #null *Wnd
+        var rowWnd: #null *Wnd
 
         if .isGridLike() do
-            line = Wnd.create'Wnd(.edView, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
+            rowWnd = Wnd.create'Wnd(.edView, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
         else
         {
             let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
             stk.fitToContent = true
-            line             = stk
+            rowWnd           = stk
         }
+
+        // Both paths build the row: name it once, non-null, for everything below.
+        let line = rowWnd!
 
         with line
         {
@@ -84,7 +87,7 @@ internal impl Properties
 
         with let item = .items.addNew()
         {
-            .initialize(line!, value.pointedType, value, data, parentItem)
+            .initialize(line, value.pointedType, value, data, parentItem)
             .level           = parentItem ? parentItem.level + 1 : 0
             .section         = parentItem ? parentItem.section : 0
             .valueCellHeight = height != 0 ? height : .gridLineHeight

@@ -42,12 +42,9 @@ impl RichEditCtrl
         if line.chars[i] == '\t' do
             return x + .tabAdvance(cast(s32) x)
 
-        let styleIdx = line.styles[i]
-        let info     = .computeTextDrawInfo(styleIdx)
-        let drawFont = info.drawFont
-        if !drawFont do
-            return x
-
+        let styleIdx   = line.styles[i]
+        let info       = .computeTextDrawInfo(styleIdx)
+        let drawFont   = info.drawFont
         let glyphIndex = drawFont.glyphIndex(line.chars[i])
         let desc       = drawFont.getGlyphDescByIndex(glyphIndex)
 

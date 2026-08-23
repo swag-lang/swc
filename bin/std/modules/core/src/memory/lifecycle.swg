@@ -24,10 +24,7 @@ internal func canDefaultInit(type: typeinfo)->bool
             return true
         if type.flags & TypeInfoFlags.RequiresExplicitInit do
             return false
-        let pointedType = typeArray.pointedType
-        if !pointedType do
-            return false
-        return canDefaultInit(pointedType orelse #typeof(u8))
+        return canDefaultInit(typeArray.pointedType)
     }
 
     if type.flags & TypeInfoFlags.RequiresExplicitInit do
@@ -63,13 +60,10 @@ internal func defaultInit(dst: #null *void, type: typeinfo)
     if concreteType.kind == TypeInfoKind.Array
     {
         let typeArray = cast(const *TypeInfoArray) concreteType
+        let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
         {
-            let pointedType = typeArray.pointedType
-            if !pointedType do
-                return
-            let valueType = pointedType orelse #typeof(u8)
             defaultInit(scan, valueType)
             scan += valueType.sizeof
         }
@@ -119,13 +113,10 @@ internal func dropType(dst: #null *void, type: typeinfo)
     if concreteType.kind == TypeInfoKind.Array
     {
         let typeArray = cast(const *TypeInfoArray) concreteType
+        let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
         {
-            let pointedType = typeArray.pointedType
-            if !pointedType do
-                return
-            let valueType = pointedType orelse #typeof(u8)
             dropType(scan, valueType)
             scan += valueType.sizeof
         }
@@ -168,13 +159,10 @@ internal func postCopyType(dst: #null *void, type: typeinfo)
     if concreteType.kind == TypeInfoKind.Array
     {
         let typeArray = cast(const *TypeInfoArray) concreteType
+        let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
         {
-            let pointedType = typeArray.pointedType
-            if !pointedType do
-                return
-            let valueType = pointedType orelse #typeof(u8)
             postCopyType(scan, valueType)
             scan += valueType.sizeof
         }
@@ -217,13 +205,10 @@ internal func postMoveType(dst: #null *void, type: typeinfo)
     if concreteType.kind == TypeInfoKind.Array
     {
         let typeArray = cast(const *TypeInfoArray) concreteType
+        let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
         {
-            let pointedType = typeArray.pointedType
-            if !pointedType do
-                return
-            let valueType = pointedType orelse #typeof(u8)
             postMoveType(scan, valueType)
             scan += valueType.sizeof
         }

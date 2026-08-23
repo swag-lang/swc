@@ -162,7 +162,7 @@ internal impl Voice
         for i in count
         {
             let bus = buses[i]
-            if !bus or !bus.handle do
+            if !bus.handle do
                 fail BadParameterError{"bus invalid"}
             handle.buses[i] = bus
         }

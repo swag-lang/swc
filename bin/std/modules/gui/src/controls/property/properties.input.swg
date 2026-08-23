@@ -62,7 +62,7 @@ internal impl Properties
         // would otherwise swallow the bubble before it reaches the scroll view.
         if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .Wheel
         {
-            if prop.scrollWnd and prop.edView and mouseEvt.target and prop.edView.isAncestorOf(mouseEvt.target)
+            if mouseEvt.target and prop.edView.isAncestorOf(mouseEvt.target)
             {
                 let sp = prop.scrollWnd.scrollPosition()
                 prop.scrollWnd.setScrollPos(sp.x, sp.y - mouseEvt.delta.y * prop.scrollWnd.verticalScrollStep)

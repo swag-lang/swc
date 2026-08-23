@@ -645,9 +645,6 @@ impl HeadlessHost
         for surface in .app.modalSurfaces.reversed()
         {
             let view = surface.view()
-            if !view do
-                continue
-
             wnd = view.childById(id!)
             if wnd do
                 break
@@ -720,9 +717,6 @@ impl HeadlessHost
         for surface in .app.modalSurfaces
         {
             let view = surface.view()
-            if !view do
-                continue
-
             browser = .findFileBrowserCtrl(view)
             if browser do
                 break

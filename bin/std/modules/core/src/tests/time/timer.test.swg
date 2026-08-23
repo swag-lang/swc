@@ -25,14 +25,14 @@ func timerTestCallback(_timer: *Time.Timer)
     context.user0     = TimerTestMarker
     defer context.user0 = previousUser0
 
-    var timer = expect Time.Timer.create(Time.Duration.fromMilliseconds(1), &timerTestCallback)
+    var timer = expect Time.Timer.create(1'ms, &timerTestCallback)
 
     // The worker thread is scheduled by the operating system: wait for it, but never forever.
     for 200
     {
         if Atomic.get(&g_timerFired) != 0 do
             break
-        Threading.sleep(Time.Duration.fromMilliseconds(10))
+        Threading.Thread.sleep(10'ms)
     }
 
     @assert(Atomic.get(&g_timerFired) != 0)

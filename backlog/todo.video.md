@@ -27,6 +27,29 @@ is the layout it does not read yet.
   entropy parse 33.4, reconstruction 17.4, loop filter 8.6 — plus 13.4 for the conversion to RGB.
   FFmpeg on the same machine needs about 27 ms of processor time per picture single-threaded and
   about 3 ms of wall time frame-threaded.
+- Measured shape of the remaining gap (2026-08-23, release, 3840x2160p25 High/CABAC, one lane and
+  one worker so the figures are processor time for one picture): entropy parse 37.7 ms,
+  reconstruction 19.7 ms, loop filter 9.6 ms, and 15.7 ms more for the conversion to RGB, which
+  FFmpeg's 27 ms does not contain at all. Reconstruction splits into motion compensation 7.5,
+  luma residual 4.1, chroma residual 3.1, intra prediction 2.5. One picture decodes 904,000 bins:
+  568,603 context-coded, 310,298 through the significance-map path, 25,095 bypass. At 37.7 ms the
+  parse therefore spends roughly 40 ns per bin against the few nanoseconds a tuned decoder needs,
+  and that ratio, not any one stage, is the distance to FFmpeg.
+- Four attempts on that parse were measured and rejected, each byte-exact and each neutral or
+  slightly worse (processor time per picture, best of three alternating runs on a quiet machine,
+  74.6 ms for the unmodified decoder):
+  copying the picture geometry onto the slice so neighbor lookups stop reaching through the active
+  sequence set twice per access (74.6 -> 74.4, neutral); resolving the left and top neighbors once
+  per macroblock instead of at each of the roughly 295,000 queries a picture makes — 115,206
+  through `motionAt` and 179,988 through `mbAvailable` — which measured 6% *worse* because the
+  eager resolution is paid by every skipped macroblock too (74.6 -> 81.3); making the generic
+  CABAC decision branchless with the mask select the significance-map decision already uses, with
+  `Swag.PrintMicro` confirming the fifty-fifty branch left the emitted code (74.6 -> 77.4); and
+  holding the two arithmetic registers in locals across a complete residual block, levels and
+  bypass included, which is the technique that pays for the significance map (74.6 -> 76.3).
+  The cost is therefore not redundant work at the call sites and not misprediction: it is what
+  each individual operation compiles to. The next attempt should start from the emitted code of
+  one bin rather than from the source.
 - The remaining serial cost is the entropy parse, and more than half of it is not the coefficients:
   the residual decoder is about 15 ms and the prediction, motion and bookkeeping around it about
   18. Both read and write the picture-wide per-4x4-block grids — motion, reference indices,
